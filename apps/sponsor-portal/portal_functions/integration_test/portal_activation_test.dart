@@ -28,7 +28,12 @@ void main() {
 
   const testAlreadyActiveUserId = '99991000-0000-0000-0000-000000000003';
   const testAlreadyActiveEmail = 'active@activation-test.example.com';
+  const testAlreadyActiveFirebaseUid = 'firebase-active-uid-12345';
   const testAlreadyActiveCode = 'TEST2-ACT02';
+
+  const testExpiredUserId = '99991000-0000-0000-0000-000000000004';
+  const testExpiredUserEmail = 'expired@activation-test.example.com';
+  const testExpiredCode = 'TEST3-EXPR3';
 
   setUpAll(() async {
     // Initialize database
@@ -52,12 +57,13 @@ void main() {
     // Clean up any previous test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
-      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid)
-         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid)''',
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)
+         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)''',
       parameters: {
         'devAdminId': testDevAdminId,
         'pendingId': testPendingUserId,
         'activeId': testAlreadyActiveUserId,
+        'expiredId': testExpiredUserId,
       },
     );
     await db.execute(
@@ -107,14 +113,30 @@ void main() {
     // Create test already-active user with activation code
     await db.execute(
       '''
-      INSERT INTO portal_users (id, email, name, status, activation_code)
-      VALUES (@id::uuid, @email, 'Test Already Active', 'active', @code)
+      INSERT INTO portal_users (id, email, name, firebase_uid, status, activation_code)
+      VALUES (@id::uuid, @email, 'Test Already Active', @firebaseUid, 'active', @code)
       ON CONFLICT (email) DO NOTHING
       ''',
       parameters: {
         'id': testAlreadyActiveUserId,
         'email': testAlreadyActiveEmail,
+        'firebaseUid': testAlreadyActiveFirebaseUid,
         'code': testAlreadyActiveCode,
+      },
+    );
+
+    // Create test user with expired activation code
+    await db.execute(
+      '''
+      INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
+      VALUES (@id::uuid, @email, 'Test Expired User', 'pending', @code, @expiry)
+      ON CONFLICT (email) DO NOTHING
+      ''',
+      parameters: {
+        'id': testExpiredUserId,
+        'email': testExpiredUserEmail,
+        'code': testExpiredCode,
+        'expiry': DateTime.now().subtract(Duration(days: 1)).toIso8601String(),
       },
     );
   });
@@ -123,12 +145,13 @@ void main() {
     // Clean up test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
-      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid)
-         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid)''',
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)
+         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)''',
       parameters: {
         'devAdminId': testDevAdminId,
         'pendingId': testPendingUserId,
         'activeId': testAlreadyActiveUserId,
+        'expiredId': testExpiredUserId,
       },
     );
     await db.execute(
@@ -139,24 +162,33 @@ void main() {
     await Database.instance.close();
   });
 
-  String createMockEmulatorToken(String uid, String email) {
+  String createMockEmulatorToken(
+    String uid,
+    String email, {
+    bool mfaEnrolled = false,
+  }) {
     final header = base64Url.encode(
       utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
     );
-    final payload = base64Url.encode(
-      utf8.encode(
-        jsonEncode({
-          'sub': uid,
-          'user_id': uid,
-          'email': email,
-          'email_verified': true,
-          'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          'exp':
-              DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/
-              1000,
-        }),
-      ),
-    );
+    final payloadData = {
+      'sub': uid,
+      'user_id': uid,
+      'email': email,
+      'email_verified': true,
+      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'exp':
+          DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+    };
+
+    // Add MFA claims if enrolled
+    if (mfaEnrolled) {
+      payloadData['firebase'] = {
+        'sign_in_second_factor': 'totp',
+        'second_factor_identifier': 'test-mfa-factor-id',
+      };
+    }
+
+    final payload = base64Url.encode(utf8.encode(jsonEncode(payloadData)));
     return '$header.$payload.';
   }
 
@@ -226,6 +258,20 @@ void main() {
       final json = await getResponseJson(response);
       expect(json['error'], contains('already activated'));
     });
+
+    test('returns 401 for expired activation code', () async {
+      final request = createGetRequest(
+        '/api/v1/portal/activate/$testExpiredCode',
+      );
+      final response = await validateActivationCodeHandler(
+        request,
+        testExpiredCode,
+      );
+
+      expect(response.statusCode, equals(401));
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('expired'));
+    });
   });
 
   group('activateUserHandler', () {
@@ -234,6 +280,7 @@ void main() {
       final token = createMockEmulatorToken(
         'wrong-uid-12345',
         'wrong@example.com',
+        mfaEnrolled: true,
       );
       final request = createPostRequest(
         '/api/v1/portal/activate',
@@ -251,6 +298,7 @@ void main() {
       final token = createMockEmulatorToken(
         testPendingUserFirebaseUid,
         testPendingUserEmail,
+        mfaEnrolled: true,
       );
       final request = createPostRequest(
         '/api/v1/portal/activate',
@@ -264,11 +312,70 @@ void main() {
       expect(json['error'], contains('Invalid activation code'));
     });
 
-    test('successfully activates user with matching email', () async {
-      // Use proper email and uid for the pending user
+    test('returns 403 when MFA not enrolled', () async {
+      // Token without MFA claims should be rejected
       final token = createMockEmulatorToken(
         testPendingUserFirebaseUid,
         testPendingUserEmail,
+        mfaEnrolled: false,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/activate',
+        {'code': testActivationCode},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(403));
+      final json = await getResponseJson(response);
+      expect(json['mfa_required'], isTrue);
+      expect(json['error'], contains('MFA enrollment required'));
+    });
+
+    test('returns 401 for expired activation code', () async {
+      // Try to activate with an expired code
+      final token = createMockEmulatorToken(
+        'firebase-expired-uid',
+        testExpiredUserEmail,
+        mfaEnrolled: true,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/activate',
+        {'code': testExpiredCode},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(401));
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('expired'));
+    });
+
+    test('returns 400 for already activated user', () async {
+      // Try to activate a user that's already active
+      final token = createMockEmulatorToken(
+        testAlreadyActiveFirebaseUid,
+        testAlreadyActiveEmail,
+        mfaEnrolled: true,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/activate',
+        {'code': testAlreadyActiveCode},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(400));
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('already activated'));
+    });
+
+    test('successfully activates user with MFA enrolled', () async {
+      // Use proper email and uid for the pending user with MFA enrolled
+      final token = createMockEmulatorToken(
+        testPendingUserFirebaseUid,
+        testPendingUserEmail,
+        mfaEnrolled: true,
       );
       final request = createPostRequest(
         '/api/v1/portal/activate',

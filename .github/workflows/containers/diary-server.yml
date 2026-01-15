@@ -68,6 +68,8 @@ jobs:
         with:
           context: .
           file: infrastructure/diary-server/Dockerfile
+          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
+          platforms: linux/amd64
           build-args: |
             DART_VERSION=${{ steps.versions.outputs.dart_version }}
             GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}

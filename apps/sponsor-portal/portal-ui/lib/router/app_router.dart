@@ -2,6 +2,7 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00028: Portal Frontend Framework
 //   REQ-d00035: Admin Dashboard Implementation
+//   REQ-p00002: Multi-Factor Authentication for Staff
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import '../pages/admin/admin_dashboard_page.dart';
 import '../pages/dev_admin/dev_admin_dashboard_page.dart';
 import '../pages/login_page.dart';
 import '../pages/role_picker_page.dart';
+import '../pages/two_factor_setup_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -31,6 +33,16 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final code = state.uri.queryParameters['code'];
         return ActivationPage(code: code);
+      },
+    ),
+    GoRoute(
+      path: '/activate/2fa',
+      name: 'activate-2fa',
+      builder: (context, state) {
+        // Get activation code from extra data passed from ActivationPage
+        final extra = state.extra as Map<String, dynamic>?;
+        final code = extra?['code'] as String? ?? '';
+        return TwoFactorSetupPage(activationCode: code);
       },
     ),
     GoRoute(

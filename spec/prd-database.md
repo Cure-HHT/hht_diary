@@ -15,27 +15,24 @@
 
 # REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-A cloud database system using event sourcing to store clinical trial data with complete audit trails, sponsor isolation, and FDA 21 CFR Part 11 compliance.
+## Rationale
 
-Data storage system SHALL provide:
-- Event sourcing for immutable audit trails
-- Separate database instance per sponsor
-- Complete history of all data changes
-- Row-level security for access control
-- Long-term data retention compliance
+This requirement defines the foundational data persistence layer for all clinical trial information. FDA 21 CFR Part 11 mandates that electronic records used in clinical trials maintain complete, tamper-evident audit trails and secure access controls. Event sourcing architecture ensures all data modifications are captured as immutable events, enabling reconstruction of complete data history at any point in time. Sponsor isolation through separate database instances protects data integrity across independent trials and prevents unauthorized cross-sponsor data access. Long-term retention capabilities ensure compliance with regulatory requirements for preserving clinical trial records.
 
-**Rationale**: Provides the data persistence layer for all clinical trial information, designed to meet FDA regulatory requirements for electronic records. Event sourcing ensures tamper-evident audit trails while sponsor isolation protects data integrity across independent trials.
+## Assertions
 
-**Acceptance Criteria**:
-- All data changes stored as immutable events
-- Complete audit trail reconstructable at any point in time
-- Separate database per sponsor with no cross-access
-- Row-level security enforcing access boundaries
-- Data retention meeting regulatory requirements (7+ years)
+A. The system SHALL use event sourcing to store all clinical trial data changes as immutable events.
+B. The system SHALL maintain a complete audit trail of all data modifications.
+C. The system SHALL provide a separate database instance for each sponsor.
+D. The system SHALL enforce sponsor isolation to prevent cross-sponsor data access.
+E. The system SHALL implement row-level security for access control.
+F. The system SHALL enable reconstruction of complete data history at any point in time from stored events.
+G. The system SHALL retain clinical trial data for a minimum of seven years to meet regulatory requirements.
+H. The system SHALL ensure all audit trails are tamper-evident in compliance with FDA 21 CFR Part 11.
 
-*End* *Clinical Data Storage System* | **Hash**: d8a1fdf2
+*End* *Clinical Data Storage System* | **Hash**: 2e588136
 
 ---
 
@@ -60,36 +57,33 @@ FDA compliant record keeping.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00004, p00010, p00011
 
-The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
+## Rationale
 
-Change history SHALL include:
-- Original value when record first created
-- All subsequent modifications (new values only)
-- Identity of person who made each change
-- Timestamp of each change
-- Reason for change (when applicable)
-- Device and session information for change
+FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for all clinical data modifications in electronic records. This requirement ensures that original values are permanently preserved to prove data integrity and enable detection of improper modifications. The change history supports regulatory inspections by providing a complete timeline of who made what changes, when, why, and from which device. This implements the event sourcing architecture pattern where all changes are captured as immutable events rather than overwriting existing data.
 
-**Rationale**: Regulatory compliance (p00010, p00011) requires complete, tamper-proof history of all clinical data changes. Preserving original values proves data integrity and enables detection of improper modifications. Supports event sourcing architecture (p00004).
+## Assertions
 
-**Acceptance Criteria**:
-- Original record values preserved permanently
-- All modifications stored as separate historical records
-- Change history cannot be altered or deleted
-- Complete timeline reconstructable from history
-- History includes who, what, when, why for every change
+A. The system SHALL preserve the complete history of all data modifications.
+B. The system SHALL ensure original values are never overwritten or deleted.
+C. The system SHALL store the original value when a record is first created.
+D. The system SHALL store all subsequent modifications as new values.
+E. The system SHALL record the identity of the person who made each change.
+F. The system SHALL record the timestamp of each change.
+G. The system SHALL record the reason for change when applicable.
+H. The system SHALL record device information for each change.
+I. The system SHALL record session information for each change.
+J. The system SHALL store all modifications as separate historical records.
+K. The system SHALL NOT allow alteration of change history records.
+L. The system SHALL NOT allow deletion of change history records.
+M. The system SHALL enable reconstruction of the complete timeline from history.
+N. Change history records SHALL include who made the change.
+O. Change history records SHALL include what was changed.
+P. Change history records SHALL include when the change occurred.
+Q. Change history records SHALL include why the change was made.
 
-### Study Organization
-
-**Clinical Sites**: Information about hospitals and research centers participating in the trial
-
-**User Roles**: Which staff members can access which patient data
-
-**Study Configuration**: Trial-specific settings and questionnaires
-
-*End* *Complete Data Change History* | **Hash**: ab598860
+*End* *Complete Data Change History* | **Hash**: 173331a9
 
 ---
 
@@ -97,162 +91,63 @@ Change history SHALL include:
 
 # REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00011 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00011
 
-Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
+## Rationale
 
-Database isolation SHALL ensure:
-- Each sponsor's data stored in physically separate database instances
-- No database queries can access data across sponsor boundaries
-- Database connections scoped to single sponsor
-- Independent backup and recovery per sponsor
+This requirement extends the multi-sponsor isolation principle (REQ-p00001) to the database infrastructure layer. Physical database separation is necessary for regulatory compliance in independent clinical trials, ensuring that each pharmaceutical sponsor's trial data is completely isolated from other sponsors. This architecture eliminates any technical possibility of data cross-contamination, provides clear audit boundaries for FDA 21 CFR Part 11 compliance, and ensures that database-level operations (queries, backups, recovery) cannot accidentally or intentionally access another sponsor's data. The physical separation also provides independent operational control and supports sponsor-specific compliance requirements.
 
-**Rationale**: Extends multi-sponsor isolation (p00001) to the database layer. Physical database separation ensures regulatory compliance for independent clinical trials and eliminates any technical possibility of data cross-contamination.
+## Assertions
 
-**Acceptance Criteria**:
-- Each sponsor provisioned with dedicated database instance
-- Database connection strings unique per sponsor
-- No foreign keys or references across sponsor databases
-- Backup/restore operations scoped to single sponsor
-- Query execution cannot span multiple sponsor databases
+A. The platform SHALL provision each pharmaceutical sponsor with a dedicated database instance.
+B. The system SHALL NOT share database tables between sponsor instances.
+C. The system SHALL NOT share database connections between sponsor instances.
+D. The system SHALL NOT share database infrastructure between sponsor instances.
+E. Each sponsor's data SHALL be stored in physically separate database instances.
+F. Database connection strings SHALL be unique per sponsor.
+G. Database queries SHALL NOT access data across sponsor boundaries.
+H. Database connections SHALL be scoped to a single sponsor.
+I. The system SHALL NOT create foreign keys that reference across sponsor databases.
+J. The system SHALL NOT create database references that span across sponsor databases.
+K. Backup operations SHALL be scoped to a single sponsor database.
+L. Restore operations SHALL be scoped to a single sponsor database.
+M. Query execution SHALL NOT span multiple sponsor databases.
 
-*End* *Separate Database Per Sponsor* | **Hash**: 6a207b1a
+*End* *Separate Database Per Sponsor* | **Hash**: bfb45afa
 ---
 
 ## Event Sourcing Architecture
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Implements**: p00011 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00011
 
-The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
+## Rationale
 
-Event storage SHALL ensure:
-- Every data change recorded as separate, append-only event
-- Events never modified or deleted after creation
-- Complete chronological history preserved
-- Each event includes: timestamp, user ID, action type, data values, reason for change
-- Current data state derived by replaying events
+FDA 21 CFR Part 11 requires complete audit trails for electronic records in clinical trials. Event sourcing is the architectural approach that makes audit trails automatic and tamper-proof by design - it is impossible to modify data without creating an event, and events cannot be altered after creation. This directly supports ALCOA+ principles (Attributable, Legible, Contemporaneous, Original, Accurate) by ensuring every data change is recorded with full context. Unlike traditional database updates that overwrite values and lose history, event sourcing preserves the complete chronological sequence of all changes, enabling time-travel queries to reconstruct data state at any point and providing tamper evidence through the immutable event log.
 
-TODO - do we need a PRD-level OpenTimestamps description?
+## Assertions
 
-**Rationale**: FDA 21 CFR Part 11 requires complete audit trails for electronic records. Event sourcing makes audit trails automatic and tamper-proof by design - you cannot modify data without creating an event, and events cannot be altered after creation. This supports ALCOA+ principles.
+A. The system SHALL store all clinical trial data changes as immutable events.
+B. The system SHALL record every data change as a separate, append-only event.
+C. The system SHALL NOT allow modification of events after creation.
+D. The system SHALL NOT allow deletion of events after creation.
+E. The system SHALL preserve the complete chronological history of all data changes.
+F. Each event SHALL include a timestamp indicating when the change occurred.
+G. Each event SHALL include the user ID of the person who made the change.
+H. Each event SHALL include the action type performed.
+I. Each event SHALL include the data values that were changed.
+J. Each event SHALL include the reason for the change.
+K. The system SHALL derive current data state by replaying events from the event store.
+L. The system SHALL NOT use direct UPDATE operations to modify clinical trial data.
+M. The system SHALL NOT use direct DELETE operations to remove clinical trial data.
+N. The system SHALL enable reconstruction of data state at any point in time by replaying events up to that point.
+O. The system SHALL prevent tampering with events through database constraints.
+P. The event store SHALL use append-only storage that grows over time.
+Q. The system SHALL maintain a current view of data that is automatically calculated from events.
+R. The system SHALL update the current view automatically when new events are created.
 
-**Acceptance Criteria**:
-- All data changes stored as events, never direct updates
-- Events are append-only (no UPDATE or DELETE operations)
-- Event log includes who, what, when, why for every change
-- System can reconstruct data state at any point in time
-- Tampering with events is technically prevented by database constraints
-
-### Why Event Sourcing?
-
-Event Sourcing is the architectural approach used to store clinical trial data. Instead of saving only the current value of data, the system saves every change as a separate event. This creates an automatic, complete audit trail required for FDA compliance.
-
-**Simple Analogy**: Like a bank statement that shows every transaction rather than just your current balance. You can see the full history and verify everything adds up correctly.
-
-**Traditional Database Problem**:
-1. Patient enters "pain level: 5"
-2. System saves: `pain_level = 5`
-3. Patient corrects to "pain level: 7"
-4. System overwrites: `pain_level = 7`
-5. Original value (5) is gone forever
-
-**Problem**: No audit trail. No way to prove data wasn't tampered with.
-
-**Event Sourcing Solution**:
-1. Patient enters "pain level: 5"
-2. System saves: `Event #1: set pain_level to 5`
-3. Patient corrects to "pain level: 7"
-4. System saves: `Event #2: set pain_level to 7`
-5. Both events preserved forever
-
-**Benefit**: Complete history. Can prove exactly what happened and when.
-
-### Real-World Example: Patient Diary Entry
-
-**Monday Morning** - Patient creates entry:
-- Event: "Created diary entry, pain level 5"
-- Stored with: timestamp, patient ID, "created"
-
-**Monday Afternoon** - Patient realizes mistake:
-- Event: "Updated diary entry, pain level 7"
-- Stored with: timestamp, patient ID, "updated", reason: "corrected error"
-
-**Tuesday** - Investigator adds note:
-- Event: "Added annotation: followed up with patient"
-- Stored with: timestamp, investigator ID, "annotation"
-
-**Result**: Complete timeline of what happened. Auditors can see:
-- Original entry was 5
-- Patient corrected it to 7 (with reason)
-- Investigator followed up
-- Who did what and when
-
-### Key Benefits
-
-**1. Automatic Audit Trail**
-
-**FDA Requirement**: Must track all data changes
-
-**How Event Sourcing Helps**: Audit trail is automatic. Every change is an event, so you can't make a change without creating audit records.
-
-**Traditional Systems**: Must remember to log changes. Easy to miss or bypass.
-
-**Our System**: Impossible to change data without creating audit trail.
-
-**2. Time Travel**
-
-**Capability**: Can reconstruct data as it appeared at any point in time
-
-**Use Cases**:
-- "Show me this patient's data as it was on October 15"
-- "What did the investigator see when they made that decision?"
-- "Verify data hasn't been changed after study lock"
-
-**Why This Matters**: Regulators can verify data integrity by checking historical states.
-
-**3. Tamper Evidence**
-
-**Protection**: Any attempt to alter historical events is detectable
-
-**How**: Mathematical signatures on each event
-
-**Result**: Can prove to regulators that data hasn't been tampered with
-
-**4. Complete Transparency**
-
-**For Patients**: Can see full history of their data and who accessed it
-
-**For Investigators**: Can see when and why data changed
-
-**For Auditors**: Complete visibility into all data changes
-
-### How It Works (Simple Explanation)
-
-**Event Store** (The Complete History):
-- Every change stored as separate event
-- Events never modified or deleted
-- Grows larger over time
-- Used for audit and compliance
-
-**Current View** (What You See Now):
-- Shows current state of data
-- Automatically calculated from events
-- Fast to query
-- Used for daily operations
-
-**When Patient Enters Data**:
-1. New event created and stored
-2. Current view updated automatically
-3. Patient sees updated display
-
-**When Staff Views Data**:
-1. Query the current view (fast)
-2. See latest values
-3. Can click to see full history if needed
-
-*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: fe9b40ea
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 3be570a3
 
 ---
 

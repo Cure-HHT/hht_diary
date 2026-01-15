@@ -438,4 +438,106 @@ void main() {
       expect(result.error, isNotNull);
     });
   });
+
+  group('MfaInfo', () {
+    test('fromFirebaseClaim returns not enrolled for null claim', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim(null);
+      expect(mfaInfo.isEnrolled, isFalse);
+      expect(mfaInfo.method, isNull);
+      expect(mfaInfo.enrolledFactorId, isNull);
+    });
+
+    test('fromFirebaseClaim returns not enrolled for empty claim', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim({});
+      expect(mfaInfo.isEnrolled, isFalse);
+      expect(mfaInfo.method, isNull);
+      expect(mfaInfo.enrolledFactorId, isNull);
+    });
+
+    test('fromFirebaseClaim extracts TOTP enrollment', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim({
+        'sign_in_second_factor': 'totp',
+        'second_factor_identifier': 'factor-123',
+      });
+      expect(mfaInfo.isEnrolled, isTrue);
+      expect(mfaInfo.method, equals('totp'));
+      expect(mfaInfo.enrolledFactorId, equals('factor-123'));
+    });
+
+    test('fromFirebaseClaim extracts phone MFA', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim({
+        'sign_in_second_factor': 'phone',
+        'second_factor_identifier': 'phone-factor-456',
+      });
+      expect(mfaInfo.isEnrolled, isTrue);
+      expect(mfaInfo.method, equals('phone'));
+      expect(mfaInfo.enrolledFactorId, equals('phone-factor-456'));
+    });
+
+    test('fromFirebaseClaim handles missing factor ID', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim({
+        'sign_in_second_factor': 'totp',
+      });
+      expect(mfaInfo.isEnrolled, isTrue);
+      expect(mfaInfo.method, equals('totp'));
+      expect(mfaInfo.enrolledFactorId, isNull);
+    });
+
+    test('fromFirebaseClaim ignores other firebase claim fields', () {
+      final mfaInfo = MfaInfo.fromFirebaseClaim({
+        'identities': {
+          'email': ['test@example.com'],
+        },
+        'sign_in_provider': 'password',
+        'sign_in_second_factor': 'totp',
+      });
+      expect(mfaInfo.isEnrolled, isTrue);
+      expect(mfaInfo.method, equals('totp'));
+    });
+
+    test('toString returns readable format', () {
+      final mfaInfo = MfaInfo(
+        isEnrolled: true,
+        method: 'totp',
+        enrolledFactorId: 'factor-789',
+      );
+      expect(
+        mfaInfo.toString(),
+        equals('MfaInfo(isEnrolled: true, method: totp, factorId: factor-789)'),
+      );
+    });
+
+    test('toString handles null values', () {
+      final mfaInfo = MfaInfo(isEnrolled: false);
+      expect(
+        mfaInfo.toString(),
+        equals('MfaInfo(isEnrolled: false, method: null, factorId: null)'),
+      );
+    });
+  });
+
+  group('VerificationResult with MfaInfo', () {
+    test('can include mfaInfo', () {
+      final mfaInfo = MfaInfo(
+        isEnrolled: true,
+        method: 'totp',
+        enrolledFactorId: 'mfa-123',
+      );
+      final result = VerificationResult(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        emailVerified: true,
+        mfaInfo: mfaInfo,
+      );
+      expect(result.isValid, isTrue);
+      expect(result.mfaInfo, isNotNull);
+      expect(result.mfaInfo!.isEnrolled, isTrue);
+      expect(result.mfaInfo!.method, equals('totp'));
+    });
+
+    test('mfaInfo defaults to null', () {
+      final result = VerificationResult(uid: 'test-uid');
+      expect(result.mfaInfo, isNull);
+    });
+  });
 }

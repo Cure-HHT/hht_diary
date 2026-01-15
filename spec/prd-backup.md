@@ -14,30 +14,24 @@
 
 # REQ-p00047: Data Backup and Archival
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-A backup and archival system ensuring clinical trial data is protected against loss, recoverable in disaster scenarios, and retained for regulatory compliance periods.
+## Rationale
 
-Backup and archival SHALL provide:
-- Automated database backups with defined frequency
-- Geographic redundancy for disaster recovery
-TODO - what does geo redundancy do to our scheme for all-EU for GDPR? 
-- Point-in-time recovery capability
-- Long-term archival for regulatory retention (7+ years)
-- Backup integrity verification
-- Sponsor-isolated backup storage
+Clinical trial data must be protected and retained for extended periods per FDA regulations. FDA 21 CFR Part 11 requires electronic records to remain accessible throughout their retention period, which typically extends 7+ years for clinical trials. Backup systems ensure data survivability and business continuity in disaster scenarios, while archival systems enable long-term regulatory compliance and support potential future regulatory audits. Geographic redundancy provides resilience against site-level failures, though geographic placement must align with data residency requirements (such as GDPR for EU-based trials). Sponsor isolation in backup storage ensures multi-tenant data segregation principles extend to disaster recovery systems.
 
-**Rationale**: Clinical trial data must be protected and retained for extended periods per FDA regulations. Backup systems ensure data survivability while archival systems enable long-term regulatory compliance and potential future audits.
+## Assertions
 
-**Acceptance Criteria**:
-- Automated backups occur without manual intervention
-- Backups stored in geographically separate locations
-- Recovery tested and documented quarterly
-- Archived data accessible for regulatory audits
-- Backup integrity verified with checksums
-- Each sponsor's backups isolated from others
+A. The system SHALL perform automated database backups at defined frequencies without requiring manual intervention.
+B. The system SHALL store backups in geographically separate locations to enable disaster recovery.
+C. The system SHALL provide point-in-time recovery capability for database restoration.
+D. The system SHALL retain archived data for a minimum of 7 years to meet regulatory compliance requirements.
+E. The system SHALL verify backup integrity using cryptographic checksums or equivalent mechanisms.
+F. The system SHALL isolate each sponsor's backup storage from other sponsors' backups.
+G. The system SHALL maintain archived data in an accessible format for regulatory audits throughout the retention period.
+H. The system SHALL document and test recovery procedures on a quarterly basis.
 
-*End* *Data Backup and Archival* | **Hash**: 5fd3918a
+*End* *Data Backup and Archival* | **Hash**: cf938097
 
 ---
 

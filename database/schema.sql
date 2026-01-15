@@ -136,7 +136,7 @@ RESET lock_timeout;
 -- =====================================================
 
 -- Sites Table
--- Stores clinical trial site information
+-- Stores clinical trial site information synced from EDC (RAVE)
 CREATE TABLE sites (
     site_id TEXT PRIMARY KEY,
     site_name TEXT NOT NULL,
@@ -146,12 +146,59 @@ CREATE TABLE sites (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
+    metadata JSONB DEFAULT '{}'::jsonb,
+    -- EDC sync tracking
+    edc_oid TEXT,  -- Original OID from RAVE EDC
+    edc_synced_at TIMESTAMPTZ  -- Last sync from EDC
+);
+
+COMMENT ON TABLE sites IS 'Clinical trial site information synced from EDC';
+COMMENT ON COLUMN sites.site_id IS 'Unique site identifier (typically matches EDC OID)';
+COMMENT ON COLUMN sites.metadata IS 'Additional site-specific configuration';
+COMMENT ON COLUMN sites.edc_oid IS 'Original OID from RAVE EDC system';
+COMMENT ON COLUMN sites.edc_synced_at IS 'Timestamp of last sync from EDC';
+
+-- =====================================================
+-- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
+-- =====================================================
+-- Tracks all synchronization events from EDC systems
+-- Provides audit trail for compliance and debugging
+
+CREATE TABLE edc_sync_log (
+    sync_id BIGSERIAL PRIMARY KEY,
+    sync_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+    source_system TEXT NOT NULL CHECK (source_system IN ('RAVE', 'MEDIDATA', 'OTHER')),
+    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
+    sites_created INTEGER NOT NULL DEFAULT 0,
+    sites_updated INTEGER NOT NULL DEFAULT 0,
+    sites_deactivated INTEGER NOT NULL DEFAULT 0,
+    content_hash TEXT NOT NULL,
+    chain_hash TEXT,  -- Chained hash for tamper-evident audit trail (computed by trigger)
+    duration_ms INTEGER,
+    success BOOLEAN NOT NULL DEFAULT true,
+    error_message TEXT,
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE sites IS 'Clinical trial site information';
-COMMENT ON COLUMN sites.site_id IS 'Unique site identifier';
-COMMENT ON COLUMN sites.metadata IS 'Additional site-specific configuration';
+-- Index for querying by timestamp and success status
+CREATE INDEX idx_edc_sync_log_timestamp ON edc_sync_log(sync_timestamp DESC);
+CREATE INDEX idx_edc_sync_log_source ON edc_sync_log(source_system, operation);
+
+-- Immutability rules - sync log is append-only for non-repudiation
+CREATE RULE edc_sync_log_no_update AS ON UPDATE TO edc_sync_log DO INSTEAD NOTHING;
+CREATE RULE edc_sync_log_no_delete AS ON DELETE TO edc_sync_log DO INSTEAD NOTHING;
+
+COMMENT ON TABLE edc_sync_log IS 'Tamper-evident audit log of EDC sync events with chained hashing for non-repudiation (REQ-CAL-p00010, REQ-CAL-p00011)';
+COMMENT ON COLUMN edc_sync_log.sync_id IS 'Unique identifier for each sync event';
+COMMENT ON COLUMN edc_sync_log.sync_timestamp IS 'Timestamp when sync was performed';
+COMMENT ON COLUMN edc_sync_log.source_system IS 'Source EDC system (RAVE, MEDIDATA, etc.)';
+COMMENT ON COLUMN edc_sync_log.operation IS 'Type of sync operation performed';
+COMMENT ON COLUMN edc_sync_log.content_hash IS 'SHA-256 hash of synced content for integrity verification';
+COMMENT ON COLUMN edc_sync_log.chain_hash IS 'Chained hash: SHA256(previous_chain_hash || content_hash || timestamp) for tamper evidence';
+COMMENT ON COLUMN edc_sync_log.duration_ms IS 'Duration of sync operation in milliseconds';
+COMMENT ON COLUMN edc_sync_log.success IS 'Whether sync completed successfully';
+COMMENT ON COLUMN edc_sync_log.error_message IS 'Error details if sync failed';
+COMMENT ON COLUMN edc_sync_log.metadata IS 'Additional sync metadata (study OID, site count, etc.)';
 
 -- =====================================================
 -- EVENT STORE (Event Sourcing Pattern)
@@ -549,6 +596,10 @@ CREATE TABLE portal_users (
     activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
     activated_at TIMESTAMPTZ,           -- When account was activated
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
+    -- MFA tracking (FDA 21 CFR Part 11 compliance)
+    mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
+    mfa_enrolled_at TIMESTAMPTZ,
+    mfa_method TEXT CHECK (mfa_method IN ('totp', 'sms', 'email')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -559,6 +610,7 @@ CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
 CREATE INDEX idx_portal_users_activation_code ON portal_users(activation_code);
 CREATE INDEX idx_portal_users_role ON portal_users(role);
 CREATE INDEX idx_portal_users_status ON portal_users(status);
+CREATE INDEX idx_portal_users_mfa_enrolled ON portal_users(mfa_enrolled, status);
 
 ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
 
@@ -570,6 +622,9 @@ COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent 
 COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
 COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
 COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
+COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA enrollment (FDA 21 CFR Part 11)';
+COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
+COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)

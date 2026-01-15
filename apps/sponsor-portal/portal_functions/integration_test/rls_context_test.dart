@@ -15,6 +15,7 @@ library;
 import 'dart:io';
 
 import 'package:portal_functions/portal_functions.dart';
+import 'package:postgres/postgres.dart' show Sql;
 import 'package:test/test.dart';
 
 void main() {
@@ -457,6 +458,139 @@ void main() {
       ''');
 
       expect(result.first[0], isTrue);
+    });
+  });
+
+  group('runTransactionWithContext', () {
+    test('sets all context variables within transaction', () async {
+      const testUserId = 'transaction-test-user';
+      const testRole = 'Administrator';
+      final allowedRoles = ['Administrator', 'Auditor'];
+
+      final result = await Database.instance
+          .runTransactionWithContext<Map<String, String?>>(
+            (session) async {
+              // Query all context variables within the same transaction
+              final userIdResult = await session.execute(
+                Sql("SELECT current_setting('app.user_id', true)"),
+              );
+              final roleResult = await session.execute(
+                Sql("SELECT current_setting('app.role', true)"),
+              );
+              final allowedRolesResult = await session.execute(
+                Sql("SELECT current_setting('app.allowed_roles', true)"),
+              );
+
+              return {
+                'user_id': userIdResult.first[0] as String?,
+                'role': roleResult.first[0] as String?,
+                'allowed_roles': allowedRolesResult.first[0] as String?,
+              };
+            },
+            context: UserContext.authenticated(
+              userId: testUserId,
+              role: testRole,
+              allowedRoles: allowedRoles,
+            ),
+          );
+
+      expect(result['user_id'], equals(testUserId));
+      expect(result['role'], equals(testRole));
+      expect(result['allowed_roles'], equals('Administrator,Auditor'));
+    });
+
+    test(
+      'transaction can perform multiple queries with same context',
+      () async {
+        final adminContext = UserContext.authenticated(
+          userId: testAdminFirebaseUid,
+          role: 'Administrator',
+        );
+
+        final count = await Database.instance.runTransactionWithContext<int>((
+          session,
+        ) async {
+          // First query
+          final result1 = await session.execute(
+            Sql.named(
+              'SELECT COUNT(*) FROM portal_users WHERE role::text = @role',
+            ),
+            parameters: {'role': 'Administrator'},
+          );
+
+          // Second query in same transaction
+          final result2 = await session.execute(
+            Sql.named(
+              'SELECT COUNT(*) FROM portal_users WHERE role::text = @role',
+            ),
+            parameters: {'role': 'Investigator'},
+          );
+
+          return (result1.first[0] as int) + (result2.first[0] as int);
+        }, context: adminContext);
+
+        // Should have counted users from both queries
+        expect(count, greaterThanOrEqualTo(2));
+      },
+    );
+
+    test('transaction rolls back on error', () async {
+      const tempUserId = '00000000-0000-4000-a000-000000000098';
+      final tempEmail =
+          'rollback-test-${DateTime.now().millisecondsSinceEpoch}@example.com';
+
+      final adminContext = UserContext.authenticated(
+        userId: testAdminFirebaseUid,
+        role: 'Administrator',
+      );
+
+      // Clean up any leftover data
+      await Database.instance.execute(
+        'DELETE FROM portal_users WHERE id = @userId::uuid',
+        parameters: {'userId': tempUserId},
+      );
+
+      try {
+        await Database.instance.runTransactionWithContext<void>((
+          session,
+        ) async {
+          // Insert a user
+          await session.execute(
+            Sql.named('''
+                INSERT INTO portal_users (id, email, name, role, status)
+                VALUES (@userId::uuid, @email, 'Temp User', 'Auditor', 'active')
+              '''),
+            parameters: {'userId': tempUserId, 'email': tempEmail},
+          );
+
+          // Force an error to trigger rollback
+          throw Exception('Intentional error for rollback test');
+        }, context: adminContext);
+        fail('Expected exception to be thrown');
+      } catch (e) {
+        expect(e.toString(), contains('Intentional error'));
+      }
+
+      // Verify the user was NOT created due to rollback
+      final result = await Database.instance.execute(
+        'SELECT id FROM portal_users WHERE id = @userId::uuid',
+        parameters: {'userId': tempUserId},
+      );
+
+      expect(result, isEmpty);
+    });
+
+    test('service context works within transaction', () async {
+      final result = await Database.instance.runTransactionWithContext<String>((
+        session,
+      ) async {
+        final queryResult = await session.execute(
+          Sql("SELECT current_setting('app.role', true)"),
+        );
+        return queryResult.first[0] as String;
+      }, context: UserContext.service);
+
+      expect(result, equals('service_role'));
     });
   });
 

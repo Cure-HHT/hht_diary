@@ -94,2811 +94,611 @@ The portal is a standalone Flutter web application, separate from the patient di
 
 # REQ-d00028: Portal Frontend Framework
 
-**Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, p00038
 
-The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
+## Rationale
 
-**Technical Details**:
-- **Framework**: Flutter 3.24+ (stable channel)
-- **Language**: Dart 3.10+
-- **Target Platform**: Web (HTML renderer for wide browser compatibility)
-- **Build Tool**: Flutter build web (optimized production builds)
-- **Package Manager**: pub (Dart's package manager)
+This requirement establishes Flutter as the web framework for the clinical trial portal, enabling potential code reuse with mobile applications while ensuring broad browser compatibility. The HTML renderer is chosen over CanvasKit for wider browser support, accepting some performance trade-offs. The specified dependencies provide core functionality for authentication, routing, state management, and API communication. Development and production build processes must support rapid iteration and optimized delivery.
 
-**Key Dependencies**:
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  firebase_core: ^2.24.0       # Firebase initialization
-  firebase_auth: ^4.16.0       # Identity Platform
-  http: ^1.1.0                 # HTTP client for Cloud Run API
-  go_router: ^14.0.0           # Declarative routing
-  provider: ^6.1.0             # State management
-  flutter_svg: ^2.0.0          # SVG icons
-  intl: ^0.19.0                # Date formatting
-  url_strategy: ^0.3.0         # Remove # from URLs
-```
+## Assertions
 
-**Web Configuration** (`web/index.html`):
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clinical Trial Portal</title>
-  <script defer src="main.dart.js" type="application/javascript"></script>
-</head>
-<body>
-  <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        }
-      });
-    });
-  </script>
-</body>
-</html>
-```
+A. The portal SHALL be implemented using Flutter framework version 3.24 or higher from the stable channel.
+B. The portal SHALL use Dart language version 3.10 or higher.
+C. The portal SHALL target web as the deployment platform.
+D. The portal SHALL use the HTML renderer for web compilation to ensure wide browser compatibility.
+E. The portal SHALL use Flutter's build web tool for production builds.
+F. The portal SHALL use pub as the package manager.
+G. The portal SHALL include firebase_core version 2.24.0 or higher for Firebase initialization.
+H. The portal SHALL include firebase_auth version 4.16.0 or higher for Identity Platform integration.
+I. The portal SHALL include http version 1.1.0 or higher for HTTP client functionality.
+J. The portal SHALL include go_router version 14.0.0 or higher for declarative routing.
+K. The portal SHALL include provider version 6.1.0 or higher for state management.
+L. The portal SHALL include flutter_svg version 2.0.0 or higher for SVG icon support.
+M. The portal SHALL include intl version 0.19.0 or higher for date formatting.
+N. The portal SHALL include url_strategy version 0.3.0 or higher for URL configuration.
+O. The portal SHALL support hot reload functionality in development mode.
+P. The portal SHALL implement URL strategy to remove hash symbols from routes.
+Q. Production builds SHALL produce optimized bundles with total size less than 2MB.
+R. The portal SHALL function correctly on the latest versions of Chrome browser.
+S. The portal SHALL function correctly on the latest versions of Firefox browser.
+T. The portal SHALL function correctly on the latest versions of Safari browser.
+U. The portal SHALL function correctly on the latest versions of Edge browser.
 
-**Build Commands**:
-```bash
-## Development
-flutter run -d chrome
-
-## Production build
-flutter build web --release --web-renderer html
-
-## Build output: build/web/
-```
-
-**Acceptance Criteria**:
-- [ ] Flutter 3.24+ configured for web
-- [ ] HTML renderer enabled for broad browser support
-- [ ] Production build produces optimized bundle (<2MB)
-- [ ] Hot reload working in development
-- [ ] URL strategy removes `#` from routes
-- [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
-
-*End* *Portal Frontend Framework* | **Hash**: 4f227779
+*End* *Portal Frontend Framework* | **Hash**: 9abb5505
 
 ---
 
 # REQ-d00029: Portal UI Design System
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009
 
-The portal SHALL use Flutter's Material Design 3 widgets with a custom theme matching the portal mockups.
+## Rationale
 
-**Technical Details**:
-- **Design System**: Material Design 3
-- **Theme**: Custom colors, typography, spacing
-- **Components**: Material widgets (Card, Button, DataTable, Dialog, Badge, etc.)
-- **Icons**: Material Icons + custom SVG icons
-- **Responsive**: MediaQuery-based breakpoints
+This requirement establishes the UI design system for the portal to ensure consistent, accessible, and maintainable user interfaces. Material Design 3 provides a modern, well-documented component library that supports responsive layouts and accessibility standards. The custom theme ensures visual consistency with sponsor mockups while maintaining WCAG AA accessibility compliance for regulatory and usability requirements.
 
-**Theme Configuration** (`lib/theme.dart`):
-```dart
-import 'package:flutter/material.dart';
+## Assertions
 
-final portalTheme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: Colors.blue,
-    brightness: Brightness.light,
-  ),
-  textTheme: const TextTheme(
-    displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-    displayMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    bodyLarge: TextStyle(fontSize: 16),
-    bodyMedium: TextStyle(fontSize: 14),
-  ),
-  cardTheme: CardTheme(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  ),
-);
-```
+A. The portal SHALL use Flutter's Material Design 3 widgets for all UI components.
+B. The portal SHALL implement a custom theme that matches the portal mockups.
+C. The theme configuration SHALL define custom colors, typography, and spacing values.
+D. The portal SHALL use Material Design 3 components including Card, Button, DataTable, Dialog, and Badge widgets.
+E. The portal SHALL support Material Icons and custom SVG icons.
+F. The portal SHALL implement responsive layouts using MediaQuery-based breakpoints.
+G. The portal SHALL provide a StatusBadge widget that displays color-coded patient status for Recent, Warning, At Risk, and No Data states.
+H. The portal SHALL provide a LinkingCodeDisplay widget that shows monospace code with a copy button.
+I. The portal SHALL provide a DaysWithoutDataCell widget that calculates and displays days since last_data_entry_date.
+J. The portal SHALL provide a QuestionnaireActions widget that displays Send, Resend, or Acknowledge buttons based on questionnaire status.
+K. The responsive layout SHALL support desktop viewports at 1024px width and above.
+L. The responsive layout SHALL support tablet viewports at 768px width and above.
+M. All UI components SHALL meet WCAG AA contrast ratio requirements for accessibility compliance.
 
-**Custom Widgets**:
-- `StatusBadge`: Color-coded patient status (Recent, Warning, At Risk, No Data)
-- `LinkingCodeDisplay`: Monospace code display with copy button
-- `DaysWithoutDataCell`: Calculated from `last_data_entry_date`
-- `QuestionnaireActions`: Send/Resend/Acknowledge buttons based on status
-
-**Acceptance Criteria**:
-- [ ] Material Design 3 theme configured
-- [ ] Custom theme matches portal mockup colors
-- [ ] Responsive layout works on desktop (1024px+) and tablet (768px+)
-- [ ] Reusable widgets created for common patterns
-- [ ] Accessible contrast ratios (WCAG AA compliant)
-
-*End* *Portal UI Design System* | **Hash**: 022edb23
+*End* *Portal UI Design System* | **Hash**: 0e7d0956
 ---
 
 # REQ-d00052: Role-Based Banner Component
 
-**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00030, o00055
 
-The portal SHALL display a color-coded banner component at the top of all authenticated pages showing the current user's role.
+## Rationale
 
-**Technical Details**:
-- **Component**: `RoleBanner` widget in `lib/widgets/role_banner.dart`
-- **Placement**: Top of authenticated scaffold, above AppBar
-- **Height**: 48px fixed height
-- **Color Mapping**:
-  ```dart
-  final roleColors = {
-    'Patient': Color(0xFF2196F3),        // Blue
-    'Investigator': Color(0xFF4CAF50),   // Green
-    'Sponsor': Color(0xFF9C27B0),        // Purple
-    'Auditor': Color(0xFFFF9800),        // Orange
-    'Analyst': Color(0xFF009688),        // Teal
-    'Administrator': Color(0xFFF44336),  // Red
-    'Developer Admin': Color(0xFFC62828),// Dark Red
-  };
-  ```
-- **Text Display**: Role name centered in white text (WCAG AA compliant contrast)
-- **State Management**: Read from authenticated user's role claim
+This requirement provides visual role awareness for users navigating the authenticated portal, supporting security awareness and reducing context-switching errors. The color-coded banner immediately communicates the user's current role, which is critical in a multi-role system where users may switch contexts or where auditors need clear visual confirmation of their operational role. The requirement implements product requirement p00030 (role-based UI differentiation) and operations requirement o00055 (audit trail context visibility). WCAG AA compliance ensures accessibility for users with visual impairments.
 
-**Acceptance Criteria**:
-- [ ] Banner displays on all authenticated pages
-- [ ] Banner shows correct role name from user claims
-- [ ] Banner uses correct color per role
-- [ ] Text contrast meets WCAG AA standards (4.5:1 minimum)
-- [ ] Banner included in core platform (all sponsor portals)
+## Assertions
 
-*End* *Role-Based Banner Component* | **Hash**: 40c44430
+A. The system SHALL display a RoleBanner component at the top of all authenticated pages.
+B. The RoleBanner component SHALL be placed above the AppBar in the authenticated scaffold.
+C. The RoleBanner component SHALL have a fixed height of 48 pixels.
+D. The RoleBanner component SHALL display the current user's role name in white text, centered horizontally.
+E. The RoleBanner component SHALL retrieve the role name from the authenticated user's role claim.
+F. The RoleBanner component SHALL use color code #2196F3 (blue) for the Patient role.
+G. The RoleBanner component SHALL use color code #4CAF50 (green) for the Investigator role.
+H. The RoleBanner component SHALL use color code #9C27B0 (purple) for the Sponsor role.
+I. The RoleBanner component SHALL use color code #FF9800 (orange) for the Auditor role.
+J. The RoleBanner component SHALL use color code #009688 (teal) for the Analyst role.
+K. The RoleBanner component SHALL use color code #F44336 (red) for the Administrator role.
+L. The RoleBanner component SHALL use color code #C62828 (dark red) for the Developer Admin role.
+M. The text contrast between the white text and background color SHALL meet WCAG AA standards with a minimum contrast ratio of 4.5:1.
+N. The RoleBanner component SHALL be included in the core platform codebase for use across all sponsor portals.
+
+*End* *Role-Based Banner Component* | **Hash**: 49f5f38e
 ---
 
 # REQ-d00030: Portal Routing and Navigation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009
 
-The portal SHALL implement declarative routing with role-based route guards and automatic redirects based on authentication state.
+## Rationale
 
-**Technical Details**:
-- **Router**: go_router package (Flutter's recommended router)
-- **Protected Routes**: Redirect wrapper checking auth + role
-- **Route Structure**:
-  ```
-  /                      → Redirect to /login or dashboard
-  /login                 → Login page (OAuth + email/password)
-  /admin                 → Admin dashboard (Admin role only)
-  /investigator          → Investigator dashboard (Investigator role only)
-  /auditor               → Auditor dashboard (Auditor role only)
-  /unauthorized          → 403 error page
-  ```
+This requirement establishes the routing architecture for the portal web application, ensuring secure navigation based on authentication state and user roles. Declarative routing with go_router provides type-safe navigation and deep linking support, which is critical for clinical trial portal usability. Role-based route guards enforce the principle of least privilege required by FDA 21 CFR Part 11, ensuring users can only access functionality appropriate to their assigned role (Admin, Investigator, or Auditor). Automatic redirects based on authentication state protect sensitive clinical data by preventing unauthorized access and providing clear user feedback when access is denied. The routing structure supports both security requirements from REQ-p00009 and maintains a positive user experience through standard browser navigation behaviors.
 
-**Router Configuration** (`lib/router.dart`):
-```dart
-import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
+## Assertions
 
-final router = GoRouter(
-  initialLocation: '/',
-  redirect: (context, state) async {
-    final authProvider = context.read<AuthProvider>();
-    final isLoggedIn = authProvider.isAuthenticated;
-    final role = authProvider.userRole;
+A. The portal SHALL implement declarative routing using the go_router package.
+B. The portal SHALL define a route structure consisting of: root (/), /login, /admin, /investigator, /auditor, and /unauthorized paths.
+C. The portal SHALL redirect unauthenticated users to the /login route when attempting to access any protected route.
+D. The portal SHALL redirect authenticated users from the /login route to their role-specific dashboard.
+E. The portal SHALL redirect authenticated users with Admin role from /login to the /admin route.
+F. The portal SHALL redirect authenticated users with Investigator role from /login to the /investigator route.
+G. The portal SHALL redirect authenticated users with Auditor role from /login to the /auditor route.
+H. The portal SHALL redirect authenticated users without a recognized role from /login to the /unauthorized route.
+I. The portal SHALL prevent access to the /admin route for users without the Admin role.
+J. The portal SHALL prevent access to the /investigator route for users without the Investigator role.
+K. The portal SHALL prevent access to the /auditor route for users without the Auditor role.
+L. The portal SHALL redirect users attempting unauthorized access to role-specific routes to the /unauthorized route.
+M. The portal SHALL display the UnauthorizedPage component when users access the /unauthorized route.
+N. The portal SHALL support browser back button functionality correctly within the routing system.
+O. The portal SHALL preserve the intended destination route and redirect users to it after successful login (deep linking support).
 
-    final isGoingToLogin = state.matchedLocation == '/login';
-
-    // Not logged in → redirect to login
-    if (!isLoggedIn && !isGoingToLogin) {
-      return '/login';
-    }
-
-    // Logged in but on login page → redirect to dashboard
-    if (isLoggedIn && isGoingToLogin) {
-      if (role == 'Admin') return '/admin';
-      if (role == 'Investigator') return '/investigator';
-      if (role == 'Auditor') return '/auditor';
-      return '/unauthorized';
-    }
-
-    // Role-based access control
-    if (state.matchedLocation == '/admin' && role != 'Admin') {
-      return '/unauthorized';
-    }
-    if (state.matchedLocation == '/investigator' && role != 'Investigator') {
-      return '/unauthorized';
-    }
-    if (state.matchedLocation == '/auditor' && role != 'Auditor') {
-      return '/unauthorized';
-    }
-
-    return null; // No redirect
-  },
-  routes: [
-    GoRoute(
-      path: '/',
-      redirect: (context, state) => '/login',
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginPage(),
-    ),
-    GoRoute(
-      path: '/admin',
-      builder: (context, state) => const AdminDashboard(),
-    ),
-    GoRoute(
-      path: '/investigator',
-      builder: (context, state) => const InvestigatorDashboard(),
-    ),
-    GoRoute(
-      path: '/auditor',
-      builder: (context, state) => const AuditorDashboard(),
-    ),
-    GoRoute(
-      path: '/unauthorized',
-      builder: (context, state) => const UnauthorizedPage(),
-    ),
-  ],
-);
-```
-
-**Acceptance Criteria**:
-- [ ] go_router configured with routes
-- [ ] Unauthenticated users redirected to /login
-- [ ] Authenticated users redirected to role-specific dashboard
-- [ ] Unauthorized access shows /unauthorized page
-- [ ] Browser back button works correctly
-- [ ] Deep linking preserves intended destination after login
-
-*End* *Portal Routing and Navigation* | **Hash**: 7429dd55
+*End* *Portal Routing and Navigation* | **Hash**: 80b2e394
 ---
 
 ## Authentication & Authorization Requirements
 
 # REQ-d00031: Identity Platform Integration
 
-**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, p00038, p00028
 
-The portal SHALL use Identity Platform (Identity Platform) for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
+## Rationale
 
-**Technical Details**:
-- **Auth Provider**: Identity Platform (Identity Platform)
-- **OAuth Providers**:
-  - Google Workspace (OAuth 2.0)
-  - Microsoft 365 (OAuth 2.0)
-- **Email/Password**: Identity Platform with email verification
-- **Session Storage**: Identity Platform handles JWT storage in browser localStorage
-- **Token Refresh**: Automatic via Identity Platform SDK
+This requirement defines the authentication architecture for the portal application. Identity Platform (Firebase Authentication) provides enterprise-grade OAuth integration with Google and Microsoft, along with email/password authentication. The SDK automatically handles session management, token refresh, and secure credential storage, reducing implementation complexity while maintaining FDA 21 CFR Part 11 compliance for user authentication and audit trails. The requirement implements product requirements for authentication (p00009), user management (p00038), and security controls (p00028).
 
-**Firebase Configuration** (`lib/firebase_client.dart`):
-```dart
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+## Assertions
 
-Future<void> initFirebase() async {
-  await Firebase.initializeApp(
-    options: FirebaseOptions(
-      apiKey: const String.fromEnvironment('FIREBASE_API_KEY'),
-      authDomain: const String.fromEnvironment('FIREBASE_AUTH_DOMAIN'),
-      projectId: const String.fromEnvironment('GCP_PROJECT_ID'),
-      appId: const String.fromEnvironment('FIREBASE_APP_ID'),
-    ),
-  );
-}
+A. The portal SHALL use Firebase Identity Platform as the authentication provider.
+B. The system SHALL support Google Workspace OAuth 2.0 authentication.
+C. The system SHALL support Microsoft 365 OAuth 2.0 authentication.
+D. The system SHALL support email/password authentication via Identity Platform.
+E. The system SHALL require email verification for email/password signups.
+F. The system SHALL initialize Firebase with configuration from environment variables (FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, GCP_PROJECT_ID, FIREBASE_APP_ID).
+G. The system SHALL store JWT tokens using Identity Platform SDK's browser localStorage implementation.
+H. The system SHALL automatically refresh authentication tokens via the Identity Platform SDK.
+I. The system SHALL persist user sessions across browser refresh.
+J. The API client SHALL include the Firebase authentication token in the Authorization header as a Bearer token for all authenticated requests.
+K. The authentication provider SHALL listen for Firebase auth state changes and update application state accordingly.
+L. The authentication provider SHALL fetch user role information from the /api/portal/me endpoint after successful authentication.
+M. The system SHALL expose user authentication state (authenticated/unauthenticated) to the application.
+N. The system SHALL expose user role information to the application after authentication.
+O. The logout function SHALL clear Firebase authentication state.
+P. The logout function SHALL clear user role information from application state.
+Q. The system SHALL configure authorized domains in GCP Identity Platform Console to include the Cloud Run URL and custom domain.
+R. The API client SHALL return parsed JSON response bodies for successful requests (status 200, 201).
+S. The API client SHALL throw an exception with the HTTP status code for failed requests.
 
-final auth = FirebaseAuth.instance;
-```
-
-**API Client** (`lib/api_client.dart`):
-```dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
-
-class ApiClient {
-  final String baseUrl;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  ApiClient({required this.baseUrl});
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _auth.currentUser?.getIdToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  Future<dynamic> get(String endpoint) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _getHeaders(),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('API error: ${response.statusCode}');
-  }
-
-  Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _getHeaders(),
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('API error: ${response.statusCode}');
-  }
-
-  Future<dynamic> patch(String endpoint, Map<String, dynamic> body) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _getHeaders(),
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('API error: ${response.statusCode}');
-  }
-}
-
-final apiClient = ApiClient(
-  baseUrl: const String.fromEnvironment('API_BASE_URL'),
-);
-```
-
-**Authentication Provider** (`lib/providers/auth_provider.dart`):
-```dart
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../api_client.dart';
-
-class AuthProvider extends ChangeNotifier {
-  User? _user;
-  String? _userRole;
-  bool _isLoading = true;
-
-  User? get user => _user;
-  String? get userRole => _userRole;
-  bool get isAuthenticated => _user != null;
-  bool get isLoading => _isLoading;
-
-  AuthProvider() {
-    _init();
-  }
-
-  Future<void> _init() async {
-    // Get initial user
-    _user = FirebaseAuth.instance.currentUser;
-    if (_user != null) {
-      await _fetchUserRole();
-    }
-    _isLoading = false;
-    notifyListeners();
-
-    // Listen for auth state changes
-    FirebaseAuth.instance.authStateChanges().listen((user) async {
-      _user = user;
-      if (_user != null) {
-        await _fetchUserRole();
-      } else {
-        _userRole = null;
-      }
-      notifyListeners();
-    });
-  }
-
-  Future<void> _fetchUserRole() async {
-    final response = await apiClient.get('/api/portal/me');
-    _userRole = response['role'] as String;
-  }
-
-  Future<void> signInWithGoogle() async {
-    final provider = GoogleAuthProvider();
-    await FirebaseAuth.instance.signInWithPopup(provider);
-  }
-
-  Future<void> signInWithMicrosoft() async {
-    final provider = MicrosoftAuthProvider();
-    await FirebaseAuth.instance.signInWithPopup(provider);
-  }
-
-  Future<void> signInWithEmail(String email, String password) async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-  }
-
-  Future<void> signOut() async {
-    await FirebaseAuth.instance.signOut();
-    _user = null;
-    _userRole = null;
-    notifyListeners();
-  }
-}
-```
-
-**OAuth Configuration** (GCP Identity Platform Console):
-- **Google OAuth**: Enable Google provider in Identity Platform
-- **Microsoft OAuth**: Configure Microsoft provider with Azure AD credentials
-- **Authorized Domains**: Add Cloud Run URL and custom domain
-
-**Acceptance Criteria**:
-- [ ] Firebase initialized with environment variables
-- [ ] Google OAuth working (login, logout, session persistence)
-- [ ] Microsoft OAuth working
-- [ ] Email/password login working
-- [ ] Email verification required for email/password signups
-- [ ] Automatic token refresh via Identity Platform SDK
-- [ ] Session persists across browser refresh
-- [ ] Logout clears all auth state
-
-*End* *Identity Platform Integration* | **Hash**: f3ffa3b5
+*End* *Identity Platform Integration* | **Hash**: 96139a3c
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
 
-**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00038, p00028
 
-The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and API queries SHALL be filtered by role using server-side RLS policies enforced by the Cloud Run API.
+## Rationale
 
-**Technical Details**:
-- **Roles**: Admin, Investigator, Auditor (no Analyst role)
-- **Role Storage**: `portal_users.role` column (enum type)
-- **Role Retrieval**: After authentication, query `portal_users` table
-- **UI Enforcement**: Router guards check user role before rendering
-- **Database Enforcement**: RLS policies filter data by role
+This requirement establishes role-based access control for the clinical trial portal system to ensure appropriate data segregation and authorization. The RBAC implementation supports three distinct user roles (Admin, Investigator, Auditor) with specific permissions aligned to their responsibilities in the clinical trial workflow. This supports compliance with 21 CFR Part 11 requirements for access controls and audit trails. The system uses a defense-in-depth approach with both UI-level routing guards and server-side row-level security policies to prevent unauthorized access.
 
-**Role Permissions Matrix**:
+## Assertions
 
-| Feature | Admin | Investigator | Auditor |
-| --- | --- | --- | --- |
-| View all users | ✅ | ❌ | ✅ |
-| Create users (Inv/Aud) | ✅ | ❌ | ❌ |
-| Generate linking codes | ❌ | ✅ | ❌ |
-| Enroll patients | ❌ | ✅ (own sites) | ❌ |
-| View patient data | ✅ | ✅ (own sites) | ✅ (all) |
-| Send questionnaires | ❌ | ✅ (own sites) | ❌ |
-| Revoke patient tokens | ❌ | ✅ (own sites) | ❌ |
-| Revoke investigator/auditor tokens | ✅ | ❌ | ❌ |
-| Generate monthly reports | ❌ | ✅ | ❌ |
-| Export database | ❌ | ❌ | ✅ |
+A. The system SHALL enforce role-based access control using exactly three roles: Admin, Investigator, and Auditor.
+B. The system SHALL store user roles in the portal_users.role column using an enum type.
+C. The system SHALL retrieve the user role from the portal_users table after authentication.
+D. The system SHALL implement router guards that check user role before rendering UI components.
+E. The system SHALL enforce role-based data access using database row-level security policies.
+F. The system SHALL filter all API queries by role using server-side RLS policies enforced by the Cloud Run API.
+G. The AuthProvider SHALL provide user identity, role, and loading state to the application.
+H. The system SHALL protect all dashboard routes by role authorization.
+I. The system SHALL display a 403 error page when a user attempts unauthorized access.
+J. Admin users SHALL be permitted to view all users.
+K. Admin users SHALL be permitted to create Investigator and Auditor users.
+L. Admin users SHALL be permitted to view patient data across all sites.
+M. Admin users SHALL be permitted to revoke investigator and auditor tokens.
+N. Admin users SHALL be permitted to access all dashboards.
+O. Investigator users SHALL be permitted to generate linking codes.
+P. Investigator users SHALL be permitted to enroll patients only at their own sites.
+Q. Investigator users SHALL be permitted to view patient data only from their own sites.
+R. Investigator users SHALL be permitted to send questionnaires only to patients at their own sites.
+S. Investigator users SHALL be permitted to revoke patient tokens only for their own sites.
+T. Investigator users SHALL be permitted to generate monthly reports.
+U. Auditor users SHALL be permitted to view all users.
+V. Auditor users SHALL be permitted to view patient data across all sites.
+W. Auditor users SHALL be permitted to export the database.
+X. Investigator users SHALL NOT be permitted to view all users.
+Y. Investigator users SHALL NOT be permitted to create users.
+Z. Auditor users SHALL NOT be permitted to create users, generate linking codes, enroll patients, send questionnaires, revoke tokens, or generate reports.
 
-**Acceptance Criteria**:
-- [ ] `AuthProvider` provides user, role, loading state
-- [ ] Role loaded from `portal_users` table after authentication
-- [ ] Dashboard routes protected by role
-- [ ] Unauthorized access shows 403 error page
-- [ ] RLS policies enforce role-based data access
-- [ ] Admin can access all dashboards
-
-*End* *Role-Based Access Control Implementation* | **Hash**: 5aeb5131
+*End* *Role-Based Access Control Implementation* | **Hash**: 9d9a502a
 ---
 
 # REQ-d00033: Site-Based Data Isolation
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, d00016
 
-Investigators SHALL only see and manage patients from their assigned sites, enforced by UI filtering and database RLS policies.
+## Rationale
 
-**Technical Details**:
-- **Site Assignment**: `user_site_access` table (user_id, site_id)
-- **UI Filtering**: Investigator dashboard queries patients filtered by site
-- **RLS Enforcement**: `patients` table RLS policy checks site access
+This requirement implements site-based data segregation for clinical trial investigators, ensuring that each investigator can only access patient data from sites they are explicitly assigned to. This isolation is critical for multi-site clinical trials to maintain data privacy, prevent unauthorized access across sites, and comply with FDA 21 CFR Part 11 requirements for access controls. The requirement supports PRD requirement p00009 (site-based access control) and dev requirement d00016 (RLS policy infrastructure). Site assignment is managed through a user_site_access mapping table, with enforcement at both the database layer (via Row-Level Security policies) and UI layer (via filtered queries). Administrators require elevated privileges to view cross-site data for oversight purposes.
 
-**Site Access Query** (Investigator Dashboard):
-```dart
-Future<List<Patient>> getInvestigatorPatients() async {
-  // RLS policy on server automatically filters by user's site access
-  final response = await apiClient.get('/api/portal/patients');
+## Assertions
 
-  return (response as List)
-      .map((json) => Patient.fromJson(json))
-      .toList();
-}
-```
+A. The system SHALL enforce site-based data isolation such that investigators can only view and manage patients from their explicitly assigned sites.
+B. The system SHALL maintain a user_site_access table that maps user_id to site_id relationships.
+C. The user_site_access table SHALL enforce referential integrity through foreign key constraints to users and sites tables.
+D. The investigator dashboard SHALL display a 'My Sites' section showing only sites assigned to the current investigator.
+E. Patient list queries in the investigator dashboard SHALL be filtered to return only patients whose site_id matches the investigator's assigned sites.
+F. The enrollment dialog SHALL display only sites from the investigator's assigned sites in the site selection dropdown.
+G. The patients table SHALL implement a Row-Level Security policy named 'investigators_own_sites_patients' that restricts SELECT operations to patients from the investigator's assigned sites.
+H. The RLS policy SHALL verify that current_setting('app.role', true) equals 'investigator' before applying site-based filtering.
+I. The RLS policy SHALL filter patients by checking that site_id exists in the user_site_access table for the current user identified by current_setting('app.user_id', true)::uuid.
+J. The Cloud Run API SHALL set session variables app.role and app.user_id from the Identity Platform authentication token before executing database queries.
+K. The system SHALL prevent investigators from accessing patient data across sites not explicitly assigned to them through the RLS policy.
+L. The system SHALL allow administrators to view patients from all sites by bypassing the investigator RLS policy.
+M. UI queries SHALL NOT implement site filtering logic that could be bypassed, relying instead on server-side RLS enforcement for security.
 
-**RLS Policy** (database implementation - enforced by Cloud Run API):
-```sql
--- Investigators can only see patients from their assigned sites
--- Server sets session variables from Identity Platform token before queries
-CREATE POLICY "investigators_own_sites_patients" ON patients
-  FOR SELECT
-  USING (
-    current_setting('app.role', true) = 'investigator'
-    AND site_id IN (
-      SELECT site_id FROM user_site_access
-      WHERE user_id = current_setting('app.user_id', true)::uuid
-    )
-  );
-```
-
-**"My Sites" Display**:
-- Investigator dashboard shows assigned sites at top
-- Patient table filtered to show only those sites
-- Enrollment dialog dropdown only shows assigned sites
-
-**Acceptance Criteria**:
-- [ ] `user_site_access` table created with foreign keys
-- [ ] Investigator dashboard shows "My Sites" section
-- [ ] Patient table filtered by investigator's sites
-- [ ] Enrollment dialog shows only assigned sites
-- [ ] RLS policy prevents cross-site data access
-- [ ] Admin can see all sites (bypass RLS)
-
-*End* *Site-Based Data Isolation* | **Hash**: 3c8584ea
+*End* *Site-Based Data Isolation* | **Hash**: 2eff596e
 ---
 
 ## Frontend Components Requirements
 
 # REQ-d00034: Login Page Implementation
 
-**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, d00031
 
-The portal SHALL provide a login page with OAuth (Google, Microsoft) and email/password authentication options.
+## Rationale
 
-**Technical Details**:
-- **Route**: `/login`
-- **OAuth Buttons**: "Continue with Google", "Continue with Microsoft"
-- **Email Form**: Email input, password input, "Sign In" button
-- **Design**: Centered card layout, sponsor branding, clean UI
+This requirement defines the user interface and interaction patterns for the authentication entry point of the clinical trial portal. The login page serves as the initial access control mechanism, supporting multiple authentication methods (OAuth and traditional email/password) to accommodate diverse organizational security policies. The implementation must provide clear visual feedback during authentication operations and gracefully handle error conditions to ensure users understand the system state. This requirement implements the authentication user experience portion of the broader security architecture defined in REQ-p00009 and builds upon the technical authentication infrastructure specified in REQ-d00031.
 
-**Component Structure** (`lib/pages/login_page.dart`):
-```dart
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+## Assertions
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+A. The system SHALL provide a login page accessible at the route '/login'.
+B. The login page SHALL include a button labeled 'Continue with Google' that triggers Google OAuth authentication.
+C. The login page SHALL include a button labeled 'Continue with Microsoft' that triggers Microsoft OAuth authentication.
+D. The login page SHALL include an email input field for email/password authentication.
+E. The login page SHALL include a password input field for email/password authentication.
+F. The login page SHALL include a 'Sign In' button that triggers email/password authentication.
+G. The login page SHALL use a centered card layout with maximum width constraint of 400 pixels.
+H. The login page SHALL display the title 'Clinical Trial Portal' using the theme's displayMedium text style.
+I. The login page SHALL display the subtitle 'Sign in to access your dashboard' using the theme's bodyMedium text style.
+J. The system SHALL validate email and password input before submission.
+K. The system SHALL disable all authentication buttons during an active authentication operation.
+L. The system SHALL display a loading indicator on the 'Sign In' button during email/password authentication.
+M. The system SHALL display error messages via SnackBar when authentication fails.
+N. The system SHALL dispose of text input controllers when the login page is removed from the widget tree.
+O. The system SHALL redirect authenticated users to their role-specific dashboard upon successful login.
+P. The login page SHALL separate OAuth options from email/password authentication with a visual divider.
+Q. The system SHALL invoke AuthProvider.signInWithGoogle() when the Google OAuth button is activated.
+R. The system SHALL invoke AuthProvider.signInWithMicrosoft() when the Microsoft OAuth button is activated.
+S. The system SHALL invoke AuthProvider.signInWithEmail() with trimmed email and password when the email login is submitted.
+T. The system SHALL check widget mount state before displaying error messages or updating loading state after asynchronous operations.
 
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleGoogleLogin() async {
-    setState(() => _isLoading = true);
-    try {
-      final authProvider = context.read<AuthProvider>();
-      await authProvider.signInWithGoogle();
-      // Redirect handled by router onAuthStateChange
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $error')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleMicrosoftLogin() async {
-    setState(() => _isLoading = true);
-    try {
-      final authProvider = context.read<AuthProvider>();
-      await authProvider.signInWithMicrosoft();
-      // Redirect handled by router onAuthStateChange
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $error')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleEmailLogin() async {
-    setState(() => _isLoading = true);
-    try {
-      final authProvider = context.read<AuthProvider>();
-      await authProvider.signInWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      // Redirect handled by router
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $error')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Card(
-          margin: const EdgeInsets.all(16),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Clinical Trial Portal',
-                  style: Theme.of(context).textTheme.displayMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to access your dashboard',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                // OAuth buttons
-                OutlinedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleOAuthLogin(OAuthProvider.google),
-                  icon: const Icon(Icons.g_mobiledata), // Replace with Google icon
-                  label: const Text('Continue with Google'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleOAuthLogin(OAuthProvider.azure),
-                  icon: const Icon(Icons.microsoft), // Replace with Microsoft icon
-                  label: const Text('Continue with Microsoft'),
-                ),
-
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 24),
-
-                // Email/password form
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  onSubmitted: (_) => _handleEmailLogin(),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleEmailLogin,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Sign In'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Login page matches portal mockup design
-- [ ] Google OAuth button triggers Google login flow
-- [ ] Microsoft OAuth button triggers Microsoft login flow
-- [ ] Email/password form validates input
-- [ ] Loading states prevent double submission
-- [ ] Error messages displayed via SnackBar
-- [ ] Successful login redirects to role-specific dashboard
-
-*End* *Login Page Implementation* | **Hash**: 90e89cec
+*End* *Login Page Implementation* | **Hash**: 64108d53
 ---
 
 # REQ-d00035: Admin Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009
 
-The portal SHALL provide an Admin dashboard for user management, displaying all portal users and enabling creation of new Investigators with site assignments.
+## Rationale
 
-**Technical Details**:
-- **Route**: `/admin`
-- **Access**: Admin role only
-- **Features**:
-  - User management table (name, email, role, site assignments)
-  - "Create New User" button → modal dialog
-  - Summary cards (Investigator count, total patients, active patients)
-  - Token revocation (deactivate investigator accounts)
+This requirement specifies the Admin dashboard implementation for portal user management. The dashboard enables Admins to view all portal users, create new Investigators with site assignments, monitor system usage through summary metrics, and revoke investigator access when necessary. This implements the higher-level product requirement REQ-p00009 for administrative user management capabilities. The dashboard provides a centralized interface for user administration tasks essential for clinical trial site management and investigator oversight.
 
-**Component Structure** (`lib/pages/admin_dashboard.dart`):
-```dart
-import 'package:flutter/material.dart';
+## Assertions
 
-class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
+A. The system SHALL provide an Admin dashboard accessible at route '/admin'.
+B. The system SHALL restrict access to the Admin dashboard to users with Admin role only.
+C. The dashboard SHALL display a user management table showing all portal users.
+D. The user management table SHALL display user name, email, role, and site assignments for each user.
+E. The dashboard SHALL provide a 'Create New User' button that opens a modal dialog.
+F. The system SHALL display summary cards showing Investigator count, total users count, and user statistics.
+G. The dashboard SHALL display role badges that are color-coded with Admin in red and Investigator in grey.
+H. The dashboard SHALL display site assignments for investigators showing site numbers.
+I. The system SHALL provide a revoke button for investigator accounts that initiates token revocation.
+J. The system SHALL display a confirmation dialog before revoking investigator access.
+K. The system SHALL update investigator status to 'revoked' when access is revoked.
+L. The system SHALL log out investigators and prevent portal access after token revocation.
+M. The system SHALL display a success notification after successfully revoking investigator access.
+N. The system SHALL display an error notification if token revocation fails.
+O. The system SHALL reload the user list after successful user creation or token revocation.
+P. The system SHALL display a loading indicator while fetching user data.
+Q. The system SHALL fetch user data from endpoint '/api/portal/users'.
+R. The system SHALL handle API errors gracefully and display error messages to the user.
+S. The dashboard layout SHALL be responsive on desktop and tablet screen sizes.
+T. The dashboard SHALL match the approved portal mockup design.
 
-  @override
-  State<AdminDashboard> createState() => _AdminDashboardState();
-}
-
-class _AdminDashboardState extends State<AdminDashboard> {
-  List<PortalUser> _users = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUsers();
-  }
-
-  Future<void> _loadUsers() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await apiClient.get('/api/portal/users');
-
-      setState(() {
-        _users = (response as List)
-            .map((json) => PortalUser.fromJson(json))
-            .toList();
-        _isLoading = false;
-      });
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load users: $error')),
-      );
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _revokeInvestigatorToken(String userId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Revoke Access'),
-        content: const Text('Are you sure you want to revoke this investigator\'s access? They will be logged out and unable to access the portal.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Revoke'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await apiClient.patch('/api/portal/users/$userId', {'status': 'revoked'});
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Investigator access revoked')),
-      );
-      _loadUsers();
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to revoke access: $error')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        actions: [
-          IconButton(
-            onPressed: () => context.read<AuthProvider>().signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Summary cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Investigators',
-                          value: _users.where((u) => u.role == 'Investigator').length.toString(),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Total Users',
-                          value: _users.length.toString(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // User management card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'User Management',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              ElevatedButton.icon(
-                                onPressed: () => _showCreateUserDialog(),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Create New User'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Name')),
-                              DataColumn(label: Text('Email')),
-                              DataColumn(label: Text('Role')),
-                              DataColumn(label: Text('Sites')),
-                              DataColumn(label: Text('Actions')),
-                            ],
-                            rows: _users.map((user) {
-                              return DataRow(cells: [
-                                DataCell(Text(user.name)),
-                                DataCell(Text(user.email)),
-                                DataCell(
-                                  Chip(
-                                    label: Text(user.role),
-                                    backgroundColor: user.role == 'Admin'
-                                        ? Colors.red.shade100
-                                        : Colors.grey.shade200,
-                                  ),
-                                ),
-                                DataCell(Text(
-                                  user.siteAccess.map((s) => s.siteNumber).join(', '),
-                                )),
-                                DataCell(
-                                  user.role == 'Investigator'
-                                      ? IconButton(
-                                          icon: const Icon(Icons.block),
-                                          onPressed: () => _revokeInvestigatorToken(user.id),
-                                          tooltip: 'Revoke access',
-                                        )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ]);
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  void _showCreateUserDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => CreateUserDialog(onUserCreated: _loadUsers),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _SummaryCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.displayLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Admin dashboard matches portal mockup design
-- [ ] User table displays all portal users
-- [ ] Role badges color-coded (Admin red, Investigator grey)
-- [ ] Site assignments displayed for investigators
-- [ ] Summary cards show accurate counts
-- [ ] "Create New User" button opens dialog
-- [ ] Revoke button deactivates investigator accounts
-- [ ] Table responsive on desktop and tablet
-
-*End* *Admin Dashboard Implementation* | **Hash**: 4d26164b
+*End* *Admin Dashboard Implementation* | **Hash**: 733c97d1
 ---
 
 # REQ-d00036: Create User Dialog Implementation
 
-**Level**: Dev | **Implements**: p00038 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00038
 
-The portal SHALL provide a modal dialog for Admins to create new Investigators and Auditors with site assignments (for Investigators only) and generate linking codes for device enrollment (for Investigators only).
+## Rationale
 
-**Technical Details**:
-- **Trigger**: "Create New User" button on Admin dashboard
-- **Form Fields**:
-  - Name (text input, required)
-  - Email (email input, required, validated)
-  - Role (dropdown: Investigator, Auditor)
-  - Sites (multi-checkbox, shown only for Investigator role, required if Investigator)
-  - Linking Code (read-only, shown only for Investigator role, auto-generated)
-- **Linking Code**: Auto-generated XXXXX-XXXXX format for Investigators only (Auditors don't need device enrollment)
-- **Validation**: All fields required, email format check, at least one site for Investigators
-- **Submission**: Creates `portal_users` record + `user_site_access` records (for Investigators only) + generates linking code (for Investigators only)
+This requirement defines the administrative interface for creating new portal users (Investigators and Auditors) in the clinical trial system. Admins need a streamlined workflow to onboard new staff members, assign them to appropriate clinical sites, and generate secure device linking codes for Investigators to enroll their mobile devices. The linking code mechanism enables secure pairing between the investigator's identity and their device without requiring complex authentication flows during initial setup. Role-based field visibility ensures Auditors (who only need read access to portal data) are not burdened with irrelevant site assignments or device enrollment steps. This implements the user management functionality defined in the product requirements (REQ-p00038).
 
-**Linking Code Generation**:
-```dart
-String generateLinkingCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude ambiguous: 0, O, 1, I
-  final random = Random.secure();
+## Assertions
 
-  String generatePart() {
-    return List.generate(5, (_) => chars[random.nextInt(chars.length)]).join();
-  }
+A. The system SHALL provide a modal dialog triggered by a "Create New User" button on the Admin dashboard.
+B. The dialog SHALL include a Name field implemented as a required text input.
+C. The dialog SHALL include an Email field implemented as a required email input with format validation.
+D. The dialog SHALL include a Role field implemented as a dropdown with options "Investigator" and "Auditor".
+E. The dialog SHALL display a Sites field as multi-checkbox selection only when the Investigator role is selected.
+F. The system SHALL require at least one site selection when the Investigator role is selected.
+G. The dialog SHALL display a Linking Code field as read-only text only when the Investigator role is selected.
+H. The system SHALL auto-generate a linking code in XXXXX-XXXXX format when the dialog opens for an Investigator.
+I. Linking codes SHALL use only non-ambiguous characters from the set ABCDEFGHJKLMNPQRSTUVWXYZ23456789, excluding 0, O, 1, and I.
+J. The system SHALL use a cryptographically secure random number generator for linking code generation.
+K. The dialog SHALL provide a copy button that copies the linking code to the clipboard.
+L. The system SHALL validate that the Name field is not empty before form submission.
+M. The system SHALL validate that the Email field is not empty and contains an '@' character before form submission.
+N. The system SHALL prevent form submission if validation fails.
+O. The system SHALL create a portal_users record upon successful form submission.
+P. The system SHALL set the linking_code field in portal_users only when creating an Investigator.
+Q. The system SHALL set the linking_code field to null when creating an Auditor.
+R. The system SHALL create user_site_access records for each selected site only when creating an Investigator.
+S. The system SHALL prevent creation of a user with a duplicate email address.
+T. The system SHALL display a success message containing the linking code after creating an Investigator.
+U. The system SHALL display a success message without a linking code after creating an Auditor.
+V. The system SHALL close the dialog after successful user creation.
+W. The system SHALL refresh the user table after successful user creation via the onUserCreated callback.
+X. The system SHALL display an error message if user creation fails.
+Y. The system SHALL show a loading indicator on the submit button while user creation is in progress.
+Z. The system SHALL disable the Cancel and Submit buttons while user creation is in progress.
 
-  return '${generatePart()}-${generatePart()}'; // e.g., KBN48-T5GJZ
-}
-```
-
-**Component Structure** (`lib/dialogs/create_user_dialog.dart`):
-```dart
-import 'package:flutter/material.dart';
-import 'dart:math';
-
-class CreateUserDialog extends StatefulWidget {
-  final VoidCallback onUserCreated;
-
-  const CreateUserDialog({super.key, required this.onUserCreated});
-
-  @override
-  State<CreateUserDialog> createState() => _CreateUserDialogState();
-}
-
-class _CreateUserDialogState extends State<CreateUserDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  String _selectedRole = 'Investigator'; // Default to Investigator
-  List<Site> _allSites = [];
-  List<String> _selectedSiteIds = [];
-  String _linkingCode = '';
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _linkingCode = generateLinkingCode();
-    _loadSites();
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadSites() async {
-    final response = await apiClient.get('/api/portal/sites');
-
-    setState(() {
-      _allSites = (response as List)
-          .map((json) => Site.fromJson(json))
-          .toList();
-    });
-  }
-
-  String generateLinkingCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = Random.secure();
-
-    String generatePart() {
-      return List.generate(5, (_) => chars[random.nextInt(chars.length)]).join();
-    }
-
-    return '${generatePart()}-${generatePart()}';
-  }
-
-  Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    // Only Investigators need site assignment
-    if (_selectedRole == 'Investigator' && _selectedSiteIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one site for investigator')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Create portal user via API
-      final userResponse = await apiClient.post('/api/portal/users', {
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'role': _selectedRole,
-        'linking_code': _selectedRole == 'Investigator' ? _linkingCode : null,
-        'status': 'active',
-        'site_ids': _selectedRole == 'Investigator' ? _selectedSiteIds : [],
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _selectedRole == 'Investigator'
-                  ? 'Investigator created. Linking code: $_linkingCode'
-                  : 'Auditor created successfully',
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-        Navigator.pop(context);
-        widget.onUserCreated();
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create user: $error')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create New Investigator'),
-      content: SizedBox(
-        width: 500,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Name is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Invalid email format';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                Text(
-                  'Assigned Sites',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    children: _allSites.map((site) {
-                      return CheckboxListTile(
-                        title: Text('${site.siteNumber} - ${site.name}, ${site.location}'),
-                        value: _selectedSiteIds.contains(site.id),
-                        onChanged: (checked) {
-                          setState(() {
-                            if (checked == true) {
-                              _selectedSiteIds.add(site.id);
-                            } else {
-                              _selectedSiteIds.remove(site.id);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                Text(
-                  'Device Linking Code',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: TextEditingController(text: _linkingCode),
-                        readOnly: true,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: _linkingCode));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Linking code copied')),
-                        );
-                      },
-                      icon: const Icon(Icons.copy),
-                      tooltip: 'Copy linking code',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Share this code with the investigator to link their device.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleSubmit,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Create Investigator'),
-        ),
-      ],
-    );
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Dialog matches portal mockup design
-- [ ] Name, email fields validated
-- [ ] Role fixed to "Investigator" (no dropdown)
-- [ ] Multi-select checkboxes for site assignment
-- [ ] Linking code auto-generated when dialog opens
-- [ ] Linking code uses non-ambiguous characters only
-- [ ] Copy button copies linking code to clipboard
-- [ ] Form submission creates `portal_users` record
-- [ ] Form submission creates `user_site_access` records
-- [ ] Duplicate email check prevents creation
-- [ ] Success message shows linking code
-- [ ] Dialog closes and table refreshes after creation
-
-*End* *Create User Dialog Implementation* | **Hash**: a8751a99
+*End* *Create User Dialog Implementation* | **Hash**: 619ef6f4
 ---
 
 # REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00040, p00027
 
-The portal SHALL provide an Investigator dashboard showing assigned sites, patient monitoring table, questionnaire management, and patient enrollment.
+## Rationale
 
-**Technical Details**:
-- **Route**: `/investigator`
-- **Access**: Investigator role only (RLS enforced)
-- **Features**:
-  - "My Sites" section (assigned sites)
-  - Patient Summary table (ID, site, status, days without data, last login, questionnaires)
-  - "Enroll New Patient" button → generates patient linking code
-  - Questionnaire actions (Send, Resend, Acknowledge)
-  - Summary cards (Total Patients, Active Today, Requires Follow-up)
-  - "Generate Monthly Report" button
+This requirement defines the Investigator Dashboard user interface, which serves as the primary workspace for clinical investigators to monitor patient participation, manage questionnaires, and oversee trial activities at their assigned sites. The dashboard provides real-time visibility into patient engagement through status indicators and data entry tracking, enabling investigators to identify patients requiring follow-up intervention. The interface enforces role-based access control through Row-Level Security (RLS), ensuring investigators can only view and manage patients enrolled at their authorized sites. This access restriction is critical for maintaining data privacy and regulatory compliance in multi-site clinical trials.
 
-**Patient Status Calculation**:
-```dart
-enum PatientStatus { recent, warning, atRisk, noData }
+## Assertions
 
-PatientStatus calculatePatientStatus(DateTime? lastDataEntry) {
-  if (lastDataEntry == null) return PatientStatus.noData;
+A. The system SHALL provide an Investigator dashboard accessible at route '/investigator'.
+B. The system SHALL restrict dashboard access to users with the Investigator role through RLS enforcement.
+C. The dashboard SHALL display a 'My Sites' section showing all sites assigned to the current investigator.
+D. The dashboard SHALL display a Patient Summary table containing patient ID, site, status, days without data, last login, and questionnaire states.
+E. The Patient Summary table SHALL display only patients enrolled at sites where the investigator has authorized access, enforced through RLS.
+F. The system SHALL calculate patient status as 'recent' when last data entry occurred within 3 days, 'warning' when 4-7 days, 'atRisk' when more than 7 days, and 'noData' when no data entry exists.
+G. The system SHALL display status badges color-coded as green for 'recent', orange for 'warning', red for 'atRisk', and grey for 'noData'.
+H. The system SHALL calculate and display days without data as the number of days elapsed since the patient's last data entry.
+I. The system SHALL display last login time using relative time formatting (e.g., '2 days ago').
+J. The dashboard SHALL display three summary cards showing Total Patients, Active Today, and Requires Follow-up counts.
+K. The system SHALL calculate 'Active Today' as the count of patients with data entry on the current day.
+L. The system SHALL calculate 'Requires Follow-up' as the count of patients with no data entry or last data entry more than 7 days ago.
+M. The dashboard SHALL provide an 'Enroll New Patient' button that opens a patient enrollment dialog.
+N. The enrollment dialog SHALL generate a patient linking code upon successful enrollment.
+O. The dashboard SHALL display questionnaire status for NOSE HHT and QoL questionnaires for each patient.
+P. The system SHALL provide a 'Send' button for questionnaires with status 'not_sent' or null.
+Q. The system SHALL display a 'Pending' badge and 'Resend' button for questionnaires with status 'sent'.
+R. The system SHALL display completion date, 'Completed' badge, and 'Acknowledge' button for questionnaires with status 'completed'.
+S. The system SHALL send questionnaires via POST request to '/api/portal/questionnaires/send' with patient_id and questionnaire type parameters.
+T. The system SHALL acknowledge questionnaires via POST request to '/api/portal/questionnaires/acknowledge' with patient_id and questionnaire type parameters.
+U. The dashboard SHALL provide a 'Generate Monthly Report' button that triggers monthly report generation.
+V. The dashboard SHALL provide an unenroll action for each patient that revokes the patient's access token.
+W. The system SHALL display a confirmation dialog before unenrolling a patient, warning that the patient will lose access to trial data.
+X. The system SHALL update patient status to 'unenrolled' via PATCH request to '/api/portal/patients/{patientId}' when unenrollment is confirmed.
+Y. The system SHALL display success or error notifications to the investigator after questionnaire actions and patient enrollment operations.
+Z. The dashboard layout SHALL be responsive and functional on desktop and tablet screen sizes.
 
-  final daysWithoutData = DateTime.now().difference(lastDataEntry).inDays;
-
-  if (daysWithoutData <= 3) return PatientStatus.recent;
-  if (daysWithoutData <= 7) return PatientStatus.warning;
-  return PatientStatus.atRisk;
-}
-
-Color getStatusColor(PatientStatus status) {
-  switch (status) {
-    case PatientStatus.recent:
-      return Colors.green;
-    case PatientStatus.warning:
-      return Colors.orange;
-    case PatientStatus.atRisk:
-      return Colors.red;
-    case PatientStatus.noData:
-      return Colors.grey;
-  }
-}
-```
-
-**Component Structure** (`lib/pages/investigator_dashboard.dart`):
-```dart
-import 'package:flutter/material.dart';
-
-class InvestigatorDashboard extends StatefulWidget {
-  const InvestigatorDashboard({super.key});
-
-  @override
-  State<InvestigatorDashboard> createState() => _InvestigatorDashboardState();
-}
-
-class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
-  List<Site> _mySites = [];
-  List<Patient> _patients = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    await Future.wait([
-      _loadMySites(),
-      _loadMyPatients(),
-    ]);
-    setState(() => _isLoading = false);
-  }
-
-  Future<void> _loadMySites() async {
-    // API automatically filters by user's site access via RLS
-    final response = await apiClient.get('/api/portal/my-sites');
-
-    _mySites = (response as List)
-        .map((json) => Site.fromJson(json))
-        .toList();
-  }
-
-  Future<void> _loadMyPatients() async {
-    // API automatically filters by user's site access via RLS
-    final response = await apiClient.get('/api/portal/patients');
-
-    _patients = (response as List)
-        .map((json) => Patient.fromJson(json))
-        .toList();
-  }
-
-  Future<void> _sendQuestionnaire(String patientId, String type) async {
-    try {
-      await apiClient.post('/api/portal/questionnaires/send', {
-        'patient_id': patientId,
-        'type': type,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$type questionnaire sent')),
-      );
-      _loadMyPatients();
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send questionnaire: $error')),
-      );
-    }
-  }
-
-  Future<void> _acknowledgeQuestionnaire(String patientId, String type) async {
-    try {
-      await apiClient.post('/api/portal/questionnaires/acknowledge', {
-        'patient_id': patientId,
-        'type': type,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Questionnaire acknowledged')),
-      );
-      _loadMyPatients();
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to acknowledge: $error')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final totalPatients = _patients.length;
-    final activeToday = _patients.where((p) {
-      if (p.lastDataEntryDate == null) return false;
-      return DateTime.now().difference(p.lastDataEntryDate!).inDays == 0;
-    }).length;
-    final requiresFollowup = _patients.where((p) {
-      if (p.lastDataEntryDate == null) return true;
-      return DateTime.now().difference(p.lastDataEntryDate!).inDays > 7;
-    }).length;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Investigator Dashboard'),
-        actions: [
-          IconButton(
-            onPressed: () => context.read<AuthProvider>().signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // My Sites
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Sites',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _mySites.map((site) {
-                        return Chip(
-                          label: Text('${site.siteNumber} - ${site.name}, ${site.location}'),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Summary Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _SummaryCard(
-                    title: 'Total Patients',
-                    value: totalPatients.toString(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _SummaryCard(
-                    title: 'Active Today',
-                    value: activeToday.toString(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _SummaryCard(
-                    title: 'Requires Follow-up',
-                    value: requiresFollowup.toString(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Patient Summary Table
-            Expanded(
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Patient Summary',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          Row(
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () => _showEnrollPatientDialog(),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Enroll Patient'),
-                              ),
-                              const SizedBox(width: 8),
-                              OutlinedButton.icon(
-                                onPressed: () => _generateMonthlyReport(),
-                                icon: const Icon(Icons.email),
-                                label: const Text('Monthly Report'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Patient ID')),
-                              DataColumn(label: Text('Site')),
-                              DataColumn(label: Text('Status')),
-                              DataColumn(label: Text('Days Without Data')),
-                              DataColumn(label: Text('Last Login')),
-                              DataColumn(label: Text('NOSE HHT')),
-                              DataColumn(label: Text('QoL')),
-                              DataColumn(label: Text('Actions')),
-                            ],
-                            rows: _patients.map((patient) {
-                              final noseQ = patient.questionnaires.firstWhere(
-                                (q) => q.type == 'NOSE_HHT',
-                                orElse: () => Questionnaire.empty(),
-                              );
-                              final qolQ = patient.questionnaires.firstWhere(
-                                (q) => q.type == 'QoL',
-                                orElse: () => Questionnaire.empty(),
-                              );
-
-                              return DataRow(cells: [
-                                DataCell(Text(patient.patientId)),
-                                DataCell(Text(patient.site.name)),
-                                DataCell(
-                                  Chip(
-                                    label: Text(patient.status.name.toUpperCase()),
-                                    backgroundColor: getStatusColor(patient.status),
-                                  ),
-                                ),
-                                DataCell(Text(
-                                  patient.lastDataEntryDate == null
-                                      ? 'No data'
-                                      : '${DateTime.now().difference(patient.lastDataEntryDate!).inDays} days',
-                                )),
-                                DataCell(Text(patient.lastLoginRelative)),
-                                DataCell(
-                                  _QuestionnaireActions(
-                                    questionnaire: noseQ,
-                                    onSend: () => _sendQuestionnaire(patient.patientId, 'NOSE_HHT'),
-                                    onAcknowledge: () => _acknowledgeQuestionnaire(patient.patientId, 'NOSE_HHT'),
-                                  ),
-                                ),
-                                DataCell(
-                                  _QuestionnaireActions(
-                                    questionnaire: qolQ,
-                                    onSend: () => _sendQuestionnaire(patient.patientId, 'QoL'),
-                                    onAcknowledge: () => _acknowledgeQuestionnaire(patient.patientId, 'QoL'),
-                                  ),
-                                ),
-                                DataCell(
-                                  IconButton(
-                                    icon: const Icon(Icons.block),
-                                    onPressed: () => _revokePatientToken(patient.patientId),
-                                    tooltip: 'Unenroll patient',
-                                  ),
-                                ),
-                              ]);
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEnrollPatientDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => EnrollPatientDialog(
-        assignedSites: _mySites,
-        onPatientEnrolled: _loadMyPatients,
-      ),
-    );
-  }
-
-  Future<void> _generateMonthlyReport() async {
-    // TODO: Implement monthly report generation
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Monthly report generation coming soon')),
-    );
-  }
-
-  Future<void> _revokePatientToken(String patientId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unenroll Patient'),
-        content: const Text('Are you sure you want to unenroll this patient? They will lose access to their trial data.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Unenroll'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await apiClient.patch('/api/portal/patients/$patientId', {
-        'status': 'unenrolled',
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Patient unenrolled')),
-      );
-      _loadMyPatients();
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to unenroll patient: $error')),
-      );
-    }
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _SummaryCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.displayLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuestionnaireActions extends StatelessWidget {
-  final Questionnaire questionnaire;
-  final VoidCallback onSend;
-  final VoidCallback onAcknowledge;
-
-  const _QuestionnaireActions({
-    required this.questionnaire,
-    required this.onSend,
-    required this.onAcknowledge,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (questionnaire.status == 'not_sent' || questionnaire.status == null) {
-      return ElevatedButton(
-        onPressed: onSend,
-        child: const Text('Send'),
-      );
-    }
-
-    if (questionnaire.status == 'sent') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Chip(
-            label: Text('Pending'),
-            backgroundColor: Colors.orange,
-          ),
-          TextButton(
-            onPressed: onSend,
-            child: const Text('Resend'),
-          ),
-        ],
-      );
-    }
-
-    if (questionnaire.status == 'completed') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Last: ${questionnaire.lastCompletionDate != null ? DateFormat.yMd().format(questionnaire.lastCompletionDate!) : "N/A"}',
-            style: const TextStyle(fontSize: 12),
-          ),
-          const Chip(
-            label: Text('Completed'),
-            backgroundColor: Colors.green,
-          ),
-          ElevatedButton(
-            onPressed: onAcknowledge,
-            child: const Text('Acknowledge'),
-          ),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Investigator dashboard matches portal mockup design
-- [ ] "My Sites" section shows assigned sites
-- [ ] Patient table shows only patients from investigator's sites (RLS)
-- [ ] Status badges color-coded correctly
-- [ ] Days without data calculated correctly
-- [ ] Last login shows relative time ("2 days ago")
-- [ ] Questionnaire actions work (Send, Resend, Acknowledge)
-- [ ] Summary cards show accurate counts
-- [ ] "Enroll New Patient" button opens dialog
-- [ ] "Monthly Report" button triggers report generation
-- [ ] "Unenroll" button revokes patient tokens
-- [ ] Table responsive on desktop and tablet
-
-*End* *Investigator Dashboard Implementation* | **Hash**: a4946745
+*End* *Investigator Dashboard Implementation* | **Hash**: f8e9c137
 ---
 
 # REQ-d00038: Enroll Patient Dialog Implementation
 
-**Level**: Dev | **Implements**: p00039 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00039
 
-The portal SHALL provide a modal dialog for Investigators to generate patient linking codes for enrollment, with site selection restricted to investigator's assigned sites.
+## Rationale
 
-**Technical Details**:
-- **Trigger**: "Enroll Patient" button on Investigator dashboard
-- **Form Fields**:
-  - Site: Dropdown (only investigator's assigned sites)
-  - Patient Linking Code: Read-only, auto-generated 10-character code (XXXXX-XXXXX)
-- **No Patient ID Input**: Portal generates the linking code; patient ID assigned when patient uses code in mobile app
-- **Validation**: Site selection required
-- **Submission**: Creates `patients` record with linking code + creates initial questionnaire records
+This requirement defines the Enroll Patient dialog component that enables investigators to initiate patient enrollment in the clinical trial. The dialog generates a secure linking code that patients use to self-enroll via the mobile app, maintaining a clear separation between investigator actions (code generation) and patient actions (enrollment completion). This approach supports FDA 21 CFR Part 11 compliance by ensuring patient identity is established through the mobile app enrollment flow rather than investigator-entered data. The linking code format and character set are designed to minimize transcription errors during manual entry.
 
-**Component Structure** (`lib/dialogs/enroll_patient_dialog.dart`):
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:math';
+## Assertions
 
-class EnrollPatientDialog extends StatefulWidget {
-  final List<Site> assignedSites;
-  final VoidCallback onPatientEnrolled;
+A. The system SHALL provide a modal dialog accessible via an 'Enroll Patient' button on the Investigator dashboard.
+B. The dialog SHALL display a site dropdown field populated only with sites assigned to the current investigator.
+C. The dialog SHALL auto-generate a 10-character linking code in format XXXXX-XXXXX when the dialog opens.
+D. The linking code generator SHALL use only non-ambiguous characters from the set 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'.
+E. The dialog SHALL display the linking code in a read-only text field.
+F. The dialog SHALL provide a copy button that copies the linking code to the system clipboard.
+G. The dialog SHALL require site selection before allowing form submission.
+H. The dialog SHALL display a validation error message when submission is attempted without site selection.
+I. The system SHALL verify linking code uniqueness before creating the patient record.
+J. The system SHALL create a patients record with status 'pending_enrollment' when the form is submitted.
+K. The system SHALL create initial questionnaire records (NOSE_HHT and QoL) when the patient record is created.
+L. The dialog SHALL display a success message containing the linking code after successful enrollment preparation.
+M. The success message SHALL remain visible for at least 5 seconds.
+N. The dialog SHALL close automatically after successful enrollment preparation.
+O. The system SHALL refresh the patient table after the dialog closes from successful enrollment.
+P. The dialog SHALL display an error message if enrollment preparation fails.
+Q. The dialog SHALL provide a Cancel button that closes the dialog without creating records.
+R. The dialog SHALL disable form controls and display a loading indicator during submission processing.
+S. The dialog SHALL match the approved portal mockup design specifications.
+T. The dialog component file SHALL be located at lib/dialogs/enroll_patient_dialog.dart.
 
-  const EnrollPatientDialog({
-    super.key,
-    required this.assignedSites,
-    required this.onPatientEnrolled,
-  });
-
-  @override
-  State<EnrollPatientDialog> createState() => _EnrollPatientDialogState();
-}
-
-class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
-  String? _selectedSiteId;
-  String _linkingCode = '';
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _linkingCode = _generateLinkingCode();
-  }
-
-  String _generateLinkingCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = Random.secure();
-
-    String generatePart() {
-      return List.generate(5, (_) => chars[random.nextInt(chars.length)]).join();
-    }
-
-    return '${generatePart()}-${generatePart()}';
-  }
-
-  Future<void> _handleSubmit() async {
-    if (_selectedSiteId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a site')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // API handles linking code uniqueness check and patient creation
-      await apiClient.post('/api/portal/patients/enroll', {
-        'site_id': _selectedSiteId,
-        'linking_code': _linkingCode,
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Patient enrollment prepared. Share code: $_linkingCode'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-        Navigator.pop(context);
-        widget.onPatientEnrolled();
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to prepare enrollment: $error')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Enroll New Patient'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Generate a linking code for the patient to enroll in their mobile app.'),
-            const SizedBox(height: 16),
-
-            DropdownButtonFormField<String>(
-              value: _selectedSiteId,
-              decoration: const InputDecoration(
-                labelText: 'Site',
-                border: OutlineInputBorder(),
-              ),
-              items: widget.assignedSites.map((site) {
-                return DropdownMenuItem(
-                  value: site.id,
-                  child: Text('${site.siteNumber} - ${site.name}, ${site.location}'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedSiteId = value);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              'Patient Linking Code',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: TextEditingController(text: _linkingCode),
-                    readOnly: true,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _linkingCode));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Linking code copied')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy),
-                  tooltip: 'Copy linking code',
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Share this code with the patient. They will enter it in their mobile app to enroll.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleSubmit,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Generate Code'),
-        ),
-      ],
-    );
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Dialog matches portal mockup design
-- [ ] Site dropdown shows only investigator's assigned sites
-- [ ] Linking code auto-generated when dialog opens
-- [ ] Linking code uses non-ambiguous characters only
-- [ ] Copy button copies linking code to clipboard
-- [ ] Form submission creates `patients` record with status `pending_enrollment`
-- [ ] Form submission creates initial questionnaire records (NOSE_HHT, QoL)
-- [ ] Linking code uniqueness checked before insertion
-- [ ] Success message shows linking code
-- [ ] Dialog closes and table refreshes after enrollment
-
-*End* *Enroll Patient Dialog Implementation* | **Hash**: 881fec78
+*End* *Enroll Patient Dialog Implementation* | **Hash**: 7c62bbb7
 ---
 
 # REQ-d00051: Auditor Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00029 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00029
 
-The portal SHALL provide an Auditor dashboard with read-only access to all portal data (users, patients, sites, questionnaires) and a stubbed "Export Database" function for compliance auditing.
+## Rationale
 
-**Technical Details**:
-- **Route**: `/auditor`
-- **Access**: Auditor role only (RLS enforced)
-- **Features**:
-  - Read-only view of all users (all sites, all investigators)
-  - Read-only view of all patients (across all sites)
-  - Read-only view of questionnaire status
-  - "Export Database" button (stubbed, returns "Export coming soon" message)
-  - No create, update, or delete actions (all buttons disabled or hidden)
+This requirement defines the Auditor dashboard implementation to support FDA 21 CFR Part 11 compliance auditing activities. Auditors need comprehensive read-only visibility across all portal data (users, patients, sites, questionnaires) to perform regulatory compliance reviews and verify data integrity. The dashboard consolidates multi-site data into a single view while preventing any data modification through strictly read-only access controls enforced by Row-Level Security policies. The stubbed export function provides a placeholder for future compliance reporting capabilities.
 
-**Component Structure** (`lib/pages/auditor_dashboard.dart`):
-```dart
-import 'package:flutter/material.dart';
+## Assertions
 
-class AuditorDashboard extends StatefulWidget {
-  const AuditorDashboard({super.key});
+A. The system SHALL provide a dashboard accessible at the route '/auditor'.
+B. The dashboard SHALL be accessible only to users with the Auditor role, enforced via RLS policies.
+C. The dashboard SHALL display read-only views of all portal users across all sites.
+D. The dashboard SHALL display read-only views of all patients across all sites.
+E. The dashboard SHALL display read-only views of all sites.
+F. The dashboard SHALL display questionnaire status information for all patients.
+G. The dashboard SHALL include an 'Export Database' button visible in the application bar.
+H. The 'Export Database' button SHALL display a 'Database export coming soon' message when activated.
+I. The dashboard SHALL NOT provide any create, update, or delete actions for data modification.
+J. The dashboard SHALL display an 'AUDIT MODE' indicator to clearly identify the read-only audit context.
+K. The dashboard SHALL display summary cards showing the total count of users.
+L. The dashboard SHALL display summary cards showing the total count of patients.
+M. The dashboard SHALL display summary cards showing the total count of sites.
+N. The dashboard SHALL display summary cards showing the total count of investigators.
+O. The users table SHALL display user name, email, role, site assignments, status, and creation date.
+P. The patients table SHALL display patient ID, site assignment, enrollment status, enrollment date, days without data entry, last login time, NOSE HHT questionnaire status, and QoL questionnaire status.
+Q. RLS policies SHALL allow Auditor role read access to all users via the '/api/portal/users' endpoint.
+R. RLS policies SHALL allow Auditor role read access to all patients via the '/api/portal/patients' endpoint.
+S. RLS policies SHALL allow Auditor role read access to all sites via the '/api/portal/sites' endpoint.
+T. The dashboard SHALL load user, patient, and site data concurrently during initialization.
+U. The dashboard SHALL display a loading indicator while data is being retrieved.
+V. Summary card counts SHALL accurately reflect the loaded data.
+W. The dashboard SHALL provide a logout action accessible from the application bar.
 
-  @override
-  State<AuditorDashboard> createState() => _AuditorDashboardState();
-}
-
-class _AuditorDashboardState extends State<AuditorDashboard> {
-  List<PortalUser> _users = [];
-  List<Patient> _patients = [];
-  List<Site> _sites = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    await Future.wait([
-      _loadUsers(),
-      _loadPatients(),
-      _loadSites(),
-    ]);
-    setState(() => _isLoading = false);
-  }
-
-  Future<void> _loadUsers() async {
-    // API allows Auditors to see all users via RLS
-    final response = await apiClient.get('/api/portal/users');
-
-    _users = (response as List)
-        .map((json) => PortalUser.fromJson(json))
-        .toList();
-  }
-
-  Future<void> _loadPatients() async {
-    // API allows Auditors to see all patients via RLS
-    final response = await apiClient.get('/api/portal/patients');
-
-    _patients = (response as List)
-        .map((json) => Patient.fromJson(json))
-        .toList();
-  }
-
-  Future<void> _loadSites() async {
-    final response = await apiClient.get('/api/portal/sites');
-
-    _sites = (response as List)
-        .map((json) => Site.fromJson(json))
-        .toList();
-  }
-
-  Future<void> _exportDatabase() async {
-    // TODO: Implement database export (CSV, JSON, or SQL dump)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Database export coming soon'),
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Auditor Dashboard'),
-        actions: [
-          ElevatedButton.icon(
-            onPressed: _exportDatabase,
-            icon: const Icon(Icons.download),
-            label: const Text('Export Database'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 16),
-          IconButton(
-            onPressed: () => context.read<AuthProvider>().signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Summary Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _SummaryCard(
-                      title: 'Total Users',
-                      value: _users.length.toString(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _SummaryCard(
-                      title: 'Total Patients',
-                      value: _patients.length.toString(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _SummaryCard(
-                      title: 'Total Sites',
-                      value: _sites.length.toString(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _SummaryCard(
-                      title: 'Investigators',
-                      value: _users.where((u) => u.role == 'Investigator').length.toString(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Users Table
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Portal Users (Read-Only)',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          Chip(
-                            label: const Text('AUDIT MODE'),
-                            backgroundColor: Colors.orange.shade100,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('Name')),
-                            DataColumn(label: Text('Email')),
-                            DataColumn(label: Text('Role')),
-                            DataColumn(label: Text('Sites')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Created')),
-                          ],
-                          rows: _users.map((user) {
-                            return DataRow(cells: [
-                              DataCell(Text(user.name)),
-                              DataCell(Text(user.email)),
-                              DataCell(
-                                Chip(
-                                  label: Text(user.role),
-                                  backgroundColor: user.role == 'Admin'
-                                      ? Colors.red.shade100
-                                      : Colors.grey.shade200,
-                                ),
-                              ),
-                              DataCell(Text(
-                                user.siteAccess.map((s) => s.siteNumber).join(', '),
-                              )),
-                              DataCell(
-                                Chip(
-                                  label: Text(user.status),
-                                  backgroundColor: user.status == 'active'
-                                      ? Colors.green.shade100
-                                      : Colors.red.shade100,
-                                ),
-                              ),
-                              DataCell(Text(
-                                DateFormat.yMd().format(user.createdAt),
-                              )),
-                            ]);
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Patients Table
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'All Patients (Read-Only)',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 16),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('Patient ID')),
-                            DataColumn(label: Text('Site')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('Enrollment Date')),
-                            DataColumn(label: Text('Days Without Data')),
-                            DataColumn(label: Text('Last Login')),
-                            DataColumn(label: Text('NOSE HHT')),
-                            DataColumn(label: Text('QoL')),
-                          ],
-                          rows: _patients.map((patient) {
-                            final noseQ = patient.questionnaires.firstWhere(
-                              (q) => q.type == 'NOSE_HHT',
-                              orElse: () => Questionnaire.empty(),
-                            );
-                            final qolQ = patient.questionnaires.firstWhere(
-                              (q) => q.type == 'QoL',
-                              orElse: () => Questionnaire.empty(),
-                            );
-
-                            return DataRow(cells: [
-                              DataCell(Text(patient.patientId ?? 'Pending')),
-                              DataCell(Text(patient.site.name)),
-                              DataCell(
-                                Chip(
-                                  label: Text(patient.status),
-                                  backgroundColor: patient.status == 'enrolled'
-                                      ? Colors.green.shade100
-                                      : Colors.grey.shade200,
-                                ),
-                              ),
-                              DataCell(Text(
-                                patient.enrollmentDate != null
-                                    ? DateFormat.yMd().format(patient.enrollmentDate!)
-                                    : 'N/A',
-                              )),
-                              DataCell(Text(
-                                patient.lastDataEntryDate == null
-                                    ? 'No data'
-                                    : '${DateTime.now().difference(patient.lastDataEntryDate!).inDays} days',
-                              )),
-                              DataCell(Text(patient.lastLoginRelative)),
-                              DataCell(
-                                Chip(
-                                  label: Text(noseQ.status ?? 'not_sent'),
-                                  backgroundColor: _getQuestionnaireStatusColor(noseQ.status),
-                                ),
-                              ),
-                              DataCell(
-                                Chip(
-                                  label: Text(qolQ.status ?? 'not_sent'),
-                                  backgroundColor: _getQuestionnaireStatusColor(qolQ.status),
-                                ),
-                              ),
-                            ]);
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _getQuestionnaireStatusColor(String? status) {
-    switch (status) {
-      case 'sent':
-        return Colors.orange.shade100;
-      case 'completed':
-        return Colors.green.shade100;
-      case 'not_sent':
-      default:
-        return Colors.grey.shade200;
-    }
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _SummaryCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.displayLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Auditor dashboard accessible at `/auditor` route
-- [ ] Auditor can view all users (across all sites)
-- [ ] Auditor can view all patients (across all sites)
-- [ ] Auditor can view all questionnaire statuses
-- [ ] "Export Database" button visible in app bar
-- [ ] "Export Database" shows "coming soon" message (stubbed)
-- [ ] No create, update, or delete actions available
-- [ ] "AUDIT MODE" indicator visible
-- [ ] Summary cards show accurate counts
-- [ ] RLS policies allow Auditor read access to all data
-
-*End* *Auditor Dashboard Implementation* | **Hash**: 1c02e54a
+*End* *Auditor Dashboard Implementation* | **Hash**: ed881a6b
 ---
 
 ## Database Schema Requirements
 
 # REQ-d00039: Portal Users Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, d00016
 
-The portal database SHALL include a `portal_users` table to store portal user accounts with roles, linking codes, and authentication linkage.
+## Rationale
 
-**Technical Details**:
+This requirement defines the database schema for portal user accounts in the clinical trial system. The table stores user identity, roles, and enrollment linking codes to support authentication via Firebase Identity Platform and device enrollment workflows. Row-level security policies enforce role-based access control, ensuring Admins have full access, Investigators can only view their own records, and Auditors have read-only visibility. The schema supports the user lifecycle from creation through device enrollment to potential revocation.
 
-**Table: `portal_users`**
-```sql
-CREATE TYPE user_role AS ENUM ('Admin', 'Investigator', 'Auditor');
+## Assertions
 
-CREATE TABLE portal_users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  firebase_uid TEXT UNIQUE, -- Identity Platform UID (nullable until user enrolls)
-  email TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  role user_role NOT NULL,
-  linking_code TEXT UNIQUE, -- For device enrollment
-  status TEXT NOT NULL DEFAULT 'active', -- active, revoked
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+A. The portal database SHALL include a table named `portal_users` to store portal user accounts.
+B. The system SHALL create a PostgreSQL enum type `user_role` with values ('Admin', 'Investigator', 'Auditor').
+C. The `portal_users` table SHALL include an `id` column as UUID primary key with default value `gen_random_uuid()`.
+D. The `portal_users` table SHALL include a `firebase_uid` column as TEXT with UNIQUE constraint, nullable until user enrolls.
+E. The `portal_users` table SHALL include an `email` column as TEXT that is NOT NULL and UNIQUE.
+F. The `portal_users` table SHALL include a `name` column as TEXT that is NOT NULL.
+G. The `portal_users` table SHALL include a `role` column of type `user_role` that is NOT NULL.
+H. The `portal_users` table SHALL include a `linking_code` column as TEXT with UNIQUE constraint for device enrollment.
+I. The `portal_users` table SHALL include a `status` column as TEXT that is NOT NULL with default value 'active'.
+J. The `portal_users` table SHALL include a `created_at` column as TIMESTAMPTZ that is NOT NULL with default value `now()`.
+K. The `portal_users` table SHALL include an `updated_at` column as TIMESTAMPTZ that is NOT NULL with default value `now()`.
+L. The system SHALL create an index `idx_portal_users_firebase_uid` on the `firebase_uid` column for fast role lookup.
+M. The system SHALL create an index `idx_portal_users_email` on the `email` column for email lookups.
+N. The system SHALL create an index `idx_portal_users_linking_code` on the `linking_code` column for mobile app lookups.
+O. The system SHALL enable row-level security on the `portal_users` table.
+P. The system SHALL create an RLS policy `admins_auditors_see_all_users` that allows users with role 'Admin' or 'Auditor' to SELECT all rows.
+Q. The system SHALL create an RLS policy `users_see_themselves` that allows Investigators to SELECT only rows where `firebase_uid` matches their user ID.
+R. The system SHALL create an RLS policy `admins_insert_users` that allows only users with role 'Admin' to INSERT rows.
+S. The system SHALL create an RLS policy `admins_update_users` that allows only users with role 'Admin' to UPDATE rows.
 
--- Index for fast role lookup by Identity Platform UID
-CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
-
--- Index for email lookups
-CREATE INDEX idx_portal_users_email ON portal_users(email);
-
--- Index for linking code lookups (mobile app uses this)
-CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
-
--- RLS policies (enforced via application-set session variables)
-ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
-
--- Admins and Auditors can see all users
-CREATE POLICY "admins_auditors_see_all_users" ON portal_users
-  FOR SELECT
-  USING (
-    current_setting('app.role', true) IN ('Admin', 'Auditor')
-  );
-
--- Investigators can see themselves
-CREATE POLICY "users_see_themselves" ON portal_users
-  FOR SELECT
-  USING (firebase_uid = current_setting('app.user_id', true));
-
--- Admins can insert new users
-CREATE POLICY "admins_insert_users" ON portal_users
-  FOR INSERT
-  WITH CHECK (
-    current_setting('app.role', true) = 'Admin'
-  );
-
--- Admins can update user status (revoke tokens)
-CREATE POLICY "admins_update_users" ON portal_users
-  FOR UPDATE
-  USING (
-    current_setting('app.role', true) = 'Admin'
-  );
-```
-
-**Columns**:
-- `id`: Primary key (UUID)
-- `firebase_uid`: Identity Platform UID (nullable until investigator enrolls device)
-- `email`: Unique email address for login
-- `name`: Display name (e.g., "Dr. Sarah Johnson")
-- `role`: Enum (Admin, Investigator)
-- `linking_code`: Unique code for device enrollment (XXXXX-XXXXX format, same as patient codes)
-- `status`: `active` or `revoked` (revoked users cannot log in)
-- `created_at`: Timestamp of user creation
-- `updated_at`: Timestamp of last update
-
-**Acceptance Criteria**:
-- [ ] `portal_users` table created with correct schema
-- [ ] `user_role` enum type created
-- [ ] Foreign key constraint to `auth.users` table
-- [ ] Unique constraint on `email` column
-- [ ] Unique constraint on `linking_code` column
-- [ ] Indexes created for performance
-- [ ] RLS policies enable role-based access
-- [ ] Admins can query all users
-- [ ] Investigators can only query themselves
-
-*End* *Portal Users Table Schema* | **Hash**: 58a96521
+*End* *Portal Users Table Schema* | **Hash**: ab792ed7
 ---
 
 # REQ-d00040: User Site Access Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, d00033
 
-The portal database SHALL include a `user_site_access` table to store site assignments for Investigators, enabling site-level data isolation.
+## Rationale
 
-**Technical Details**:
+This requirement defines the database schema for managing site-level access assignments in the clinical trial portal. The user_site_access table enables investigators to be assigned to specific trial sites, supporting data isolation requirements from REQ-p00009 and REQ-d00033. The schema includes referential integrity constraints, performance indexes, and row-level security policies that enforce role-based access control using application-set session variables. This design ensures that investigators can only access data for sites they are assigned to, while administrators and auditors maintain broader visibility for their respective functions.
 
-**Table: `user_site_access`**
-```sql
-CREATE TABLE user_site_access (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
-  site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
-  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, site_id)
-);
+## Assertions
 
--- Index for fast site lookups by user
-CREATE INDEX idx_user_site_access_user ON user_site_access(user_id);
+A. The system SHALL include a user_site_access table in the portal database.
+B. The user_site_access table SHALL include an id column as UUID primary key with default value gen_random_uuid().
+C. The user_site_access table SHALL include a user_id column as UUID NOT NULL with foreign key constraint to portal_users(id) with ON DELETE CASCADE.
+D. The user_site_access table SHALL include a site_id column as UUID NOT NULL with foreign key constraint to sites(id) with ON DELETE CASCADE.
+E. The user_site_access table SHALL include an assigned_at column as TIMESTAMPTZ NOT NULL with default value now().
+F. The user_site_access table SHALL enforce a UNIQUE constraint on the combination of user_id and site_id.
+G. The system SHALL create an index named idx_user_site_access_user on user_site_access(user_id).
+H. The system SHALL create an index named idx_user_site_access_site on user_site_access(site_id).
+I. The system SHALL enable row level security on the user_site_access table.
+J. The system SHALL create a policy named admins_auditors_see_all_site_access that allows SELECT access when current_setting('app.role', true) is 'Admin' or 'Auditor'.
+K. The system SHALL create a policy named users_see_own_site_access that allows SELECT access when user_id matches current_setting('app.user_id', true)::uuid.
+L. The system SHALL create a policy named admins_insert_site_access that allows INSERT access when current_setting('app.role', true) is 'Admin'.
+M. The system SHALL automatically delete user_site_access records when the referenced portal_users record is deleted.
+N. The system SHALL automatically delete user_site_access records when the referenced sites record is deleted.
 
--- Index for fast user lookups by site
-CREATE INDEX idx_user_site_access_site ON user_site_access(site_id);
-
--- RLS policies (enforced via application-set session variables)
-ALTER TABLE user_site_access ENABLE ROW LEVEL SECURITY;
-
--- Admins and Auditors can see all site access records
-CREATE POLICY "admins_auditors_see_all_site_access" ON user_site_access
-  FOR SELECT
-  USING (
-    current_setting('app.role', true) IN ('Admin', 'Auditor')
-  );
-
--- Investigators can see their own site access
-CREATE POLICY "users_see_own_site_access" ON user_site_access
-  FOR SELECT
-  USING (
-    user_id = current_setting('app.user_id', true)::uuid
-  );
-
--- Admins can insert site access records
-CREATE POLICY "admins_insert_site_access" ON user_site_access
-  FOR INSERT
-  WITH CHECK (
-    current_setting('app.role', true) = 'Admin'
-  );
-```
-
-**Columns**:
-- `id`: Primary key (UUID)
-- `user_id`: Foreign key to `portal_users.id`
-- `site_id`: Foreign key to `sites.id`
-- `assigned_at`: Timestamp of site assignment
-- Unique constraint on `(user_id, site_id)` prevents duplicates
-
-**Acceptance Criteria**:
-- [ ] `user_site_access` table created with correct schema
-- [ ] Foreign key constraints to `portal_users` and `sites`
-- [ ] Unique constraint prevents duplicate assignments
-- [ ] Indexes created for performance
-- [ ] RLS policies enable role-based access
-- [ ] Cascade delete removes assignments when user or site deleted
-
-*End* *User Site Access Table Schema* | **Hash**: 9ce60fc6
+*End* *User Site Access Table Schema* | **Hash**: f6e3af89
 ---
 
 # REQ-d00041: Patients Table Extensions for Portal
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009
 
-The portal database SHALL extend the `patients` table with fields for linking codes, enrollment tracking, and status management.
+## Rationale
 
-**Technical Details**:
+This requirement extends the patients table to support the patient enrollment workflow in the portal, where investigators generate linking codes that patients use to connect their mobile app. The extensions track enrollment lifecycle (code generation, app linking, ongoing engagement) and enforce site-based access control. The status field transitions from pending_enrollment (code generated) to enrolled (patient linked app) to unenrolled (access revoked). Row-level security policies ensure investigators can only interact with patients at their assigned sites, while admins and auditors have broader access. This implements the enrollment and access control aspects of the portal functionality defined in PRD p00009.
 
-**Table Extensions: `patients`**
-```sql
--- Add new columns to existing patients table
-ALTER TABLE patients ADD COLUMN linking_code TEXT UNIQUE;
-ALTER TABLE patients ADD COLUMN enrollment_date TIMESTAMPTZ;
-ALTER TABLE patients ADD COLUMN last_login_at TIMESTAMPTZ;
-ALTER TABLE patients ADD COLUMN last_data_entry_date TIMESTAMPTZ;
-ALTER TABLE patients ADD COLUMN mobile_app_linked_at TIMESTAMPTZ;
-ALTER TABLE patients ADD COLUMN status TEXT DEFAULT 'pending_enrollment';
--- Status: pending_enrollment, enrolled, unenrolled
+## Assertions
 
--- Index for linking code lookups (mobile app uses this)
-CREATE INDEX idx_patients_linking_code ON patients(linking_code);
+A. The system SHALL extend the patients table with a linking_code column of type TEXT with a UNIQUE constraint.
+B. The system SHALL extend the patients table with an enrollment_date column of type TIMESTAMPTZ.
+C. The system SHALL extend the patients table with a last_login_at column of type TIMESTAMPTZ.
+D. The system SHALL extend the patients table with a last_data_entry_date column of type TIMESTAMPTZ.
+E. The system SHALL extend the patients table with a mobile_app_linked_at column of type TIMESTAMPTZ.
+F. The system SHALL extend the patients table with a status column of type TEXT with a default value of 'pending_enrollment'.
+G. The status column SHALL support the values: 'pending_enrollment', 'enrolled', and 'unenrolled'.
+H. The system SHALL create an index idx_patients_linking_code on the patients table linking_code column.
+I. The system SHALL create an index idx_patients_status on the patients table status column.
+J. The system SHALL create an index idx_patients_last_data_entry on the patients table last_data_entry_date column in descending order.
+K. The system SHALL create an RLS policy 'investigators_own_sites_patients' for SELECT operations that allows users with app.role 'Admin' or 'Auditor' to view all patient records.
+L. The system SHALL create an RLS policy 'investigators_own_sites_patients' for SELECT operations that allows users with app.role 'Investigator' to view only patients from sites assigned to them via user_site_access.
+M. The system SHALL create an RLS policy 'investigators_insert_own_sites_patients' for INSERT operations that allows users with app.role 'Admin' to insert patient records at any site.
+N. The system SHALL create an RLS policy 'investigators_insert_own_sites_patients' for INSERT operations that allows users with app.role 'Investigator' to insert patient records only at sites assigned to them via user_site_access.
+O. The system SHALL create an RLS policy 'investigators_update_own_sites_patients' for UPDATE operations that allows users with app.role 'Admin' to update all patient records.
+P. The system SHALL create an RLS policy 'investigators_update_own_sites_patients' for UPDATE operations that allows users with app.role 'Investigator' to update only patients from sites assigned to them via user_site_access.
+Q. The linking_code column SHALL store unique 10-character codes in the format XXXXX-XXXXX.
+R. The enrollment_date column SHALL store the timestamp when the linking code is generated by an investigator.
+S. The last_login_at column SHALL store the timestamp of the patient's last mobile app login.
+T. The last_data_entry_date column SHALL store the timestamp of the patient's last diary entry.
+U. The mobile_app_linked_at column SHALL store the timestamp when the patient successfully linked the mobile app using the linking code.
 
--- Index for status queries
-CREATE INDEX idx_patients_status ON patients(status);
-
--- Index for engagement monitoring
-CREATE INDEX idx_patients_last_data_entry ON patients(last_data_entry_date DESC);
-
--- RLS policy for investigators to see patients from their sites
-CREATE POLICY "investigators_own_sites_patients" ON patients
-  FOR SELECT
-  USING (
-    -- Admins and Auditors see all
-    current_setting('app.role', true) IN ('Admin', 'Auditor')
-    OR
-    -- Investigators see patients from their assigned sites
-    (
-      current_setting('app.role', true) = 'Investigator'
-      AND site_id IN (
-        SELECT usa.site_id
-        FROM user_site_access usa
-        JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.firebase_uid = current_setting('app.user_id', true)
-      )
-    )
-  );
-
--- RLS policy for investigators to insert patients (only to their sites)
-CREATE POLICY "investigators_insert_own_sites_patients" ON patients
-  FOR INSERT
-  WITH CHECK (
-    -- Admins can enroll anywhere
-    current_setting('app.role', true) = 'Admin'
-    OR
-    -- Investigators can only enroll at their assigned sites
-    (
-      current_setting('app.role', true) = 'Investigator'
-      AND site_id IN (
-        SELECT usa.site_id
-        FROM user_site_access usa
-        JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.firebase_uid = current_setting('app.user_id', true)
-      )
-    )
-  );
-
--- RLS policy for investigators to update patient status (unenroll)
-CREATE POLICY "investigators_update_own_sites_patients" ON patients
-  FOR UPDATE
-  USING (
-    -- Same logic as SELECT policy
-    current_setting('app.role', true) = 'Admin'
-    OR
-    (
-      current_setting('app.role', true) = 'Investigator'
-      AND site_id IN (
-        SELECT usa.site_id
-        FROM user_site_access usa
-        JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.firebase_uid = current_setting('app.user_id', true)
-      )
-    )
-  );
-```
-
-**New Columns**:
-- `linking_code`: Unique 10-character code (XXXXX-XXXXX) for mobile app linking
-- `enrollment_date`: Timestamp when linking code generated by investigator
-- `last_login_at`: Timestamp of last mobile app login
-- `last_data_entry_date`: Timestamp of last diary entry (for status calculation)
-- `mobile_app_linked_at`: Timestamp when patient linked mobile app using code
-- `status`: `pending_enrollment` (code generated), `enrolled` (patient used code), `unenrolled` (revoked)
-
-**Acceptance Criteria**:
-- [ ] New columns added to `patients` table
-- [ ] `linking_code` has unique constraint
-- [ ] Indexes created for performance
-- [ ] RLS policies enable site-based isolation
-- [ ] Investigators can only see/enroll patients at their assigned sites
-- [ ] Migration script creates columns with proper types
-
-*End* *Patients Table Extensions for Portal* | **Hash**: 4662cd2a
+*End* *Patients Table Extensions for Portal* | **Hash**: f12125f3
 ---
 
 # REQ-d00042: Questionnaires Table Schema
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00009
 
-The portal database SHALL include a `questionnaires` table to track questionnaire status (NOSE HHT, QoL) for each patient with send/complete/acknowledge timestamps.
+## Rationale
 
-**Technical Details**:
+This requirement defines the database schema for tracking questionnaire status (NOSE HHT and QoL questionnaires) for each patient in the clinical trial. The schema supports the questionnaire lifecycle workflow where investigators send questionnaires to patients via mobile app, patients complete them, and investigators acknowledge completion. The status flow cycles through not_sent → sent → completed → not_sent to enable repeated questionnaire administrations. Row-level security policies ensure site-based data isolation per FDA compliance requirements. The schema supports REQ-p00009 which defines the questionnaire management feature requirements.
 
-**Table: `questionnaires`**
-```sql
-CREATE TYPE questionnaire_type AS ENUM ('NOSE_HHT', 'QoL');
-CREATE TYPE questionnaire_status AS ENUM ('not_sent', 'sent', 'completed');
+## Assertions
 
-CREATE TABLE questionnaires (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-  type questionnaire_type NOT NULL,
-  status questionnaire_status NOT NULL DEFAULT 'not_sent',
-  sent_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  last_completion_date TIMESTAMPTZ, -- For display in table
-  acknowledged_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(patient_id, type)
-);
+A. The system SHALL include a questionnaires table in the portal database.
+B. The system SHALL define a questionnaire_type ENUM with values 'NOSE_HHT' and 'QoL'.
+C. The system SHALL define a questionnaire_status ENUM with values 'not_sent', 'sent', and 'completed'.
+D. The questionnaires table SHALL include an id column as UUID primary key with default value gen_random_uuid().
+E. The questionnaires table SHALL include a patient_id column as UUID NOT NULL with foreign key reference to patients(id) with ON DELETE CASCADE.
+F. The questionnaires table SHALL include a type column as questionnaire_type NOT NULL.
+G. The questionnaires table SHALL include a status column as questionnaire_status NOT NULL with default value 'not_sent'.
+H. The questionnaires table SHALL include sent_at, completed_at, last_completion_date, and acknowledged_at columns as TIMESTAMPTZ.
+I. The questionnaires table SHALL include created_at and updated_at columns as TIMESTAMPTZ NOT NULL with default value now().
+J. The questionnaires table SHALL enforce a UNIQUE constraint on (patient_id, type) to prevent duplicate questionnaire records per patient.
+K. The system SHALL create an index idx_questionnaires_patient on questionnaires(patient_id) for fast patient lookups.
+L. The system SHALL create an index idx_questionnaires_status on questionnaires(status) for status-based queries.
+M. The questionnaires table SHALL have row-level security enabled.
+N. The system SHALL create a SELECT policy 'investigators_own_sites_questionnaires' that allows investigators to view questionnaires only for patients at their sites.
+O. The system SHALL create an UPDATE policy 'investigators_update_own_sites_questionnaires' that allows investigators to update questionnaires only for patients at their sites.
+P. The system SHALL create an INSERT policy 'investigators_insert_own_sites_questionnaires' that allows investigators to insert questionnaires only for patients at their sites.
+Q. The system SHALL create a trigger function update_questionnaires_updated_at() that sets updated_at to now() on every row update.
+R. The system SHALL create a BEFORE UPDATE trigger 'questionnaires_updated_at' on the questionnaires table that executes update_questionnaires_updated_at() for each row.
+S. The system SHALL cascade delete questionnaire records when the associated patient record is deleted.
 
--- Index for fast lookups by patient
-CREATE INDEX idx_questionnaires_patient ON questionnaires(patient_id);
-
--- Index for status queries
-CREATE INDEX idx_questionnaires_status ON questionnaires(status);
-
--- RLS policies (inherit from patients table)
-ALTER TABLE questionnaires ENABLE ROW LEVEL SECURITY;
-
--- Investigators can see questionnaires for patients at their sites
-CREATE POLICY "investigators_own_sites_questionnaires" ON questionnaires
-  FOR SELECT
-  USING (
-    patient_id IN (
-      SELECT id FROM patients
-      -- patients table RLS policy handles site filtering
-    )
-  );
-
--- Investigators can update questionnaires for patients at their sites
-CREATE POLICY "investigators_update_own_sites_questionnaires" ON questionnaires
-  FOR UPDATE
-  USING (
-    patient_id IN (
-      SELECT id FROM patients
-      -- patients table RLS policy handles site filtering
-    )
-  );
-
--- Investigators can insert questionnaires for patients at their sites
-CREATE POLICY "investigators_insert_own_sites_questionnaires" ON questionnaires
-  FOR INSERT
-  WITH CHECK (
-    patient_id IN (
-      SELECT id FROM patients
-      -- patients table RLS policy handles site filtering
-    )
-  );
-
--- Trigger to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_questionnaires_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER questionnaires_updated_at
-  BEFORE UPDATE ON questionnaires
-  FOR EACH ROW
-  EXECUTE FUNCTION update_questionnaires_updated_at();
-```
-
-**Columns**:
-- `id`: Primary key (UUID)
-- `patient_id`: Foreign key to `patients.id`
-- `type`: Enum (NOSE_HHT, QoL)
-- `status`: Enum (not_sent, sent, completed)
-- `sent_at`: Timestamp when questionnaire pushed to mobile app
-- `completed_at`: Timestamp when patient completed questionnaire
-- `last_completion_date`: Timestamp of last completion (for display)
-- `acknowledged_at`: Timestamp when investigator acknowledged completion
-- `created_at`: Timestamp of record creation
-- `updated_at`: Timestamp of last update
-
-**Status Flow**:
-1. `not_sent` → Initial state, ready to send
-2. `sent` → Investigator clicked "Send", pushed to mobile app (sent_at set)
-3. `completed` → Patient finished questionnaire (completed_at set, last_completion_date set)
-4. `not_sent` → Investigator clicked "Acknowledge" (acknowledged_at set, status reset for next cycle)
-
-**Acceptance Criteria**:
-- [ ] `questionnaires` table created with correct schema
-- [ ] Enum types created for `type` and `status`
-- [ ] Unique constraint on `(patient_id, type)` prevents duplicates
-- [ ] Foreign key constraint to `patients` table
-- [ ] Indexes created for performance
-- [ ] RLS policies enable site-based isolation
-- [ ] Trigger updates `updated_at` on every row change
-- [ ] Cascade delete removes questionnaires when patient deleted
-
-*End* *Questionnaires Table Schema* | **Hash**: 166c9e74
+*End* *Questionnaires Table Schema* | **Hash**: 353a9b0a
 ---
 
 ## Deployment Requirements
 
 # REQ-d00043: Cloud Run Deployment Configuration
 
-**Level**: Dev | **Implements**: o00009 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00009
 
-The portal SHALL be deployed to Cloud Run with sponsor-specific custom domains, automatic builds via Cloud Build, and environment variable configuration.
+## Rationale
 
-**Technical Details**:
-- **Platform**: Cloud Run (containerized web hosting)
-- **Build Command**: `flutter build web --release --web-renderer html`
-- **Container**: nginx serving static Flutter web build
-- **Deployment**: Automatic on `main` branch push via Cloud Build
+This requirement defines the deployment architecture for the portal web application using Google Cloud Platform services. Cloud Run provides serverless container hosting with automatic scaling, while Cloud Build enables continuous deployment from the main branch. The multi-stage Docker build optimizes container size by separating the Flutter build environment from the nginx runtime environment. Sponsor isolation is maintained through separate GCP projects, each with unique Firebase configurations and custom domains. The nginx configuration ensures proper single-page application routing and implements security best practices including CSP headers, frame protection, and content type enforcement to protect against common web vulnerabilities.
 
-**Dockerfile** (`Dockerfile.portal`):
-```dockerfile
-## Stage 1: Build Flutter web app
-FROM ghcr.io/cirruslabs/flutter:stable AS builder
-WORKDIR /app
-COPY pubspec.* ./
-RUN flutter pub get
-COPY . .
-ARG FIREBASE_API_KEY
-ARG FIREBASE_AUTH_DOMAIN
-ARG GCP_PROJECT_ID
-ARG FIREBASE_APP_ID
-ARG API_BASE_URL
-RUN flutter build web --release --web-renderer html \
-    --dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY \
-    --dart-define=FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN \
-    --dart-define=GCP_PROJECT_ID=$GCP_PROJECT_ID \
-    --dart-define=FIREBASE_APP_ID=$FIREBASE_APP_ID \
-    --dart-define=API_BASE_URL=$API_BASE_URL
+## Assertions
 
-## Stage 2: Serve with nginx
-FROM nginx:alpine
-COPY --from=builder /app/build/web /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]
-```
+A. The system SHALL deploy the portal to Google Cloud Run as a containerized web service.
+B. The system SHALL build the Flutter web application using the command 'flutter build web --release --web-renderer html'.
+C. The system SHALL use a multi-stage Docker build with Flutter stable image for building and nginx alpine image for serving.
+D. The Dockerfile SHALL accept build arguments for FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, GCP_PROJECT_ID, FIREBASE_APP_ID, and API_BASE_URL.
+E. The Dockerfile SHALL pass Firebase and API configuration to Flutter build via --dart-define parameters.
+F. The nginx container SHALL listen on port 8080.
+G. The nginx configuration SHALL serve index.html for all routes to support SPA routing using 'try_files $uri $uri/ /index.html'.
+H. The nginx configuration SHALL set X-Frame-Options header to 'DENY'.
+I. The nginx configuration SHALL set X-Content-Type-Options header to 'nosniff'.
+J. The nginx configuration SHALL set Referrer-Policy header to 'strict-origin-when-cross-origin'.
+K. The nginx configuration SHALL set Permissions-Policy header to disable geolocation, microphone, and camera.
+L. The nginx configuration SHALL configure Content-Security-Policy headers restricting script, style, image, font, and connection sources.
+M. The nginx configuration SHALL enable gzip compression for text/plain, text/css, application/json, application/javascript, text/xml, and application/xml content types.
+N. The system SHALL store container images in Google Artifact Registry within the sponsor's GCP project.
+O. Cloud Build SHALL trigger automatic deployments on push to the main branch.
+P. Each sponsor SHALL have a separate Cloud Run service deployed in their dedicated GCP project.
+Q. Each sponsor deployment SHALL use sponsor-specific environment variables for Firebase and API configuration.
+R. The system SHALL support custom domain configuration for each sponsor with SSL certificates.
+S. Cloud Build authentication SHALL use Workload Identity Federation for GitHub integration.
 
-**nginx Configuration** (`nginx.conf`):
-```nginx
-server {
-    listen 8080;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # SPA routing - serve index.html for all routes
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Security headers
-    add_header X-Frame-Options "DENY";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "strict-origin-when-cross-origin";
-    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.run.app https://*.googleapis.com https://*.google.com https://*.microsoft.com; frame-ancestors 'none';";
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-}
-```
-
-**Environment Variables** (Cloud Run / Secret Manager):
-```
-FIREBASE_API_KEY=AIza...  # From Firebase Console
-FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
-GCP_PROJECT_ID=<sponsor-project-id>
-FIREBASE_APP_ID=1:123456789:web:abc123
-API_BASE_URL=https://api-<sponsor>-uc.a.run.app
-```
-
-**Build Settings**:
-- **Cloud Build**: Triggered by GitHub push via Workload Identity Federation
-- **Artifact Registry**: Container images stored in sponsor's GCP project
-- **Cloud Run**: Serverless hosting with auto-scaling
-
-**Sponsor-Specific Deployment**:
-- Each sponsor gets a separate Cloud Run service in their GCP project
-- Custom domain: `https://portal.<sponsor-name>.clinicaltrial.com` (or sponsor-provided domain)
-- Each deployment uses same Git repo but different GCP project
-- Environment variables and Firebase config differ per sponsor
-
-**Acceptance Criteria**:
-- [ ] Dockerfile builds Flutter web app and nginx container
-- [ ] nginx.conf configures SPA routing and security headers
-- [ ] Container pushed to Artifact Registry
-- [ ] Cloud Run service deployed with correct environment variables
-- [ ] SPA routing works (`/* → index.html`)
-- [ ] Security headers configured correctly
-- [ ] CSP headers restrict resource loading
-- [ ] Automatic deployments trigger on `main` branch push
-- [ ] Custom domain configured with SSL certificate
-
-*End* *Cloud Run Deployment Configuration* | **Hash**: da14653c
+*End* *Cloud Run Deployment Configuration* | **Hash**: 5a86d9bd
 ---
 
 ## Summary

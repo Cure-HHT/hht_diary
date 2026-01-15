@@ -3,6 +3,7 @@
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -14,6 +15,7 @@ import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'portal_auth.dart';
+import 'sites_sync.dart';
 
 /// Roles that can manage other users
 const _adminRoles = ['Administrator', 'Developer Admin'];
@@ -403,15 +405,27 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
 
 /// Get available sites (for user creation dialog)
 /// GET /api/v1/portal/sites
+///
+/// Automatically syncs sites from EDC (RAVE) if:
+/// - No sites exist in the database
+/// - Sites were last synced more than 1 day ago
 Future<Response> getPortalSitesHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
   }
 
+  // Sync sites from EDC if needed (stale or missing)
+  final syncResult = await syncSitesIfNeeded();
+  if (syncResult != null && syncResult.hasError) {
+    // Log error but continue - we may still have cached sites
+    // In production, this would go to a structured logging system
+    print('Sites sync warning: ${syncResult.error}');
+  }
+
   final db = Database.instance;
   final result = await db.execute('''
-    SELECT site_id, site_name, site_number
+    SELECT site_id, site_name, site_number, edc_synced_at
     FROM sites
     WHERE is_active = true
     ORDER BY site_number
@@ -422,10 +436,17 @@ Future<Response> getPortalSitesHandler(Request request) async {
       'site_id': r[0] as String,
       'site_name': r[1] as String,
       'site_number': r[2] as String,
+      'edc_synced_at': (r[3] as DateTime?)?.toIso8601String(),
     };
   }).toList();
 
-  return _jsonResponse({'sites': sites});
+  // Include sync info in response for transparency
+  final response = <String, dynamic>{'sites': sites};
+  if (syncResult != null) {
+    response['sync'] = syncResult.toJson();
+  }
+
+  return _jsonResponse(response);
 }
 
 /// Generate a random code in XXXXX-XXXXX format

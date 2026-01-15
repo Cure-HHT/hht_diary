@@ -39,9 +39,9 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # ============================================================
-# Flutter 3.38.3 (stable channel)
+# Flutter 3.38.7 (stable channel)
 # ============================================================
-ENV FLUTTER_VERSION=3.38.3
+ENV FLUTTER_VERSION=3.38.7
 ENV FLUTTER_ROOT=/opt/flutter
 ENV PATH="${FLUTTER_ROOT}/bin:${PATH}"
 

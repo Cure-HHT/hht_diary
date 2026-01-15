@@ -391,7 +391,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.3'
+          flutter-version: '3.38.7'
           channel: 'stable'
 
       - name: Setup Node.js

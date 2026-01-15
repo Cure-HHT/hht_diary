@@ -833,7 +833,7 @@ assets/
 
 1. **Analyze Flutter** (`analyze`)
    - Runs on: `ubuntu-latest`
-   - Flutter version: `3.38.3` (stable, cached)
+   - Flutter version: `3.38.7` (stable, cached)
    - Steps:
      - `dart format --output=none --set-exit-if-changed .` -
        Enforces consistent formatting
@@ -875,7 +875,7 @@ assets/
 **Job**: Coverage Report (`coverage`)
 
 - Runs on: `ubuntu-latest`
-- Flutter version: `3.38.3` (stable)
+- Flutter version: `3.38.7` (stable)
 - Steps:
   1. Install dependencies via `flutter pub get`
   2. Install `lcov` for coverage report generation

@@ -1,8 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Activation page - new users activate their accounts with activation codes
+// After password creation, redirects to 2FA setup (MFA required for FDA compliance)
 
 import 'dart:convert';
 
@@ -146,43 +148,10 @@ class _ActivationPageState extends State<ActivationPage> {
         return;
       }
 
-      // Get ID token
-      final idToken = await credential.user!.getIdToken();
-
-      // Activate account on backend
-      final response = await http.post(
-        Uri.parse('$_apiBaseUrl/api/v1/portal/activate'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode({'code': code}),
-      );
-
-      if (!mounted) return;
-
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
-      if (response.statusCode == 200 && responseData['success'] == true) {
-        // Success - show message and redirect
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account activated successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          // Sign out and redirect to login
-          await FirebaseAuth.instance.signOut();
-          context.go('/login');
-        }
-      } else {
-        // Activation failed - delete the Firebase user we just created
-        await credential.user!.delete();
-        setState(() {
-          _error = responseData['error'] as String? ?? 'Activation failed';
-          _isActivating = false;
-        });
+      // Redirect to 2FA setup page (MFA required for FDA compliance)
+      // The 2FA page will complete the activation after MFA enrollment
+      if (mounted) {
+        context.go('/activate/2fa', extra: {'code': code});
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {

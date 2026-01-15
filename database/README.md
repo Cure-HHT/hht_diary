@@ -30,7 +30,6 @@ database/
 ├── indexes.sql              ← Performance optimization indexes
 ├── tamper_detection.sql     ← Cryptographic audit integrity
 ├── auth_audit.sql           ← Authentication event logging
-└── seed_data.sql            ← Sample data for development/testing
 ```
 
 ### Testing & Examples
@@ -128,13 +127,6 @@ Tracks all authentication events for HIPAA and security compliance:
 **Table created:** auth_audit_log
 **Compliance:** HIPAA access logging requirements
 
-### `seed_data.sql` - Sample Data
-Provides test data for development and testing environments:
-- Sample sites
-- Test users
-- Example diary entries
-
-**Warning:** Do not load in production!
 
 ## Sponsor-Specific Seed Data
 

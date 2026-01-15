@@ -2,6 +2,7 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00032: Role-Based Access Control Implementation
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Portal authentication service using Firebase Auth (Identity Platform)
 
@@ -170,6 +171,10 @@ class AuthService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  /// MFA state - resolver for completing MFA challenge
+  MultiFactorResolver? _mfaResolver;
+  bool _mfaRequired = false;
+
   /// Base URL for portal API
   String get _apiBaseUrl {
     // Check for environment override
@@ -192,6 +197,12 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
 
+  /// Whether MFA verification is required to complete sign-in
+  bool get mfaRequired => _mfaRequired;
+
+  /// The MFA resolver for completing the challenge (null if MFA not required)
+  MultiFactorResolver? get mfaResolver => _mfaResolver;
+
   /// Initialize auth state listener
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
@@ -207,9 +218,14 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Sign in with email and password
+  ///
+  /// Returns true if sign-in succeeded (including if MFA is required).
+  /// Check [mfaRequired] after calling to see if MFA verification is needed.
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     _error = null;
+    _mfaRequired = false;
+    _mfaResolver = null;
     notifyListeners();
 
     try {
@@ -225,6 +241,14 @@ class AuthService extends ChangeNotifier {
       }
 
       return true;
+    } on FirebaseAuthMultiFactorException catch (e) {
+      // MFA required - store resolver for completing the challenge
+      _mfaResolver = e.resolver;
+      _mfaRequired = true;
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('MFA required: ${e.resolver.hints.length} factors enrolled');
+      return true; // Return true to indicate credentials were valid
     } on FirebaseAuthException catch (e) {
       _error = _mapFirebaseError(e.code);
       debugPrint('Firebase auth error: ${e.code} - ${e.message}');
@@ -234,9 +258,88 @@ class AuthService extends ChangeNotifier {
       debugPrint('Sign in error: $e');
       return false;
     } finally {
+      if (!_mfaRequired) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Complete MFA sign-in with TOTP code
+  ///
+  /// Call this after [signIn] returns with [mfaRequired] = true.
+  /// Returns true if MFA verification succeeded.
+  Future<bool> completeMfaSignIn(String totpCode) async {
+    if (_mfaResolver == null) {
+      _error = 'No MFA challenge pending';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Get the first TOTP hint (we only support TOTP currently)
+      final hints = _mfaResolver!.hints;
+      MultiFactorInfo? totpHint;
+
+      for (final hint in hints) {
+        if (hint is TotpMultiFactorInfo) {
+          totpHint = hint;
+          break;
+        }
+      }
+
+      if (totpHint == null) {
+        _error = 'No TOTP factor found. Contact support.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Create assertion for sign-in
+      final assertion = await TotpMultiFactorGenerator.getAssertionForSignIn(
+        totpHint.uid,
+        totpCode,
+      );
+
+      // Resolve the MFA challenge
+      await _mfaResolver!.resolveSignIn(assertion);
+
+      // Clear MFA state
+      _mfaRequired = false;
+      _mfaResolver = null;
+
+      // Fetch portal user info
+      final success = await _fetchPortalUser();
+      if (!success) {
+        await _auth.signOut();
+        return false;
+      }
+
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = _mapFirebaseError(e.code);
+      debugPrint('MFA verification error: ${e.code} - ${e.message}');
+      return false;
+    } catch (e) {
+      _error = 'MFA verification failed. Please try again.';
+      debugPrint('MFA error: $e');
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Cancel pending MFA challenge
+  void cancelMfa() {
+    _mfaRequired = false;
+    _mfaResolver = null;
+    _error = null;
+    notifyListeners();
   }
 
   /// Sign out
