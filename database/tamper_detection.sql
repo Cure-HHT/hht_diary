@@ -379,6 +379,173 @@ GRANT EXECUTE ON FUNCTION generate_integrity_report TO authenticated;
 GRANT SELECT ON tamper_detection_dashboard TO authenticated;
 
 -- =====================================================
+-- EDC SYNC LOG CHAINED HASHING
+-- =====================================================
+-- Implements blockchain-style chained hashing for non-repudiation
+-- Each sync log entry's chain_hash depends on the previous entry,
+-- creating a tamper-evident audit trail where any modification
+-- breaks the chain.
+
+-- FUNCTION: Compute Chained Hash for EDC Sync Log
+CREATE OR REPLACE FUNCTION compute_edc_sync_chain_hash()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_previous_chain_hash TEXT;
+BEGIN
+    -- Get the chain_hash from the most recent previous record
+    SELECT chain_hash INTO v_previous_chain_hash
+    FROM edc_sync_log
+    ORDER BY sync_id DESC
+    LIMIT 1;
+
+    -- For the first record, use a genesis hash
+    IF v_previous_chain_hash IS NULL THEN
+        v_previous_chain_hash := 'GENESIS_EDC_SYNC_LOG_2024';
+    END IF;
+
+    -- Compute chained hash: SHA256(previous_hash || content_hash || timestamp || sync_id)
+    -- This creates a blockchain-style chain where each record depends on all previous records
+    NEW.chain_hash := encode(
+        digest(
+            v_previous_chain_hash ||
+            NEW.content_hash ||
+            NEW.sync_timestamp::text ||
+            NEW.source_system ||
+            NEW.operation ||
+            NEW.sites_created::text ||
+            NEW.sites_updated::text ||
+            NEW.sites_deactivated::text ||
+            COALESCE(NEW.error_message, '') ||
+            NEW.success::text,
+            'sha256'
+        ),
+        'hex'
+    );
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION compute_edc_sync_chain_hash() IS 'Computes blockchain-style chained hash for EDC sync log entries, ensuring tamper-evident non-repudiation';
+
+-- Apply trigger to edc_sync_log
+CREATE TRIGGER compute_edc_sync_chain_hash_trigger
+    BEFORE INSERT ON edc_sync_log
+    FOR EACH ROW
+    EXECUTE FUNCTION compute_edc_sync_chain_hash();
+
+COMMENT ON TRIGGER compute_edc_sync_chain_hash_trigger ON edc_sync_log IS 'Ensures every sync log entry has a chained cryptographic hash for non-repudiation';
+
+-- =====================================================
+-- FUNCTION: Verify EDC Sync Log Chain Integrity
+-- =====================================================
+-- Validates that the entire sync log chain is intact
+
+CREATE OR REPLACE FUNCTION verify_edc_sync_chain()
+RETURNS TABLE (
+    sync_id BIGINT,
+    sync_timestamp TIMESTAMPTZ,
+    is_valid BOOLEAN,
+    expected_hash TEXT,
+    actual_hash TEXT,
+    error_detail TEXT
+) AS $$
+DECLARE
+    v_record RECORD;
+    v_previous_chain_hash TEXT := 'GENESIS_EDC_SYNC_LOG_2024';
+    v_computed_hash TEXT;
+BEGIN
+    FOR v_record IN
+        SELECT * FROM edc_sync_log ORDER BY sync_id ASC
+    LOOP
+        -- Recompute the chain hash
+        v_computed_hash := encode(
+            digest(
+                v_previous_chain_hash ||
+                v_record.content_hash ||
+                v_record.sync_timestamp::text ||
+                v_record.source_system ||
+                v_record.operation ||
+                v_record.sites_created::text ||
+                v_record.sites_updated::text ||
+                v_record.sites_deactivated::text ||
+                COALESCE(v_record.error_message, '') ||
+                v_record.success::text,
+                'sha256'
+            ),
+            'hex'
+        );
+
+        -- Check if it matches the stored hash
+        IF v_computed_hash = v_record.chain_hash THEN
+            sync_id := v_record.sync_id;
+            sync_timestamp := v_record.sync_timestamp;
+            is_valid := TRUE;
+            expected_hash := v_computed_hash;
+            actual_hash := v_record.chain_hash;
+            error_detail := NULL;
+        ELSE
+            sync_id := v_record.sync_id;
+            sync_timestamp := v_record.sync_timestamp;
+            is_valid := FALSE;
+            expected_hash := v_computed_hash;
+            actual_hash := v_record.chain_hash;
+            error_detail := 'Chain hash mismatch - possible tampering detected';
+        END IF;
+
+        RETURN NEXT;
+
+        -- Update previous hash for next iteration
+        v_previous_chain_hash := v_record.chain_hash;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION verify_edc_sync_chain() IS 'Verifies integrity of entire EDC sync log chain - detects any tampering or modifications';
+
+-- =====================================================
+-- FUNCTION: Check EDC Sync Log Chain Status
+-- =====================================================
+-- Quick check if chain is intact, returns summary
+
+CREATE OR REPLACE FUNCTION check_edc_sync_chain_status()
+RETURNS TABLE (
+    total_records BIGINT,
+    valid_records BIGINT,
+    invalid_records BIGINT,
+    chain_intact BOOLEAN,
+    first_invalid_sync_id BIGINT,
+    checked_at TIMESTAMPTZ
+) AS $$
+DECLARE
+    v_total BIGINT;
+    v_valid BIGINT;
+    v_invalid BIGINT;
+    v_first_invalid BIGINT;
+BEGIN
+    SELECT COUNT(*) INTO v_total FROM edc_sync_log;
+
+    SELECT
+        COUNT(*) FILTER (WHERE is_valid),
+        COUNT(*) FILTER (WHERE NOT is_valid),
+        MIN(v.sync_id) FILTER (WHERE NOT is_valid)
+    INTO v_valid, v_invalid, v_first_invalid
+    FROM verify_edc_sync_chain() v;
+
+    total_records := v_total;
+    valid_records := v_valid;
+    invalid_records := v_invalid;
+    chain_intact := (v_invalid = 0);
+    first_invalid_sync_id := v_first_invalid;
+    checked_at := now();
+
+    RETURN NEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION check_edc_sync_chain_status() IS 'Quick summary check of EDC sync log chain integrity';
+
+-- =====================================================
 -- EXAMPLE USAGE
 -- =====================================================
 

@@ -5,8 +5,10 @@
 // Sites synchronization from RAVE EDC
 // Fetches sites from Medidata RAVE and syncs to local database
 
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
@@ -87,6 +89,181 @@ class SitesSyncResult {
   };
 }
 
+/// Computes SHA-256 hash of content for integrity verification.
+///
+/// This function is exposed for testing purposes.
+String computeContentHash(List<RaveSite> sites) {
+  // Sort sites by OID for consistent hashing
+  final sortedSites = List<RaveSite>.from(sites)
+    ..sort((a, b) => a.oid.compareTo(b.oid));
+
+  // Create a canonical representation of sites data
+  final buffer = StringBuffer();
+  for (final site in sortedSites) {
+    buffer.write(
+      '${site.oid}|${site.name}|${site.studySiteNumber}|${site.isActive};',
+    );
+  }
+
+  final bytes = utf8.encode(buffer.toString());
+  final digest = sha256.convert(bytes);
+  return digest.toString();
+}
+
+/// Logs a sync event to the edc_sync_log table.
+///
+/// Records all sync operations with timestamps, content hashes, and results
+/// for audit trail and compliance tracking.
+Future<void> logSyncEvent({
+  required String sourceSystem,
+  required String operation,
+  required SitesSyncResult result,
+  required String contentHash,
+  int? durationMs,
+  Map<String, dynamic>? metadata,
+}) async {
+  final db = Database.instance;
+
+  await db.execute(
+    '''
+    INSERT INTO edc_sync_log (
+      sync_timestamp, source_system, operation,
+      sites_created, sites_updated, sites_deactivated,
+      content_hash, duration_ms, success, error_message, metadata
+    )
+    VALUES (
+      @syncTimestamp, @sourceSystem, @operation,
+      @sitesCreated, @sitesUpdated, @sitesDeactivated,
+      @contentHash, @durationMs, @success, @errorMessage, @metadata::jsonb
+    )
+    ''',
+    parameters: {
+      'syncTimestamp': result.syncedAt,
+      'sourceSystem': sourceSystem,
+      'operation': operation,
+      'sitesCreated': result.sitesCreated,
+      'sitesUpdated': result.sitesUpdated,
+      'sitesDeactivated': result.sitesDeactivated,
+      'contentHash': contentHash,
+      'durationMs': durationMs,
+      'success': !result.hasError,
+      'errorMessage': result.error,
+      'metadata': jsonEncode(metadata ?? {}),
+    },
+  );
+}
+
+/// Retrieves recent sync events for monitoring and debugging.
+///
+/// Returns a list of sync events including chain_hash for integrity verification.
+Future<List<Map<String, dynamic>>> getRecentSyncEvents({
+  int limit = 10,
+  String? sourceSystem,
+}) async {
+  final db = Database.instance;
+
+  final whereClause = sourceSystem != null
+      ? 'WHERE source_system = @sourceSystem'
+      : '';
+
+  final result = await db.execute(
+    '''
+    SELECT
+      sync_id, sync_timestamp, source_system, operation,
+      sites_created, sites_updated, sites_deactivated,
+      content_hash, chain_hash, duration_ms, success, error_message, metadata
+    FROM edc_sync_log
+    $whereClause
+    ORDER BY sync_timestamp DESC
+    LIMIT @limit
+    ''',
+    parameters: {
+      'limit': limit,
+      if (sourceSystem != null) 'sourceSystem': sourceSystem,
+    },
+  );
+
+  return result
+      .map(
+        (row) => {
+          'sync_id': row[0],
+          'sync_timestamp': row[1],
+          'source_system': row[2],
+          'operation': row[3],
+          'sites_created': row[4],
+          'sites_updated': row[5],
+          'sites_deactivated': row[6],
+          'content_hash': row[7],
+          'chain_hash': row[8],
+          'duration_ms': row[9],
+          'success': row[10],
+          'error_message': row[11],
+          'metadata': row[12],
+        },
+      )
+      .toList();
+}
+
+/// Result of chain integrity verification.
+class ChainVerificationResult {
+  final int totalRecords;
+  final int validRecords;
+  final int invalidRecords;
+  final bool chainIntact;
+  final int? firstInvalidSyncId;
+  final DateTime checkedAt;
+
+  const ChainVerificationResult({
+    required this.totalRecords,
+    required this.validRecords,
+    required this.invalidRecords,
+    required this.chainIntact,
+    this.firstInvalidSyncId,
+    required this.checkedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'total_records': totalRecords,
+    'valid_records': validRecords,
+    'invalid_records': invalidRecords,
+    'chain_intact': chainIntact,
+    if (firstInvalidSyncId != null) 'first_invalid_sync_id': firstInvalidSyncId,
+    'checked_at': checkedAt.toIso8601String(),
+  };
+}
+
+/// Verifies the integrity of the EDC sync log chain.
+///
+/// Returns a [ChainVerificationResult] indicating whether the chain is intact.
+/// A broken chain indicates potential tampering with sync log records.
+Future<ChainVerificationResult> verifySyncLogChain() async {
+  final db = Database.instance;
+
+  final result = await db.execute(
+    'SELECT * FROM check_edc_sync_chain_status()',
+  );
+
+  if (result.isEmpty) {
+    return ChainVerificationResult(
+      totalRecords: 0,
+      validRecords: 0,
+      invalidRecords: 0,
+      chainIntact: true,
+      checkedAt: DateTime.now().toUtc(),
+    );
+  }
+
+  final row = result.first;
+  return ChainVerificationResult(
+    totalRecords: row[0] as int,
+    validRecords: row[1] as int,
+    invalidRecords: row[2] as int,
+    chainIntact: row[3] as bool,
+    firstInvalidSyncId: row[4] as int?,
+    checkedAt: row[5] as DateTime,
+  );
+}
+
 /// Checks if sites need to be synced from EDC.
 ///
 /// Returns true if:
@@ -134,38 +311,76 @@ Future<bool> shouldSyncSites({
 /// 1. Connects to RAVE and fetches all sites for the configured study
 /// 2. Upserts each site to the database
 /// 3. Marks sites not in RAVE response as inactive
+/// 4. Logs the sync event with timestamps and content hash
+///
+/// Optional parameters for testing:
+/// - [testClient]: Injected RaveClient for unit testing
+/// - [testStudyOid]: Override study OID for testing
+/// - [skipLogging]: Skip database logging for unit tests without DB
 ///
 /// Returns a [SitesSyncResult] with counts of changes made.
-Future<SitesSyncResult> syncSitesFromEdc() async {
-  final config = RaveConfig.fromEnvironment();
-  if (config == null) {
-    return SitesSyncResult(
-      sitesUpdated: 0,
-      sitesCreated: 0,
-      sitesDeactivated: 0,
-      syncedAt: DateTime.now().toUtc(),
-      error: 'RAVE configuration not available',
+Future<SitesSyncResult> syncSitesFromEdc({
+  RaveClient? testClient,
+  String? testStudyOid,
+  bool skipLogging = false,
+}) async {
+  final startTime = DateTime.now();
+
+  // Use test client or create from environment config
+  RaveClient? client = testClient;
+  String? studyOid = testStudyOid;
+
+  if (client == null) {
+    final config = RaveConfig.fromEnvironment();
+    if (config == null) {
+      final result = SitesSyncResult(
+        sitesUpdated: 0,
+        sitesCreated: 0,
+        sitesDeactivated: 0,
+        syncedAt: DateTime.now().toUtc(),
+        error: 'RAVE configuration not available',
+      );
+      // Log configuration error (use empty hash since no content)
+      if (!skipLogging) {
+        await _logSyncResult(result, '', startTime, studyOid: null);
+      }
+      return result;
+    }
+    client = RaveClient(
+      baseUrl: config.baseUrl,
+      username: config.username,
+      password: config.password,
     );
+    studyOid = config.studyOid;
   }
 
-  final client = RaveClient(
-    baseUrl: config.baseUrl,
-    username: config.username,
-    password: config.password,
-  );
+  List<RaveSite> raveSites = [];
+  String contentHash = '';
 
   try {
     // Fetch sites from RAVE
-    final raveSites = await client.getSites(studyOid: config.studyOid);
+    raveSites = await client.getSites(studyOid: studyOid);
+
+    // Compute content hash for integrity verification
+    contentHash = computeContentHash(raveSites);
 
     if (raveSites.isEmpty) {
-      return SitesSyncResult(
+      final result = SitesSyncResult(
         sitesUpdated: 0,
         sitesCreated: 0,
         sitesDeactivated: 0,
         syncedAt: DateTime.now().toUtc(),
         error: 'No sites returned from RAVE - check permissions',
       );
+      if (!skipLogging) {
+        await _logSyncResult(
+          result,
+          contentHash,
+          startTime,
+          studyOid: studyOid,
+        );
+      }
+      return result;
     }
 
     final db = Database.instance;
@@ -251,38 +466,94 @@ Future<SitesSyncResult> syncSitesFromEdc() async {
       deactivated = deactivateResult.length;
     }
 
-    return SitesSyncResult(
+    final result = SitesSyncResult(
       sitesUpdated: updated,
       sitesCreated: created,
       sitesDeactivated: deactivated,
       syncedAt: syncedAt,
     );
+
+    // Log successful sync
+    if (!skipLogging) {
+      await _logSyncResult(
+        result,
+        contentHash,
+        startTime,
+        studyOid: studyOid,
+        siteCount: raveSites.length,
+      );
+    }
+
+    return result;
   } on RaveAuthenticationException {
-    return SitesSyncResult(
+    final result = SitesSyncResult(
       sitesUpdated: 0,
       sitesCreated: 0,
       sitesDeactivated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE authentication failed - check credentials',
     );
+    if (!skipLogging) {
+      await _logSyncResult(result, contentHash, startTime, studyOid: studyOid);
+    }
+    return result;
   } on RaveNetworkException catch (e) {
-    return SitesSyncResult(
+    final result = SitesSyncResult(
       sitesUpdated: 0,
       sitesCreated: 0,
       sitesDeactivated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE network error: ${e.message}',
     );
+    if (!skipLogging) {
+      await _logSyncResult(result, contentHash, startTime, studyOid: studyOid);
+    }
+    return result;
   } on RaveException catch (e) {
-    return SitesSyncResult(
+    final result = SitesSyncResult(
       sitesUpdated: 0,
       sitesCreated: 0,
       sitesDeactivated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE error: ${e.message}',
     );
+    if (!skipLogging) {
+      await _logSyncResult(result, contentHash, startTime, studyOid: studyOid);
+    }
+    return result;
   } finally {
-    client.close();
+    // Only close if we created the client (not injected for testing)
+    if (testClient == null) {
+      client.close();
+    }
+  }
+}
+
+/// Internal helper to log sync results.
+Future<void> _logSyncResult(
+  SitesSyncResult result,
+  String contentHash,
+  DateTime startTime, {
+  String? studyOid,
+  int? siteCount,
+}) async {
+  final durationMs = DateTime.now().difference(startTime).inMilliseconds;
+
+  try {
+    await logSyncEvent(
+      sourceSystem: 'RAVE',
+      operation: 'SITES_SYNC',
+      result: result,
+      contentHash: contentHash.isEmpty ? 'no-content' : contentHash,
+      durationMs: durationMs,
+      metadata: {
+        if (studyOid != null) 'study_oid': studyOid,
+        if (siteCount != null) 'site_count': siteCount,
+      },
+    );
+  } catch (e) {
+    // Log error but don't fail the sync operation
+    print('[WARN] Failed to log sync event: $e');
   }
 }
 

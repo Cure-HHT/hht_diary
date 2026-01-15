@@ -78,14 +78,34 @@ class _TimePickerDialState extends State<TimePickerDial> {
     // When maxDateTime changes (e.g., user selected a different date),
     // we need to re-validate the selected time against the new max.
     // CUR-447: This ensures past dates allow full 24-hour selection.
-    if (widget.maxDateTime != oldWidget.maxDateTime ||
-        widget.initialTime != oldWidget.initialTime) {
+    // CUR-583: Only re-clamp if maxDateTime changed significantly (>1 sec) to avoid
+    // unnecessary re-clamping when parent rebuilds with DateTime.now().
+    // CRITICAL: Don't re-clamp when timezone changes, since the time itself hasn't
+    // changed - only the timezone interpretation. The user's selected time should
+    // stay the same; it's just now interpreted in a different timezone.
+    final timezoneChanging =
+        widget.initialTimezone != oldWidget.initialTimezone;
+    final maxDateTimeChangedSignificantly =
+        widget.maxDateTime != null &&
+        oldWidget.maxDateTime != null &&
+        widget.maxDateTime!.difference(oldWidget.maxDateTime!).inSeconds.abs() >
+            1;
+    final maxDateTimeNewOrRemoved =
+        (widget.maxDateTime == null) != (oldWidget.maxDateTime == null);
+    // Only re-clamp if time/max changed AND timezone is NOT changing
+    // When timezone changes, the selected time stays the same - we just interpret
+    // it differently. The confirm button will validate using the new timezone.
+    final shouldReclamp =
+        !timezoneChanging &&
+        (maxDateTimeChangedSignificantly ||
+            maxDateTimeNewOrRemoved ||
+            widget.initialTime != oldWidget.initialTime);
+    if (shouldReclamp) {
       // Re-clamp the selected time with the new maxDateTime
       _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
     }
     // Update timezone when parent provides a new one (e.g., after async detection)
-    if (widget.initialTimezone != oldWidget.initialTimezone &&
-        widget.initialTimezone != null) {
+    if (timezoneChanging && widget.initialTimezone != null) {
       _selectedTimezone = widget.initialTimezone!;
     }
   }
@@ -533,9 +553,20 @@ class _TimePickerDialState extends State<TimePickerDial> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                // Final validation: clamp to max if future times not allowed
-                final timeToConfirm = _clampToMaxIfNeeded(_selectedTime);
-                widget.onConfirm(timeToConfirm);
+                // CUR-583: Show error for future times instead of silently clamping
+                // This can happen when timezone conversion shifts the time forward
+                // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
+                if (_isDisplayedTimeInFuture(_selectedTime)) {
+                  final l10n = AppLocalizations.of(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.cannotSelectFutureTime),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  return;
+                }
+                widget.onConfirm(_selectedTime);
               },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
