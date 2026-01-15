@@ -55,9 +55,13 @@ resource "google_storage_bucket" "audit_logs" {
 
   # FDA 21 CFR Part 11: 25-year retention with optional lock
   # WARNING: Once locked, retention CANNOT be shortened or removed
-  retention_policy {
-    retention_period = local.retention_seconds
-    is_locked        = var.lock_retention_policy
+  # Set retention_years = 0 to disable retention (for non-prod environments)
+  dynamic "retention_policy" {
+    for_each = var.retention_years > 0 ? [1] : []
+    content {
+      retention_period = local.retention_seconds
+      is_locked        = var.lock_retention_policy
+    }
   }
 
   # Enable versioning for additional protection
@@ -134,63 +138,3 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
   member = google_logging_project_sink.audit_sink.writer_identity
 }
 
-# -----------------------------------------------------------------------------
-# Optional: BigQuery Dataset for Audit Analytics
-# -----------------------------------------------------------------------------
-
-resource "google_bigquery_dataset" "audit_analytics" {
-  count = var.create_bigquery_dataset ? 1 : 0
-
-  dataset_id  = "audit_logs_${replace(var.sponsor, "-", "_")}_${var.environment}"
-  project     = var.project_id
-  location    = var.region
-  description = "Audit log analytics for ${var.sponsor} ${var.environment}"
-
-  labels = local.common_labels
-
-  # No table expiration - compliance requires indefinite retention
-  default_table_expiration_ms = null
-
-  access {
-    role          = "OWNER"
-    special_group = "projectOwners"
-  }
-
-  access {
-    role          = "READER"
-    special_group = "projectReaders"
-  }
-}
-
-# BigQuery log sink
-resource "google_logging_project_sink" "audit_sink_bq" {
-  count = var.create_bigquery_dataset ? 1 : 0
-
-  name        = "${var.sponsor}-${var.environment}-audit-log-sink-bq"
-  project     = var.project_id
-  destination = "bigquery.googleapis.com/projects/${var.project_id}/datasets/${google_bigquery_dataset.audit_analytics[0].dataset_id}"
-
-  filter = <<-EOT
-    logName:"cloudaudit.googleapis.com"
-    AND protoPayload.@type="type.googleapis.com/google.cloud.audit.AuditLog"
-  EOT
-
-  description = "Audit log export to BigQuery for analytics"
-
-  unique_writer_identity = true
-
-  # Use partitioned tables for query efficiency
-  bigquery_options {
-    use_partitioned_tables = true
-  }
-}
-
-# Grant BigQuery sink permission to write
-resource "google_bigquery_dataset_iam_member" "sink_writer_bq" {
-  count = var.create_bigquery_dataset ? 1 : 0
-
-  dataset_id = google_bigquery_dataset.audit_analytics[0].dataset_id
-  project    = var.project_id
-  role       = "roles/bigquery.dataEditor"
-  member     = google_logging_project_sink.audit_sink_bq[0].writer_identity
-}

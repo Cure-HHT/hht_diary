@@ -9,18 +9,20 @@
 sponsor    = "callisto"
 sponsor_id = 1 # VPC CIDR: 10.1.0.0/16
 
-# -----------------------------------------------------------------------------
-# GCP Organization
-# -----------------------------------------------------------------------------
-
-gcp_org_id = "123456789012" # TODO: Replace with actual org ID
-
-# -----------------------------------------------------------------------------
-# Billing Accounts
-# -----------------------------------------------------------------------------
-
-billing_account_prod = "01754A-64465F-47FB84" # Callisto
-billing_account_dev  = "01EA1E-F12D75-125CEF" # Callisto - Dev
+# Sensitive values should be provided via Doppler environment variables:
+# - TF_VAR_GCP_ORG_ID
+# - TF_VAR_BILLING_ACCOUNT_PROD
+# - TF_VAR_BILLING_ACCOUNT_DEV
+# - TF_VAR_DB_PASSWORD
+#
+# Find your GCP Organization ID: gcloud organizations list
+# Find your Billing Account IDs: gcloud billing accounts list
+#
+# If not using Doppler, uncomment and set these values:
+# GCP_ORG_ID = "123456789012"
+# BILLING_ACCOUNT_PROD = "XXXXXX-XXXXXX-XXXXXX"
+# BILLING_ACCOUNT_DEV = "XXXXXX-XXXXXX-XXXXXX"
+# DB_PASSWORD = "your-db-password"
 
 # -----------------------------------------------------------------------------
 # Project Configuration

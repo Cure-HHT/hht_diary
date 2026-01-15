@@ -88,7 +88,7 @@ resource "google_sql_database_instance" "main" {
       ipv4_enabled                                  = false
       private_network                               = var.vpc_network_id
       enable_private_path_for_google_cloud_services = true
-      require_ssl                                   = true
+      ssl_mode                                      = "ENCRYPTED_ONLY"
     }
 
     # Backup configuration
@@ -190,7 +190,7 @@ resource "google_sql_user" "app_user" {
   name     = var.db_username
   instance = google_sql_database_instance.main.name
   project  = var.project_id
-  password = var.db_password
+  password = var.DB_PASSWORD
   type     = "BUILT_IN"
 
   deletion_policy = "ABANDON"

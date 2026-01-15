@@ -63,7 +63,6 @@ locals {
     "cloudbuild.googleapis.com",           # Cloud Build (CI/CD)
     "vpcaccess.googleapis.com",            # Serverless VPC Access
     "servicenetworking.googleapis.com",    # Private service connection
-    "bigquery.googleapis.com",             # BigQuery (audit analytics)
     "sts.googleapis.com",                  # Security Token Service (WIF)
   ]
 }

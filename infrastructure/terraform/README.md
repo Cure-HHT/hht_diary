@@ -105,7 +105,7 @@ Before using Terraform, you must create a dedicated admin project and the state 
 
 ```bash
 # Set your organization ID
-ORG_ID="666049061860"  # anspar.org
+ORG_ID="123456789012"  # anspar.org
 
 # Create the admin project
 gcloud projects create cure-hht-admin \
@@ -114,7 +114,7 @@ gcloud projects create cure-hht-admin \
 
 # Link to billing account
 gcloud billing projects link cure-hht-admin \
-  --billing-account=017213-A61D61-71522F
+  --billing-account=xxxxxx-xxxxxx-xxxxxx
 ```
 
 ### Step 2: Enable Required APIs
@@ -128,7 +128,6 @@ gcloud services enable \
   billingbudgets.googleapis.com \
   cloudresourcemanager.googleapis.com \
   logging.googleapis.com \
-  bigquery.googleapis.com \
   serviceusage.googleapis.com \
   iam.googleapis.com \
   pubsub.googleapis.com \
@@ -249,13 +248,6 @@ gcloud auth application-default set-quota-project cure-hht-admin
 
 Due to GCP project limits per billing account, we use multiple billing accounts:
 
-| Sponsor  | Environment | Billing Account ID     |
-|----------|-------------|------------------------|
-| Cure HHT | prod        | `017213-A61D61-71522F` |
-| Cure HHT | dev/qa/uat  | `01A48D-1B402E-18CB1A` |
-| Callisto | prod        | `01754A-64465F-47FB84` |
-| Callisto | dev/qa/uat  | `01EA1E-F12D75-125CEF` |
-
 ## State Management
 
 Terraform state is stored in GCS with per-sponsor/environment isolation:
@@ -323,9 +315,7 @@ Create `bootstrap/sponsor-configs/{sponsor}.tfvars`:
 # Required
 sponsor              = "new-sponsor"
 sponsor_id           = 3  # Must be unique (1-254)
-gcp_org_id           = "123456789012"
-billing_account_prod = "XXXXXX-XXXXXX-XXXXXX"
-billing_account_dev  = "YYYYYY-YYYYYY-YYYYYY"
+
 
 # Optional
 project_prefix       = "cure-hht"
@@ -362,7 +352,6 @@ sponsor     = "new-sponsor"
 sponsor_id  = 3  # Must match bootstrap
 environment = "dev"
 project_id  = "cure-hht-new-sponsor-dev"
-gcp_org_id  = "123456789012"
 # ... additional configuration
 ```
 
@@ -436,9 +425,10 @@ Example for `sponsor_id=1` (Callisto):
 
 This infrastructure implements FDA 21 CFR Part 11 compliance:
 
-1. **25-Year Audit Log Retention**
+1. **Production Audit Log Retention (25 Years)**
    - All Cloud Audit Logs routed to GCS buckets
-   - Retention period: 25 years (788,400,000 seconds)
+   - **Production only**: 25-year retention (788,400,000 seconds)
+   - **Non-production**: No retention policy (allows cleanup/deletion)
    - Storage lifecycle: Standard → Coldline (90d) → Archive (365d)
 
 2. **Tamper Protection**
@@ -449,18 +439,62 @@ This infrastructure implements FDA 21 CFR Part 11 compliance:
 3. **Comprehensive Logging**
    - Admin Activity logs (always enabled)
    - Data Access logs (configured)
-   - BigQuery audit dataset for querying
 
-### Audit Log Lock Strategy
+### Audit Log Retention Strategy
 
-| Environment | `lock_retention_policy` | Rationale                      |
-|-------------|-------------------------|--------------------------------|
-| dev         | `false`                 | Flexibility during development |
-| qa          | `false`                 | Cleanup after testing          |
-| uat         | `false`                 | Reset between UAT cycles       |
-| **prod**    | **`true`**              | **FDA requirement**            |
+| Environment | `retention_years` | `lock_retention_policy` | Rationale                      |
+|-------------|-------------------|-------------------------|--------------------------------|
+| dev         | `0` (none)        | `false`                 | Flexibility during development |
+| qa          | `0` (none)        | `false`                 | Cleanup after testing          |
+| uat         | `0` (none)        | `false`                 | Reset between UAT cycles       |
+| **prod**    | **`25`**          | **`true`**              | **FDA requirement**            |
 
-**WARNING:** Once locked, retention policy cannot be unlocked. The 25-year retention becomes permanent.
+**WARNING:** Once locked, the production retention policy cannot be unlocked. The 25-year retention becomes permanent.
+
+## Container Images
+
+### Artifact Registry GHCR Proxy
+
+Cloud Run cannot pull directly from GitHub Container Registry (ghcr.io). Container images are accessed via an Artifact Registry remote repository in the admin project that proxies GHCR.
+
+**Image URL Format:**
+```
+# Instead of:
+ghcr.io/cure-hht/clinical-diary-diary-server:latest
+
+# Use:
+europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest
+```
+
+**Setup (in admin project, not managed by Terraform):**
+```bash
+# 1. Create remote repository
+gcloud artifacts repositories create ghcr-remote \
+  --project=cure-hht-admin \
+  --location=europe-west9 \
+  --repository-format=docker \
+  --mode=remote-repository \
+  --remote-docker-repo-custom-uri="https://ghcr.io"
+
+# 2. Add GHCR authentication (for private repos)
+gcloud artifacts repositories update ghcr-remote \
+  --project=cure-hht-admin \
+  --location=europe-west9 \
+  --remote-username=YOUR_GITHUB_USERNAME \
+  --remote-password-secret-version=projects/PROJECT_ID/secrets/ghcr-token/versions/latest
+
+# 3. Grant Cloud Run service accounts read access
+gcloud artifacts repositories add-iam-policy-binding ghcr-remote \
+  --project=cure-hht-admin \
+  --location=europe-west9 \
+  --member="serviceAccount:cure-hht-dev-run-sa@cure-hht-dev.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.reader"
+```
+
+**How It Works:**
+- When Cloud Run requests an image, Artifact Registry proxies the request to ghcr.io
+- Images are cached in Artifact Registry for faster subsequent pulls
+- Authentication to GHCR is handled centrally in the admin project
 
 ## CI/CD Integration
 
@@ -650,7 +684,7 @@ cure-hht-{sponsor}-prod   - Production project
 Per project:
   - 13 GCP APIs enabled
   - Budget alerts ($500/$500/$1000/$5000)
-  - Audit log bucket (25-year retention)
+  - Audit log bucket (prod: 25-year locked retention, non-prod: no retention)
   - Log sink (Cloud Audit Logs → GCS)
   - CI/CD service account
   - Workload Identity Federation pool (for GitHub Actions)
@@ -711,9 +745,7 @@ Cloud Run Services
   - diary-server (API)
   - portal-server (Web UI)
   - VPC connector attached
-
-Artifact Registry
-  - Docker repository for container images
+  - Images pulled via GHCR proxy in admin project
 
 Monitoring
   - Uptime checks
@@ -721,8 +753,7 @@ Monitoring
   - DB CPU/storage alerts
 
 Audit Logs
-  - GCS bucket (25-year retention)
-  - BigQuery dataset
+  - GCS bucket (prod: 25-year retention, non-prod: no retention)
   - Log sinks
 
 Identity Platform (if enabled)
@@ -768,13 +799,13 @@ Verifies FDA 21 CFR Part 11 compliance for all sponsor environments.
 
 **Checks Performed:**
 
-| Check            | Requirement | Pass Criteria                 |
-|------------------|-------------|-------------------------------|
-| Bucket exists    | All envs    | All 4 audit buckets exist     |
-| Retention policy | All envs    | 25-year (788,400,000 seconds) |
-| Retention locked | Prod only   | `isLocked: true`              |
-| Log sinks active | All envs    | Sinks are not disabled        |
-| BigQuery dataset | All envs    | Audit dataset exists          |
+| Check            | Requirement | Pass Criteria                          |
+|------------------|-------------|----------------------------------------|
+| Bucket exists    | All envs    | All 4 audit buckets exist              |
+| Retention policy | Prod only   | 25-year (788,400,000 seconds)          |
+| No retention     | Non-prod    | No retention policy (allows cleanup)   |
+| Retention locked | Prod only   | `isLocked: true`                       |
+| Log sinks active | All envs    | Sinks are not disabled                 |
 
 **Example Output:**
 ```
@@ -783,17 +814,17 @@ Verifying FDA 21 CFR Part 11 compliance for: callisto
 
 Checking dev environment...
   ✅ Audit bucket exists: cure-hht-callisto-dev-audit-logs
-  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ No retention policy (non-prod)
   ✅ Log sink active
 
 Checking qa environment...
   ✅ Audit bucket exists: cure-hht-callisto-qa-audit-logs
-  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ No retention policy (non-prod)
   ✅ Log sink active
 
 Checking uat environment...
   ✅ Audit bucket exists: cure-hht-callisto-uat-audit-logs
-  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ No retention policy (non-prod)
   ✅ Log sink active
 
 Checking prod environment...
@@ -846,13 +877,13 @@ Creates PostgreSQL 17 instance with pgaudit enabled.
 
 Creates FDA-compliant audit log storage.
 
-| Input                   | Type   | Description                    |
-|-------------------------|--------|--------------------------------|
-| `project_id`            | string | GCP project ID                 |
-| `sponsor`               | string | Sponsor name                   |
-| `environment`           | string | dev/qa/uat/prod                |
-| `retention_years`       | number | Retention period (default: 25) |
-| `lock_retention_policy` | bool   | Lock retention (prod only)     |
+| Input                   | Type   | Description                                         |
+|-------------------------|--------|-----------------------------------------------------|
+| `project_id`            | string | GCP project ID                                      |
+| `sponsor`               | string | Sponsor name                                        |
+| `environment`           | string | dev/qa/uat/prod                                     |
+| `retention_years`       | number | Retention period (0=none, 25=FDA). Non-prod uses 0. |
+| `lock_retention_policy` | bool   | Lock retention (prod only)                          |
 
 ### identity-platform
 
@@ -916,21 +947,25 @@ Creates VPC with private service connection for Cloud SQL.
 
 Deploys Cloud Run services with Dart-optimized health checks.
 
-| Input                   | Type   | Description                          |
-|-------------------------|--------|--------------------------------------|
-| `project_id`            | string | GCP project ID                       |
-| `sponsor`               | string | Sponsor name                         |
-| `environment`           | string | dev/qa/uat/prod                      |
-| `region`                | string | GCP region                           |
-| `vpc_connector_id`      | string | VPC connector for private SQL access |
-| `diary_server_image`    | string | Docker image for diary API           |
-| `portal_server_image`   | string | Docker image for portal UI           |
-| `min_instances`         | number | Minimum instances (default: 1)       |
-| `max_instances`         | number | Maximum instances (default: 10)      |
+| Input                   | Type   | Description                                              |
+|-------------------------|--------|----------------------------------------------------------|
+| `project_id`            | string | GCP project ID                                           |
+| `sponsor`               | string | Sponsor name                                             |
+| `environment`           | string | dev/qa/uat/prod                                          |
+| `region`                | string | GCP region                                               |
+| `vpc_connector_id`      | string | VPC connector for private SQL access                     |
+| `diary_server_image`    | string | Container image URL (via Artifact Registry GHCR proxy)   |
+| `portal_server_image`   | string | Container image URL (via Artifact Registry GHCR proxy)   |
+| `min_instances`         | number | Minimum instances (default: 1)                           |
+| `max_instances`         | number | Maximum instances (default: 10)                          |
+
+**Container Images:**
+- Images are pulled via Artifact Registry GHCR remote proxy in admin project
+- See [Container Images](#container-images) section for setup details
 
 **Dart Container Optimization:**
 - Startup probe: 120s total tolerance (30s initial + 6×15s retries)
-- Liveness probe: Conservsative 30s intervals
+- Liveness probe: Conservative 30s intervals
 - Prevents restart loops during JIT compilation
 
 ## Related Documentation

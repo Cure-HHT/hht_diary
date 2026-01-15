@@ -55,13 +55,13 @@ variable "require_mfa" {
 }
 
 variable "mfa_enforcement" {
-  description = "MFA enforcement level: OFF, OPTIONAL, MANDATORY"
+  description = "MFA enforcement level: DISABLED, ENABLED, MANDATORY"
   type        = string
   default     = "MANDATORY"
 
   validation {
-    condition     = contains(["OFF", "OPTIONAL", "MANDATORY"], var.mfa_enforcement)
-    error_message = "MFA enforcement must be OFF, OPTIONAL, or MANDATORY."
+    condition     = contains(["DISABLED", "ENABLED", "MANDATORY"], var.mfa_enforcement)
+    error_message = "MFA enforcement must be DISABLED, ENABLED, or MANDATORY."
   }
 }
 

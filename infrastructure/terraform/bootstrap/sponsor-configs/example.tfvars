@@ -17,21 +17,23 @@ sponsor = "example"
 sponsor_id = 99
 
 # -----------------------------------------------------------------------------
-# Required: GCP Organization
+# Required: GCP Organization & Billing (via Doppler)
 # -----------------------------------------------------------------------------
 
-# GCP Organization ID (find with: gcloud organizations list)
-gcp_org_id = "123456789012"
-
-# -----------------------------------------------------------------------------
-# Required: Billing Accounts
-# -----------------------------------------------------------------------------
-
-# Billing account for production environment
-billing_account_prod = "XXXXXX-XXXXXX-XXXXXX"
-
-# Billing account for dev/qa/uat environments
-billing_account_dev = "XXXXXX-XXXXXX-XXXXXX"
+# Sensitive values should be provided via Doppler environment variables:
+# - TF_VAR_GCP_ORG_ID
+# - TF_VAR_BILLING_ACCOUNT_PROD
+# - TF_VAR_BILLING_ACCOUNT_DEV
+# - TF_VAR_DB_PASSWORD
+#
+# Find your GCP Organization ID: gcloud organizations list
+# Find your Billing Account IDs: gcloud billing accounts list
+#
+# If not using Doppler, uncomment and set these values:
+# GCP_ORG_ID = "123456789012"
+# BILLING_ACCOUNT_PROD = "XXXXXX-XXXXXX-XXXXXX"
+# BILLING_ACCOUNT_DEV = "XXXXXX-XXXXXX-XXXXXX"
+# DB_PASSWORD = "your-db-password"
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -88,6 +90,3 @@ enable_workload_identity = true
 
 # Include data access logs in audit exports (default: true)
 # include_data_access_logs = true
-
-# Create BigQuery datasets for audit analytics (default: true)
-# create_bigquery_datasets = true

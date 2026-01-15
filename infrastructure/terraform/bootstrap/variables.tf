@@ -30,27 +30,27 @@ variable "sponsor_id" {
   }
 }
 
-variable "gcp_org_id" {
+variable "GCP_ORG_ID" {
   description = "GCP Organization ID"
   type        = string
 }
 
-variable "billing_account_prod" {
+variable "BILLING_ACCOUNT_PROD" {
   description = "Billing account ID for production environment"
   type        = string
 
   validation {
-    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.billing_account_prod))
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.BILLING_ACCOUNT_PROD))
     error_message = "Billing account ID must be in format XXXXXX-XXXXXX-XXXXXX."
   }
 }
 
-variable "billing_account_dev" {
+variable "BILLING_ACCOUNT_DEV" {
   description = "Billing account ID for dev/qa/uat environments"
   type        = string
 
   validation {
-    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.billing_account_dev))
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.BILLING_ACCOUNT_DEV))
     error_message = "Billing account ID must be in format XXXXXX-XXXXXX-XXXXXX."
   }
 }
@@ -134,12 +134,6 @@ variable "audit_retention_years" {
 
 variable "include_data_access_logs" {
   description = "Include data access logs in audit exports"
-  type        = bool
-  default     = true
-}
-
-variable "create_bigquery_datasets" {
-  description = "Create BigQuery datasets for audit analytics"
   type        = bool
   default     = true
 }

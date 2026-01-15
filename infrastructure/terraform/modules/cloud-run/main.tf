@@ -84,6 +84,9 @@ resource "google_cloud_run_v2_service" "diary_server" {
   template {
     service_account = google_service_account.cloud_run.email
 
+    # NOTE: Container images are pulled via Artifact Registry GHCR remote proxy
+    # Authentication is handled centrally in the admin project's remote repository
+
     scaling {
       min_instance_count = var.min_instances
       max_instance_count = var.max_instances
@@ -166,7 +169,9 @@ resource "google_cloud_run_v2_service" "diary_server" {
 
   lifecycle {
     ignore_changes = [
+      client,                          # Set by console/gcloud
       template[0].containers[0].image, # Image managed by CI/CD
+      template[0].containers[0].name,  # Auto-generated container name
     ]
   }
 }
@@ -186,6 +191,8 @@ resource "google_cloud_run_v2_service" "portal_server" {
 
   template {
     service_account = google_service_account.cloud_run.email
+
+    # NOTE: Container images pulled via Artifact Registry GHCR remote proxy
 
     scaling {
       min_instance_count = var.min_instances
@@ -263,7 +270,10 @@ resource "google_cloud_run_v2_service" "portal_server" {
 
   lifecycle {
     ignore_changes = [
-      template[0].containers[0].image, # Image managed by CI/CD
+      client,                                        # Set by console/gcloud
+      template[0].containers[0].image,               # Image managed by CI/CD
+      template[0].containers[0].name,                # Auto-generated container name
+      template[0].containers[0].resources[0].limits, # Ignore CPU format differences (1 vs 1000m)
     ]
   }
 }

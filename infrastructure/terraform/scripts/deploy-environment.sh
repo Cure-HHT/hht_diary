@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # deploy-environment.sh
 #
 # Deploy a single sponsor environment (dev/qa/uat/prod)
@@ -147,13 +147,13 @@ print_header "Deploying ${SPONSOR} ${ENVIRONMENT}"
 log_info "Config file: $TFVARS_FILE"
 log_info "Terraform directory: $PORTAL_DIR"
 
-# Check for db_password
-if ! grep -q "db_password" "$TFVARS_FILE" && [[ -z "${TF_VAR_db_password:-}" ]]; then
-    log_warn "db_password not found in tfvars and TF_VAR_db_password not set"
-    log_info "Set via Doppler or: export TF_VAR_db_password='your-password'"
+# Check for DB_PASSWORD
+if ! grep -q "DB_PASSWORD" "$TFVARS_FILE" && [[ -z "${TF_VAR_DB_PASSWORD:-}" ]]; then
+    log_warn "DB_PASSWORD not found in tfvars and TF_VAR_DB_PASSWORD not set"
+    log_info "Set via Doppler or: export TF_VAR_DB_PASSWORD='your-password'"
 
     if [[ "$APPLY" == "true" ]]; then
-        log_error "Cannot apply without db_password"
+        log_error "Cannot apply without DB_PASSWORD"
         exit 1
     fi
 fi

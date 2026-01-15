@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # verify-audit-compliance.sh
 #
 # Verify FDA 21 CFR Part 11 audit log compliance for a sponsor

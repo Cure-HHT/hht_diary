@@ -65,7 +65,7 @@ resource "google_secret_manager_secret" "db_password" {
 
 resource "google_secret_manager_secret_version" "db_password" {
   secret      = google_secret_manager_secret.db_password.id
-  secret_data = var.db_password
+  secret_data = var.DB_PASSWORD
 }
 
 # -----------------------------------------------------------------------------
@@ -100,23 +100,9 @@ module "cloud_sql" {
   region                 = var.region
   vpc_network_id         = module.vpc.network_id
   private_vpc_connection = module.vpc.private_vpc_connection
-  db_password            = var.db_password
+  DB_PASSWORD            = var.DB_PASSWORD
 
   depends_on = [module.vpc]
-}
-
-# -----------------------------------------------------------------------------
-# Artifact Registry
-# -----------------------------------------------------------------------------
-
-module "artifact_registry" {
-  source = "../modules/artifact-registry"
-
-  project_id           = var.project_id
-  sponsor              = var.sponsor
-  environment          = var.environment
-  region               = var.region
-  cicd_service_account = var.cicd_service_account
 }
 
 # -----------------------------------------------------------------------------
@@ -132,9 +118,9 @@ module "cloud_run" {
   region           = var.region
   vpc_connector_id = module.vpc.connector_id
 
-  # Use placeholder images initially - CI/CD will deploy actual images
-  diary_server_image  = "${module.artifact_registry.diary_server_image_base}:latest"
-  portal_server_image = "${module.artifact_registry.portal_server_image_base}:latest"
+  # Container images (via Artifact Registry GHCR proxy)
+  diary_server_image  = var.diary_server_image
+  portal_server_image = var.portal_server_image
 
   db_host               = module.cloud_sql.private_ip_address
   db_name               = module.cloud_sql.database_name
@@ -146,10 +132,11 @@ module "cloud_run" {
   container_memory = var.container_memory
   container_cpu    = var.container_cpu
 
+  allow_public_access = var.allow_public_access
+
   depends_on = [
     module.vpc,
     module.cloud_sql,
-    module.artifact_registry,
     google_secret_manager_secret_version.db_password,
   ]
 }
@@ -179,9 +166,11 @@ module "audit_logs" {
   sponsor               = var.sponsor
   environment           = var.environment
   region                = var.region
-  retention_years       = var.audit_retention_years
+  retention_years       = local.is_production ? var.audit_retention_years : 0
   lock_retention_policy = local.lock_audit_retention
 }
+
+
 
 # -----------------------------------------------------------------------------
 # Monitoring Alerts
@@ -197,24 +186,6 @@ module "monitoring" {
   notification_channels = var.notification_channels
 
   depends_on = [module.cloud_run]
-}
-
-# -----------------------------------------------------------------------------
-# Cloud Build Triggers (Optional)
-# -----------------------------------------------------------------------------
-
-module "cloud_build" {
-  source = "../modules/cloud-build"
-  count  = var.enable_cloud_build_triggers ? 1 : 0
-
-  project_id            = var.project_id
-  sponsor               = var.sponsor
-  environment           = var.environment
-  region                = var.region
-  github_org            = var.github_org
-  github_repo           = var.github_repo
-  artifact_registry_url = module.artifact_registry.repository_url
-  trigger_branch        = var.environment == "prod" ? "^main$" : "^${var.environment}$"
 }
 
 # -----------------------------------------------------------------------------
@@ -265,7 +236,7 @@ module "workforce_identity" {
 
   enabled                = var.workforce_identity_enabled
   project_id             = var.project_id
-  gcp_org_id             = var.gcp_org_id
+  GCP_ORG_ID             = var.GCP_ORG_ID
   sponsor                = var.sponsor
   environment            = var.environment
   region                 = var.region

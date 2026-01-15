@@ -8,15 +8,15 @@
 # Required: Sponsor Identity
 # -----------------------------------------------------------------------------
 
-sponsor     = "example"
-sponsor_id  = 99  # Must match bootstrap sponsor_id
+sponsor     = "cure-hht"
+sponsor_id  = 2  # Must match bootstrap sponsor_id
 environment = "dev"
 
 # -----------------------------------------------------------------------------
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id = "cure-hht-example-dev"  # From bootstrap output
+project_id = "cure-hht-dev"  # From bootstrap output
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
@@ -32,6 +32,12 @@ project_id = "cure-hht-example-dev"  # From bootstrap output
 # BILLING_ACCOUNT_PROD = "XXXXXX-XXXXXX-XXXXXX"
 # BILLING_ACCOUNT_DEV = "XXXXXX-XXXXXX-XXXXXX"
 # DB_PASSWORD = "your-db-password"
+
+# -----------------------------------------------------------------------------
+# Required: Database
+# -----------------------------------------------------------------------------
+
+# Database password - use Doppler or set via environment variable
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -59,8 +65,15 @@ container_cpu    = "1"
 github_org  = "Cure-HHT"
 github_repo = "hht_diary"
 
-# Enable Cloud Build triggers
-enable_cloud_build_triggers = true
+# Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
+enable_cloud_build_triggers = false
+
+# Container Images (via Artifact Registry GHCR proxy in admin project)
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+
+# Disable public access due to organization policy restrictions
+allow_public_access = false
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -75,8 +88,8 @@ identity_platform_email_link     = false  # Passwordless email links
 identity_platform_phone_auth     = false  # Phone number authentication
 
 # Security settings
-# MFA: OFF, OPTIONAL, MANDATORY (prod always forces MANDATORY)
-identity_platform_mfa_enforcement   = "OPTIONAL"  # Non-prod can be relaxed
+# MFA: DISABLED, ENABLED, MANDATORY (prod always forces MANDATORY)
+identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
 identity_platform_password_min_length = 12        # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets

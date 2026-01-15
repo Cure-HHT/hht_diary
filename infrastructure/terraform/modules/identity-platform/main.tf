@@ -82,11 +82,6 @@ resource "google_identity_platform_config" "main" {
       password_required = !var.enable_email_link
     }
 
-    # Phone authentication (optional)
-    phone_number {
-      enabled = var.enable_phone_auth
-    }
-
     # Anonymous auth disabled for compliance
     anonymous {
       enabled = false
@@ -97,8 +92,8 @@ resource "google_identity_platform_config" "main" {
   mfa {
     enabled_providers = ["PHONE_SMS"]
 
-    # Production should enforce MFA
-    state = local.is_production ? "MANDATORY" : var.mfa_enforcement
+    # Production and UAT should enforce MFA (REQ-p00002, REQ-o00006)
+    state = contains(["prod", "uat"], var.environment) ? "MANDATORY" : var.mfa_enforcement
 
     provider_configs {
       state = "ENABLED"
@@ -118,35 +113,18 @@ resource "google_identity_platform_config" "main" {
   quota {
     sign_up_quota_config {
       quota          = 1000
-      start_time     = timestamp()
+      start_time     = timeadd(timestamp(), "0s")
       quota_duration = "86400s" # 1 day
     }
   }
 
-  depends_on = [google_project_service.identity_platform]
-}
-
-# -----------------------------------------------------------------------------
-# Password Policy (for HIPAA compliance)
-# -----------------------------------------------------------------------------
-
-resource "google_identity_platform_project_default_config" "main" {
-  project = var.project_id
-
-  sign_in {
-    allow_duplicate_emails = false
-
-    email {
-      enabled           = var.enable_email_password
-      password_required = true
-    }
-
-    phone_number {
-      enabled = var.enable_phone_auth
-    }
+  lifecycle {
+    ignore_changes = [
+      quota[0].sign_up_quota_config[0].start_time
+    ]
   }
 
-  depends_on = [google_identity_platform_config.main]
+  depends_on = [google_project_service.identity_platform]
 }
 
 # -----------------------------------------------------------------------------
@@ -158,6 +136,7 @@ resource "google_identity_platform_project_default_config" "main" {
 # Email sender configuration is done via the Identity Platform API
 # The google_identity_platform_config above enables the service
 # Custom templates should be configured via Firebase Console or CI/CD scripts
+# Password policy is enforced through the main google_identity_platform_config resource
 
 # -----------------------------------------------------------------------------
 # Audit Logging

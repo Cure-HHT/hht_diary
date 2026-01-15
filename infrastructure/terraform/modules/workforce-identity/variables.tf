@@ -11,7 +11,7 @@ variable "project_id" {
   type        = string
 }
 
-variable "gcp_org_id" {
+variable "GCP_ORG_ID" {
   description = "GCP Organization ID"
   type        = string
 }

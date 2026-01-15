@@ -10,24 +10,26 @@ sponsor    = "cure-hht"
 sponsor_id = 2 # VPC CIDR: 10.2.0.0/16
 
 # -----------------------------------------------------------------------------
-# GCP Organization
-# -----------------------------------------------------------------------------
-
-gcp_org_id = "666049061860" # anspar.org
-
-# -----------------------------------------------------------------------------
-# Billing Accounts
-# -----------------------------------------------------------------------------
-
-billing_account_prod = "017213-A61D61-71522F" # Cure HHT
-billing_account_dev  = "01A48D-1B402E-18CB1A" # Cure HHT - Dev
-
-# -----------------------------------------------------------------------------
 # Project Configuration
 # -----------------------------------------------------------------------------
 
 project_prefix = "cure-hht"
 default_region = "europe-west9"
+
+# Sensitive values should be provided via Doppler environment variables:
+# - TF_VAR_GCP_ORG_ID
+# - TF_VAR_BILLING_ACCOUNT_PROD
+# - TF_VAR_BILLING_ACCOUNT_DEV
+# - TF_VAR_DB_PASSWORD
+#
+# Find your GCP Organization ID: gcloud organizations list
+# Find your Billing Account IDs: gcloud billing accounts list
+#
+# If not using Doppler, uncomment and set these values:
+# GCP_ORG_ID = "123456789012"
+# BILLING_ACCOUNT_PROD = "XXXXXX-XXXXXX-XXXXXX"
+# BILLING_ACCOUNT_DEV = "XXXXXX-XXXXXX-XXXXXX"
+# DB_PASSWORD = "your-db-password"
 
 # -----------------------------------------------------------------------------
 # GitHub Integration
@@ -41,7 +43,7 @@ enable_workload_identity = true
 # Admin Access
 # -----------------------------------------------------------------------------
 
-# anspar_admin_group = "anspar-admins@cure-hht.org"
+anspar_admin_group = "devops-admins@anspar.org"
 
 # -----------------------------------------------------------------------------
 # Budget Configuration (Temporary: disable cost controls for initial setup)

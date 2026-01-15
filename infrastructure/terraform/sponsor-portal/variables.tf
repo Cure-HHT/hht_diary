@@ -40,12 +40,12 @@ variable "project_id" {
   type        = string
 }
 
-variable "gcp_org_id" {
+variable "GCP_ORG_ID" {
   description = "GCP Organization ID (for Workforce Identity)"
   type        = string
 }
 
-variable "db_password" {
+variable "DB_PASSWORD" {
   description = "Database password"
   type        = string
   sensitive   = true
@@ -95,6 +95,12 @@ variable "container_cpu" {
   default     = "1"
 }
 
+variable "allow_public_access" {
+  description = "Allow unauthenticated public access to Cloud Run services"
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # Optional: VPC Configuration Override
 # These are calculated from sponsor_id by default
@@ -135,9 +141,25 @@ variable "github_repo" {
 }
 
 variable "enable_cloud_build_triggers" {
-  description = "Create Cloud Build triggers for CI/CD"
+  description = "[DEPRECATED] Create Cloud Build triggers for CI/CD. Use GitHub Actions instead."
   type        = bool
-  default     = true
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Container Images (via Artifact Registry GHCR proxy)
+# -----------------------------------------------------------------------------
+
+variable "diary_server_image" {
+  description = "Container image URL for diary server (via Artifact Registry GHCR proxy)"
+  type        = string
+  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+}
+
+variable "portal_server_image" {
+  description = "Container image URL for portal server (via Artifact Registry GHCR proxy)"
+  type        = string
+  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 }
 
 # -----------------------------------------------------------------------------
@@ -169,13 +191,13 @@ variable "identity_platform_phone_auth" {
 }
 
 variable "identity_platform_mfa_enforcement" {
-  description = "MFA enforcement level: OFF, OPTIONAL, MANDATORY (prod always MANDATORY)"
+  description = "MFA enforcement level: DISABLED, ENABLED, MANDATORY (prod always MANDATORY)"
   type        = string
   default     = "MANDATORY"
 
   validation {
-    condition     = contains(["OFF", "OPTIONAL", "MANDATORY"], var.identity_platform_mfa_enforcement)
-    error_message = "MFA enforcement must be OFF, OPTIONAL, or MANDATORY."
+    condition     = contains(["DISABLED", "ENABLED", "MANDATORY"], var.identity_platform_mfa_enforcement)
+    error_message = "MFA enforcement must be DISABLED, ENABLED, or MANDATORY."
   }
 }
 

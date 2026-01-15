@@ -33,13 +33,13 @@ variable "region" {
 }
 
 variable "retention_years" {
-  description = "Audit log retention period in years (FDA requires 25)"
+  description = "Audit log retention period in years (FDA requires 25). Set to 0 to disable retention for non-prod."
   type        = number
   default     = 25
 
   validation {
-    condition     = var.retention_years >= 1 && var.retention_years <= 100
-    error_message = "Retention years must be between 1 and 100."
+    condition     = var.retention_years >= 0 && var.retention_years <= 100
+    error_message = "Retention years must be between 0 and 100."
   }
 }
 
@@ -51,12 +51,6 @@ variable "lock_retention_policy" {
 
 variable "include_data_access_logs" {
   description = "Include data access logs (more verbose, higher cost)"
-  type        = bool
-  default     = true
-}
-
-variable "create_bigquery_dataset" {
-  description = "Create BigQuery dataset for audit log analytics"
   type        = bool
   default     = true
 }

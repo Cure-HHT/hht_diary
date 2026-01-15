@@ -17,10 +17,10 @@ locals {
 
   # Billing account selection: prod uses prod account, others use dev account
   billing_accounts = {
-    dev  = var.billing_account_dev
-    qa   = var.billing_account_dev
-    uat  = var.billing_account_dev
-    prod = var.billing_account_prod
+    dev  = var.BILLING_ACCOUNT_DEV
+    qa   = var.BILLING_ACCOUNT_DEV
+    uat  = var.BILLING_ACCOUNT_DEV
+    prod = var.BILLING_ACCOUNT_PROD
   }
 
   # Project IDs - just sponsor-env (e.g., callisto-dev, cure-hht-prod)
@@ -42,6 +42,14 @@ locals {
     uat  = false
     prod = true
   }
+
+  # Audit retention: only prod gets FDA-required retention, non-prod = 0 (no retention)
+  audit_retention = {
+    dev  = 0
+    qa   = 0
+    uat  = 0
+    prod = var.audit_retention_years
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -54,7 +62,7 @@ module "projects" {
 
   project_id           = local.project_ids[each.key]
   project_display_name = local.project_names[each.key]
-  org_id               = var.gcp_org_id
+  org_id               = var.GCP_ORG_ID
   folder_id            = var.folder_id
   billing_account_id   = local.billing_accounts[each.key]
   sponsor              = var.sponsor
@@ -97,10 +105,9 @@ module "audit_logs" {
   sponsor                  = var.sponsor
   environment              = each.key
   region                   = var.default_region
-  retention_years          = var.audit_retention_years
+  retention_years          = local.audit_retention[each.key]
   lock_retention_policy    = local.audit_lock[each.key]
   include_data_access_logs = var.include_data_access_logs
-  create_bigquery_dataset  = var.create_bigquery_datasets
 
   depends_on = [module.projects]
 }
