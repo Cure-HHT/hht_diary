@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00031: Identity Platform Integration
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Identity Platform (Firebase Auth) token verification
 // Verifies JWT tokens issued by Google Identity Platform
@@ -32,6 +33,47 @@ String get _projectId =>
 bool get _useEmulator =>
     Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] != null;
 
+/// MFA enrollment and verification info extracted from token
+///
+/// Identity Platform tokens include MFA info in the `firebase` claim when
+/// the user signed in with a second factor.
+class MfaInfo {
+  /// Whether the user has MFA enrolled and used it for this sign-in
+  final bool isEnrolled;
+
+  /// The MFA method used (e.g., 'totp' for authenticator app)
+  final String? method;
+
+  /// The enrolled factor ID (useful for audit logging)
+  final String? enrolledFactorId;
+
+  MfaInfo({required this.isEnrolled, this.method, this.enrolledFactorId});
+
+  /// Create from JWT payload's firebase claim
+  factory MfaInfo.fromFirebaseClaim(Map<String, dynamic>? firebaseClaim) {
+    if (firebaseClaim == null) {
+      return MfaInfo(isEnrolled: false);
+    }
+
+    // When MFA is used, the token contains:
+    // firebase.sign_in_second_factor: "totp" (or "phone")
+    // firebase.second_factor_identifier: factor ID
+    final signInSecondFactor =
+        firebaseClaim['sign_in_second_factor'] as String?;
+    final secondFactorId = firebaseClaim['second_factor_identifier'] as String?;
+
+    return MfaInfo(
+      isEnrolled: signInSecondFactor != null,
+      method: signInSecondFactor,
+      enrolledFactorId: secondFactorId,
+    );
+  }
+
+  @override
+  String toString() =>
+      'MfaInfo(isEnrolled: $isEnrolled, method: $method, factorId: $enrolledFactorId)';
+}
+
 /// Result of token verification
 class VerificationResult {
   final String? uid;
@@ -39,11 +81,15 @@ class VerificationResult {
   final bool emailVerified;
   final String? error;
 
+  /// MFA info extracted from the token (null if parsing failed)
+  final MfaInfo? mfaInfo;
+
   VerificationResult({
     this.uid,
     this.email,
     this.emailVerified = false,
     this.error,
+    this.mfaInfo,
   });
 
   bool get isValid => uid != null && error == null;
@@ -145,6 +191,11 @@ Future<VerificationResult> verifyIdToken(String idToken) async {
     final email = payload['email'] as String?;
     final emailVerified = payload['email_verified'] as bool? ?? false;
 
+    // Extract MFA info from firebase claim
+    final firebaseClaim = payload['firebase'] as Map<String, dynamic>?;
+    final mfaInfo = MfaInfo.fromFirebaseClaim(firebaseClaim);
+    print('[AUTH] MFA info: $mfaInfo');
+
     if (uid == null || uid.isEmpty) {
       return VerificationResult(error: 'Token missing subject');
     }
@@ -153,6 +204,7 @@ Future<VerificationResult> verifyIdToken(String idToken) async {
       uid: uid,
       email: email,
       emailVerified: emailVerified,
+      mfaInfo: mfaInfo,
     );
   } catch (e) {
     return VerificationResult(error: 'Token verification failed: $e');
@@ -177,7 +229,11 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     final email = payload['email'] as String?;
     final emailVerified = payload['email_verified'] as bool? ?? false;
 
-    print('[AUTH] Emulator: uid=$uid, email=$email');
+    // Extract MFA info from firebase claim (emulator may or may not have this)
+    final firebaseClaim = payload['firebase'] as Map<String, dynamic>?;
+    final mfaInfo = MfaInfo.fromFirebaseClaim(firebaseClaim);
+
+    print('[AUTH] Emulator: uid=$uid, email=$email, mfa=$mfaInfo');
 
     if (uid == null || uid.isEmpty) {
       print('[AUTH] Emulator: Token missing subject');
@@ -189,6 +245,7 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
       uid: uid,
       email: email,
       emailVerified: emailVerified,
+      mfaInfo: mfaInfo,
     );
   } catch (e) {
     print('[AUTH] Emulator: Token parsing failed: $e');
