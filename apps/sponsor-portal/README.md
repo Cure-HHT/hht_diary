@@ -419,6 +419,54 @@ docker compose -f docker-compose.firebase.yml down
 docker compose -f docker-compose.firebase.yml up -d
 ```
 
+### "Email already linked to another account"
+
+This error occurs after resetting the Firebase emulator. When the emulator restarts, it creates
+new UIDs for users, but PostgreSQL still has old `firebase_uid` values in the `portal_users` table.
+
+**Solution 1: Clear Firebase UIDs (preserves data)**
+
+```bash
+cd tools/dev-env
+doppler run -- psql -h localhost -p 5432 -U postgres -d sponsor_portal -c "UPDATE portal_users SET firebase_uid = NULL;"
+```
+
+Then recreate the user in the Firebase Emulator UI and log in again. The portal will re-link
+the email to the new Firebase UID.
+
+**Solution 2: Full reset (clears all data)**
+
+If you want a completely fresh start:
+
+```bash
+cd tools/dev-env
+
+# Stop everything and remove volumes
+doppler run -- docker compose -f docker-compose.db.yml -f docker-compose.firebase.yml down -v
+
+# Start fresh
+doppler run -- docker compose -f docker-compose.db.yml up -d
+docker compose -f docker-compose.firebase.yml up -d
+
+# Re-apply schema and seed data
+doppler run -- psql -h localhost -U postgres -d sponsor_portal -f ../../database/schema.sql
+
+# Create user in Firebase Emulator UI (http://localhost:4000)
+```
+
+### Port 8080 in use (server won't start)
+
+```bash
+# Find what's using port 8080
+lsof -i :8080
+
+# Kill the process (replace PID with actual process ID)
+kill -9 <PID>
+
+# Or use a different port
+PORT=8081 doppler run -- dart run bin/server.dart
+```
+
 ## Stopping Services
 
 ```bash

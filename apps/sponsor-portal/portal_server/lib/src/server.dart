@@ -30,14 +30,24 @@ Middleware _corsMiddleware() {
         return Response.ok('', headers: _corsHeaders);
       }
 
-      final response = await innerHandler(request);
-      return response.change(headers: _corsHeaders);
+      try {
+        final response = await innerHandler(request);
+        return response.change(headers: _corsHeaders);
+      } catch (e, stack) {
+        // Log the error for debugging
+        print('Handler error: $e\n$stack');
+        // Return error response with CORS headers so browser can read it
+        return Response.internalServerError(
+          body: '{"error": "Internal server error"}',
+          headers: {..._corsHeaders, 'Content-Type': 'application/json'},
+        );
+      }
     };
   };
 }
 
 const _corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization',
 };

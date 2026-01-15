@@ -2,6 +2,7 @@
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-CAL-p00010: Schema-Driven Data Validation (EDC sync)
 //
 // Portal functions library - backend handlers for Sponsor Portal
 
@@ -17,3 +18,6 @@ export 'src/portal_user.dart';
 export 'src/database.dart';
 export 'src/health.dart';
 export 'src/sponsor.dart';
+
+// EDC Integration
+export 'src/sites_sync.dart';

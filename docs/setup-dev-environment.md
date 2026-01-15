@@ -644,7 +644,6 @@ psql -d clinical_trial_diary_test -f database/schema.sql
 psql -d clinical_trial_diary_test -f database/triggers.sql
 psql -d clinical_trial_diary_test -f database/rls_policies.sql
 psql -d clinical_trial_diary_test -f database/indexes.sql
-psql -d clinical_trial_diary_test -f database/seed_data.sql
 
 # Run tests
 psql -d clinical_trial_diary_test -f database/tests/test_audit_trail.sql

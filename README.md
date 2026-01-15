@@ -124,7 +124,6 @@ Located in `database/` directory:
 - `rls_policies.sql` - Row-level security policies
 - `indexes.sql` - Performance indexes
 - `init.sql` - Master initialization script
-- `seed_data.sql` - Sample data for testing
 
 ### Testing
 

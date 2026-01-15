@@ -260,7 +260,46 @@ fi
 echo ""
 
 # =====================================================
-# 5. Dart Format Check
+# 5. Dart Pub Get (dependency resolution)
+# =====================================================
+# Ensure all dependencies are resolved before format/analyze checks
+
+echo -e "${BLUE}Resolving Dart dependencies...${NC}"
+echo ""
+
+if command -v dart &> /dev/null; then
+    # Find all pubspec.yaml files in apps/ (including nested packages)
+    while IFS= read -r pubspec; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+
+            echo "  Getting dependencies for $APP_NAME..."
+
+            # Run dart pub get (or flutter pub get if it's a Flutter project)
+            if [ -f "$APP_DIR/lib/main.dart" ] || grep -q "flutter:" "$pubspec" 2>/dev/null; then
+                # Flutter project
+                if command -v flutter &> /dev/null; then
+                    (cd "$APP_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+                else
+                    (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+                fi
+            else
+                # Pure Dart project
+                (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+            fi
+        fi
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+
+    echo -e "${GREEN}Dependencies resolved${NC}"
+else
+    echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
+fi
+
+echo ""
+
+# =====================================================
+# 5.1. Dart Format Check
 # =====================================================
 # Verify ALL dart files in apps/ are properly formatted
 
@@ -311,7 +350,7 @@ fi
 echo ""
 
 # =====================================================
-# 5.5. Dart Analyze Check
+# 5.2. Dart Analyze Check
 # =====================================================
 # Verify ALL dart code in apps/ passes dart analyze --fatal-infos
 

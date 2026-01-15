@@ -2,6 +2,7 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: User Management Interface
+//   REQ-CAL-p00010: Schema-Driven Data Validation (EDC sites display)
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
+import 'sites_tab.dart';
 
 /// Admin dashboard page with navigation rail
 class AdminDashboardPage extends StatefulWidget {
@@ -252,29 +254,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildSitesTab(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.location_city_outlined,
-            size: 64,
-            color: theme.colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text('Clinical Sites', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(
-            'Site management features coming soon',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildSitesTab(ThemeData theme) => const SitesTab();
 
   Color _getRoleBannerColor(UserRole role, ThemeData theme) {
     switch (role) {

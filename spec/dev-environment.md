@@ -202,7 +202,7 @@ FDA 21 CFR Part 11 validation requires reproducible software builds with documen
 
 ## Assertions
 
-A. The development environment SHALL include Flutter 3.38.3 from the stable channel.
+A. The development environment SHALL include Flutter 3.38.7 from the stable channel.
 B. The development environment SHALL include Android SDK cmdline-tools version 11076708.
 C. The development environment SHALL include Android build-tools version 34.0.0.
 D. The development environment SHALL include Android platform API 34.
@@ -428,7 +428,7 @@ O. Documentation SHALL describe usage patterns for workspace volumes and exchang
 
 ## Tool Version Rationale
 
-### Flutter 3.38.3
+### Flutter 3.38.7
 - **Status**: Stable release
 - **Release Date**: 2024-08-07
 - **Support**: Active stable channel
