@@ -375,4 +375,76 @@ void main() {
       verifyNever(() => mockClient.close());
     });
   });
+
+  group('ChainVerificationResult', () {
+    test('toJson includes all fields when chain is intact', () {
+      final result = ChainVerificationResult(
+        totalRecords: 100,
+        validRecords: 100,
+        invalidRecords: 0,
+        chainIntact: true,
+        checkedAt: DateTime.utc(2024, 6, 15, 10, 30, 0),
+      );
+
+      final json = result.toJson();
+
+      expect(json['total_records'], equals(100));
+      expect(json['valid_records'], equals(100));
+      expect(json['invalid_records'], equals(0));
+      expect(json['chain_intact'], isTrue);
+      expect(json.containsKey('first_invalid_sync_id'), isFalse);
+      expect(json['checked_at'], equals('2024-06-15T10:30:00.000Z'));
+    });
+
+    test('toJson includes first_invalid_sync_id when chain is broken', () {
+      final result = ChainVerificationResult(
+        totalRecords: 50,
+        validRecords: 25,
+        invalidRecords: 25,
+        chainIntact: false,
+        firstInvalidSyncId: 123,
+        checkedAt: DateTime.utc(2024, 6, 15, 10, 30, 0),
+      );
+
+      final json = result.toJson();
+
+      expect(json['total_records'], equals(50));
+      expect(json['valid_records'], equals(25));
+      expect(json['invalid_records'], equals(25));
+      expect(json['chain_intact'], isFalse);
+      expect(json['first_invalid_sync_id'], equals(123));
+    });
+
+    test('handles zero records', () {
+      final result = ChainVerificationResult(
+        totalRecords: 0,
+        validRecords: 0,
+        invalidRecords: 0,
+        chainIntact: true,
+        checkedAt: DateTime.utc(2024, 1, 1),
+      );
+
+      final json = result.toJson();
+
+      expect(json['total_records'], equals(0));
+      expect(json['chain_intact'], isTrue);
+    });
+
+    test('firstInvalidSyncId can be null even when chain is broken', () {
+      // Edge case: invalidRecords > 0 but firstInvalidSyncId not set
+      final result = ChainVerificationResult(
+        totalRecords: 10,
+        validRecords: 5,
+        invalidRecords: 5,
+        chainIntact: false,
+        firstInvalidSyncId: null,
+        checkedAt: DateTime.utc(2024, 1, 1),
+      );
+
+      final json = result.toJson();
+
+      expect(json['chain_intact'], isFalse);
+      expect(json.containsKey('first_invalid_sync_id'), isFalse);
+    });
+  });
 }
