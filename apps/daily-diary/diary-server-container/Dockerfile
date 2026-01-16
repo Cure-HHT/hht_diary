@@ -9,29 +9,31 @@
 #   DART_VERSION - from .github/versions.env
 #   GCP_PROJECT_ID - GCP project for base image
 
-ARG DART_VERSION
-ARG GCP_PROJECT_ID
-FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS build
+# Default values satisfy Docker's static linter; overridden by --build-arg in CI
+ARG BASE_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
+ARG DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
+FROM ${BASE_IMAGE} AS base
+# FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS build
 
 # Copy shared dependencies first (for layer caching)
-COPY apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+COPY --chown=1000:1000 apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 
 # Copy diary_functions package
-COPY apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
+COPY --chown=1000:1000 apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
 
 # Copy diary_server package
-COPY apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
+COPY --chown=1000:1000 apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
 
 # Get dependencies and compile
 WORKDIR /app/apps/daily-diary/diary_server
 RUN dart pub get
-RUN dart compile exe bin/server.dart -o bin/server
 
 # Runtime stage - minimal image
 # Using :nonroot tag for security (DS001, DS002)
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM ${DEBIAN_IMAGE} AS runtime
+# FROM gcr.io/distroless/cc-debian12:nonroot
 
-COPY --from=build /app/apps/daily-diary/diary_server/bin/server /app/server
+COPY --from=base /app/apps/daily-diary/diary_server/bin/server.dart /app/server
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
