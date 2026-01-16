@@ -44,7 +44,7 @@ permissions:
 jobs:
   build-diary-server:
     name: Build diary-server Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 
 
     outputs:
       image_tag: ${{ steps.parse.outputs.tags }}
@@ -115,7 +115,6 @@ jobs:
           else
             IS_RELEASE=true
           fi
-          IS_RELEASE=false  #TODO TEMPORARILY DISABLE RELEASE FOR NOW
 
           # sanitize for docker tags: convert '+' to '-' and lowercase
           DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
@@ -194,7 +193,7 @@ jobs:
 
   sign-and-sbom:
     name: Sign Images & Attach SBOMs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 
     needs: [build-diary-server]
 
     steps:
@@ -239,7 +238,7 @@ jobs:
 
   verify-images:
     name: Verify Image Signatures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 
     needs: [sign-and-sbom, build-diary-server]
 
     steps:
@@ -263,7 +262,7 @@ jobs:
 
   summary:
     name: Build Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 
     needs: [verify-images, sign-and-sbom, build-diary-server]
     if: always()
 
