@@ -123,6 +123,29 @@ Q. The system SHALL NOT allow modification of the linking code association after
 *End* *Patient Enrollment Workflow* | **Hash**: 088991b7
 ---
 
+# REQ-p00051: Linking Code Lifecycle Management
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00025
+
+## Rationale
+
+Linking codes serve as temporary authentication credentials that bridge patient enrollment in the sponsor portal with patient account creation in the mobile application. To maintain security, these codes must have limited validity and single-use restrictions that prevent unauthorized access while allowing sufficient time for patients to complete their enrollment setup. The 3-day expiration window balances patient convenience (allowing time to download the app and complete setup) with security requirements (preventing indefinite exposure of authentication tokens). Single-use enforcement ensures that linking codes cannot be reused by unauthorized parties who may intercept the code during communication from coordinator to patient.
+
+## Assertions
+
+A. The system SHALL expire linking codes 3 days (72 hours) after generation.
+B. The system SHALL reject authentication attempts using expired linking codes.
+C. The system SHALL display a clear error message when a patient attempts to use an expired linking code.
+D. The system SHALL mark a linking code as used immediately upon successful patient authentication.
+E. The system SHALL reject subsequent authentication attempts using a linking code that has already been used.
+F. The system SHALL display a clear error message when a patient attempts to use an already-used linking code.
+G. The system SHALL provide an input interface for linking codes in the Mobile App during patient enrollment.
+H. The system SHALL display the linking code to the Study Coordinator in the Sponsor Portal immediately after patient enrollment.
+I. The system SHALL calculate expiration time from the moment of linking code generation.
+
+*End* *Linking Code Lifecycle Management* | **Hash**: fae64671
+---
+
 # REQ-p00026: Patient Monitoring Dashboard
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024
