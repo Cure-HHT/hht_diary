@@ -263,7 +263,7 @@ A User Journey SHOULD follow this structure:
 
 {What success looks like from the user's perspective}
 
-*End JNY* *{Title}*
+*End* *{Title}*
 ```
 
 Field guidance:
@@ -272,7 +272,7 @@ Field guidance:
 - **Context**: Optional but recommended; provides situational background (e.g., "Trial sponsor's IT team has deployed the portal. Dr. Chen has been designated as the first administrator.")
 - **Steps**: Numbered sequence of user actions and system responses
 - **Expected Outcome**: Brief statement of success from the user's perspective
-- **End marker**: Required for parsing; uses format `*End JNY* *{Title}*` (no hash since JNYs are non-normative)
+- **End marker**: Required for parsing; uses format `*End* *{Title}*` (no hash since JNYs are non-normative)
 
 ### Referencing User Journeys in Requirements
 
