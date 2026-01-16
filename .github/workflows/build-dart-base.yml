@@ -172,24 +172,6 @@ jobs:
           build-args: |
             DART_VERSION=${{ env.DART_VERSION }}
 
-      # - name: Tag image for local use
-      #   run: |
-      #     # Extract first tag from metadata action output
-      #     IFS=',' read -ra TAGS <<< '${{ steps.parse.outputs.tags }}'
-      #     docker tag "${TAGS[0]}" dart-base:latest
-      #     # FIRST_TAG=$(echo '${{ steps.parse.outputs.tags }}' | head -n1)
-      #     # docker tag "$FIRST_TAG" dart-base:latest
-
-      # - name: Export local image for downstream jobs
-      #   run: docker save -o /tmp/base-image.tar dart-base:latest
-
-      # - name: Upload base image artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: base-image
-      #     path: /tmp/base-image.tar
-      #     retention-days: 1
-
   sign-and-sbom:
     name: Sign Images & Generate SBOMs
     runs-on: ubuntu-latest
