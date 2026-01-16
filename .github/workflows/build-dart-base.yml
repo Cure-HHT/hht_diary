@@ -19,10 +19,7 @@ on:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
-      create_tag:
-        description: 'If true, create/push the annotated git tag back to the repo (requires push permission).'
-        required: false
-        default: 'false'
+
 env:
   REGISTRY: ghcr.io
   ORGANIZATION: cure-hht

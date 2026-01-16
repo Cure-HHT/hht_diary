@@ -25,36 +25,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build and push (example: v1.2.3, v1.2, 1.2.3-rc.1)'
+        description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
-      create_tag:
-        description: 'If true, create/push the annotated git tag back to the repo (requires push permission).'
-        required: false
-        default: 'false'
-  # push:
-  #   branches:
-  #     - main
-  #     - 'release/**'
-  #   paths:
-  #     - 'tools/dev-env/docker/**'
-  #     - 'tools/dev-env/docker-compose.yml'
-  #     - '.github/workflows/build-publish-images.yml'
-  # pull_request:
-  #   paths:
-  #     - 'tools/dev-env/docker/**'
-  #     - 'tools/dev-env/docker-compose.yml'
-  #     - '.github/workflows/build-publish-images.yml'
-  # workflow_dispatch:
-  #   inputs:
-  #     push_to_registry:
-  #       description: 'Push images to GitHub Container Registry'
-  #       required: false
-  #       default: 'true'
-  #       type: choice
-  #       options:
-  #         - 'true'
-  #         - 'false'
 
 env:
   REGISTRY: ghcr.io
@@ -247,7 +220,7 @@ jobs:
         run: |
           syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }} \
             -o spdx-json \
-            --file dev-sbom.spdx.json
+            --file diary-server-sbom.spdx.json
 
       - name: Upload SBOMs as artifacts
         uses: actions/upload-artifact@v4
@@ -316,36 +289,3 @@ jobs:
           echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
           echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-  
-  # summary:
-  #   name: Build Summary
-  #   runs-on: ubuntu-latest
-  #   needs: [build-diary-server, sign-and-sbom, verify-images]
-  #   if: always()
-
-  #   steps:
-  #     - name: Generate summary
-  #       run: |
-  #         echo "# Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
-  #         echo "" >> $GITHUB_STEP_SUMMARY
-  #         echo "**Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-  #         echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-  #         echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-  #         echo "" >> $GITHUB_STEP_SUMMARY
-  #         echo "## Images Built" >> $GITHUB_STEP_SUMMARY
-  #         echo "" >> $GITHUB_STEP_SUMMARY
-  #         echo "- ✅ Base image" >> $GITHUB_STEP_SUMMARY
-  #         echo "- ✅ Dev image" >> $GITHUB_STEP_SUMMARY
-  #         echo "- ✅ QA image" >> $GITHUB_STEP_SUMMARY
-  #         echo "- ✅ Ops image" >> $GITHUB_STEP_SUMMARY
-  #         echo "- ✅ Management image" >> $GITHUB_STEP_SUMMARY
-  #         echo "" >> $GITHUB_STEP_SUMMARY
-
-  #           echo "## Published to GHCR" >> $GITHUB_STEP_SUMMARY
-  #           echo "" >> $GITHUB_STEP_SUMMARY
-  #           echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-*\`" >> $GITHUB_STEP_SUMMARY
-  #           echo "" >> $GITHUB_STEP_SUMMARY
-  #           echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
-  #           echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
-  #           echo "## Build Verification Only" >> $GITHUB_STEP_SUMMARY
-  #           echo "" >> $GITHUB_STEP_SUMMARY
