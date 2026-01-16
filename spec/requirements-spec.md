@@ -249,8 +249,9 @@ A User Journey SHOULD follow this structure:
 ```markdown
 # JNY-{Descriptor}-{number}: {Title}
 
-**Actor**: {who is performing the journey}
+**Actor**: {Name} ({Role})
 **Goal**: {what the user wants to achieve}
+**Context**: {situational background that sets up the scenario}
 
 ## Steps
 
@@ -262,6 +263,13 @@ A User Journey SHOULD follow this structure:
 
 {What success looks like from the user's perspective}
 ```
+
+Field guidance:
+- **Actor**: Include a persona name and role in parentheses for readability (e.g., "Dr. Lisa Chen (Principal Investigator)")
+- **Goal**: A single sentence describing what the user wants to achieve
+- **Context**: Optional but recommended; provides situational background (e.g., "Trial sponsor's IT team has deployed the portal. Dr. Chen has been designated as the first administrator.")
+- **Steps**: Numbered sequence of user actions and system responses
+- **Expected Outcome**: Brief statement of success from the user's perspective
 
 ### Referencing User Journeys in Requirements
 
