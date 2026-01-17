@@ -252,25 +252,28 @@ The platform uses Gmail API with a service account for sending:
 
 The email service supports two authentication modes:
 
-1. **WIF (Workload Identity Federation)** - Recommended for production
-   - Cloud Run SA impersonates Gmail SA via IAM
+1. **WIF (Workload Identity Federation)** - Recommended for all environments
+   - Cloud Run SA or local user impersonates Gmail SA via IAM
    - No secret key storage required
+   - For local dev: `gcloud auth application-default login` + your user needs
+     `roles/iam.serviceAccountTokenCreator` on the Gmail SA
 
-2. **SA Key** - For local development or legacy environments
+2. **SA Key** - Legacy fallback only
    - Requires base64-encoded service account JSON key
+   - Use only if WIF cannot be configured
 
 Add these to **hht-diary-core** (all environments):
 
 ```bash
-# OPTION 1: WIF Mode (Production - Recommended)
-# Gmail SA email for Cloud Run to impersonate
+# WIF Mode (Recommended for all environments)
+# Gmail SA email to impersonate (works for Cloud Run AND local dev)
 doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com" \
   --project hht-diary-core --config production
 
-# OPTION 2: SA Key Mode (Dev/Legacy)
-# Base64-encoded service account JSON key (from Terraform output)
-doppler secrets set GMAIL_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
-  --project hht-diary-core --config dev
+# SA Key Mode (Legacy fallback only)
+# Only needed if WIF impersonation is not available
+# doppler secrets set GMAIL_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
+#   --project hht-diary-core --config dev
 
 # Required for both modes:
 # Sender email (must exist in Google Workspace)
@@ -283,6 +286,23 @@ doppler secrets set EMAIL_ENABLED="true" \
 ```
 
 **Note:** `EMAIL_SENDER_NAME` is hardcoded as "Clinical Trial Portal" in the email service.
+
+**Local Development with WIF:**
+```bash
+# 1. Authenticate with your Google account
+gcloud auth application-default login
+
+# 2. Ensure your user has impersonation permission (one-time setup by admin):
+gcloud iam service-accounts add-iam-policy-binding \
+  org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com \
+  --member="user:you@anspar.org" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --project=cure-hht-admin
+
+# 3. Run the server with Doppler (uses GMAIL_SERVICE_ACCOUNT_EMAIL)
+cd apps/sponsor-portal/portal_server
+doppler run -- dart run bin/server.dart
+```
 
 ### Feature Flag Secrets
 
@@ -315,13 +335,10 @@ doppler secrets set FEATURE_EMAIL_ACTIVATION="true" \
 After setting secrets, verify the service is configured:
 
 ```bash
-# Check WIF mode (production)
+# Check WIF is configured
 doppler secrets get GMAIL_SERVICE_ACCOUNT_EMAIL --project hht-diary-core --config production
 
-# Check SA key mode (dev)
-doppler secrets get GMAIL_SERVICE_ACCOUNT_JSON --project hht-diary-core --config dev
-
-# Test locally (SA key mode)
+# Test locally (uses WIF via your gcloud ADC)
 cd apps/sponsor-portal/portal_server
 doppler run -- dart run bin/server.dart
 # Then call GET /api/v1/portal/config/features to verify
