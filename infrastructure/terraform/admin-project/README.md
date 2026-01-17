@@ -51,7 +51,9 @@ terraform init
 ### Plan
 
 ```bash
-# Ensure Doppler provides TF_VAR_GCP_ORG_ID
+# Ensure Doppler provides required env vars:
+# - TF_VAR_ADMIN_PROJECT_NUMBER
+# - TF_VAR_GCP_ORG_ID
 doppler run -- terraform plan
 ```
 

@@ -10,11 +10,11 @@
 # Project Configuration
 # -----------------------------------------------------------------------------
 
-project_id     = "cure-hht-admin"
-project_number = "149504828360"
-region         = "europe-west9"
+project_id = "cure-hht-admin"
+region     = "europe-west9"
 
-# GCP_ORG_ID should be provided via Doppler environment variable:
+# These must be provided via Doppler environment variables:
+# - TF_VAR_ADMIN_PROJECT_NUMBER
 # - TF_VAR_GCP_ORG_ID
 
 # -----------------------------------------------------------------------------

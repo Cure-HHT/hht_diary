@@ -47,7 +47,7 @@ output "project_id" {
 
 output "project_number" {
   description = "Admin project number"
-  value       = var.project_number
+  value       = var.ADMIN_PROJECT_NUMBER
 }
 
 output "region" {

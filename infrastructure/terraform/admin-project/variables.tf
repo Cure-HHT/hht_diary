@@ -16,14 +16,13 @@ variable "project_id" {
   default     = "cure-hht-admin"
 }
 
-variable "project_number" {
-  description = "GCP Admin Project Number"
+variable "ADMIN_PROJECT_NUMBER" {
+  description = "GCP Admin Project Number (provided via TF_VAR_ADMIN_PROJECT_NUMBER from Doppler)"
   type        = string
-  default     = "149504828360"
 }
 
 variable "GCP_ORG_ID" {
-  description = "GCP Organization ID"
+  description = "GCP Organization ID (provided via TF_VAR_GCP_ORG_ID from Doppler)"
   type        = string
 }
 
