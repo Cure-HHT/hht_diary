@@ -218,6 +218,98 @@ sponsors:
     region: us-west-2
 ```
 
+## Email Service Configuration (Email OTP & Activation Codes)
+
+**IMPLEMENTS REQUIREMENTS:**
+- REQ-p00002: Multi-Factor Authentication for Staff
+- REQ-o00006: MFA Configuration for Staff Accounts
+- REQ-p00010: FDA 21 CFR Part 11 Compliance
+
+The platform uses Gmail API with a service account for sending:
+- Email OTP codes (6-digit, 10-minute expiration)
+- Activation codes for new portal users
+- System notifications
+
+### Gmail Service Account Setup (One-Time)
+
+1. **Deploy Terraform admin-project** (creates Gmail service account):
+   ```bash
+   cd infrastructure/terraform/admin-project
+   doppler run -- terraform apply
+   ```
+
+2. **Get service account key**:
+   ```bash
+   terraform output -raw gmail_service_account_key_base64
+   ```
+
+3. **Configure domain-wide delegation** in Google Workspace Admin Console:
+   - Go to: Security → API Controls → Domain-wide Delegation
+   - Add Client ID from `terraform output gmail_client_id`
+   - Grant scope: `https://www.googleapis.com/auth/gmail.send`
+
+### Doppler Secrets for Email Service
+
+Add these secrets to **hht-diary-core** (all environments: dev, staging, production):
+
+```bash
+# Gmail API service account key (from Terraform output)
+doppler secrets set GOOGLE_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
+  --project hht-diary-core --config production
+
+# Sender email (must exist in Google Workspace)
+doppler secrets set EMAIL_SENDER="noreply@curehht.org" \
+  --project hht-diary-core --config production
+
+# Display name for emails
+doppler secrets set EMAIL_SENDER_NAME="Clinical Trial Portal" \
+  --project hht-diary-core --config production
+
+# Enable/disable email sending (set to "false" to disable)
+doppler secrets set EMAIL_ENABLED="true" \
+  --project hht-diary-core --config production
+```
+
+### Feature Flag Secrets
+
+Control conditional 2FA behavior per environment:
+
+```bash
+# TOTP only for Developer Admins (others use email OTP)
+doppler secrets set FEATURE_TOTP_ADMIN_ONLY="true" \
+  --project hht-diary-core --config production
+
+# Enable email OTP for non-admin users
+doppler secrets set FEATURE_EMAIL_OTP_ENABLED="true" \
+  --project hht-diary-core --config production
+
+# Auto-email activation codes when generated
+doppler secrets set FEATURE_EMAIL_ACTIVATION="true" \
+  --project hht-diary-core --config production
+```
+
+### Environment-Specific Notes
+
+| Environment | EMAIL_ENABLED | Notes |
+| --- | --- | --- |
+| dev | false | Use mock email service, no real emails sent |
+| staging | true | Real emails to test addresses only |
+| production | true | Real emails to all recipients |
+
+### Verifying Email Configuration
+
+After setting secrets, verify the service is configured:
+
+```bash
+# Check secrets are set
+doppler secrets get GOOGLE_SERVICE_ACCOUNT_JSON --project hht-diary-core --config production
+
+# Test locally
+cd apps/sponsor-portal/portal_server
+doppler run -- dart run bin/server.dart
+# Then call GET /api/v1/portal/config/features to verify
+```
+
 ## Security Checklist
 
 Before completing project setup, verify:
