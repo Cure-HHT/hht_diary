@@ -2,16 +2,24 @@
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00002: Multi-Factor Authentication for Staff
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
 //
 // Portal activation handlers - validate and process activation codes
 // for new user account setup
+//
+// Conditional MFA behavior:
+// - Developer Admin: requires TOTP (authenticator app) enrollment
+// - All other roles: uses email OTP on every login (no TOTP enrollment)
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
+import 'email_service.dart';
+import 'feature_flags.dart';
 import 'identity_platform.dart';
 
 /// Validate an activation code (unauthenticated endpoint)
@@ -161,46 +169,7 @@ Future<Response> activateUserHandler(Request request) async {
     }, 403);
   }
 
-  // Check MFA enrollment status (FDA 21 CFR Part 11 compliance)
-  // MFA must be enrolled before account activation is complete
-  final mfaInfo = verification.mfaInfo;
-  if (mfaInfo == null || !mfaInfo.isEnrolled) {
-    print('[ACTIVATION] MFA not enrolled - activation blocked');
-    return _jsonResponse({
-      'error': 'MFA enrollment required',
-      'mfa_required': true,
-      'message': 'Please complete 2FA setup before activating your account',
-    }, 403);
-  }
-
-  print('[ACTIVATION] MFA verified: method=${mfaInfo.method}');
-
-  // Activate the account with MFA tracking
-  await db.executeWithContext(
-    '''
-    UPDATE portal_users
-    SET firebase_uid = @firebaseUid,
-        status = 'active',
-        activated_at = now(),
-        mfa_enrolled = true,
-        mfa_enrolled_at = now(),
-        mfa_method = @mfaMethod,
-        activation_code = NULL,
-        activation_code_expires_at = NULL,
-        updated_at = now()
-    WHERE id = @userId::uuid
-    ''',
-    parameters: {
-      'firebaseUid': firebaseUid,
-      'userId': userId,
-      'mfaMethod': mfaInfo.method ?? 'totp',
-    },
-    context: serviceContext,
-  );
-
-  print('[ACTIVATION] Account activated with MFA: $userId');
-
-  // Fetch user's roles
+  // Fetch user's roles to determine MFA requirements
   final rolesResult = await db.executeWithContext(
     '''
     SELECT role::text
@@ -213,6 +182,73 @@ Future<Response> activateUserHandler(Request request) async {
   );
 
   final roles = rolesResult.map((r) => r[0] as String).toList();
+  final isDeveloperAdmin = roles.contains('Developer Admin');
+
+  // Determine MFA type based on role and feature flags
+  final mfaType = getMfaTypeForRole(
+    isDeveloperAdmin ? 'Developer Admin' : roles.firstOrNull ?? '',
+  );
+  final requiresTotp = requiresTotpEnrollment(
+    isDeveloperAdmin ? 'Developer Admin' : roles.firstOrNull ?? '',
+  );
+
+  print(
+    '[ACTIVATION] User roles: $roles, MFA type: $mfaType, requires TOTP: $requiresTotp',
+  );
+
+  // Check MFA enrollment status (FDA 21 CFR Part 11 compliance)
+  // Only Developer Admins require TOTP enrollment; others use email OTP
+  final mfaInfo = verification.mfaInfo;
+
+  if (requiresTotp) {
+    // Developer Admin must have TOTP enrolled
+    if (mfaInfo == null || !mfaInfo.isEnrolled) {
+      print(
+        '[ACTIVATION] Developer Admin MFA not enrolled - activation blocked',
+      );
+      return _jsonResponse({
+        'error': 'MFA enrollment required',
+        'mfa_required': true,
+        'mfa_type': 'totp',
+        'message':
+            'Please complete authenticator app setup before activating your account',
+      }, 403);
+    }
+    print(
+      '[ACTIVATION] Developer Admin MFA verified: method=${mfaInfo.method}',
+    );
+  } else {
+    // Non-admin users use email OTP - no TOTP enrollment required
+    print('[ACTIVATION] Non-admin user - will use email OTP on login');
+  }
+
+  // Activate the account with MFA tracking
+  await db.executeWithContext(
+    '''
+    UPDATE portal_users
+    SET firebase_uid = @firebaseUid,
+        status = 'active',
+        activated_at = now(),
+        mfa_enrolled = @mfaEnrolled,
+        mfa_enrolled_at = CASE WHEN @mfaEnrolled THEN now() ELSE NULL END,
+        mfa_method = @mfaMethod,
+        mfa_type = @mfaType,
+        activation_code = NULL,
+        activation_code_expires_at = NULL,
+        updated_at = now()
+    WHERE id = @userId::uuid
+    ''',
+    parameters: {
+      'firebaseUid': firebaseUid,
+      'userId': userId,
+      'mfaEnrolled': requiresTotp && mfaInfo?.isEnrolled == true,
+      'mfaMethod': requiresTotp ? (mfaInfo?.method ?? 'totp') : null,
+      'mfaType': mfaType,
+    },
+    context: serviceContext,
+  );
+
+  print('[ACTIVATION] Account activated: $userId, mfa_type: $mfaType');
 
   return _jsonResponse({
     'success': true,
@@ -221,6 +257,7 @@ Future<Response> activateUserHandler(Request request) async {
       'email': userEmail,
       'name': userName,
       'roles': roles,
+      'mfa_type': mfaType,
       'status': 'active',
     },
   });
@@ -330,11 +367,67 @@ Future<Response> generateActivationCodeHandler(Request request) async {
 
   print('[ACTIVATION] Generated code for: $targetEmail');
 
+  // Get caller's user ID for audit trail
+  final callerIdResult = await db.executeWithContext(
+    'SELECT id FROM portal_users WHERE firebase_uid = @firebaseUid',
+    parameters: {'firebaseUid': firebaseUid},
+    context: serviceContext,
+  );
+  final callerId = callerIdResult.isNotEmpty
+      ? callerIdResult.first[0] as String
+      : null;
+
+  // Build activation URL from environment
+  final portalUrl =
+      Platform.environment['PORTAL_URL'] ?? 'https://portal.example.com';
+  final activationUrl = '$portalUrl/activate?code=$activationCode';
+
+  // Send activation email if feature is enabled
+  bool emailSent = false;
+  String? emailError;
+
+  if (FeatureFlags.emailActivation) {
+    final emailService = EmailService.instance;
+
+    if (emailService.isReady) {
+      print('[ACTIVATION] Sending activation email to: $targetEmail');
+
+      final result = await emailService.sendActivationCode(
+        recipientEmail: targetEmail,
+        recipientName: targetName,
+        activationCode: activationCode,
+        activationUrl: activationUrl,
+        sentByUserId: callerId,
+      );
+
+      emailSent = result.success;
+      emailError = result.error;
+
+      if (emailSent) {
+        print('[ACTIVATION] Activation email sent: ${result.messageId}');
+      } else {
+        print('[ACTIVATION] Failed to send activation email: $emailError');
+      }
+    } else {
+      print(
+        '[ACTIVATION] Email service not ready - code must be shared manually',
+      );
+      emailError = 'Email service not configured';
+    }
+  } else {
+    print(
+      '[ACTIVATION] Email activation disabled - code must be shared manually',
+    );
+  }
+
   return _jsonResponse({
     'success': true,
     'user': {'id': targetUserId, 'email': targetEmail, 'name': targetName},
     'activation_code': activationCode,
+    'activation_url': activationUrl,
     'expires_at': activationExpiry.toIso8601String(),
+    'email_sent': emailSent,
+    'email_error': emailError,
   });
 }
 

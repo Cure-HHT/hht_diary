@@ -64,6 +64,14 @@ infrastructure/terraform/
 │   ├── cloud-build/              # CI/CD triggers
 │   └── workforce-identity/       # Sponsor SSO federation
 │
+├── admin-project/                # Shared org-wide resources (cure-hht-admin)
+│   ├── main.tf                   # Gmail SA, shared APIs
+│   ├── variables.tf              # Input variables
+│   ├── outputs.tf                # Output values (Gmail SA key)
+│   ├── providers.tf              # Provider configuration
+│   ├── versions.tf               # Version constraints
+│   └── terraform.tfvars          # Configuration values
+│
 ├── bootstrap/                    # Creates 4 projects per sponsor
 │   ├── main.tf                   # Module orchestration
 │   ├── variables.tf              # Input variables

@@ -3,6 +3,7 @@
 //   REQ-d00028: Portal Frontend Framework
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00002: Multi-Factor Authentication for Staff
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../pages/activation_page.dart';
 import '../pages/admin/admin_dashboard_page.dart';
 import '../pages/dev_admin/dev_admin_dashboard_page.dart';
+import '../pages/email_otp_page.dart';
 import '../pages/login_page.dart';
 import '../pages/role_picker_page.dart';
 import '../pages/two_factor_setup_page.dart';
@@ -21,6 +23,11 @@ final appRouter = GoRouter(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/login/email-otp',
+      name: 'login-email-otp',
+      builder: (context, state) => const EmailOtpPage(),
     ),
     GoRoute(
       path: '/select-role',
