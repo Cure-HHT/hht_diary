@@ -21,9 +21,9 @@ region         = "europe-west9"
 # Gmail Service Account Configuration
 # -----------------------------------------------------------------------------
 
-gmail_sender_email               = "noreply@curehht.org"
+gmail_sender_email               = "support@anspar.org"
 gmail_create_service_account_key = true
-gmail_key_rotation_time          = "2025-01-17T00:00:00Z"
+gmail_key_rotation_time          = "2026-01-17T00:00:00Z"
 
 # -----------------------------------------------------------------------------
 # Sponsor Cloud Run Service Accounts
