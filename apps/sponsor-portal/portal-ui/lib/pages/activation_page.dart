@@ -2,9 +2,12 @@
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00002: Multi-Factor Authentication for Staff
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
 //
 // Activation page - new users activate their accounts with activation codes
-// After password creation, redirects to 2FA setup (MFA required for FDA compliance)
+// After password creation:
+// - Developer Admins: redirects to 2FA (TOTP) setup
+// - All other users: account activates directly (will use email OTP on login)
 
 import 'dart:convert';
 
@@ -148,11 +151,34 @@ class _ActivationPageState extends State<ActivationPage> {
         return;
       }
 
-      // Redirect to 2FA setup page (MFA required for FDA compliance)
-      // The 2FA page will complete the activation after MFA enrollment
-      if (mounted) {
-        context.go('/activate/2fa', extra: {'code': code});
+      // Try to activate the account directly
+      // Backend will check if TOTP is required based on user role
+      final activationResult = await _tryActivation(code);
+
+      if (!mounted) return;
+
+      if (activationResult['success'] == true) {
+        // Account activated successfully - user will use email OTP on login
+        // Redirect to login page
+        context.go('/login');
+        return;
       }
+
+      // Check if TOTP MFA is required (Developer Admin)
+      if (activationResult['mfa_required'] == true &&
+          activationResult['mfa_type'] == 'totp') {
+        // Redirect to 2FA setup page for Developer Admins
+        context.go('/activate/2fa', extra: {'code': code});
+        return;
+      }
+
+      // Some other error occurred
+      setState(() {
+        _error =
+            activationResult['error'] as String? ??
+            'Activation failed. Please try again.';
+        _isActivating = false;
+      });
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         setState(() {
@@ -168,6 +194,47 @@ class _ActivationPageState extends State<ActivationPage> {
           _isActivating = false;
         });
       }
+    }
+  }
+
+  /// Try to activate the account by calling the backend API
+  /// Returns a map with 'success', 'mfa_required', 'mfa_type', and 'error' keys
+  Future<Map<String, dynamic>> _tryActivation(String code) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        return {'error': 'Not authenticated'};
+      }
+
+      final idToken = await user.getIdToken();
+
+      final response = await http.post(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/activate'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'code': code}),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...data};
+      } else if (response.statusCode == 403) {
+        // Could be MFA required or other authorization error
+        return {
+          'success': false,
+          'mfa_required': data['mfa_required'] ?? false,
+          'mfa_type': data['mfa_type'],
+          'error': data['error'],
+        };
+      } else {
+        return {'error': data['error'] ?? 'Activation failed'};
+      }
+    } catch (e) {
+      debugPrint('Activation API error: $e');
+      return {'error': 'Failed to connect to server'};
     }
   }
 

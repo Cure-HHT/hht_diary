@@ -64,6 +64,14 @@ infrastructure/terraform/
 │   ├── cloud-build/              # CI/CD triggers
 │   └── workforce-identity/       # Sponsor SSO federation
 │
+├── admin-project/                # Shared org-wide resources (cure-hht-admin)
+│   ├── main.tf                   # Gmail SA, shared APIs
+│   ├── variables.tf              # Input variables
+│   ├── outputs.tf                # Output values (Gmail SA key)
+│   ├── providers.tf              # Provider configuration
+│   ├── versions.tf               # Version constraints
+│   └── terraform.tfvars          # Configuration values
+│
 ├── bootstrap/                    # Creates 4 projects per sponsor
 │   ├── main.tf                   # Module orchestration
 │   ├── variables.tf              # Input variables
@@ -271,9 +279,27 @@ gs://cure-hht-terraform-state/
 - Enables concurrent operations across sponsors
 - Clear FDA audit trail per deployment
 
-## Quick Start
+## Deployment Workflow
 
-### 1. Bootstrap a New Sponsor
+### 1. Deploy Admin Project (One-Time)
+
+Deploys shared org-wide resources (Gmail SA for email OTP, etc.):
+
+```bash
+cd infrastructure/terraform/admin-project
+
+# Ensure Doppler has:
+# - TF_VAR_ADMIN_PROJECT_NUMBER
+# - TF_VAR_GCP_ORG_ID
+
+terraform init
+doppler run -- terraform plan
+doppler run -- terraform apply
+```
+
+After apply, complete the [domain-wide delegation setup](admin-project/README.md#after-apply).
+
+### 2. Bootstrap a New Sponsor
 
 Creates 4 GCP projects with required APIs, billing, and audit infrastructure:
 
@@ -287,7 +313,7 @@ doppler run -- ./bootstrap-sponsor.sh callisto
 doppler run -- ./bootstrap-sponsor.sh callisto --apply
 ```
 
-### 2. Deploy an Environment
+### 3. Deploy an Environment
 
 Deploys Cloud Run, Cloud SQL, VPC, and monitoring for a single environment:
 
@@ -299,7 +325,7 @@ doppler run -- ./deploy-environment.sh callisto dev --apply
 doppler run -- ./deploy-environment.sh callisto prod --apply
 ```
 
-### 3. Verify FDA Compliance
+### 4. Verify FDA Compliance
 
 ```bash
 ./verify-audit-compliance.sh callisto

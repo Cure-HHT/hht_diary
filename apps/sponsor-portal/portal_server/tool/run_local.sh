@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Run portal server locally with Firebase emulator support
 #
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#
 # Usage:
 #   ./tool/run_local.sh              # Uses Doppler for DB secrets
+#   ./tool/run_local.sh --reset      # Reset database, apply seed data, then run
 #   ./tool/run_local.sh --no-doppler # Uses hardcoded dev values (no secrets needed)
 #
 # Prerequisites:
@@ -12,7 +16,28 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 cd "$SCRIPT_DIR/.."
+
+# Colors for output
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+
+# Handle --reset flag
+if [[ "$1" == "--reset" ]]; then
+    echo_info "Resetting database and applying seed data..."
+
+    # Run the reset script
+    "$REPO_ROOT/apps/sponsor-portal/tool/reset_local_db.sh" --force
+
+    # Apply local dev seed data
+    echo_info "Applying local dev seed data..."
+    docker exec -i sponsor-portal-postgres psql -U postgres -d sponsor_portal < "$REPO_ROOT/database/seed_local_dev.sql"
+
+    echo_info "Database reset complete. Starting server..."
+    shift  # Remove --reset from args
+fi
 
 # Local development config (not secrets)
 export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_AUTH_EMULATOR_HOST:-localhost:9099}"

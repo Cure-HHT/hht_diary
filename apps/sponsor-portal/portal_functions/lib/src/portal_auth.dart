@@ -3,16 +3,19 @@
 //   REQ-d00032: Role-Based Access Control Implementation
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00005: Role-Based Access Control
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Portal authentication - verifies Identity Platform tokens and manages user sessions
 // Uses service context for login/linking operations, authenticated context for data access
 // Supports multi-role users with role selection at login
+// Supports conditional MFA: TOTP for Developer Admin, Email OTP for others
 
 import 'dart:convert';
 
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
+import 'feature_flags.dart';
 import 'identity_platform.dart';
 
 /// Portal user information from database
@@ -26,6 +29,7 @@ class PortalUser {
   final String activeRole; // Currently selected role
   final String status;
   final List<Map<String, dynamic>> sites;
+  final String? mfaType; // 'totp', 'email_otp', or 'none'
 
   PortalUser({
     required this.id,
@@ -36,6 +40,7 @@ class PortalUser {
     required this.activeRole,
     required this.status,
     this.sites = const [],
+    this.mfaType,
   });
 
   /// Check if user has a specific role
@@ -45,6 +50,12 @@ class PortalUser {
   bool get isAdmin =>
       roles.contains('Administrator') || roles.contains('Developer Admin');
 
+  /// Check if user is a Developer Admin
+  bool get isDeveloperAdmin => roles.contains('Developer Admin');
+
+  /// Check if email OTP is required for this user's login
+  bool get emailOtpRequired => requiresEmailOtp(activeRole);
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'email': email,
@@ -53,6 +64,8 @@ class PortalUser {
     'active_role': activeRole,
     'status': status,
     'sites': sites,
+    'mfa_type': mfaType ?? getMfaTypeForRole(activeRole),
+    'email_otp_required': emailOtpRequired,
   };
 }
 
@@ -109,7 +122,7 @@ Future<Response> portalMeHandler(Request request) async {
   print('[PORTAL_AUTH] Looking up user by firebase_uid: $firebaseUid');
   var result = await db.executeWithContext(
     '''
-    SELECT id, firebase_uid, email, name, status
+    SELECT id, firebase_uid, email, name, status, mfa_type
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
@@ -127,7 +140,7 @@ Future<Response> portalMeHandler(Request request) async {
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
       WHERE email = @email AND firebase_uid IS NULL
-      RETURNING id, firebase_uid, email, name, status
+      RETURNING id, firebase_uid, email, name, status, mfa_type
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
       context: serviceContext,
@@ -166,6 +179,7 @@ Future<Response> portalMeHandler(Request request) async {
   final userEmail = row[2] as String;
   final userName = row[3] as String;
   final userStatus = row[4] as String;
+  final userMfaType = row[5] as String?;
 
   // Check if account is revoked
   if (userStatus == 'revoked') {
@@ -256,6 +270,7 @@ Future<Response> portalMeHandler(Request request) async {
     activeRole: activeRole,
     status: userStatus,
     sites: sites,
+    mfaType: userMfaType,
   );
 
   return _jsonResponse(user.toJson());

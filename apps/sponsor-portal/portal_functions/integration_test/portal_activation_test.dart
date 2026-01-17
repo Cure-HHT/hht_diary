@@ -35,6 +35,13 @@ void main() {
   const testExpiredUserEmail = 'expired@activation-test.example.com';
   const testExpiredCode = 'TEST3-EXPR3';
 
+  // Developer Admin pending user (for MFA enrollment test)
+  const testDevAdminPendingId = '99991000-0000-0000-0000-000000000005';
+  const testDevAdminPendingEmail =
+      'devadmin-pending@activation-test.example.com';
+  const testDevAdminPendingFirebaseUid = 'firebase-devadmin-pending-uid';
+  const testDevAdminPendingCode = 'TEST4-DADM4';
+
   setUpAll(() async {
     // Initialize database
     final sslEnv = Platform.environment['DB_SSL'];
@@ -57,13 +64,14 @@ void main() {
     // Clean up any previous test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
-      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)
-         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)''',
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid, @devAdminPendingId::uuid)
+         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid, @devAdminPendingId::uuid)''',
       parameters: {
         'devAdminId': testDevAdminId,
         'pendingId': testPendingUserId,
         'activeId': testAlreadyActiveUserId,
         'expiredId': testExpiredUserId,
+        'devAdminPendingId': testDevAdminPendingId,
       },
     );
     await db.execute(
@@ -95,7 +103,7 @@ void main() {
       parameters: {'userId': testDevAdminId},
     );
 
-    // Create test pending user with activation code
+    // Create test pending user with activation code (non-admin, uses email OTP)
     await db.execute(
       '''
       INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
@@ -108,6 +116,41 @@ void main() {
         'code': testActivationCode,
         'expiry': DateTime.now().add(Duration(days: 7)).toIso8601String(),
       },
+    );
+
+    // Add Administrator role to pending user (non-admin users don't need TOTP)
+    await db.execute(
+      '''
+      INSERT INTO portal_user_roles (user_id, role)
+      VALUES (@userId::uuid, 'Administrator')
+      ON CONFLICT (user_id, role) DO NOTHING
+      ''',
+      parameters: {'userId': testPendingUserId},
+    );
+
+    // Create test pending Developer Admin with activation code (requires TOTP)
+    await db.execute(
+      '''
+      INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
+      VALUES (@id::uuid, @email, 'Test Pending Dev Admin', 'pending', @code, @expiry)
+      ON CONFLICT (email) DO NOTHING
+      ''',
+      parameters: {
+        'id': testDevAdminPendingId,
+        'email': testDevAdminPendingEmail,
+        'code': testDevAdminPendingCode,
+        'expiry': DateTime.now().add(Duration(days: 7)).toIso8601String(),
+      },
+    );
+
+    // Add Developer Admin role to pending dev admin
+    await db.execute(
+      '''
+      INSERT INTO portal_user_roles (user_id, role)
+      VALUES (@userId::uuid, 'Developer Admin')
+      ON CONFLICT (user_id, role) DO NOTHING
+      ''',
+      parameters: {'userId': testDevAdminPendingId},
     );
 
     // Create test already-active user with activation code
@@ -145,13 +188,14 @@ void main() {
     // Clean up test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
-      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)
-         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid)''',
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid, @devAdminPendingId::uuid)
+         OR assigned_by IN (@devAdminId::uuid, @pendingId::uuid, @activeId::uuid, @expiredId::uuid, @devAdminPendingId::uuid)''',
       parameters: {
         'devAdminId': testDevAdminId,
         'pendingId': testPendingUserId,
         'activeId': testAlreadyActiveUserId,
         'expiredId': testExpiredUserId,
+        'devAdminPendingId': testDevAdminPendingId,
       },
     );
     await db.execute(
@@ -312,8 +356,28 @@ void main() {
       expect(json['error'], contains('Invalid activation code'));
     });
 
-    test('returns 403 when MFA not enrolled', () async {
-      // Token without MFA claims should be rejected
+    test('returns 403 when Developer Admin MFA not enrolled', () async {
+      // Developer Admin without MFA should be rejected (they require TOTP)
+      final token = createMockEmulatorToken(
+        testDevAdminPendingFirebaseUid,
+        testDevAdminPendingEmail,
+        mfaEnrolled: false,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/activate',
+        {'code': testDevAdminPendingCode},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(403));
+      final json = await getResponseJson(response);
+      expect(json['mfa_required'], isTrue);
+      expect(json['error'], contains('MFA enrollment required'));
+    });
+
+    test('non-admin activates without MFA (uses email OTP)', () async {
+      // Non-admin users don't need TOTP - they use email OTP on login
       final token = createMockEmulatorToken(
         testPendingUserFirebaseUid,
         testPendingUserEmail,
@@ -326,10 +390,12 @@ void main() {
       );
       final response = await activateUserHandler(request);
 
-      expect(response.statusCode, equals(403));
+      expect(response.statusCode, equals(200));
       final json = await getResponseJson(response);
-      expect(json['mfa_required'], isTrue);
-      expect(json['error'], contains('MFA enrollment required'));
+      expect(json['success'], isTrue);
+      expect(json['user'], isNotNull);
+      expect(json['user']['status'], equals('active'));
+      expect(json['user']['mfa_type'], equals('email_otp'));
     });
 
     test('returns 401 for expired activation code', () async {
@@ -370,16 +436,16 @@ void main() {
       expect(json['error'], contains('already activated'));
     });
 
-    test('successfully activates user with MFA enrolled', () async {
-      // Use proper email and uid for the pending user with MFA enrolled
+    test('Developer Admin activates successfully with MFA enrolled', () async {
+      // Developer Admin with MFA enrolled should succeed
       final token = createMockEmulatorToken(
-        testPendingUserFirebaseUid,
-        testPendingUserEmail,
+        testDevAdminPendingFirebaseUid,
+        testDevAdminPendingEmail,
         mfaEnrolled: true,
       );
       final request = createPostRequest(
         '/api/v1/portal/activate',
-        {'code': testActivationCode},
+        {'code': testDevAdminPendingCode},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await activateUserHandler(request);
@@ -389,6 +455,7 @@ void main() {
       expect(json['success'], isTrue);
       expect(json['user'], isNotNull);
       expect(json['user']['status'], equals('active'));
+      expect(json['user']['mfa_type'], equals('totp'));
     });
   });
 

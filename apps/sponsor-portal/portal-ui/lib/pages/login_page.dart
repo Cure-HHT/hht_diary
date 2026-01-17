@@ -42,9 +42,15 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    // Check if MFA is required
+    // Check if TOTP MFA is required (Developer Admin)
     if (success && authService.mfaRequired) {
       await _handleMfaChallenge(authService);
+      return;
+    }
+
+    // Check if email OTP is required (all other users)
+    if (success && authService.emailOtpRequired) {
+      context.go('/login/email-otp');
       return;
     }
 

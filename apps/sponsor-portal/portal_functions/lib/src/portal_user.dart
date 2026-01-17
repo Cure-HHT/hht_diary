@@ -9,11 +9,14 @@
 // Supports multi-role users with activation code flow
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
+import 'email_service.dart';
+import 'feature_flags.dart';
 import 'portal_auth.dart';
 import 'sites_sync.dart';
 
@@ -245,6 +248,34 @@ Future<Response> createPortalUserHandler(Request request) async {
     }
   }
 
+  // Try to send activation email if feature is enabled
+  bool emailSent = false;
+  String? emailError;
+
+  if (FeatureFlags.emailActivation) {
+    // Construct activation URL from environment or request
+    final portalBaseUrl =
+        Platform.environment['PORTAL_BASE_URL'] ?? 'http://localhost:8081';
+    final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
+
+    final emailResult = await EmailService.instance.sendActivationCode(
+      recipientEmail: email,
+      recipientName: name,
+      activationCode: activationCode,
+      activationUrl: activationUrl,
+      sentByUserId: user.id,
+    );
+
+    emailSent = emailResult.success;
+    emailError = emailResult.error;
+
+    if (emailSent) {
+      print('[PORTAL_USER] Activation email sent to $email');
+    } else {
+      print('[PORTAL_USER] Failed to send activation email: $emailError');
+    }
+  }
+
   return _jsonResponse({
     'id': newUserId,
     'email': email,
@@ -254,6 +285,8 @@ Future<Response> createPortalUserHandler(Request request) async {
     'linking_code': linkingCode,
     'activation_code': activationCode,
     'site_ids': siteIds,
+    'email_sent': emailSent,
+    if (emailError != null) 'email_error': emailError,
   }, 201);
 }
 

@@ -31,6 +31,16 @@ void main(List<String> args) async {
   await Database.instance.initialize(dbConfig);
   log.info('Database connected to ${dbConfig.host}:${dbConfig.port}');
 
+  // Initialize email service (for activation emails and OTP)
+  log.info('Initializing email service...');
+  final emailConfig = EmailConfig.fromEnvironment();
+  await EmailService.instance.initialize(emailConfig);
+  if (EmailService.instance.isReady) {
+    log.info('Email service ready (sender: ${emailConfig.senderEmail})');
+  } else {
+    log.warning('Email service not configured - emails will not be sent');
+  }
+
   // Get port from environment (Cloud Run sets PORT)
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
 

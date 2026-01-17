@@ -116,6 +116,15 @@ output "audit_compliance_status" {
 }
 
 # -----------------------------------------------------------------------------
+# Service Accounts
+# -----------------------------------------------------------------------------
+
+output "portal_server_service_account_email" {
+  description = "Portal server Cloud Run service account email (add to admin-project for Gmail SA impersonation)"
+  value       = module.cloud_run.portal_server_service_account_email
+}
+
+# -----------------------------------------------------------------------------
 # Identity Platform (if enabled)
 # -----------------------------------------------------------------------------
 

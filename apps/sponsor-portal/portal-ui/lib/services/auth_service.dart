@@ -3,14 +3,53 @@
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00032: Role-Based Access Control Implementation
 //   REQ-p00002: Multi-Factor Authentication for Staff
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
 //
 // Portal authentication service using Firebase Auth (Identity Platform)
+// Supports both TOTP (for Developer Admin) and Email OTP (for other users)
 
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+/// MFA type for the user
+enum MfaType {
+  totp, // Authenticator app (Developer Admin)
+  emailOtp, // Email-based OTP (all other users)
+  none; // No MFA required (fallback)
+
+  static MfaType fromString(String? type) {
+    switch (type) {
+      case 'totp':
+        return MfaType.totp;
+      case 'email_otp':
+        return MfaType.emailOtp;
+      case 'none':
+        return MfaType.none;
+      default:
+        return MfaType.emailOtp; // Default to email OTP
+    }
+  }
+}
+
+/// Result of an email OTP operation
+class EmailOtpResult {
+  final bool success;
+  final String? error;
+  final String? maskedEmail;
+  final int? expiresIn;
+
+  EmailOtpResult.success({this.maskedEmail, this.expiresIn})
+    : success = true,
+      error = null;
+
+  EmailOtpResult.failure(this.error)
+    : success = false,
+      maskedEmail = null,
+      expiresIn = null;
+}
 
 /// User roles in the portal
 enum UserRole {
@@ -71,6 +110,8 @@ class PortalUser {
   final UserRole activeRole;
   final String status;
   final List<Map<String, dynamic>> sites;
+  final MfaType mfaType;
+  final bool emailOtpRequired;
 
   PortalUser({
     required this.id,
@@ -80,6 +121,8 @@ class PortalUser {
     required this.activeRole,
     required this.status,
     this.sites = const [],
+    this.mfaType = MfaType.emailOtp,
+    this.emailOtpRequired = false,
   });
 
   /// Get the display role (backwards compatibility)
@@ -115,6 +158,10 @@ class PortalUser {
         ? UserRole.fromString(activeRoleStr)
         : roles.first;
 
+    // Parse MFA type
+    final mfaType = MfaType.fromString(json['mfa_type'] as String?);
+    final emailOtpRequired = json['email_otp_required'] as bool? ?? false;
+
     return PortalUser(
       id: json['id'] as String,
       email: json['email'] as String,
@@ -127,6 +174,8 @@ class PortalUser {
               ?.map((s) => Map<String, dynamic>.from(s as Map))
               .toList() ??
           [],
+      mfaType: mfaType,
+      emailOtpRequired: emailOtpRequired,
     );
   }
 
@@ -152,6 +201,8 @@ class PortalUser {
       activeRole: newActiveRole,
       status: status,
       sites: sites,
+      mfaType: mfaType,
+      emailOtpRequired: emailOtpRequired,
     );
   }
 }
@@ -171,9 +222,13 @@ class AuthService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  /// MFA state - resolver for completing MFA challenge
+  /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
   bool _mfaRequired = false;
+
+  /// Email OTP state
+  bool _emailOtpRequired = false;
+  String? _maskedEmail;
 
   /// Base URL for portal API
   String get _apiBaseUrl {
@@ -197,11 +252,17 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
 
-  /// Whether MFA verification is required to complete sign-in
+  /// Whether TOTP MFA verification is required to complete sign-in
   bool get mfaRequired => _mfaRequired;
 
-  /// The MFA resolver for completing the challenge (null if MFA not required)
+  /// The MFA resolver for completing the TOTP challenge (null if not required)
   MultiFactorResolver? get mfaResolver => _mfaResolver;
+
+  /// Whether email OTP verification is required to complete sign-in
+  bool get emailOtpRequired => _emailOtpRequired;
+
+  /// Masked email address for display (e.g., t***@example.com)
+  String? get maskedEmail => _maskedEmail;
 
   /// Initialize auth state listener
   void _init() {
@@ -220,12 +281,14 @@ class AuthService extends ChangeNotifier {
   /// Sign in with email and password
   ///
   /// Returns true if sign-in succeeded (including if MFA is required).
-  /// Check [mfaRequired] after calling to see if MFA verification is needed.
+  /// Check [mfaRequired] for TOTP or [emailOtpRequired] for email OTP.
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     _error = null;
     _mfaRequired = false;
     _mfaResolver = null;
+    _emailOtpRequired = false;
+    _maskedEmail = null;
     notifyListeners();
 
     try {
@@ -240,14 +303,26 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
+      // Check if email OTP is required for this user
+      if (_currentUser?.emailOtpRequired == true) {
+        _emailOtpRequired = true;
+        _maskedEmail = _maskEmail(_currentUser!.email);
+        _isLoading = false;
+        notifyListeners();
+        debugPrint('Email OTP required for user: ${_currentUser!.id}');
+        return true;
+      }
+
       return true;
     } on FirebaseAuthMultiFactorException catch (e) {
-      // MFA required - store resolver for completing the challenge
+      // TOTP MFA required - store resolver for completing the challenge
       _mfaResolver = e.resolver;
       _mfaRequired = true;
       _isLoading = false;
       notifyListeners();
-      debugPrint('MFA required: ${e.resolver.hints.length} factors enrolled');
+      debugPrint(
+        'TOTP MFA required: ${e.resolver.hints.length} factors enrolled',
+      );
       return true; // Return true to indicate credentials were valid
     } on FirebaseAuthException catch (e) {
       _error = _mapFirebaseError(e.code);
@@ -258,11 +333,21 @@ class AuthService extends ChangeNotifier {
       debugPrint('Sign in error: $e');
       return false;
     } finally {
-      if (!_mfaRequired) {
+      if (!_mfaRequired && !_emailOtpRequired) {
         _isLoading = false;
         notifyListeners();
       }
     }
+  }
+
+  /// Mask email address for display (e.g., test@example.com -> t***@example.com)
+  String _maskEmail(String email) {
+    final parts = email.split('@');
+    if (parts.length != 2) return '***@***';
+    final local = parts[0];
+    final domain = parts[1];
+    if (local.isEmpty) return '***@$domain';
+    return '${local[0]}***@$domain';
   }
 
   /// Complete MFA sign-in with TOTP code
@@ -334,10 +419,114 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Cancel pending MFA challenge
+  /// Cancel pending TOTP MFA challenge
   void cancelMfa() {
     _mfaRequired = false;
     _mfaResolver = null;
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Send email OTP code to the user's email
+  ///
+  /// Call this after [signIn] returns with [emailOtpRequired] = true.
+  /// Returns [EmailOtpResult] indicating success or failure.
+  Future<EmailOtpResult> sendEmailOtp() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return EmailOtpResult.failure('Not authenticated');
+    }
+
+    try {
+      final idToken = await user.getIdToken();
+
+      final response = await _httpClient.post(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/auth/send-otp'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200) {
+        _maskedEmail = data['masked_email'] as String?;
+        notifyListeners();
+        return EmailOtpResult.success(
+          maskedEmail: _maskedEmail,
+          expiresIn: data['expires_in'] as int?,
+        );
+      } else if (response.statusCode == 429) {
+        // Rate limited
+        return EmailOtpResult.failure(
+          data['error'] as String? ?? 'Too many requests. Please wait.',
+        );
+      } else {
+        return EmailOtpResult.failure(
+          data['error'] as String? ?? 'Failed to send verification code',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error sending email OTP: $e');
+      return EmailOtpResult.failure('Failed to send verification code');
+    }
+  }
+
+  /// Verify email OTP code
+  ///
+  /// Call this after [sendEmailOtp] to verify the code entered by the user.
+  /// Returns [EmailOtpResult] indicating success or failure.
+  Future<EmailOtpResult> verifyEmailOtp(String code) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return EmailOtpResult.failure('Not authenticated');
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final idToken = await user.getIdToken();
+
+      final response = await _httpClient.post(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/auth/verify-otp'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'code': code}),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Clear email OTP state
+        _emailOtpRequired = false;
+        _maskedEmail = null;
+        _isLoading = false;
+        notifyListeners();
+        return EmailOtpResult.success();
+      } else {
+        _error = data['error'] as String? ?? 'Invalid verification code';
+        _isLoading = false;
+        notifyListeners();
+        return EmailOtpResult.failure(_error!);
+      }
+    } catch (e) {
+      debugPrint('Error verifying email OTP: $e');
+      _error = 'Verification failed. Please try again.';
+      _isLoading = false;
+      notifyListeners();
+      return EmailOtpResult.failure(_error!);
+    }
+  }
+
+  /// Cancel pending email OTP verification
+  void cancelEmailOtp() {
+    _emailOtpRequired = false;
+    _maskedEmail = null;
     _error = null;
     notifyListeners();
   }
@@ -346,6 +535,10 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     _currentUser = null;
+    _emailOtpRequired = false;
+    _maskedEmail = null;
+    _mfaRequired = false;
+    _mfaResolver = null;
     _error = null;
     notifyListeners();
   }
