@@ -5,9 +5,9 @@
 // Gmail API integration for sending OTP and activation emails
 // Uses service account with domain-wide delegation for HIPAA compliance
 //
-// Authentication modes:
-//   1. WIF (recommended): Cloud Run impersonates Gmail SA via IAM
-//   2. SA Key (legacy/dev): Base64-encoded service account JSON key
+// Authentication: WIF (Workload Identity Federation)
+//   - Cloud Run SA or local user impersonates Gmail SA via IAM
+//   - Local dev: gcloud auth application-default login + serviceAccountTokenCreator role
 
 import 'dart:convert';
 import 'dart:io';
@@ -21,12 +21,9 @@ import 'database.dart';
 
 /// Email service configuration from environment
 class EmailConfig {
-  /// For WIF: Gmail service account email to impersonate
+  /// Gmail service account email to impersonate via WIF
   /// Format: org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com
   final String? gmailServiceAccountEmail;
-
-  /// For legacy/dev: Base64-encoded service account JSON key
-  final String? serviceAccountJson;
 
   /// Email address to send from (must exist in Google Workspace)
   final String senderEmail;
@@ -39,7 +36,6 @@ class EmailConfig {
 
   EmailConfig({
     this.gmailServiceAccountEmail,
-    this.serviceAccountJson,
     required this.senderEmail,
     required this.enabled,
   });
@@ -49,21 +45,14 @@ class EmailConfig {
     return EmailConfig(
       gmailServiceAccountEmail:
           Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
-      serviceAccountJson: Platform.environment['GMAIL_SERVICE_ACCOUNT_JSON'],
       senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'support@anspar.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
     );
   }
 
   /// Check if email service is properly configured
-  /// Either WIF (gmailServiceAccountEmail) or SA key must be provided
   bool get isConfigured =>
-      enabled &&
-      ((gmailServiceAccountEmail?.isNotEmpty ?? false) ||
-          (serviceAccountJson?.isNotEmpty ?? false));
-
-  /// Whether using WIF (Workload Identity Federation) mode
-  bool get useWorkloadIdentity => gmailServiceAccountEmail?.isNotEmpty ?? false;
+      enabled && (gmailServiceAccountEmail?.isNotEmpty ?? false);
 }
 
 /// Result of an email send operation
@@ -92,9 +81,7 @@ class EmailService {
 
   /// Initialize the email service with configuration
   ///
-  /// Supports two authentication modes:
-  /// 1. WIF: Cloud Run impersonates Gmail SA (no key needed)
-  /// 2. SA Key: Uses base64-encoded service account JSON
+  /// Uses WIF: Cloud Run SA or local user impersonates Gmail SA via IAM
   Future<void> initialize(EmailConfig config) async {
     if (_gmailApi != null) return;
     _config = config;
@@ -105,21 +92,8 @@ class EmailService {
     }
 
     try {
-      http.Client httpClient;
-
-      if (config.useWorkloadIdentity) {
-        // WIF mode: Use Application Default Credentials to impersonate Gmail SA
-        print('[EMAIL] Using Workload Identity Federation');
-        httpClient = await _createWifClient(config);
-      } else if (config.serviceAccountJson?.isNotEmpty ?? false) {
-        // Legacy mode: Use SA key directly
-        print('[EMAIL] Using service account key');
-        httpClient = await _createSaKeyClient(config);
-      } else {
-        print('[EMAIL] No valid auth configuration found');
-        return;
-      }
-
+      print('[EMAIL] Using Workload Identity Federation');
+      final httpClient = await _createWifClient(config);
       _gmailApi = gmail.GmailApi(httpClient);
       print('[EMAIL] Email service initialized successfully');
     } catch (e) {
@@ -173,18 +147,6 @@ class EmailService {
         [gmail.GmailApi.gmailSendScope],
       ),
     );
-  }
-
-  /// Create HTTP client using service account JSON key
-  Future<http.Client> _createSaKeyClient(EmailConfig config) async {
-    final jsonString = utf8.decode(base64.decode(config.serviceAccountJson!));
-    final credentials = ServiceAccountCredentials.fromJson(
-      jsonDecode(jsonString),
-    );
-
-    return await clientViaServiceAccount(credentials, [
-      gmail.GmailApi.gmailSendScope,
-    ]);
   }
 
   /// Check if service is ready to send emails

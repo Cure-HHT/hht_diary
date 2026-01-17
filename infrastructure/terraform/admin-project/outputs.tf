@@ -30,12 +30,6 @@ output "gmail_client_id" {
   value       = google_service_account.gmail.unique_id
 }
 
-output "gmail_service_account_key_base64" {
-  description = "Base64-encoded private key JSON for Doppler storage as GOOGLE_SERVICE_ACCOUNT_JSON"
-  value       = var.gmail_create_service_account_key ? google_service_account_key.gmail[0].private_key : null
-  sensitive   = true
-}
-
 # -----------------------------------------------------------------------------
 # Project Information
 # -----------------------------------------------------------------------------
@@ -84,13 +78,16 @@ output "gmail_setup_instructions" {
        Create user: ${var.gmail_sender_email}
 
     4. Add to Doppler (all environments):
-       GOOGLE_SERVICE_ACCOUNT_JSON = <base64-encoded key from terraform output>
+       GMAIL_SERVICE_ACCOUNT_EMAIL = ${google_service_account.gmail.email}
        EMAIL_SENDER = ${var.gmail_sender_email}
-       EMAIL_SENDER_NAME = Clinical Trial Portal
        EMAIL_ENABLED = true
 
-    To get the service account key:
-       terraform output -raw gmail_service_account_key_base64
+    5. Grant local dev users permission to impersonate (per developer):
+       gcloud iam service-accounts add-iam-policy-binding \
+         ${google_service_account.gmail.email} \
+         --member="user:DEVELOPER@anspar.org" \
+         --role="roles/iam.serviceAccountTokenCreator" \
+         --project=${var.project_id}
 
     ============================================================
 

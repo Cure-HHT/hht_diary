@@ -68,7 +68,7 @@ resource "google_project_service" "iamcredentials_api" {
 # 3. Add this service account's Client ID with scope:
 #    https://www.googleapis.com/auth/gmail.send
 # 4. Create the sender mailbox (e.g., support@anspar.org) in Google Workspace
-# 5. Store the service account key in Doppler as GOOGLE_SERVICE_ACCOUNT_JSON
+# 5. Add GMAIL_SERVICE_ACCOUNT_EMAIL to Doppler (the SA email, not a key)
 
 resource "google_service_account" "gmail" {
   account_id   = "org-gmail-sender"
@@ -77,20 +77,6 @@ resource "google_service_account" "gmail" {
   project      = var.project_id
 
   depends_on = [google_project_service.iam_api]
-}
-
-# -----------------------------------------------------------------------------
-# Service Account Key (for Doppler storage)
-# -----------------------------------------------------------------------------
-
-resource "google_service_account_key" "gmail" {
-  count              = var.gmail_create_service_account_key ? 1 : 0
-  service_account_id = google_service_account.gmail.id
-
-  # Change this to force key rotation
-  keepers = {
-    rotation_time = var.gmail_key_rotation_time
-  }
 }
 
 # -----------------------------------------------------------------------------

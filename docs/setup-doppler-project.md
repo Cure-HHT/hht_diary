@@ -250,32 +250,15 @@ The platform uses Gmail API with a service account for sending:
 
 ### Doppler Secrets for Email Service
 
-The email service supports two authentication modes:
-
-1. **WIF (Workload Identity Federation)** - Recommended for all environments
-   - Cloud Run SA or local user impersonates Gmail SA via IAM
-   - No secret key storage required
-   - For local dev: `gcloud auth application-default login` + your user needs
-     `roles/iam.serviceAccountTokenCreator` on the Gmail SA
-
-2. **SA Key** - Legacy fallback only
-   - Requires base64-encoded service account JSON key
-   - Use only if WIF cannot be configured
+The email service uses **Workload Identity Federation (WIF)** - Cloud Run or local users impersonate the Gmail SA via IAM. No secret keys required.
 
 Add these to **hht-diary-core** (all environments):
 
 ```bash
-# WIF Mode (Recommended for all environments)
-# Gmail SA email to impersonate (works for Cloud Run AND local dev)
+# Gmail SA email to impersonate
 doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com" \
   --project hht-diary-core --config production
 
-# SA Key Mode (Legacy fallback only)
-# Only needed if WIF impersonation is not available
-# doppler secrets set GMAIL_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
-#   --project hht-diary-core --config dev
-
-# Required for both modes:
 # Sender email (must exist in Google Workspace)
 doppler secrets set EMAIL_SENDER="support@anspar.org" \
   --project hht-diary-core --config production
@@ -287,19 +270,24 @@ doppler secrets set EMAIL_ENABLED="true" \
 
 **Note:** `EMAIL_SENDER_NAME` is hardcoded as "Clinical Trial Portal" in the email service.
 
-**Local Development with WIF:**
-```bash
-# 1. Authenticate with your Google account
-gcloud auth application-default login
+### Local Development Setup
 
-# 2. Ensure your user has impersonation permission (one-time setup by admin):
+**1. Authenticate with your Google account:**
+```bash
+gcloud auth application-default login
+```
+
+**2. Grant yourself permission to impersonate the Gmail SA (one-time, run by admin):**
+```bash
 gcloud iam service-accounts add-iam-policy-binding \
   org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com \
-  --member="user:you@anspar.org" \
+  --member="user:YOUR_EMAIL@anspar.org" \
   --role="roles/iam.serviceAccountTokenCreator" \
   --project=cure-hht-admin
+```
 
-# 3. Run the server with Doppler (uses GMAIL_SERVICE_ACCOUNT_EMAIL)
+**3. Run the server:**
+```bash
 cd apps/sponsor-portal/portal_server
 doppler run -- dart run bin/server.dart
 ```

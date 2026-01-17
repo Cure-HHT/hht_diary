@@ -25,7 +25,7 @@ A single service account (`org-gmail-sender`) that all sponsor projects use to s
 
 This approach is simpler than per-sponsor/environment service accounts:
 - One domain-wide delegation setup
-- One service account key in Doppler
+- WIF (Workload Identity Federation) - no keys to manage
 - Centralized audit trail
 
 ## Prerequisites
@@ -71,20 +71,23 @@ doppler run -- terraform apply
    - Enter Client ID from terraform output: `gmail_client_id`
    - Add OAuth scope: `https://www.googleapis.com/auth/gmail.send`
 
-2. **Get Service Account Key** for Doppler:
+2. **Add to Doppler** (all environments):
    ```bash
-   terraform output -raw gmail_service_account_key_base64
+   doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
+   doppler secrets set EMAIL_SENDER="support@anspar.org"
+   doppler secrets set EMAIL_ENABLED="true"
    ```
 
-3. **Add to Doppler** (all environments):
-   ```
-   GOOGLE_SERVICE_ACCOUNT_JSON = <base64 key from step 2>
-   EMAIL_SENDER = support@anspar.org
-   EMAIL_SENDER_NAME = Clinical Trial Portal
-   EMAIL_ENABLED = true
+3. **Grant local developers permission to impersonate** (per developer):
+   ```bash
+   gcloud iam service-accounts add-iam-policy-binding \
+     org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com \
+     --member="user:DEVELOPER@anspar.org" \
+     --role="roles/iam.serviceAccountTokenCreator" \
+     --project=cure-hht-admin
    ```
 
-4. **Add Sponsor Service Accounts** for impersonation:
+4. **Add Sponsor Cloud Run Service Accounts** for impersonation:
    - After deploying each sponsor/environment with `sponsor-portal`, get the Cloud Run service account:
      ```bash
      cd ../sponsor-portal
@@ -97,9 +100,8 @@ doppler run -- terraform apply
 
 | Output | Description |
 | ------ | ----------- |
-| `gmail_service_account_email` | SA email for reference |
+| `gmail_service_account_email` | SA email for Doppler config |
 | `gmail_client_id` | Client ID for domain-wide delegation |
-| `gmail_service_account_key_base64` | Key for Doppler (sensitive) |
 | `gmail_setup_instructions` | Full setup guide |
 
 ## Files
@@ -126,7 +128,7 @@ admin-project/
 │  │             Gmail Service Account                         │   │
 │  │             org-gmail-sender@cure-hht-admin.iam           │   │
 │  │                                                           │   │
-│  │  Domain-Wide Delegation → gmail.send → noreply@curehht   │   │
+│  │  Domain-Wide Delegation → gmail.send → support@anspar    │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                              │                                   │
 │                    serviceAccountTokenCreator                    │
@@ -147,7 +149,7 @@ admin-project/
 
 ## Security Notes
 
-- Service account key is base64-encoded and stored in Doppler (never in git)
-- Only Cloud Run service accounts explicitly listed can impersonate the Gmail SA
+- **No service account keys** - uses WIF (Workload Identity Federation) for impersonation
+- Only Cloud Run SAs and explicitly granted users can impersonate the Gmail SA
 - All emails are logged in `email_audit_log` table for FDA compliance
 - Domain-wide delegation is scoped to `gmail.send` only (not full Gmail access)

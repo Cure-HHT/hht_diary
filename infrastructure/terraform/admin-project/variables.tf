@@ -46,18 +46,6 @@ variable "gmail_sender_email" {
   default     = "support@anspar.org"
 }
 
-variable "gmail_create_service_account_key" {
-  description = "Whether to create a service account key (for Doppler storage). Set false if using Workload Identity."
-  type        = bool
-  default     = true
-}
-
-variable "gmail_key_rotation_time" {
-  description = "Timestamp for key rotation (change to force new key generation)"
-  type        = string
-  default     = "2025-01-01T00:00:00Z"
-}
-
 # -----------------------------------------------------------------------------
 # Sponsor Project Access
 # -----------------------------------------------------------------------------
