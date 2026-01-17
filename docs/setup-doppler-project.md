@@ -250,25 +250,39 @@ The platform uses Gmail API with a service account for sending:
 
 ### Doppler Secrets for Email Service
 
-Add these secrets to **hht-diary-core** (all environments: dev, staging, production):
+The email service supports two authentication modes:
+
+1. **WIF (Workload Identity Federation)** - Recommended for production
+   - Cloud Run SA impersonates Gmail SA via IAM
+   - No secret key storage required
+
+2. **SA Key** - For local development or legacy environments
+   - Requires base64-encoded service account JSON key
+
+Add these to **hht-diary-core** (all environments):
 
 ```bash
-# Gmail API service account key (from Terraform output)
-doppler secrets set GOOGLE_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
+# OPTION 1: WIF Mode (Production - Recommended)
+# Gmail SA email for Cloud Run to impersonate
+doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com" \
   --project hht-diary-core --config production
 
+# OPTION 2: SA Key Mode (Dev/Legacy)
+# Base64-encoded service account JSON key (from Terraform output)
+doppler secrets set GMAIL_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
+  --project hht-diary-core --config dev
+
+# Required for both modes:
 # Sender email (must exist in Google Workspace)
 doppler secrets set EMAIL_SENDER="noreply@curehht.org" \
-  --project hht-diary-core --config production
-
-# Display name for emails
-doppler secrets set EMAIL_SENDER_NAME="Clinical Trial Portal" \
   --project hht-diary-core --config production
 
 # Enable/disable email sending (set to "false" to disable)
 doppler secrets set EMAIL_ENABLED="true" \
   --project hht-diary-core --config production
 ```
+
+**Note:** `EMAIL_SENDER_NAME` is hardcoded as "Clinical Trial Portal" in the email service.
 
 ### Feature Flag Secrets
 
@@ -301,10 +315,13 @@ doppler secrets set FEATURE_EMAIL_ACTIVATION="true" \
 After setting secrets, verify the service is configured:
 
 ```bash
-# Check secrets are set
-doppler secrets get GOOGLE_SERVICE_ACCOUNT_JSON --project hht-diary-core --config production
+# Check WIF mode (production)
+doppler secrets get GMAIL_SERVICE_ACCOUNT_EMAIL --project hht-diary-core --config production
 
-# Test locally
+# Check SA key mode (dev)
+doppler secrets get GMAIL_SERVICE_ACCOUNT_JSON --project hht-diary-core --config dev
+
+# Test locally (SA key mode)
 cd apps/sponsor-portal/portal_server
 doppler run -- dart run bin/server.dart
 # Then call GET /api/v1/portal/config/features to verify

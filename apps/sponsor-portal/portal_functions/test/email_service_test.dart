@@ -16,18 +16,21 @@ void main() {
         // Note: In test environment, env vars are typically not set
         final config = EmailConfig.fromEnvironment();
 
-        expect(config.senderEmail, 'noreply@anspar.com');
-        expect(config.senderName, 'Clinical Trial Portal');
+        expect(config.senderEmail, 'noreply@curehht.org');
+        expect(config.gmailServiceAccountEmail, isNull);
+        expect(config.serviceAccountJson, isNull);
         // enabled defaults to true when EMAIL_ENABLED != 'false'
         expect(config.enabled, isTrue);
       },
     );
 
-    test('isConfigured returns false when serviceAccountJson is empty', () {
+    test('senderName is a static constant', () {
+      expect(EmailConfig.senderName, 'Clinical Trial Portal');
+    });
+
+    test('isConfigured returns false when no auth configured', () {
       final config = EmailConfig(
-        serviceAccountJson: '',
         senderEmail: 'test@example.com',
-        senderName: 'Test',
         enabled: true,
       );
 
@@ -38,22 +41,55 @@ void main() {
       final config = EmailConfig(
         serviceAccountJson: 'some-json',
         senderEmail: 'test@example.com',
-        senderName: 'Test',
         enabled: false,
       );
 
       expect(config.isConfigured, isFalse);
     });
 
-    test('isConfigured returns true when properly configured', () {
+    test('isConfigured returns true with SA key', () {
       final config = EmailConfig(
         serviceAccountJson: 'some-json-content',
         senderEmail: 'test@example.com',
-        senderName: 'Test',
         enabled: true,
       );
 
       expect(config.isConfigured, isTrue);
+      expect(config.useWorkloadIdentity, isFalse);
+    });
+
+    test('isConfigured returns true with WIF', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: 'gmail-sa@project.iam.gserviceaccount.com',
+        senderEmail: 'test@example.com',
+        enabled: true,
+      );
+
+      expect(config.isConfigured, isTrue);
+      expect(config.useWorkloadIdentity, isTrue);
+    });
+
+    test('useWorkloadIdentity prefers WIF over SA key', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: 'gmail-sa@project.iam.gserviceaccount.com',
+        serviceAccountJson: 'also-has-key',
+        senderEmail: 'test@example.com',
+        enabled: true,
+      );
+
+      // WIF takes precedence
+      expect(config.useWorkloadIdentity, isTrue);
+    });
+
+    test('useWorkloadIdentity returns false for empty string', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: '',
+        serviceAccountJson: 'has-key',
+        senderEmail: 'test@example.com',
+        enabled: true,
+      );
+
+      expect(config.useWorkloadIdentity, isFalse);
     });
   });
 

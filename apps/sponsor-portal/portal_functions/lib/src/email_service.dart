@@ -4,6 +4,10 @@
 //
 // Gmail API integration for sending OTP and activation emails
 // Uses service account with domain-wide delegation for HIPAA compliance
+//
+// Authentication modes:
+//   1. WIF (recommended): Cloud Run impersonates Gmail SA via IAM
+//   2. SA Key (legacy/dev): Base64-encoded service account JSON key
 
 import 'dart:convert';
 import 'dart:io';
@@ -11,44 +15,56 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:googleapis/gmail/v1.dart' as gmail;
 import 'package:googleapis_auth/auth_io.dart';
+import 'package:http/http.dart' as http;
 
 import 'database.dart';
 
 /// Email service configuration from environment
 class EmailConfig {
-  /// Base64-encoded service account JSON key
-  final String serviceAccountJson;
+  /// For WIF: Gmail service account email to impersonate
+  /// Format: org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com
+  final String? gmailServiceAccountEmail;
+
+  /// For legacy/dev: Base64-encoded service account JSON key
+  final String? serviceAccountJson;
 
   /// Email address to send from (must exist in Google Workspace)
   final String senderEmail;
 
-  /// Display name for sender
-  final String senderName;
-
   /// Whether email sending is enabled
   final bool enabled;
 
+  /// Display name for sender (hardcoded)
+  static const senderName = 'Clinical Trial Portal';
+
   EmailConfig({
-    required this.serviceAccountJson,
+    this.gmailServiceAccountEmail,
+    this.serviceAccountJson,
     required this.senderEmail,
-    required this.senderName,
     required this.enabled,
   });
 
   /// Create config from environment variables
   factory EmailConfig.fromEnvironment() {
     return EmailConfig(
-      serviceAccountJson:
-          Platform.environment['GOOGLE_SERVICE_ACCOUNT_JSON'] ?? '',
-      senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'noreply@anspar.com',
-      senderName:
-          Platform.environment['EMAIL_SENDER_NAME'] ?? 'Clinical Trial Portal',
+      gmailServiceAccountEmail:
+          Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
+      serviceAccountJson: Platform.environment['GMAIL_SERVICE_ACCOUNT_JSON'],
+      senderEmail:
+          Platform.environment['EMAIL_SENDER'] ?? 'noreply@curehht.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
     );
   }
 
   /// Check if email service is properly configured
-  bool get isConfigured => serviceAccountJson.isNotEmpty && enabled;
+  /// Either WIF (gmailServiceAccountEmail) or SA key must be provided
+  bool get isConfigured =>
+      enabled &&
+      ((gmailServiceAccountEmail?.isNotEmpty ?? false) ||
+          (serviceAccountJson?.isNotEmpty ?? false));
+
+  /// Whether using WIF (Workload Identity Federation) mode
+  bool get useWorkloadIdentity => gmailServiceAccountEmail?.isNotEmpty ?? false;
 }
 
 /// Result of an email send operation
@@ -76,6 +92,10 @@ class EmailService {
   }
 
   /// Initialize the email service with configuration
+  ///
+  /// Supports two authentication modes:
+  /// 1. WIF: Cloud Run impersonates Gmail SA (no key needed)
+  /// 2. SA Key: Uses base64-encoded service account JSON
   Future<void> initialize(EmailConfig config) async {
     if (_gmailApi != null) return;
     _config = config;
@@ -86,30 +106,86 @@ class EmailService {
     }
 
     try {
-      // Decode service account JSON from base64
-      final jsonString = utf8.decode(base64.decode(config.serviceAccountJson));
-      final credentials = ServiceAccountCredentials.fromJson(
-        jsonDecode(jsonString),
-      );
+      http.Client httpClient;
 
-      // Create auth client with domain-wide delegation
-      // The service account impersonates the sender email
-      final httpClient = await clientViaServiceAccount(
-        credentials,
-        [gmail.GmailApi.gmailSendScope],
-        baseClient: null,
-        // impersonatedUser is critical for domain-wide delegation
-      );
+      if (config.useWorkloadIdentity) {
+        // WIF mode: Use Application Default Credentials to impersonate Gmail SA
+        print('[EMAIL] Using Workload Identity Federation');
+        httpClient = await _createWifClient(config);
+      } else if (config.serviceAccountJson?.isNotEmpty ?? false) {
+        // Legacy mode: Use SA key directly
+        print('[EMAIL] Using service account key');
+        httpClient = await _createSaKeyClient(config);
+      } else {
+        print('[EMAIL] No valid auth configuration found');
+        return;
+      }
 
-      // Note: For domain-wide delegation, we need to impersonate the sender
-      // This requires additional setup in Google Workspace Admin Console
       _gmailApi = gmail.GmailApi(httpClient);
-
       print('[EMAIL] Email service initialized successfully');
     } catch (e) {
       print('[EMAIL] Failed to initialize email service: $e');
       _gmailApi = null;
     }
+  }
+
+  /// Create HTTP client using Workload Identity Federation
+  /// Cloud Run's SA impersonates the Gmail SA via IAM
+  Future<http.Client> _createWifClient(EmailConfig config) async {
+    // Get Application Default Credentials (Cloud Run's identity)
+    final adcClient = await clientViaApplicationDefaultCredentials(
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    );
+
+    // Generate access token for Gmail SA using impersonation
+    final targetSa = config.gmailServiceAccountEmail!;
+    final tokenUrl = Uri.parse(
+      'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$targetSa:generateAccessToken',
+    );
+
+    final response = await adcClient.post(
+      tokenUrl,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'scope': [gmail.GmailApi.gmailSendScope],
+        'lifetime': '3600s',
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to impersonate Gmail SA: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final tokenData = jsonDecode(response.body) as Map<String, dynamic>;
+    final accessToken = tokenData['accessToken'] as String;
+
+    // Create authenticated client with impersonated token
+    return authenticatedClient(
+      http.Client(),
+      AccessCredentials(
+        AccessToken(
+          'Bearer',
+          accessToken,
+          DateTime.now().add(Duration(hours: 1)).toUtc(),
+        ),
+        null,
+        [gmail.GmailApi.gmailSendScope],
+      ),
+    );
+  }
+
+  /// Create HTTP client using service account JSON key
+  Future<http.Client> _createSaKeyClient(EmailConfig config) async {
+    final jsonString = utf8.decode(base64.decode(config.serviceAccountJson!));
+    final credentials = ServiceAccountCredentials.fromJson(
+      jsonDecode(jsonString),
+    );
+
+    return await clientViaServiceAccount(credentials, [
+      gmail.GmailApi.gmailSendScope,
+    ]);
   }
 
   /// Check if service is ready to send emails
@@ -281,7 +357,7 @@ Clinical Trial Portal
       final toAddress = recipientName != null
           ? '$recipientName <$recipientEmail>'
           : recipientEmail;
-      final fromAddress = '${_config!.senderName} <${_config!.senderEmail}>';
+      final fromAddress = '${EmailConfig.senderName} <${_config!.senderEmail}>';
 
       final boundary = 'boundary_${DateTime.now().millisecondsSinceEpoch}';
       final mimeMessage =
