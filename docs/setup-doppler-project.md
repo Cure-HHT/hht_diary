@@ -274,7 +274,7 @@ doppler secrets set GMAIL_SERVICE_ACCOUNT_JSON="<base64-encoded-key>" \
 
 # Required for both modes:
 # Sender email (must exist in Google Workspace)
-doppler secrets set EMAIL_SENDER="noreply@curehht.org" \
+doppler secrets set EMAIL_SENDER="support@anspar.org" \
   --project hht-diary-core --config production
 
 # Enable/disable email sending (set to "false" to disable)

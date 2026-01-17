@@ -16,7 +16,7 @@ void main() {
         // Note: In test environment, env vars are typically not set
         final config = EmailConfig.fromEnvironment();
 
-        expect(config.senderEmail, 'noreply@curehht.org');
+        expect(config.senderEmail, 'support@anspar.org');
         expect(config.gmailServiceAccountEmail, isNull);
         expect(config.serviceAccountJson, isNull);
         // enabled defaults to true when EMAIL_ENABLED != 'false'

@@ -32,7 +32,7 @@ This approach is simpler than per-sponsor/environment service accounts:
 
 1. **Google Workspace Admin** must complete one-time setup:
    - Sign BAA for HIPAA compliance (Account → Legal and compliance)
-   - Create sender mailbox: `noreply@curehht.org`
+   - Create sender mailbox: `support@anspar.org`
 
 2. **Terraform state bucket** must exist:
    ```bash
@@ -77,7 +77,7 @@ doppler run -- terraform apply
 3. **Add to Doppler** (all environments):
    ```
    GOOGLE_SERVICE_ACCOUNT_JSON = <base64 key from step 2>
-   EMAIL_SENDER = noreply@curehht.org
+   EMAIL_SENDER = support@anspar.org
    EMAIL_SENDER_NAME = Clinical Trial Portal
    EMAIL_ENABLED = true
    ```

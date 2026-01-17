@@ -67,7 +67,7 @@ resource "google_project_service" "iamcredentials_api" {
 #    Security -> API Controls -> Domain-wide Delegation
 # 3. Add this service account's Client ID with scope:
 #    https://www.googleapis.com/auth/gmail.send
-# 4. Create the sender mailbox (e.g., noreply@curehht.org) in Google Workspace
+# 4. Create the sender mailbox (e.g., support@anspar.org) in Google Workspace
 # 5. Store the service account key in Doppler as GOOGLE_SERVICE_ACCOUNT_JSON
 
 resource "google_service_account" "gmail" {

@@ -44,7 +44,7 @@ variable "region" {
 variable "gmail_sender_email" {
   description = "Google Workspace email address to send from (must exist and have domain-wide delegation enabled)"
   type        = string
-  default     = "noreply@curehht.org"
+  default     = "support@anspar.org"
 }
 
 variable "gmail_create_service_account_key" {

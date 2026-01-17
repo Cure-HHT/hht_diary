@@ -50,8 +50,7 @@ class EmailConfig {
       gmailServiceAccountEmail:
           Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
       serviceAccountJson: Platform.environment['GMAIL_SERVICE_ACCOUNT_JSON'],
-      senderEmail:
-          Platform.environment['EMAIL_SENDER'] ?? 'noreply@curehht.org',
+      senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'support@anspar.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
     );
   }
