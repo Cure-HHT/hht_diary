@@ -277,7 +277,7 @@ doppler secrets set EMAIL_ENABLED="true" \
 gcloud auth application-default login
 ```
 
-**2. Grant yourself permission to impersonate the Gmail SA (one-time, run by admin):**
+**2. Grant WIF impersonation permission (one-time, run by admin):**
 ```bash
 gcloud iam service-accounts add-iam-policy-binding \
   org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com \
