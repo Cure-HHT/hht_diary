@@ -789,6 +789,56 @@ GRANT SELECT, INSERT, DELETE ON portal_user_site_access TO authenticated;
 -- Grant select on sponsor_role_mapping to authenticated users
 GRANT SELECT ON sponsor_role_mapping TO authenticated;
 
+-- =====================================================
+-- EMAIL OTP AND AUDIT LOG POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00002: Multi-Factor Authentication for Staff
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--
+-- These tables are managed exclusively by the backend service
+-- No direct user access - all operations go through API
+
+-- email_otp_codes: Service role only (backend manages OTP lifecycle)
+CREATE POLICY email_otp_codes_service_all ON email_otp_codes
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- email_rate_limits: Service role only (backend manages rate limiting)
+CREATE POLICY email_rate_limits_service_all ON email_rate_limits
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- email_audit_log: Service role INSERT only (immutable audit log)
+-- Note: UPDATE and DELETE are blocked by table RULEs in schema.sql
+CREATE POLICY email_audit_log_service_insert ON email_audit_log
+    FOR INSERT
+    TO service_role
+    WITH CHECK (true);
+
+CREATE POLICY email_audit_log_service_select ON email_audit_log
+    FOR SELECT
+    TO service_role
+    USING (true);
+
+-- Admins and Auditors can view email audit log (read-only)
+CREATE POLICY email_audit_log_admin_select ON email_audit_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('Administrator', 'Developer Admin', 'Auditor'));
+
+-- Grant service_role access to new tables
+GRANT ALL ON email_otp_codes TO service_role;
+GRANT ALL ON email_rate_limits TO service_role;
+GRANT SELECT, INSERT ON email_audit_log TO service_role;
+
+-- Grant admin/auditor SELECT on email_audit_log
+GRANT SELECT ON email_audit_log TO authenticated;
+
 -- Service role needs full access for triggers
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 

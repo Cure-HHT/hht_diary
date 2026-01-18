@@ -600,6 +600,7 @@ CREATE TABLE portal_users (
     mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
     mfa_enrolled_at TIMESTAMPTZ,
     mfa_method TEXT CHECK (mfa_method IN ('totp', 'sms', 'email')),
+    mfa_type TEXT CHECK (mfa_type IN ('totp', 'email_otp', 'none')) DEFAULT 'email_otp',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -625,6 +626,7 @@ COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting acti
 COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA enrollment (FDA 21 CFR Part 11)';
 COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
 COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
+COMMENT ON COLUMN portal_users.mfa_type IS 'MFA method to use: totp (authenticator app for Dev Admins), email_otp (email codes), none (disabled)';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
@@ -721,6 +723,100 @@ COMMENT ON TABLE sponsor_role_mapping IS 'Maps sponsor-specific role names to co
 COMMENT ON COLUMN sponsor_role_mapping.sponsor_id IS 'Sponsor identifier (e.g., curehht, callisto)';
 COMMENT ON COLUMN sponsor_role_mapping.sponsor_role_name IS 'Sponsor internal role name (e.g., CRA, Study Coordinator)';
 COMMENT ON COLUMN sponsor_role_mapping.mapped_role IS 'Common role this maps to in portal_user_role enum';
+
+-- =====================================================
+-- EMAIL OTP CODES (2FA via Email)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00002: Multi-Factor Authentication for Staff
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--
+-- Stores time-limited email OTP codes for non-admin users
+-- Codes are SHA-256 hashed, never stored in plaintext
+
+CREATE TABLE email_otp_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,              -- SHA-256 hash of the 6-digit code
+    expires_at TIMESTAMPTZ NOT NULL,      -- 10-minute expiration window
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    used_at TIMESTAMPTZ,                  -- NULL until code is verified
+    ip_address INET,                      -- IP address that requested the code
+    attempts INTEGER NOT NULL DEFAULT 0,  -- Track failed verification attempts
+    CONSTRAINT max_attempts CHECK (attempts <= 5)
+);
+
+CREATE INDEX idx_email_otp_user_id ON email_otp_codes(user_id);
+CREATE INDEX idx_email_otp_expires ON email_otp_codes(expires_at) WHERE used_at IS NULL;
+CREATE INDEX idx_email_otp_cleanup ON email_otp_codes(created_at) WHERE used_at IS NOT NULL;
+
+ALTER TABLE email_otp_codes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE email_otp_codes IS 'Time-limited email OTP codes for 2FA (non-admin users)';
+COMMENT ON COLUMN email_otp_codes.code_hash IS 'SHA-256 hash of 6-digit code - never store plaintext';
+COMMENT ON COLUMN email_otp_codes.expires_at IS '10-minute expiration from creation';
+COMMENT ON COLUMN email_otp_codes.used_at IS 'Timestamp when code was successfully verified';
+COMMENT ON COLUMN email_otp_codes.attempts IS 'Failed verification attempts - max 5 before lockout';
+
+-- =====================================================
+-- EMAIL RATE LIMITS
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00002: Multi-Factor Authentication for Staff
+--
+-- Prevents email abuse (spam, brute force attacks)
+-- Rate limit: max 3 emails per address per 15 minutes
+
+CREATE TABLE email_rate_limits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation')),
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ip_address INET
+);
+
+CREATE INDEX idx_email_rate_limits_email ON email_rate_limits(email, email_type, sent_at);
+CREATE INDEX idx_email_rate_limits_cleanup ON email_rate_limits(sent_at);
+
+COMMENT ON TABLE email_rate_limits IS 'Track email sends for rate limiting - max 3 per email per 15 min';
+COMMENT ON COLUMN email_rate_limits.email_type IS 'Type of email: otp (login codes), activation (new user codes)';
+
+-- =====================================================
+-- EMAIL AUDIT LOG (FDA Compliance - Immutable)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00002: Multi-Factor Authentication for Staff
+--
+-- FDA compliance requires logging all communications
+-- This table is immutable - no updates or deletes allowed
+
+CREATE TABLE email_audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    recipient_email TEXT NOT NULL,
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification')),
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
+    status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced')),
+    gmail_message_id TEXT,                -- Gmail API message ID for tracking
+    error_message TEXT,                   -- Error details if status is 'failed'
+    metadata JSONB DEFAULT '{}'::jsonb    -- Additional context (masked email, etc.)
+);
+
+-- Make this table immutable for FDA compliance
+CREATE RULE email_audit_log_no_update AS ON UPDATE TO email_audit_log DO INSTEAD NOTHING;
+CREATE RULE email_audit_log_no_delete AS ON DELETE TO email_audit_log DO INSTEAD NOTHING;
+
+CREATE INDEX idx_email_audit_recipient ON email_audit_log(recipient_email, sent_at);
+CREATE INDEX idx_email_audit_type ON email_audit_log(email_type, sent_at);
+CREATE INDEX idx_email_audit_status ON email_audit_log(status, sent_at);
+
+ALTER TABLE email_audit_log ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE email_audit_log IS 'Immutable audit log of all system emails for FDA compliance';
+COMMENT ON COLUMN email_audit_log.sent_by IS 'Portal user who triggered the email (NULL for system)';
+COMMENT ON COLUMN email_audit_log.gmail_message_id IS 'Gmail API message ID for delivery tracking';
+COMMENT ON COLUMN email_audit_log.metadata IS 'Additional context: masked email, request IP, etc.';
 
 -- =====================================================
 -- HELPER FUNCTIONS

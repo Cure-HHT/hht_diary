@@ -27,6 +27,10 @@ dependencies:
   # JWT/Identity Platform
   jose: ^0.3.4
 
+  # Gmail API for email OTP
+  googleapis: ^15.0.0
+  googleapis_auth: ^2.0.0
+
   # EDC Integration (RAVE)
   rave_integration:
     path: ../../edc/rave-integration

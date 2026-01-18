@@ -4,6 +4,7 @@
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -41,6 +42,14 @@ Router createRouter() {
     '/api/v1/portal/admin/generate-code',
     generateActivationCodeHandler,
   );
+
+  // Email OTP endpoints (for non-Developer-Admin users)
+  // These require a valid Identity Platform token (password already verified)
+  router.post('/api/v1/portal/auth/send-otp', sendEmailOtpHandler);
+  router.post('/api/v1/portal/auth/verify-otp', verifyEmailOtpHandler);
+
+  // Feature flags (public endpoint for frontend configuration)
+  router.get('/api/v1/portal/config/features', featureFlagsHandler);
 
   return router;
 }
