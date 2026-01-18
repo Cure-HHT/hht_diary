@@ -138,6 +138,8 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
   bool _isCreating = false;
   String? _error;
   String? _activationCode;
+  bool _emailSent = false;
+  String? _emailError;
   late ApiClient _apiClient;
 
   @override
@@ -162,6 +164,8 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
       _isCreating = true;
       _error = null;
       _activationCode = null;
+      _emailSent = false;
+      _emailError = null;
     });
 
     try {
@@ -177,6 +181,8 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
         final data = response.data as Map<String, dynamic>;
         setState(() {
           _activationCode = data['activation_code'] as String?;
+          _emailSent = data['email_sent'] == true;
+          _emailError = data['email_error'] as String?;
           _isCreating = false;
         });
       } else {
@@ -208,6 +214,8 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
     setState(() {
       _activationCode = null;
       _error = null;
+      _emailSent = false;
+      _emailError = null;
       _emailController.clear();
       _nameController.clear();
     });
@@ -480,29 +488,121 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
+        // Email status message
+        if (_emailSent)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Activation email sent to ${_emailController.text}',
+                    style: TextStyle(color: Colors.green.shade800),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_emailError != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.mail_outline,
-                color: theme.colorScheme.onPrimaryContainer,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Email could not be sent',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Please share the activation code manually.',
+                            style: TextStyle(color: Colors.orange.shade800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Send this code to the admin along with the activation URL:\n'
-                  '/activate?code=$_activationCode',
-                  style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.mail_outline,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Send this code to the admin along with the activation URL:\n'
+                        '/activate?code=$_activationCode',
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          )
+        else
+          // Fallback: email not attempted (feature disabled)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.mail_outline,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Send this code to the admin along with the activation URL:\n'
+                    '/activate?code=$_activationCode',
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 24),
         OutlinedButton.icon(
           onPressed: _resetForm,
