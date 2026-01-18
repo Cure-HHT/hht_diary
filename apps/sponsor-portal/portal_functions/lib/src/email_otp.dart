@@ -265,8 +265,8 @@ Future<Response> verifyEmailOtpHandler(Request request) async {
   final expiresAt = otpResult.first[1] as DateTime;
   final attempts = otpResult.first[2] as int;
 
-  // Check if expired
-  if (DateTime.now().isAfter(expiresAt)) {
+  // Check if expired (use UTC for consistent timezone handling)
+  if (DateTime.now().toUtc().isAfter(expiresAt.toUtc())) {
     print('[EMAIL_OTP] Code expired for user: $userId');
     return _jsonResponse({
       'error': 'Verification code has expired',

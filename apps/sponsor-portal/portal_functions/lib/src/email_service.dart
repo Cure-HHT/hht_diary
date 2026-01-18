@@ -79,6 +79,22 @@ class EmailService {
     return _instance!;
   }
 
+  /// Reset the service for testing purposes
+  /// @visibleForTesting
+  static void resetForTesting() {
+    _instance = null;
+    _config = null;
+    _gmailApi = null;
+  }
+
+  /// Initialize with a mock Gmail API for testing
+  /// @visibleForTesting
+  static void initializeWithMock(gmail.GmailApi mockApi, EmailConfig config) {
+    _instance ??= EmailService._();
+    _gmailApi = mockApi;
+    _config = config;
+  }
+
   /// Initialize the email service with configuration
   ///
   /// Uses WIF: Cloud Run SA or local user impersonates Gmail SA via IAM
