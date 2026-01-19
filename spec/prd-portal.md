@@ -1,8 +1,8 @@
 # Clinical Trial Sponsor Portal
 
 **Version**: 1.0
-**Status**: Draft
-**Last Updated**: 2026-01-05 - Elvira Koliadina
+**Status**: Active
+**Last Updated**: 2026-01-18
 
 ---
 
