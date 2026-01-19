@@ -228,7 +228,7 @@ W. Tool selection rationale SHALL be documented in ADR-006.
 X. Documentation SHALL include a tool update policy defining version upgrade procedures.
 Y. Documentation SHALL include testing procedures for tool version updates.
 
-*End* *Development Tool Specifications* | **Hash**: 67a92cff
+*End* *Development Tool Specifications* | **Hash**: caee2790
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
