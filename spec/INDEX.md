@@ -106,6 +106,13 @@ This file provides a complete index of all requirements.
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
+| REQ-p70001 | Sponsor Portal Application | prd-portal.md | bf4c8061 |
+| REQ-p70002 | Web Application Platform | prd-portal.md | 87649bca |
+| REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | e94fea45 |
+| REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9118260 |
+| REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 8e6e39d9 |
+| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 63c6ec96 |
+| REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 0ca73736 |
 
 ## Operations Requirements (OPS)
 
