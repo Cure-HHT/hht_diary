@@ -52,6 +52,22 @@ resource "google_project_service" "iamcredentials_api" {
   disable_dependent_services = false
 }
 
+resource "google_project_service" "networkservices_api" {
+  project = var.project_id
+  service = "networkservices.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
+}
+
+resource "google_project_service" "sqladmin_api" {
+  project = var.project_id
+  service = "sqladmin.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
+}
+
 # -----------------------------------------------------------------------------
 # Gmail Service Account (Org-Wide Email Sending)
 # -----------------------------------------------------------------------------

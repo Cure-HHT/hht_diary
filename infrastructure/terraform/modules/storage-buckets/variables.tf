@@ -26,6 +26,12 @@ variable "region" {
   default     = "europe-west9"
 }
 
+variable "project_prefix" {
+  description = "Project prefix (for audit bucket naming)"
+  type        = string
+  default     = "cure-hht"
+}
+
 variable "backup_retention_days" {
   description = "Number of days to retain backups"
   type        = number

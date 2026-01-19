@@ -159,7 +159,7 @@ if ! grep -q "DB_PASSWORD" "$TFVARS_FILE" && [[ -z "${TF_VAR_DB_PASSWORD:-}" ]];
 fi
 
 # Initialize Terraform
-cd "$PORTAL_DIR"
+
 terraform_init "sponsor-portal/${SPONSOR}-${ENVIRONMENT}" "$PORTAL_DIR"
 
 # Handle destroy

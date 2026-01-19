@@ -126,7 +126,8 @@ fi
 # =============================================================================
 # Main
 # =============================================================================
-
+gcloud services enable cloudbilling.googleapis.com
+echo $?
 # Set quota project for Billing Budgets API
 # The billingbudgets.googleapis.com API requires an explicit quota project
 # which must have the required APIs enabled
@@ -147,7 +148,7 @@ done
 echo
 
 # Initialize Terraform
-cd "$BOOTSTRAP_DIR"
+
 terraform_init "bootstrap/${SPONSOR}" "$BOOTSTRAP_DIR"
 
 # Handle destroy
