@@ -1419,18 +1419,12 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 COMMENT ON FUNCTION validate_diary_data(JSONB) IS 'Validates EventRecord structure and delegates to type-specific validators. See spec/JSONB_SCHEMA.md';
 
 -- =====================================================
--- UPDATED_AT TRIGGER FUNCTION
+-- ADDITIONAL UPDATED_AT TRIGGERS
 -- =====================================================
+-- Note: update_updated_at_column() function defined earlier (line ~693)
+-- Note: portal_users trigger defined with function (line ~702)
 
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Apply updated_at trigger to relevant tables
+-- Apply updated_at trigger to remaining tables
 CREATE TRIGGER update_sites_updated_at BEFORE UPDATE ON sites
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -1441,7 +1435,4 @@ CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON inves
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

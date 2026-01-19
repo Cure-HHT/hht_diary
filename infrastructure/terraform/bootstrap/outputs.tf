@@ -170,6 +170,34 @@ output "database_names" {
 }
 
 # -----------------------------------------------------------------------------
+# Schema Deployment Jobs
+# -----------------------------------------------------------------------------
+
+output "schema_job_names" {
+  description = "Map of environment to schema deployment job name"
+  value = var.enable_schema_deployment ? {
+    for env in local.environments :
+    env => module.db_schema_job[env].job_name
+  } : {}
+}
+
+output "schema_job_execute_commands" {
+  description = "Commands to execute schema deployment jobs"
+  value = var.enable_schema_deployment ? {
+    for env in local.environments :
+    env => module.db_schema_job[env].execute_command
+  } : {}
+}
+
+output "schema_bucket_names" {
+  description = "Map of environment to schema file GCS bucket"
+  value = var.enable_schema_deployment ? {
+    for env in local.environments :
+    env => module.db_schema_job[env].schema_bucket_name
+  } : {}
+}
+
+# -----------------------------------------------------------------------------
 # VPC CIDR Information
 # -----------------------------------------------------------------------------
 

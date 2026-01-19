@@ -195,3 +195,21 @@ variable "db_username" {
   type        = string
   default     = "app_user"
 }
+
+variable "enable_schema_deployment" {
+  description = "Enable Cloud Run Job for automated schema deployment"
+  type        = bool
+  default     = true
+}
+
+variable "schema_job_image" {
+  description = "Container image for schema deployment job"
+  type        = string
+  default     = "europe-west9-docker.pkg.dev/anspar-admin/shared-images/db-schema-job:latest"
+}
+
+variable "auto_execute_schema" {
+  description = "Automatically execute schema job after creation (non-prod only)"
+  type        = bool
+  default     = false
+}

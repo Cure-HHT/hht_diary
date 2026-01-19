@@ -39,6 +39,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Consolidate schema files
+        run: |
+          echo "Consolidating schema files..."
+          ./database/tool/consolidate-schema.sh
+          echo "Schema consolidated successfully"
+
+      - name: Verify consolidated schema is up-to-date
+        run: |
+          echo "Checking if init-consolidated.sql is up-to-date..."
+          if git diff --exit-code database/init-consolidated.sql; then
+            echo "✓ Consolidated schema is up-to-date"
+          else
+            echo "ERROR: database/init-consolidated.sql is out of date!"
+            echo "Run './tools/consolidate-schema.sh' locally and commit the changes."
+            exit 1
+          fi
+
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update

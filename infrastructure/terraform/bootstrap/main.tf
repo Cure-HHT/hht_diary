@@ -181,6 +181,35 @@ module "database" {
   depends_on = [module.network]
 }
 
+# -----------------------------------------------------------------------------
+# Database Schema Deployment Job - One per Environment
+# -----------------------------------------------------------------------------
+
+module "db_schema_job" {
+  source   = "../modules/db-schema-job"
+  for_each = var.enable_schema_deployment ? toset(local.environments) : toset([])
+
+  project_id         = local.project_ids[each.key]
+  sponsor            = var.sponsor
+  environment        = each.key
+  region             = var.default_region
+  db_connection_name = module.database[each.key].instance_connection_name
+  database_name      = module.database[each.key].database_name
+  db_username        = var.db_username
+  db_password        = var.DB_PASSWORD
+  vpc_connector_id   = module.network[each.key].connector_id
+  schema_job_image   = var.schema_job_image
+
+  # Schema file content (read from local file)
+  create_schema_bucket = true
+  schema_file_content  = file("${path.root}/../../../database/init-consolidated.sql")
+
+  # Auto-execute only for non-prod environments
+  auto_execute = var.auto_execute_schema && each.key != "prod"
+
+  depends_on = [module.database, module.network]
+}
+
 resource "google_project_service" "gmail_api" {
   for_each = toset(local.environments)
   project  = local.project_ids[each.key]
@@ -196,6 +225,17 @@ resource "google_project_service" "idtk_api" {
   for_each = toset(local.environments)
   project  = local.project_ids[each.key]
   service = "identitytoolkit.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
+
+  depends_on = [module.projects]
+}
+
+resource "google_project_service" "sqlc_api" {
+  for_each = toset(local.environments)
+  project  = local.project_ids[each.key]
+  service = "sql-component.googleapis.com"
 
   disable_on_destroy         = false
   disable_dependent_services = false
