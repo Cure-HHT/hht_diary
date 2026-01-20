@@ -3,6 +3,7 @@
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-d00035: User Management API
 //   REQ-d00036: Create User Dialog Implementation
+//   REQ-CAL-p00029: Create User Account (multi-select roles, site requirements)
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -577,11 +578,16 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  UserRole _selectedRole = UserRole.investigator;
+  // Multi-select roles per REQ-CAL-p00029.F
+  final Set<UserRole> _selectedRoles = {};
   final Set<String> _selectedSites = {};
   String? _linkingCode;
   bool _isCreating = false;
   String? _error;
+  // Track success state for the confirmation dialog
+  bool _userCreated = false;
+  bool? _emailSent;
+  String? _emailError;
 
   @override
   void dispose() {
@@ -590,12 +596,24 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     super.dispose();
   }
 
+  /// Check if any selected role requires site assignment
+  bool get _needsSites => _selectedRoles.any((r) => r.requiresSiteAssignment);
+
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == UserRole.investigator && _selectedSites.isEmpty) {
+    // Validate at least one role is selected
+    if (_selectedRoles.isEmpty) {
       setState(() {
-        _error = 'Please select at least one site for Investigator';
+        _error = 'Please select at least one role';
+      });
+      return;
+    }
+
+    // Validate site selection for roles that require it (REQ-CAL-p00029.B)
+    if (_needsSites && _selectedSites.isEmpty) {
+      setState(() {
+        _error = 'Please select at least one site for the selected role(s)';
       });
       return;
     }
@@ -606,13 +624,14 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     });
 
     try {
+      // Send roles as array per backend API
       final body = <String, dynamic>{
         'email': _emailController.text.trim(),
         'name': _nameController.text.trim(),
-        'role': _selectedRole.displayName,
+        'roles': _selectedRoles.map((r) => r.displayName).toList(),
       };
 
-      if (_selectedRole == UserRole.investigator) {
+      if (_needsSites) {
         body['site_ids'] = _selectedSites.toList();
       }
 
@@ -627,6 +646,9 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
         final data = response.data as Map<String, dynamic>;
         setState(() {
           _linkingCode = data['linking_code'] as String?;
+          _emailSent = data['email_sent'] as bool?;
+          _emailError = data['email_error'] as String?;
+          _userCreated = true;
           _isCreating = false;
         });
       } else {
@@ -650,7 +672,8 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    if (_linkingCode != null) {
+    // Show success dialog after user creation
+    if (_userCreated) {
       return AlertDialog(
         title: Row(
           children: [
@@ -666,51 +689,89 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
             Text(
               'User account created successfully for ${_nameController.text}!',
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Linking Code:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.outline),
-              ),
-              child: SelectableText(
-                _linkingCode!,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontFamily: 'monospace',
-                  letterSpacing: 2,
+            const SizedBox(height: 16),
+            // Show email status (REQ-CAL-p00029.D)
+            if (_emailSent == true)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      color: colorScheme.onPrimaryContainer,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Activation email sent to ${_emailController.text}',
+                        style: TextStyle(color: colorScheme.onPrimaryContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (_emailError != null || _emailSent == false)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_outlined,
+                      color: colorScheme.onErrorContainer,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _emailError != null
+                            ? 'Email not sent: $_emailError'
+                            : 'Activation email could not be sent.',
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
+            // Show linking code if available (for site-based roles)
+            if (_linkingCode != null) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Linking Code:',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: colorScheme.onPrimaryContainer,
-                    size: 20,
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+                child: SelectableText(
+                  _linkingCode!,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontFamily: 'monospace',
+                    letterSpacing: 2,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Share this code with the user to link their device.',
-                      style: TextStyle(color: colorScheme.onPrimaryContainer),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'Share this code with the user to link their device.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -797,33 +858,45 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<UserRole>(
-                  // Using value for controlled dropdown (initialValue doesn't work with setState)
-                  // ignore: deprecated_member_use
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    border: OutlineInputBorder(),
+                // Multi-select roles using FilterChips (REQ-CAL-p00029.F)
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Roles',
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    border: const OutlineInputBorder(),
+                    errorText: _selectedRoles.isEmpty
+                        ? 'Select at least one role'
+                        : null,
                   ),
-                  items: UserRole.values.map((role) {
-                    return DropdownMenuItem(
-                      value: role,
-                      child: Text(role.displayName),
-                    );
-                  }).toList(),
-                  onChanged: (role) {
-                    if (role != null) {
-                      setState(() {
-                        _selectedRole = role;
-                        if (role != UserRole.investigator) {
-                          _selectedSites.clear();
-                        }
-                      });
-                    }
-                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: UserRole.values.map((role) {
+                        return FilterChip(
+                          label: Text(role.displayName),
+                          selected: _selectedRoles.contains(role),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedRoles.add(role);
+                              } else {
+                                _selectedRoles.remove(role);
+                                // Clear sites if no role requires them anymore
+                                if (!_needsSites) {
+                                  _selectedSites.clear();
+                                }
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
-                if (_selectedRole == UserRole.investigator) ...[
+                // Show site selection for roles that require it (REQ-CAL-p00029.B, C)
+                if (_needsSites) ...[
                   const SizedBox(height: 24),
                   Text('Assign Sites', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),

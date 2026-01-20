@@ -4,6 +4,7 @@
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
+//   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -149,7 +150,10 @@ Future<Response> createPortalUserHandler(Request request) async {
     return _jsonResponse({'error': 'At least one role is required'}, 400);
   }
 
-  // Validate all roles are valid enum values
+  // Validate all roles are valid system enum values
+  // Note: Sponsor-specific role names (e.g., Callisto's "Study Coordinator")
+  // are mapped to system roles via sponsor_role_mapping table at the UI layer.
+  // The backend only accepts system role names.
   const validRoles = [
     'Investigator',
     'Sponsor',
@@ -164,10 +168,14 @@ Future<Response> createPortalUserHandler(Request request) async {
     }
   }
 
-  // Investigators must have site assignments
-  if (roles.contains('Investigator') && siteIds.isEmpty) {
+  // Roles that require site assignment
+  // Investigator is site-scoped (views only their assigned sites' data)
+  const siteRequiredRoles = ['Investigator'];
+  final needsSites = roles.any((r) => siteRequiredRoles.contains(r));
+
+  if (needsSites && siteIds.isEmpty) {
     return _jsonResponse({
-      'error': 'Investigators require at least one site assignment',
+      'error': 'site assignment required for selected role(s)',
     }, 400);
   }
 
@@ -180,8 +188,8 @@ Future<Response> createPortalUserHandler(Request request) async {
     }, 403);
   }
 
-  // Generate linking code for Investigators
-  final linkingCode = roles.contains('Investigator') ? _generateCode() : null;
+  // Generate linking code for site-based roles (device enrollment for diary app)
+  final linkingCode = needsSites ? _generateCode() : null;
 
   // Generate activation code for all new users
   final activationCode = _generateCode();
@@ -234,8 +242,8 @@ Future<Response> createPortalUserHandler(Request request) async {
     );
   }
 
-  // Create site assignments for Investigators
-  if (roles.contains('Investigator') && siteIds.isNotEmpty) {
+  // Create site assignments for site-based roles
+  if (needsSites && siteIds.isNotEmpty) {
     for (final siteId in siteIds) {
       await db.execute(
         '''

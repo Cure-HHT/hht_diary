@@ -1,56 +1,99 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00004: Local-First Data Entry Implementation
-#   REQ-d00005: Sponsor Configuration Detection Implementation
+#   REQ-p00009: Sponsor-Specific Web Portals
+#   REQ-p00024: Portal User Roles and Permissions
+#   REQ-d00028: Portal Frontend Framework
+#   REQ-CAL-p00010: First Admin Provisioning (integration tests)
+#   REQ-CAL-p00029: Create User Account (integration tests)
 #
-# Test script for sponsor_portal_ui
-# Runs Flutter (Dart) and Firebase Functions (TypeScript) tests
-# Works both locally and in CI/CD
+# Test script for portal-ui
+# Runs Flutter unit tests and integration tests
+# Optionally generates coverage reports
 
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$SCRIPT_DIR"
 
+# Coverage threshold (percentage)
+MIN_COVERAGE=75
+
 # Parse command line arguments
+RUN_UNIT=false
+RUN_INTEGRATION=false
+START_SERVICES=false
+STOP_SERVICES=false
+RESET_DB=false
+WITH_COVERAGE=false
+CHECK_THRESHOLDS=true
 CONCURRENCY="10"
-RUN_FLUTTER_UNIT=false
-RUN_FLUTTER_INTEGRATION=false
-RUN_TYPESCRIPT_UNIT=false
-RUN_TYPESCRIPT_INTEGRATION=false
+STARTED_SERVER=false
+SERVER_PID=""
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -f,  --flutter              Run all Flutter tests (unit + integration)"
-    echo "  -fu, --flutter-unit         Run Flutter unit tests only"
-    echo "  -fi, --flutter-integration  Run Flutter integration tests on desktop"
-    echo "  --concurrency N             Set Flutter test concurrency (default: 10)"
-    echo "  -h, --help                  Show this help message"
+    echo "  -u, --unit           Run unit tests only"
+    echo "  -i, --integration    Run integration tests (requires services running)"
+    echo "  -c, --coverage       Run with coverage collection and reporting"
+    echo "  --concurrency N      Set test concurrency (default: 10)"
+    echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
+    echo "  --start-services     Start local services (PostgreSQL, Firebase, Portal Server)"
+    echo "  --stop-services      Stop local services after tests"
+    echo "  --reset              Reset database before tests (use with --start-services)"
+    echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no flags are specified, Flutter unit and TypeScript unit tests are run."
-    echo "Integration tests must be explicitly requested."
+    echo "If no test flags (-u/-i) are specified, unit tests are run."
+    echo ""
+    echo "Coverage Threshold: ${MIN_COVERAGE}%"
+    echo ""
+    echo "Integration tests require:"
+    echo "  - PostgreSQL running on localhost:5432"
+    echo "  - Firebase Auth emulator on localhost:9099"
+    echo "  - Portal Server on localhost:8080"
+    echo ""
+    echo "Quick start for integration tests:"
+    echo "  ./tool/test.sh -i --start-services --reset"
+    echo ""
+    echo "Or start services manually:"
+    echo "  ../tool/run_local.sh --reset"
 }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -f|--flutter)
-      RUN_FLUTTER_UNIT=true
-      RUN_FLUTTER_INTEGRATION=false #TODO add back in when there are integration tests
+    -u|--unit)
+      RUN_UNIT=true
       shift
       ;;
-    -fu|--flutter-unit)
-      RUN_FLUTTER_UNIT=true
+    -i|--integration)
+      RUN_INTEGRATION=true
       shift
       ;;
-    -fi|--flutter-integration)
-      RUN_FLUTTER_INTEGRATION=false #TODO add back in when there are integration tests
+    -c|--coverage)
+      WITH_COVERAGE=true
       shift
       ;;
     --concurrency)
       CONCURRENCY="$2"
       shift 2
+      ;;
+    --no-threshold)
+      CHECK_THRESHOLDS=false
+      shift
+      ;;
+    --start-services)
+      START_SERVICES=true
+      shift
+      ;;
+    --stop-services)
+      STOP_SERVICES=true
+      shift
+      ;;
+    --reset)
+      RESET_DB=true
+      shift
       ;;
     -h|--help)
       usage
@@ -64,89 +107,332 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run Flutter unit and integration
-if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ]; then
-    RUN_FLUTTER_UNIT=true
-    RUN_FLUTTER_INTEGRATION=false
+# Default: run unit tests only (integration tests require services)
+if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
+    RUN_UNIT=true
 fi
 
 echo "=============================================="
-echo "Clinical Diary Test Suite"
+if [ "$WITH_COVERAGE" = true ]; then
+    echo "Portal UI Test Suite (with Coverage)"
+else
+    echo "Portal UI Test Suite"
+fi
 echo "=============================================="
 
-FLUTTER_UNIT_PASSED=true
-FLUTTER_INTEGRATION_PASSED=true
-TS_UNIT_PASSED=true
-TS_INTEGRATION_PASSED=true
+# Clean up coverage directory if running with coverage
+if [ "$WITH_COVERAGE" = true ]; then
+    rm -rf coverage
+    mkdir -p coverage
+fi
 
-# Run Flutter unit tests
-if [ "$RUN_FLUTTER_UNIT" = true ]; then
-    echo ""
-    echo "📱 Running Flutter unit tests..."
-    echo "   Concurrency: $CONCURRENCY"
-    echo ""
+UNIT_PASSED=true
+INTEGRATION_PASSED=true
 
-    if flutter test --concurrency="$CONCURRENCY"; then
-        echo "✅ Flutter unit tests passed!"
+# Cleanup function for stopping services
+cleanup() {
+    if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
+        echo ""
+        echo "Stopping portal server (PID: $SERVER_PID)..."
+        kill "$SERVER_PID" 2>/dev/null || true
+    fi
+
+    if [ "$STOP_SERVICES" = true ]; then
+        echo ""
+        echo "Stopping services..."
+
+        COMPOSE_DIR="$PROJECT_ROOT/tools/dev-env"
+        if [ -d "$COMPOSE_DIR" ]; then
+            (cd "$COMPOSE_DIR" && doppler run -- docker compose -f docker-compose.db.yml down 2>/dev/null || true)
+            (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml down 2>/dev/null || true)
+        fi
+    fi
+}
+
+trap cleanup EXIT
+
+# Start services if requested
+if [ "$START_SERVICES" = true ]; then
+    COMPOSE_DIR="$PROJECT_ROOT/tools/dev-env"
+    DATABASE_DIR="$PROJECT_ROOT/database"
+
+    echo ""
+    echo "Starting services..."
+
+    # Start PostgreSQL
+    if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+        echo "PostgreSQL already running"
     else
-        echo "❌ Flutter unit tests failed!"
-        FLUTTER_UNIT_PASSED=false
+        echo "Starting PostgreSQL..."
+        if [ -f "$COMPOSE_DIR/docker-compose.db.yml" ]; then
+            (cd "$COMPOSE_DIR" && doppler run -- docker compose -f docker-compose.db.yml up -d)
+
+            echo "Waiting for PostgreSQL..."
+            TIMEOUT=30
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+                    echo "PostgreSQL is ready!"
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+            done
+
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Timeout waiting for PostgreSQL"
+                exit 1
+            fi
+        else
+            echo "Error: docker-compose.db.yml not found"
+            exit 1
+        fi
+    fi
+
+    # Start Firebase emulator
+    if curl -s http://localhost:9099/ > /dev/null 2>&1; then
+        echo "Firebase Auth emulator already running"
+    else
+        echo "Starting Firebase Auth emulator..."
+        if [ -f "$COMPOSE_DIR/docker-compose.firebase.yml" ]; then
+            (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml up -d)
+
+            echo "Waiting for Firebase emulator..."
+            TIMEOUT=60
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if curl -s http://localhost:9099/ > /dev/null 2>&1; then
+                    echo "Firebase Auth emulator is ready!"
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+            done
+
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Timeout waiting for Firebase emulator"
+                exit 1
+            fi
+        fi
+    fi
+
+    # Reset database if requested
+    if [ "$RESET_DB" = true ]; then
+        echo ""
+        echo "Resetting database..."
+        DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+
+        if [ -n "$DB_PASSWORD" ]; then
+            # Drop and recreate database
+            PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS sponsor_portal;" 2>/dev/null || true
+            PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -c "CREATE DATABASE sponsor_portal;" 2>/dev/null
+
+            # Apply schema
+            if [ -f "$DATABASE_DIR/init.sql" ]; then
+                PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal -f "$DATABASE_DIR/init.sql"
+            fi
+
+            # Apply sponsor-specific seed data (callisto)
+            if [ -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql" ]; then
+                PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal \
+                    -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql"
+            fi
+
+            echo "Database reset complete"
+        else
+            echo "Warning: Could not get DB password from Doppler"
+        fi
+    fi
+
+    # Create Firebase test users (seeded dev admins)
+    echo ""
+    echo "Creating Firebase test users..."
+    FIREBASE_URL="http://localhost:9099"
+    DEV_PASSWORD="curehht"
+
+    create_firebase_user() {
+        local email=$1
+        curl -s -X POST \
+            "${FIREBASE_URL}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${email}\",\"password\":\"${DEV_PASSWORD}\",\"returnSecureToken\":true}" > /dev/null 2>&1 || true
+    }
+
+    create_firebase_user "mike.bushe@anspar.org"
+    create_firebase_user "michael@anspar.org"
+    create_firebase_user "tom@anspar.org"
+    create_firebase_user "urayoan@anspar.org"
+    echo "Firebase users created"
+
+    # Start Portal Server
+    if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+        echo "Portal Server already running"
+    else
+        echo ""
+        echo "Starting Portal Server..."
+
+        PORTAL_SERVER_DIR="$SCRIPT_DIR/../portal_server"
+        if [ -d "$PORTAL_SERVER_DIR" ]; then
+            (
+                cd "$PORTAL_SERVER_DIR"
+                export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+                export GCP_PROJECT_ID="demo-sponsor-portal"
+                export DB_SSL="false"
+                export PORT="8080"
+                export DB_HOST="localhost"
+                export DB_PORT="5432"
+                export DB_NAME="sponsor_portal"
+                export DB_USER="postgres"
+                export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+
+                dart run bin/server.dart &
+                SERVER_PID=$!
+            )
+
+            # Wait for server
+            echo "Waiting for Portal Server..."
+            TIMEOUT=30
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+                    echo "Portal Server is ready!"
+                    STARTED_SERVER=true
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+            done
+
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Warning: Portal Server not responding (tests may fail)"
+            fi
+        else
+            echo "Warning: portal_server not found at $PORTAL_SERVER_DIR"
+        fi
     fi
 fi
 
-# Run Flutter integration tests on desktop
-if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
+# Build test command based on coverage flag
+if [ "$WITH_COVERAGE" = true ]; then
+    TEST_CMD="flutter test --coverage --concurrency=$CONCURRENCY"
+else
+    TEST_CMD="flutter test --concurrency=$CONCURRENCY"
+fi
+
+# Run unit tests
+if [ "$RUN_UNIT" = true ]; then
     echo ""
-    echo "🖥️  Running Flutter integration tests on desktop..."
+    echo "Running unit tests..."
+    echo "   Concurrency: $CONCURRENCY"
     echo ""
 
-    # Detect platform and set device target
-    XVFB_PREFIX=""
-    case "$(uname -s)" in
-        Darwin*)
-            DEVICE="macos"
-            ;;
-        Linux*)
-            DEVICE="linux"
-            # Use xvfb-run for headless Linux (CI) if available
-            if command -v xvfb-run &> /dev/null; then
-                XVFB_PREFIX="xvfb-run -a"
-                echo "   Using xvfb-run for headless display"
-            fi
-            ;;
-        MINGW*|CYGWIN*|MSYS*)
-            DEVICE="windows"
-            ;;
-        *)
-            echo "⚠️  Unknown platform, defaulting to linux"
-            DEVICE="linux"
-            ;;
-    esac
+    if $TEST_CMD test/; then
+        echo "Unit tests passed!"
+    else
+        echo "Unit tests failed!"
+        UNIT_PASSED=false
+    fi
 
-    echo "   Target device: $DEVICE"
+    # Rename coverage file for clarity when combining
+    if [ "$WITH_COVERAGE" = true ] && [ -f "coverage/lcov.info" ]; then
+        mv coverage/lcov.info coverage/lcov-unit.info
+        echo "Coverage captured: coverage/lcov-unit.info"
+
+        # Filter out generated files if lcov is available
+        if command -v lcov &> /dev/null; then
+            echo "Filtering coverage data..."
+            lcov --remove coverage/lcov-unit.info \
+                '**/*.g.dart' \
+                '**/*.freezed.dart' \
+                '**/test/**' \
+                --ignore-errors unused \
+                -o coverage/lcov-unit.info 2>/dev/null || true
+        fi
+    fi
+fi
+
+# Run integration tests (Dart VM tests against real services)
+if [ "$RUN_INTEGRATION" = true ]; then
+    echo ""
+    echo "Running integration tests..."
+    echo ""
+
+    # Check services are running
+    if ! curl -s http://localhost:8080/health > /dev/null 2>&1; then
+        echo "Warning: Portal Server not responding at localhost:8080"
+        echo "Start services with: --start-services or ../tool/run_local.sh"
+    fi
+
+    if ! curl -s http://localhost:9099/ > /dev/null 2>&1; then
+        echo "Warning: Firebase emulator not responding at localhost:9099"
+    fi
+
+    # Set environment for integration tests
+    export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+    export PORTAL_SERVER_URL="http://localhost:8080"
+    export DB_SSL="false"
+    export DB_HOST="localhost"
+    export DB_PORT="5432"
+    export DB_NAME="sponsor_portal"
+    export DB_USER="postgres"
+    export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null || echo "postgres")
 
     if [ -d "integration_test" ]; then
-        # Run each integration test file separately to avoid macOS app lifecycle issues
-        # Running all files together can cause "Unable to start the app on the device" errors
+        # Run integration tests as Dart VM tests (not Flutter widget tests)
         INTEGRATION_FAILED=false
         for test_file in integration_test/*_test.dart; do
             if [ -f "$test_file" ]; then
                 echo ""
                 echo "   Running: $test_file"
-                if ! $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"; then
+                if dart test "$test_file"; then
+                    echo "   PASSED: $test_file"
+                else
+                    echo "   FAILED: $test_file"
                     INTEGRATION_FAILED=true
                 fi
             fi
         done
 
         if [ "$INTEGRATION_FAILED" = true ]; then
-            echo "❌ Flutter integration tests failed!"
-            FLUTTER_INTEGRATION_PASSED=false
+            echo "Integration tests failed!"
+            INTEGRATION_PASSED=false
         else
-            echo "✅ Flutter integration tests passed!"
+            echo "Integration tests passed!"
         fi
+
+        # Note: Dart VM tests don't generate Flutter coverage
+        # For combined coverage, we'd need different approach
     else
-        echo "⚠️  integration_test/ directory not found, skipping integration tests"
+        echo "integration_test/ directory not found, skipping integration tests"
+    fi
+
+    unset FIREBASE_AUTH_EMULATOR_HOST
+    unset PORTAL_SERVER_URL
+fi
+
+# Combine coverage reports if both exist
+if [ "$WITH_COVERAGE" = true ]; then
+    if [ -f "coverage/lcov-unit.info" ] && [ -f "coverage/lcov-integration.info" ]; then
+        if command -v lcov &> /dev/null; then
+            echo ""
+            echo "Combining coverage reports..."
+            lcov -a coverage/lcov-unit.info -a coverage/lcov-integration.info \
+                -o coverage/lcov.info --ignore-errors unused 2>/dev/null || true
+        fi
+    elif [ -f "coverage/lcov-unit.info" ]; then
+        cp coverage/lcov-unit.info coverage/lcov.info 2>/dev/null || true
+    elif [ -f "coverage/lcov-integration.info" ]; then
+        cp coverage/lcov-integration.info coverage/lcov.info 2>/dev/null || true
+    fi
+
+    # Generate HTML report if genhtml is available
+    if [ -f "coverage/lcov.info" ] && command -v genhtml &> /dev/null; then
+        echo ""
+        echo "Generating HTML report..."
+        genhtml coverage/lcov.info -o coverage/html 2>/dev/null || echo "Warning: Could not generate HTML report"
+        if [ -f "coverage/html/index.html" ]; then
+            echo "HTML report: coverage/html/index.html"
+        fi
     fi
 fi
 
@@ -157,30 +443,88 @@ echo "=============================================="
 
 EXIT_CODE=0
 
-if [ "$RUN_FLUTTER_UNIT" = true ]; then
-    if [ "$FLUTTER_UNIT_PASSED" = true ]; then
-        echo "✅ Flutter Unit: PASSED"
+if [ "$RUN_UNIT" = true ]; then
+    if [ "$UNIT_PASSED" = true ]; then
+        echo "Unit Tests: PASSED"
     else
-        echo "❌ Flutter Unit: FAILED"
+        echo "Unit Tests: FAILED"
         EXIT_CODE=1
     fi
 fi
 
-if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
-    if [ "$FLUTTER_INTEGRATION_PASSED" = true ]; then
-        echo "✅ Flutter Integration: PASSED"
+if [ "$RUN_INTEGRATION" = true ]; then
+    if [ "$INTEGRATION_PASSED" = true ]; then
+        echo "Integration Tests: PASSED"
     else
-        echo "❌ Flutter Integration: FAILED"
+        echo "Integration Tests: FAILED"
         EXIT_CODE=1
+    fi
+fi
+
+# Coverage summary and threshold check
+if [ "$WITH_COVERAGE" = true ]; then
+    # Calculate coverage percentage
+    get_coverage_percentage() {
+        local lcov_file="$1"
+        if [ ! -f "$lcov_file" ]; then
+            echo "0"
+            return
+        fi
+
+        local lines_found
+        local lines_hit
+        lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null) || lines_found=0
+        lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -cv ",0$") || lines_hit=0
+
+        lines_found=$(echo "$lines_found" | tr -d '[:space:]')
+        lines_hit=$(echo "$lines_hit" | tr -d '[:space:]')
+
+        lines_found=${lines_found:-0}
+        lines_hit=${lines_hit:-0}
+
+        if [ "$lines_found" -eq 0 ] 2>/dev/null; then
+            echo "0"
+        else
+            awk "BEGIN {printf \"%.1f\", ($lines_hit/$lines_found)*100}"
+        fi
+    }
+
+    echo ""
+    echo "=============================================="
+    echo "Coverage Summary"
+    echo "=============================================="
+
+    COVERAGE_PCT="0"
+    if [ -f "coverage/lcov.info" ]; then
+        COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov.info")
+        echo ""
+        echo "Total Coverage: ${COVERAGE_PCT}%"
+        echo "Report: coverage/lcov.info"
+    fi
+
+    # Check coverage thresholds
+    if [ "$CHECK_THRESHOLDS" = true ] && [ -f "coverage/lcov.info" ]; then
+        echo ""
+        echo "=============================================="
+        echo "Coverage Threshold Check"
+        echo "=============================================="
+
+        PASSES=$(echo "$COVERAGE_PCT $MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
+        if [ "$PASSES" = "1" ]; then
+            echo "PASS: ${COVERAGE_PCT}% >= ${MIN_COVERAGE}%"
+        else
+            echo "FAIL: ${COVERAGE_PCT}% < ${MIN_COVERAGE}%"
+            EXIT_CODE=1
+        fi
     fi
 fi
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo ""
-    echo "🎉 All tests passed!"
+    echo "All checks passed!"
 else
     echo ""
-    echo "💥 Some tests failed!"
+    echo "Some checks failed!"
 fi
 
 exit $EXIT_CODE

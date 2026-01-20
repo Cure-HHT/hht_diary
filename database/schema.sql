@@ -574,6 +574,8 @@ CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 -- Separate from app_users (patients using the mobile diary)
 
 -- User roles - common roles across all sponsors
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 CREATE TYPE portal_user_role AS ENUM (
     'Investigator',
     'Sponsor',
