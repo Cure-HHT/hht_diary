@@ -115,7 +115,8 @@ Future<Response> sendEmailOtpHandler(Request request) async {
   // Generate new OTP code
   final code = generateOtpCode();
   final codeHash = hashOtpCode(code);
-  final expiresAt = DateTime.now().add(const Duration(minutes: 10));
+  // Use UTC consistently to avoid timezone mismatches
+  final expiresAt = DateTime.now().toUtc().add(const Duration(minutes: 10));
 
   print(
     '[EMAIL_OTP] Generated OTP $code for user: $userId, expires: $expiresAt',

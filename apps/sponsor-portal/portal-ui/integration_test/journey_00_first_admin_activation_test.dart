@@ -60,6 +60,8 @@ void main() {
 
   group('JNY-portal-admin-00: First Admin Activation', () {
     late String activationCode;
+    // ignore: unused_local_variable
+    late String userId;
 
     setUp(() async {
       // Clean up any previous test data

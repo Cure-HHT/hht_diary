@@ -16,6 +16,8 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../widgets/error_message.dart';
+
 /// Page for setting up two-factor authentication during account activation
 ///
 /// This page is shown after the user creates their password and before
@@ -330,30 +332,12 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
 
                     // Error message
                     if (_error != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(8),
+                      ErrorMessage(
+                        message: _error!,
+                        supportEmail: const String.fromEnvironment(
+                          'SUPPORT_EMAIL',
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: theme.colorScheme.onErrorContainer,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onErrorContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        onDismiss: () => setState(() => _error = null),
                       ),
                       const SizedBox(height: 16),
                     ],

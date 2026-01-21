@@ -157,10 +157,20 @@ class Database {
 
     // Use pool.runTx to get a transaction - SET LOCAL only works in transactions
     return _pool!.runTx((connection) async {
-      // Set PostgreSQL role for RLS policy selection
-      // Note: SET LOCAL ROLE resets at end of transaction
-      // Role name is safe to interpolate since it's from our controlled enum
-      await connection.execute(Sql("SET LOCAL ROLE ${context.pgRole}"));
+      try {
+        // Set PostgreSQL role for RLS policy selection
+        // Note: SET LOCAL ROLE resets at end of transaction
+        // Role name is safe to interpolate since it's from our controlled enum
+        await connection.execute(Sql("SET LOCAL ROLE ${context.pgRole}"));
+      } catch (e) {
+        print(
+          '[DATABASE] ERROR: Failed to SET LOCAL ROLE ${context.pgRole}: $e',
+        );
+        print(
+          '[DATABASE] Hint: Ensure the role exists and current user can assume it',
+        );
+        rethrow;
+      }
 
       // Set session variables for RLS policy conditions
       // Use set_config with true (local) since we're in a transaction
@@ -178,7 +188,17 @@ class Database {
       );
 
       // Execute the actual query with RLS context set
-      return connection.execute(Sql.named(query), parameters: parameters);
+      try {
+        return connection.execute(Sql.named(query), parameters: parameters);
+      } catch (e) {
+        print(
+          '[DATABASE] ERROR: Query failed with context ${context.pgRole}: $e',
+        );
+        print(
+          '[DATABASE] Query: ${query.substring(0, query.length > 100 ? 100 : query.length)}...',
+        );
+        rethrow;
+      }
     });
   }
 

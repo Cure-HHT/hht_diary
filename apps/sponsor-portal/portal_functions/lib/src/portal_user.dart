@@ -39,6 +39,7 @@ Future<Response> getPortalUsersHandler(Request request) async {
   final db = Database.instance;
 
   // Get users with roles aggregated from portal_user_roles
+  // Exclude Developer Admin users - they are system bootstrap accounts
   final result = await db.execute('''
     SELECT
       pu.id,
@@ -66,6 +67,11 @@ Future<Response> getPortalUsersHandler(Request request) async {
     LEFT JOIN portal_user_roles pur ON pu.id = pur.user_id
     LEFT JOIN portal_user_site_access pusa ON pu.id = pusa.user_id
     LEFT JOIN sites s ON pusa.site_id = s.site_id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM portal_user_roles dev_check
+      WHERE dev_check.user_id = pu.id
+        AND dev_check.role = 'Developer Admin'
+    )
     GROUP BY pu.id
     ORDER BY pu.created_at DESC
   ''');
@@ -150,20 +156,25 @@ Future<Response> createPortalUserHandler(Request request) async {
     return _jsonResponse({'error': 'At least one role is required'}, 400);
   }
 
-  // Validate all roles are valid system enum values
+  // Validate all roles are valid assignable system roles
   // Note: Sponsor-specific role names (e.g., Callisto's "Study Coordinator")
   // are mapped to system roles via sponsor_role_mapping table at the UI layer.
   // The backend only accepts system role names.
-  const validRoles = [
+  // Developer Admin is NOT assignable - it's a system bootstrap role only.
+  const assignableRoles = [
     'Investigator',
     'Sponsor',
     'Auditor',
     'Analyst',
     'Administrator',
-    'Developer Admin',
   ];
   for (final role in roles) {
-    if (!validRoles.contains(role)) {
+    if (role == 'Developer Admin') {
+      return _jsonResponse({
+        'error': 'Developer Admin role cannot be assigned',
+      }, 403);
+    }
+    if (!assignableRoles.contains(role)) {
       return _jsonResponse({'error': 'Invalid role: $role'}, 400);
     }
   }
@@ -179,21 +190,18 @@ Future<Response> createPortalUserHandler(Request request) async {
     }, 400);
   }
 
-  // Non-developer admin users cannot create admin users
-  final creatingAdminRole =
-      roles.contains('Administrator') || roles.contains('Developer Admin');
-  if (creatingAdminRole && !user.hasRole('Developer Admin')) {
-    return _jsonResponse({
-      'error': 'Only Developer Admin can create admin users',
-    }, 403);
-  }
+  // Note: Developer Admin role is already blocked above in assignableRoles check.
+  // Regular Admins CAN create other Admins - this is the normal bootstrap flow.
 
-  // Generate linking code for site-based roles (device enrollment for diary app)
-  final linkingCode = needsSites ? _generateCode() : null;
+  // NOTE: Linking codes are ONLY for patients (diary app device linking).
+  // Portal users (Admins, Investigators, etc.) only need activation codes.
+  // Patient enrollment is handled separately, not through this endpoint.
 
   // Generate activation code for all new users
   final activationCode = _generateCode();
   final activationExpiry = DateTime.now().add(const Duration(days: 14));
+
+  print('[PORTAL_USER] Generated activation_code=$activationCode for $email');
 
   final db = Database.instance;
 
@@ -207,14 +215,15 @@ Future<Response> createPortalUserHandler(Request request) async {
   }
 
   // Create user with pending status
+  // NOTE: linking_code is NULL for portal users - only patients get linking codes
   final createResult = await db.execute(
     '''
     INSERT INTO portal_users (
-      email, name, linking_code, activation_code,
+      email, name, activation_code,
       activation_code_expires_at, status
     )
     VALUES (
-      @email, @name, @linkingCode, @activationCode,
+      @email, @name, @activationCode,
       @activationExpiry, 'pending'
     )
     RETURNING id
@@ -222,13 +231,27 @@ Future<Response> createPortalUserHandler(Request request) async {
     parameters: {
       'email': email,
       'name': name,
-      'linkingCode': linkingCode,
       'activationCode': activationCode,
       'activationExpiry': activationExpiry,
     },
   );
 
   final newUserId = createResult.first[0] as String;
+  print(
+    '[PORTAL_USER] INSERT complete: userId=$newUserId, activation_code=$activationCode',
+  );
+
+  // Verify the code was stored correctly
+  final verifyResult = await db.execute(
+    'SELECT activation_code FROM portal_users WHERE id = @id::uuid',
+    parameters: {'id': newUserId},
+  );
+  final storedCode = verifyResult.isNotEmpty
+      ? verifyResult.first[0]
+      : 'NOT_FOUND';
+  print(
+    '[PORTAL_USER] VERIFY: stored_code=$storedCode, matches=${storedCode == activationCode}',
+  );
 
   // Create role assignments in portal_user_roles
   for (final role in roles) {
@@ -284,13 +307,18 @@ Future<Response> createPortalUserHandler(Request request) async {
     }
   }
 
+  print(
+    '[PORTAL_USER] RESPONSE: activation_code=$activationCode (returning to client)',
+  );
+
+  // NOTE: linking_code not included - portal users don't need linking codes
+  // Linking codes are only for patients (diary app device linking)
   return _jsonResponse({
     'id': newUserId,
     'email': email,
     'name': name,
     'roles': roles,
     'status': 'pending',
-    'linking_code': linkingCode,
     'activation_code': activationCode,
     'site_ids': siteIds,
     'email_sent': emailSent,

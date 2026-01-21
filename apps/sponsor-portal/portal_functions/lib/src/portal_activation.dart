@@ -31,13 +31,30 @@ Future<Response> validateActivationCodeHandler(
   Request request,
   String code,
 ) async {
-  print('[ACTIVATION] Validating code: ${code.substring(0, 5)}...');
+  print('[ACTIVATION] Validating code: $code');
 
   final db = Database.instance;
 
-  // Use service context since this is unauthenticated
+  // Debug: Check what codes exist in the database (direct query, no RLS)
+  final debugResult = await db.execute('''
+    SELECT id, email, activation_code, status
+    FROM portal_users
+    WHERE activation_code IS NOT NULL
+    ''');
+  print(
+    '[ACTIVATION] DEBUG: Found ${debugResult.length} users with activation codes:',
+  );
+  for (final row in debugResult) {
+    print(
+      '[ACTIVATION] DEBUG:   id=${row[0]}, email=${row[1]}, code=${row[2]}, status=${row[3]}',
+    );
+  }
+
+  // Use service context for unauthenticated activation code lookup
+  // This is a privileged operation before user identity is established
   const serviceContext = UserContext.service;
 
+  print('[ACTIVATION] Querying with service context for code: $code');
   final result = await db.executeWithContext(
     '''
     SELECT id, email, name, status, activation_code_expires_at
@@ -48,8 +65,10 @@ Future<Response> validateActivationCodeHandler(
     context: serviceContext,
   );
 
+  print('[ACTIVATION] Query returned ${result.length} rows');
+
   if (result.isEmpty) {
-    print('[ACTIVATION] Code not found');
+    print('[ACTIVATION] Code not found in query result');
     return _jsonResponse({'error': 'Invalid activation code'}, 401);
   }
 
@@ -122,6 +141,8 @@ Future<Response> activateUserHandler(Request request) async {
   }
 
   final db = Database.instance;
+
+  // Use service context for activation - linking identity before user context exists
   const serviceContext = UserContext.service;
 
   // Find user by activation code
@@ -285,6 +306,8 @@ Future<Response> generateActivationCodeHandler(Request request) async {
   final firebaseUid = verification.uid!;
 
   final db = Database.instance;
+
+  // Use service context for admin code generation - privileged operation
   const serviceContext = UserContext.service;
 
   // Check if caller is Developer Admin
