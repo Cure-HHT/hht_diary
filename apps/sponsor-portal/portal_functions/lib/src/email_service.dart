@@ -11,6 +11,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:googleapis/gmail/v1.dart' as gmail;
@@ -514,15 +515,9 @@ $bodyHtml
 
 /// Generate a cryptographically secure 6-digit OTP code
 String generateOtpCode() {
-  final random = List<int>.generate(6, (_) {
-    // Use crypto for secure random
-    final bytes = List<int>.generate(
-      1,
-      (_) => DateTime.now().microsecond % 256,
-    );
-    return bytes[0] % 10;
-  });
-  return random.join();
+  final secureRandom = Random.secure();
+  final digits = List<int>.generate(6, (_) => secureRandom.nextInt(10));
+  return digits.join();
 }
 
 /// Hash an OTP code using SHA-256
