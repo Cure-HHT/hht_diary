@@ -17,7 +17,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Coverage threshold (percentage)
-MIN_COVERAGE=75
+MIN_COVERAGE=85
 
 # Parse command line arguments
 RUN_UNIT=false
@@ -119,6 +119,13 @@ done
 
 # Default: run unit tests only (integration tests require services)
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
+    RUN_UNIT=true
+fi
+
+# Coverage requires unit tests (Dart VM integration tests don't generate Flutter coverage)
+if [ "$WITH_COVERAGE" = true ] && [ "$RUN_UNIT" = false ]; then
+    echo "Note: Enabling unit tests for coverage collection"
+    echo "      (Dart VM integration tests don't generate Flutter coverage)"
     RUN_UNIT=true
 fi
 
@@ -452,7 +459,9 @@ fi
 # Run integration tests (Dart VM tests against real services)
 if [ "$RUN_INTEGRATION" = true ]; then
     echo ""
-    echo "Running integration tests..."
+    echo "=============================================="
+    echo "Running Integration Tests"
+    echo "=============================================="
     if [ "$USE_DEV_IDENTITY" = true ]; then
         echo "   Auth: GCP Identity Platform ($PORTAL_IDENTITY_PROJECT_ID)"
     else
@@ -494,30 +503,57 @@ if [ "$RUN_INTEGRATION" = true ]; then
     export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null || echo "postgres")
 
     if [ -d "integration_test" ]; then
-        # Run integration tests as Dart VM tests (not Flutter widget tests)
-        INTEGRATION_FAILED=false
-        for test_file in integration_test/*_test.dart; do
-            if [ -f "$test_file" ]; then
-                echo ""
-                echo "   Running: $test_file"
-                if dart test "$test_file"; then
-                    echo "   PASSED: $test_file"
-                else
-                    echo "   FAILED: $test_file"
-                    INTEGRATION_FAILED=true
-                fi
-            fi
-        done
+        # Count test files
+        TEST_FILES=(integration_test/*_test.dart)
+        TEST_COUNT=${#TEST_FILES[@]}
+        echo "   Found $TEST_COUNT integration test file(s)"
+        echo ""
 
-        if [ "$INTEGRATION_FAILED" = true ]; then
-            echo "Integration tests failed!"
-            INTEGRATION_PASSED=false
+        # Build test command - add coverage flag if requested
+        # IMPORTANT: --concurrency=1 because integration tests share database state
+        if [ "$WITH_COVERAGE" = true ]; then
+            INTEGRATION_TEST_CMD="dart test --concurrency=1 --coverage=coverage/integration"
+            rm -rf coverage/integration
+            mkdir -p coverage/integration
         else
-            echo "Integration tests passed!"
+            INTEGRATION_TEST_CMD="dart test --concurrency=1"
         fi
 
-        # Note: Dart VM tests don't generate Flutter coverage
-        # For combined coverage, we'd need different approach
+        # Run all integration tests at once (like portal_functions does)
+        # This ensures coverage data is collected across all tests
+        echo "----------------------------------------------"
+        echo "Running all $TEST_COUNT integration test files..."
+        echo "----------------------------------------------"
+        if $INTEGRATION_TEST_CMD integration_test/; then
+            echo ""
+            echo "----------------------------------------------"
+            echo "Integration Tests: PASSED ($TEST_COUNT files)"
+            echo "----------------------------------------------"
+        else
+            echo ""
+            echo "----------------------------------------------"
+            echo "Integration Tests: FAILED"
+            echo "----------------------------------------------"
+            INTEGRATION_PASSED=false
+        fi
+
+        # Generate lcov report for integration tests
+        if [ "$WITH_COVERAGE" = true ] && [ -d "coverage/integration" ]; then
+            echo ""
+            echo "Generating integration test lcov report..."
+            dart pub global activate coverage 2>/dev/null || true
+            dart pub global run coverage:format_coverage \
+                --lcov \
+                --in=coverage/integration \
+                --out=coverage/lcov-integration.info \
+                --report-on=lib \
+                --packages=.dart_tool/package_config.json || echo "Warning: Could not generate integration lcov report"
+
+            if [ -f "coverage/lcov-integration.info" ]; then
+                LINES=$(wc -l < coverage/lcov-integration.info | tr -d ' ')
+                echo "Integration coverage captured: coverage/lcov-integration.info ($LINES lines)"
+            fi
+        fi
     else
         echo "integration_test/ directory not found, skipping integration tests"
     fi
@@ -532,24 +568,46 @@ fi
 
 # Combine coverage reports if both exist
 if [ "$WITH_COVERAGE" = true ]; then
+    echo ""
+    echo "Preparing coverage reports..."
+    echo "   Unit coverage: $([ -f coverage/lcov-unit.info ] && echo 'YES' || echo 'NO')"
+    echo "   Integration coverage: $([ -f coverage/lcov-integration.info ] && echo 'YES' || echo 'NO')"
+
     if [ -f "coverage/lcov-unit.info" ] && [ -f "coverage/lcov-integration.info" ]; then
         if command -v lcov &> /dev/null; then
             echo ""
             echo "Combining coverage reports..."
-            lcov -a coverage/lcov-unit.info -a coverage/lcov-integration.info \
-                -o coverage/lcov.info --ignore-errors unused 2>/dev/null || true
+            if lcov -a coverage/lcov-unit.info -a coverage/lcov-integration.info \
+                -o coverage/lcov.info --ignore-errors unused; then
+                echo "Combined coverage: coverage/lcov.info"
+            else
+                echo "Warning: lcov combine failed, using unit coverage only"
+                cp coverage/lcov-unit.info coverage/lcov.info
+            fi
+        else
+            echo "lcov not found, concatenating files..."
+            cat coverage/lcov-unit.info coverage/lcov-integration.info > coverage/lcov.info
         fi
     elif [ -f "coverage/lcov-unit.info" ]; then
-        cp coverage/lcov-unit.info coverage/lcov.info 2>/dev/null || true
+        echo "Using unit coverage only"
+        cp coverage/lcov-unit.info coverage/lcov.info
     elif [ -f "coverage/lcov-integration.info" ]; then
-        cp coverage/lcov-integration.info coverage/lcov.info 2>/dev/null || true
+        echo "Using integration coverage only"
+        cp coverage/lcov-integration.info coverage/lcov.info
+    fi
+
+    # Verify coverage file exists
+    if [ -f "coverage/lcov.info" ]; then
+        echo "Final coverage file: coverage/lcov.info"
+    else
+        echo "Warning: No coverage file created"
     fi
 
     # Generate HTML report if genhtml is available
     if [ -f "coverage/lcov.info" ] && command -v genhtml &> /dev/null; then
         echo ""
         echo "Generating HTML report..."
-        genhtml coverage/lcov.info -o coverage/html 2>/dev/null || echo "Warning: Could not generate HTML report"
+        genhtml coverage/lcov.info -o coverage/html || echo "Warning: Could not generate HTML report"
         if [ -f "coverage/html/index.html" ]; then
             echo "HTML report: coverage/html/index.html"
         fi
@@ -611,29 +669,47 @@ if [ "$WITH_COVERAGE" = true ]; then
 
     echo ""
     echo "=============================================="
-    echo "Coverage Summary"
+    echo "Coverage Report"
     echo "=============================================="
 
     COVERAGE_PCT="0"
     if [ -f "coverage/lcov.info" ]; then
         COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov.info")
+
         echo ""
-        echo "Total Coverage: ${COVERAGE_PCT}%"
-        echo "Report: coverage/lcov.info"
+        echo "  ┌────────────────────────────────────────┐"
+        echo "  │                                        │"
+        printf "  │     TOTAL COVERAGE: %6s%%            │\n" "$COVERAGE_PCT"
+        echo "  │                                        │"
+        echo "  └────────────────────────────────────────┘"
+        echo ""
+        echo "  LCOV Report: coverage/lcov.info"
+        if [ -f "coverage/html/index.html" ]; then
+            echo "  HTML Report: coverage/html/index.html"
+            echo ""
+            echo "  View in browser:"
+            echo "    open coverage/html/index.html"
+        fi
+    else
+        echo ""
+        echo "  Warning: No coverage data generated"
+        echo "  (Run unit tests with -u flag to generate coverage)"
     fi
 
     # Check coverage thresholds
     if [ "$CHECK_THRESHOLDS" = true ] && [ -f "coverage/lcov.info" ]; then
         echo ""
         echo "=============================================="
-        echo "Coverage Threshold Check"
+        echo "Coverage Threshold Check (minimum: ${MIN_COVERAGE}%)"
         echo "=============================================="
 
         PASSES=$(echo "$COVERAGE_PCT $MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
         if [ "$PASSES" = "1" ]; then
-            echo "PASS: ${COVERAGE_PCT}% >= ${MIN_COVERAGE}%"
+            echo ""
+            echo "  ✓ PASS: ${COVERAGE_PCT}% >= ${MIN_COVERAGE}%"
         else
-            echo "FAIL: ${COVERAGE_PCT}% < ${MIN_COVERAGE}%"
+            echo ""
+            echo "  ✗ FAIL: ${COVERAGE_PCT}% < ${MIN_COVERAGE}%"
             EXIT_CODE=1
         fi
     fi
