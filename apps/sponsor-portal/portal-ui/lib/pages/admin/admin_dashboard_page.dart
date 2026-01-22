@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
 import 'sites_tab.dart';
+import 'user_management_tab.dart';
 
 /// Admin dashboard page with navigation rail
 class AdminDashboardPage extends StatefulWidget {
@@ -230,29 +231,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildUsersTab(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.people_outline,
-            size: 64,
-            color: theme.colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text('User Management', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(
-            'User management features coming soon',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildUsersTab(ThemeData theme) => const UserManagementTab();
 
   Widget _buildSitesTab(ThemeData theme) => const SitesTab();
 
