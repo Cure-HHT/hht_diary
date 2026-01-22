@@ -1,0 +1,40 @@
+---
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00030: CI/CD Integration
+#   REQ-d00033: FDA Validation Documentation
+#   REQ-d00035: Security and Compliance
+#
+# Portal Server Docker Image Build & Publish
+# Builds, signs, and publishes Docker images to GitHub Container Registry
+
+# Build Portal server Docker images to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed.
+# Tags produced: full semver (1.2.3), major.minor (1.2), major (1), latest, short-sha
+
+# Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
+# or when manually dispatched via the Actions UI with an input `version`.
+# - Restores the "Determine tag and validate semver" step (id: parse)
+# - Adds workflow_dispatch with an input string named `version`
+# - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
+
+name: Build, push and sign portal-server image
+on:
+  push:
+    branches: [ feature/push-button ]  # temporary for testing
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
+        required: true
+        default: ''
+
+jobs:
+  build-portal-server:
+    name: Build portal-server Image
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Placeholder
+        run: echo "Portal server build workflow - not yet implemented"

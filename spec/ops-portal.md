@@ -50,26 +50,6 @@ Before deploying a portal instance to an environment, ensure you have:
 
 ---
 
-# REQ-o00055: Role-Based Visual Indicator Verification
-
-**Level**: Ops | **Status**: Draft | **Implements**: p00030
-
-## Rationale
-
-This requirement ensures that role-based visual indicators (color banners) are properly deployed and functioning across all portal deployments. These visual indicators are critical for user awareness and security, helping users immediately identify which role context they are operating in. This operational verification requirement defines the post-deployment testing process that must occur to confirm correct implementation of the role-based visual system defined in the product requirements (p00030). The verification scope encompasses visual presentation, data accuracy (role name display), color specification compliance, platform-wide deployment consistency, and the validation methodology to be used.
-
-## Assertions
-
-A. Portal deployments SHALL include verification that role-based color banners display correctly for all user roles.
-B. The visual smoke test SHALL confirm that the banner appears on the portal homepage.
-C. The banner SHALL display the correct role name after authentication.
-D. The banner colors SHALL match the specification for each role type.
-E. The role-based banner feature SHALL be included in all sponsor portal deployments.
-F. The validation method SHALL require logging in as each role type to verify banner color and text.
-
-*End* *Role-Based Visual Indicator Verification* | **Hash**: 00e842fa
----
-
 ## Infrastructure as Code with Pulumi
 
 Portal deployment uses **Pulumi** for declarative infrastructure management, providing:
