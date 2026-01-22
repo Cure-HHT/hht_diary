@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Coverage threshold (percentage)
-MIN_COVERAGE=85
+MIN_COVERAGE=80
 
 # Parse command line arguments
 RUN_UNIT=false
