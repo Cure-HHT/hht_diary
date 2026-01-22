@@ -36,4 +36,4 @@ CMD ["dart", "--version"]
 
 # Labels for container registry
 LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"
-LABEL org.opencontainers.image.description="Base Dart runtime for HHT Diary services"
+LABEL org.opencontainers.image.description="Base Dart runtime for both of our services."
