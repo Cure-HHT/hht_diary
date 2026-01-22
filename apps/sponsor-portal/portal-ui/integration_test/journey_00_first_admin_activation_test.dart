@@ -108,10 +108,10 @@ void main() {
 
   group('JNY-portal-admin-00: First Admin Activation', () {
     late String activationCode;
-    // ignore: unused_local_variable
-    late String userId;
 
-    setUp(() async {
+    // Use setUpAll to create the user ONCE for all tests in this group
+    // Tests run sequentially and share state (activation persists)
+    setUpAll(() async {
       // Clean up any previous test data
       await db.cleanupTestData();
 
@@ -120,7 +120,6 @@ void main() {
         email: testEmail,
         name: testName,
       );
-      userId = result.userId;
       activationCode = result.activationCode;
     });
 
@@ -226,32 +225,31 @@ void main() {
     });
 
     test('Activation link cannot be reused', () async {
-      // First activation
-      var authResult = await signInAuthUser(
+      // User was already activated in "Step 7-9" test above.
+      // Activation codes are one-time use - the code is deleted after activation.
+      // Trying to reuse the same code should fail with "Invalid" (code not found).
+
+      final authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
-      );
-      await apiClient.activateUser(
-        code: activationCode,
-        idToken: authResult!.idToken,
       );
 
-      // Try to use same activation code again
-      authResult = await signInAuthUser(
-        email: testEmail,
-        password: testPassword,
-      );
+      // Try to use the same activation code again (already consumed)
       final secondActivation = await apiClient.activateUser(
         code: activationCode,
         idToken: authResult!.idToken,
       );
 
+      // Code was deleted after first use, so returns 401 "Invalid"
       expect(
         secondActivation.statusCode,
-        equals(400),
-        reason: 'Already activated accounts should reject activation',
+        equals(401),
+        reason: 'Consumed activation code should be rejected as invalid',
       );
-      expect(secondActivation.body['error'], contains('already activated'));
+      expect(
+        secondActivation.body['error'].toString().toLowerCase(),
+        contains('invalid'),
+      );
     });
 
     test('Expired activation code is rejected', () async {

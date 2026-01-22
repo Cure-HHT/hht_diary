@@ -37,7 +37,6 @@ const PROTECTED_EMAILS = [
   'michael@anspar.org',
   'tom@anspar.org',
   'urayoan@anspar.org',
-  'elvira@anspar.org',
 ];
 
 // Parse command line arguments

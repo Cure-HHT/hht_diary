@@ -253,8 +253,8 @@ if [ "$START_SERVICES" = true ]; then
                 --project="${PORTAL_IDENTITY_PROJECT_ID%-*}" \
                 --env="${PORTAL_IDENTITY_PROJECT_ID##*-}" \
                 --password="$DEV_PASSWORD" \
-                --users="mike.bushe@anspar.org,michael@anspar.org,tom@anspar.org,urayoan@anspar.org,elvira@anspar.org" \
-                --user-names="Mike Bushe,Michael,Tom,Urayoan,Elvira")
+                --users="mike.bushe@anspar.org,michael@anspar.org,tom@anspar.org,urayoan@anspar.org" \
+                --user-names="Mike Bushe,Michael,Tom,Urayoan")
         fi
     else
         # Using Firebase emulator (default)

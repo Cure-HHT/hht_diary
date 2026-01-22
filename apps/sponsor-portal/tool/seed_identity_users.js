@@ -86,7 +86,7 @@ Example:
 Notes:
   - Requires gcloud auth: gcloud auth application-default login
   - Requires npm install firebase-admin
-  - Users that already exist will be skipped
+  - Existing users will have their password updated to match --password
   - Email verification is set to true for all users
 `);
 }
@@ -152,8 +152,14 @@ async function createOrUpdateUser(email, displayName, password) {
     const existing = await admin.auth().getUserByEmail(email).catch(() => null);
 
     if (existing) {
-      console.log(`  [EXISTS] ${email} (uid: ${existing.uid})`);
-      return { status: 'exists', uid: existing.uid };
+      // Update existing user's password and display name to ensure they match
+      await admin.auth().updateUser(existing.uid, {
+        password: password,
+        displayName: displayName,
+        emailVerified: true,
+      });
+      console.log(`  [UPDATED] ${email} (uid: ${existing.uid})`);
+      return { status: 'updated', uid: existing.uid };
     }
 
     // Create new user
@@ -194,7 +200,7 @@ async function seedUsers() {
 
   const results = {
     created: 0,
-    exists: 0,
+    updated: 0,
     errors: 0,
   };
 
@@ -209,7 +215,7 @@ async function seedUsers() {
   console.log('  Summary');
   console.log('========================================');
   console.log(`  Created: ${results.created}`);
-  console.log(`  Already existed: ${results.exists}`);
+  console.log(`  Updated: ${results.updated}`);
   console.log(`  Errors: ${results.errors}`);
   console.log('========================================\n');
 

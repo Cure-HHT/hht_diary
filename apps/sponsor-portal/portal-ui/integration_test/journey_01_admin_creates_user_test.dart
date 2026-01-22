@@ -7,7 +7,7 @@
 //
 // This test validates the complete user creation journey:
 // 1. Admin logs into portal
-// 2. Admin creates a new Study Coordinator with site assignment
+// 2. Admin creates a new Investigator with site assignment
 // 3. System sends activation email (captured via API response)
 // 4. New user's account shows "Pending Activation" status
 // 5. New user receives activation code and activates account
@@ -42,7 +42,7 @@ void main() {
   // Password from environment or default (must match seed_identity_users.js)
   final adminPassword = Platform.environment['DEV_ADMIN_PASSWORD'] ?? 'curehht';
 
-  // New user to be created (Sarah Martinez - Study Coordinator)
+  // New user to be created (Sarah Martinez - Investigator)
   const newUserEmail = 'sarah.martinez@integration-test.example.com';
   const newUserName = 'Sarah Martinez';
   const newUserPassword = 'SecureP@ssw0rd456';
@@ -174,13 +174,13 @@ void main() {
       );
     });
 
-    test('Step 2-7: Admin creates Study Coordinator with site', () async {
-      // Create new user with Study Coordinator role and site assignment
+    test('Step 2-7: Admin creates Investigator with site', () async {
+      // Create new user with Investigator role and site assignment
       final createResult = await apiClient.createUser(
         idToken: adminToken,
         name: newUserName,
         email: newUserEmail,
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         siteIds: [availableSiteIds.first],
       );
 
@@ -193,7 +193,7 @@ void main() {
       expect(createResult.body['email'], equals(newUserEmail));
       expect(createResult.body['name'], equals(newUserName));
       expect(createResult.body['status'], equals('pending'));
-      expect(createResult.body['roles'], contains('Study Coordinator'));
+      expect(createResult.body['roles'], contains('Investigator'));
 
       // Activation code is returned (for testing, bypasses email)
       expect(createResult.body['activation_code'], isNotNull);
@@ -209,7 +209,7 @@ void main() {
         idToken: adminToken,
         name: newUserName,
         email: newUserEmail,
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         siteIds: [availableSiteIds.first],
       );
       expect(createResult.statusCode, equals(201));
@@ -235,7 +235,7 @@ void main() {
         idToken: adminToken,
         name: newUserName,
         email: newUserEmail,
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         siteIds: [availableSiteIds.first],
       );
       final activationCode = createResult.body['activation_code'] as String;
@@ -269,38 +269,39 @@ void main() {
       expect(meResult.body['status'], equals('active'));
     });
 
-    test('CRA role requires site assignment', () async {
-      // Create CRA with site
+    test('Sponsor role can be created without site', () async {
+      // Sponsor role (CRA in Callisto) does not require site assignment
+      // Note: CRA maps to Auditor system role, Sponsor is for sponsor-level oversight
       final createResult = await apiClient.createUser(
         idToken: adminToken,
         name: craUserName,
         email: craUserEmail,
-        roles: ['CRA'],
-        siteIds: [availableSiteIds.first],
+        roles: ['Sponsor'],
+        // No siteIds required for Sponsor role
       );
 
       expect(
         createResult.statusCode,
         equals(201),
-        reason: 'CRA with site should succeed',
+        reason: 'Sponsor without site should succeed',
       );
-      expect(createResult.body['roles'], contains('CRA'));
+      expect(createResult.body['roles'], contains('Sponsor'));
     });
 
     test('Site-based role without site is rejected', () async {
-      // Try to create Study Coordinator without sites
+      // Try to create Investigator without sites
       final createResult = await apiClient.createUser(
         idToken: adminToken,
         name: 'No Site User',
         email: 'nosite@integration-test.example.com',
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         // No siteIds
       );
 
       expect(
         createResult.statusCode,
         equals(400),
-        reason: 'Study Coordinator without site should fail',
+        reason: 'Investigator without site should fail',
       );
       expect(
         createResult.body['error'].toString().toLowerCase(),
@@ -324,20 +325,20 @@ void main() {
       );
     });
 
-    test('Multi-role user creation with Study Coordinator + Auditor', () async {
+    test('Multi-role user creation with Investigator + Auditor', () async {
       // User with multiple roles (one requires sites, one doesn't)
       final createResult = await apiClient.createUser(
         idToken: adminToken,
         name: multiRoleUserName,
         email: multiRoleUserEmail,
-        roles: ['Study Coordinator', 'Auditor'],
-        siteIds: [availableSiteIds.first], // Required for Study Coordinator
+        roles: ['Investigator', 'Auditor'],
+        siteIds: [availableSiteIds.first], // Required for Investigator
       );
 
       expect(createResult.statusCode, equals(201));
       expect(
         createResult.body['roles'],
-        containsAll(['Study Coordinator', 'Auditor']),
+        containsAll(['Investigator', 'Auditor']),
       );
     });
 
@@ -347,7 +348,7 @@ void main() {
         idToken: adminToken,
         name: newUserName,
         email: newUserEmail,
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         siteIds: [availableSiteIds.first],
       );
 
@@ -388,7 +389,7 @@ void main() {
         idToken: adminToken,
         name: newUserName,
         email: newUserEmail,
-        roles: ['Study Coordinator'],
+        roles: ['Investigator'],
         siteIds: [availableSiteIds.first],
       );
 
