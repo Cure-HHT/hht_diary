@@ -1,0 +1,70 @@
+flowchart TD
+    subgraph Portal ["Sponsor Portal (Investigator)"]
+        A[Investigator triggers<br/>push notification]
+        P_S2([Questionnaire Status:<br/>Ready to Review])
+        G{Review questionnaire}
+        H[Select: Finalize and Score]
+        I[Select: Unlock for Editing]
+        J[Score calculated and stored]
+        P_S3([Questionnaire Status:<br/>Finalized])
+    end
+
+    subgraph Diary ["Diary App (Patient)"]
+        B[Patient receives<br/>push notification]
+        D_S1([Questionnaire Status:<br/>Active])
+        C[Patient completes<br/>questionnaire]
+        D{Scored<br/>questionnaire?}
+        E[Review answers<br/>before scoring]
+        F[Select: Complete and Submit]
+        D_S2([Questionnaire Status:<br/>Read-only])
+        D_S4([Questionnaire Status:<br/>Review])
+        K[Questionnaire unlocked<br/>for editing]
+        L[Patient reviews and<br/>updates answers]
+        D_S3([Questionnaire Status:<br/>Read-only permanent])
+    end
+
+    A -->|Push notification| B
+    B --> D_S1
+    D_S1 --> C
+    C --> D
+    D -->|Yes| E
+    D -->|No| F
+    E --> F
+    F --> D_S2
+    D_S2 -.->|sync| P_S2
+    P_S2 --> G
+    G --> H
+    G --> I
+    H --> J
+    J --> P_S3
+    P_S3 -.->|sync| D_S3
+    I --> D_S4
+    D_S4 --> K
+    K --> L
+    L --> F
+
+    %% Portal nodes - blue theme
+    style A fill:#1565c0,color:#ffffff,stroke:#0d47a1
+    style G fill:#1976d2,color:#ffffff,stroke:#0d47a1
+    style H fill:#1565c0,color:#ffffff,stroke:#0d47a1
+    style I fill:#1565c0,color:#ffffff,stroke:#0d47a1
+    style J fill:#0d47a1,color:#ffffff,stroke:#0d47a1
+
+    %% Diary nodes - orange theme
+    style B fill:#ef6c00,color:#ffffff,stroke:#e65100
+    style C fill:#f57c00,color:#ffffff,stroke:#e65100
+    style D fill:#ff9800,color:#000000,stroke:#e65100
+    style E fill:#f57c00,color:#ffffff,stroke:#e65100
+    style F fill:#ef6c00,color:#ffffff,stroke:#e65100
+    style K fill:#f57c00,color:#ffffff,stroke:#e65100
+    style L fill:#f57c00,color:#ffffff,stroke:#e65100
+
+    %% Status nodes - Diary side
+    style D_S1 fill:#2e7d32,color:#ffffff,stroke:#1b5e20
+    style D_S2 fill:#f9a825,color:#000000,stroke:#f57f17
+    style D_S3 fill:#c62828,color:#ffffff,stroke:#b71c1c
+    style D_S4 fill:#0277bd,color:#ffffff,stroke:#01579b
+
+    %% Status nodes - Portal side
+    style P_S2 fill:#f9a825,color:#000000,stroke:#f57f17
+    style P_S3 fill:#c62828,color:#ffffff,stroke:#b71c1c
