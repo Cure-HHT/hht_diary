@@ -384,8 +384,6 @@ start_server() {
     cd "$SPONSOR_PORTAL_DIR/portal_server"
 
     # Export environment variables for the server
-    export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
-    export GCP_PROJECT_ID="demo-sponsor-portal"
     export DB_SSL="false"
     export PORT="8080"
     export DB_HOST="$DB_HOST"
@@ -393,6 +391,19 @@ start_server() {
     export DB_NAME="$DB_NAME"
     export DB_USER="postgres"
     export DB_PASSWORD="$DB_PASSWORD"
+
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        # Use real GCP Identity Platform for token verification
+        # Unset emulator host to force real verification
+        unset FIREBASE_AUTH_EMULATOR_HOST
+        export GCP_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID"
+        log_info "Server using GCP Identity Platform: $GCP_PROJECT_ID"
+    else
+        # Use Firebase emulator for token verification
+        export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
+        export GCP_PROJECT_ID="demo-sponsor-portal"
+        log_info "Server using Firebase Emulator: $FIREBASE_AUTH_EMULATOR_HOST"
+    fi
 
     # Start in background
     dart run bin/server.dart &
