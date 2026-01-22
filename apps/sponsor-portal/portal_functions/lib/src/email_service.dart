@@ -282,15 +282,10 @@ Hi $recipientName,
 
 You've been invited to Clinical Trial Portal.
 
-Your activation code is: $activationCode
+To activate your account, click the link below:
+$activationUrl
 
-To activate your account:
-1. Visit: $activationUrl
-2. Enter your activation code
-3. Create a password
-4. Complete setup
-
-This code expires in 14 days.
+This link expires in 14 days.
 
 Questions? Contact your sponsor administrator.
 
@@ -306,33 +301,19 @@ Clinical Trial Portal
   <meta charset="utf-8">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; }
-    .code { font-size: 24px; font-weight: bold; letter-spacing: 4px; padding: 15px 20px; background: #e8f5e9; border-radius: 8px; display: inline-block; color: #2e7d32; }
-    .steps { background: #f9f9f9; padding: 15px 20px; border-radius: 8px; margin: 20px 0; }
-    .steps ol { margin: 0; padding-left: 20px; }
     .footer { margin-top: 30px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
-    .button { display: inline-block; background: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 15px 0; }
+    .button { display: inline-block; background: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
   </style>
 </head>
 <body>
   <p>Hi <strong>$recipientName</strong>,</p>
   <p>You've been invited to <strong>Clinical Trial Portal</strong>.</p>
 
-  <p>Your activation code is:</p>
-  <p class="code">$activationCode</p>
+  <p>Click the button below to activate your account and create your password:</p>
 
   <p><a href="$activationUrl" class="button">Activate Your Account</a></p>
 
-  <div class="steps">
-    <strong>To activate your account:</strong>
-    <ol>
-      <li>Click the button above or visit: $activationUrl</li>
-      <li>Enter your activation code</li>
-      <li>Create a password</li>
-      <li>Complete setup</li>
-    </ol>
-  </div>
-
-  <p><em>This code expires in 14 days.</em></p>
+  <p><em>This link expires in 14 days.</em></p>
   <p>Questions? Contact your sponsor administrator.</p>
 
   <div class="footer">
