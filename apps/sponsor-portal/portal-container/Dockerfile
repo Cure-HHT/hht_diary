@@ -27,7 +27,7 @@ WORKDIR /app/apps/sponsor-portal/portal-ui
 
 # Get dependencies and build for web
 RUN flutter pub get
-RUN flutter build web --release
+RUN flutter build web --release --dart-define=APP_FLAVOR=dev --pwa-strategy=none
 
 # =============================================================================
 # Stage 2: Build Dart Server
