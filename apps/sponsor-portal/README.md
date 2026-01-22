@@ -21,6 +21,54 @@ Clinical Trial Sponsor Web Portal for managing users, sites, and trial data acce
 - Doppler CLI (for secrets management)
 - Access to sponsor-specific seed data repo (e.g., `hht_diary_curehht`)
 
+### Unified Local Runner (Recommended)
+
+The easiest way to start local development:
+
+```bash
+cd apps/sponsor-portal
+
+# Start everything (DB, emulator, server, UI)
+./tool/run_local.sh
+
+# Reset database and start fresh
+./tool/run_local.sh --reset
+
+# Use GCP Identity Platform instead of Firebase emulator
+./tool/run_local.sh --dev
+
+# Start without UI (backend only)
+./tool/run_local.sh --no-ui
+
+# Show all options
+./tool/run_local.sh --help
+```
+
+**Options:**
+
+| Flag | Description |
+| ---- | ----------- |
+| `--reset` | Reset database (drop tables, reapply schema + seed data) |
+| `--dev` | Use GCP Identity Platform instead of Firebase emulator |
+| `--no-ui` | Don't start Flutter web client |
+| `--offline` | Run without Doppler (uses local fallback passwords) |
+
+**GCP Identity Platform Mode (`--dev`):**
+
+Uses real GCP Identity Platform for authentication instead of Firebase emulator.
+This is GDPR/FDA compliant and recommended for testing real auth flows.
+
+Required Doppler secrets:
+
+- `PORTAL_IDENTITY_API_KEY` - GCP Identity Platform API key
+- `PORTAL_IDENTITY_APP_ID` - Identity Platform web app ID
+- `PORTAL_IDENTITY_PROJECT_ID` - GCP project ID
+- `PORTAL_IDENTITY_AUTH_DOMAIN` - Auth domain (project.firebaseapp.com)
+
+### Manual Setup (Alternative)
+
+If you prefer manual control over each service:
+
 ### 1. Start Database and Firebase Emulator
 
 ```bash

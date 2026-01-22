@@ -22,6 +22,7 @@ Router createRouter() {
 
   // Sponsor configuration (public, used by UI to detect sponsor)
   router.get('/api/v1/sponsor/config', sponsorConfigHandler);
+  router.get('/api/v1/sponsor/roles', sponsorRoleMappingsHandler);
 
   // Portal API routes (Identity Platform authenticated)
   // All portal routes require valid Firebase Auth ID token

@@ -25,9 +25,10 @@ DateTime? _cacheExpiry;
 
 /// Get the GCP project ID from environment
 String get _projectId =>
-    Platform.environment['GCP_PROJECT_ID'] ??
-    Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
-    'demo-sponsor-portal';
+    (Platform.environment['GCP_PROJECT_ID'] ??
+            Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
+            'demo-sponsor-portal')
+        .trim();
 
 /// Check if running against Firebase emulator
 bool get _useEmulator =>
@@ -172,11 +173,25 @@ Future<VerificationResult> verifyIdToken(String idToken) async {
       return VerificationResult(error: 'Token issued in the future');
     }
 
-    // Check issuer
-    final expectedIssuer = '$_issuerPrefix$_projectId';
-    if (claims.issuer != expectedIssuer) {
+    // Check issuer (normalize: trim and remove trailing slashes)
+    final expectedIssuer = '$_issuerPrefix$_projectId'.replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    final actualIssuer = (claims.issuer?.toString().trim() ?? '').replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    if (actualIssuer != expectedIssuer) {
+      // Debug: show character codes and lengths if they look identical but don't match
+      print(
+        '[AUTH] Expected issuer (${expectedIssuer.length}): "$expectedIssuer"',
+      );
+      print('[AUTH] Actual issuer (${actualIssuer.length}): "$actualIssuer"');
+      print('[AUTH] Expected codes: ${expectedIssuer.codeUnits}');
+      print('[AUTH] Actual codes: ${actualIssuer.codeUnits}');
       return VerificationResult(
-        error: 'Invalid issuer: ${claims.issuer} != $expectedIssuer',
+        error: 'Invalid issuer: $actualIssuer != $expectedIssuer',
       );
     }
 

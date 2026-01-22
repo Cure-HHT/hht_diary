@@ -1,0 +1,13 @@
+{
+  "name": "sponsor-portal-tools",
+  "version": "1.0.0",
+  "description": "Development tools for sponsor portal",
+  "private": true,
+  "scripts": {
+    "seed-users": "node seed_identity_users.js",
+    "cleanup-users": "node cleanup_identity_users.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

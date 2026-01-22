@@ -17,6 +17,8 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
+import '../widgets/error_message.dart';
+
 /// Page for users to activate their accounts using an activation code
 class ActivationPage extends StatefulWidget {
   final String? code;
@@ -158,9 +160,10 @@ class _ActivationPageState extends State<ActivationPage> {
       if (!mounted) return;
 
       if (activationResult['success'] == true) {
-        // Account activated successfully - user will use email OTP on login
-        // Redirect to login page
-        context.go('/login');
+        // Account activated successfully - redirect directly to dashboard
+        // The user is already authenticated via Firebase from account creation
+        // Per REQ-CAL-p00029: "redirected to admin dashboard"
+        context.go('/admin');
         return;
       }
 
@@ -323,6 +326,10 @@ class _ActivationPageState extends State<ActivationPage> {
         return 'Password is too weak. Use at least 6 characters.';
       case 'operation-not-allowed':
         return 'Account creation is not enabled. Contact support.';
+      case 'api-key-not-valid.-please-pass-a-valid-api-key.':
+      case 'api-key-not-valid':
+        return 'Firebase configuration error. Please ensure the Firebase Auth '
+            'emulator is running (port 9099) for local development.';
       default:
         return 'Authentication error: $code';
     }
@@ -376,30 +383,12 @@ class _ActivationPageState extends State<ActivationPage> {
 
                     // Error message
                     if (_error != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(8),
+                      ErrorMessage(
+                        message: _error!,
+                        supportEmail: const String.fromEnvironment(
+                          'SUPPORT_EMAIL',
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: theme.colorScheme.onErrorContainer,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onErrorContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        onDismiss: () => setState(() => _error = null),
                       ),
                       const SizedBox(height: 16),
                     ],
