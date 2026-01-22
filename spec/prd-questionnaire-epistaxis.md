@@ -10,90 +10,105 @@
 
 ---
 
+## User Journeys
+
+# JNY-Epistaxis-Diary-01: Recording a Nosebleed Event
+
+**Actor**: James (Patient)
+**Goal**: Record a nosebleed event that just occurred
+**Context**: James is enrolled in an HHT clinical trial and uses the Diary app daily. He just had a nosebleed and wants to record it while the details are fresh.
+
+## Steps
+
+1. James opens the HHT Diary app
+2. James taps to add a new nosebleed record
+3. James selects the start time using the time picker (defaults to current time)
+4. James observes that his nosebleed has stopped and enters the end time
+5. James selects the intensity level that best matches his experience from the visual scale
+6. James sees the calculated duration displayed
+7. James saves the record
+8. The app confirms the record is saved and shows sync status
+
+## Expected Outcome
+
+James successfully records his nosebleed with accurate timing and intensity. The record is saved and syncs to the trial sponsor.
+
+*End* *Recording a Nosebleed Event*
+
+---
+
+# JNY-Epistaxis-Diary-02: Recording a Day Without Nosebleeds
+
+**Actor**: James (Patient)
+**Goal**: Record that he had no nosebleeds today
+**Context**: James has had a good day with no nosebleed episodes. He wants to record this in his diary before going to bed.
+
+## Steps
+
+1. James opens the HHT Diary app
+2. James navigates to today's date
+3. James selects the "No nosebleeds" option
+4. The app confirms the daily summary is recorded
+5. The record syncs to the trial sponsor
+
+## Expected Outcome
+
+James successfully records a "No nosebleeds" entry for the day, which is captured as part of his trial data.
+
+*End* *Recording a Day Without Nosebleeds*
+
+---
+
+# JNY-Epistaxis-Diary-03: Recording When Memory Is Uncertain
+
+**Actor**: Sarah (Patient)
+**Goal**: Record her nosebleed history when she cannot clearly recall the day's events
+**Context**: Sarah is completing her diary at the end of a busy day and cannot remember if she had any minor nosebleeds.
+
+## Steps
+
+1. Sarah opens the HHT Diary app
+2. Sarah navigates to today's date
+3. Sarah realizes she cannot accurately recall if she had nosebleeds
+4. Sarah selects the "Don't remember" option
+5. The app confirms the daily summary is recorded
+
+## Expected Outcome
+
+Sarah honestly records her uncertainty rather than guessing, maintaining data integrity for the trial.
+
+*End* *Recording When Memory Is Uncertain*
+
+---
+
+# JNY-Epistaxis-Diary-04: Editing a Previous Record
+
+**Actor**: James (Patient)
+**Goal**: Correct a nosebleed record he entered earlier with the wrong end time
+**Context**: James recorded a nosebleed earlier but accidentally entered the wrong end time. He realizes the mistake and wants to correct it.
+
+## Steps
+
+1. James opens the HHT Diary app
+2. James navigates to the date containing the record to edit
+3. James selects the nosebleed record he wants to modify
+4. James taps to edit the record
+5. James corrects the end time
+6. The app shows the updated calculated duration
+7. James saves the changes
+8. The app confirms the update is saved
+
+## Expected Outcome
+
+James successfully corrects his nosebleed record. The edit is captured in the event history for audit purposes.
+
+*End* *Editing a Previous Record*
+
+---
+
 ## Overview
 
 This specification defines the Daily Epistaxis Record Questionnaire, the primary data collection instrument for capturing nosebleed events in the HHT Clinical Diary. This questionnaire supports both individual nosebleed event recording and daily summary entries.
-
-Unlike scored questionnaires (NOSE HHT, Quality of Life), daily epistaxis records do not require per-entry investigator approval after the initial Study Start questionnaire is approved. Patients self-report daily, and data syncs automatically.
-
----
-
-## Study Start Workflow
-
-The epistaxis questionnaire serves as the **Study Start** gating mechanism:
-
-1. **Sponsor pushes** initial Study Start epistaxis questionnaire to patient
-2. **Patient completes** the questionnaire (may record initial nosebleed events)
-3. **Investigator reviews** and approves via REQ-p01064 workflow
-4. **Study officially begins** upon approval
-5. **Ongoing recording** - patient records daily without further approval
-
-### Pre-Approval Behavior
-
-- Epistaxis records stored locally on device only
-- Data does NOT sync to Sponsor Portal or study database
-- Patient can use app normally but data remains isolated
-
-### Post-Approval Behavior
-
-- Daily records self-reported without per-entry approval
-- Data syncs automatically to Sponsor Portal
-- Investigator can view but not approve individual daily entries
-
----
-
-## Data Fields
-
-### Nosebleed Event Record
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| id | UUID | Yes | Unique record identifier |
-| startTime | DateTime | Yes | When the nosebleed started |
-| endTime | DateTime | No | When the nosebleed stopped |
-| intensity | Enum | No | Severity level (6 options) |
-| isNoNosebleedsEvent | Boolean | No | "No nosebleeds" daily summary |
-| isUnknownEvent | Boolean | No | "Don't remember" daily summary |
-
-### Intensity Levels
-
-The system uses a 6-level intensity scale per REQ-p00042:
-
-| Level | Display Name | Description |
-| ----- | ------------ | ----------- |
-| 1 | Spotting | Minimal blood, small spots |
-| 2 | Dripping | Slow, occasional drops |
-| 3 | Dripping quickly | Rapid successive drops |
-| 4 | Steady stream | Continuous flow |
-| 5 | Pouring | Heavy continuous flow |
-| 6 | Gushing | Severe, uncontrolled bleeding |
-
-### Special Event Types
-
-Patients may record daily summary entries instead of individual events:
-
-| Event Type | Flag | Description |
-| ---------- | ---- | ----------- |
-| No nosebleeds | isNoNosebleedsEvent | Patient had no nosebleeds that day |
-| Don't remember | isUnknownEvent | Patient cannot recall nosebleed status |
-
----
-
-## Duration Calculation
-
-Duration is calculated from startTime and endTime:
-
-- Duration = endTime - startTime (in minutes)
-- Duration is null if endTime is not recorded
-- Duration is null if endTime is before startTime (validation error)
-
----
-
-## Temporal Validation
-
-- endTime must be after startTime
-- Records cannot be entered for future dates or times
-- For overlap detection: start time is inclusive, end time is exclusive (closed-open interval)
 
 ---
 
@@ -103,9 +118,15 @@ Duration is calculated from startTime and endTime:
 
 **Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065, REQ-p00042
 
+Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
+
 ## Rationale
 
-Daily epistaxis recording is the core data collection activity for HHT clinical trials. The questionnaire must capture event timing, duration, and severity while supporting patients who had no nosebleeds or cannot recall. The 6-level intensity scale provides clinically meaningful gradation. Separating Study Start approval from ongoing daily recording reduces investigator burden while maintaining enrollment gate control.
+Daily epistaxis recording is the core data collection activity for HHT clinical trials. The questionnaire must capture event timing, duration, and severity while supporting patients who had no nosebleeds or cannot recall.
+This questionnaire is derived from: 
+```Clark et al. Nosebleeds in hereditary hemorrhagic telangiectasia: Development of a patient-completed daily eDiary. Laryngoscope Investig Otolaryngol. 2018 Nov 14;3(6):439-445. doi: 10.1002/lio2.211. PMID: 30599027; PMCID: PMC6302722
+```
+and includes modifications based on FDA feedback from the Pazapanib trial and pratical experience from trial use.
 
 ## Assertions
 
@@ -127,34 +148,44 @@ H. The system SHALL validate that end time is after start time when both are pro
 
 I. For overlap detection purposes, start time SHALL be considered inclusive and end time SHALL be considered exclusive (closed-open interval).
 
-J. The system SHALL store each nosebleed record as an immutable event per the event sourcing model.
+J. The system SHALL store each nosebleed record as aggregate of immutable events per the event sourcing model.
 
 K. The system SHALL prevent entry of nosebleed records for future dates or times.
 
 L. The system SHALL store all timestamps as the patient's wall-clock time, with timezone offset indicating the patient's location at entry time, to preserve the patient's experience of the event.
 
-### Sponsor-Configurable Study Start Gating (Optional)
+M. This Questionnaire SHALL support Study Start gating.
 
-M. When enabled, the system SHALL use a designated questionnaire as the Study Start gating mechanism for patient enrollment.
-
-N. When Study Start gating is enabled, the system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved.
-
-O. When Study Start gating is enabled, the system SHALL sync daily records automatically after Study Start approval without requiring per-entry investigator approval.
-
-*End* *Daily Epistaxis Record Questionnaire* | **Hash**: 570d86f2
+*End* *Daily Epistaxis Record Questionnaire* | **Hash**: 10695516
 ---
 
-## User Interface Requirements
+# REQ-p01069: Daily Epistaxis Record User Interface
 
-The UI implementation SHALL:
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01066
 
-- Provide intuitive time picker for start and end times
-- Display intensity levels with visual indicators
-- Allow quick selection of "No nosebleeds" and "Don't remember" options
-- Show duration calculation in real-time as end time is entered
-- Support editing of incomplete records
-- Display clear status indicators for sync state
+Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
 
+## Rationale
+
+The Daily Epistaxis Record is the most frequently used data entry interface in the Diary app. The UI must minimize friction for daily recording while maintaining clinical data quality. Patients may need to record events retrospectively, edit incomplete records, and understand sync status when enrolled in a trial.
+
+## Assertions
+
+A. The system SHALL provide an intuitive time picker for selecting nosebleed start and end times.
+
+B. The system SHALL display intensity levels with visual indicators to aid patient selection.
+
+C. The system SHALL provide quick-access options for "No nosebleeds" and "Don't remember" daily summary entries.
+
+D. The system SHALL display the calculated duration in real-time as end time is entered.
+
+E. The system SHALL support editing of records regardless of completion state.
+
+F. The system SHALL support editing of records for any date within the allowed entry window.
+
+G. The system SHALL display clear status indicators for sync state when the patient is enrolled in a trial.
+
+*End* *Daily Epistaxis Record User Interface* | **Hash**: 3cd9c967
 ---
 
 ## References

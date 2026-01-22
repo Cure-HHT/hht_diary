@@ -9,6 +9,34 @@
 
 ---
 
+## User Journeys
+
+# JNY-HHT-QoL-01: Completing the Quality of Life Assessment
+
+**Actor**: Sarah (Patient)
+**Goal**: Complete the HHT Quality of Life questionnaire to report how HHT has affected her daily life
+**Context**: Sarah is participating in an HHT clinical trial. Her investigator has triggered the HHT Quality of Life questionnaire as part of her monthly assessment. Sarah has four weeks of experience to reflect on.
+
+## Steps
+
+1. Sarah opens the HHT Diary app and sees the pending HHT QoL questionnaire
+2. Sarah reads the preamble explaining the four-week recall period
+3. Sarah answers the first question about work/school interruption, noting the emphasized key phrase
+4. Sarah moves to the second question about social activities being interrupted
+5. Sarah answers the third question about avoiding social situations
+6. Sarah answers the fourth question about non-epistaxis HHT symptoms
+7. Sarah reaches the review screen showing all four answers
+8. Sarah reviews her responses and taps to submit
+9. The app shows confirmation that the questionnaire is submitted for investigator review
+
+## Expected Outcome
+
+Sarah successfully completes the brief HHT QoL questionnaire. Her responses are submitted and await investigator approval before the score is calculated.
+
+*End* *Completing the Quality of Life Assessment*
+
+---
+
 ## Overview
 
 This specification defines the platform's implementation of the HHT Quality of Life Questionnaire, a 4-question instrument measuring how nosebleeds and other HHT-related problems affect patients' daily activities and social engagement.
@@ -19,73 +47,13 @@ HHT Quality of Life is a **scored questionnaire** that may require investigator 
 
 ---
 
-## Instrument Description
-
-**Full Name**: HHT Quality of Life Survey
-
-**Recall Period**: Past 4 weeks
-
-**Question Count**: 4 questions
-
-**Response Type**: 5-point frequency scale (Never to Always)
-
----
-
-## Question Structure
-
-All questions use the same 5-point frequency response scale:
-
-| Value | Label |
-| ----- | ----- |
-| 0 | Never |
-| 1 | Rarely |
-| 2 | Sometimes |
-| 3 | Often |
-| 4 | Always |
-
-The 4 questions assess:
-1. Work/school interruption due to nosebleeds
-2. Social/family activity interruption due to nosebleeds
-3. Avoidance of social activities due to nosebleed concerns
-4. Missing commitments due to non-epistaxis HHT problems
-
-The specific question wording follows the validated instrument as published in the source reference.
-
----
-
-## Scoring Algorithm
-
-### Total Score
-
-**Total Score** = Sum of all 4 question values
-
-**Total Range**: 0-16
-
-**Interpretation**: Higher scores indicate greater impact of HHT on quality of life.
-
-| Score Range | Interpretation |
-| ----------- | -------------- |
-| 0-4 | Minimal impact |
-| 5-8 | Mild impact |
-| 9-12 | Moderate impact |
-| 13-16 | Severe impact |
-
----
-
-## Completion Requirements
-
-- Patient reviews all answers before final submission
-- Patients MAY skip questions (consistent with paper-based administration)
-- Score is NOT displayed to patient
-- Score calculated only after investigator approval (when approval workflow is enabled)
-
----
-
 ## Requirements
 
 # REQ-p01068: HHT Quality of Life Questionnaire
 
 **Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
+
+Addresses: JNY-HHT-QoL-01
 
 ## Rationale
 
@@ -107,30 +75,38 @@ F. The system SHALL calculate the total score as the sum of all answered questio
 
 G. The system SHALL prevent modification of answers after the questionnaire has been finalized.
 
-H. The system SHALL record the exact response value (0-4) for each answered question.
+H. The system SHALL record the exact response value (0-4) for each answered question, along with the answer the text of the answer the user selected and the normalized (English) text.
 
-### Sponsor-Configurable Investigator Approval (Optional)
+K. The system SHALL record the questionnaire version used for each record.
 
-I. When investigator approval is enabled, the system SHALL NOT calculate or display the Quality of Life score until the investigator selects "Finalize and Score".
-
-J. When investigator approval is enabled, the system SHALL store the calculated score permanently upon investigator finalization.
-
-K. The system SHALL record the questionnaire version used for each response per REQ-p01051.
-
-*End* *HHT Quality of Life Questionnaire* | **Hash**: a202bed2
+*End* *HHT Quality of Life Questionnaire* | **Hash**: 8feb18c9
 ---
 
-## User Interface Requirements
+# REQ-p01071: HHT Quality of Life User Interface
 
-The UI implementation SHALL:
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01068
 
-- Display all 4 questions on a single screen or scrollable view
-- Emphasize key phrases in questions (interrupted, avoided, had to miss, other than nosebleeds)
-- Provide clear visual indication of completion status
-- Allow easy modification of any answer before submission
-- Display review summary before final submission
-- Show clear confirmation when questionnaire is submitted
+Addresses: JNY-HHT-QoL-01
 
+## Rationale
+
+The HHT Quality of Life questionnaire is brief (4 questions) but requires careful reading of key phrases that distinguish each question's focus. The UI must emphasize these distinguishing phrases as formatted in the original validated instrument to ensure patients understand and respond accurately.
+
+## Assertions
+
+A. The system SHALL display each question on a separate screen during HHT QoL completion.
+
+B. The system SHALL emphasize key phrases in questions (interrupted, avoided, had to miss, other than nosebleeds) matching the formatting of the original paper instrument.
+
+C. The system SHALL provide clear visual indication of completion status throughout the questionnaire.
+
+D. The system SHALL allow easy modification of any answer before final submission.
+
+E. The system SHALL display a review summary allowing patients to see all answers before final submission.
+
+F. The system SHALL show clear confirmation when the questionnaire is submitted.
+
+*End* *HHT Quality of Life User Interface* | **Hash**: 97122b72
 ---
 
 ## References

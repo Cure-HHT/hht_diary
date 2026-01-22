@@ -33,6 +33,34 @@ Questionnaires are NOT:
 
 ---
 
+## User Journeys
+
+# JNY-Study-Start-01: Enrolling in a Clinical Trial
+
+**Actor**: Maria (Patient)
+**Goal**: Complete the Study Start questionnaire to officially begin participating in the clinical trial
+**Context**: Maria has been diagnosed with HHT and has been invited to participate in a clinical trial. Her physician has enrolled her and she has installed the HHT Diary app on her phone. She receives a notification that she needs to complete the Study Start questionnaire before her data can be synced to the trial.
+
+## Steps
+
+1. Maria opens the HHT Diary app and sees a prompt for the Study Start questionnaire
+2. Maria reads the introduction explaining the questionnaire's purpose
+3. Maria completes the required questionnaire
+4. Maria submits the questionnaire
+5. The app shows a confirmation that the questionnaire is submitted and awaiting investigator review
+6. The investigator reviews Maria's responses
+7. The investigator approves the Study Start questionnaire
+8. Maria receives confirmation that her trial participation has officially begun
+9. Maria's daily diary entries now sync automatically to the Sponsor Portal
+
+## Expected Outcome
+
+Maria successfully enrolls in the clinical trial. Her Study Start questionnaire is approved, and her ongoing daily records begin syncing to the trial sponsor's portal.
+
+*End* *Enrolling in a Clinical Trial*
+
+---
+
 ## Questionnaire Lifecycle
 
 ```mermaid
@@ -77,7 +105,7 @@ Additional questionnaires are added through platform development as sponsors req
 
 The "Study Start" workflow gates patient enrollment in a clinical trial:
 
-1. **Sponsor triggers** initial Study Start questionnaire (typically an epistaxis questionnaire)
+1. **Sponsor triggers** initial Study Start questionnaire
 2. **Patient completes** the questionnaire on their enrolled device
 3. **Investigator reviews** and approves via the approval workflow (REQ-p01064)
 4. **Study officially begins** upon investigator approval
@@ -85,13 +113,12 @@ The "Study Start" workflow gates patient enrollment in a clinical trial:
 
 Before Study Start approval:
 - Patient data stored locally only
-- No data synced to Portal or database
+- No data synced to Portal
 - Patient can continue using app but data remains local
 
 After Study Start approval:
 - Daily self-reported data syncs automatically
 - No per-entry investigator approval required for ongoing records
-- Scored questionnaires still require investigator approval before scoring
 
 ---
 
@@ -111,6 +138,8 @@ All questionnaire data follows the event sourcing model:
 
 **Level**: PRD | **Status**: Draft | **Implements**: REQ-p00044
 
+Addresses: JNY-Study-Start-01
+
 ## Rationale
 
 Clinical trials require structured data collection instruments that ensure data quality, regulatory compliance, and optimal patient experience. A coded implementation approach provides superior GUI/UX compared to generic form builders, allows questionnaire-specific optimizations, and maintains full control over data integrity. The extensible model allows new questionnaires to be added as sponsor needs evolve while maintaining consistent quality standards.
@@ -125,11 +154,11 @@ B. Each questionnaire SHALL be implemented as custom Flutter components with que
 
 C. Each questionnaire SHALL have custom user interface optimized for its specific content and response types.
 
-D. Questionnaires SHALL follow the versioning model defined in REQ-p01051.
+D. Questionnaires SHALL support versioning.
 
-E. Scored questionnaires SHALL support the investigator approval workflow defined in REQ-p01064.
+E. Scored questionnaires SHALL support an investigator approval workflow.
 
-F. Questionnaire data SHALL be stored as immutable events per the event sourcing model (REQ-p01003).
+F. Questionnaire data SHALL be stored as immutable events per the event sourcing model.
 
 G. The system SHALL track completion status for each questionnaire instance.
 
@@ -137,11 +166,9 @@ H. The system SHALL support sponsor-configurable "Study Start" questionnaire tha
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 
-J. New questionnaire types SHALL be added through platform development, not through runtime configuration.
+J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-K. Sponsors SHALL configure which questionnaires are enabled for their trials per REQ-p01053.
-
-*End* *Clinical Questionnaire System* | **Hash**: 284c999b
+*End* *Clinical Questionnaire System* | **Hash**: c602e22d
 ---
 
 ## Child Requirements

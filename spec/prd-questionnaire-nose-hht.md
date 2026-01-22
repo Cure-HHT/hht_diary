@@ -9,6 +9,36 @@
 
 ---
 
+## User Journeys
+
+# JNY-NOSE-HHT-01: Completing the NOSE HHT Assessment
+
+**Actor**: Maria (Patient)
+**Goal**: Complete the NOSE HHT questionnaire to assess how nosebleeds have impacted her life
+**Context**: Maria is participating in an HHT clinical trial. Her investigator has triggered the NOSE HHT questionnaire as part of her scheduled assessment. Maria receives a notification to complete it.
+
+## Steps
+
+1. Maria opens the HHT Diary app and sees the pending NOSE HHT questionnaire
+2. Maria reads the preamble explaining the two-week recall period
+3. Maria begins answering questions, seeing one question at a time
+4. Maria notices the category header changes as she moves from Physical to Functional questions
+5. Maria sees the progress indicator showing how many questions remain
+6. Maria is unsure about one question and decides to skip it
+7. Maria continues through the Emotional category questions
+8. Maria reaches the review screen showing all her answers
+9. Maria goes back to answer the skipped question
+10. Maria reviews her final answers and taps to submit
+11. The app shows confirmation that the questionnaire is submitted for investigator review
+
+## Expected Outcome
+
+Maria successfully completes the NOSE HHT questionnaire. Her responses are submitted and await investigator approval before the score is calculated.
+
+*End* *Completing the NOSE HHT Assessment*
+
+---
+
 ## Overview
 
 This specification defines the platform's implementation of the NOSE HHT (Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia) questionnaire, a validated 29-question instrument measuring the physical, functional, and emotional impact of nosebleeds on HHT patients.
@@ -17,68 +47,13 @@ This specification defines the platform's implementation of the NOSE HHT (Nasal 
 
 NOSE HHT is a **scored questionnaire** that may require investigator approval before score calculation per REQ-p01064.
 
----
-
-## Instrument Description
-
-**Full Name**: Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia
-
-**Recall Period**: Past two weeks
-
-**Question Count**: 29 questions across 3 categories
-
-**Response Type**: 5-point Likert-style scales (varies by category)
-
----
-
-## Question Categories
-
-| Category | Questions | Response Scale |
-| -------- | --------- | -------------- |
-| Physical | 6 items | No problem → As bad as possible |
-| Functional | 14 items | No difficulty → Complete difficulty |
-| Emotional | 9 items | Not bothered → Very frequently bothered |
-
-The specific question content follows the validated instrument as published in the source reference.
-
----
-
-## Scoring Algorithm
-
-### Subscale Scores
-
-| Subscale | Questions | Range |
-| -------- | --------- | ----- |
-| Physical | 6 items | 0-24 |
-| Functional | 14 items | 0-56 |
-| Emotional | 9 items | 0-36 |
-
-**Subscale Score** = Sum of item values within category
-
-### Total Score
-
-**Total Score** = Physical + Functional + Emotional
-
-**Total Range**: 0-116
-
-**Interpretation**: Higher scores indicate greater impact of epistaxis on quality of life.
-
----
-
-## Completion Requirements
-
-- Patient reviews all answers before final submission
-- Patients MAY skip questions (consistent with paper-based administration)
-- Score is NOT displayed to patient
-- Score calculated only after investigator approval (when approval workflow is enabled)
-
----
-
 ## Requirements
 
 # REQ-p01067: NOSE HHT Questionnaire
 
 **Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
+
+Addresses: JNY-NOSE-HHT-01
 
 ## Rationale
 
@@ -96,36 +71,41 @@ D. The system SHALL allow patients to skip individual questions, consistent with
 
 E. The system SHALL present a review screen allowing patients to verify and modify answers before final submission.
 
-F. The system SHALL calculate subscale scores by summing item values within each category.
-
-G. The system SHALL calculate the total score as the sum of all three subscale scores.
+G. The system SHALL calculate the score according to the source description.
 
 H. The system SHALL prevent modification of answers after the questionnaire has been finalized.
 
-I. The system SHALL record the exact response value (0-4) for each answered question.
+I. The system SHALL record the exact response value (0-4) for each answered question as well as the displayed and normalized (English) versions of the answers.
 
-### Sponsor-Configurable Investigator Approval (Optional)
 
-J. When investigator approval is enabled, the system SHALL NOT calculate or display the NOSE HHT score until the investigator selects "Finalize and Score".
-
-K. When investigator approval is enabled, the system SHALL store the calculated score permanently upon investigator finalization.
-
-L. The system SHALL record the questionnaire version used for each response per REQ-p01051.
-
-*End* *NOSE HHT Questionnaire* | **Hash**: eeaa5a12
+*End* *NOSE HHT Questionnaire* | **Hash**: 7473ad89
 ---
 
-## User Interface Requirements
+# REQ-p01070: NOSE HHT User Interface
 
-The UI implementation SHALL:
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01067
 
-- Display one question at a time or scrollable list (sponsor-configurable)
-- Show category headers to orient the patient
-- Provide clear indication of completion progress (e.g., "Question 15 of 29")
-- Allow navigation back to previous questions
-- Display review summary before final submission
-- Show clear confirmation when questionnaire is submitted
+Addresses: JNY-NOSE-HHT-01
 
+## Rationale
+
+The NOSE HHT questionnaire contains 29 questions across three categories. The UI must guide patients through the instrument while preventing fatigue and confusion. Single-question display with progress indication and category context helps patients maintain focus and complete the questionnaire accurately.
+
+## Assertions
+
+A. The system SHALL display one question at a time during NOSE HHT completion.
+
+B. The system SHALL show category headers (Physical, Functional, Emotional) to orient the patient within the questionnaire.
+
+C. The system SHALL provide clear indication of completion progress throughout the questionnaire.
+
+D. The system SHALL allow navigation back to previous questions before final submission.
+
+E. The system SHALL display a review summary allowing patients to see all answers before final submission.
+
+F. The system SHALL show clear confirmation when the questionnaire is submitted.
+
+*End* *NOSE HHT User Interface* | **Hash**: 1f1f5598
 ---
 
 ## References
