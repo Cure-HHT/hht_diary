@@ -17,6 +17,7 @@
 name: Build, push and sign portal-server image
 on:
   push:
+    branches: [feature/CUR-696-push-button-portal-build]  # TEMPORARY - remove after testing
     tags:
       - 'v*.*.*'
   workflow_dispatch:
