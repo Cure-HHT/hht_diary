@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import '../widgets/error_message.dart';
 import '../widgets/totp_input_dialog.dart';
 
 class LoginPage extends StatefulWidget {
@@ -216,29 +217,10 @@ class _LoginPageState extends State<LoginPage> {
                       // Error message
                       if (authService.error != null) ...[
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: colorScheme.onErrorContainer,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  authService.error!,
-                                  style: TextStyle(
-                                    color: colorScheme.onErrorContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        ErrorMessage(
+                          message: authService.error!,
+                          supportEmail: const String.fromEnvironment(
+                            'SUPPORT_EMAIL',
                           ),
                         ),
                       ],

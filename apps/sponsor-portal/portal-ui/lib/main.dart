@@ -41,18 +41,27 @@ void main() async {
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connect to Firebase Emulator only for local flavor
+  // Connect to Firebase Emulator only for local flavor (if emulator is running)
   if (F.useEmulator) {
     const emulatorHost = String.fromEnvironment(
       'FIREBASE_AUTH_EMULATOR_HOST',
-      defaultValue: 'localhost:9099',
+      defaultValue: '',
     );
     if (emulatorHost.isNotEmpty) {
       final parts = emulatorHost.split(':');
       final host = parts[0];
       final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
-      await FirebaseAuth.instance.useAuthEmulator(host, port);
-      debugPrint('Using Firebase Auth Emulator at $host:$port');
+      try {
+        await FirebaseAuth.instance.useAuthEmulator(host, port);
+        debugPrint('Using Firebase Auth Emulator at $host:$port');
+      } catch (e) {
+        debugPrint('Failed to connect to Firebase Auth Emulator: $e');
+      }
+    } else {
+      debugPrint(
+        'WARNING: Local flavor but no FIREBASE_AUTH_EMULATOR_HOST set',
+      );
+      debugPrint('Using real Firebase Auth with local flavor config');
     }
   }
 

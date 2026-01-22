@@ -51,7 +51,12 @@ class EmailOtpResult {
       expiresIn = null;
 }
 
-/// User roles in the portal
+/// System roles in the portal (stored in database)
+///
+/// These are the canonical system role names. Sponsors may have different
+/// display names for these roles (e.g., Callisto uses "Study Coordinator"
+/// for Investigator, "CRA" for Auditor). The mapping is stored in the
+/// sponsor_role_mapping table and applied at the UI layer.
 enum UserRole {
   investigator,
   sponsor,
@@ -79,7 +84,8 @@ enum UserRole {
     }
   }
 
-  String get displayName {
+  /// System role name (sent to backend)
+  String get systemName {
     switch (this) {
       case UserRole.investigator:
         return 'Investigator';
@@ -96,8 +102,15 @@ enum UserRole {
     }
   }
 
+  /// Default display name (can be overridden by sponsor mapping)
+  String get displayName => systemName;
+
   bool get isAdmin =>
       this == UserRole.administrator || this == UserRole.developerAdmin;
+
+  /// Whether this role requires site assignment
+  /// Investigator is site-scoped (can only view assigned sites' data)
+  bool get requiresSiteAssignment => this == UserRole.investigator;
 }
 
 /// Portal user information from server

@@ -64,6 +64,79 @@ portal-ui/
 └── pubspec.yaml                      # Dependencies
 ```
 
+## Reusable Widgets
+
+The portal includes reusable widgets for consistent UI patterns. Import via barrel export:
+
+```dart
+import 'package:sponsor_portal_ui/widgets/widgets.dart';
+```
+
+### ErrorMessage
+
+Standardized error display with selectable text, copy functionality, and support contact.
+
+**Features:**
+- Selectable text for easy copying of error details
+- Copy button to copy error message to clipboard
+- Support email link (shows on hover, opens email client)
+- Optional dismiss button
+- FDA 21 CFR Part 11 compliant error handling
+
+**Usage:**
+
+```dart
+ErrorMessage(
+  message: 'Failed to load data: Connection timeout',
+  supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+  onDismiss: () => setState(() => _error = null), // Optional
+)
+```
+
+**Props:**
+
+| Prop | Type | Required | Description |
+| ---- | ---- | -------- | ----------- |
+| `message` | `String` | Yes | Error message to display |
+| `supportEmail` | `String?` | No | Support email (shows help icon with mailto link) |
+| `onDismiss` | `VoidCallback?` | No | Callback when dismiss button pressed |
+
+**Best Practices:**
+- Use for all error displays that users may need to report
+- Always include `supportEmail` from environment for production builds
+- Provide `onDismiss` for dismissable errors (form errors, transient failures)
+- Omit `onDismiss` for persistent errors (auth failures that clear on retry)
+
+### ActivationCodeDisplay
+
+Display activation or linking codes with copy functionality.
+
+**Usage:**
+
+```dart
+ActivationCodeDisplay(
+  code: 'ABCDE-12345',
+  label: 'Activation Code',
+)
+```
+
+**Compact version for tables:**
+
+```dart
+ActivationCodeChip(code: 'ABCDE-12345')
+```
+
+**Props:**
+
+| Prop | Type | Required | Description |
+| ---- | ---- | -------- | ----------- |
+| `code` | `String` | Yes | Code to display |
+| `label` | `String?` | No | Optional label above code |
+| `showLabel` | `bool` | No | Whether to show label (default: true) |
+| `backgroundColor` | `Color?` | No | Custom background color |
+| `textColor` | `Color?` | No | Custom text color |
+| `fontSize` | `double?` | No | Custom font size (default: 16) |
+
 ## User Roles
 
 | Role            | Access Level                                    |
@@ -120,10 +193,10 @@ flutter run -d chrome \
 
 Pass via `--dart-define` at build/run time:
 
-| Variable               | Description                    | Default                    |
-|------------------------|--------------------------------|----------------------------|
-| `PORTAL_API_URL`       | Portal server URL              | `http://localhost:8080`    |
-| `USE_FIREBASE_EMULATOR`| Use Firebase Auth emulator     | `false`                    |
+| Variable                | Description                | Default                 |
+|-------------------------|----------------------------|-------------------------|
+| `PORTAL_API_URL`        | Portal server URL          | `http://localhost:8080` |
+| `USE_FIREBASE_EMULATOR` | Use Firebase Auth emulator | `false`                 |
 
 ## Testing
 
