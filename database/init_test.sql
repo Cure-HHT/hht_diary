@@ -78,9 +78,31 @@ INSERT INTO study_enrollments (
     'ACTIVE'
 ) ON CONFLICT DO NOTHING;
 
+-- =====================================================
+-- Sponsor Role Mappings for testing
+-- =====================================================
+
+-- Test role mappings for callisto sponsor
+INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role)
+VALUES
+    ('callisto', 'Principal Investigator', 'Investigator'),
+    ('callisto', 'Sub-Investigator', 'Investigator'),
+    ('callisto', 'Sponsor Admin', 'Administrator'),
+    ('callisto', 'Site Coordinator', 'Auditor')
+ON CONFLICT (sponsor_id, sponsor_role_name) DO NOTHING;
+
+-- Test role mappings for curehht sponsor
+INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role)
+VALUES
+    ('curehht', 'Lead Physician', 'Investigator'),
+    ('curehht', 'Research Nurse', 'Auditor'),
+    ('curehht', 'Study Admin', 'Administrator')
+ON CONFLICT (sponsor_id, sponsor_role_name) DO NOTHING;
+
 \echo 'Test fixtures created successfully!'
 \echo ''
 \echo 'Test users available:'
 \echo '  - App User: 11111111-1111-1111-1111-111111111111 (auth_code: test-sync-user-auth-code)'
 \echo '  - Site: DEFAULT (Test Site)'
+\echo 'Role mappings: callisto (4 roles), curehht (3 roles)'
 \echo ''
