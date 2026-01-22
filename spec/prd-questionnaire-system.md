@@ -63,17 +63,7 @@ Maria successfully enrolls in the clinical trial. Her Study Start questionnaire 
 
 ## Questionnaire Lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> Triggered: Investigator or system triggers
-    Triggered --> InProgress: Patient opens questionnaire
-    InProgress --> Submitted: Patient completes and submits
-    Submitted --> Review: Investigator unlocks for edits
-    Review --> Submitted: Patient resubmits
-    Submitted --> Finalized: Investigator approves (scored)
-    Submitted --> Finalized: Auto-finalize (unscored)
-    Finalized --> [*]
-```
+![Questionnaire Lifecycle](images/questionnaire-lifecycle.mmd)
 
 | Status | Description |
 | ------ | ----------- |

@@ -18,66 +18,7 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 
 ## Workflow Diagram
 
-```mermaid
-flowchart TD
-    subgraph Portal ["Sponsor Portal (Investigator)"]
-        A[Investigator triggers<br/>push notification]
-        G{Review questionnaire}
-        H[Select: Finalize and Score]
-        I[Select: Unlock for Editing]
-        J[Score calculated and stored]
-    end
-
-    subgraph Diary ["Diary App (Patient)"]
-        B[Patient receives<br/>push notification]
-        C[Patient completes<br/>questionnaire]
-        D{Scored<br/>questionnaire?}
-        E[Review answers<br/>before scoring]
-        F[Select: Complete and Submit]
-        K[Questionnaire unlocked<br/>for editing]
-        L[Patient reviews and<br/>updates answers]
-    end
-
-    subgraph States ["Status Transitions"]
-        S1([Diary: Active])
-        S2([Diary: Read-only<br/>Portal: Ready to Review])
-        S3([Diary: Read-only permanent<br/>Portal: Finalized])
-        S4([Diary: Review])
-    end
-
-    A -->|Push notification| B
-    B --> C
-    C --> D
-    D -->|Yes| E
-    D -->|No| F
-    E --> F
-    F --> S2
-    S2 --> G
-    G --> H
-    G --> I
-    H --> J
-    J --> S3
-    I --> S4
-    S4 --> K
-    K --> L
-    L --> F
-
-    style A fill:#e1f5fe
-    style B fill:#fff3e0
-    style C fill:#fff3e0
-    style E fill:#fff3e0
-    style F fill:#fff3e0
-    style G fill:#e1f5fe
-    style H fill:#e1f5fe
-    style I fill:#e1f5fe
-    style J fill:#e1f5fe
-    style K fill:#fff3e0
-    style L fill:#fff3e0
-    style S1 fill:#c8e6c9
-    style S2 fill:#ffecb3
-    style S3 fill:#ffcdd2
-    style S4 fill:#b3e5fc
-```
+![Questionnaire Approval Workflow](images/questionnaire-approval-workflow.mmd)
 
 ---
 
