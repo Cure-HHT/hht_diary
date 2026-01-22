@@ -13,11 +13,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Coverage threshold (percentage)
-# Set to 84% as remaining uncovered lines are in:
-# - Gmail WIF client creation (requires real GCP credentials)
-# - Production JWT verification (requires real Google public keys)
-# - Database audit logging async paths
-# Business logic coverage is >90% for core handlers.
 MIN_COVERAGE=80
 
 # Parse command line arguments
@@ -28,6 +23,7 @@ STOP_DB=false
 WITH_COVERAGE=false
 CHECK_THRESHOLDS=true
 STARTED_EMULATOR=false
+USE_DEV_MODE=false
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -39,6 +35,7 @@ usage() {
     echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
     echo "  --start-db           Start local PostgreSQL container (happens auto with -i)"
     echo "  --stop-db            Stop local PostgreSQL container after tests"
+    echo "  --dev                Use GCP Identity Platform instead of Firebase emulator"
     echo "  -h, --help           Show this help message"
     echo ""
     echo "If no test flags (-u/-i) are specified, both unit and integration tests are run."
@@ -75,6 +72,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --stop-db)
       STOP_DB=true
+      shift
+      ;;
+    --dev)
+      USE_DEV_MODE=true
       shift
       ;;
     -h|--help)
@@ -173,8 +174,8 @@ if [ "$START_DB" = true ] || [ "$RUN_INTEGRATION" = true ]; then
     fi
 fi
 
-# Start Firebase emulator if integration tests will run
-if [ "$RUN_INTEGRATION" = true ]; then
+# Start Firebase emulator if integration tests will run (unless --dev mode)
+if [ "$RUN_INTEGRATION" = true ] && [ "$USE_DEV_MODE" = false ]; then
     FIREBASE_COMPOSE="$SCRIPT_DIR/../../../tools/dev-env/docker-compose.firebase.yml"
 
     if curl -s http://localhost:9099/ > /dev/null 2>&1; then
@@ -209,6 +210,9 @@ if [ "$RUN_INTEGRATION" = true ]; then
             exit 1
         fi
     fi
+elif [ "$RUN_INTEGRATION" = true ] && [ "$USE_DEV_MODE" = true ]; then
+    echo ""
+    echo "Using GCP Identity Platform (--dev mode) for authentication"
 fi
 
 # Ensure dependencies are installed
@@ -266,8 +270,6 @@ if [ "$RUN_INTEGRATION" = true ]; then
     fi
 
     # Set environment for integration tests
-    echo "Running with Firebase Auth emulator..."
-    export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
     export DB_SSL="false"
 
     # Export DB password for tests (may have been set earlier as shell var, need to export)
@@ -276,6 +278,34 @@ if [ "$RUN_INTEGRATION" = true ]; then
     fi
     export DB_PASSWORD
 
+    if [ "$USE_DEV_MODE" = true ]; then
+        # Use GCP Identity Platform (--dev mode)
+        echo "Running with GCP Identity Platform..."
+
+        # Get project ID from Doppler
+        if [ -z "$PORTAL_IDENTITY_PROJECT_ID" ]; then
+            PORTAL_IDENTITY_PROJECT_ID=$(doppler secrets get PORTAL_IDENTITY_PROJECT_ID --plain 2>/dev/null)
+        fi
+
+        if [ -n "$PORTAL_IDENTITY_PROJECT_ID" ]; then
+            export GCP_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID"
+            echo "   GCP Project: $GCP_PROJECT_ID"
+        else
+            export GCP_PROJECT_ID="callisto4-dev"
+            echo "   GCP Project: $GCP_PROJECT_ID (default)"
+        fi
+
+        # Export API key for sign-in operations
+        if [ -z "$PORTAL_IDENTITY_API_KEY" ]; then
+            PORTAL_IDENTITY_API_KEY=$(doppler secrets get PORTAL_IDENTITY_API_KEY --plain 2>/dev/null)
+        fi
+        export PORTAL_IDENTITY_API_KEY
+    else
+        # Use Firebase Auth emulator
+        echo "Running with Firebase Auth emulator..."
+        export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+    fi
+
     if $TEST_CMD integration_test/; then
         echo "Integration tests passed!"
     else
@@ -283,8 +313,9 @@ if [ "$RUN_INTEGRATION" = true ]; then
         INTEGRATION_PASSED=false
     fi
 
-    # Unset emulator for subsequent operations
+    # Unset auth config for subsequent operations
     unset FIREBASE_AUTH_EMULATOR_HOST
+    unset GCP_PROJECT_ID
 
     # Generate lcov report for integration tests
     if [ "$WITH_COVERAGE" = true ] && [ -d "coverage" ]; then

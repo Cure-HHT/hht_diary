@@ -467,6 +467,9 @@ cleanup() {
 
     log_info "Services stopped. Docker containers (postgres, firebase) left running."
     log_info "To stop all containers: cd tools/dev-env && docker compose -f docker-compose.db.yml -f docker-compose.firebase.yml down"
+
+    # Ensure terminal prompt returns cleanly
+    echo ""
 }
 
 # Main
@@ -505,7 +508,27 @@ main() {
         # Only clear Firebase users if using emulator
         if [ "$USE_DEV_IDENTITY" = false ]; then
             clear_firebase_users
+            # Re-create users after clearing
+            create_firebase_users
         fi
+
+        echo ""
+        log_success "Database reset complete!"
+        echo ""
+        echo "=========================================="
+        echo "  Reset Summary:"
+        echo "=========================================="
+        echo "  - Database dropped and recreated"
+        echo "  - Schema and seed data applied"
+        if [ "$USE_DEV_IDENTITY" = false ]; then
+            echo "  - Firebase emulator accounts reset"
+        fi
+        echo ""
+        echo "  Run './tool/run_local.sh' (without --reset) to start"
+        echo "  the development environment."
+        echo "=========================================="
+        echo ""
+        exit 0
     fi
 
     # Start portal server
@@ -536,12 +559,17 @@ main() {
     echo "=========================================="
     echo ""
 
-    # Start UI if requested
-    if [ "$START_UI" = true ]; then
+    # Start UI if requested (but not during --reset, which is just for DB initialization)
+    if [ "$START_UI" = true ] && [ "$RESET_DB" = false ]; then
         start_ui
 
         # Wait for UI process
         wait $UI_PID 2>/dev/null || true
+        echo ""  # Ensure prompt returns cleanly
+    elif [ "$RESET_DB" = true ]; then
+        log_info "Database reset complete. UI not started during --reset."
+        log_info "Run without --reset to start the full development environment."
+        echo ""
     else
         log_info "UI not started (use without --no-ui to start Flutter)"
         if [ "$USE_DEV_IDENTITY" = true ]; then
@@ -552,6 +580,7 @@ main() {
 
         # Wait for server
         wait $SERVER_PID 2>/dev/null || true
+        echo ""  # Ensure prompt returns cleanly
     fi
 }
 

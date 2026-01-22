@@ -11,6 +11,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:googleapis/gmail/v1.dart' as gmail;
@@ -118,39 +119,76 @@ class EmailService {
     }
   }
 
-  /// Create HTTP client using Workload Identity Federation
-  /// Cloud Run's SA impersonates the Gmail SA via IAM
+  /// Create HTTP client using Workload Identity Federation with domain-wide delegation
+  ///
+  /// Domain-wide delegation requires:
+  /// 1. Sign a JWT with 'sub' claim (the user to impersonate, e.g., support@anspar.org)
+  /// 2. Exchange the signed JWT for an access token at oauth2.googleapis.com
+  ///
+  /// Note: generateAccessToken API does NOT support user impersonation - it only
+  /// gets a token as the service account itself. For Gmail API with domain-wide
+  /// delegation, we must use signJwt with a sub claim.
   Future<http.Client> _createWifClient(EmailConfig config) async {
-    // Get Application Default Credentials (Cloud Run's identity)
+    // Get Application Default Credentials (Cloud Run's identity or local user)
     final adcClient = await clientViaApplicationDefaultCredentials(
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     );
 
-    // Generate access token for Gmail SA using impersonation
     final targetSa = config.gmailServiceAccountEmail!;
-    final tokenUrl = Uri.parse(
-      'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$targetSa:generateAccessToken',
+    final senderEmail = config.senderEmail;
+
+    // Step 1: Create JWT claims with 'sub' for domain-wide delegation
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final exp = now + 3600; // 1 hour expiry
+
+    final jwtClaims = jsonEncode({
+      'iss': targetSa,
+      'sub': senderEmail, // The user to impersonate (domain-wide delegation)
+      'scope': gmail.GmailApi.gmailSendScope,
+      'aud': 'https://oauth2.googleapis.com/token',
+      'iat': now,
+      'exp': exp,
+    });
+
+    // Step 2: Sign the JWT using the service account
+    final signUrl = Uri.parse(
+      'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$targetSa:signJwt',
     );
 
-    final response = await adcClient.post(
-      tokenUrl,
+    final signResponse = await adcClient.post(
+      signUrl,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'scope': [gmail.GmailApi.gmailSendScope],
-        'lifetime': '3600s',
-      }),
+      body: jsonEncode({'payload': jwtClaims}),
     );
 
-    if (response.statusCode != 200) {
+    if (signResponse.statusCode != 200) {
       throw Exception(
-        'Failed to impersonate Gmail SA: ${response.statusCode} ${response.body}',
+        'Failed to sign JWT for Gmail SA: ${signResponse.statusCode} ${signResponse.body}',
       );
     }
 
-    final tokenData = jsonDecode(response.body) as Map<String, dynamic>;
-    final accessToken = tokenData['accessToken'] as String;
+    final signData = jsonDecode(signResponse.body) as Map<String, dynamic>;
+    final signedJwt = signData['signedJwt'] as String;
 
-    // Create authenticated client with impersonated token
+    // Step 3: Exchange signed JWT for access token (validates domain-wide delegation)
+    final tokenResponse = await http.post(
+      Uri.parse('https://oauth2.googleapis.com/token'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body:
+          'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$signedJwt',
+    );
+
+    if (tokenResponse.statusCode != 200) {
+      throw Exception(
+        'Failed to exchange JWT for token (check domain-wide delegation): '
+        '${tokenResponse.statusCode} ${tokenResponse.body}',
+      );
+    }
+
+    final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
+    final accessToken = tokenData['access_token'] as String;
+
+    // Create authenticated client with the impersonated user's token
     return authenticatedClient(
       http.Client(),
       AccessCredentials(
@@ -244,15 +282,10 @@ Hi $recipientName,
 
 You've been invited to Clinical Trial Portal.
 
-Your activation code is: $activationCode
+To activate your account, click the link below:
+$activationUrl
 
-To activate your account:
-1. Visit: $activationUrl
-2. Enter your activation code
-3. Create a password
-4. Complete setup
-
-This code expires in 14 days.
+This link expires in 14 days.
 
 Questions? Contact your sponsor administrator.
 
@@ -268,33 +301,19 @@ Clinical Trial Portal
   <meta charset="utf-8">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; }
-    .code { font-size: 24px; font-weight: bold; letter-spacing: 4px; padding: 15px 20px; background: #e8f5e9; border-radius: 8px; display: inline-block; color: #2e7d32; }
-    .steps { background: #f9f9f9; padding: 15px 20px; border-radius: 8px; margin: 20px 0; }
-    .steps ol { margin: 0; padding-left: 20px; }
     .footer { margin-top: 30px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
-    .button { display: inline-block; background: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 15px 0; }
+    .button { display: inline-block; background: #1976d2; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
   </style>
 </head>
 <body>
   <p>Hi <strong>$recipientName</strong>,</p>
   <p>You've been invited to <strong>Clinical Trial Portal</strong>.</p>
 
-  <p>Your activation code is:</p>
-  <p class="code">$activationCode</p>
+  <p>Click the button below to activate your account and create your password:</p>
 
-  <p><a href="$activationUrl" class="button">Activate Your Account</a></p>
+  <p><a href="$activationUrl" class="button" style="display: inline-block; background: #1976d2; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Activate Your Account</a></p>
 
-  <div class="steps">
-    <strong>To activate your account:</strong>
-    <ol>
-      <li>Click the button above or visit: $activationUrl</li>
-      <li>Enter your activation code</li>
-      <li>Create a password</li>
-      <li>Complete setup</li>
-    </ol>
-  </div>
-
-  <p><em>This code expires in 14 days.</em></p>
+  <p><em>This link expires in 14 days.</em></p>
   <p>Questions? Contact your sponsor administrator.</p>
 
   <div class="footer">
@@ -514,15 +533,9 @@ $bodyHtml
 
 /// Generate a cryptographically secure 6-digit OTP code
 String generateOtpCode() {
-  final random = List<int>.generate(6, (_) {
-    // Use crypto for secure random
-    final bytes = List<int>.generate(
-      1,
-      (_) => DateTime.now().microsecond % 256,
-    );
-    return bytes[0] % 10;
-  });
-  return random.join();
+  final secureRandom = Random.secure();
+  final digits = List<int>.generate(6, (_) => secureRandom.nextInt(10));
+  return digits.join();
 }
 
 /// Hash an OTP code using SHA-256
