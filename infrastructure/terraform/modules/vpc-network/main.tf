@@ -38,7 +38,7 @@ locals {
 # VPC Network
 # -----------------------------------------------------------------------------
 
-resource "google_compute_network" "main" {
+resource "google_compute_network" "vpc" {
   name                    = local.network_name
   project                 = var.project_id
   auto_create_subnetworks = false
@@ -47,14 +47,14 @@ resource "google_compute_network" "main" {
 }
 
 # -----------------------------------------------------------------------------
-# Subnet
+# Application Subnet
 # -----------------------------------------------------------------------------
 
-resource "google_compute_subnetwork" "main" {
+resource "google_compute_subnetwork" "app_subnet" {
   name                     = local.subnet_name
   project                  = var.project_id
   region                   = var.region
-  network                  = google_compute_network.main.id
+  network                  = google_compute_network.vpc.id
   ip_cidr_range            = var.app_subnet_cidr
   private_ip_google_access = true
   description              = "Main subnet for ${var.sponsor} ${var.environment}"
@@ -75,14 +75,14 @@ resource "google_compute_global_address" "private_ip_range" {
   project       = var.project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
-  prefix_length = 22
-  network       = google_compute_network.main.id
+  prefix_length = tonumber(split("/", var.db_subnet_cidr)[1])
+  network       = google_compute_network.vpc.id
   address       = split("/", var.db_subnet_cidr)[0]
   description   = "Private IP range for Cloud SQL"
 }
 
 resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = google_compute_network.main.id
+  network                 = google_compute_network.vpc.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_range.name]
 
@@ -93,20 +93,24 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 # Serverless VPC Access Connector
 # -----------------------------------------------------------------------------
 
-resource "google_vpc_access_connector" "main" {
+resource "google_vpc_access_connector" "cldrun" {
   name          = local.connector_name
   project       = var.project_id
   region        = var.region
   ip_cidr_range = var.connector_cidr
-  network       = google_compute_network.main.name
+  network       = google_compute_network.vpc.name
 
-  min_instances = var.connector_min_instances
-  max_instances = var.connector_max_instances
+  # Autoscaling settings based on instances not throughput for simplicity.
+  # TODO tune based on expected load.
+  # min_instances = var.connector_min_instances
+  # max_instances = var.connector_max_instances
 
-  min_throughput = 200
-  max_throughput = var.environment == "prod" ? 1000 : 300
+  # TODO enable throughput scaling based on environment.
+  # min_throughput = 200
+  # max_throughput = var.environment == "prod" ? 1000 : 300
+  max_throughput = 1000
 
-  depends_on = [google_compute_network.main]
+  depends_on = [google_compute_network.vpc]
 }
 
 # -----------------------------------------------------------------------------
@@ -117,7 +121,7 @@ resource "google_vpc_access_connector" "main" {
 resource "google_compute_firewall" "allow_internal" {
   name    = "${local.network_name}-allow-internal"
   project = var.project_id
-  network = google_compute_network.main.name
+  network = google_compute_network.vpc.name
 
   allow {
     protocol = "icmp"
@@ -141,7 +145,7 @@ resource "google_compute_firewall" "allow_internal" {
 resource "google_compute_firewall" "allow_health_checks" {
   name    = "${local.network_name}-allow-health-checks"
   project = var.project_id
-  network = google_compute_network.main.name
+  network = google_compute_network.vpc.name
 
   allow {
     protocol = "tcp"
@@ -159,7 +163,7 @@ resource "google_compute_firewall" "deny_all_egress" {
 
   name      = "${local.network_name}-deny-all-egress"
   project   = var.project_id
-  network   = google_compute_network.main.name
+  network   = google_compute_network.vpc.name
   direction = "EGRESS"
   priority  = 65534
 
