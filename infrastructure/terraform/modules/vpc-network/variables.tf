@@ -3,16 +3,19 @@
 variable "project_id" {
   description = "GCP Project ID"
   type        = string
+  default     = "callisto4-dev"
 }
 
 variable "sponsor" {
   description = "Sponsor name"
   type        = string
+  default     = "callisto4"
 }
 
 variable "environment" {
   description = "Environment name (dev, qa, uat, prod)"
   type        = string
+  default     = "dev"
 
   validation {
     condition     = contains(["dev", "qa", "uat", "prod"], var.environment)
@@ -29,16 +32,19 @@ variable "region" {
 variable "app_subnet_cidr" {
   description = "CIDR for the main application subnet"
   type        = string
+  default     = "10.0.3.0/24"
 }
 
 variable "db_subnet_cidr" {
   description = "CIDR for the database private service connection"
   type        = string
+  default     = "10.0.2.0/24"
 }
 
 variable "connector_cidr" {
   description = "CIDR for the VPC Access Connector (must be /28)"
   type        = string
+  default     = "10.0.1.0/28"
 
   validation {
     condition     = can(regex("/28$", var.connector_cidr))
