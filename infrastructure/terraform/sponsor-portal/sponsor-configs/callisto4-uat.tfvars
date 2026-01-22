@@ -93,8 +93,8 @@ identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
 identity_platform_password_min_length = 12        # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets
-identity_platform_email_sender_name = "Clinical Diary Portal"
-# identity_platform_email_reply_to  = "support@example.com"
+identity_platform_email_sender_name = ID_PLATFORM_NAME
+identity_platform_email_reply_to  = EMAIL_SUPPORT
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
