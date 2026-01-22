@@ -1,0 +1,21 @@
+stateDiagram-v2
+    [*] --> Triggered: Investigator or system triggers
+    Triggered --> InProgress: Patient opens questionnaire
+    InProgress --> Submitted: Patient completes and submits
+    Submitted --> Review: Investigator unlocks for edits
+    Review --> Submitted: Patient resubmits
+    Submitted --> Finalized: Investigator approves (scored)
+    Submitted --> Finalized: Auto-finalize (unscored)
+    Finalized --> [*]
+
+    classDef triggered fill:#1565c0,color:#ffffff,stroke:#0d47a1
+    classDef inprogress fill:#ef6c00,color:#ffffff,stroke:#e65100
+    classDef submitted fill:#f9a825,color:#000000,stroke:#f57f17
+    classDef review fill:#0277bd,color:#ffffff,stroke:#01579b
+    classDef finalized fill:#2e7d32,color:#ffffff,stroke:#1b5e20
+
+    class Triggered triggered
+    class InProgress inprogress
+    class Submitted submitted
+    class Review review
+    class Finalized finalized
