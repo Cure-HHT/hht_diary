@@ -302,7 +302,7 @@ Clinical Trial Portal
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; }
     .footer { margin-top: 30px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
-    .button { display: inline-block; background: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+    .button { display: inline-block; background: #1976d2; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -311,7 +311,7 @@ Clinical Trial Portal
 
   <p>Click the button below to activate your account and create your password:</p>
 
-  <p><a href="$activationUrl" class="button">Activate Your Account</a></p>
+  <p><a href="$activationUrl" class="button" style="display: inline-block; background: #1976d2; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Activate Your Account</a></p>
 
   <p><em>This link expires in 14 days.</em></p>
   <p>Questions? Contact your sponsor administrator.</p>
