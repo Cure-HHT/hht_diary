@@ -11,37 +11,41 @@
 #   FLUTTER_VERSION - from .github/versions.env
 #   GCP_PROJECT_ID - GCP project for base image
 
-ARG DART_VERSION
-ARG FLUTTER_VERSION
+ARG DART_VERSION=3.10.7
+ARG FLUTTER_VERSION=3.38.7
 ARG GCP_PROJECT_ID
 
 # =============================================================================
 # Stage 1: Build Flutter Web UI
 # =============================================================================
-FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/flutter-base:${FLUTTER_VERSION} AS flutter-build
+FROM ghcr.io/cure-hht/flutter-base:${FLUTTER_VERSION} AS flutter-build
 
-# Copy portal-ui source
-COPY apps/sponsor-portal/portal-ui /app/apps/sponsor-portal/portal-ui
+# Copy portal-ui source (use --chown because flutter-base runs as appuser)
+COPY --chown=appuser:appuser apps/sponsor-portal/portal-ui /app/apps/sponsor-portal/portal-ui
 
 WORKDIR /app/apps/sponsor-portal/portal-ui
 
 # Get dependencies and build for web
 RUN flutter pub get
-RUN flutter build web --release --web-renderer html
+RUN flutter build web --release
 
 # =============================================================================
 # Stage 2: Build Dart Server
 # =============================================================================
-FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS dart-build
+FROM ghcr.io/cure-hht/dart-base:${DART_VERSION} AS dart-build
 
 # Copy shared dependencies first (for layer caching)
-COPY apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+# Use --chown because dart-base runs as appuser
+COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+
+# Copy EDC integration (dependency of portal_functions)
+COPY --chown=appuser:appuser apps/edc/rave-integration /app/apps/edc/rave-integration
 
 # Copy portal_functions package
-COPY apps/sponsor-portal/portal_functions /app/apps/sponsor-portal/portal_functions
+COPY --chown=appuser:appuser apps/sponsor-portal/portal_functions /app/apps/sponsor-portal/portal_functions
 
 # Copy portal_server package
-COPY apps/sponsor-portal/portal_server /app/apps/sponsor-portal/portal_server
+COPY --chown=appuser:appuser apps/sponsor-portal/portal_server /app/apps/sponsor-portal/portal_server
 
 # Get dependencies and compile
 WORKDIR /app/apps/sponsor-portal/portal_server
@@ -56,6 +60,7 @@ FROM debian:bookworm-slim
 # Install nginx and required runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
+    curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -76,8 +81,8 @@ COPY apps/sponsor-portal/portal-container/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 # Create nginx runtime directories with correct permissions
-RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx \
-    && chown -R appuser:appuser /var/cache/nginx /var/run /var/log/nginx /app
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx \
+    && chown -R appuser:appuser /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx /app
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
@@ -87,6 +92,11 @@ EXPOSE 8080
 USER appuser
 
 # Health check via nginx (proxies to Dart /health endpoint)
-# Note: Cloud Run uses HTTP probes, not Docker HEALTHCHECK
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Labels for container registry
+LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"
+LABEL org.opencontainers.image.description="Sponsor Portal - nginx + Dart API server"
 
 ENTRYPOINT ["/app/start.sh"]
