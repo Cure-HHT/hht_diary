@@ -202,6 +202,7 @@ tools/requirements/trace_view/tests/results/*.json
 # =====================================
 # Local .terraform directories (plugins, modules)
 **/.terraform/
+.terraform.lock.hcl
 
 # tfstate files - state is stored in GCS, not in repo
 *.tfstate

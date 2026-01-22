@@ -134,6 +134,42 @@ output "budget_alert_topics" {
 }
 
 # -----------------------------------------------------------------------------
+# Database Configuration
+# -----------------------------------------------------------------------------
+
+output "database_instance_names" {
+  description = "Map of environment to Cloud SQL instance name"
+  value = {
+    for env in local.environments :
+    env => module.database[env].instance_name
+  }
+}
+
+output "database_connection_names" {
+  description = "Map of environment to Cloud SQL connection name (for proxy)"
+  value = {
+    for env in local.environments :
+    env => module.database[env].instance_connection_name
+  }
+}
+
+output "database_private_ips" {
+  description = "Map of environment to Cloud SQL private IP"
+  value = {
+    for env in local.environments :
+    env => module.database[env].private_ip_address
+  }
+}
+
+output "database_names" {
+  description = "Map of environment to database name"
+  value = {
+    for env in local.environments :
+    env => module.database[env].database_name
+  }
+}
+
+# -----------------------------------------------------------------------------
 # VPC CIDR Information
 # -----------------------------------------------------------------------------
 
@@ -174,6 +210,12 @@ output "next_steps" {
 
     VPC CIDR Range: 10.${var.sponsor_id}.0.0/16
 
+    Cloud SQL Databases (PostgreSQL 17):
+      - Dev:  ${module.database["dev"].instance_name}
+      - QA:   ${module.database["qa"].instance_name}
+      - UAT:  ${module.database["uat"].instance_name}
+      - Prod: ${module.database["prod"].instance_name}
+
     Audit Log Retention: ${var.audit_retention_years} years
     Prod Audit Locked: ${local.audit_lock["prod"]}
 
@@ -195,7 +237,14 @@ output "next_steps" {
        GCP_WORKLOAD_IDENTITY_PROVIDER: ${module.cicd.github_actions_provider}
        GCP_SERVICE_ACCOUNT: ${module.cicd.service_account_email}
 
-    4. Verify audit log compliance:
+    4. Initialize databases (run schema deployment jobs):
+       # For each environment, execute the schema job:
+       gcloud run jobs execute ${var.sponsor}-dev-db-schema --project=${var.sponsor}-dev --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.sponsor}-qa-db-schema --project=${var.sponsor}-qa --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.sponsor}-uat-db-schema --project=${var.sponsor}-uat --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.sponsor}-prod-db-schema --project=${var.sponsor}-prod --region=${var.default_region} --wait
+
+    5. Verify audit log compliance:
        ../scripts/verify-audit-compliance.sh ${var.sponsor}
 
   EOT

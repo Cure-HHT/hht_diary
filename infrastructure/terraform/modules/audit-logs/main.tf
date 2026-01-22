@@ -25,10 +25,11 @@ terraform {
 # -----------------------------------------------------------------------------
 
 locals {
-  bucket_name = "${var.sponsor}-${var.environment}-audit-logs"
+  # bucket_name = "${var.sponsor}-${var.environment}-audit-logs" # NAMING OF Callisto2
+  bucket_name = "${var.project_prefix}-${var.sponsor}-${var.environment}-audit-logs"
 
   # Calculate retention in seconds (25 years)
-  retention_seconds = var.retention_years * 365 * 24 * 60 * 60
+  retention_seconds = var.retention_years # TODO * 365 * 24 * 60 * 60
 
   common_labels = {
     sponsor         = var.sponsor
@@ -50,7 +51,9 @@ resource "google_storage_bucket" "audit_logs" {
   location                    = var.region
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
-
+  # This allows Terraform to delete all objects in the bucket 
+  # so that the bucket itself can then be destroyed.
+  force_destroy = true
   labels = local.common_labels
 
   # FDA 21 CFR Part 11: 25-year retention with optional lock
@@ -137,4 +140,3 @@ resource "google_storage_bucket_iam_member" "sink_writer" {
   role   = "roles/storage.objectCreator"
   member = google_logging_project_sink.audit_sink.writer_identity
 }
-
