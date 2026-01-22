@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/error_message.dart';
 import '../../widgets/portal_app_bar.dart';
 import '../../widgets/status_badge.dart';
 
@@ -344,29 +345,10 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
           ),
           const SizedBox(height: 24),
           if (_error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: theme.colorScheme.onErrorContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: theme.colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            ErrorMessage(
+              message: _error!,
+              supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+              onDismiss: () => setState(() => _error = null),
             ),
             const SizedBox(height: 16),
           ],

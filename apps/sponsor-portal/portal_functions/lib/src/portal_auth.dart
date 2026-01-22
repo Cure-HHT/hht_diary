@@ -310,13 +310,15 @@ Future<PortalUser?> requirePortalAuth(
   }
 
   final firebaseUid = verification.uid!;
+  final email = verification.email;
 
   final db = Database.instance;
 
   // Use service context for user lookup - this is identity verification
   const serviceContext = UserContext.service;
 
-  final result = await db.executeWithContext(
+  // First, try to find user by firebase_uid (subsequent logins)
+  var result = await db.executeWithContext(
     '''
     SELECT id, firebase_uid, email, name, status
     FROM portal_users
@@ -325,6 +327,20 @@ Future<PortalUser?> requirePortalAuth(
     parameters: {'firebaseUid': firebaseUid},
     context: serviceContext,
   );
+
+  if (result.isEmpty && email != null) {
+    // First login for this user - try to link by email
+    result = await db.executeWithContext(
+      '''
+      UPDATE portal_users
+      SET firebase_uid = @firebaseUid, updated_at = now()
+      WHERE email = @email AND firebase_uid IS NULL
+      RETURNING id, firebase_uid, email, name, status
+      ''',
+      parameters: {'firebaseUid': firebaseUid, 'email': email},
+      context: serviceContext,
+    );
+  }
 
   if (result.isEmpty) {
     return null;

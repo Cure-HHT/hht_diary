@@ -1,0 +1,14 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-CAL-p00010: First Admin Provisioning (integration tests)
+#   REQ-CAL-p00029: Create User Account (integration tests)
+#
+# Test configuration for portal-ui
+# Defines tags for separating API tests from Flutter UI tests
+
+tags:
+  api:
+    # Dart VM tests that call the portal server API directly
+    # Run with: dart test --tags=api integration_test/api/
+  ui:
+    # Flutter integration tests that interact with the UI
+    # Run with: flutter test integration_test/

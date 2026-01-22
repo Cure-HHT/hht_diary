@@ -1,12 +1,15 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-d00041: Sponsor Role Mapping Schema
 //
 // Sponsor configuration handler - converted from Firebase sponsor.ts
 
 import 'dart:convert';
 
 import 'package:shelf/shelf.dart';
+
+import 'database.dart';
 
 /// Available font options for sponsor configuration
 enum FontOption { roboto, openDyslexic, atkinsonHyperlegible }
@@ -120,4 +123,51 @@ Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {
     body: jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
   );
+}
+
+/// Get role mappings for a sponsor
+/// GET /api/v1/sponsor/roles?sponsorId=callisto
+///
+/// Returns the mapping from sponsor display names to system roles.
+/// UI uses sponsor names, backend stores system roles.
+Future<Response> sponsorRoleMappingsHandler(Request request) async {
+  if (request.method != 'GET') {
+    return _jsonResponse({'error': 'Method not allowed'}, 405);
+  }
+
+  final sponsorId = request.url.queryParameters['sponsorId']
+      ?.toLowerCase()
+      .trim();
+
+  if (sponsorId == null || sponsorId.isEmpty) {
+    return _jsonResponse({'error': 'sponsorId parameter is required'}, 400);
+  }
+
+  final db = Database.instance;
+
+  try {
+    // Exclude Developer Admin - it's a system role, not user-assignable
+    final result = await db.execute(
+      '''
+      SELECT sponsor_role_name, mapped_role::text
+      FROM sponsor_role_mapping
+      WHERE sponsor_id = @sponsorId
+        AND mapped_role != 'Developer Admin'
+      ORDER BY sponsor_role_name
+      ''',
+      parameters: {'sponsorId': sponsorId},
+    );
+
+    final mappings = <Map<String, String>>[];
+    for (final row in result) {
+      mappings.add({
+        'sponsorName': row[0] as String,
+        'systemRole': row[1] as String,
+      });
+    }
+
+    return _jsonResponse({'sponsorId': sponsorId, 'mappings': mappings});
+  } catch (e) {
+    return _jsonResponse({'error': 'Database error: $e'}, 500);
+  }
 }

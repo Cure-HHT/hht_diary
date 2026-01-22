@@ -7,6 +7,7 @@
 .env
 .env.local
 .env.*.local
+.env.offline
 
 # PostgreSQL
 *.sql~
@@ -201,6 +202,7 @@ tools/requirements/trace_view/tests/results/*.json
 # =====================================
 # Local .terraform directories (plugins, modules)
 **/.terraform/
+.terraform.lock.hcl
 
 # tfstate files - state is stored in GCS, not in repo
 *.tfstate
@@ -229,3 +231,6 @@ terraform.rc
 # Do NOT ignore it!
 /apps/sponsor-portal/prompts/CUR-629-first-admin-plan.md
 /apps/sponsor-portal/prompts/portal-project.md
+/apps/sponsor-portal/tool/package-lock.json
+/apps/sponsor-portal/portal-ui/coverage/
+/apps/sponsor-portal/portal-ui/coverage/

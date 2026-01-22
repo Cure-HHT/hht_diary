@@ -386,7 +386,8 @@ void main() {
       final db = Database.instance;
       final code = '123456';
       final codeHash = hashOtpCode(code);
-      final expiresAt = DateTime.now().add(const Duration(minutes: 10));
+      // Use UTC to match PostgreSQL's NOW() function
+      final expiresAt = DateTime.now().toUtc().add(const Duration(minutes: 10));
 
       await db.execute(
         '''

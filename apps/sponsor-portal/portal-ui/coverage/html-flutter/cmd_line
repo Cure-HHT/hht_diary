@@ -1,1 +1,0 @@
-genhtml coverage/lcov-flutter.info -o coverage/html-flutter

@@ -17,15 +17,55 @@
 #   ./tool/run_local.sh              # Start everything (uses Doppler internally)
 #   ./tool/run_local.sh --reset      # Reset database before starting
 #   ./tool/run_local.sh --no-ui      # Don't start Flutter web client
+#   ./tool/run_local.sh --dev        # Use GCP Identity Platform instead of Firebase emulator
+#   ./tool/run_local.sh --offline    # Run without Doppler (uses local password)
 #   ./tool/run_local.sh --help       # Show help
+#
+# OFFLINE MODE (for airplane/disconnected development):
+#   ./tool/run_local.sh --offline --reset
+#
+#   In offline mode:
+#   - Doppler is bypassed
+#   - Database password defaults to 'postgres' (local Docker)
+#   - No external API calls required
 #
 # Default dev password for all seeded users: "curehht"
 # =====================================================
 
-# Re-execute under Doppler if not already running with it.
-# This makes all Doppler secrets available as environment variables.
-if [ -z "$DOPPLER_ENVIRONMENT" ]; then
+# Check for offline mode BEFORE Doppler re-exec
+OFFLINE_MODE=false
+for arg in "$@"; do
+    if [ "$arg" = "--offline" ]; then
+        OFFLINE_MODE=true
+        break
+    fi
+done
+
+# Re-execute under Doppler if not already running with it (unless offline mode)
+if [ "$OFFLINE_MODE" = false ] && [ -z "$DOPPLER_ENVIRONMENT" ]; then
     exec doppler run -- "$0" "$@"
+fi
+
+# In offline mode, source the dumped env file
+if [ "$OFFLINE_MODE" = true ]; then
+    SCRIPT_DIR_TEMP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    ENV_FILE="$SCRIPT_DIR_TEMP/.env.offline"
+
+    if [ -f "$ENV_FILE" ]; then
+        echo "Loading offline secrets from $ENV_FILE"
+        set -a  # Export all variables
+        source "$ENV_FILE"
+        set +a
+    else
+        echo ""
+        echo "WARNING: Offline env file not found: $ENV_FILE"
+        echo ""
+        echo "To create it, run while online:"
+        echo "  ./tool/doppler-dump.sh"
+        echo ""
+        echo "Continuing with fallback defaults (may not work)..."
+        echo ""
+    fi
 fi
 
 set -e
@@ -52,10 +92,14 @@ DB_PORT="5432"
 DB_NAME="sponsor_portal"
 DEV_PASSWORD="curehht"  # Default password for all dev users
 
+# Fallback password (only used if env file missing)
+FALLBACK_DB_PASSWORD="postgres"
+
 # Parse arguments
 RESET_DB=false
 START_UI=true
 SHOW_HELP=false
+USE_DEV_IDENTITY=false
 
 for arg in "$@"; do
     case $arg in
@@ -65,6 +109,14 @@ for arg in "$@"; do
             ;;
         --no-ui)
             START_UI=false
+            shift
+            ;;
+        --dev)
+            USE_DEV_IDENTITY=true
+            shift
+            ;;
+        --offline)
+            # Already handled above, but shift it
             shift
             ;;
         --help|-h)
@@ -82,32 +134,57 @@ if [ "$SHOW_HELP" = true ]; then
     echo "Options:"
     echo "  --reset     Reset database (drop all tables, reapply schema + seed data)"
     echo "  --no-ui     Don't start Flutter web client"
+    echo "  --dev       Use GCP Identity Platform (dev project) instead of Firebase emulator"
+    echo "  --offline   Run without Doppler (uses local password 'postgres')"
     echo "  --help, -h  Show this help message"
     echo ""
     echo "Services started:"
-    echo "  - PostgreSQL:       localhost:5432"
-    echo "  - Firebase Emulator: localhost:9099 (UI at localhost:4000)"
-    echo "  - Portal Server:    localhost:8080"
-    echo "  - Portal UI:        localhost:PORT (Flutter assigns port)"
+    echo "  - PostgreSQL:        localhost:5432"
+    echo "  - Firebase Emulator: localhost:9099 (UI at localhost:4000) - skipped with --dev"
+    echo "  - Portal Server:     localhost:8080"
+    echo "  - Portal UI:         localhost:PORT (Flutter assigns port)"
     echo ""
     echo "Dev credentials:"
     echo "  Email:    mike.bushe@anspar.org (or other seeded dev admins)"
     echo "  Password: curehht"
     echo ""
-    echo "Flavors:"
-    echo "  local  - Uses Firebase Emulator (this script)"
-    echo "  dev    - Development environment (requires Firebase credentials)"
-    echo "  qa     - QA/Testing environment (requires Firebase credentials)"
-    echo "  uat    - User Acceptance Testing (requires Firebase credentials)"
-    echo "  prod   - Production (requires Firebase credentials)"
+    echo "GCP IDENTITY PLATFORM MODE (--dev):"
+    echo "  ./tool/run_local.sh --dev"
     echo ""
-    echo "For non-local flavors, pass Firebase credentials via --dart-define:"
-    echo "  flutter run -d chrome --dart-define=APP_FLAVOR=dev \\"
-    echo "    --dart-define=PORTAL_DEV_FIREBASE_API_KEY=your-api-key \\"
-    echo "    --dart-define=PORTAL_DEV_FIREBASE_APP_ID=your-app-id \\"
-    echo "    --dart-define=PORTAL_DEV_FIREBASE_PROJECT_ID=your-project-id \\"
-    echo "    --dart-define=PORTAL_DEV_FIREBASE_AUTH_DOMAIN=your-auth-domain"
+    echo "  Uses real GCP Identity Platform instead of Firebase emulator."
+    echo "  This is GDPR/FDA compliant and recommended for testing real auth flows."
+    echo ""
+    echo "  Required Doppler secrets:"
+    echo "    PORTAL_IDENTITY_API_KEY     - GCP Identity Platform API key (AIza...)"
+    echo "    PORTAL_IDENTITY_APP_ID      - Identity Platform web app ID"
+    echo "    PORTAL_IDENTITY_PROJECT_ID  - GCP project ID"
+    echo "    PORTAL_IDENTITY_AUTH_DOMAIN - Auth domain (project.firebaseapp.com)"
+    echo ""
+    echo "OFFLINE MODE (airplane/disconnected development):"
+    echo "  ./tool/run_local.sh --offline --reset"
+    echo ""
+    echo "  In offline mode:"
+    echo "  - Doppler is bypassed"
+    echo "  - Database password defaults to 'postgres'"
+    echo "  - All services run locally with Docker"
+    echo "  - No external API calls required"
+    echo ""
+    echo "Flavors:"
+    echo "  local  - Uses Firebase Emulator (default)"
+    echo "  dev    - GCP Identity Platform (--dev flag, uses callisto4-dev project)"
+    echo "  qa     - QA/Testing environment"
+    echo "  uat    - User Acceptance Testing"
+    echo "  prod   - Production"
     exit 0
+fi
+
+# Set database password based on mode
+# In offline mode, LOCAL_DB_ROOT_PASSWORD comes from sourced .env.offline
+# In online mode, it comes from Doppler
+DB_PASSWORD="${LOCAL_DB_ROOT_PASSWORD:-$FALLBACK_DB_PASSWORD}"
+
+if [ "$OFFLINE_MODE" = true ]; then
+    echo -e "${YELLOW}[OFFLINE MODE]${NC} Using secrets from .env.offline"
 fi
 
 log_info() {
@@ -209,46 +286,49 @@ create_firebase_users() {
 }
 
 # Reset the database
-# Uses LOCAL_DB_ROOT_PASSWORD from Doppler (available via exec wrapper)
 reset_database() {
     log_info "Resetting database..."
 
-    if [ -z "$LOCAL_DB_ROOT_PASSWORD" ]; then
-        log_error "LOCAL_DB_ROOT_PASSWORD not set (Doppler not configured?)"
+    if [ -z "$DB_PASSWORD" ]; then
+        log_error "Database password not set"
         return 1
     fi
 
     # Drop and recreate the database
-    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
-    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
 
     # Run schema initialization
     log_info "Applying database schema..."
     cd "$DATABASE_DIR"
-    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" -f init.sql
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" -f init.sql
+
+    # Apply local dev role grants (allows postgres to assume service_role)
+    log_info "Applying local development role grants..."
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" -f local_roles.sql
 
     # Apply sponsor-specific seed data
-    # Try curehht first, then callisto (depending on which repo is available)
+    # Try callisto first, then curehht (depending on which repo is available)
     local seed_applied=false
 
-    if [ -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql" ]; then
-        log_info "Applying CureHHT seed data..."
-        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
-            -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql"
+    if [ -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql" ]; then
+        log_info "Applying Callisto seed data..."
+        PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+            -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql"
         seed_applied=true
     fi
 
-    if [ -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql" ] && [ "$seed_applied" = false ]; then
-        log_info "Applying Callisto seed data..."
-        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
-            -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql"
+    if [ -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql" ] && [ "$seed_applied" = false ]; then
+        log_info "Applying CureHHT seed data..."
+        PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+            -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql"
         seed_applied=true
     fi
 
     # Fallback to core seed data if no sponsor-specific seed found
     if [ "$seed_applied" = false ] && [ -f "$DATABASE_DIR/seed_data.sql" ]; then
         log_info "Applying core seed data..."
-        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+        PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
             -f "$DATABASE_DIR/seed_data.sql"
     fi
 
@@ -256,7 +336,6 @@ reset_database() {
 }
 
 # Start PostgreSQL via docker-compose
-# Doppler env vars are already available via exec wrapper
 start_postgres() {
     log_info "Starting PostgreSQL..."
 
@@ -266,7 +345,14 @@ start_postgres() {
     if docker ps --format '{{.Names}}' | grep -q 'sponsor-portal-postgres'; then
         log_info "PostgreSQL already running"
     else
-        docker compose -f docker-compose.db.yml up -d
+        # In offline mode, set required env vars for docker-compose
+        if [ "$OFFLINE_MODE" = true ]; then
+            export LOCAL_DB_ROOT_PASSWORD="$OFFLINE_DB_PASSWORD"
+            export LOCAL_DB_PASSWORD="$OFFLINE_DB_PASSWORD"
+            docker compose -f docker-compose.db.yml up -d
+        else
+            docker compose -f docker-compose.db.yml up -d
+        fi
     fi
 
     wait_for_port "$DB_HOST" "$DB_PORT" "PostgreSQL"
@@ -292,22 +378,32 @@ start_firebase() {
 }
 
 # Start the portal server
-# Doppler env vars are already available via exec wrapper
 start_server() {
     log_info "Starting Portal Server on port 8080..."
 
     cd "$SPONSOR_PORTAL_DIR/portal_server"
 
     # Export environment variables for the server
-    export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
-    export GCP_PROJECT_ID="demo-sponsor-portal"
     export DB_SSL="false"
     export PORT="8080"
     export DB_HOST="$DB_HOST"
     export DB_PORT="$DB_PORT"
     export DB_NAME="$DB_NAME"
     export DB_USER="postgres"
-    export DB_PASSWORD="$LOCAL_DB_ROOT_PASSWORD"
+    export DB_PASSWORD="$DB_PASSWORD"
+
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        # Use real GCP Identity Platform for token verification
+        # Unset emulator host to force real verification
+        unset FIREBASE_AUTH_EMULATOR_HOST
+        export GCP_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID"
+        log_info "Server using GCP Identity Platform: $GCP_PROJECT_ID"
+    else
+        # Use Firebase emulator for token verification
+        export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
+        export GCP_PROJECT_ID="demo-sponsor-portal"
+        log_info "Server using Firebase Emulator: $FIREBASE_AUTH_EMULATOR_HOST"
+    fi
 
     # Start in background
     dart run bin/server.dart &
@@ -318,16 +414,41 @@ start_server() {
 
 # Start the Flutter web UI
 start_ui() {
-    log_info "Starting Portal UI (Flutter Web) with local flavor..."
-
     cd "$SPONSOR_PORTAL_DIR/portal-ui"
 
-    # Start Flutter in background with local flavor
-    # APP_FLAVOR=local enables Firebase emulator connection
-    flutter run -d chrome \
-        --dart-define=APP_FLAVOR=local \
-        --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
-    UI_PID=$!
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        # Use dev flavor with GCP Identity Platform (real auth, local backend)
+        log_info "Starting Portal UI (Flutter Web) with GCP Identity Platform..."
+
+        # These env vars should be set in Doppler (same keys used across envs)
+        if [ -z "$PORTAL_IDENTITY_API_KEY" ]; then
+            log_error "PORTAL_IDENTITY_API_KEY not set in Doppler"
+            log_error "Required Doppler secrets for --dev mode:"
+            log_error "  PORTAL_IDENTITY_API_KEY"
+            log_error "  PORTAL_IDENTITY_APP_ID"
+            log_error "  PORTAL_IDENTITY_PROJECT_ID"
+            log_error "  PORTAL_IDENTITY_AUTH_DOMAIN"
+            exit 1
+        fi
+
+        flutter run -d chrome \
+            --dart-define=APP_FLAVOR=dev \
+            --dart-define=PORTAL_API_URL=http://localhost:8080 \
+            --dart-define=PORTAL_DEV_FIREBASE_API_KEY="$PORTAL_IDENTITY_API_KEY" \
+            --dart-define=PORTAL_DEV_FIREBASE_APP_ID="$PORTAL_IDENTITY_APP_ID" \
+            --dart-define=PORTAL_DEV_FIREBASE_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID" \
+            --dart-define=PORTAL_DEV_FIREBASE_AUTH_DOMAIN="$PORTAL_IDENTITY_AUTH_DOMAIN" \
+            --dart-define=PORTAL_DEV_FIREBASE_MESSAGING_SENDER_ID="${PORTAL_IDENTITY_MESSAGING_SENDER_ID:-}" &
+        UI_PID=$!
+    else
+        # Use local flavor with Firebase emulator
+        log_info "Starting Portal UI (Flutter Web) with local flavor (emulator)..."
+
+        flutter run -d chrome \
+            --dart-define=APP_FLAVOR=local \
+            --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
+        UI_PID=$!
+    fi
 }
 
 # Cleanup function
@@ -353,6 +474,12 @@ main() {
     echo ""
     echo "=========================================="
     echo "  Sponsor Portal Local Development"
+    if [ "$OFFLINE_MODE" = true ]; then
+        echo "  (OFFLINE MODE - No Doppler)"
+    fi
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        echo "  (DEV MODE - GCP Identity Platform)"
+    fi
     echo "=========================================="
     echo ""
 
@@ -361,16 +488,25 @@ main() {
 
     # Start services
     start_postgres
-    start_firebase
 
-    # Reset database and Firebase users if requested
-    if [ "$RESET_DB" = true ]; then
-        reset_database
-        clear_firebase_users
+    # Only start Firebase emulator if not using GCP Identity Platform
+    if [ "$USE_DEV_IDENTITY" = false ]; then
+        start_firebase
+
+        # Create Firebase users (creates if missing, skips if exists)
+        create_firebase_users
+    else
+        log_info "Skipping Firebase Emulator (using GCP Identity Platform)"
     fi
 
-    # Create Firebase users (creates if missing, skips if exists)
-    create_firebase_users
+    # Reset database if requested
+    if [ "$RESET_DB" = true ]; then
+        reset_database
+        # Only clear Firebase users if using emulator
+        if [ "$USE_DEV_IDENTITY" = false ]; then
+            clear_firebase_users
+        fi
+    fi
 
     # Start portal server
     start_server
@@ -382,12 +518,21 @@ main() {
     echo "  Access Points:"
     echo "=========================================="
     echo "  Portal Server:      http://localhost:8080"
-    echo "  Firebase Emulator:  http://localhost:4000"
+    if [ "$USE_DEV_IDENTITY" = false ]; then
+        echo "  Firebase Emulator:  http://localhost:4000"
+    else
+        echo "  Auth:               GCP Identity Platform (callisto4-dev)"
+    fi
     echo "  PostgreSQL:         localhost:5432"
     echo ""
-    echo "  Dev Login:"
-    echo "    Email:    mike.bushe@anspar.org"
-    echo "    Password: curehht"
+    if [ "$USE_DEV_IDENTITY" = false ]; then
+        echo "  Dev Login:"
+        echo "    Email:    mike.bushe@anspar.org"
+        echo "    Password: curehht"
+    else
+        echo "  Auth via GCP Identity Platform (dev project)"
+        echo "  Create test users in GCP Console or use existing dev accounts"
+    fi
     echo "=========================================="
     echo ""
 
@@ -399,7 +544,11 @@ main() {
         wait $UI_PID 2>/dev/null || true
     else
         log_info "UI not started (use without --no-ui to start Flutter)"
-        log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=local"
+        if [ "$USE_DEV_IDENTITY" = true ]; then
+            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=dev ..."
+        else
+            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=local"
+        fi
 
         # Wait for server
         wait $SERVER_PID 2>/dev/null || true

@@ -7,6 +7,18 @@
 #   REQ-o00056: IaC for portal deployment
 #   REQ-p00008: Multi-sponsor deployment model
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
+#   REQ-d00030: CI/CD Integration
+#   REQ-d00057: CI/CD Environment Parity
+#   REQ-d00033: FDA Validation Documentation
+#   REQ-d00035: Security and Compliance
+#   REQ-d00001: Sponsor-Specific Configuration Loading
+#   REQ-d00055: Role-Based Environment Separation
+#   REQ-d00059: Development Tool Specifications
+#   REQ-d00062: Environment Validation & Change Control
+#   REQ-d00090: Development Environment Installation Qualification
+#   REQ-d00003: Identity Platform Configuration Per Sponsor
+#   REQ-d00009: Role-Based Permission Enforcement Implementation
+#   REQ-d00010: Data Encryption Implementation
 
 # -----------------------------------------------------------------------------
 # Local Variables
@@ -40,7 +52,7 @@ locals {
     dev  = false
     qa   = false
     uat  = false
-    prod = true
+    prod = false  # TODO Set true when ready to lock audit logs.
   }
 
   # Audit retention: only prod gets FDA-required retention, non-prod = 0 (no retention)
@@ -71,6 +83,22 @@ module "projects" {
   labels = {
     sponsor_id = tostring(var.sponsor_id)
   }
+}
+
+# -----------------------------------------------------------------------------
+# GCP Networks - One per Environment
+# -----------------------------------------------------------------------------
+
+module "network" {
+  source   = "../modules/vpc-network"
+  for_each = toset(local.environments)
+
+  project_id        = local.project_ids[each.key]
+  environment       = each.key
+  app_subnet_cidr   = var.app_subnet_cidr[each.key]
+  connector_cidr    = var.connector_cidr[each.key]
+  db_subnet_cidr    = var.db_subnet_cidr[each.key]
+  sponsor           = var.sponsor
 }
 
 # -----------------------------------------------------------------------------
@@ -128,6 +156,49 @@ module "cicd" {
   github_org               = var.github_org
   github_repo              = var.github_repo
   anspar_admin_group       = var.anspar_admin_group
+
+  depends_on = [module.projects]
+}
+
+# -----------------------------------------------------------------------------
+# Cloud SQL Database - One per Environment
+# -----------------------------------------------------------------------------
+
+module "database" {
+  source   = "../modules/cloud-sql"
+  for_each = toset(local.environments)
+
+  project_id             = local.project_ids[each.key]
+  sponsor                = var.sponsor
+  environment            = each.key
+  region                 = var.default_region
+  vpc_network_id         = module.network[each.key].network_id
+  private_vpc_connection = module.network[each.key].private_vpc_connection
+  database_name          = "${var.sponsor}_${each.key}_${var.database_name}"
+  db_username            = var.db_username
+  DB_PASSWORD            = var.DB_PASSWORD
+
+  depends_on = [module.network]
+}
+
+resource "google_project_service" "gmail_api" {
+  for_each = toset(local.environments)
+  project  = local.project_ids[each.key]
+  service  = "gmail.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
+
+  depends_on = [module.projects]
+}
+
+resource "google_project_service" "idtk_api" {
+  for_each = toset(local.environments)
+  project  = local.project_ids[each.key]
+  service = "identitytoolkit.googleapis.com"
+
+  disable_on_destroy         = false
+  disable_dependent_services = false
 
   depends_on = [module.projects]
 }

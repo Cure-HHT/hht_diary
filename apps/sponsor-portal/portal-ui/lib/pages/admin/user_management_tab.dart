@@ -3,13 +3,15 @@
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-d00035: User Management API
 //   REQ-d00036: Create User Dialog Implementation
+//   REQ-CAL-p00029: Create User Account (multi-select roles, site requirements)
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/activation_code_display.dart';
+import '../../widgets/error_message.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/status_badge.dart';
 
@@ -20,12 +22,41 @@ class UserManagementTab extends StatefulWidget {
   State<UserManagementTab> createState() => _UserManagementTabState();
 }
 
+/// Sponsor role mapping - maps sponsor display names to system roles
+class SponsorRoleMapping {
+  final String sponsorName;
+  final String systemRole;
+
+  const SponsorRoleMapping({
+    required this.sponsorName,
+    required this.systemRole,
+  });
+
+  factory SponsorRoleMapping.fromJson(Map<String, dynamic> json) {
+    return SponsorRoleMapping(
+      sponsorName: json['sponsorName'] as String,
+      systemRole: json['systemRole'] as String,
+    );
+  }
+}
+
 class _UserManagementTabState extends State<UserManagementTab> {
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _sites = [];
+  List<SponsorRoleMapping> _roleMappings = [];
   bool _isLoading = true;
   String? _error;
   late ApiClient _apiClient;
+
+  /// Convert system role to sponsor display name
+  String _toSponsorName(String systemRole) {
+    final mapping = _roleMappings.firstWhere(
+      (m) => m.systemRole == systemRole,
+      orElse: () =>
+          SponsorRoleMapping(sponsorName: systemRole, systemRole: systemRole),
+    );
+    return mapping.sponsorName;
+  }
 
   @override
   void initState() {
@@ -43,25 +74,46 @@ class _UserManagementTabState extends State<UserManagementTab> {
     });
 
     try {
-      // Fetch users and sites in parallel
+      // Fetch users, sites, and role mappings in parallel
+      // TODO: Get sponsorId from config/context - hardcoded for now
+      const sponsorId = 'callisto';
       final results = await Future.wait([
         _apiClient.get('/api/v1/portal/users'),
         _apiClient.get('/api/v1/portal/sites'),
+        _apiClient.get('/api/v1/sponsor/roles?sponsorId=$sponsorId'),
       ]);
 
       final usersResponse = results[0];
       final sitesResponse = results[1];
+      final rolesResponse = results[2];
 
       if (!mounted) return;
 
       if (usersResponse.isSuccess && sitesResponse.isSuccess) {
+        // API returns { users: [...] } and { sites: [...] }
+        final usersData = usersResponse.data as Map<String, dynamic>?;
+        final sitesData = sitesResponse.data as Map<String, dynamic>?;
+
+        // Parse role mappings (optional - falls back to system names if missing)
+        final roleMappings = <SponsorRoleMapping>[];
+        if (rolesResponse.isSuccess) {
+          final rolesData = rolesResponse.data as Map<String, dynamic>?;
+          final mappingsList = (rolesData?['mappings'] as List?) ?? [];
+          for (final m in mappingsList) {
+            roleMappings.add(
+              SponsorRoleMapping.fromJson(m as Map<String, dynamic>),
+            );
+          }
+        }
+
         setState(() {
           _users = List<Map<String, dynamic>>.from(
-            (usersResponse.data as List?) ?? [],
+            (usersData?['users'] as List?) ?? [],
           );
           _sites = List<Map<String, dynamic>>.from(
-            (sitesResponse.data as List?) ?? [],
+            (sitesData?['sites'] as List?) ?? [],
           );
+          _roleMappings = roleMappings;
           _isLoading = false;
         });
       } else {
@@ -87,8 +139,11 @@ class _UserManagementTabState extends State<UserManagementTab> {
   Future<void> _createUser() async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) =>
-          CreateUserDialog(sites: _sites, apiClient: _apiClient),
+      builder: (context) => CreateUserDialog(
+        sites: _sites,
+        apiClient: _apiClient,
+        roleMappings: _roleMappings,
+      ),
     );
 
     if (result == true) {
@@ -283,16 +338,23 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         final isPending = status == 'pending';
                         final isRevoked = status == 'revoked';
 
-                        // Get roles as list
-                        final roles = <String>[];
+                        // Get roles as list (system names from backend)
+                        final systemRoles = <String>[];
                         if (user['roles'] != null) {
-                          roles.addAll((user['roles'] as List).cast<String>());
+                          systemRoles.addAll(
+                            (user['roles'] as List).cast<String>(),
+                          );
                         } else if (user['role'] != null) {
-                          roles.add(user['role'] as String);
+                          systemRoles.add(user['role'] as String);
                         }
 
+                        // Convert system roles to sponsor display names
+                        final displayRoles = systemRoles
+                            .map(_toSponsorName)
+                            .toList();
+
                         // Check if user has investigator role for sites display
-                        final hasInvestigatorRole = roles.contains(
+                        final hasInvestigatorRole = systemRoles.contains(
                           'Investigator',
                         );
 
@@ -310,7 +372,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
                             DataCell(
-                              RoleBadgeList(roles: roles, compact: true),
+                              RoleBadgeList(roles: displayRoles, compact: true),
                             ),
                             DataCell(
                               Text(
@@ -405,35 +467,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
           children: [
             const Text('Share this code with the user to link their device:'),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SelectableText(
-                      linkingCode,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontFamily: 'monospace', letterSpacing: 2),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: linkingCode));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Code copied to clipboard'),
-                        ),
-                      );
-                    },
-                    tooltip: 'Copy',
-                  ),
-                ],
-              ),
+            ActivationCodeDisplay(
+              code: linkingCode,
+              showLabel: false,
+              fontSize: 20,
             ),
           ],
         ),
@@ -460,35 +497,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
               'Share this code with the user to activate their account:',
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SelectableText(
-                      activationCode,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontFamily: 'monospace', letterSpacing: 2),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: activationCode));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Code copied to clipboard'),
-                        ),
-                      );
-                    },
-                    tooltip: 'Copy',
-                  ),
-                ],
-              ),
+            ActivationCodeDisplay(
+              code: activationCode,
+              showLabel: false,
+              fontSize: 20,
             ),
             const SizedBox(height: 16),
             Container(
@@ -562,11 +574,13 @@ class _UserManagementTabState extends State<UserManagementTab> {
 class CreateUserDialog extends StatefulWidget {
   final List<Map<String, dynamic>> sites;
   final ApiClient apiClient;
+  final List<SponsorRoleMapping> roleMappings;
 
   const CreateUserDialog({
     super.key,
     required this.sites,
     required this.apiClient,
+    required this.roleMappings,
   });
 
   @override
@@ -577,11 +591,16 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  UserRole _selectedRole = UserRole.investigator;
+  // Multi-select roles per REQ-CAL-p00029.F - stores sponsor role names
+  final Set<String> _selectedSponsorRoles = {};
   final Set<String> _selectedSites = {};
-  String? _linkingCode;
+  String? _activationCode;
   bool _isCreating = false;
   String? _error;
+  // Track success state for the confirmation dialog
+  bool _userCreated = false;
+  bool? _emailSent;
+  String? _emailError;
 
   @override
   void dispose() {
@@ -590,12 +609,43 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     super.dispose();
   }
 
+  /// Get system role from sponsor name
+  String _toSystemRole(String sponsorName) {
+    final mapping = widget.roleMappings.firstWhere(
+      (m) => m.sponsorName == sponsorName,
+      orElse: () =>
+          SponsorRoleMapping(sponsorName: sponsorName, systemRole: sponsorName),
+    );
+    return mapping.systemRole;
+  }
+
+  /// Get selected system roles for backend API
+  List<String> get _selectedSystemRoles =>
+      _selectedSponsorRoles.map(_toSystemRole).toList();
+
+  /// Check if any selected role requires site assignment
+  /// Site-scoped roles: Investigator (Study Coordinator), and sponsor-specific mappings
+  bool get _needsSites {
+    // Check if any selected system role requires site assignment
+    // Investigator is the only site-scoped system role
+    return _selectedSystemRoles.contains('Investigator');
+  }
+
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == UserRole.investigator && _selectedSites.isEmpty) {
+    // Validate at least one role is selected
+    if (_selectedSponsorRoles.isEmpty) {
       setState(() {
-        _error = 'Please select at least one site for Investigator';
+        _error = 'Please select at least one role';
+      });
+      return;
+    }
+
+    // Validate site selection for roles that require it (REQ-CAL-p00029.B)
+    if (_needsSites && _selectedSites.isEmpty) {
+      setState(() {
+        _error = 'Please select at least one site for the selected role(s)';
       });
       return;
     }
@@ -606,13 +656,14 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     });
 
     try {
+      // Send system roles to backend API (convert from sponsor names)
       final body = <String, dynamic>{
         'email': _emailController.text.trim(),
         'name': _nameController.text.trim(),
-        'role': _selectedRole.displayName,
+        'roles': _selectedSystemRoles,
       };
 
-      if (_selectedRole == UserRole.investigator) {
+      if (_needsSites) {
         body['site_ids'] = _selectedSites.toList();
       }
 
@@ -626,7 +677,10 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
       if (response.isSuccess) {
         final data = response.data as Map<String, dynamic>;
         setState(() {
-          _linkingCode = data['linking_code'] as String?;
+          _activationCode = data['activation_code'] as String?;
+          _emailSent = data['email_sent'] as bool?;
+          _emailError = data['email_error'] as String?;
+          _userCreated = true;
           _isCreating = false;
         });
       } else {
@@ -650,7 +704,8 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    if (_linkingCode != null) {
+    // Show success dialog after user creation
+    if (_userCreated) {
       return AlertDialog(
         title: Row(
           children: [
@@ -666,51 +721,70 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
             Text(
               'User account created successfully for ${_nameController.text}!',
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Linking Code:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.outline),
-              ),
-              child: SelectableText(
-                _linkingCode!,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontFamily: 'monospace',
-                  letterSpacing: 2,
+            const SizedBox(height: 16),
+            // Show email status (REQ-CAL-p00029.D)
+            if (_emailSent == true)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      color: colorScheme.onPrimaryContainer,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Activation email sent to ${_emailController.text}',
+                        style: TextStyle(color: colorScheme.onPrimaryContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (_emailError != null || _emailSent == false) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_outlined,
+                      color: colorScheme.onErrorContainer,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _emailError != null
+                            ? 'Email not sent: $_emailError'
+                            : 'Activation email could not be sent.',
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: colorScheme.onPrimaryContainer,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Share this code with the user to link their device.',
-                      style: TextStyle(color: colorScheme.onPrimaryContainer),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+              // Show activation code when email fails so admin can share manually
+              if (_activationCode != null) ...[
+                const SizedBox(height: 16),
+                ActivationCodeDisplay(
+                  code: _activationCode!,
+                  label: 'Activation Code (share manually)',
+                  fontSize: 18,
+                ),
+              ],
+            ],
+            // NOTE: Linking codes are NOT shown for portal users.
+            // Linking codes are only for patients (diary app device linking).
           ],
         ),
         actions: [
@@ -734,30 +808,10 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_error != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: colorScheme.onErrorContainer,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _error!,
-                            style: TextStyle(
-                              color: colorScheme.onErrorContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  ErrorMessage(
+                    message: _error!,
+                    supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+                    onDismiss: () => setState(() => _error = null),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -797,35 +851,62 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<UserRole>(
-                  // Using value for controlled dropdown (initialValue doesn't work with setState)
-                  // ignore: deprecated_member_use
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    border: OutlineInputBorder(),
+                // Multi-select roles using checkboxes (REQ-CAL-p00029.F)
+                // Uses sponsor role names from mappings
+                Text('Roles *', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _selectedSponsorRoles.isEmpty
+                          ? colorScheme.error
+                          : colorScheme.outline,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  items: UserRole.values.map((role) {
-                    return DropdownMenuItem(
-                      value: role,
-                      child: Text(role.displayName),
-                    );
-                  }).toList(),
-                  onChanged: (role) {
-                    if (role != null) {
-                      setState(() {
-                        _selectedRole = role;
-                        if (role != UserRole.investigator) {
-                          _selectedSites.clear();
-                        }
-                      });
-                    }
-                  },
+                  child: Column(
+                    children: widget.roleMappings.map((mapping) {
+                      return CheckboxListTile(
+                        title: Text(mapping.sponsorName),
+                        value: _selectedSponsorRoles.contains(
+                          mapping.sponsorName,
+                        ),
+                        onChanged: (checked) {
+                          setState(() {
+                            if (checked == true) {
+                              _selectedSponsorRoles.add(mapping.sponsorName);
+                            } else {
+                              _selectedSponsorRoles.remove(mapping.sponsorName);
+                              // Clear sites if no role requires them anymore
+                              if (!_needsSites) {
+                                _selectedSites.clear();
+                              }
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ),
-                if (_selectedRole == UserRole.investigator) ...[
+                if (_selectedSponsorRoles.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Select at least one role',
+                      style: TextStyle(color: colorScheme.error, fontSize: 12),
+                    ),
+                  ),
+                // Show site selection for roles that require it (REQ-CAL-p00029.B, C)
+                if (_needsSites) ...[
                   const SizedBox(height: 24),
-                  Text('Assign Sites', style: theme.textTheme.titleMedium),
+                  Text('Assigned Sites *', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select the sites this user will have access to.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   if (widget.sites.isEmpty)
                     Container(
@@ -838,30 +919,42 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                     )
                   else
                     Container(
+                      constraints: const BoxConstraints(maxHeight: 250),
                       decoration: BoxDecoration(
                         border: Border.all(color: colorScheme.outline),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Column(
-                        children: widget.sites.map((site) {
-                          final siteId = site['site_id'] as String;
-                          final siteName =
-                              site['site_name'] as String? ?? siteId;
-                          return CheckboxListTile(
-                            title: Text(siteName),
-                            subtitle: Text(siteId),
-                            value: _selectedSites.contains(siteId),
-                            onChanged: (checked) {
-                              setState(() {
-                                if (checked == true) {
-                                  _selectedSites.add(siteId);
-                                } else {
-                                  _selectedSites.remove(siteId);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: widget.sites.map((site) {
+                            final siteId = site['site_id'] as String;
+                            final siteNumber =
+                                site['site_number'] as String? ?? '';
+                            final siteName =
+                                site['site_name'] as String? ?? siteId;
+                            final city = site['city'] as String?;
+                            final state = site['state'] as String?;
+                            final location = [city, state]
+                                .where((s) => s != null && s.isNotEmpty)
+                                .join(', ');
+                            return CheckboxListTile(
+                              title: Text('$siteNumber - $siteName'),
+                              subtitle: location.isNotEmpty
+                                  ? Text(location)
+                                  : null,
+                              value: _selectedSites.contains(siteId),
+                              onChanged: (checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    _selectedSites.add(siteId);
+                                  } else {
+                                    _selectedSites.remove(siteId);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
                   if (_selectedSites.isEmpty)
