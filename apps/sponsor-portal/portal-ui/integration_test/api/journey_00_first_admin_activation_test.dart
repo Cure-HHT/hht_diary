@@ -19,6 +19,7 @@
 // - Portal server running on localhost:8080
 
 @TestOn('vm')
+@Tags(['api'])
 library;
 
 import 'dart:io';

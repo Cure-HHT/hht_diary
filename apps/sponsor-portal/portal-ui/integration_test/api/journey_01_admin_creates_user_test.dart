@@ -20,6 +20,7 @@
 // - Sites seeded in database (callisto seed data)
 
 @TestOn('vm')
+@Tags(['api'])
 library;
 
 import 'dart:io';
