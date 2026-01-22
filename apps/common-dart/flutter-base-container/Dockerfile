@@ -60,6 +60,10 @@ RUN mkdir -p /app/bin /app/lib && chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
+# Health check - verify Dart runtime is functional
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD dart --version || exit 1
+
 # Default command (overridden by child images)
 CMD ["flutter", "--version"]
 
