@@ -27,7 +27,7 @@ terraform {
 
 locals {
   instance_name = "${var.sponsor}-${var.environment}-db"
-  is_production = var.environment == "prod"
+  is_production = false # TODO var.environment == "prod"
 
   # Environment-specific defaults
   db_tier = var.db_tier != "" ? var.db_tier : (
@@ -36,7 +36,13 @@ locals {
     )
   )
 
-  availability_type = local.is_production ? "REGIONAL" : "ZONAL"
+  edition = var.edition != "" ? var.edition : (
+    local.is_production ? "ENTERPRISE_PLUS"  : (
+      var.environment == "uat" ? "ENTERPRISE" : "ENTERPRISE" # TODO uat="ENTERPRISE_PLUS"
+    )
+  )
+ 
+  availability_type = local.is_production ? "REGIONAL" : "ZONAL" # TODO uat="REGIONAL"
 
   disk_size = var.disk_size > 0 ? var.disk_size : (
     local.is_production ? 100 : (var.environment == "uat" ? 20 : 10)
@@ -75,6 +81,7 @@ resource "google_sql_database_instance" "main" {
 
   settings {
     tier              = local.db_tier
+    edition           = local.edition
     availability_type = local.availability_type
     disk_type         = "PD_SSD"
     disk_size         = local.disk_size
