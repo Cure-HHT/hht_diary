@@ -13,14 +13,10 @@
 
 # Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
 # or when manually dispatched via the Actions UI with an input `version`.
-# - Restores the "Determine tag and validate semver" step (id: parse)
-# - Adds workflow_dispatch with an input string named `version`
-# - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
 
 name: Build, push and sign portal-server image
 on:
   push:
-    branches: [ feature/push-button ]  # temporary for testing
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -30,11 +26,259 @@ on:
         required: true
         default: ''
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: cure-hht/portal-server
+  DART_VERSION: 3.10.7
+  FLUTTER_VERSION: 3.38.7
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # For Cosign signing
+
 jobs:
   build-portal-server:
     name: Build portal-server Image
     runs-on: ubuntu-22.04
 
+    outputs:
+      image_tag: ${{ steps.parse.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
     steps:
-      - name: Placeholder
-        run: echo "Portal server build workflow - not yet implemented"
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine tag and validate semver
+        id: parse
+        run: |
+          set -euo pipefail
+
+          # Source tag:
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.version }}"
+          else
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+
+          # Normalize (strip optional leading v)
+          VERSION="${RAW_TAG#v}"
+
+          # semver regex that accepts prerelease and build metadata per semver.org
+          SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+
+          if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
+            echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
+            exit 1
+          fi
+
+          CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+          MAJOR="${CORE%%.*}"
+          MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+
+          # is there prerelease or build metadata?
+          if echo "$VERSION" | grep -Eq '[-+]'; then
+            IS_RELEASE=false
+          else
+            IS_RELEASE=true
+          fi
+
+          # sanitize for docker tags: convert '+' to '-' and lowercase
+          DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG_FULL="v${VERSION}"   # canonical tag with leading v
+
+          echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+
+          # Build the newline-separated tags list for build-push-action
+          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          if [ "$IS_RELEASE" = "true" ]; then
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          fi
+
+          # Export outputs (use GITHUB_OUTPUT format)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "docker_ver=${DOCKER_VER}" >> "$GITHUB_OUTPUT"
+          echo "core=${CORE}" >> "$GITHUB_OUTPUT"
+          echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "major_minor=${MAJOR_MINOR}" >> "$GITHUB_OUTPUT"
+          echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
+          # tags is multiline output
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          # ECHO outputs
+          echo "version=${VERSION}"
+          echo "docker_ver=${DOCKER_VER}"
+          echo "core=${CORE}"
+          echo "major=${MAJOR}"
+          echo "major_minor=${MAJOR_MINOR}"
+          echo "is_release=${IS_RELEASE}"
+          echo "short_sha=${SHORT_SHA}"
+          echo "tag_full=${TAG_FULL}"
+          # tags is multiline output
+          echo "tags<<EOF"
+          printf "%s\n" "$TAGS"
+          echo "EOF"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push portal-server image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/sponsor-portal/portal-container/Dockerfile
+          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
+          platforms: linux/amd64, linux/arm64/v8
+          build-args: |
+            DART_VERSION=${{ env.DART_VERSION }}
+            FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}
+          push: true
+          tags: ${{ steps.parse.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}:latest
+          cache-to: type=inline
+          provenance: true
+          sbom: true
+
+  sign-and-sbom:
+    name: Sign Images & Attach SBOMs
+    runs-on: ubuntu-22.04
+    needs: [build-portal-server]
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign portal-server image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
+
+      - name: Generate SBOM for portal-server image
+        run: |
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }} \
+            -o spdx-json \
+            --file portal-server-sbom.spdx.json
+
+      - name: Upload SBOMs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms-${{ github.sha }}
+          path: |
+            *-sbom.spdx.json
+          retention-days: 90
+
+      - name: Attach SBOM attestation to portal-server image
+        run: |
+          cosign attest --yes \
+            --predicate portal-server-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
+
+  verify-images:
+    name: Verify Image Signatures
+    runs-on: ubuntu-22.04
+    needs: [sign-and-sbom, build-portal-server]
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify portal-server image signature
+        run: |
+          echo "Verifying portal-server image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
+
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-22.04
+    needs: [verify-images, sign-and-sbom, build-portal-server]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Images built, pushed \& signed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ portal-server image" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Published to GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo " TAGS= ${{ needs.build-portal-server.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
+          echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
