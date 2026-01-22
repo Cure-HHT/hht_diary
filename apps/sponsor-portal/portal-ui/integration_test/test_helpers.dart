@@ -29,6 +29,21 @@ class TestConfig {
 
   static String get firebaseEmulatorHost =>
       Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? 'localhost:9099';
+
+  /// GCP Identity Platform configuration for --dev mode
+  static String? get identityApiKey =>
+      Platform.environment['PORTAL_IDENTITY_API_KEY'];
+
+  static String? get identityProjectId =>
+      Platform.environment['PORTAL_IDENTITY_PROJECT_ID'];
+
+  /// True when using real GCP Identity Platform instead of Firebase emulator
+  /// This is detected by:
+  /// - FIREBASE_AUTH_EMULATOR_HOST being unset (not using emulator)
+  /// - PORTAL_IDENTITY_API_KEY being set (have real Identity Platform credentials)
+  static bool get useDevIdentity =>
+      Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] == null &&
+      identityApiKey != null;
 }
 
 /// Database helper for integration tests
@@ -274,6 +289,160 @@ class FirebaseEmulatorAuth {
 
     final payload = base64Url.encode(utf8.encode(jsonEncode(payloadData)));
     return '$header.$payload.';
+  }
+}
+
+/// Helper for real GCP Identity Platform authentication (--dev mode)
+/// Uses the Identity Toolkit REST API for signInWithPassword
+class IdentityPlatformAuth {
+  final String apiKey;
+  final String? projectId;
+
+  /// Identity Toolkit REST API base URL
+  static const _identityToolkitUrl =
+      'https://identitytoolkit.googleapis.com/v1';
+
+  IdentityPlatformAuth({String? apiKey, String? projectId})
+    : apiKey = apiKey ?? TestConfig.identityApiKey ?? '',
+      projectId = projectId ?? TestConfig.identityProjectId;
+
+  /// Sign in with real GCP Identity Platform
+  /// Returns uid and idToken on success, null on failure
+  Future<({String uid, String idToken})?> signIn({
+    required String email,
+    required String password,
+  }) async {
+    if (apiKey.isEmpty) {
+      throw StateError(
+        'PORTAL_IDENTITY_API_KEY not set. '
+        'Run with --dev mode or set environment variable.',
+      );
+    }
+
+    final response = await http.post(
+      Uri.parse('$_identityToolkitUrl/accounts:signInWithPassword?key=$apiKey'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'returnSecureToken': true,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return (
+        uid: data['localId'] as String,
+        idToken: data['idToken'] as String,
+      );
+    }
+
+    // Parse error response for debugging
+    if (response.statusCode == 400) {
+      final error = jsonDecode(response.body) as Map<String, dynamic>;
+      final errorInfo = error['error'] as Map<String, dynamic>?;
+      final message = errorInfo?['message'] as String? ?? 'Unknown error';
+
+      // Common error codes:
+      // - EMAIL_NOT_FOUND: No user with this email
+      // - INVALID_PASSWORD: Wrong password
+      // - USER_DISABLED: Account disabled
+      stderr.writeln(
+        'Identity Platform sign-in failed: $message (email: $email)',
+      );
+    }
+
+    return null;
+  }
+
+  /// Create a new user in GCP Identity Platform
+  /// Note: This uses signUp endpoint which requires email/password sign-up to be enabled
+  Future<({String uid, String idToken})?> createUser({
+    required String email,
+    required String password,
+  }) async {
+    if (apiKey.isEmpty) {
+      throw StateError(
+        'PORTAL_IDENTITY_API_KEY not set. '
+        'Run with --dev mode or set environment variable.',
+      );
+    }
+
+    final response = await http.post(
+      Uri.parse('$_identityToolkitUrl/accounts:signUp?key=$apiKey'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'returnSecureToken': true,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return (
+        uid: data['localId'] as String,
+        idToken: data['idToken'] as String,
+      );
+    }
+
+    // If user exists, try sign-in instead
+    if (response.statusCode == 400) {
+      final error = jsonDecode(response.body) as Map<String, dynamic>;
+      final errorInfo = error['error'] as Map<String, dynamic>?;
+      final message = errorInfo?['message'] as String? ?? '';
+
+      if (message == 'EMAIL_EXISTS') {
+        return await signIn(email: email, password: password);
+      }
+
+      stderr.writeln('Identity Platform createUser failed: $message');
+    }
+
+    return null;
+  }
+
+  /// Delete a user account using their ID token
+  /// Note: This deletes the currently authenticated user
+  Future<bool> deleteUser(String idToken) async {
+    if (apiKey.isEmpty) {
+      throw StateError('PORTAL_IDENTITY_API_KEY not set.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$_identityToolkitUrl/accounts:delete?key=$apiKey'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'idToken': idToken}),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  /// Refresh an ID token using a refresh token
+  /// Returns new idToken and refreshToken
+  Future<({String idToken, String refreshToken})?> refreshToken(
+    String refreshToken,
+  ) async {
+    if (apiKey.isEmpty) {
+      throw StateError('PORTAL_IDENTITY_API_KEY not set.');
+    }
+
+    // Token refresh uses a different endpoint
+    final response = await http.post(
+      Uri.parse('https://securetoken.googleapis.com/v1/token?key=$apiKey'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'grant_type=refresh_token&refresh_token=$refreshToken',
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return (
+        idToken: data['id_token'] as String,
+        refreshToken: data['refresh_token'] as String,
+      );
+    }
+
+    return null;
   }
 }
 

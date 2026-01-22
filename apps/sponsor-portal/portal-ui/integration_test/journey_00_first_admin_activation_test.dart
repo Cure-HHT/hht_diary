@@ -15,11 +15,13 @@
 //
 // Prerequisites:
 // - PostgreSQL database running with schema applied
-// - Firebase Auth emulator running
+// - Auth: Either Firebase emulator (default) or GCP Identity Platform (--dev mode)
 // - Portal server running on localhost:8080
 
 @TestOn('vm')
 library;
+
+import 'dart:io';
 
 import 'package:test/test.dart';
 
@@ -27,19 +29,65 @@ import 'test_helpers.dart';
 
 void main() {
   late TestDatabase db;
-  late FirebaseEmulatorAuth firebaseAuth;
+  late FirebaseEmulatorAuth? firebaseAuth;
+  late IdentityPlatformAuth? identityAuth;
   late TestPortalApiClient apiClient;
+
+  // Flag for which auth mode we're using
+  late bool useDevIdentity;
 
   // Test user data
   const testEmail = 'lisa.chen@integration-test.example.com';
   const testName = 'Dr. Lisa Chen';
   const testPassword = 'SecureP@ssw0rd123';
 
+  /// Helper to create user in auth provider
+  Future<({String uid, String idToken})?> createAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    if (useDevIdentity) {
+      return await identityAuth!.createUser(email: email, password: password);
+    } else {
+      return await firebaseAuth!.createUser(email: email, password: password);
+    }
+  }
+
+  /// Helper to sign in to auth provider
+  Future<({String uid, String idToken})?> signInAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    if (useDevIdentity) {
+      return await identityAuth!.signIn(email: email, password: password);
+    } else {
+      return await firebaseAuth!.signIn(email: email, password: password);
+    }
+  }
+
   setUpAll(() async {
     db = TestDatabase();
     await db.connect();
 
-    firebaseAuth = FirebaseEmulatorAuth();
+    // Determine auth mode based on environment
+    useDevIdentity = TestConfig.useDevIdentity;
+
+    if (useDevIdentity) {
+      // Use real GCP Identity Platform
+      identityAuth = IdentityPlatformAuth();
+      firebaseAuth = null;
+      stderr.writeln(
+        'Using GCP Identity Platform (project: ${TestConfig.identityProjectId})',
+      );
+    } else {
+      // Use Firebase emulator
+      firebaseAuth = FirebaseEmulatorAuth();
+      identityAuth = null;
+      stderr.writeln(
+        'Using Firebase emulator (${TestConfig.firebaseEmulatorHost})',
+      );
+    }
+
     apiClient = TestPortalApiClient();
 
     // Verify server is running
@@ -93,28 +141,28 @@ void main() {
       );
     });
 
-    test('Step 3-6: User sets password in Firebase', () async {
-      // Create Firebase account with the test email and password
+    test('Step 3-6: User sets password in Identity Platform', () async {
+      // Create auth account with the test email and password
       // This simulates user clicking link and setting password
-      final authResult = await firebaseAuth.createUser(
+      final authResult = await createAuthUser(
         email: testEmail,
         password: testPassword,
       );
 
-      expect(authResult, isNotNull, reason: 'Should create Firebase user');
-      expect(authResult!.uid, isNotEmpty, reason: 'Should have Firebase UID');
+      expect(authResult, isNotNull, reason: 'Should create auth user');
+      expect(authResult!.uid, isNotEmpty, reason: 'Should have UID');
       expect(authResult.idToken, isNotEmpty, reason: 'Should have ID token');
     });
 
     test(
       'Step 7-9: Complete activation with email OTP (non-dev-admin)',
       () async {
-        // Sign in to Firebase to get fresh token
-        final authResult = await firebaseAuth.signIn(
+        // Sign in to auth provider to get fresh token
+        final authResult = await signInAuthUser(
           email: testEmail,
           password: testPassword,
         );
-        expect(authResult, isNotNull, reason: 'Should sign in to Firebase');
+        expect(authResult, isNotNull, reason: 'Should sign in');
 
         // Activate the portal account
         // For Administrator (not Developer Admin), email OTP is used
@@ -141,7 +189,7 @@ void main() {
 
     test('Step 10: Activated user can access admin dashboard', () async {
       // Sign in to get fresh token
-      final authResult = await firebaseAuth.signIn(
+      final authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
       );
@@ -160,7 +208,7 @@ void main() {
     });
 
     test('Step 11: Admin can view user list', () async {
-      final authResult = await firebaseAuth.signIn(
+      final authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
       );
@@ -179,7 +227,7 @@ void main() {
 
     test('Activation link cannot be reused', () async {
       // First activation
-      var authResult = await firebaseAuth.signIn(
+      var authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
       );
@@ -189,7 +237,7 @@ void main() {
       );
 
       // Try to use same activation code again
-      authResult = await firebaseAuth.signIn(
+      authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
       );
@@ -220,8 +268,8 @@ void main() {
         },
       );
 
-      // Create Firebase user
-      final authResult = await firebaseAuth.createUser(
+      // Create auth user
+      final authResult = await createAuthUser(
         email: expiredEmail,
         password: testPassword,
       );
@@ -244,7 +292,7 @@ void main() {
     });
 
     test('Invalid activation code is rejected', () async {
-      final authResult = await firebaseAuth.signIn(
+      final authResult = await signInAuthUser(
         email: testEmail,
         password: testPassword,
       );

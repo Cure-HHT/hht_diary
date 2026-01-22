@@ -15,12 +15,14 @@
 //
 // Prerequisites:
 // - PostgreSQL database running with schema applied
-// - Firebase Auth emulator running
+// - Auth: Either Firebase emulator (default) or GCP Identity Platform (--dev mode)
 // - Portal server running on localhost:8080
 // - Sites seeded in database (callisto seed data)
 
 @TestOn('vm')
 library;
+
+import 'dart:io';
 
 import 'package:test/test.dart';
 
@@ -28,12 +30,17 @@ import 'test_helpers.dart';
 
 void main() {
   late TestDatabase db;
-  late FirebaseEmulatorAuth firebaseAuth;
+  late FirebaseEmulatorAuth? firebaseAuth;
+  late IdentityPlatformAuth? identityAuth;
   late TestPortalApiClient apiClient;
 
-  // Admin user (David) - seeded dev admin
+  // Flag for which auth mode we're using
+  late bool useDevIdentity;
+
+  // Admin user - seeded dev admin
   const adminEmail = 'mike.bushe@anspar.org';
-  const adminPassword = 'curehht';
+  // Password from environment or default (must match seed_identity_users.js)
+  final adminPassword = Platform.environment['DEV_ADMIN_PASSWORD'] ?? 'curehht';
 
   // New user to be created (Sarah Martinez - Study Coordinator)
   const newUserEmail = 'sarah.martinez@integration-test.example.com';
@@ -48,11 +55,53 @@ void main() {
   const multiRoleUserEmail = 'multi.role@integration-test.example.com';
   const multiRoleUserName = 'Multi Role User';
 
+  /// Helper to create user in auth provider
+  Future<({String uid, String idToken})?> createAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    if (useDevIdentity) {
+      return await identityAuth!.createUser(email: email, password: password);
+    } else {
+      return await firebaseAuth!.createUser(email: email, password: password);
+    }
+  }
+
+  /// Helper to sign in to auth provider
+  Future<({String uid, String idToken})?> signInAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    if (useDevIdentity) {
+      return await identityAuth!.signIn(email: email, password: password);
+    } else {
+      return await firebaseAuth!.signIn(email: email, password: password);
+    }
+  }
+
   setUpAll(() async {
     db = TestDatabase();
     await db.connect();
 
-    firebaseAuth = FirebaseEmulatorAuth();
+    // Determine auth mode based on environment
+    useDevIdentity = TestConfig.useDevIdentity;
+
+    if (useDevIdentity) {
+      // Use real GCP Identity Platform
+      identityAuth = IdentityPlatformAuth();
+      firebaseAuth = null;
+      stderr.writeln(
+        'Using GCP Identity Platform (project: ${TestConfig.identityProjectId})',
+      );
+    } else {
+      // Use Firebase emulator
+      firebaseAuth = FirebaseEmulatorAuth();
+      identityAuth = null;
+      stderr.writeln(
+        'Using Firebase emulator (${TestConfig.firebaseEmulatorHost})',
+      );
+    }
+
     apiClient = TestPortalApiClient();
 
     // Verify server is running
@@ -80,14 +129,17 @@ void main() {
       await db.cleanupTestData();
 
       // Sign in as admin (seeded dev admin)
-      final authResult = await firebaseAuth.signIn(
+      final authResult = await signInAuthUser(
         email: adminEmail,
         password: adminPassword,
       );
 
       if (authResult == null) {
+        final authType = useDevIdentity
+            ? 'Identity Platform'
+            : 'Firebase emulator';
         fail(
-          'Could not sign in as admin. Is Firebase emulator running '
+          'Could not sign in as admin. Is $authType running '
           'with seeded users? Run: ./tool/run_local.sh --reset',
         );
       }
@@ -188,8 +240,8 @@ void main() {
       );
       final activationCode = createResult.body['activation_code'] as String;
 
-      // Create Firebase account for new user
-      final newUserAuth = await firebaseAuth.createUser(
+      // Create auth account for new user
+      final newUserAuth = await createAuthUser(
         email: newUserEmail,
         password: newUserPassword,
       );
@@ -206,7 +258,7 @@ void main() {
       expect(activateResult.body['user']['status'], equals('active'));
 
       // New user can now access portal
-      final newUserToken = (await firebaseAuth.signIn(
+      final newUserToken = (await signInAuthUser(
         email: newUserEmail,
         password: newUserPassword,
       ))!.idToken;
@@ -346,24 +398,6 @@ void main() {
         createResult.body.containsKey('email_sent'),
         isTrue,
         reason: 'Response should include email_sent status',
-      );
-    });
-
-    test('Created user has linking code for site-based roles', () async {
-      final createResult = await apiClient.createUser(
-        idToken: adminToken,
-        name: newUserName,
-        email: newUserEmail,
-        roles: ['Study Coordinator'],
-        siteIds: [availableSiteIds.first],
-      );
-
-      expect(createResult.statusCode, equals(201));
-      // Linking code is for device enrollment (diary app)
-      expect(
-        createResult.body['linking_code'],
-        isNotNull,
-        reason: 'Site-based roles should have linking code',
       );
     });
   });

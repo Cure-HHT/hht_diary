@@ -30,6 +30,7 @@ CHECK_THRESHOLDS=true
 CONCURRENCY="10"
 STARTED_SERVER=false
 SERVER_PID=""
+USE_DEV_IDENTITY=false  # Use GCP Identity Platform instead of Firebase emulator
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -40,9 +41,11 @@ usage() {
     echo "  -c, --coverage       Run with coverage collection and reporting"
     echo "  --concurrency N      Set test concurrency (default: 10)"
     echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
-    echo "  --start-services     Start local services (PostgreSQL, Firebase, Portal Server)"
+    echo "  --start-services     Start local services (PostgreSQL, Portal Server)"
     echo "  --stop-services      Stop local services after tests"
     echo "  --reset              Reset database before tests (use with --start-services)"
+    echo "  --dev                Use GCP Identity Platform instead of Firebase emulator"
+    echo "                       (Requires PORTAL_IDENTITY_* env vars from Doppler)"
     echo "  -h, --help           Show this help message"
     echo ""
     echo "If no test flags (-u/-i) are specified, unit tests are run."
@@ -51,11 +54,14 @@ usage() {
     echo ""
     echo "Integration tests require:"
     echo "  - PostgreSQL running on localhost:5432"
-    echo "  - Firebase Auth emulator on localhost:9099"
+    echo "  - Auth: Firebase emulator (default) or GCP Identity Platform (--dev)"
     echo "  - Portal Server on localhost:8080"
     echo ""
     echo "Quick start for integration tests:"
     echo "  ./tool/test.sh -i --start-services --reset"
+    echo ""
+    echo "With real GCP Identity Platform (--dev mode):"
+    echo "  doppler run -- ./tool/test.sh -i --start-services --reset --dev"
     echo ""
     echo "Or start services manually:"
     echo "  ../tool/run_local.sh --reset"
@@ -95,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       RESET_DB=true
       shift
       ;;
+    --dev)
+      USE_DEV_IDENTITY=true
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -131,10 +141,21 @@ INTEGRATION_PASSED=true
 
 # Cleanup function for stopping services
 cleanup() {
+    # Stop portal server
     if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
         echo ""
         echo "Stopping portal server (PID: $SERVER_PID)..."
         kill "$SERVER_PID" 2>/dev/null || true
+    else
+        # Fallback: try to kill any process on port 8080 if we started services
+        if [ "$STARTED_SERVER" = true ]; then
+            EXISTING_PID=$(lsof -ti:8080 2>/dev/null || true)
+            if [ -n "$EXISTING_PID" ]; then
+                echo ""
+                echo "Stopping portal server (port 8080, PID: $EXISTING_PID)..."
+                kill "$EXISTING_PID" 2>/dev/null || true
+            fi
+        fi
     fi
 
     if [ "$STOP_SERVICES" = true ]; then
@@ -144,7 +165,10 @@ cleanup() {
         COMPOSE_DIR="$PROJECT_ROOT/tools/dev-env"
         if [ -d "$COMPOSE_DIR" ]; then
             (cd "$COMPOSE_DIR" && doppler run -- docker compose -f docker-compose.db.yml down 2>/dev/null || true)
-            (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml down 2>/dev/null || true)
+            # Only stop Firebase emulator if not using --dev mode
+            if [ "$USE_DEV_IDENTITY" = false ]; then
+                (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml down 2>/dev/null || true)
+            fi
         fi
     fi
 }
@@ -189,29 +213,74 @@ if [ "$START_SERVICES" = true ]; then
         fi
     fi
 
-    # Start Firebase emulator
-    if curl -s http://localhost:9099/ > /dev/null 2>&1; then
-        echo "Firebase Auth emulator already running"
+    # Authentication setup (Firebase emulator or GCP Identity Platform)
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        # Using GCP Identity Platform (--dev mode)
+        echo ""
+        echo "Using GCP Identity Platform (--dev mode)"
+
+        # Verify required environment variables
+        if [ -z "$PORTAL_IDENTITY_API_KEY" ]; then
+            echo "Error: PORTAL_IDENTITY_API_KEY not set"
+            echo "Run with: doppler run -- ./tool/test.sh ..."
+            exit 1
+        fi
+
+        if [ -z "$PORTAL_IDENTITY_PROJECT_ID" ]; then
+            echo "Error: PORTAL_IDENTITY_PROJECT_ID not set"
+            exit 1
+        fi
+
+        echo "   Project: $PORTAL_IDENTITY_PROJECT_ID"
+
+        # Run cleanup to delete non-dev-admin users from Identity Platform
+        TOOL_DIR="$SCRIPT_DIR/../tool"
+        if [ -f "$TOOL_DIR/cleanup_identity_users.js" ]; then
+            echo ""
+            echo "Cleaning up Identity Platform users..."
+            (cd "$TOOL_DIR" && npm install --silent && \
+                node cleanup_identity_users.js \
+                    --project="${PORTAL_IDENTITY_PROJECT_ID%-*}" \
+                    --env="${PORTAL_IDENTITY_PROJECT_ID##*-}")
+        fi
+
+        # Ensure dev admin users exist in Identity Platform
+        if [ -f "$TOOL_DIR/seed_identity_users.js" ]; then
+            echo ""
+            echo "Seeding Identity Platform dev admins..."
+            DEV_PASSWORD=$(doppler secrets get DEV_ADMIN_PASSWORD --plain 2>/dev/null || echo "curehht")
+            (cd "$TOOL_DIR" && node seed_identity_users.js \
+                --project="${PORTAL_IDENTITY_PROJECT_ID%-*}" \
+                --env="${PORTAL_IDENTITY_PROJECT_ID##*-}" \
+                --password="$DEV_PASSWORD" \
+                --users="mike.bushe@anspar.org,michael@anspar.org,tom@anspar.org,urayoan@anspar.org,elvira@anspar.org" \
+                --user-names="Mike Bushe,Michael,Tom,Urayoan,Elvira")
+        fi
     else
-        echo "Starting Firebase Auth emulator..."
-        if [ -f "$COMPOSE_DIR/docker-compose.firebase.yml" ]; then
-            (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml up -d)
+        # Using Firebase emulator (default)
+        if curl -s http://localhost:9099/ > /dev/null 2>&1; then
+            echo "Firebase Auth emulator already running"
+        else
+            echo "Starting Firebase Auth emulator..."
+            if [ -f "$COMPOSE_DIR/docker-compose.firebase.yml" ]; then
+                (cd "$COMPOSE_DIR" && docker compose -f docker-compose.firebase.yml up -d)
 
-            echo "Waiting for Firebase emulator..."
-            TIMEOUT=60
-            ELAPSED=0
-            while [ $ELAPSED -lt $TIMEOUT ]; do
-                if curl -s http://localhost:9099/ > /dev/null 2>&1; then
-                    echo "Firebase Auth emulator is ready!"
-                    break
+                echo "Waiting for Firebase emulator..."
+                TIMEOUT=60
+                ELAPSED=0
+                while [ $ELAPSED -lt $TIMEOUT ]; do
+                    if curl -s http://localhost:9099/ > /dev/null 2>&1; then
+                        echo "Firebase Auth emulator is ready!"
+                        break
+                    fi
+                    sleep 1
+                    ELAPSED=$((ELAPSED + 1))
+                done
+
+                if [ $ELAPSED -ge $TIMEOUT ]; then
+                    echo "Timeout waiting for Firebase emulator"
+                    exit 1
                 fi
-                sleep 1
-                ELAPSED=$((ELAPSED + 1))
-            done
-
-            if [ $ELAPSED -ge $TIMEOUT ]; then
-                echo "Timeout waiting for Firebase emulator"
-                exit 1
             fi
         fi
     fi
@@ -244,50 +313,79 @@ if [ "$START_SERVICES" = true ]; then
         fi
     fi
 
-    # Create Firebase test users (seeded dev admins)
-    echo ""
-    echo "Creating Firebase test users..."
-    FIREBASE_URL="http://localhost:9099"
-    DEV_PASSWORD="curehht"
+    # Create test users (Firebase emulator only - Identity Platform users seeded above)
+    if [ "$USE_DEV_IDENTITY" = false ]; then
+        echo ""
+        echo "Creating Firebase test users..."
+        FIREBASE_URL="http://localhost:9099"
+        DEV_PASSWORD="curehht"
 
-    create_firebase_user() {
-        local email=$1
-        curl -s -X POST \
-            "${FIREBASE_URL}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key" \
-            -H "Content-Type: application/json" \
-            -d "{\"email\":\"${email}\",\"password\":\"${DEV_PASSWORD}\",\"returnSecureToken\":true}" > /dev/null 2>&1 || true
-    }
+        create_firebase_user() {
+            local email=$1
+            curl -s -X POST \
+                "${FIREBASE_URL}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key" \
+                -H "Content-Type: application/json" \
+                -d "{\"email\":\"${email}\",\"password\":\"${DEV_PASSWORD}\",\"returnSecureToken\":true}" > /dev/null 2>&1 || true
+        }
 
-    create_firebase_user "mike.bushe@anspar.org"
-    create_firebase_user "michael@anspar.org"
-    create_firebase_user "tom@anspar.org"
-    create_firebase_user "urayoan@anspar.org"
-    echo "Firebase users created"
+        create_firebase_user "mike.bushe@anspar.org"
+        create_firebase_user "michael@anspar.org"
+        create_firebase_user "tom@anspar.org"
+        create_firebase_user "urayoan@anspar.org"
+        echo "Firebase users created"
+    fi
 
     # Start Portal Server
+    # If server is already running, we need to restart it to apply correct auth config
     if curl -s http://localhost:8080/health > /dev/null 2>&1; then
-        echo "Portal Server already running"
-    else
+        echo "Portal Server already running - stopping it to apply correct auth config..."
+        # Find and kill existing dart server on port 8080
+        EXISTING_PID=$(lsof -ti:8080 2>/dev/null || true)
+        if [ -n "$EXISTING_PID" ]; then
+            kill "$EXISTING_PID" 2>/dev/null || true
+            sleep 2
+        fi
+    fi
+
+    if ! curl -s http://localhost:8080/health > /dev/null 2>&1; then
         echo ""
         echo "Starting Portal Server..."
 
         PORTAL_SERVER_DIR="$SCRIPT_DIR/../portal_server"
         if [ -d "$PORTAL_SERVER_DIR" ]; then
-            (
-                cd "$PORTAL_SERVER_DIR"
+            # Save current directory
+            SAVED_DIR="$(pwd)"
+
+            cd "$PORTAL_SERVER_DIR"
+
+            # Auth configuration based on --dev flag
+            if [ "$USE_DEV_IDENTITY" = true ]; then
+                # Use real GCP Identity Platform
+                unset FIREBASE_AUTH_EMULATOR_HOST
+                export GCP_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID"
+                echo "   Auth: GCP Identity Platform (project: $GCP_PROJECT_ID)"
+            else
+                # Use Firebase emulator
                 export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
                 export GCP_PROJECT_ID="demo-sponsor-portal"
-                export DB_SSL="false"
-                export PORT="8080"
-                export DB_HOST="localhost"
-                export DB_PORT="5432"
-                export DB_NAME="sponsor_portal"
-                export DB_USER="postgres"
-                export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+                echo "   Auth: Firebase emulator"
+            fi
 
-                dart run bin/server.dart &
-                SERVER_PID=$!
-            )
+            export DB_SSL="false"
+            export PORT="8080"
+            export DB_HOST="localhost"
+            export DB_PORT="5432"
+            export DB_NAME="sponsor_portal"
+            export DB_USER="postgres"
+            export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+
+            # Start server in background and capture PID
+            dart run bin/server.dart &
+            SERVER_PID=$!
+            echo "   Server PID: $SERVER_PID"
+
+            # Return to saved directory
+            cd "$SAVED_DIR"
 
             # Wait for server
             echo "Waiting for Portal Server..."
@@ -355,6 +453,11 @@ fi
 if [ "$RUN_INTEGRATION" = true ]; then
     echo ""
     echo "Running integration tests..."
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        echo "   Auth: GCP Identity Platform ($PORTAL_IDENTITY_PROJECT_ID)"
+    else
+        echo "   Auth: Firebase emulator"
+    fi
     echo ""
 
     # Check services are running
@@ -363,12 +466,25 @@ if [ "$RUN_INTEGRATION" = true ]; then
         echo "Start services with: --start-services or ../tool/run_local.sh"
     fi
 
-    if ! curl -s http://localhost:9099/ > /dev/null 2>&1; then
-        echo "Warning: Firebase emulator not responding at localhost:9099"
+    if [ "$USE_DEV_IDENTITY" = false ]; then
+        if ! curl -s http://localhost:9099/ > /dev/null 2>&1; then
+            echo "Warning: Firebase emulator not responding at localhost:9099"
+        fi
     fi
 
     # Set environment for integration tests
-    export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+    if [ "$USE_DEV_IDENTITY" = true ]; then
+        # GCP Identity Platform mode - unset emulator, set Identity Platform vars
+        unset FIREBASE_AUTH_EMULATOR_HOST
+        export PORTAL_IDENTITY_API_KEY="${PORTAL_IDENTITY_API_KEY}"
+        export PORTAL_IDENTITY_PROJECT_ID="${PORTAL_IDENTITY_PROJECT_ID}"
+        # Pass dev admin password to tests (must match what was used in seed script)
+        export DEV_ADMIN_PASSWORD=$(doppler secrets get DEV_ADMIN_PASSWORD --plain 2>/dev/null || echo "curehht")
+    else
+        # Firebase emulator mode
+        export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+    fi
+
     export PORTAL_SERVER_URL="http://localhost:8080"
     export DB_SSL="false"
     export DB_HOST="localhost"
@@ -406,8 +522,12 @@ if [ "$RUN_INTEGRATION" = true ]; then
         echo "integration_test/ directory not found, skipping integration tests"
     fi
 
+    # Clean up environment
     unset FIREBASE_AUTH_EMULATOR_HOST
     unset PORTAL_SERVER_URL
+    unset PORTAL_IDENTITY_API_KEY
+    unset PORTAL_IDENTITY_PROJECT_ID
+    unset DEV_ADMIN_PASSWORD
 fi
 
 # Combine coverage reports if both exist
