@@ -31,15 +31,14 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
    - Navigates to patient record
    - Selects questionnaire type to send (e.g., EQ, Nose HHT, Quality of Life)
    - Triggers push notification to patient's device
-   - Portal displays questionnaire status as "Pending"
 
 2. **Monitor Completion**
    - Portal updates status when patient completes and submits questionnaire
-   - Status changes to "Ready to Review"
-   - Investigator receives notification of completed questionnaire
+   - Diary no longer allows edits to the questionnaire
+   - Questionnaire status changes to "Ready for Review"
 
 3. **Review and Finalize**
-   - Investigator reviews patient's submitted answers in Portal
+   - Investigator verifies with patient that the questinnaire is complete
    - **Option A - Finalize**: Select "Finalize and Score" to calculate score, store permanently, and lock questionnaire
    - **Option B - Return for Edits**: Select "Unlock for Editing" to return questionnaire to patient for modifications
 
