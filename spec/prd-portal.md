@@ -148,7 +148,10 @@ C. The system SHALL provide responsive design for various desktop screen sizes.
 
 # REQ-p70007: Linking Code Lifecycle Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: p70001
+**Level**: PRD | **Status**: Deprecated | **Implements**: p70001
+
+> **DEPRECATED**: This requirement has been consolidated into callisto sponsor-specific spec.
+> See `callisto/spec/prd-portal-mobile-integration.md` REQ-CAL-p00049 for the authoritative specification.
 
 ## Rationale
 
@@ -170,7 +173,7 @@ F. The Mobile App SHALL provide input interface for linking codes during enrollm
 
 G. The Sponsor Portal SHALL display linking code to Investigator after patient enrollment.
 
-*End* *Linking Code Lifecycle Management* | **Hash**: 51420fd1
+*End* *Linking Code Lifecycle Management* | **Hash**: 8697cdb0
 ---
 
 # REQ-p70001: Sponsor Portal Application
