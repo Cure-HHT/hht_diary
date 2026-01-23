@@ -89,15 +89,11 @@ Future<Response> validateActivationCodeHandler(
     return _jsonResponse({'error': 'Activation code has expired'}, 401);
   }
 
-  // Mask email for display (show first 2 chars + domain)
-  final atIndex = email.indexOf('@');
-  final maskedEmail = atIndex > 2
-      ? '${email.substring(0, 2)}***${email.substring(atIndex)}'
-      : '***${email.substring(atIndex)}';
+  // Return full email (not masked) since activation code itself provides security
+  // The code is a secret token - having the code means you have access to this email
+  print('[ACTIVATION] Code valid for: $email');
 
-  print('[ACTIVATION] Code valid for: $maskedEmail');
-
-  return _jsonResponse({'valid': true, 'email': maskedEmail});
+  return _jsonResponse({'valid': true, 'email': email});
 }
 
 /// Activate user account with code and GCP Idenity Provider token
