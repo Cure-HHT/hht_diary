@@ -106,20 +106,20 @@ This file provides a complete index of all requirements.
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
 | REQ-p01064 | Investigator Questionnaire Approval Workflow | prd-questionnaire-approval.md | 7ba8d6d5 |
-| REQ-p01065 | Clinical Questionnaire System | prd-questionnaire-system.md | ad012ed3 |
-| REQ-p01066 | Daily Epistaxis Record Questionnaire | prd-questionnaire-epistaxis.md | d6646153 |
-| REQ-p01067 | NOSE HHT Questionnaire | prd-questionnaire-nose-hht.md | a29a4ee5 |
-| REQ-p01068 | HHT Quality of Life Questionnaire | prd-questionnaire-qol.md | 0504ab18 |
-| REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | e0808086 |
-| REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | a16c3735 |
-| REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 2ece1d89 |
+| REQ-p01065 | Clinical Questionnaire System | prd-questionnaire-system.md | c602e22d |
+| REQ-p01066 | Daily Epistaxis Record Questionnaire | prd-questionnaire-epistaxis.md | 10695516 |
+| REQ-p01067 | NOSE HHT Questionnaire | prd-questionnaire-nose-hht.md | 7473ad89 |
+| REQ-p01068 | HHT Quality of Life Questionnaire | prd-questionnaire-qol.md | 8feb18c9 |
+| REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | 3cd9c967 |
+| REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | 1f1f5598 |
+| REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 97122b72 |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
 | REQ-p70002 | Web Application Platform | prd-portal.md | 5dd94e9d |
 | REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | 0d03cdf1 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
-| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 51420fd1 |
+| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | b4b2eaa6 |
 | REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 74b1201e |
 | REQ-p70009 | Link New Patient Workflow | prd-portal.md | 4f1edfe6 |
 | REQ-p70010 | Patient Disconnection Workflow | prd-portal.md | b9bcc805 |
@@ -221,6 +221,24 @@ This file provides a complete index of all requirements.
 | REQ-d00025 | Administrator Break-Glass RLS Implementation | dev-security-RLS.md | 93358063 |
 | REQ-d00026 | Event Sourcing State Protection RLS Implementation | dev-security-RLS.md | 46e9dc01 |
 | REQ-d00027 | Containerized Development Environments | dev-environment.md | 12d637c5 |
+| REQ-d00028 | Portal Frontend Framework | dev-portal.md | 9abb5505 |
+| REQ-d00029 | Portal UI Design System | dev-portal.md | 0e7d0956 |
+| REQ-d00030 | Portal Routing and Navigation | dev-portal.md | 80b2e394 |
+| REQ-d00031 | Identity Platform Integration | dev-portal.md | 96139a3c |
+| REQ-d00032 | Role-Based Access Control Implementation | dev-portal.md | 9d9a502a |
+| REQ-d00033 | Site-Based Data Isolation | dev-portal.md | 2eff596e |
+| REQ-d00034 | Login Page Implementation | dev-portal.md | 64108d53 |
+| REQ-d00035 | Admin Dashboard Implementation | dev-portal.md | 733c97d1 |
+| REQ-d00036 | Create User Dialog Implementation | dev-portal.md | 619ef6f4 |
+| REQ-d00037 | Investigator Dashboard Implementation | dev-portal.md | f8e9c137 |
+| REQ-d00038 | Enroll Patient Dialog Implementation | dev-portal.md | 7c62bbb7 |
+| REQ-d00039 | Portal Users Table Schema | dev-portal.md | ab792ed7 |
+| REQ-d00040 | User Site Access Table Schema | dev-portal.md | f6e3af89 |
+| REQ-d00041 | Patients Table Extensions for Portal | dev-portal.md | f12125f3 |
+| REQ-d00042 | Questionnaires Table Schema | dev-portal.md | 353a9b0a |
+| REQ-d00043 | Cloud Run Deployment Configuration | dev-portal.md | 5a86d9bd |
+| REQ-d00051 | Auditor Dashboard Implementation | dev-portal.md | ed881a6b |
+| REQ-d00052 | Role-Based Banner Component | dev-portal.md | 49f5f38e |
 | REQ-d00053 | Development Environment and Tooling Setup | dev-requirements-management.md | a00606aa |
 | REQ-d00055 | Role-Based Environment Separation | dev-environment.md | 03138c47 |
 | REQ-d00056 | Cross-Platform Development Support | dev-environment.md | 6e05c815 |
