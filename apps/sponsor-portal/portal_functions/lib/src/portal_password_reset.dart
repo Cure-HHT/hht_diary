@@ -5,7 +5,7 @@
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-d00031: Identity Platform Integration
 //
-// Password reset handlers using Firebase Auth REST API
+// Password reset handlers using Google Identity Platform REST API
 // Generates password reset links and sends them via Gmail API
 // Always returns generic success message to prevent email enumeration
 
@@ -18,17 +18,17 @@ import 'package:http/http.dart' as http;
 import 'database.dart';
 import 'email_service.dart';
 
-/// Firebase Auth REST API base URL
-const _firebaseAuthUrl = 'https://identitytoolkit.googleapis.com/v1';
+/// Google Identity Platform REST API base URL
+const _identityApiUrl = 'https://identitytoolkit.googleapis.com/v1';
 
-/// Get Firebase Web API key from environment
-String get _firebaseApiKey {
-  final apiKey = Platform.environment['PORTAL_FIREBASE_API_KEY'];
+/// Get Identity Platform Web API key from environment
+String get _identityApiKey {
+  final apiKey = Platform.environment['PORTAL_IDENTITY_API_KEY'];
   if (apiKey == null || apiKey.isEmpty) {
     throw Exception(
-      'PORTAL_FIREBASE_API_KEY environment variable not set. '
+      'PORTAL_IDENTITY_API_KEY environment variable not set. '
       'This is required for password reset functionality. '
-      'Get this value from Firebase Console > Project Settings > Web API Key.',
+      'Get this value from GCP Console > Identity Platform > Application Setup > Web API Key.',
     );
   }
   return apiKey;
@@ -157,7 +157,7 @@ Future<Response> requestPasswordResetHandler(Request request) async {
       return _jsonResponse({'success': true, 'message': successMessage}, 200);
     }
 
-    // If user doesn't have firebase_uid, they haven't activated yet
+    // If user doesn't have firebase_uid (Identity Platform UID), they haven't activated yet
     if (firebaseUid == null || firebaseUid.isEmpty) {
       print(
         '[PASSWORD_RESET] User $userId not activated (no firebase_uid), '
@@ -175,7 +175,7 @@ Future<Response> requestPasswordResetHandler(Request request) async {
       return _jsonResponse({'success': true, 'message': successMessage}, 200);
     }
 
-    // Generate Firebase password reset link
+    // Generate Identity Platform password reset link
     print('[PASSWORD_RESET] Generating reset link for: $normalizedEmail');
     final resetLink = await _generatePasswordResetLink(normalizedEmail);
 
@@ -186,7 +186,7 @@ Future<Response> requestPasswordResetHandler(Request request) async {
         userId: userId,
         email: normalizedEmail,
         success: false,
-        reason: 'firebase_error',
+        reason: 'identity_api_error',
         ipAddress: clientIp,
       );
 
@@ -238,14 +238,14 @@ Future<Response> requestPasswordResetHandler(Request request) async {
   }
 }
 
-/// Generate a password reset link using Firebase Auth REST API
+/// Generate a password reset link using Identity Platform REST API
 ///
 /// Returns the full reset URL with oobCode parameter, or null on error.
-/// The link expires in 24 hours (Firebase default).
+/// The link expires in 24 hours (default).
 Future<String?> _generatePasswordResetLink(String email) async {
   try {
-    final apiKey = _firebaseApiKey;
-    final url = Uri.parse('$_firebaseAuthUrl/accounts:sendOobCode?key=$apiKey');
+    final apiKey = _identityApiKey;
+    final url = Uri.parse('$_identityApiUrl/accounts:sendOobCode?key=$apiKey');
 
     final response = await http.post(
       url,
@@ -262,7 +262,7 @@ Future<String?> _generatePasswordResetLink(String email) async {
     if (response.statusCode != 200) {
       final error = jsonDecode(response.body);
       print(
-        '[PASSWORD_RESET] Firebase API error: ${response.statusCode} - $error',
+        '[PASSWORD_RESET] Identity Platform API error: ${response.statusCode} - $error',
       );
       return null;
     }
@@ -271,7 +271,7 @@ Future<String?> _generatePasswordResetLink(String email) async {
     final oobCode = data['oobCode'] as String?;
 
     if (oobCode == null) {
-      print('[PASSWORD_RESET] No oobCode in Firebase response');
+      print('[PASSWORD_RESET] No oobCode in Identity Platform response');
       return null;
     }
 
