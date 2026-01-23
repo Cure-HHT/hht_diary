@@ -1,4 +1,4 @@
-# Development Specification: HHT Diary Auth Service
+# Development Specification: Linking Codes and Auth Service
 
 **Document Type**: Development Specification (Implementation Blueprint)
 **Audience**: Software Engineers, Backend Developers, DevOps Engineers
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document specifies the technical implementation requirements for the HHT Diary Auth Service, a custom authentication service that provides secure user authentication, linking code validation, and sponsor routing for the HHT Diary platform. The service is deployed on GCP Cloud Run and avoids GDPR concerns associated with third-party identity providers.
+This document specifies the technical implementation requirements for linking codes and the HHT Diary Auth Service. The auth service provides secure user authentication, linking code validation, and sponsor routing for the HHT Diary platform. The service is deployed on GCP Cloud Run and avoids GDPR concerns associated with third-party identity providers.
 
 **Related Documents**:
 - Product Requirements: `spec/prd-diary-web.md` (REQ-p01043: Web Diary Authentication via Linking Code)
@@ -80,10 +80,11 @@ O. The admin API SHALL support adding new sponsor patterns.
 P. The admin API SHALL support updating existing sponsor patterns.
 Q. The admin API SHALL support decommissioning sponsors.
 R. The system SHALL allow addition of new patterns without requiring service restart.
-S. Linking codes SHALL follow the format {SS}{XXX}-{XXXXX} where {SS} is the two-character sponsor prefix and {XXX}-{XXXXX} is an 8-character random alphanumeric identifier.
-T. The random portion of linking codes SHALL use only uppercase letters A-Z and digits 0-9.
-U. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
-V. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
+S. Linking codes SHALL consist of a two-character sponsor prefix followed by an 8-character random alphanumeric identifier (10 characters total, no separators).
+T. The system SHALL display linking codes in the format {SS}{XXX}-{XXXXX} where the dash is for readability only and not part of the stored code.
+U. Linking codes SHALL use only uppercase letters A-Z and digits 0-9.
+V. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
+W. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
 *End* *Linking Code Pattern Matching* | **Hash**: 8e2b291e
 

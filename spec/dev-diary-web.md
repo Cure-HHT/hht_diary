@@ -8,7 +8,7 @@
 > **See**: prd-diary-web.md for product requirements
 > **See**: dev-app.md for mobile app implementation patterns
 > **See**: dev-security.md for security implementation details
-> **See**: dev-auth-service.md for authentication service implementation
+> **See**: dev-linking.md for linking codes and authentication service
 
 ---
 
