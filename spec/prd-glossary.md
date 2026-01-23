@@ -72,7 +72,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Components**:
 - Diary (mobile application)
-- Web Portal
+- Sponsor Portal
 - Database
 - Supporting infrastructure and APIs
 
@@ -111,14 +111,14 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 - ✓ "When used in clinical trials, the Diary serves as an eSource"
 - ✗ "Launch the ePRO app to enter your eCRF data"
 
-### Web Portal / Portal
+### Sponsor Portal / Portal
 
 **Definition**: The web-based application used by healthcare providers, investigators, admins, sponsors, auditors, and analysts to review patient data, manage users, and administer features.
 
 **Preferred Terms**:
 - **"Portal"** - Short form when context is clear
-- **"Web Portal"** - When distinguishing from mobile Diary
-- **"Clinical Trial Web Portal"** - When emphasizing clinical trial features specifically
+- **"Sponsor Portal"** - When distinguishing from mobile Diary
+- **"Sponsor Portal"** - When emphasizing clinical trial features specifically
 
 **Usage Context**: Use to distinguish from the mobile Diary application.
 
@@ -971,7 +971,7 @@ TODO - is there a good generic name for a portal user? "Portal User"?
 **Related Documentation**:
 - **prd-architecture-multi-sponsor.md** - System architecture and multi-sponsor isolation (clinical trial feature)
 - **prd-diary-app.md** - Mobile Diary application features
-- **prd-portal.md** - Web Portal features
+- **prd-portal.md** - Sponsor Portal features
 - **prd-database.md** - Database architecture, Event Sourcing, audit trails
 - **prd-security.md** - Authentication, authorization, role definitions
 - **prd-security-RBAC.md** - Role-based access control specifications

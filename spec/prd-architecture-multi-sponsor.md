@@ -59,7 +59,7 @@ L. The system SHALL NOT allow configuration or data from one sponsor to be acces
 *End* *Single Mobile App for All Sponsors* | **Hash**: ea74c9ac
 ---
 
-# REQ-p00009: Sponsor-Specific Web Portals
+# REQ-p00009: Sponsor-Specific Portals
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00001
 
@@ -78,7 +78,7 @@ F. Staff authenticated to one sponsor's portal SHALL NOT be able to access any o
 G. Each sponsor portal SHALL support independent customization without affecting other sponsors' portals.
 H. The portal SHALL NOT be capable of querying database records belonging to other sponsors.
 
-*End* *Sponsor-Specific Web Portals* | **Hash**: f3149879
+*End* *Sponsor-Specific Portals* | **Hash**: f3149879
 ---
 
 # REQ-p00018: Multi-Site Support Per Sponsor

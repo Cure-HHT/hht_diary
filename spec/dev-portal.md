@@ -1,4 +1,4 @@
-# Development Specification: Clinical Trial Web Portal
+# Development Specification: Sponsor Portal
 
 **Document Type**: Development Specification (Implementation Blueprint)
 **Audience**: Software Engineers, Flutter Developers, DevOps Engineers
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document specifies the technical implementation requirements for the Clinical Trial Web Portal, a sponsor-specific web application built with **Flutter Web** that enables Admins and Investigators to manage clinical trial users, enroll patients, monitor patient engagement, and manage questionnaires.
+This document specifies the technical implementation requirements for the Sponsor Portal, a sponsor-specific web application built with **Flutter Web** that enables Admins and Investigators to manage clinical trial users, enroll patients, monitor patient engagement, and manage questionnaires.
 
 The portal is a **separate application** from the patient diary mobile app, deployed as a web-only Flutter application. It provides role-based dashboards with site-level data isolation, integrates with Identity Platform for authentication and Cloud Run API for database access, and generates linking codes for patient enrollment.
 
@@ -703,7 +703,7 @@ S. Cloud Build authentication SHALL use Workload Identity Federation for GitHub 
 
 ## Summary
 
-This development specification defines the technical implementation requirements for the Clinical Trial Web Portal, a **Flutter web application** (separate from patient diary mobile app) with role-based dashboards (Admin, Investigator), site-level data isolation, and patient enrollment/questionnaire management.
+This development specification defines the technical implementation requirements for the Sponsor Portal, a **Flutter web application** (separate from patient diary mobile app) with role-based dashboards (Admin, Investigator), site-level data isolation, and patient enrollment/questionnaire management.
 
 **Key Technologies**:
 - Flutter 3.24+ for web

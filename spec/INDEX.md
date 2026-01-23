@@ -14,7 +14,7 @@ This file provides a complete index of all requirements.
 | REQ-p00006 | Offline-First Data Entry | prd-diary-app.md | 438d5f2d |
 | REQ-p00007 | Automatic Sponsor Configuration | prd-diary-app.md | 5498f554 |
 | REQ-p00008 | Single Mobile App for All Sponsors | prd-architecture-multi-sponsor.md | ea74c9ac |
-| REQ-p00009 | Sponsor-Specific Web Portals | prd-architecture-multi-sponsor.md | f3149879 |
+| REQ-p00009 | Sponsor-Specific Portals | prd-architecture-multi-sponsor.md | f3149879 |
 | REQ-p00010 | FDA 21 CFR Part 11 Compliance | prd-clinical-trials.md | 192ec8c7 |
 | REQ-p00011 | ALCOA+ Data Integrity Principles | prd-clinical-trials.md | 75efc558 |
 | REQ-p00012 | Clinical Data Retention Requirements | prd-clinical-trials.md | 1e94b089 |
