@@ -105,14 +105,22 @@ This file provides a complete index of all requirements.
 | REQ-p01060 | UX Changes During Trials | prd-architecture-multi-sponsor.md | a93a58d7 |
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
+| REQ-p01064 | Investigator Questionnaire Approval Workflow | prd-questionnaire-approval.md | 7ba8d6d5 |
+| REQ-p01065 | Clinical Questionnaire System | prd-questionnaire-system.md | ad012ed3 |
+| REQ-p01066 | Daily Epistaxis Record Questionnaire | prd-questionnaire-epistaxis.md | d6646153 |
+| REQ-p01067 | NOSE HHT Questionnaire | prd-questionnaire-nose-hht.md | a29a4ee5 |
+| REQ-p01068 | HHT Quality of Life Questionnaire | prd-questionnaire-qol.md | 0504ab18 |
+| REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | e0808086 |
+| REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | a16c3735 |
+| REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 2ece1d89 |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
-| REQ-p70001 | Sponsor Portal Application | prd-portal.md | bf4c8061 |
-| REQ-p70002 | Web Application Platform | prd-portal.md | 87649bca |
-| REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | e94fea45 |
-| REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9118260 |
-| REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 8e6e39d9 |
-| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 63c6ec96 |
-| REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 0ca73736 |
+| REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
+| REQ-p70002 | Web Application Platform | prd-portal.md | 5dd94e9d |
+| REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | 0d03cdf1 |
+| REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
+| REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
+| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 51420fd1 |
+| REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 74b1201e |
 
 ## Operations Requirements (OPS)
 

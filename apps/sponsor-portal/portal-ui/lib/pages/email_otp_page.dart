@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import '../widgets/error_message.dart';
 
 class EmailOtpPage extends StatefulWidget {
   const EmailOtpPage({super.key});
@@ -247,30 +248,12 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
                       // Error message
                       if (_error != null) ...[
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(8),
+                        ErrorMessage(
+                          message: _error!,
+                          supportEmail: const String.fromEnvironment(
+                            'SUPPORT_EMAIL',
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: colorScheme.onErrorContainer,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  style: TextStyle(
-                                    color: colorScheme.onErrorContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          onDismiss: () => setState(() => _error = null),
                         ),
                       ],
                       const SizedBox(height: 24),

@@ -93,7 +93,7 @@ resource "google_storage_bucket" "backups" {
 resource "google_storage_bucket" "app_data" {
   count = var.create_app_data_bucket ? 1 : 0
 
-  name                        = "${var.project_id}-app-data"
+  name                        = "${var.project_prefix}-${var.project_id}-app-data"
   project                     = var.project_id
   location                    = var.region
   uniform_bucket_level_access = true

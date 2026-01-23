@@ -143,8 +143,7 @@ B. The system SHALL be accessible via laptop browsers.
 
 C. The system SHALL provide responsive design for various desktop screen sizes.
 
-*End* *Web Application Platform* | **Hash**: 87649bca
-
+*End* *Web Application Platform* | **Hash**: 5dd94e9d
 ---
 
 # REQ-p70007: Linking Code Lifecycle Management
@@ -171,8 +170,7 @@ F. The Mobile App SHALL provide input interface for linking codes during enrollm
 
 G. The Sponsor Portal SHALL display linking code to Investigator after patient enrollment.
 
-*End* *Linking Code Lifecycle Management* | **Hash**: 63c6ec96
-
+*End* *Linking Code Lifecycle Management* | **Hash**: 51420fd1
 ---
 
 # REQ-p70001: Sponsor Portal Application
@@ -209,8 +207,7 @@ K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the inter
 
 L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
 
-*End* *Sponsor Portal Application* | **Hash**: bf4c8061
-
+*End* *Sponsor Portal Application* | **Hash**: be01f827
 ---
 
 # REQ-p70003: Multi-Sponsor Isolation
@@ -235,8 +232,7 @@ E. Each sponsor SHALL have isolated data that is not accessible to other sponsor
 
 F. Users SHALL NOT be able to access data from other sponsor instances.
 
-*End* *Multi-Sponsor Isolation* | **Hash**: e94fea45
-
+*End* *Multi-Sponsor Isolation* | **Hash**: 0d03cdf1
 ---
 
 # REQ-p70005: Customizable Role-Based Access Control
@@ -263,8 +259,7 @@ F. All role-specific actions SHALL be logged in the audit trail.
 
 G. Role definitions SHALL be isolated per sponsor.
 
-*End* *Customizable Role-Based Access Control* | **Hash**: a9118260
-
+*End* *Customizable Role-Based Access Control* | **Hash**: a9f3141f
 ---
 
 # REQ-p70006: Comprehensive Audit Trail
@@ -293,8 +288,7 @@ G. Audit logs SHALL NOT be deletable.
 
 H. Audit log visibility SHALL be configurable per role.
 
-*End* *Comprehensive Audit Trail* | **Hash**: 8e6e39d9
-
+*End* *Comprehensive Audit Trail* | **Hash**: 6d89830c
 ---
 
 # REQ-p70008: Sponsor-Specific Role Mapping
@@ -323,4 +317,4 @@ G. Users SHALL NOT see generic platform role names in the UI.
 
 H. Role mapping changes SHALL be logged in the audit trail.
 
-*End* *Sponsor-Specific Role Mapping* | **Hash**: 0ca73736
+*End* *Sponsor-Specific Role Mapping* | **Hash**: 74b1201e

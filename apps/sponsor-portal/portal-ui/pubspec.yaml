@@ -36,6 +36,7 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   url_strategy: ^0.3.0
+  url_launcher: ^6.2.0
   uuid: ^4.0.0
 
 dev_dependencies:
@@ -45,6 +46,19 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   firebase_auth_mocks: ^0.15.1
+  # For Dart VM integration tests (journey tests)
+  test: ^1.25.0
+  postgres: ^3.5.6
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Black.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+        - asset: assets/fonts/Roboto-Light.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Thin.ttf

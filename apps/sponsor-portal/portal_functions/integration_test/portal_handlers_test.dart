@@ -734,7 +734,8 @@ void main() {
         if (response.statusCode == 201) {
           final json = await getResponseJson(response);
           expect(json['roles'], contains('Investigator'));
-          expect(json['linking_code'], isNotNull);
+          // NOTE: linking_code is NOT returned for portal users.
+          // Linking codes are only for patients (diary app device linking).
           expect(json['site_ids'], contains(testSiteId));
         }
       },

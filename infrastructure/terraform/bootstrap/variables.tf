@@ -137,3 +137,61 @@ variable "include_data_access_logs" {
   type        = bool
   default     = true
 }
+
+# -----------------------------------------------------------------------------
+# Network Configuration
+# -----------------------------------------------------------------------------
+
+variable "app_subnet_cidr" {
+  description = "App subnet CIDR per environment"
+  type        = map(string)
+  default = {
+    dev  = "10.0.1.0/24"
+    qa   = "10.0.4.0/24"
+    uat  = "10.0.8.0/24"
+    prod = "10.0.12.0/24"
+  }
+}
+
+variable "db_subnet_cidr" {
+  description = "DB subnet CIDR per environment"
+  type        = map(string)
+  default = {
+    dev  = "10.0.2.0/24"
+    qa   = "10.0.5.0/24"
+    uat  = "10.0.9.0/24"
+    prod = "10.0.13.0/24"
+  }
+}
+variable "connector_cidr" {
+  description = "Connector subnet CIDR per environment"
+  type        = map(string)
+  default = {
+    dev  = "10.0.3.0/28"
+    qa   = "10.0.6.0/28"
+    uat  = "10.0.10.0/28"
+    prod = "10.0.14.0/28"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Database Configuration
+# -----------------------------------------------------------------------------
+
+variable "DB_PASSWORD" {
+  description = "Database password for Cloud SQL (from Doppler)"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_name" {
+  description = "Name of the database to create"
+  type        = string
+  default     = "db"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "app_user"
+}
