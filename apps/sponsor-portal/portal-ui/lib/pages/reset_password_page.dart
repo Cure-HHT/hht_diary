@@ -402,7 +402,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 8),
-          Text(text, style: theme.textTheme.bodySmall),
+          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
         ],
       ),
     );

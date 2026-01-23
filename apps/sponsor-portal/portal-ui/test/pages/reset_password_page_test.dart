@@ -159,6 +159,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap submit without entering password
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -178,6 +182,15 @@ void main() {
 
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'short');
+
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -201,6 +214,10 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       final longPassword = 'a' * 65;
       await tester.enterText(passwordFields.first, longPassword);
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -224,6 +241,10 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'password123');
       await tester.enterText(passwordFields.last, 'different123');
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -245,6 +266,10 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -275,6 +300,10 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
@@ -293,9 +322,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Password Requirements:'), findsOneWidget);
-      expect(find.text('Minimum 8 characters'), findsOneWidget);
-      expect(find.text('Maximum 64 characters'), findsOneWidget);
-      expect(find.text('Any printable characters allowed'), findsOneWidget);
+      // Note: Text appears both as helper text and in requirements list
+      expect(find.text('Minimum 8 characters'), findsWidgets);
+      expect(find.text('Maximum 64 characters'), findsWidgets);
+      expect(find.text('Any printable characters allowed'), findsWidgets);
     });
 
     testWidgets('handles verification exception gracefully', (tester) async {
@@ -330,6 +360,10 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
+      // Ensure button is visible before tapping
+      await tester.ensureVisible(find.text('Reset Password'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Reset Password'));
       await tester.pumpAndSettle();
 
