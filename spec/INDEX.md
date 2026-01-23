@@ -245,10 +245,10 @@ This file provides a complete index of all requirements.
 | REQ-d00067 | Streamlined Ticket Creation Agent | dev-ai-claude.md | 335415e6 |
 | REQ-d00068 | Enhanced Workflow New Work Detection | dev-ai-claude.md | f5f3570e |
 | REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | a84bf289 |
-| REQ-d00078 | HHT Diary Auth Service | dev-diary-web.md | d484bab8 |
-| REQ-d00079 | Linking Code Pattern Matching | dev-diary-web.md | 8e2b291e |
+| REQ-d00078 | HHT Diary Auth Service | dev-auth-service.md | d484bab8 |
+| REQ-d00079 | Linking Code Pattern Matching | dev-auth-service.md | 8e2b291e |
 | REQ-d00080 | Web Session Management Implementation | dev-diary-web.md | 1ed9928f |
-| REQ-d00081 | User Document Schema | dev-diary-web.md | b5b5f999 |
+| REQ-d00081 | User Document Schema | dev-auth-service.md | b5b5f999 |
 | REQ-d00082 | Password Hashing Implementation | dev-diary-web.md | 2f426f50 |
 | REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | 781a1594 |
 | REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 654added |
