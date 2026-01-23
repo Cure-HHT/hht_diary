@@ -328,7 +328,7 @@ TODO - It's it linking the patient id (or "participant Id" below) with the enrol
 
 **Usage Context**: Patient enrollment workflow, investigator instructions
 
-**See**: prd-diary-app.md (REQ-p00009) for linking code specification
+**See**: dev-portal.md (REQ-d00038) for linking code implementation specification
 
 ### De-identified Data
 
