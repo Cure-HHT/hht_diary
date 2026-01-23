@@ -157,7 +157,7 @@ M. All UI components SHALL meet WCAG AA contrast ratio requirements for accessib
 
 # REQ-d00052: Role-Based Banner Component
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00030, o00055
+**Level**: Dev | **Status**: Draft | **Implements**: p70005
 
 ## Rationale
 
@@ -216,7 +216,7 @@ O. The portal SHALL preserve the intended destination route and redirect users t
 
 # REQ-d00031: Identity Platform Integration
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00009, p00038, p00028
+**Level**: Dev | **Status**: Draft | **Implements**: p00009, p00038, p00002
 
 ## Rationale
 
@@ -249,7 +249,7 @@ S. The API client SHALL throw an exception with the HTTP status code for failed 
 
 # REQ-d00032: Role-Based Access Control Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00038, p00028
+**Level**: Dev | **Status**: Draft | **Implements**: p00038, p00005
 
 ## Rationale
 
@@ -426,7 +426,7 @@ Z. The system SHALL disable the Cancel and Submit buttons while user creation is
 
 # REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00040, p00027
+**Level**: Dev | **Status**: Draft | **Implements**: p00040, p00018
 
 ## Rationale
 
@@ -500,7 +500,7 @@ T. The dialog component file SHALL be located at lib/dialogs/enroll_patient_dial
 
 # REQ-d00051: Auditor Dashboard Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00029
+**Level**: Dev | **Status**: Draft | **Implements**: p00038
 
 ## Rationale
 

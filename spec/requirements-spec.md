@@ -38,9 +38,9 @@ Where:
 - `assertion` is an optional single letter label [A-Z] for an Assertion
 
 Examples:
-- `REQ-p00044`
-- `REQ-d00123-G`
-- `REQ-o00007`
+- `REQ-pXXXXX`
+- `REQ-dXXXXX-G`
+- `REQ-oXXXXX`
 
 ### Sponsor-Scoped Requirements
 
@@ -279,7 +279,7 @@ Field guidance:
 Requirements MAY reference User Journeys they address. This reference appears after the REQ header line but before the body content (outside the hashed area):
 
 ```markdown
-# REQ-p00044: Admin Site Management
+# REQ-pXXXXX: Admin Site Management
 
 **Level**: PRD | **Status**: Active | **Implements**: REQ-p00001
 
