@@ -125,6 +125,10 @@ O. The admin API SHALL support adding new sponsor patterns.
 P. The admin API SHALL support updating existing sponsor patterns.
 Q. The admin API SHALL support decommissioning sponsors.
 R. The system SHALL allow addition of new patterns without requiring service restart.
+S. Linking codes SHALL follow the format {SS}{XXX}-{XXXXX} where {SS} is the two-character sponsor prefix and {XXX}-{XXXXX} is an 8-character random alphanumeric identifier.
+T. The random portion of linking codes SHALL use only uppercase letters A-Z and digits 0-9.
+U. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
+V. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
 *End* *Linking Code Pattern Matching* | **Hash**: 8e2b291e
 
