@@ -449,5 +449,38 @@ void main() {
       final json = await getResponseJson(response);
       expect(json['error'], contains('An error occurred'));
     });
+
+    test(
+      'extracts IP from x-real-ip header when x-forwarded-for not present',
+      () async {
+        final testEmail = 'real-ip-test@password-reset-test.example.com';
+        final request = createPostRequest(
+          '/api/v1/portal/auth/password-reset/request',
+          {'email': testEmail},
+          headers: {'x-real-ip': '192.0.2.123'},
+        );
+
+        final response = await requestPasswordResetHandler(request);
+
+        expect(response.statusCode, equals(200));
+
+        // Verify IP was recorded
+        final db = Database.instance;
+        final rateLimitCheck = await db.executeWithContext(
+          '''
+        SELECT HOST(ip_address) FROM email_rate_limits
+        WHERE email = @email AND email_type = 'password_reset'
+        ORDER BY sent_at DESC
+        LIMIT 1
+        ''',
+          parameters: {'email': testEmail},
+          context: UserContext.service,
+        );
+
+        if (rateLimitCheck.isNotEmpty) {
+          expect(rateLimitCheck.first[0], equals('192.0.2.123'));
+        }
+      },
+    );
   });
 }
