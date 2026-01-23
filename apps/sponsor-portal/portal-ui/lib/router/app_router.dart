@@ -12,7 +12,9 @@ import '../pages/activation_page.dart';
 import '../pages/admin/admin_dashboard_page.dart';
 import '../pages/dev_admin/dev_admin_dashboard_page.dart';
 import '../pages/email_otp_page.dart';
+import '../pages/forgot_password_page.dart';
 import '../pages/login_page.dart';
+import '../pages/reset_password_page.dart';
 import '../pages/role_picker_page.dart';
 import '../pages/two_factor_setup_page.dart';
 
@@ -28,6 +30,19 @@ final appRouter = GoRouter(
       path: '/login/email-otp',
       name: 'login-email-otp',
       builder: (context, state) => const EmailOtpPage(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      name: 'forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      name: 'reset-password',
+      builder: (context, state) {
+        final oobCode = state.uri.queryParameters['oobCode'];
+        return ResetPasswordPage(oobCode: oobCode);
+      },
     ),
     GoRoute(
       path: '/select-role',
