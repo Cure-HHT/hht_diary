@@ -164,25 +164,21 @@ C. The linking code SHALL be cryptographically secure and not predictable or gue
 
 D. The linking code SHALL be displayed in a format that is easy to communicate to the patient (e.g., short alphanumeric code).
 
-E. The system SHALL reject expired linking codes with clear error messages indicating the code has expired.
+E. Linking codes SHALL be single-use only.
 
-F. Linking codes SHALL be single-use only.
+F. The system SHALL mark linking codes as used after successful authentication.
 
-G. The system SHALL mark linking codes as used after successful authentication.
+G. The system SHALL reject invalid linking codes with a generic "Invalid Code" error message.
 
-H. The system SHALL reject already-used codes with clear error messages indicating the code was previously used.
+H. The system SHALL validate that the linking code is valid before completing the link.
 
-I. The system SHALL validate that the linking code is valid, not expired, and not already used before completing the link.
+I. The Mobile App SHALL provide input interface for linking codes during enrollment.
 
-J. The Mobile App SHALL provide input interface for linking codes during enrollment.
+J. The system SHALL display the linking code only once at generation time; subsequent views SHALL require generating a new code.
 
-K. The mobile app SHALL accept the linking code from the patient and use it to establish the connection to the portal.
+K. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
 
-L. The Sponsor Portal SHALL display linking code to clinical staff after patient enrollment.
-
-M. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
-
-*End* *Linking Code Lifecycle Management* | **Hash**: b4b2eaa6
+*End* *Linking Code Lifecycle Management* | **Hash**: fe32ff5f
 ---
 
 # REQ-p70001: Sponsor Portal Application
