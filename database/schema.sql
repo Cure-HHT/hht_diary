@@ -772,7 +772,7 @@ COMMENT ON COLUMN email_otp_codes.attempts IS 'Failed verification attempts - ma
 CREATE TABLE email_rate_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'password_reset')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     ip_address INET
 );
@@ -796,7 +796,7 @@ COMMENT ON COLUMN email_rate_limits.email_type IS 'Type of email: otp (login cod
 CREATE TABLE email_audit_log (
     id BIGSERIAL PRIMARY KEY,
     recipient_email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced')),

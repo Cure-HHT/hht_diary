@@ -302,14 +302,14 @@ Future<void> _logPasswordResetAudit({
     await db.executeWithContext(
       '''
       INSERT INTO auth_audit_log
-        (user_id, event_type, success, ip_address, metadata)
+        (user_id, event_type, success, client_ip, metadata)
       VALUES
-        (@user_id::uuid, 'PASSWORD_RESET', @success, @ip_address::inet, @metadata::jsonb)
+        (@user_id, 'PASSWORD_RESET', @success, @client_ip::inet, @metadata::jsonb)
       ''',
       parameters: {
         'user_id': userId,
         'success': success,
-        'ip_address': ipAddress,
+        'client_ip': ipAddress,
         'metadata': jsonEncode({
           'email': email,
           'reason': reason,
