@@ -330,3 +330,117 @@ G. Users SHALL NOT see generic platform role names in the UI.
 H. Role mapping changes SHALL be logged in the audit trail.
 
 *End* *Sponsor-Specific Role Mapping* | **Hash**: 74b1201e
+
+---
+
+# REQ-p70009: Link New Patient Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patient linking establishes secure connection between patient's mobile device and sponsor portal, enabling questionnaire distribution and diary data collection. Unique codes prevent unauthorized access. Clinical staff controls when linking occurs, ensuring patient is ready to begin trial participation.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to link patients to the mobile app by generating linking codes per REQ-p70007 (Linking Code Lifecycle Management).
+
+B. The patient SHALL enter the code in the mobile app to complete linking.
+
+C. The Mobile Linking Status SHALL change to "Pending" when code is generated.
+
+D. The Mobile Linking Status SHALL change to "Connected" when patient successfully enters code.
+
+E. The system SHALL reject invalid or expired codes.
+
+F. The linking action SHALL be logged in the audit trail with timestamp and username.
+
+*End* *Link New Patient Workflow* | **Hash**: 4f1edfe6
+
+---
+
+# REQ-p70010: Patient Disconnection Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patients may lose their phone, upgrade devices, or experience technical issues requiring disconnection. Disconnection invalidates the linking code to prevent unauthorized access from lost/stolen devices while preserving all patient data for reconnection. This is a temporary state allowing patients to resume participation after receiving replacement device or resolving technical issues.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to disconnect patients from the mobile app.
+
+B. The "Disconnect Patient" option SHALL be available in the patient actions menu for "Connected" patients.
+
+C. The system SHALL display a confirmation dialog with patient ID and require reason selection.
+
+D. The patient status SHALL change to "Disconnected" upon confirmation.
+
+E. The linking code SHALL be invalidated immediately upon disconnection.
+
+F. The patient mobile app SHALL stop syncing data after disconnection.
+
+G. The patient SHALL be disconnected from the mobile app with a message to contact clinical staff.
+
+H. All patient data and history SHALL be preserved.
+
+I. The disconnection SHALL be logged in the audit trail with reason, timestamp, and username.
+
+J. The "Reconnect Patient" option SHALL become available after disconnection.
+
+*End* *Patient Disconnection Workflow* | **Hash**: b9bcc805
+
+---
+
+# REQ-p70011: Patient Reconnection Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patients who were disconnected due to lost phone, device upgrade, or technical issues need ability to reconnect and resume trial participation. New linking code ensures security (old code cannot be reused) while enabling legitimate reconnection. Requiring reason documents why reconnection occurred for audit purposes. Clinical staff controls reconnection timing and provides code directly to patient.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to reconnect patients with "Disconnected" status by generating a new linking code.
+
+B. The "Reconnect Patient" action SHALL only be available for patients with "Disconnected" status.
+
+C. The confirmation dialog SHALL display the patient ID and require a reason.
+
+D. The system SHALL generate a new linking code upon confirmation.
+
+E. The previous linking code SHALL remain invalidated and cannot be reused.
+
+F. The patient SHALL enter the new code in the mobile app to restore access.
+
+G. The Mobile Linking Status SHALL change to "Connected" after successful code entry.
+
+H. The patient SHALL be able to resume data sync and questionnaire completion.
+
+I. The reconnection SHALL be logged in the audit trail with reason, timestamp, and username.
+
+*End* *Patient Reconnection Workflow* | **Hash**: 8ac4f43a
+
+---
+
+# REQ-p70012: Patient Disconnect Recovery
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Provides recovery path for accidental disconnections while maintaining security. Old linking codes cannot be reused, preventing unauthorized access if a device was truly lost or stolen.
+
+## Assertions
+
+A. The system SHALL provide a "Reconnect Patient" option immediately available after disconnection.
+
+B. The system SHALL generate a new linking code when reconnecting a patient.
+
+C. The system SHALL invalidate the previous linking code permanently upon disconnection.
+
+D. All disconnect and reconnect actions SHALL be logged in the audit trail with reason, timestamp, and username.
+
+*End* *Patient Disconnect Recovery* | **Hash**: 20c1f0d1

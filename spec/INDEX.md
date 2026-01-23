@@ -121,6 +121,10 @@ This file provides a complete index of all requirements.
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
 | REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 51420fd1 |
 | REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 74b1201e |
+| REQ-p70009 | Link New Patient Workflow | prd-portal.md | 4f1edfe6 |
+| REQ-p70010 | Patient Disconnection Workflow | prd-portal.md | b9bcc805 |
+| REQ-p70011 | Patient Reconnection Workflow | prd-portal.md | 8ac4f43a |
+| REQ-p70012 | Patient Disconnect Recovery | prd-portal.md | 20c1f0d1 |
 
 ## Operations Requirements (OPS)
 
