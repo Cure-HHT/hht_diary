@@ -23,11 +23,12 @@ const _firebaseAuthUrl = 'https://identitytoolkit.googleapis.com/v1';
 
 /// Get Firebase Web API key from environment
 String get _firebaseApiKey {
-  final apiKey = Platform.environment['FIREBASE_WEB_API_KEY'];
+  final apiKey = Platform.environment['PORTAL_FIREBASE_API_KEY'];
   if (apiKey == null || apiKey.isEmpty) {
     throw Exception(
-      'FIREBASE_WEB_API_KEY environment variable not set. '
-      'This is required for password reset functionality.',
+      'PORTAL_FIREBASE_API_KEY environment variable not set. '
+      'This is required for password reset functionality. '
+      'Get this value from Firebase Console > Project Settings > Web API Key.',
     );
   }
   return apiKey;
