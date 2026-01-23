@@ -148,32 +148,41 @@ C. The system SHALL provide responsive design for various desktop screen sizes.
 
 # REQ-p70007: Linking Code Lifecycle Management
 
-**Level**: PRD | **Status**: Deprecated | **Implements**: p70001
-
-> **DEPRECATED**: This requirement has been consolidated into callisto sponsor-specific spec.
-> See `callisto/spec/prd-portal-mobile-integration.md` REQ-CAL-p00049 for the authoritative specification.
+**Level**: PRD | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 
-This requirement balances security (limited validity, single-use) with patient convenience (3-day window to complete enrollment setup). This prevents unauthorized reuse while giving patients sufficient time to download the app and link their account.
+Secure linking codes provide a mechanism for clinical staff to safely enroll patients into trials without requiring complex authentication setup. The 72-hour expiration window balances security (limited validity, single-use) with patient convenience, providing sufficient time to download the app and link their account. Time-limited, single-use codes minimize security risks while maintaining usability. Audit logging ensures traceability of patient enrollment events for regulatory compliance.
 
 ## Assertions
 
-A. Linking codes SHALL expire after 72 hours from generation.
+A. The Sponsor Portal SHALL generate a unique linking code when clinical staff initiates the patient enrollment workflow.
 
-B. The system SHALL reject expired linking codes with clear error messages.
+B. Linking codes SHALL expire after 72 hours from generation.
 
-C. Linking codes SHALL be single-use only.
+C. The linking code SHALL be cryptographically secure and not predictable or guessable.
 
-D. The system SHALL mark linking codes as used after successful authentication.
+D. The linking code SHALL be displayed in a format that is easy to communicate to the patient (e.g., short alphanumeric code).
 
-E. The system SHALL reject already-used codes with clear error messages.
+E. The system SHALL reject expired linking codes with clear error messages indicating the code has expired.
 
-F. The Mobile App SHALL provide input interface for linking codes during enrollment.
+F. Linking codes SHALL be single-use only.
 
-G. The Sponsor Portal SHALL display linking code to Investigator after patient enrollment.
+G. The system SHALL mark linking codes as used after successful authentication.
 
-*End* *Linking Code Lifecycle Management* | **Hash**: 8697cdb0
+H. The system SHALL reject already-used codes with clear error messages indicating the code was previously used.
+
+I. The system SHALL validate that the linking code is valid, not expired, and not already used before completing the link.
+
+J. The Mobile App SHALL provide input interface for linking codes during enrollment.
+
+K. The mobile app SHALL accept the linking code from the patient and use it to establish the connection to the portal.
+
+L. The Sponsor Portal SHALL display linking code to clinical staff after patient enrollment.
+
+M. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
+
+*End* *Linking Code Lifecycle Management* | **Hash**: b4b2eaa6
 ---
 
 # REQ-p70001: Sponsor Portal Application
