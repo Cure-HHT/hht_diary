@@ -221,24 +221,6 @@ This file provides a complete index of all requirements.
 | REQ-d00025 | Administrator Break-Glass RLS Implementation | dev-security-RLS.md | 93358063 |
 | REQ-d00026 | Event Sourcing State Protection RLS Implementation | dev-security-RLS.md | 46e9dc01 |
 | REQ-d00027 | Containerized Development Environments | dev-environment.md | 12d637c5 |
-| REQ-d00028 | Portal Frontend Framework | dev-portal.md | 9abb5505 |
-| REQ-d00029 | Portal UI Design System | dev-portal.md | 0e7d0956 |
-| REQ-d00030 | Portal Routing and Navigation | dev-portal.md | 80b2e394 |
-| REQ-d00031 | Identity Platform Integration | dev-portal.md | 96139a3c |
-| REQ-d00032 | Role-Based Access Control Implementation | dev-portal.md | 9d9a502a |
-| REQ-d00033 | Site-Based Data Isolation | dev-portal.md | 2eff596e |
-| REQ-d00034 | Login Page Implementation | dev-portal.md | 64108d53 |
-| REQ-d00035 | Admin Dashboard Implementation | dev-portal.md | 733c97d1 |
-| REQ-d00036 | Create User Dialog Implementation | dev-portal.md | 619ef6f4 |
-| REQ-d00037 | Investigator Dashboard Implementation | dev-portal.md | f8e9c137 |
-| REQ-d00038 | Enroll Patient Dialog Implementation | dev-portal.md | 7c62bbb7 |
-| REQ-d00039 | Portal Users Table Schema | dev-portal.md | ab792ed7 |
-| REQ-d00040 | User Site Access Table Schema | dev-portal.md | f6e3af89 |
-| REQ-d00041 | Patients Table Extensions for Portal | dev-portal.md | f12125f3 |
-| REQ-d00042 | Questionnaires Table Schema | dev-portal.md | 353a9b0a |
-| REQ-d00043 | Cloud Run Deployment Configuration | dev-portal.md | 5a86d9bd |
-| REQ-d00051 | Auditor Dashboard Implementation | dev-portal.md | ed881a6b |
-| REQ-d00052 | Role-Based Banner Component | dev-portal.md | 49f5f38e |
 | REQ-d00053 | Development Environment and Tooling Setup | dev-requirements-management.md | a00606aa |
 | REQ-d00055 | Role-Based Environment Separation | dev-environment.md | 03138c47 |
 | REQ-d00056 | Cross-Platform Development Support | dev-environment.md | 6e05c815 |
