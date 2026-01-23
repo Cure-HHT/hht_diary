@@ -377,16 +377,15 @@ E. The linking code SHALL be invalidated immediately upon disconnection.
 
 F. The patient mobile app SHALL stop syncing data after disconnection.
 
-G. The patient SHALL be disconnected from the mobile app with a message to contact clinical staff.
+G. The mobile app SHALL display a prominent error message if its linking code is no longer valid.
 
-H. All patient data and history SHALL be preserved.
+H. Mobile App operation and local storage of data SHALL NOT change due to an expired or revoked linking code.
 
 I. The disconnection SHALL be logged in the audit trail with reason, timestamp, and username.
 
 J. The "Reconnect Patient" option SHALL become available after disconnection.
 
-*End* *Patient Disconnection Workflow* | **Hash**: b9bcc805
-
+*End* *Patient Disconnection Workflow* | **Hash**: 0e956c62
 ---
 
 # REQ-p70011: Patient Reconnection Workflow
@@ -417,26 +416,35 @@ H. The patient SHALL be able to resume data sync and questionnaire completion.
 
 I. The reconnection SHALL be logged in the audit trail with reason, timestamp, and username.
 
-*End* *Patient Reconnection Workflow* | **Hash**: 8ac4f43a
+J. The reconnected Mobile App SHALL sync data to the portal that was collected during the disconnected period.
 
+*End* *Patient Reconnection Workflow* | **Hash**: c192cad5
 ---
 
-# REQ-p70012: Patient Disconnect Recovery
+## User Journeys
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+### Happy Path: New Patient Enrollment
 
-## Rationale
+1. **Investigator** opens the Sponsor Portal and navigates to patient enrollment
+2. **Investigator** clicks "Enroll New Patient" and selects a site
+3. **System** generates a unique linking code and displays it once
+4. **Investigator** provides the linking code to the patient (verbally or on paper)
+5. **Patient** downloads the mobile app and enters the linking code
+6. **System** validates the code and links the patient to the portal
+7. **Patient** begins using the app for diary entries and questionnaires
+8. **Mobile App** syncs data to the portal automatically
 
-Provides recovery path for accidental disconnections while maintaining security. Old linking codes cannot be reused, preventing unauthorized access if a device was truly lost or stolen.
+### Lost Mobile Phone Scenario
 
-## Assertions
-
-A. The system SHALL provide a "Reconnect Patient" option immediately available after disconnection.
-
-B. The system SHALL generate a new linking code when reconnecting a patient.
-
-C. The system SHALL invalidate the previous linking code permanently upon disconnection.
-
-D. All disconnect and reconnect actions SHALL be logged in the audit trail with reason, timestamp, and username.
-
-*End* *Patient Disconnect Recovery* | **Hash**: 20c1f0d1
+1. **Patient** reports lost phone to clinical staff
+2. **Investigator** opens the Sponsor Portal and locates the patient
+3. **Investigator** clicks "Disconnect Patient" and selects reason "Lost Device"
+4. **System** invalidates the linking code immediately
+5. **Lost phone** (if found by someone) cannot sync or access trial data
+6. **Patient** obtains a new phone and contacts clinical staff
+7. **Investigator** clicks "Reconnect Patient" and provides reason
+8. **System** generates a new linking code (old code remains invalid)
+9. **Investigator** provides the new code to the patient
+10. **Patient** enters the new code in the mobile app on their new device
+11. **System** validates and reconnects the patient
+12. **Mobile App** syncs any data collected during the disconnected period
