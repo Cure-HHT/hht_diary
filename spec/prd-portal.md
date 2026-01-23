@@ -125,6 +125,61 @@ All user actions are logged for regulatory compliance:
 
 ---
 
+## User Journeys
+
+# JNY-Portal-Enrollment-01: New Patient Enrollment
+
+**Actor**: Dr. Sarah Mitchell (Investigator)
+**Goal**: Enroll a new patient into the clinical trial and provide them with mobile app access
+**Context**: A patient has consented to participate in the trial. Dr. Mitchell needs to create their portal record and provide credentials for the mobile app.
+
+## Steps
+
+1. Dr. Mitchell opens the Sponsor Portal and navigates to patient enrollment
+2. Dr. Mitchell clicks "Enroll New Patient" and selects the patient's site
+3. The system generates a unique linking code and displays it once on screen
+4. Dr. Mitchell provides the linking code to the patient verbally or on paper
+5. The patient downloads the mobile app and enters the linking code
+6. The system validates the code and links the patient to the portal
+7. The patient begins using the app for diary entries and questionnaires
+8. The mobile app syncs data to the portal automatically
+
+## Expected Outcome
+
+The patient is successfully enrolled and can use the mobile app to participate in the trial. Their data syncs to the portal where Dr. Mitchell can monitor their progress.
+
+*End* *New Patient Enrollment*
+
+---
+
+# JNY-Portal-Enrollment-02: Lost Mobile Phone Recovery
+
+**Actor**: Dr. Sarah Mitchell (Investigator)
+**Goal**: Secure a patient's trial data after they report a lost phone and restore their access on a new device
+**Context**: A patient contacts Dr. Mitchell to report their phone was lost. The patient has obtained a new phone and wants to continue participating in the trial.
+
+## Steps
+
+1. The patient reports their lost phone to Dr. Mitchell
+2. Dr. Mitchell opens the Sponsor Portal and locates the patient record
+3. Dr. Mitchell clicks "Disconnect Patient" and selects reason "Lost Device"
+4. The system invalidates the linking code immediately
+5. The lost phone (if found by someone) can no longer sync or access trial data
+6. Dr. Mitchell clicks "Reconnect Patient" and provides the reason for reconnection
+7. The system generates a new linking code (the old code remains permanently invalid)
+8. Dr. Mitchell provides the new code to the patient
+9. The patient enters the new code in the mobile app on their new device
+10. The system validates the code and reconnects the patient
+11. The mobile app syncs any diary data that was collected locally during the disconnected period
+
+## Expected Outcome
+
+The patient's trial data is secured from unauthorized access on the lost device. The patient resumes participation on their new device with no data loss, and all locally stored entries sync successfully.
+
+*End* *Lost Mobile Phone Recovery*
+
+---
+
 ## Requirements
 
 # REQ-p70002: Web Application Platform
@@ -419,32 +474,3 @@ I. The reconnection SHALL be logged in the audit trail with reason, timestamp, a
 J. The reconnected Mobile App SHALL sync data to the portal that was collected during the disconnected period.
 
 *End* *Patient Reconnection Workflow* | **Hash**: c192cad5
----
-
-## User Journeys
-
-### Happy Path: New Patient Enrollment
-
-1. **Investigator** opens the Sponsor Portal and navigates to patient enrollment
-2. **Investigator** clicks "Enroll New Patient" and selects a site
-3. **System** generates a unique linking code and displays it once
-4. **Investigator** provides the linking code to the patient (verbally or on paper)
-5. **Patient** downloads the mobile app and enters the linking code
-6. **System** validates the code and links the patient to the portal
-7. **Patient** begins using the app for diary entries and questionnaires
-8. **Mobile App** syncs data to the portal automatically
-
-### Lost Mobile Phone Scenario
-
-1. **Patient** reports lost phone to clinical staff
-2. **Investigator** opens the Sponsor Portal and locates the patient
-3. **Investigator** clicks "Disconnect Patient" and selects reason "Lost Device"
-4. **System** invalidates the linking code immediately
-5. **Lost phone** (if found by someone) cannot sync or access trial data
-6. **Patient** obtains a new phone and contacts clinical staff
-7. **Investigator** clicks "Reconnect Patient" and provides reason
-8. **System** generates a new linking code (old code remains invalid)
-9. **Investigator** provides the new code to the patient
-10. **Patient** enters the new code in the mobile app on their new device
-11. **System** validates and reconnects the patient
-12. **Mobile App** syncs any data collected during the disconnected period
