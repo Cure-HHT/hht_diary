@@ -597,8 +597,8 @@ CREATE TABLE portal_users (
     activation_code TEXT UNIQUE,        -- Account activation code (XXXXX-XXXXX format)
     activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
     activated_at TIMESTAMPTZ,           -- When account was activated
-    password_reset_oob_code TEXT,       -- Identity Platform oobCode for password reset (single-use)
-    password_reset_oob_expires_at TIMESTAMPTZ, -- Password reset code expiry (24 hours)
+    password_reset_code TEXT UNIQUE,    -- Password reset code (XXXXX-XXXXX format, single-use)
+    password_reset_code_expires_at TIMESTAMPTZ, -- Password reset code expiry (24 hours)
     password_reset_used_at TIMESTAMPTZ, -- When password reset was completed (audit)
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
     -- MFA tracking (FDA 21 CFR Part 11 compliance)
@@ -627,8 +627,8 @@ COMMENT ON COLUMN portal_users.linking_code IS 'Device enrollment code for Inves
 COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent to new users (XXXXX-XXXXX format)';
 COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
 COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
-COMMENT ON COLUMN portal_users.password_reset_oob_code IS 'Identity Platform oobCode for password reset - single-use, tracked for audit';
-COMMENT ON COLUMN portal_users.password_reset_oob_expires_at IS 'Password reset code expiry - typically 24 hours from generation';
+COMMENT ON COLUMN portal_users.password_reset_code IS 'Password reset code sent via email (XXXXX-XXXXX format, single-use)';
+COMMENT ON COLUMN portal_users.password_reset_code_expires_at IS 'Password reset code expiry - typically 24 hours from generation';
 COMMENT ON COLUMN portal_users.password_reset_used_at IS 'Timestamp when password reset was successfully completed (audit trail)';
 COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
 COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA enrollment (FDA 21 CFR Part 11)';
