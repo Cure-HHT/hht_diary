@@ -38,9 +38,9 @@ Where:
 - `assertion` is an optional single letter label [A-Z] for an Assertion
 
 Examples:
-- `REQ-p00044`
-- `REQ-d00123-G`
-- `REQ-o00007`
+- `REQ-pXXXXX`
+- `REQ-dXXXXX-G`
+- `REQ-oXXXXX`
 
 ### Sponsor-Scoped Requirements
 
@@ -59,13 +59,18 @@ Each requirement MUST begin with a header in the following exact form:
 ```markdown
 # REQ-{id}: {Short Descriptive Title}
 
-**Level**: {PRD | Dev | Ops} | **Status**: {Draft | Review | Active | Deprecated} | **Implements**: {REQ-xNNNNN, REQ-yNNNNN | -} 
+**Level**: {PRD | Dev | Ops} | **Status**: {Draft | Review | Active | Deprecated} | **Implements**: {REQ-xNNNNN, REQ-yNNNNN | -}
+
+Addresses: {JNY-xxx-NN, ...}
 ```
 
 Rules:
 - `Implements` lists **only less-specific requirements**.
 - Parent requirements MUST NOT reference children.
 - Use `-` if the requirement has no parent.
+- `Addresses` is optional; when present, it lists User Journey IDs this requirement supports.
+- The `Addresses` line appears after the metadata line, before any section content.
+- The `Addresses` line is NOT part of the hashed content.
 
 ---
 
@@ -201,6 +206,122 @@ Explanatory, contextual, or illustrative sections MUST NOT have requirement IDs.
 - Subheadings within a requirement are limited to:
   - Assertions
   - Rationale
+
+---
+
+## User Journeys (JNY)
+
+User Journeys describe what a user wants to achieve, step by step, from their perspective. They capture the key interactions and expected outcomes for major flows.
+
+### Purpose
+
+User Journeys exist to:
+- communicate the intended user experience,
+- provide context for why requirements exist,
+- help stakeholders understand the system from the user's point of view.
+
+User Journeys are **non-normative**. They do not define obligations and are not subject to automated validation.
+
+User Journeys SHALL NOT use normative keywords (SHALL, SHALL NOT, MUST, MUST NOT, REQUIRED).
+
+### User Journey IDs
+
+Each User Journey is uniquely identified by an ID of the form:
+
+```
+JNY-{Descriptor}-{number}
+```
+
+Where:
+- `JNY` signals this is a User Journey (not a requirement)
+- `Descriptor` is a short hyphenated term identifying the journey context (e.g., `Admin-Portal`, `Participant-Diary`, `Site-Enrollment`)
+- `number` is a two-digit sequence within that descriptor
+
+Examples:
+- `JNY-Admin-Portal-01`
+- `JNY-Participant-Diary-03`
+- `JNY-Site-Enrollment-02`
+
+### User Journey Structure
+
+A User Journey SHOULD follow this structure:
+
+```markdown
+# JNY-{Descriptor}-{number}: {Title}
+
+**Actor**: {Name} ({Role})
+**Goal**: {what the user wants to achieve}
+**Context**: {situational background that sets up the scenario}
+
+## Steps
+
+1. {User action or system response}
+2. {User action or system response}
+3. ...
+
+## Expected Outcome
+
+{What success looks like from the user's perspective}
+
+*End* *{Title}*
+```
+
+Field guidance:
+- **Actor**: Include a persona name and role in parentheses for readability (e.g., "Dr. Lisa Chen (Principal Investigator)")
+- **Goal**: A single sentence describing what the user wants to achieve
+- **Context**: Optional but recommended; provides situational background (e.g., "Trial sponsor's IT team has deployed the portal. Dr. Chen has been designated as the first administrator.")
+- **Steps**: Numbered sequence of user actions and system responses
+- **Expected Outcome**: Brief statement of success from the user's perspective
+- **End marker**: Required for parsing; uses format `*End* *{Title}*` (no hash since JNYs are non-normative)
+
+### Referencing User Journeys in Requirements
+
+Requirements MAY reference User Journeys they address. This reference appears after the REQ header line but before the body content (outside the hashed area):
+
+```markdown
+# REQ-pXXXXX: Admin Site Management
+
+**Level**: PRD | **Status**: Active | **Implements**: REQ-p00001
+
+Addresses: JNY-Admin-Portal-01, JNY-Admin-Portal-02
+
+## Assertions
+...
+```
+
+The `Addresses:` line:
+- is optional,
+- lists one or more JNY IDs separated by commas,
+- indicates which user journeys this requirement supports,
+- is NOT part of the hashed content.
+
+### Do's and Don'ts
+
+**DO:**
+- Focus on major flows and happy paths
+- Write from the user's perspective using natural language
+- Describe what the user sees and does
+- Keep steps at a high level of abstraction
+- Include the expected outcome
+
+**DON'T:**
+- Enumerate all validation rules or error cases
+- Use normative keywords (SHALL, MUST, REQUIRED, etc.) — this is enforced
+- Include implementation details or technical specifics
+- Duplicate content that belongs in assertions
+- Create journeys for every minor variation
+
+### Relationship to Requirements
+
+| Aspect | User Journey (JNY) | Requirement (REQ) |
+| ------ | ------------------ | ----------------- |
+| Purpose | Describe user experience | Define obligations |
+| Language | Descriptive ("User clicks...") | Prescriptive ("System SHALL...") |
+| Validation | Manual walkthrough | Automated/formal verification |
+| Granularity | Major flows only | Every testable obligation |
+| Normative | No | Yes |
+
+User Journeys provide **context**; Requirements provide **contracts**.
 
 ---
 

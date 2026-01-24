@@ -125,6 +125,61 @@ All user actions are logged for regulatory compliance:
 
 ---
 
+## User Journeys
+
+# JNY-Portal-Enrollment-01: New Patient Enrollment
+
+**Actor**: Dr. Sarah Mitchell (Investigator)
+**Goal**: Enroll a new patient into the clinical trial and provide them with mobile app access
+**Context**: A patient has consented to participate in the trial. Dr. Mitchell needs to create their portal record and provide credentials for the mobile app.
+
+## Steps
+
+1. Dr. Mitchell opens the Sponsor Portal and navigates to patient enrollment
+2. Dr. Mitchell clicks "Enroll New Patient" and selects the patient's site
+3. The system generates a unique linking code and displays it once on screen
+4. Dr. Mitchell provides the linking code to the patient verbally or on paper
+5. The patient downloads the mobile app and enters the linking code
+6. The system validates the code and links the patient to the portal
+7. The patient begins using the app for diary entries and questionnaires
+8. The mobile app syncs data to the portal automatically
+
+## Expected Outcome
+
+The patient is successfully enrolled and can use the mobile app to participate in the trial. Their data syncs to the portal where Dr. Mitchell can monitor their progress.
+
+*End* *New Patient Enrollment*
+
+---
+
+# JNY-Portal-Enrollment-02: Lost Mobile Phone Recovery
+
+**Actor**: Dr. Sarah Mitchell (Investigator)
+**Goal**: Secure a patient's trial data after they report a lost phone and restore their access on a new device
+**Context**: A patient contacts Dr. Mitchell to report their phone was lost. The patient has obtained a new phone and wants to continue participating in the trial.
+
+## Steps
+
+1. The patient reports their lost phone to Dr. Mitchell
+2. Dr. Mitchell opens the Sponsor Portal and locates the patient record
+3. Dr. Mitchell clicks "Disconnect Patient" and selects reason "Lost Device"
+4. The system invalidates the linking code immediately
+5. The lost phone (if found by someone) can no longer sync or access trial data
+6. Dr. Mitchell clicks "Reconnect Patient" and provides the reason for reconnection
+7. The system generates a new linking code (the old code remains permanently invalid)
+8. Dr. Mitchell provides the new code to the patient
+9. The patient enters the new code in the mobile app on their new device
+10. The system validates the code and reconnects the patient
+11. The mobile app syncs any diary data that was collected locally during the disconnected period
+
+## Expected Outcome
+
+The patient's trial data is secured from unauthorized access on the lost device. The patient resumes participation on their new device with no data loss, and all locally stored entries sync successfully.
+
+*End* *Lost Mobile Phone Recovery*
+
+---
+
 ## Requirements
 
 # REQ-p70002: Web Application Platform
@@ -152,25 +207,33 @@ C. The system SHALL provide responsive design for various desktop screen sizes.
 
 ## Rationale
 
-This requirement balances security (limited validity, single-use) with patient convenience (3-day window to complete enrollment setup). This prevents unauthorized reuse while giving patients sufficient time to download the app and link their account.
+Secure linking codes provide a mechanism for clinical staff to safely enroll patients into trials without requiring complex authentication setup. The 72-hour expiration window balances security (limited validity, single-use) with patient convenience, providing sufficient time to download the app and link their account. Time-limited, single-use codes minimize security risks while maintaining usability. Audit logging ensures traceability of patient enrollment events for regulatory compliance.
 
 ## Assertions
 
-A. Linking codes SHALL expire after 72 hours from generation.
+A. The Sponsor Portal SHALL generate a unique linking code when clinical staff initiates the patient enrollment workflow.
 
-B. The system SHALL reject expired linking codes with clear error messages.
+B. Linking codes SHALL expire after 72 hours from generation.
 
-C. Linking codes SHALL be single-use only.
+C. The linking code SHALL be cryptographically secure and not predictable or guessable.
 
-D. The system SHALL mark linking codes as used after successful authentication.
+D. The linking code SHALL be displayed in a format that is easy to communicate to the patient (e.g., short alphanumeric code).
 
-E. The system SHALL reject already-used codes with clear error messages.
+E. Linking codes SHALL be single-use only.
 
-F. The Mobile App SHALL provide input interface for linking codes during enrollment.
+F. The system SHALL mark linking codes as used after successful authentication.
 
-G. The Sponsor Portal SHALL display linking code to Investigator after patient enrollment.
+G. The system SHALL reject invalid linking codes with a generic "Invalid Code" error message.
 
-*End* *Linking Code Lifecycle Management* | **Hash**: 51420fd1
+H. The system SHALL validate that the linking code is valid before completing the link.
+
+I. The Mobile App SHALL provide input interface for linking codes during enrollment.
+
+J. The system SHALL display the linking code only once at generation time; subsequent views SHALL require generating a new code.
+
+K. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
+
+*End* *Linking Code Lifecycle Management* | **Hash**: fe32ff5f
 ---
 
 # REQ-p70001: Sponsor Portal Application
@@ -318,3 +381,96 @@ G. Users SHALL NOT see generic platform role names in the UI.
 H. Role mapping changes SHALL be logged in the audit trail.
 
 *End* *Sponsor-Specific Role Mapping* | **Hash**: 74b1201e
+
+---
+
+# REQ-p70009: Link New Patient Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patient linking establishes secure connection between patient's mobile device and sponsor portal, enabling questionnaire distribution and diary data collection. Unique codes prevent unauthorized access. Clinical staff controls when linking occurs, ensuring patient is ready to begin trial participation.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to link patients to the mobile app by generating linking codes per REQ-p70007 (Linking Code Lifecycle Management).
+
+B. The patient SHALL enter the code in the mobile app to complete linking.
+
+C. The Mobile Linking Status SHALL change to "Pending" when code is generated.
+
+D. The Mobile Linking Status SHALL change to "Connected" when patient successfully enters code.
+
+E. The system SHALL reject invalid or expired codes.
+
+F. The linking action SHALL be logged in the audit trail with timestamp and username.
+
+*End* *Link New Patient Workflow* | **Hash**: 4f1edfe6
+
+---
+
+# REQ-p70010: Patient Disconnection Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patients may lose their phone, upgrade devices, or experience technical issues requiring disconnection. Disconnection invalidates the linking code to prevent unauthorized access from lost/stolen devices while preserving all patient data for reconnection. This is a temporary state allowing patients to resume participation after receiving replacement device or resolving technical issues.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to disconnect patients from the mobile app.
+
+B. The "Disconnect Patient" option SHALL be available in the patient actions menu for "Connected" patients.
+
+C. The system SHALL display a confirmation dialog with patient ID and require reason selection.
+
+D. The patient status SHALL change to "Disconnected" upon confirmation.
+
+E. The linking code SHALL be invalidated immediately upon disconnection.
+
+F. The patient mobile app SHALL stop syncing data after disconnection.
+
+G. The mobile app SHALL display a prominent error message if its linking code is no longer valid.
+
+H. Mobile App operation and local storage of data SHALL NOT change due to an expired or revoked linking code.
+
+I. The disconnection SHALL be logged in the audit trail with reason, timestamp, and username.
+
+J. The "Reconnect Patient" option SHALL become available after disconnection.
+
+*End* *Patient Disconnection Workflow* | **Hash**: 0e956c62
+---
+
+# REQ-p70011: Patient Reconnection Workflow
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+Patients who were disconnected due to lost phone, device upgrade, or technical issues need ability to reconnect and resume trial participation. New linking code ensures security (old code cannot be reused) while enabling legitimate reconnection. Requiring reason documents why reconnection occurred for audit purposes. Clinical staff controls reconnection timing and provides code directly to patient.
+
+## Assertions
+
+A. The system SHALL allow clinical staff to reconnect patients with "Disconnected" status by generating a new linking code.
+
+B. The "Reconnect Patient" action SHALL only be available for patients with "Disconnected" status.
+
+C. The confirmation dialog SHALL display the patient ID and require a reason.
+
+D. The system SHALL generate a new linking code upon confirmation.
+
+E. The previous linking code SHALL remain invalidated and cannot be reused.
+
+F. The patient SHALL enter the new code in the mobile app to restore access.
+
+G. The Mobile Linking Status SHALL change to "Connected" after successful code entry.
+
+H. The patient SHALL be able to resume data sync and questionnaire completion.
+
+I. The reconnection SHALL be logged in the audit trail with reason, timestamp, and username.
+
+J. The reconnected Mobile App SHALL sync data to the portal that was collected during the disconnected period.
+
+*End* *Patient Reconnection Workflow* | **Hash**: c192cad5
