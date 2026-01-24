@@ -53,7 +53,21 @@ RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
 # =============================================================================
-# Stage 3: Runtime - nginx + Dart server
+# Stage 3a: Download Doppler CLI
+# =============================================================================
+FROM debian:bookworm-slim AS doppler-download
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract Doppler CLI
+RUN wget -qO- https://github.com/DopplerHQ/cli/releases/latest/download/doppler_linux_amd64.tar.gz | tar xzf - && \
+    chmod +x doppler
+
+# =============================================================================
+# Stage 3b: Runtime - nginx + Dart server + Doppler
 # =============================================================================
 FROM debian:bookworm-slim
 
@@ -63,6 +77,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Copy Doppler CLI from download stage
+COPY --from=doppler-download /doppler /usr/local/bin/doppler
 
 # Create non-root user for security
 RUN useradd -r -s /bin/false appuser
