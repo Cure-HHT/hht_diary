@@ -14,7 +14,7 @@ This file provides a complete index of all requirements.
 | REQ-p00006 | Offline-First Data Entry | prd-diary-app.md | 438d5f2d |
 | REQ-p00007 | Automatic Sponsor Configuration | prd-diary-app.md | 5498f554 |
 | REQ-p00008 | Single Mobile App for All Sponsors | prd-architecture-multi-sponsor.md | ea74c9ac |
-| REQ-p00009 | Sponsor-Specific Web Portals | prd-architecture-multi-sponsor.md | f3149879 |
+| REQ-p00009 | Sponsor-Specific Portals | prd-architecture-multi-sponsor.md | f3149879 |
 | REQ-p00010 | FDA 21 CFR Part 11 Compliance | prd-clinical-trials.md | 192ec8c7 |
 | REQ-p00011 | ALCOA+ Data Integrity Principles | prd-clinical-trials.md | 75efc558 |
 | REQ-p00012 | Clinical Data Retention Requirements | prd-clinical-trials.md | 1e94b089 |
@@ -106,21 +106,24 @@ This file provides a complete index of all requirements.
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
 | REQ-p01064 | Investigator Questionnaire Approval Workflow | prd-questionnaire-approval.md | 7ba8d6d5 |
-| REQ-p01065 | Clinical Questionnaire System | prd-questionnaire-system.md | ad012ed3 |
-| REQ-p01066 | Daily Epistaxis Record Questionnaire | prd-questionnaire-epistaxis.md | d6646153 |
-| REQ-p01067 | NOSE HHT Questionnaire | prd-questionnaire-nose-hht.md | a29a4ee5 |
-| REQ-p01068 | HHT Quality of Life Questionnaire | prd-questionnaire-qol.md | 0504ab18 |
-| REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | e0808086 |
-| REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | a16c3735 |
-| REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 2ece1d89 |
+| REQ-p01065 | Clinical Questionnaire System | prd-questionnaire-system.md | c602e22d |
+| REQ-p01066 | Daily Epistaxis Record Questionnaire | prd-questionnaire-epistaxis.md | 10695516 |
+| REQ-p01067 | NOSE HHT Questionnaire | prd-questionnaire-nose-hht.md | 7473ad89 |
+| REQ-p01068 | HHT Quality of Life Questionnaire | prd-questionnaire-qol.md | 8feb18c9 |
+| REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | 3cd9c967 |
+| REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | 1f1f5598 |
+| REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 97122b72 |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
 | REQ-p70002 | Web Application Platform | prd-portal.md | 5dd94e9d |
 | REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | 0d03cdf1 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
-| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 51420fd1 |
+| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | fe32ff5f |
 | REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 74b1201e |
+| REQ-p70009 | Link New Patient Workflow | prd-portal.md | 4f1edfe6 |
+| REQ-p70010 | Patient Disconnection Workflow | prd-portal.md | 0e956c62 |
+| REQ-p70011 | Patient Reconnection Workflow | prd-portal.md | c192cad5 |
 
 ## Operations Requirements (OPS)
 
@@ -233,10 +236,10 @@ This file provides a complete index of all requirements.
 | REQ-d00067 | Streamlined Ticket Creation Agent | dev-ai-claude.md | 4fe51e65 |
 | REQ-d00068 | Enhanced Workflow New Work Detection | dev-ai-claude.md | 36d736e0 |
 | REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | a84bf289 |
-| REQ-d00078 | HHT Diary Auth Service | dev-diary-web.md | d484bab8 |
-| REQ-d00079 | Linking Code Pattern Matching | dev-diary-web.md | 8e2b291e |
+| REQ-d00078 | HHT Diary Auth Service | dev-linking.md | d484bab8 |
+| REQ-d00079 | Linking Code Pattern Matching | dev-linking.md | 8e2b291e |
 | REQ-d00080 | Web Session Management Implementation | dev-diary-web.md | 1ed9928f |
-| REQ-d00081 | User Document Schema | dev-diary-web.md | b5b5f999 |
+| REQ-d00081 | User Document Schema | dev-linking.md | b5b5f999 |
 | REQ-d00082 | Password Hashing Implementation | dev-diary-web.md | 2f426f50 |
 | REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | 781a1594 |
 | REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 654added |

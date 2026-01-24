@@ -72,7 +72,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Components**:
 - Diary (mobile application)
-- Web Portal
+- Sponsor Portal
 - Database
 - Supporting infrastructure and APIs
 
@@ -111,14 +111,14 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 - ✓ "When used in clinical trials, the Diary serves as an eSource"
 - ✗ "Launch the ePRO app to enter your eCRF data"
 
-### Web Portal / Portal
+### Sponsor Portal / Portal
 
 **Definition**: The web-based application used by healthcare providers, investigators, admins, sponsors, auditors, and analysts to review patient data, manage users, and administer features.
 
 **Preferred Terms**:
 - **"Portal"** - Short form when context is clear
-- **"Web Portal"** - When distinguishing from mobile Diary
-- **"Clinical Trial Web Portal"** - When emphasizing clinical trial features specifically
+- **"Sponsor Portal"** - When distinguishing from mobile Diary
+- **"Sponsor Portal"** - When emphasizing clinical trial features specifically
 
 **Usage Context**: Use to distinguish from the mobile Diary application.
 
@@ -328,7 +328,7 @@ TODO - It's it linking the patient id (or "participant Id" below) with the enrol
 
 **Usage Context**: Patient enrollment workflow, investigator instructions
 
-**See**: prd-diary-app.md (REQ-p00009) for linking code specification
+**See**: prd-portal.md (REQ-p70007) for lifecycle rules, dev-portal.md (REQ-d00038) for implementation
 
 ### De-identified Data
 
@@ -580,8 +580,7 @@ TODO - is there a good generic name for a portal user? "Portal User"?
 **Definition**: Any individually identifiable health information protected under HIPAA, including name, dates, contact information, medical record numbers, and health data that can be linked to an individual.
 
 **Diary Platform Context**:
-- **PHI examples**: Patient name, email, date of birth, linking code (when associated with identity)
-TODO - linking code is confusing here, it's not PHI, right?
+- **PHI examples**: Patient name, email, date of birth
 - **Not PHI**: De-identified study participant ID, aggregate statistics, diary entries with all identifiers removed
 
 **Security**: PHI is encrypted at rest and in transit, subject to strict access controls via RBAC and RLS policies.
@@ -972,7 +971,7 @@ TODO - linking code is confusing here, it's not PHI, right?
 **Related Documentation**:
 - **prd-architecture-multi-sponsor.md** - System architecture and multi-sponsor isolation (clinical trial feature)
 - **prd-diary-app.md** - Mobile Diary application features
-- **prd-portal.md** - Web Portal features
+- **prd-portal.md** - Sponsor Portal features
 - **prd-database.md** - Database architecture, Event Sourcing, audit trails
 - **prd-security.md** - Authentication, authorization, role definitions
 - **prd-security-RBAC.md** - Role-based access control specifications
