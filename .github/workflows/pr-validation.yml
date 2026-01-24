@@ -53,6 +53,80 @@ jobs:
             workflows:
               - '.github/workflows/**'
 
+  # Validate PR title and description have required references
+  # This ensures squash merge commits will have proper traceability
+  validate-pr-metadata:
+    name: Validate PR Title (CUR)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 2
+
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+
+          echo "::group::Validating PR Metadata for Squash Merge"
+          echo "PR #$PR_NUMBER: $PR_TITLE"
+          echo ""
+
+          ERRORS=()
+
+          # Check PR title for [CUR-XXX] reference
+          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
+            echo "✅ PR title contains Linear ticket reference"
+          else
+            echo "❌ PR title missing [CUR-XXX] reference"
+            ERRORS+=("PR title must include [CUR-XXX] (e.g., '[CUR-123] Add feature')")
+          fi
+
+          # TODO: Uncomment to enforce REQ reference in PR body
+          # # Check PR body for REQ reference
+          # if [ -z "$PR_BODY" ]; then
+          #   echo "❌ PR description is empty"
+          #   ERRORS+=("PR description must include 'Implements: REQ-{type}{number}'")
+          # elif echo "$PR_BODY" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
+          #   echo "✅ PR description contains requirement reference"
+          # else
+          #   echo "❌ PR description missing requirement reference"
+          #   ERRORS+=("PR description must include 'Implements: REQ-{type}{number}' (e.g., 'Implements: REQ-d00018')")
+          # fi
+
+          echo ""
+          echo "::endgroup::"
+
+          # Report errors
+          if [ ${#ERRORS[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ PR METADATA VALIDATION FAILED"
+            echo ""
+            echo "The PR title is missing the required Linear ticket reference."
+            echo "This is needed because squash merge uses the PR title as the commit message."
+            echo ""
+            echo "Issues found:"
+            for error in "${ERRORS[@]}"; do
+              echo "  • $error"
+            done
+            echo ""
+            echo "Required format:"
+            echo "  Title: [CUR-XXX] Description of changes"
+            echo ""
+            echo "Where:"
+            echo "  CUR-XXX: Your Linear ticket number"
+            echo ""
+            echo "To fix: Edit the PR title at:"
+            echo "  $PR_URL"
+            echo ""
+            exit 1
+          else
+            echo "✅ PR metadata is valid for squash merge"
+          fi
+
   # Validate commit messages have required CUR-XXX and REQ-XXX references
   validate-commit-messages:
     name: Validate Commit Messages (CUR + REQ)
@@ -72,15 +146,14 @@ jobs:
           set -euo pipefail
           echo "::group::Validating Commit Messages"
 
-          # Get all commits in this PR
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          # Only check the HEAD commit (most recent)
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          echo "Checking commits from $BASE_SHA to $HEAD_SHA"
+          echo "Checking HEAD commit: $HEAD_SHA"
           echo ""
 
-          # Get commit messages (exclude merge commits)
-          COMMITS=$(git log --no-merges --format='%H|%s' "$BASE_SHA".."$HEAD_SHA")
+          # Get only the HEAD commit message (exclude merge commits)
+          COMMITS=$(git log --no-merges -1 --format='%H|%s' "$HEAD_SHA")
 
           if [ -z "$COMMITS" ]; then
             echo "No commits found in PR"
@@ -161,6 +234,147 @@ jobs:
             exit 1
           else
             echo "✅ All $VALID_COUNT commit(s) have valid CUR-XXX and REQ-XXX references"
+          fi
+
+  # Post-merge validation: Check squash merge commits on main/develop
+  # Creates a Linear ticket if the merge commit is missing required references
+  validate-merge-commit:
+    name: Validate Merge Commit (Post-Merge)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need parent to check if this is a merge
+
+      - name: Validate merge commit message
+        id: validate
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          # Get HEAD commit info
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_MSG=$(git log -1 --format='%B' "$COMMIT_SHA")
+          COMMIT_SUBJECT=$(git log -1 --format='%s' "$COMMIT_SHA")
+          COMMIT_AUTHOR=$(git log -1 --format='%an' "$COMMIT_SHA")
+          BRANCH="${{ github.ref_name }}"
+
+          echo "Checking merge commit: ${COMMIT_SHA:0:7}"
+          echo "Subject: $COMMIT_SUBJECT"
+          echo ""
+
+          # Check for required references
+          HAS_CUR=false
+          HAS_REQ=false
+
+          if echo "$COMMIT_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
+            HAS_CUR=true
+          fi
+
+          if echo "$COMMIT_MSG" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
+            HAS_REQ=true
+          fi
+
+          # Build error message if needed
+          ERRORS=""
+          if [ "$HAS_CUR" = "false" ]; then
+            ERRORS="missing CUR-XXX"
+          fi
+          if [ "$HAS_REQ" = "false" ]; then
+            if [ -n "$ERRORS" ]; then
+              ERRORS="$ERRORS, missing REQ-XXX"
+            else
+              ERRORS="missing REQ-XXX"
+            fi
+          fi
+
+          if [ -n "$ERRORS" ]; then
+            echo "❌ Merge commit is missing required references: $ERRORS"
+            echo "has_errors=true" >> $GITHUB_OUTPUT
+            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            echo "commit_sha=${COMMIT_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "commit_subject=$COMMIT_SUBJECT" >> $GITHUB_OUTPUT
+            echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Merge commit has valid CUR-XXX and REQ-XXX references"
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Linear ticket for non-compliant merge
+        if: steps.validate.outputs.has_errors == 'true'
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$LINEAR_API_KEY" ] || [ -z "$LINEAR_TEAM_ID" ]; then
+            echo "::warning::LINEAR_API_KEY or LINEAR_TEAM_ID not configured. Skipping ticket creation."
+            echo "To enable: Add LINEAR_API_KEY and LINEAR_TEAM_ID secrets to the repository."
+            exit 0
+          fi
+
+          COMMIT_SHA="${{ steps.validate.outputs.commit_sha }}"
+          COMMIT_SUBJECT="${{ steps.validate.outputs.commit_subject }}"
+          COMMIT_AUTHOR="${{ steps.validate.outputs.commit_author }}"
+          ERRORS="${{ steps.validate.outputs.errors }}"
+          BRANCH="${{ steps.validate.outputs.branch }}"
+          REPO="${{ github.repository }}"
+          COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+
+          TITLE="[Compliance] Merge commit missing references: $COMMIT_SHA"
+
+          DESCRIPTION="## Non-Compliant Merge Commit Detected
+
+          A merge commit to \`$BRANCH\` is missing required traceability references.
+
+          ### Details
+          - **Commit**: [$COMMIT_SHA]($COMMIT_URL)
+          - **Subject**: $COMMIT_SUBJECT
+          - **Author**: $COMMIT_AUTHOR
+          - **Branch**: $BRANCH
+          - **Issues**: $ERRORS
+
+          ### Required Format
+          Merge commits should include:
+          - \`[CUR-XXX]\` - Linear ticket reference
+          - \`Implements: REQ-{type}{number}\` - Requirement reference
+
+          ### Action Required
+          1. Review the merge commit
+          2. If this was a legitimate oversight, update commit message conventions
+          3. Ensure future PRs have proper references before merging
+
+          ---
+          *Auto-generated by PR Validation workflow*"
+
+          # Create the ticket via Linear API
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: $LINEAR_API_KEY" \
+            --data "{
+              \"query\": \"mutation { issueCreate(input: { teamId: \\\"$LINEAR_TEAM_ID\\\", title: \\\"$TITLE\\\", description: $(echo "$DESCRIPTION" | jq -Rs .), labelIds: [] }) { success issue { id identifier url } } }\"
+            }" \
+            https://api.linear.app/graphql)
+
+          # Check if successful
+          if echo "$RESPONSE" | jq -e '.data.issueCreate.success' > /dev/null 2>&1; then
+            TICKET_ID=$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.identifier')
+            TICKET_URL=$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.url')
+            echo "✅ Created Linear ticket: $TICKET_ID"
+            echo "   URL: $TICKET_URL"
+            echo ""
+            echo "::notice::Created compliance ticket $TICKET_ID for non-compliant merge commit"
+          else
+            echo "::warning::Failed to create Linear ticket"
+            echo "Response: $RESPONSE"
           fi
 
   validate-requirements:
@@ -732,7 +946,7 @@ jobs:
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [changes, validate-commit-messages, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks, compliance-check]
+    needs: [changes, validate-pr-metadata, validate-commit-messages, validate-merge-commit, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks, compliance-check]
     if: always()
 
     steps:
@@ -753,13 +967,31 @@ jobs:
           # Show test results
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
 
-          # Commit messages (CUR + REQ)
+          # PR title - ensures squash merge has ticket reference
+          if [ "${{ needs.validate-pr-metadata.result }}" = "success" ]; then
+            echo "✅ PR title (CUR-XXX): PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-pr-metadata.result }}" = "skipped" ]; then
+            echo "⏭️ PR title: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ PR title: FAILED (must include [CUR-XXX])" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Commit messages (CUR + REQ) - PR validation
           if [ "${{ needs.validate-commit-messages.result }}" = "success" ]; then
             echo "✅ Commit messages (CUR + REQ): PASSED" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.validate-commit-messages.result }}" = "skipped" ]; then
             echo "⏭️ Commit messages: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Commit messages (CUR + REQ): FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Merge commit validation - post-merge check
+          if [ "${{ needs.validate-merge-commit.result }}" = "success" ]; then
+            echo "✅ Merge commit validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-merge-commit.result }}" = "skipped" ]; then
+            echo "⏭️ Merge commit: SKIPPED (not a push to main/develop)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Merge commit: NON-COMPLIANT (ticket created)" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Requirements
@@ -827,7 +1059,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           FAILED=false
 
-          if [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
+          if [ "${{ needs.validate-pr-metadata.result }}" = "failure" ] || \
+             [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
              [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
              [ "${{ needs.security-check.result }}" = "failure" ] || \
              [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
