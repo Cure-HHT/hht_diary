@@ -49,6 +49,20 @@ Router createRouter() {
   router.post('/api/v1/portal/auth/send-otp', sendEmailOtpHandler);
   router.post('/api/v1/portal/auth/verify-otp', verifyEmailOtpHandler);
 
+  // Password reset endpoints (unauthenticated - email-based flow)
+  router.post(
+    '/api/v1/portal/auth/password-reset/request',
+    requestPasswordResetHandler,
+  );
+  router.get(
+    '/api/v1/portal/auth/password-reset/validate/<code>',
+    validatePasswordResetCodeHandler,
+  );
+  router.post(
+    '/api/v1/portal/auth/password-reset/complete',
+    completePasswordResetHandler,
+  );
+
   // Feature flags (public endpoint for frontend configuration)
   router.get('/api/v1/portal/config/features', featureFlagsHandler);
 

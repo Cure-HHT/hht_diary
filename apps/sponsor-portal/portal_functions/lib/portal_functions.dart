@@ -13,6 +13,7 @@ library portal_functions;
 export 'src/identity_platform.dart';
 export 'src/portal_activation.dart';
 export 'src/portal_auth.dart';
+export 'src/portal_password_reset.dart';
 export 'src/portal_user.dart';
 
 // Email OTP and MFA

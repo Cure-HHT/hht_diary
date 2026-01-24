@@ -89,13 +89,10 @@ Future<Response> validateActivationCodeHandler(
     return _jsonResponse({'error': 'Activation code has expired'}, 401);
   }
 
-  // Mask email for display (show first 2 chars + domain)
-  final atIndex = email.indexOf('@');
-  final maskedEmail = atIndex > 2
-      ? '${email.substring(0, 2)}***${email.substring(atIndex)}'
-      : '***${email.substring(atIndex)}';
-
-  print('[ACTIVATION] Code valid for: $maskedEmail');
+  // Return masked email for user confirmation (security best practice)
+  // User should recognize their email but not expose full address in URL/logs
+  final maskedEmail = _maskEmail(email);
+  print('[ACTIVATION] Code valid for: $email');
 
   return _jsonResponse({'valid': true, 'email': maskedEmail});
 }
@@ -470,6 +467,19 @@ Future<Map<String, dynamic>?> _parseJson(Request request) async {
   } catch (_) {
     return null;
   }
+}
+
+/// Mask email address for display (e.g., p***@example.com)
+/// Security best practice: don't expose full emails in responses/logs
+String _maskEmail(String email) {
+  final parts = email.split('@');
+  if (parts.length != 2) return '***';
+
+  final local = parts[0];
+  final domain = parts[1];
+
+  if (local.isEmpty) return '***@$domain';
+  return '${local[0]}***@$domain';
 }
 
 Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {

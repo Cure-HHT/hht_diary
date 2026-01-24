@@ -243,77 +243,21 @@ class _ActivationPageState extends State<ActivationPage> {
 
   Future<String?> _getEmailFromCode(String code) async {
     try {
-      // Call a special endpoint to get the real email
-      // This is a workaround since we mask the email in validation
+      // Call validation endpoint to get the email for this activation code
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/api/v1/portal/activate/$code'),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        // Backend returns masked email in validation response
-        // We need to prompt the user for their actual email
-        return await _promptForEmail();
+        final data = json.decode(response.body);
+        // Backend returns the full email (not masked) since activation code provides security
+        return data['email'] as String?;
       }
     } catch (e) {
       debugPrint('Get email error: $e');
     }
     return null;
-  }
-
-  Future<String?> _promptForEmail() async {
-    final emailController = TextEditingController();
-
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Your Email'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Please enter your email address to complete activation.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            if (_maskedEmail != null)
-              Text(
-                'Your email matches: $_maskedEmail',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final email = emailController.text.trim();
-              if (email.isNotEmpty && email.contains('@')) {
-                Navigator.pop(context, email);
-              }
-            },
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
   }
 
   String _mapFirebaseError(String code) {

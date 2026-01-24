@@ -597,6 +597,9 @@ CREATE TABLE portal_users (
     activation_code TEXT UNIQUE,        -- Account activation code (XXXXX-XXXXX format)
     activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
     activated_at TIMESTAMPTZ,           -- When account was activated
+    password_reset_code TEXT UNIQUE,    -- Password reset code (XXXXX-XXXXX format, single-use)
+    password_reset_code_expires_at TIMESTAMPTZ, -- Password reset code expiry (24 hours)
+    password_reset_used_at TIMESTAMPTZ, -- When password reset was completed (audit)
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
     -- MFA tracking (FDA 21 CFR Part 11 compliance)
     mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
@@ -624,6 +627,9 @@ COMMENT ON COLUMN portal_users.linking_code IS 'Device enrollment code for Inves
 COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent to new users (XXXXX-XXXXX format)';
 COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
 COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
+COMMENT ON COLUMN portal_users.password_reset_code IS 'Password reset code sent via email (XXXXX-XXXXX format, single-use)';
+COMMENT ON COLUMN portal_users.password_reset_code_expires_at IS 'Password reset code expiry - typically 24 hours from generation';
+COMMENT ON COLUMN portal_users.password_reset_used_at IS 'Timestamp when password reset was successfully completed (audit trail)';
 COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
 COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA enrollment (FDA 21 CFR Part 11)';
 COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
@@ -772,7 +778,7 @@ COMMENT ON COLUMN email_otp_codes.attempts IS 'Failed verification attempts - ma
 CREATE TABLE email_rate_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'password_reset')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     ip_address INET
 );
@@ -796,7 +802,7 @@ COMMENT ON COLUMN email_rate_limits.email_type IS 'Type of email: otp (login cod
 CREATE TABLE email_audit_log (
     id BIGSERIAL PRIMARY KEY,
     recipient_email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced')),

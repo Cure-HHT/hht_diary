@@ -155,16 +155,24 @@ if (!currentUser.role.isAdmin) {
 
 ## Environment Variables
 
-| Variable                      | Description                | Default               |
-|-------------------------------|----------------------------|-----------------------|
-| `DB_HOST`                     | PostgreSQL host            | `localhost`           |
-| `DB_PORT`                     | PostgreSQL port            | `5432`                |
-| `DB_NAME`                     | Database name              | `sponsor_portal`      |
-| `DB_USER`                     | Database user              | `postgres`            |
-| `DB_PASSWORD`                 | Database password          | (required)            |
-| `DB_SSL`                      | Enable SSL                 | `true`                |
-| `GCP_PROJECT_ID`              | GCP project ID             | `demo-sponsor-portal` |
-| `FIREBASE_AUTH_EMULATOR_HOST` | Firebase emulator host     | (unset = production)  |
+| Variable                      | Description                        | Default                 |
+|-------------------------------|------------------------------------|-------------------------|
+| `DB_HOST`                     | PostgreSQL host                    | `localhost`             |
+| `DB_PORT`                     | PostgreSQL port                    | `5432`                  |
+| `DB_NAME`                     | Database name                      | `sponsor_portal`        |
+| `DB_USER`                     | Database user                      | `postgres`              |
+| `DB_PASSWORD`                 | Database password                  | (required)              |
+| `DB_SSL`                      | Enable SSL                         | `true`                  |
+| `GCP_PROJECT_ID`              | GCP project ID                     | `demo-sponsor-portal`   |
+| `PORTAL_IDENTITY_API_KEY`     | Identity Platform Web API Key      | (required)              |
+| `PORTAL_IDENTITY_APP_ID`      | Identity Platform App ID           | (required)              |
+| `PORTAL_IDENTITY_AUTH_DOMAIN` | Identity Platform Auth Domain      | (required)              |
+| `PORTAL_IDENTITY_PROJECT_ID`  | Identity Platform Project ID       | (required)              |
+| `PORTAL_BASE_URL`             | Portal base URL                    | `http://localhost:8080` |
+| `GMAIL_SERVICE_ACCOUNT_EMAIL` | Gmail service account email        | (required for emails)   |
+| `EMAIL_SENDER`                | From address for emails            | `support@anspar.org`    |
+| `EMAIL_ENABLED`               | Enable email sending               | `true`                  |
+| `FIREBASE_AUTH_EMULATOR_HOST` | Identity Platform emulator host    | (unset = production)    |
 
 ## Testing
 
