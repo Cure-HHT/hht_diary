@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:shelf/shelf.dart';
 import 'package:http/http.dart' as http;
+import 'package:googleapis_auth/auth_io.dart';
 
 import 'database.dart';
 import 'email_service.dart';
@@ -21,22 +22,30 @@ import 'email_service.dart';
 /// Google Identity Platform REST API base URL
 const _identityApiUrl = 'https://identitytoolkit.googleapis.com/v1';
 
-/// Get Identity Platform Web API key from environment
-String get _identityApiKey {
-  final apiKey = Platform.environment['PORTAL_IDENTITY_API_KEY'];
-  if (apiKey == null || apiKey.isEmpty) {
-    throw Exception(
-      'PORTAL_IDENTITY_API_KEY environment variable not set. '
-      'This is required for password reset functionality. '
-      'Get this value from GCP Console > Identity Platform > Application Setup > Web API Key.',
-    );
-  }
-  return apiKey;
-}
-
 /// Get the portal URL for constructing reset links
 String get _portalUrl {
-  return Platform.environment['PORTAL_URL'] ?? 'http://localhost:8080';
+  return Platform.environment['PORTAL_BASE_URL'] ?? 'http://localhost:8080';
+}
+
+/// Get access token for Identity Platform API via Workload Identity Federation
+///
+/// Uses Application Default Credentials (Cloud Run's service account or local gcloud auth)
+/// Requires Cloud Run service account to have role: roles/firebaseauth.admin
+Future<String> _getIdentityPlatformAccessToken() async {
+  // Get Application Default Credentials
+  final client = await clientViaApplicationDefaultCredentials(
+    scopes: [
+      'https://www.googleapis.com/auth/cloud-platform',
+      'https://www.googleapis.com/auth/firebase',
+    ],
+  );
+
+  // Extract access token from authenticated client
+  final credentials = client.credentials;
+  final accessToken = credentials.accessToken.data;
+
+  client.close();
+  return accessToken;
 }
 
 /// Request password reset email
@@ -175,9 +184,9 @@ Future<Response> requestPasswordResetHandler(Request request) async {
       return _jsonResponse({'success': true, 'message': successMessage}, 200);
     }
 
-    // Generate Identity Platform password reset link
+    // Generate Identity Platform password reset link via WIF
     print('[PASSWORD_RESET] Generating reset link for: $normalizedEmail');
-    final resetLink = await _generatePasswordResetLink(normalizedEmail);
+    final resetLink = await _generatePasswordResetLink(normalizedEmail, userId);
 
     if (resetLink == null) {
       print('[PASSWORD_RESET] Failed to generate reset link');
@@ -238,23 +247,32 @@ Future<Response> requestPasswordResetHandler(Request request) async {
   }
 }
 
-/// Generate a password reset link using Identity Platform REST API
+/// Generate a password reset link using Identity Platform REST API with WIF
+///
+/// Uses Workload Identity Federation to authenticate as the Cloud Run service account.
+/// Requires service account to have role: roles/firebaseauth.admin
 ///
 /// Returns the full reset URL with oobCode parameter, or null on error.
-/// The link expires in 24 hours (default).
-Future<String?> _generatePasswordResetLink(String email) async {
+/// The oobCode expires in 24 hours and is single-use (tracked in database).
+Future<String?> _generatePasswordResetLink(String email, String userId) async {
   try {
-    final apiKey = _identityApiKey;
-    final url = Uri.parse('$_identityApiUrl/accounts:sendOobCode?key=$apiKey');
+    // Get OAuth access token via WIF (not Web API Key)
+    print('[PASSWORD_RESET] Getting access token via WIF...');
+    final accessToken = await _getIdentityPlatformAccessToken();
+
+    final url = Uri.parse('$_identityApiUrl/accounts:sendOobCode');
 
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         'requestType': 'PASSWORD_RESET',
         'email': email,
-        // We don't actually want Firebase to send the email
-        // We'll extract the oobCode and send our own custom email
+        // We don't want Firebase to send the email - we'll send our own
+        // This requires server-side auth (OAuth token, not Web API Key)
         'returnOobLink': true,
       }),
     );
@@ -274,6 +292,21 @@ Future<String?> _generatePasswordResetLink(String email) async {
       print('[PASSWORD_RESET] No oobCode in Identity Platform response');
       return null;
     }
+
+    // Track this oobCode as single-use in database
+    final db = Database.instance;
+    await db.executeWithContext(
+      '''
+      UPDATE portal_users
+      SET password_reset_oob_code = @oobCode,
+          password_reset_oob_expires_at = NOW() + INTERVAL '24 hours'
+      WHERE id = @userId
+      ''',
+      parameters: {'oobCode': oobCode, 'userId': userId},
+      context: UserContext.service,
+    );
+
+    print('[PASSWORD_RESET] Stored oobCode for single-use tracking');
 
     // Construct our custom reset URL pointing to the portal
     final resetUrl = Uri.parse(_portalUrl).replace(
