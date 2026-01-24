@@ -86,8 +86,7 @@ U. Linking codes SHALL use only uppercase letters A-Z and digits 0-9.
 V. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
 W. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
-*End* *Linking Code Pattern Matching* | **Hash**: 8e2b291e
-
+*End* *Linking Code Pattern Matching* | **Hash**: 4bc4cceb
 ---
 
 # REQ-d00081: User Document Schema
@@ -126,6 +125,6 @@ S. The system SHALL enforce sponsor isolation through service logic.
 
 ## Version History
 
-| Version | Date | Changes | Ticket |
-|---------|------|---------|--------|
-| 1.0 | 2025-01-23 | Initial creation, moved from dev-diary-web.md | - |
+| Version | Date       | Changes                                         | Ticket |
+| ------- | ---------- | ----------------------------------------------- | ------ |
+| 1.0     | 2025-01-23 | Initial creation, moved from dev-diary-web.md   | -      |
