@@ -85,8 +85,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy Doppler CLI from download stage
 COPY --from=doppler-download /doppler /usr/local/bin/doppler
 
-# Create non-root user for security
-RUN useradd -r -s /bin/false appuser
+# Create non-root user with home directory for Doppler config
+RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 
 # Copy Dart server binary
 COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/server
