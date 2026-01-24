@@ -62,9 +62,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and extract Doppler CLI
-RUN wget -qO- https://github.com/DopplerHQ/cli/releases/latest/download/doppler_linux_amd64.tar.gz | tar xzf - && \
-    chmod +x doppler
+# Download and install Doppler CLI
+# Pinned to specific version for reproducibility
+ARG DOPPLER_VERSION=3.75.1
+RUN wget -q https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    tar xzf doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    chmod +x doppler && \
+    rm doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz
 
 # =============================================================================
 # Stage 3b: Runtime - nginx + Dart server + Doppler
