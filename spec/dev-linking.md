@@ -91,28 +91,18 @@ This requirement defines the authentication data storage schema for the clinical
 
 ## Assertions
 
-A. The system SHALL store user authentication data in a Firestore collection named 'web_users' in the HHT Diary Auth project.
-B. The system SHALL generate document IDs as UUID v4.
-C. The system SHALL enforce a compound index on 'sponsorId' and 'username' fields.
-D. The system SHALL enforce uniqueness of the username and sponsorId combination.
-E. The system SHALL store passwords as Argon2id hashes.
-F. The system SHALL use secure parameters for Argon2id password hashing.
-G. User documents SHALL include the following fields: id (UUID v4), username, passwordHash, sponsorId, linkingCode, appUuid, createdAt, lastLoginAt (nullable), failedAttempts, and lockedUntil (nullable).
-H. The username field SHALL contain user-chosen usernames of 6 or more characters without the @ symbol.
-I. The sponsorId field SHALL contain the sponsor identifier from the linking code.
-J. The linkingCode field SHALL contain the original linking code used during registration.
-K. The appUuid field SHALL contain the app instance UUID at registration time.
-L. The createdAt field SHALL contain the account creation timestamp.
-M. The system SHALL create a user document upon successful registration.
-N. The system SHALL update the lastLoginAt field on each successful authentication.
-O. The system SHALL track failed login attempts in the failedAttempts field.
-P. The system SHALL reset the failedAttempts counter on successful login.
-Q. The web_users collection SHALL be readable and writable only by the auth service account.
-R. The system SHALL NOT allow client-side access to user documents.
-S. The system SHALL enforce sponsor isolation through service logic.
+A. The system SHALL generate user document IDs as UUID v7.
+B. User documents SHALL maintain a list of all valid linking codes used for the account, including historical codes.
+C. User documents SHALL maintain a list of all app UUIDs associated with each linking code.
+D. User documents SHALL include a createdAt timestamp for account creation.
+E. The system SHALL create a user document upon successful registration.
+F. The system SHALL update the lastLoginAt field on each successful authentication.
+G. The system SHALL track failed login attempts in the failedAttempts field.
+H. The system SHALL reset the failedAttempts counter on successful login.
+I. The user document collection SHALL be readable and writable only by the auth service account.
+J. The system SHALL NOT allow client-side access to user documents.
 
-*End* *User Document Schema* | **Hash**: b5b5f999
-
+*End* *User Document Schema* | **Hash**: efd4b3a7
 ---
 
 ## Version History
