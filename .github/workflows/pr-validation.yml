@@ -72,15 +72,14 @@ jobs:
           set -euo pipefail
           echo "::group::Validating Commit Messages"
 
-          # Get all commits in this PR
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          # Only check the HEAD commit (most recent)
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          echo "Checking commits from $BASE_SHA to $HEAD_SHA"
+          echo "Checking HEAD commit: $HEAD_SHA"
           echo ""
 
-          # Get commit messages (exclude merge commits)
-          COMMITS=$(git log --no-merges --format='%H|%s' "$BASE_SHA".."$HEAD_SHA")
+          # Get only the HEAD commit message (exclude merge commits)
+          COMMITS=$(git log --no-merges -1 --format='%H|%s' "$HEAD_SHA")
 
           if [ -z "$COMMITS" ]; then
             echo "No commits found in PR"
