@@ -173,7 +173,8 @@ jobs:
           context: .
           file: apps/sponsor-portal/portal-container/Dockerfile
           # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
-          platforms: linux/amd64, linux/arm64/v8
+          # NOTE: Temporarily building only amd64 for faster builds (remove arm64/v8 for now)
+          platforms: linux/amd64
           build-args: |
             DART_VERSION=${{ env.DART_VERSION }}
             FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}
