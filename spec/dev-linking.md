@@ -64,29 +64,21 @@ Pattern-based routing enables a single auth service to handle multiple sponsors 
 
 A. The system SHALL implement pattern-based sponsor identification from linking codes.
 B. The system SHALL maintain a configurable mapping table for pattern-to-sponsor associations.
-C. The system SHALL store sponsor patterns in a Firestore collection named 'sponsor_patterns'.
-D. Each sponsor pattern record SHALL include patternPrefix, sponsorId, sponsorName, portalUrl, firestoreProject, active status, createdAt timestamp, and optional decommissionedAt timestamp.
-E. The system SHALL perform pattern matching using prefix comparison logic.
-F. The system SHALL evaluate patterns in descending order by length to match the most specific pattern first.
-G. The system SHALL cache the pattern table with a 5-minute TTL for performance optimization.
-H. The system SHALL validate linking code format before performing pattern matching.
-I. The system SHALL return the sponsorId when a linking code matches an active pattern prefix.
-J. The system SHALL return null when no matching sponsor pattern is found.
-K. The system SHALL return a clear error message for unknown linking code patterns.
-L. The system SHALL refresh the pattern cache every 5 minutes.
-M. The system SHALL reject new linking codes for decommissioned sponsors.
-N. The system SHALL provide an admin API for pattern table management.
-O. The admin API SHALL support adding new sponsor patterns.
-P. The admin API SHALL support updating existing sponsor patterns.
-Q. The admin API SHALL support decommissioning sponsors.
-R. The system SHALL allow addition of new patterns without requiring service restart.
-S. Linking codes SHALL consist of a two-character sponsor prefix followed by an 8-character random alphanumeric identifier (10 characters total, no separators).
-T. The system SHALL display linking codes in the format {SS}{XXX}-{XXXXX} where the dash is for readability only and not part of the stored code.
-U. Linking codes SHALL use only uppercase letters A-Z and digits 0-9.
-V. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
-W. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
+C. Each sponsor pattern record SHALL include patternPrefix, sponsorCodename, portalUrl, active status, createdAt timestamp, and optional decommissionedAt timestamp.
+D. The system SHALL perform pattern matching using prefix comparison logic.
+E. The system SHALL return the sponsorCodename when a linking code matches an active pattern prefix.
+F. The system SHALL return a clear error message for unknown linking code patterns.
+G. The system SHALL provide an admin API for pattern table management.
+H. The admin API SHALL support adding new sponsor patterns.
+I. The admin API SHALL support decommissioning sponsors.
+J. The system SHALL allow addition of new patterns without requiring service restart.
+K. Linking codes SHALL consist of a two-character sponsor prefix followed by an 8-character random alphanumeric identifier (10 characters total, no separators).
+L. The system SHALL display linking codes in the format {SS}{XXX}-{XXXXX} where the dash is for readability only and not part of the stored code.
+M. Linking codes SHALL use only uppercase letters A-Z and digits 0-9.
+N. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
+O. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
-*End* *Linking Code Pattern Matching* | **Hash**: 4bc4cceb
+*End* *Linking Code Pattern Matching* | **Hash**: d7267507
 ---
 
 # REQ-d00081: User Document Schema
