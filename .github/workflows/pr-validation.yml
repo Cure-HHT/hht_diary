@@ -53,6 +53,82 @@ jobs:
             workflows:
               - '.github/workflows/**'
 
+  # Validate PR title and description have required references
+  # This ensures squash merge commits will have proper traceability
+  validate-pr-metadata:
+    name: Validate PR Title & Description (CUR + REQ)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 2
+
+    steps:
+      - name: Validate PR title and description
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+
+          echo "::group::Validating PR Metadata for Squash Merge"
+          echo "PR #$PR_NUMBER: $PR_TITLE"
+          echo ""
+
+          ERRORS=()
+
+          # Check PR title for [CUR-XXX] reference
+          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
+            echo "✅ PR title contains Linear ticket reference"
+          else
+            echo "❌ PR title missing [CUR-XXX] reference"
+            ERRORS+=("PR title must include [CUR-XXX] (e.g., '[CUR-123] Add feature')")
+          fi
+
+          # Check PR body for REQ reference
+          if [ -z "$PR_BODY" ]; then
+            echo "❌ PR description is empty"
+            ERRORS+=("PR description must include 'Implements: REQ-{type}{number}'")
+          elif echo "$PR_BODY" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
+            echo "✅ PR description contains requirement reference"
+          else
+            echo "❌ PR description missing requirement reference"
+            ERRORS+=("PR description must include 'Implements: REQ-{type}{number}' (e.g., 'Implements: REQ-d00018')")
+          fi
+
+          echo ""
+          echo "::endgroup::"
+
+          # Report errors
+          if [ ${#ERRORS[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ PR METADATA VALIDATION FAILED"
+            echo ""
+            echo "The PR title and/or description are missing required references."
+            echo "These are needed because squash merge uses them as the commit message."
+            echo ""
+            echo "Issues found:"
+            for error in "${ERRORS[@]}"; do
+              echo "  • $error"
+            done
+            echo ""
+            echo "Required format:"
+            echo "  Title: [CUR-XXX] Description of changes"
+            echo "  Body:  Must contain 'Implements: REQ-{type}{number}'"
+            echo ""
+            echo "Where:"
+            echo "  CUR-XXX: Your Linear ticket number"
+            echo "  REQ type: p (PRD), o (Ops), d (Dev)"
+            echo "  REQ number: 5 digits (e.g., REQ-d00018)"
+            echo ""
+            echo "To fix: Edit the PR title and description at:"
+            echo "  $PR_URL"
+            echo ""
+            exit 1
+          else
+            echo "✅ PR metadata is valid for squash merge"
+          fi
+
   # Validate commit messages have required CUR-XXX and REQ-XXX references
   validate-commit-messages:
     name: Validate Commit Messages (CUR + REQ)
@@ -872,7 +948,7 @@ jobs:
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [changes, validate-commit-messages, validate-merge-commit, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks, compliance-check]
+    needs: [changes, validate-pr-metadata, validate-commit-messages, validate-merge-commit, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks, compliance-check]
     if: always()
 
     steps:
@@ -892,6 +968,15 @@ jobs:
 
           # Show test results
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+
+          # PR title/description - ensures squash merge has references
+          if [ "${{ needs.validate-pr-metadata.result }}" = "success" ]; then
+            echo "✅ PR metadata (title + description): PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-pr-metadata.result }}" = "skipped" ]; then
+            echo "⏭️ PR metadata: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ PR metadata: FAILED (update PR title/description)" >> $GITHUB_STEP_SUMMARY
+          fi
 
           # Commit messages (CUR + REQ) - PR validation
           if [ "${{ needs.validate-commit-messages.result }}" = "success" ]; then
@@ -976,7 +1061,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           FAILED=false
 
-          if [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
+          if [ "${{ needs.validate-pr-metadata.result }}" = "failure" ] || \
+             [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
              [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
              [ "${{ needs.security-check.result }}" = "failure" ] || \
              [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
