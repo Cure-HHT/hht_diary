@@ -144,6 +144,10 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  - Portal Server:     localhost:8080"
     echo "  - Portal UI:         localhost:PORT (Flutter assigns port)"
     echo ""
+    echo "Email handling:"
+    echo "  Emails are logged to console (EMAIL_CONSOLE_MODE=true)"
+    echo "  Look for OTP codes in server output"
+    echo ""
     echo "Dev credentials:"
     echo "  Email:    mike.bushe@anspar.org (or other seeded dev admins)"
     echo "  Password: curehht"
@@ -153,6 +157,12 @@ if [ "$SHOW_HELP" = true ]; then
     echo ""
     echo "  Uses real GCP Identity Platform instead of Firebase emulator."
     echo "  This is GDPR/FDA compliant and recommended for testing real auth flows."
+    echo ""
+    echo "  How it works:"
+    echo "    1. Server reads Identity config from Doppler env vars"
+    echo "    2. Server exposes config at /api/v1/portal/config/identity"
+    echo "    3. Flutter app fetches config from server at startup"
+    echo "    4. Flutter initializes Firebase with fetched config"
     echo ""
     echo "  Required Doppler secrets:"
     echo "    PORTAL_IDENTITY_API_KEY     - GCP Identity Platform API key (AIza...)"
@@ -269,6 +279,185 @@ clear_firebase_users() {
     else
         log_success "Firebase accounts cleared"
     fi
+}
+
+# Clear Identity Platform test users (for --dev mode)
+# Deletes all users except protected dev admins
+# Uses REST API with gcloud auth token (no firebase-admin SDK needed)
+clear_identity_platform_users() {
+    log_info "Clearing Identity Platform test users..."
+
+    local project_id="${PORTAL_IDENTITY_PROJECT_ID:-callisto4-dev}"
+
+    # Protected emails - never delete these dev admins
+    local protected_emails=(
+        "mike.bushe@anspar.org"
+        "michael@anspar.org"
+        "tom@anspar.org"
+        "urayoan@anspar.org"
+        "elvira@anspar.org"
+    )
+
+    # Get access token
+    local token=$(gcloud auth print-access-token 2>/dev/null)
+    if [ -z "$token" ]; then
+        log_error "Could not get gcloud access token"
+        log_error "Run: gcloud auth login"
+        return 1
+    fi
+
+    log_info "Listing users in project: $project_id"
+
+    # List all users using Identity Platform REST API
+    # Use batchGet with no filter to get all users (queryAccounts requires expression)
+    local next_page_token=""
+    local deleted_count=0
+    local protected_count=0
+    local error_count=0
+
+    while true; do
+        # Use the download endpoint which lists all users
+        local url="https://identitytoolkit.googleapis.com/v1/projects/${project_id}/accounts:batchGet?maxResults=500"
+        if [ -n "$next_page_token" ]; then
+            url="${url}&nextPageToken=${next_page_token}"
+        fi
+
+        local list_response=$(curl -s -X GET "$url" \
+            -H "Authorization: Bearer $token" \
+            -H "x-goog-user-project: ${project_id}")
+
+        # Debug: show response structure
+        if [ "$DEBUG" = "true" ]; then
+            log_info "API Response: $list_response"
+        fi
+
+        # Check for errors
+        if echo "$list_response" | grep -q '"error"'; then
+            log_error "Failed to list users: $list_response"
+            return 1
+        fi
+
+        # Extract user records from "users" array (localId and email)
+        # Parse JSON with simple grep/sed (avoid jq dependency)
+        local users=$(echo "$list_response" | grep -o '"localId" *: *"[^"]*"' | sed 's/"localId" *: *"//g' | sed 's/"//g')
+        local emails=$(echo "$list_response" | grep -o '"email" *: *"[^"]*"' | sed 's/"email" *: *"//g' | sed 's/"//g')
+
+        # Convert to arrays
+        local user_ids=($users)
+        local user_emails=($emails)
+
+        log_info "Found ${#user_ids[@]} users in this batch"
+
+        # Process each user
+        for i in "${!user_ids[@]}"; do
+            local uid="${user_ids[$i]}"
+            local email="${user_emails[$i]:-unknown}"
+
+            # Check if protected (case-insensitive comparison, compatible with bash 3.x)
+            local is_protected=false
+            local email_lower=$(echo "$email" | tr '[:upper:]' '[:lower:]')
+            for protected in "${protected_emails[@]}"; do
+                local protected_lower=$(echo "$protected" | tr '[:upper:]' '[:lower:]')
+                if [ "$email_lower" = "$protected_lower" ]; then
+                    is_protected=true
+                    break
+                fi
+            done
+
+            if [ "$is_protected" = true ]; then
+                log_info "  [PROTECTED] $email"
+                ((protected_count++))
+            else
+                # Delete the user
+                local delete_response=$(curl -s -X POST \
+                    "https://identitytoolkit.googleapis.com/v1/projects/${project_id}/accounts:delete" \
+                    -H "Authorization: Bearer $token" \
+                    -H "Content-Type: application/json" \
+                    -H "x-goog-user-project: ${project_id}" \
+                    -d "{\"localId\": \"$uid\"}")
+
+                if echo "$delete_response" | grep -q '"error"'; then
+                    log_warn "  [ERROR] Failed to delete $email: $delete_response"
+                    ((error_count++))
+                else
+                    log_success "  [DELETED] $email"
+                    ((deleted_count++))
+                fi
+            fi
+        done
+
+        # Check for next page
+        next_page_token=$(echo "$list_response" | grep -o '"nextPageToken" *: *"[^"]*"' | sed 's/"nextPageToken" *: *"//g' | sed 's/"//g')
+        if [ -z "$next_page_token" ]; then
+            break
+        fi
+        log_info "Fetching next page..."
+    done
+
+    echo ""
+    log_info "Summary: Deleted $deleted_count, Protected $protected_count, Errors $error_count"
+
+    if [ $error_count -gt 0 ]; then
+        log_warn "Some users failed to delete"
+        return 1
+    fi
+
+    log_success "Identity Platform test users cleared"
+}
+
+# Create a user in Identity Platform via REST API
+create_identity_platform_user() {
+    local email=$1
+    local password=$2
+    local project_id="${PORTAL_IDENTITY_PROJECT_ID:-callisto4-dev}"
+
+    # Get access token
+    local token=$(gcloud auth print-access-token 2>/dev/null)
+    if [ -z "$token" ]; then
+        log_warn "  Could not get access token for $email"
+        return 1
+    fi
+
+    # Check if user exists by trying to look them up
+    local lookup_response=$(curl -s -X POST \
+        "https://identitytoolkit.googleapis.com/v1/projects/${project_id}/accounts:lookup" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -H "x-goog-user-project: ${project_id}" \
+        -d "{\"email\":[\"${email}\"]}")
+
+    if echo "$lookup_response" | grep -q "\"email\""; then
+        log_info "  Identity Platform user $email already exists"
+        return 0
+    fi
+
+    # Create user via Identity Platform REST API
+    local response=$(curl -s -X POST \
+        "https://identitytoolkit.googleapis.com/v1/projects/${project_id}/accounts" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -H "x-goog-user-project: ${project_id}" \
+        -d "{\"email\":\"${email}\",\"password\":\"${password}\",\"emailVerified\":true}")
+
+    if echo "$response" | grep -q "\"localId\""; then
+        log_success "  Created Identity Platform user: $email"
+    else
+        log_warn "  Could not create Identity Platform user $email: $response"
+    fi
+}
+
+# Ensure dev admin users exist in Identity Platform
+ensure_identity_platform_dev_admins() {
+    log_info "Ensuring dev admin users exist in Identity Platform..."
+
+    # Same dev admins as in seed data and Firebase emulator setup
+    create_identity_platform_user "mike.bushe@anspar.org" "$DEV_PASSWORD"
+    create_identity_platform_user "michael@anspar.org" "$DEV_PASSWORD"
+    create_identity_platform_user "tom@anspar.org" "$DEV_PASSWORD"
+    create_identity_platform_user "urayoan@anspar.org" "$DEV_PASSWORD"
+    create_identity_platform_user "elvira@anspar.org" "$DEV_PASSWORD"
+
+    log_success "Dev admin users verified"
 }
 
 # Create all seeded dev admin users in Firebase
@@ -392,12 +581,27 @@ start_server() {
     export DB_USER="postgres"
     export DB_PASSWORD="$DB_PASSWORD"
 
+    # Enable email console mode for local development
+    # Emails are logged to console instead of being sent via Gmail API
+    export EMAIL_CONSOLE_MODE="true"
+    log_info "Email console mode enabled - emails will be logged to console"
+
     if [ "$USE_DEV_IDENTITY" = true ]; then
         # Use real GCP Identity Platform for token verification
         # Unset emulator host to force real verification
         unset FIREBASE_AUTH_EMULATOR_HOST
         export GCP_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID"
+
+        # Export Identity Platform config for the /api/v1/portal/config/identity endpoint
+        # These are read by the server and served to the Flutter client at runtime
+        export PORTAL_IDENTITY_API_KEY="${PORTAL_IDENTITY_API_KEY}"
+        export PORTAL_IDENTITY_APP_ID="${PORTAL_IDENTITY_APP_ID}"
+        export PORTAL_IDENTITY_PROJECT_ID="${PORTAL_IDENTITY_PROJECT_ID}"
+        export PORTAL_IDENTITY_AUTH_DOMAIN="${PORTAL_IDENTITY_AUTH_DOMAIN}"
+        export PORTAL_IDENTITY_MESSAGING_SENDER_ID="${PORTAL_IDENTITY_MESSAGING_SENDER_ID:-}"
+
         log_info "Server using GCP Identity Platform: $GCP_PROJECT_ID"
+        log_info "Server will serve Identity config via /api/v1/portal/config/identity"
     else
         # Use Firebase emulator for token verification
         export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
@@ -418,9 +622,11 @@ start_ui() {
 
     if [ "$USE_DEV_IDENTITY" = true ]; then
         # Use dev flavor with GCP Identity Platform (real auth, local backend)
+        # The Flutter app fetches Identity config from server at runtime
+        # via /api/v1/portal/config/identity (no dart-define for Firebase)
         log_info "Starting Portal UI (Flutter Web) with GCP Identity Platform..."
 
-        # These env vars should be set in Doppler (same keys used across envs)
+        # Verify server has Identity config available
         if [ -z "$PORTAL_IDENTITY_API_KEY" ]; then
             log_error "PORTAL_IDENTITY_API_KEY not set in Doppler"
             log_error "Required Doppler secrets for --dev mode:"
@@ -431,14 +637,11 @@ start_ui() {
             exit 1
         fi
 
+        # APP_FLAVOR=dev tells the app to fetch Identity config from server
+        # PORTAL_API_URL points to the local server (which has the Identity config)
         flutter run -d chrome \
             --dart-define=APP_FLAVOR=dev \
-            --dart-define=PORTAL_API_URL=http://localhost:8080 \
-            --dart-define=PORTAL_DEV_FIREBASE_API_KEY="$PORTAL_IDENTITY_API_KEY" \
-            --dart-define=PORTAL_DEV_FIREBASE_APP_ID="$PORTAL_IDENTITY_APP_ID" \
-            --dart-define=PORTAL_DEV_FIREBASE_PROJECT_ID="$PORTAL_IDENTITY_PROJECT_ID" \
-            --dart-define=PORTAL_DEV_FIREBASE_AUTH_DOMAIN="$PORTAL_IDENTITY_AUTH_DOMAIN" \
-            --dart-define=PORTAL_DEV_FIREBASE_MESSAGING_SENDER_ID="${PORTAL_IDENTITY_MESSAGING_SENDER_ID:-}" &
+            --dart-define=PORTAL_API_URL=http://localhost:8080 &
         UI_PID=$!
     else
         # Use local flavor with Firebase emulator
@@ -500,16 +703,23 @@ main() {
         create_firebase_users
     else
         log_info "Skipping Firebase Emulator (using GCP Identity Platform)"
+        # Ensure dev admin users exist in Identity Platform
+        ensure_identity_platform_dev_admins
     fi
 
     # Reset database if requested
     if [ "$RESET_DB" = true ]; then
         reset_database
-        # Only clear Firebase users if using emulator
+        # Clear auth users based on mode
         if [ "$USE_DEV_IDENTITY" = false ]; then
             clear_firebase_users
             # Re-create users after clearing
             create_firebase_users
+        else
+            # Clear Identity Platform test users (keeps protected dev admins)
+            clear_identity_platform_users
+            # Ensure dev admin users exist in Identity Platform
+            ensure_identity_platform_dev_admins
         fi
 
         echo ""
@@ -522,6 +732,8 @@ main() {
         echo "  - Schema and seed data applied"
         if [ "$USE_DEV_IDENTITY" = false ]; then
             echo "  - Firebase emulator accounts reset"
+        else
+            echo "  - Identity Platform test users cleared"
         fi
         echo ""
         echo "  Run './tool/run_local.sh' (without --reset) to start"

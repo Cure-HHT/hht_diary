@@ -49,22 +49,20 @@ Router createRouter() {
   router.post('/api/v1/portal/auth/send-otp', sendEmailOtpHandler);
   router.post('/api/v1/portal/auth/verify-otp', verifyEmailOtpHandler);
 
-  // Password reset endpoints (unauthenticated - email-based flow)
+  // Password reset request endpoint (unauthenticated - email-based flow)
+  // Generates Identity Platform oobCode and sends custom email
+  // Actual password reset uses Firebase client SDK (verifyPasswordResetCode/confirmPasswordReset)
   router.post(
     '/api/v1/portal/auth/password-reset/request',
     requestPasswordResetHandler,
   );
-  router.get(
-    '/api/v1/portal/auth/password-reset/validate/<code>',
-    validatePasswordResetCodeHandler,
-  );
-  router.post(
-    '/api/v1/portal/auth/password-reset/complete',
-    completePasswordResetHandler,
-  );
 
   // Feature flags (public endpoint for frontend configuration)
   router.get('/api/v1/portal/config/features', featureFlagsHandler);
+
+  // Identity Platform configuration (public, needed before auth)
+  // Returns Firebase config for client initialization
+  router.get('/api/v1/portal/config/identity', identityConfigHandler);
 
   return router;
 }

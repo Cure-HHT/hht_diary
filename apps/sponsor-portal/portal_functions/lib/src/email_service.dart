@@ -32,6 +32,10 @@ class EmailConfig {
   /// Whether email sending is enabled
   final bool enabled;
 
+  /// Console mode - logs emails to console instead of sending
+  /// Useful for local development without GCP credentials
+  final bool consoleMode;
+
   /// Display name for sender (hardcoded)
   static const senderName = 'Clinical Trial Portal';
 
@@ -39,6 +43,7 @@ class EmailConfig {
     this.gmailServiceAccountEmail,
     required this.senderEmail,
     required this.enabled,
+    this.consoleMode = false,
   });
 
   /// Create config from environment variables
@@ -48,12 +53,15 @@ class EmailConfig {
           Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
       senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'support@anspar.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
+      consoleMode: Platform.environment['EMAIL_CONSOLE_MODE'] == 'true',
     );
   }
 
   /// Check if email service is properly configured
+  /// Console mode counts as configured (for local development)
   bool get isConfigured =>
-      enabled && (gmailServiceAccountEmail?.isNotEmpty ?? false);
+      enabled &&
+      (consoleMode || (gmailServiceAccountEmail?.isNotEmpty ?? false));
 }
 
 /// Result of an email send operation
@@ -99,12 +107,20 @@ class EmailService {
   /// Initialize the email service with configuration
   ///
   /// Uses WIF: Cloud Run SA or local user impersonates Gmail SA via IAM
+  /// Or console mode for local development (EMAIL_CONSOLE_MODE=true)
   Future<void> initialize(EmailConfig config) async {
     if (_gmailApi != null) return;
     _config = config;
 
     if (!config.isConfigured) {
       print('[EMAIL] Email service disabled or not configured');
+      return;
+    }
+
+    // Console mode - just log emails, don't initialize Gmail API
+    if (config.consoleMode) {
+      print('[EMAIL] Console mode enabled - emails will be logged to console');
+      print('[EMAIL] Email service initialized in console mode');
       return;
     }
 
@@ -204,7 +220,13 @@ class EmailService {
   }
 
   /// Check if service is ready to send emails
-  bool get isReady => _gmailApi != null && (_config?.enabled ?? false);
+  /// Returns true for console mode (logs to console) or when Gmail API is initialized
+  bool get isReady =>
+      (_config?.enabled ?? false) &&
+      ((_config?.consoleMode ?? false) || _gmailApi != null);
+
+  /// Check if running in console mode
+  bool get isConsoleMode => _config?.consoleMode ?? false;
 
   /// Send a 6-digit OTP code via email
   Future<EmailResult> sendOtpCode({
@@ -430,7 +452,35 @@ Clinical Trial Portal
     required String emailType,
     String? sentByUserId,
   }) async {
-    if (_gmailApi == null || _config == null) {
+    if (_config == null) {
+      return EmailResult.failure('Email service not configured');
+    }
+
+    // Console mode - log to console instead of sending
+    if (_config!.consoleMode) {
+      print('');
+      print('=' * 60);
+      print('[EMAIL CONSOLE MODE] Would send $emailType email:');
+      print('  To: ${recipientName ?? recipientEmail} <$recipientEmail>');
+      print('  Subject: $subject');
+      print('-' * 60);
+      print(bodyText);
+      print('=' * 60);
+      print('');
+
+      // Log to audit table as 'console' (local dev mode)
+      await _logEmailAudit(
+        recipientEmail: recipientEmail,
+        emailType: emailType,
+        status: 'console',
+        messageId: 'console-${DateTime.now().millisecondsSinceEpoch}',
+        sentByUserId: sentByUserId,
+      );
+
+      return EmailResult.success('console-mode');
+    }
+
+    if (_gmailApi == null) {
       return EmailResult.failure('Gmail API not initialized');
     }
 

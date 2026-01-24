@@ -805,7 +805,7 @@ CREATE TABLE email_audit_log (
     email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
-    status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced')),
+    status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced', 'console')),
     gmail_message_id TEXT,                -- Gmail API message ID for tracking
     error_message TEXT,                   -- Error details if status is 'failed'
     metadata JSONB DEFAULT '{}'::jsonb    -- Additional context (masked email, etc.)
