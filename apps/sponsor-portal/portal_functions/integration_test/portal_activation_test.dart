@@ -272,9 +272,12 @@ void main() {
       expect(response.statusCode, equals(200));
       final json = await getResponseJson(response);
       expect(json['valid'], isTrue);
+      // Full email returned for Firebase account creation
       expect(json['email'], isNotNull);
-      // Email should be masked
-      expect(json['email'], contains('***'));
+      expect(json['email'], isNot(contains('***')));
+      // Masked email returned for display in UI
+      expect(json['maskedEmail'], isNotNull);
+      expect(json['maskedEmail'], contains('***'));
     });
 
     test('returns 401 for non-existent activation code', () async {

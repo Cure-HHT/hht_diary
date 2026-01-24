@@ -26,8 +26,11 @@ COPY --chown=appuser:appuser apps/sponsor-portal/portal-ui /app/apps/sponsor-por
 WORKDIR /app/apps/sponsor-portal/portal-ui
 
 # Get dependencies and build for web
+# APP_FLAVOR=prod means the app will fetch Identity Platform config from server
+# at runtime via /api/v1/portal/config/identity (Doppler provides the values)
+# This allows the same Docker image to work across all environments
 RUN flutter pub get
-RUN flutter build web --release --dart-define=APP_FLAVOR=dev --pwa-strategy=none
+RUN flutter build web --release --dart-define=APP_FLAVOR=prod --pwa-strategy=none
 
 # =============================================================================
 # Stage 2: Build Dart Server

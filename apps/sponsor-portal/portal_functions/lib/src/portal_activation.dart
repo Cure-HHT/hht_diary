@@ -89,12 +89,18 @@ Future<Response> validateActivationCodeHandler(
     return _jsonResponse({'error': 'Activation code has expired'}, 401);
   }
 
-  // Return masked email for user confirmation (security best practice)
-  // User should recognize their email but not expose full address in URL/logs
+  // Return full email so UI can create Firebase account with correct address
+  // The activation code provides security (random, expiring token) so
+  // exposing the email to the code holder is acceptable
+  // Also return masked version for display purposes
   final maskedEmail = _maskEmail(email);
   print('[ACTIVATION] Code valid for: $email');
 
-  return _jsonResponse({'valid': true, 'email': maskedEmail});
+  return _jsonResponse({
+    'valid': true,
+    'email': email, // Full email for Firebase account creation
+    'maskedEmail': maskedEmail, // Masked for display in UI
+  });
 }
 
 /// Activate user account with code and GCP Idenity Provider token

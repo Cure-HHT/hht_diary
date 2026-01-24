@@ -94,7 +94,9 @@ class _ActivationPageState extends State<ActivationPage> {
       if (response.statusCode == 200 && data['valid'] == true) {
         setState(() {
           _codeValidated = true;
-          _maskedEmail = data['email'] as String?;
+          // Use maskedEmail for display, full email is retrieved separately for Firebase
+          _maskedEmail =
+              data['maskedEmail'] as String? ?? data['email'] as String?;
           _isValidating = false;
         });
       } else {

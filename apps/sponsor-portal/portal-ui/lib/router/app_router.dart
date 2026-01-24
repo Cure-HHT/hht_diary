@@ -40,7 +40,10 @@ final appRouter = GoRouter(
       path: '/reset-password',
       name: 'reset-password',
       builder: (context, state) {
-        final oobCode = state.uri.queryParameters['oobCode'];
+        // Support both 'oobCode' (Firebase standard) and 'code' (our API)
+        final oobCode =
+            state.uri.queryParameters['oobCode'] ??
+            state.uri.queryParameters['code'];
         return ResetPasswordPage(oobCode: oobCode);
       },
     ),

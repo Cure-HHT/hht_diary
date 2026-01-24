@@ -11,7 +11,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:shelf/shelf.dart';
 import 'package:http/http.dart' as http;
@@ -28,86 +27,50 @@ String get _portalUrl {
   return Platform.environment['PORTAL_BASE_URL'] ?? 'http://localhost:8080';
 }
 
-/// Get access token for Identity Platform API via Workload Identity Federation
+/// Get access token for Identity Platform API
 ///
-/// Uses Application Default Credentials (Cloud Run's service account or local gcloud auth)
+/// In Cloud Run: Uses Workload Identity Federation (WIF)
+/// Locally: Falls back to gcloud auth print-access-token
 Future<String> _getIdentityPlatformAccessToken() async {
-  // Get Application Default Credentials
-  final client = await clientViaApplicationDefaultCredentials(
-    scopes: [
-      'https://www.googleapis.com/auth/cloud-platform',
-      'https://www.googleapis.com/auth/firebase',
-    ],
-  );
-
-  // Extract access token from authenticated client
-  final credentials = client.credentials;
-  final accessToken = credentials.accessToken.data;
-
-  client.close();
-  return accessToken;
-}
-
-/// Update user password in Identity Platform using REST API
-///
-/// Uses WIF to authenticate as Cloud Run service account.
-/// Returns true on success, false on failure.
-Future<bool> _updatePasswordInIdentityPlatform(
-  String firebaseUid,
-  String newPassword,
-) async {
+  // First try WIF (works in Cloud Run)
   try {
-    print('[PASSWORD_RESET] Getting access token via WIF...');
-    final accessToken = await _getIdentityPlatformAccessToken();
-
-    final url = Uri.parse('$_identityApiUrl/accounts:update');
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'localId': firebaseUid,
-        'password': newPassword,
-        'returnSecureToken': false,
-      }),
+    final client = await clientViaApplicationDefaultCredentials(
+      scopes: [
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/firebase',
+      ],
     );
 
-    if (response.statusCode != 200) {
-      final error = jsonDecode(response.body);
-      print(
-        '[PASSWORD_RESET] Identity Platform API error: ${response.statusCode} - $error',
-      );
-      return false;
-    }
-
-    print(
-      '[PASSWORD_RESET] Password updated successfully in Identity Platform',
-    );
-    return true;
+    final credentials = client.credentials;
+    final accessToken = credentials.accessToken.data;
+    client.close();
+    return accessToken;
   } catch (e) {
-    print('[PASSWORD_RESET] Error updating password: $e');
-    return false;
+    print('[PASSWORD_RESET] WIF failed, trying gcloud auth: $e');
   }
+
+  // Fall back to gcloud CLI (works locally with `gcloud auth login`)
+  try {
+    final result = await Process.run('gcloud', ['auth', 'print-access-token']);
+    if (result.exitCode == 0) {
+      final token = (result.stdout as String).trim();
+      if (token.isNotEmpty) {
+        return token;
+      }
+    }
+    print('[PASSWORD_RESET] gcloud auth failed: ${result.stderr}');
+  } catch (e) {
+    print('[PASSWORD_RESET] gcloud command failed: $e');
+  }
+
+  throw Exception('Failed to obtain access token via WIF or gcloud');
 }
 
-/// Generate a password reset code in XXXXX-XXXXX format
-///
-/// Uses crypto-secure random with 32-character alphabet (avoiding ambiguous chars).
-/// Total entropy: 32^10 ≈ 1,152,921,504,606,846,976 combinations
-/// Format matches activation codes for consistency.
-String _generatePasswordResetCode() {
-  final random = Random.secure();
-  // Exclude ambiguous characters: 0O, 1Il
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-  String generatePart() {
-    return List.generate(5, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
-  return '${generatePart()}-${generatePart()}';
+/// Get GCP project ID from environment
+String get _gcpProjectId {
+  return Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
+      Platform.environment['GCP_PROJECT_ID'] ??
+      'callisto4-dev';
 }
 
 /// Request password reset email
@@ -246,9 +209,9 @@ Future<Response> requestPasswordResetHandler(Request request) async {
       return _jsonResponse({'success': true, 'message': successMessage}, 200);
     }
 
-    // Generate custom password reset code (XXXXX-XXXXX format)
-    print('[PASSWORD_RESET] Generating reset code for: $normalizedEmail');
-    final resetLink = await _generatePasswordResetLink(userId);
+    // Generate password reset link using Identity Platform's native oobCode
+    print('[PASSWORD_RESET] Generating reset link for: $normalizedEmail');
+    final resetLink = await _generatePasswordResetLink(normalizedEmail);
 
     if (resetLink == null) {
       print('[PASSWORD_RESET] Failed to generate reset link');
@@ -309,65 +272,79 @@ Future<Response> requestPasswordResetHandler(Request request) async {
   }
 }
 
-/// Generate a password reset link with custom XXXXX-XXXXX code
+/// Generate a password reset link using Identity Platform's native oobCode
 ///
-/// Generates a 10-character code (XXXXX-XXXXX format) for consistency with
-/// activation codes. Code expires in 24 hours and is single-use.
+/// Uses the Identity Platform REST API to generate a password reset link
+/// with Firebase's built-in oobCode. This allows the Flutter client to use
+/// Firebase's verifyPasswordResetCode and confirmPasswordReset methods.
 ///
-/// Returns the full reset URL with code parameter, or null on error.
-Future<String?> _generatePasswordResetLink(String userId) async {
+/// Returns the full reset URL with oobCode parameter, or null on error.
+Future<String?> _generatePasswordResetLink(String email) async {
   try {
-    final db = Database.instance;
+    print('[PASSWORD_RESET] Getting access token via WIF...');
+    final accessToken = await _getIdentityPlatformAccessToken();
 
-    // Generate unique reset code
-    String resetCode;
-    bool isUnique = false;
-    int attempts = 0;
-    const maxAttempts = 5;
+    // Use Identity Platform REST API to generate password reset link
+    // returnOobLink: true returns the link without sending email
+    final url = Uri.parse(
+      '$_identityApiUrl/projects/$_gcpProjectId/accounts:sendOobCode',
+    );
 
-    while (!isUnique && attempts < maxAttempts) {
-      resetCode = _generatePasswordResetCode();
+    // Construct the continue URL that Firebase will redirect to
+    final continueUrl = Uri.parse(
+      _portalUrl,
+    ).replace(path: '/reset-password').toString();
 
-      // Check if code is already in use (extremely unlikely but check anyway)
-      final existing = await db.executeWithContext(
-        'SELECT id FROM portal_users WHERE password_reset_code = @code',
-        parameters: {'code': resetCode},
-        context: UserContext.service,
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+        'x-goog-user-project': _gcpProjectId,
+      },
+      body: jsonEncode({
+        'requestType': 'PASSWORD_RESET',
+        'email': email,
+        'returnOobLink': true,
+        'continueUrl': continueUrl,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final error = jsonDecode(response.body);
+      print(
+        '[PASSWORD_RESET] Identity Platform API error: ${response.statusCode} - $error',
       );
-
-      isUnique = existing.isEmpty;
-      attempts++;
-
-      if (isUnique) {
-        // Store code in database with 24-hour expiration
-        await db.executeWithContext(
-          '''
-          UPDATE portal_users
-          SET password_reset_code = @code,
-              password_reset_code_expires_at = NOW() + INTERVAL '24 hours',
-              password_reset_used_at = NULL
-          WHERE id = @userId
-          ''',
-          parameters: {'code': resetCode, 'userId': userId},
-          context: UserContext.service,
-        );
-
-        print('[PASSWORD_RESET] Generated reset code: $resetCode');
-
-        // Construct reset URL
-        final resetUrl = Uri.parse(_portalUrl).replace(
-          path: '/reset-password',
-          queryParameters: {'code': resetCode},
-        );
-
-        return resetUrl.toString();
-      }
+      return null;
     }
 
-    print(
-      '[PASSWORD_RESET] Failed to generate unique code after $maxAttempts attempts',
-    );
-    return null;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final oobLink = data['oobLink'] as String?;
+
+    if (oobLink == null || oobLink.isEmpty) {
+      print('[PASSWORD_RESET] No oobLink in response: $data');
+      return null;
+    }
+
+    // The oobLink from Firebase looks like:
+    // https://project.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=XXX&apiKey=XXX&continueUrl=XXX
+    // We need to extract the oobCode and construct our own URL
+    final oobUri = Uri.parse(oobLink);
+    final oobCode = oobUri.queryParameters['oobCode'];
+
+    if (oobCode == null || oobCode.isEmpty) {
+      print('[PASSWORD_RESET] No oobCode in link: $oobLink');
+      return null;
+    }
+
+    print('[PASSWORD_RESET] Generated oobCode: ${oobCode.substring(0, 10)}...');
+
+    // Construct our portal reset URL with the oobCode
+    final resetUrl = Uri.parse(
+      _portalUrl,
+    ).replace(path: '/reset-password', queryParameters: {'oobCode': oobCode});
+
+    return resetUrl.toString();
   } catch (e) {
     print('[PASSWORD_RESET] Error generating reset link: $e');
     return null;
@@ -413,198 +390,6 @@ Future<void> _logPasswordResetAudit({
 /// Simple email validation
 bool _isValidEmail(String email) {
   return email.contains('@') && email.length >= 3;
-}
-
-/// Validate password reset code (unauthenticated endpoint)
-/// GET /api/v1/portal/auth/password-reset/validate/:code
-///
-/// Returns email if code is valid and not expired.
-/// Used by frontend to display the reset form.
-Future<Response> validatePasswordResetCodeHandler(
-  Request request,
-  String code,
-) async {
-  print('[PASSWORD_RESET] Validating code: $code');
-
-  final db = Database.instance;
-
-  // Use service context for unauthenticated code lookup
-  final result = await db.executeWithContext(
-    '''
-    SELECT id, email, name, password_reset_code_expires_at, password_reset_used_at
-    FROM portal_users
-    WHERE password_reset_code = @code
-    ''',
-    parameters: {'code': code},
-    context: UserContext.service,
-  );
-
-  if (result.isEmpty) {
-    print('[PASSWORD_RESET] Code not found');
-    return _jsonResponse({'error': 'Invalid password reset code'}, 401);
-  }
-
-  final row = result.first;
-  final email = row[1] as String;
-  final expiresAt = row[3] as DateTime?;
-  final usedAt = row[4] as DateTime?;
-
-  // Check if already used
-  if (usedAt != null) {
-    print('[PASSWORD_RESET] Code already used');
-    return _jsonResponse({
-      'error': 'Password reset code has already been used',
-    }, 401);
-  }
-
-  // Check expiration
-  if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
-    print('[PASSWORD_RESET] Code expired');
-    return _jsonResponse({'error': 'Password reset code has expired'}, 401);
-  }
-
-  print('[PASSWORD_RESET] Code valid for: $email');
-
-  return _jsonResponse({'valid': true, 'email': email}, 200);
-}
-
-/// Complete password reset (unauthenticated endpoint)
-/// POST /api/v1/portal/auth/password-reset/complete
-/// Body: { "code": "XXXXX-XXXXX", "password": "newpassword" }
-///
-/// Verifies code and updates password in Identity Platform.
-/// Marks code as used (single-use enforcement).
-Future<Response> completePasswordResetHandler(Request request) async {
-  print('[PASSWORD_RESET] Complete password reset called');
-
-  try {
-    // Parse request body
-    final body = await request.readAsString();
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final code = json['code'] as String?;
-    final password = json['password'] as String?;
-
-    if (code == null || code.isEmpty) {
-      return _jsonResponse({'error': 'Reset code is required'}, 400);
-    }
-
-    if (password == null || password.isEmpty) {
-      return _jsonResponse({'error': 'Password is required'}, 400);
-    }
-
-    // Validate password requirements (8-64 characters per REQ-p00071)
-    if (password.length < 8) {
-      return _jsonResponse({
-        'error': 'Password must be at least 8 characters',
-      }, 400);
-    }
-
-    if (password.length > 64) {
-      return _jsonResponse({
-        'error': 'Password must not exceed 64 characters',
-      }, 400);
-    }
-
-    final db = Database.instance;
-
-    // Find user by reset code
-    final result = await db.executeWithContext(
-      '''
-      SELECT id, email, firebase_uid, password_reset_code_expires_at, password_reset_used_at
-      FROM portal_users
-      WHERE password_reset_code = @code
-      ''',
-      parameters: {'code': code},
-      context: UserContext.service,
-    );
-
-    if (result.isEmpty) {
-      print('[PASSWORD_RESET] Code not found');
-      return _jsonResponse({'error': 'Invalid password reset code'}, 401);
-    }
-
-    final row = result.first;
-    final userId = row[0] as String;
-    final email = row[1] as String;
-    final firebaseUid = row[2] as String?;
-    final expiresAt = row[3] as DateTime?;
-    final usedAt = row[4] as DateTime?;
-
-    // Check if already used
-    if (usedAt != null) {
-      print('[PASSWORD_RESET] Code already used');
-      return _jsonResponse({
-        'error': 'Password reset code has already been used',
-      }, 401);
-    }
-
-    // Check expiration
-    if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
-      print('[PASSWORD_RESET] Code expired');
-      return _jsonResponse({'error': 'Password reset code has expired'}, 401);
-    }
-
-    if (firebaseUid == null || firebaseUid.isEmpty) {
-      print('[PASSWORD_RESET] User not activated (no firebase_uid)');
-      return _jsonResponse({'error': 'Account not activated'}, 400);
-    }
-
-    // Get client IP for audit
-    final clientIp =
-        request.headers['x-forwarded-for']?.split(',').first.trim() ??
-        request.headers['x-real-ip'];
-
-    // Update password in Identity Platform using REST API with WIF
-    print('[PASSWORD_RESET] Updating password for user: $firebaseUid');
-    final passwordUpdated = await _updatePasswordInIdentityPlatform(
-      firebaseUid,
-      password,
-    );
-
-    if (!passwordUpdated) {
-      print('[PASSWORD_RESET] Failed to update password in Identity Platform');
-      await _logPasswordResetAudit(
-        userId: userId,
-        email: email,
-        success: false,
-        reason: 'identity_platform_update_failed',
-        ipAddress: clientIp,
-      );
-      return _jsonResponse({
-        'error': 'Failed to update password. Please try again.',
-      }, 500);
-    }
-
-    // Mark code as used
-    await db.executeWithContext(
-      '''
-      UPDATE portal_users
-      SET password_reset_used_at = NOW(),
-          password_reset_code = NULL,
-          password_reset_code_expires_at = NULL
-      WHERE id = @userId
-      ''',
-      parameters: {'userId': userId},
-      context: UserContext.service,
-    );
-
-    // Log successful password reset
-    await _logPasswordResetAudit(
-      userId: userId,
-      email: email,
-      success: true,
-      ipAddress: clientIp,
-    );
-
-    print('[PASSWORD_RESET] Password reset completed successfully');
-
-    return _jsonResponse({'success': true}, 200);
-  } catch (e, stack) {
-    print('[PASSWORD_RESET] Error: $e\n$stack');
-    return _jsonResponse({
-      'error': 'An error occurred. Please try again.',
-    }, 500);
-  }
 }
 
 /// Helper to create JSON response

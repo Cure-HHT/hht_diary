@@ -24,6 +24,7 @@ export 'src/feature_flags.dart';
 // Database and utilities
 export 'src/database.dart';
 export 'src/health.dart';
+export 'src/identity_config.dart';
 export 'src/sponsor.dart';
 
 // EDC Integration
