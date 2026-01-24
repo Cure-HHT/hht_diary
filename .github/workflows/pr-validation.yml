@@ -180,24 +180,17 @@ jobs:
               HAS_REQ=true
             fi
 
-            # Check validity
-            if [ "$HAS_CUR" = "true" ] && [ "$HAS_REQ" = "true" ]; then
-              echo "✅ ${sha:0:7}: $subject"
+            # Check validity - CUR-XXX is required, REQ-XXX is recommended but not enforced yet
+            if [ "$HAS_CUR" = "true" ]; then
+              if [ "$HAS_REQ" = "true" ]; then
+                echo "✅ ${sha:0:7}: $subject"
+              else
+                echo "⚠️  ${sha:0:7}: $subject (missing REQ-XXX - recommended)"
+              fi
               VALID_COUNT=$((VALID_COUNT + 1))
             else
-              ERRORS=""
-              if [ "$HAS_CUR" = "false" ]; then
-                ERRORS="missing CUR-XXX"
-              fi
-              if [ "$HAS_REQ" = "false" ]; then
-                if [ -n "$ERRORS" ]; then
-                  ERRORS="$ERRORS, missing REQ-XXX"
-                else
-                  ERRORS="missing REQ-XXX"
-                fi
-              fi
-              echo "❌ ${sha:0:7}: $subject ($ERRORS)"
-              INVALID_COMMITS+=("$sha|$subject|$ERRORS")
+              echo "❌ ${sha:0:7}: $subject (missing CUR-XXX)"
+              INVALID_COMMITS+=("$sha|$subject|missing CUR-XXX")
             fi
           done <<< "$COMMITS"
 
@@ -222,18 +215,16 @@ jobs:
             echo "Required format:"
             echo "  [CUR-XXX] Subject line describing the change"
             echo ""
-            echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}"
+            echo "Where CUR-XXX is the Linear ticket number (e.g., CUR-399)"
             echo ""
-            echo "Where:"
-            echo "  CUR-XXX: Linear ticket number (e.g., CUR-399)"
-            echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)"
-            echo "  REQ/EQ-CAL number: 5 digits (e.g., REQ-d00018, EQ-CAL-d00005)"
+            echo "Recommended (not yet required):"
+            echo "  Implements: REQ-{type}{number} (e.g., REQ-d00018)"
             echo ""
             echo "To fix: Use 'git rebase -i' to edit commit messages"
             echo ""
             exit 1
           else
-            echo "✅ All $VALID_COUNT commit(s) have valid CUR-XXX and REQ-XXX references"
+            echo "✅ All $VALID_COUNT commit(s) have valid CUR-XXX references"
           fi
 
   # Post-merge validation: Check squash merge commits on main/develop
