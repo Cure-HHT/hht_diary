@@ -1,4 +1,4 @@
-# Clinical Diary Mobile Application
+# Diary Mobile Application
 
 **Version**: 1.0
 **Audience**: Product Requirements
@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-The Clinical Diary mobile application is a **Flutter-based cross-platform app** (iOS and Android) that implements an offline-first architecture with multi-sponsor support. A single app deployed to app stores contains configurations for ALL sponsors, with sponsor detection via enrollment tokens.
+The Diary mobile application is a **Flutter-based cross-platform app** (iOS and Android) that implements an offline-first architecture with multi-sponsor support. A single app deployed to app stores contains configurations for ALL sponsors, with sponsor detection via enrollment tokens.
 
 **Key Features**:
 - Single app supports multiple clinical trial sponsors

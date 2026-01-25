@@ -1,4 +1,4 @@
-# Clinical Diary Mobile Application
+# Diary Mobile Application
 
 **Version**: 1.0
 **Audience**: Product Requirements
@@ -12,7 +12,7 @@
 
 ---
 
-# REQ-p00043: Clinical Diary Mobile Application
+# REQ-p00043: Diary Mobile Application
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00044
 
@@ -46,7 +46,7 @@ U. The system SHALL be available via Android app store.
 V. The system SHALL support offline operation for core diary operations in personal use mode.
 W. The system SHALL support offline operation for core diary operations in enrolled use mode.
 
-*End* *Clinical Diary Mobile Application* | **Hash**: aedbfb5a
+*End* *Diary Mobile Application* | **Hash**: aedbfb5a
 
 ---
 
@@ -90,7 +90,7 @@ U. The system SHALL back up enrolled users' data through study database synchron
 
 ## Executive Summary
 
-The Clinical Diary mobile application is a smartphone app for iOS and Android that allows users to record daily health observations. The app supports two usage modes:
+The Diary mobile application is a smartphone app for iOS and Android that allows users to record daily health observations. The app supports two usage modes:
 
 **Personal Use**: Download and use immediately with no account required. All data stored locally on device. Ideal for personal health tracking.
 

@@ -5,7 +5,7 @@ This file provides a complete index of all requirements.
 ## Product Requirements (PRD)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-p00001 | Complete Multi-Sponsor Data Separation | prd-security.md | 081d1dc6 |
 | REQ-p00002 | Multi-Factor Authentication for Staff | prd-security.md | 0c06ec29 |
 | REQ-p00003 | Separate Database Per Sponsor | prd-database.md | bfb45afa |
@@ -35,7 +35,7 @@ This file provides a complete index of all requirements.
 | REQ-p00039 | Administrator Access with Audit Trail | prd-security-RLS.md | 4672a9dc |
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 06025d8a |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | f0a37c7e |
-| REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | aedbfb5a |
+| REQ-p00043 | Diary Mobile Application | prd-diary-app.md | aedbfb5a |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | a72852cf |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | 2e588136 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | cf938097 |
@@ -126,7 +126,7 @@ This file provides a complete index of all requirements.
 ## Operations Requirements (OPS)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-o00001 | Separate GCP Projects Per Sponsor | ops-deployment.md | 7f9aaf0b |
 | REQ-o00002 | Environment-Specific Configuration Management | ops-deployment.md | 720a8e57 |
 | REQ-o00003 | GCP Project Provisioning Per Sponsor | ops-database-setup.md | 7110fea1 |
@@ -191,7 +191,7 @@ This file provides a complete index of all requirements.
 ## Development Requirements (DEV)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-d00001 | Sponsor-Specific Configuration Loading | dev-configuration.md | 5950765d |
 | REQ-d00002 | Pre-Build Configuration Validation | dev-configuration.md | c7f7afe9 |
 | REQ-d00003 | Identity Platform Configuration Per Sponsor | dev-security.md | 12a3c3c0 |

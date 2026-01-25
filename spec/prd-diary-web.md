@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-The Web Diary is a browser-based companion to the Clinical Diary mobile application. It allows patients to access their diary from any computer when the mobile app is unavailable. Due to the inherently less secure nature of web access (shared computers, public terminals), the Web Diary implements strict session management and stores no data locally after logout.
+The Web Diary is a browser-based companion to the Diary mobile application. It allows patients to access their diary from any computer when the mobile app is unavailable. Due to the inherently less secure nature of web access (shared computers, public terminals), the Web Diary implements strict session management and stores no data locally after logout.
 
 **Key Differences from Mobile App**:
 - No offline capability (requires constant internet connection)

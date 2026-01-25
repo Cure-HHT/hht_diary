@@ -90,7 +90,7 @@ Prompt to create Linear tickets for issues:
 
 ## :warning: Changed Requirements
 
-- **REQ-p00043**: Clinical Diary Mobile Application
+- **REQ-p00043**: Diary Mobile Application
   - File: `prd-diary-app.md`
   - Hash: `abc12345` → `def67890`
 

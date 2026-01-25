@@ -62,7 +62,7 @@ REQ-p01041: Open Source Licensing (Parallel to Root)
 
 ### Level 2: Major System Components (implements: p00044)
 ```
-├── REQ-p00043: Clinical Diary Mobile Application
+├── REQ-p00043: Diary Mobile Application
 ├── REQ-p00045: Sponsor Portal Application
 ├── REQ-p00046: Clinical Data Storage System
 ├── REQ-p00047: Data Backup and Archival

@@ -27,7 +27,7 @@ HIERARCHY_STRUCTURE = {
     "p01041": {"level": 1, "title": "Open Source Licensing", "implements": None},
 
     # Level 2: Major System Components (implement p00044)
-    "p00043": {"level": 2, "title": "Clinical Diary Mobile Application", "implements": ["p00044"]},
+    "p00043": {"level": 2, "title": "Diary Mobile Application", "implements": ["p00044"]},
     "p00045": {"level": 2, "title": "Sponsor Portal Application", "implements": ["p00044"]},
     "p00046": {"level": 2, "title": "Clinical Data Storage System", "implements": ["p00044"]},
     "p00047": {"level": 2, "title": "Data Backup and Archival", "implements": ["p00044"]},
