@@ -1,6 +1,6 @@
 # Flutter/Dart Data Models
 
-This directory contains the Dart data models for the Clinical Trial Diary application.
+This directory contains the Dart data models for the Diary application.
 
 ## Files
 

@@ -281,7 +281,7 @@ export BILLING_ACCOUNT="XXXXXX-XXXXXX-XXXXXX"
 
 # 2. Create project
 gcloud projects create $PROJECT_ID \
-  --name="HHT Diary ${SPONSOR} ${ENV}" \
+  --name="Diary ${SPONSOR} ${ENV}" \
   --folder=FOLDER_ID
 
 # 3. Link billing

@@ -11,7 +11,7 @@
 
 ## Overview
 
-This specification defines the Clinical Questionnaire System, a framework for implementing structured data collection instruments in the HHT Clinical Diary Platform. Questionnaires are individually coded Flutter components designed for high-quality user experience, not a generic form-builder system.
+This specification defines the Clinical Questionnaire System, a framework for implementing structured data collection instruments in the Diary Platform. Questionnaires are individually coded Flutter components designed for high-quality user experience, not a generic form-builder system.
 
 The system supports an extensible set of questionnaire types, each implemented through platform development rather than end-user configuration. New questionnaires may be added over time as sponsor requirements dictate.
 
@@ -39,11 +39,11 @@ Questionnaires are NOT:
 
 **Actor**: Maria (Patient)
 **Goal**: Complete the Study Start questionnaire to officially begin participating in the clinical trial
-**Context**: Maria has been diagnosed with HHT and has been invited to participate in a clinical trial. Her physician has enrolled her and she has installed the HHT Diary app on her phone. She receives a notification that she needs to complete the Study Start questionnaire before her data can be synced to the trial.
+**Context**: Maria has been diagnosed with HHT and has been invited to participate in a clinical trial. Her physician has enrolled her and she has installed the Diary app on her phone. She receives a notification that she needs to complete the Study Start questionnaire before her data can be synced to the trial.
 
 ## Steps
 
-1. Maria opens the HHT Diary app and sees a prompt for the Study Start questionnaire
+1. Maria opens the Diary app and sees a prompt for the Study Start questionnaire
 2. Maria reads the introduction explaining the questionnaire's purpose
 3. Maria completes the required questionnaire
 4. Maria submits the questionnaire

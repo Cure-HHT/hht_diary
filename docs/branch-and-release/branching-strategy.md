@@ -1,4 +1,4 @@
-# CureHHT Branching Strategy (Recommended)
+# Branching Strategy (Recommended)
 
 ## Executive Summary
 This document defines a **trunk-based development** strategy optimized for FDA-compliant clinical trials with multi-sponsor deployments. It prioritizes simplicity, scalability, and correct git usage.

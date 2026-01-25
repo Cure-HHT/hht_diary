@@ -108,7 +108,7 @@ REQ-p01041: Open Source Licensing (Parallel to Root)
    - ISO 27001 alignment
 
 2. **Missing System Components**
-   - HHT Diary Auth Service (mentioned in dev but no PRD)
+   - Diary Auth Service (mentioned in dev but no PRD)
    - Sponsor Portal Routing Service (implicit but not formalized)
    - EDC Integration Service (architecture only)
    - API Gateway / Reverse Proxy specification

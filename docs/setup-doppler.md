@@ -2,7 +2,7 @@
 
 **Overview and Quick Links**
 
-This document provides an overview of Doppler secrets management for the HHT Diary platform. For detailed setup instructions, see the audience-specific guides below.
+This document provides an overview of Doppler secrets management for the Diary Platform. For detailed setup instructions, see the audience-specific guides below.
 
 ## IMPLEMENTS REQUIREMENTS
 - REQ-d00069: Doppler manifest system
@@ -28,7 +28,7 @@ Doppler setup is organized by audience and use case:
 
 ## Architecture Overview
 
-The HHT Diary platform uses Doppler for centralized secrets management with a nested project structure:
+The Diary Platform uses Doppler for centralized secrets management with a nested project structure:
 
 - **hht-diary-core**: Core application secrets and sponsor manifest
   - Configs: `dev`, `staging`, `production`

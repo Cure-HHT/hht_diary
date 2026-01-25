@@ -1,6 +1,6 @@
 # Security: Secret Management
 
-> **Purpose**: Central guide for managing secrets, API tokens, and credentials securely across the HHT Diary platform.
+> **Purpose**: Central guide for managing secrets, API tokens, and credentials securely across the Diary Platform.
 >
 > **Compliance**: FDA 21 CFR Part 11, HIPAA, GDPR
 
@@ -54,7 +54,7 @@ Doppler is a centralized secrets management platform that provides:
 
 ### How This Project Uses Doppler
 
-The HHT Diary platform uses a nested Doppler project structure:
+The Diary Platform uses a nested Doppler project structure:
 
 ```
 hht-diary-core (Main Project)

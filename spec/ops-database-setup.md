@@ -1319,7 +1319,7 @@ SET app.current_user_role = 'USER';
 - Identity Platform: https://cloud.google.com/identity-platform/docs
 - Cloud Run: https://cloud.google.com/run/docs
 
-**Clinical Diary System**:
+**Diary Platform**:
 - Review spec/ directory for architecture and implementation details
 - Contact platform team for architecture questions
 - Refer to ops-operations.md for incident response procedures

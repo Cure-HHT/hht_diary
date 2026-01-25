@@ -8,7 +8,7 @@
 
 ## Overview
 
-Data query workflow requirements for clinical data management. Required if HHT Diary evolves into a full EDC, replacing Medidata RAVE.
+Data query workflow requirements for clinical data management. Required if the Diary Platform evolves into a full EDC, replacing Medidata RAVE.
 
 ---
 

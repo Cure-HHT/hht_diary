@@ -1,6 +1,6 @@
 # Developer Onboarding Guide
 
-Welcome to the HHT Clinical Trial Diary Platform team. This document will orient you to our system architecture, regulatory context, and development practices.
+Welcome to the Diary Platform team. This document will orient you to our system architecture, regulatory context, and development practices.
 
 ## The Simple Idea
 

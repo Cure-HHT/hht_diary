@@ -1,6 +1,6 @@
 # QA/SDET Onboarding Guide
 
-Welcome to the HHT Clinical Trial Diary Platform team. This guide supplements the [Developer Onboarding Guide](README-Onboarding.md)—read that first for system context, then return here for QA-specific orientation.
+Welcome to the Diary Platform team. This guide supplements the [Developer Onboarding Guide](README-Onboarding.md)—read that first for system context, then return here for QA-specific orientation.
 
 ## Your Role in a Regulated Environment
 

@@ -5,7 +5,7 @@
 - REQ-o00017: Version Control Workflow
 - REQ-o00053: Branch Protection Enforcement
 
-**Purpose**: Central guide for git workflow, branching strategy, and commit conventions in the Clinical Trial Diary Platform.
+**Purpose**: Central guide for git workflow, branching strategy, and commit conventions in the Diary Platform.
 
 **Audience**: All developers
 

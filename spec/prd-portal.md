@@ -8,7 +8,7 @@
 
 ## What Is This Application?
 
-The Sponsor Portal is a web-based application that enables clinical trial staff to manage HHT clinical studies. It provides tools for linking patients to the mobile app, managing questionnaires, and monitoring trial activities.
+The Sponsor Portal is a web-based application that enables clinical trial staff to manage clinical studies. It provides tools for linking patients to the mobile app, managing questionnaires, and monitoring trial activities.
 
 **Important**: The Sponsor Portal is an **optional** component. It is only necessary when sponsors require a web interface for clinical trial staff to manage patients and monitor trial activities.
 
