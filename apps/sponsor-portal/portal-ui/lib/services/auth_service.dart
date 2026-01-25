@@ -646,6 +646,128 @@ class AuthService extends ChangeNotifier {
     return _currentUser?.canAccessSite(siteId) ?? false;
   }
 
+  // ========== Password Reset Methods ==========
+
+  /// Request password reset email
+  ///
+  /// Calls backend API to generate a Firebase password reset link
+  /// and send it via email. Always returns success to prevent email
+  /// enumeration attacks.
+  ///
+  /// Returns true if the request was processed (regardless of whether
+  /// the email exists in the system).
+  Future<bool> requestPasswordReset(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _httpClient.post(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/auth/password-reset/request'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      _isLoading = false;
+
+      if (response.statusCode == 200) {
+        notifyListeners();
+        return true;
+      } else if (response.statusCode == 429) {
+        // Rate limit exceeded
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        _error =
+            data['error'] as String? ??
+            'Too many requests. Please try again later.';
+        notifyListeners();
+        return false;
+      } else {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        _error =
+            data['error'] as String? ?? 'Failed to send password reset email';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Password reset request error: $e');
+      _error = 'Failed to connect to server. Please try again.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Verify a password reset code is valid
+  ///
+  /// Calls Firebase Auth to verify the reset code and returns the
+  /// associated email address if valid, or null if invalid/expired.
+  Future<String?> verifyPasswordResetCode(String code) async {
+    try {
+      final email = await _auth.verifyPasswordResetCode(code);
+      return email;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Verify password reset code error: ${e.code} - ${e.message}');
+      _error = _mapPasswordResetError(e.code);
+      notifyListeners();
+      return null;
+    } catch (e) {
+      debugPrint('Verify password reset code error: $e');
+      _error = 'Failed to verify reset code';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Complete password reset with new password
+  ///
+  /// Uses Firebase Auth to confirm the password reset with the provided
+  /// code and new password.
+  ///
+  /// Returns true if password was successfully reset.
+  Future<bool> confirmPasswordReset(String code, String newPassword) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _auth.confirmPasswordReset(code: code, newPassword: newPassword);
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Confirm password reset error: ${e.code} - ${e.message}');
+      _error = _mapPasswordResetError(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('Confirm password reset error: $e');
+      _error = 'Failed to reset password. Please try again.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Map password reset error codes to user-friendly messages
+  String _mapPasswordResetError(String code) {
+    switch (code) {
+      case 'expired-action-code':
+        return 'This password reset link has expired. Please request a new one.';
+      case 'invalid-action-code':
+        return 'This password reset link is invalid or has already been used.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'user-not-found':
+        return 'No account found for this reset link.';
+      case 'weak-password':
+        return 'Password is too weak. Please choose a stronger password.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
+  }
+
   /// Map Firebase error codes to user-friendly messages
   String _mapFirebaseError(String code) {
     switch (code) {

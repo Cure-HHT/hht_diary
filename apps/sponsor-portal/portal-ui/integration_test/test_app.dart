@@ -50,16 +50,12 @@ Future<void> initializeFirebaseForTests() async {
   // Ensure widgets are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize flavor (local for emulator, dev for Identity Platform)
-  if (IntegrationTestConfig.useDevIdentity) {
-    FlavorConfig.initialize(Flavor.dev);
-    debugPrint('Integration tests: Using GCP Identity Platform');
-  } else {
-    FlavorConfig.initialize(Flavor.local);
-    debugPrint(
-      'Integration tests: Using Firebase emulator at ${IntegrationTestConfig.firebaseEmulatorHost}',
-    );
-  }
+  // Initialize flavor (local for emulator tests)
+  // Integration tests always use the local flavor with Firebase emulator
+  FlavorConfig.initializeLocal();
+  debugPrint(
+    'Integration tests: Using Firebase emulator at ${IntegrationTestConfig.firebaseEmulatorHost}',
+  );
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

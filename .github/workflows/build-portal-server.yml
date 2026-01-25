@@ -120,7 +120,7 @@ jobs:
 
           # Build the newline-separated tags list for build-push-action
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
           fi
@@ -173,7 +173,8 @@ jobs:
           context: .
           file: apps/sponsor-portal/portal-container/Dockerfile
           # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
-          platforms: linux/amd64, linux/arm64/v8
+          # NOTE: Temporarily building only amd64 for faster builds (remove arm64/v8 for now)
+          platforms: linux/amd64
           build-args: |
             DART_VERSION=${{ env.DART_VERSION }}
             FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}

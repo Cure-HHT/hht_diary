@@ -26,8 +26,11 @@ COPY --chown=appuser:appuser apps/sponsor-portal/portal-ui /app/apps/sponsor-por
 WORKDIR /app/apps/sponsor-portal/portal-ui
 
 # Get dependencies and build for web
+# APP_FLAVOR=prod means the app will fetch Identity Platform config from server
+# at runtime via /api/v1/portal/config/identity (Doppler provides the values)
+# This allows the same Docker image to work across all environments
 RUN flutter pub get
-RUN flutter build web --release --dart-define=APP_FLAVOR=dev --pwa-strategy=none
+RUN flutter build web --release --dart-define=APP_FLAVOR=prod --pwa-strategy=none
 
 # =============================================================================
 # Stage 2: Build Dart Server
@@ -53,7 +56,25 @@ RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
 # =============================================================================
-# Stage 3: Runtime - nginx + Dart server
+# Stage 3a: Download Doppler CLI
+# =============================================================================
+FROM debian:bookworm-slim AS doppler-download
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Doppler CLI
+# Pinned to specific version for reproducibility
+ARG DOPPLER_VERSION=3.75.1
+RUN wget -q https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    tar xzf doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    chmod +x doppler && \
+    rm doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz
+
+# =============================================================================
+# Stage 3b: Runtime - nginx + Dart server + Doppler
 # =============================================================================
 FROM debian:bookworm-slim
 
@@ -64,8 +85,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN useradd -r -s /bin/false appuser
+# Copy Doppler CLI from download stage
+COPY --from=doppler-download /doppler /usr/local/bin/doppler
+
+# Create non-root user with home directory for Doppler config
+RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 
 # Copy Dart server binary
 COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/server

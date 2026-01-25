@@ -15,7 +15,7 @@
 
 ## Executive Summary
 
-This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Workforce Identity Federation.
+This guide covers deployment, configuration, monitoring, and operational procedures for the Sponsor Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Workforce Identity Federation.
 Each sponsor shall have 4 environments:
 - dev
 - qa

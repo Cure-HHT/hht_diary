@@ -13,6 +13,7 @@ library portal_functions;
 export 'src/identity_platform.dart';
 export 'src/portal_activation.dart';
 export 'src/portal_auth.dart';
+export 'src/portal_password_reset.dart';
 export 'src/portal_user.dart';
 
 // Email OTP and MFA
@@ -23,6 +24,7 @@ export 'src/feature_flags.dart';
 // Database and utilities
 export 'src/database.dart';
 export 'src/health.dart';
+export 'src/identity_config.dart';
 export 'src/sponsor.dart';
 
 // EDC Integration

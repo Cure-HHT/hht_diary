@@ -32,6 +32,10 @@ class EmailConfig {
   /// Whether email sending is enabled
   final bool enabled;
 
+  /// Console mode - logs emails to console instead of sending
+  /// Useful for local development without GCP credentials
+  final bool consoleMode;
+
   /// Display name for sender (hardcoded)
   static const senderName = 'Clinical Trial Portal';
 
@@ -39,6 +43,7 @@ class EmailConfig {
     this.gmailServiceAccountEmail,
     required this.senderEmail,
     required this.enabled,
+    this.consoleMode = false,
   });
 
   /// Create config from environment variables
@@ -48,12 +53,15 @@ class EmailConfig {
           Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
       senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'support@anspar.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
+      consoleMode: Platform.environment['EMAIL_CONSOLE_MODE'] == 'true',
     );
   }
 
   /// Check if email service is properly configured
+  /// Console mode counts as configured (for local development)
   bool get isConfigured =>
-      enabled && (gmailServiceAccountEmail?.isNotEmpty ?? false);
+      enabled &&
+      (consoleMode || (gmailServiceAccountEmail?.isNotEmpty ?? false));
 }
 
 /// Result of an email send operation
@@ -99,12 +107,20 @@ class EmailService {
   /// Initialize the email service with configuration
   ///
   /// Uses WIF: Cloud Run SA or local user impersonates Gmail SA via IAM
+  /// Or console mode for local development (EMAIL_CONSOLE_MODE=true)
   Future<void> initialize(EmailConfig config) async {
     if (_gmailApi != null) return;
     _config = config;
 
     if (!config.isConfigured) {
       print('[EMAIL] Email service disabled or not configured');
+      return;
+    }
+
+    // Console mode - just log emails, don't initialize Gmail API
+    if (config.consoleMode) {
+      print('[EMAIL] Console mode enabled - emails will be logged to console');
+      print('[EMAIL] Email service initialized in console mode');
       return;
     }
 
@@ -204,7 +220,13 @@ class EmailService {
   }
 
   /// Check if service is ready to send emails
-  bool get isReady => _gmailApi != null && (_config?.enabled ?? false);
+  /// Returns true for console mode (logs to console) or when Gmail API is initialized
+  bool get isReady =>
+      (_config?.enabled ?? false) &&
+      ((_config?.consoleMode ?? false) || _gmailApi != null);
+
+  /// Check if running in console mode
+  bool get isConsoleMode => _config?.consoleMode ?? false;
 
   /// Send a 6-digit OTP code via email
   Future<EmailResult> sendOtpCode({
@@ -334,6 +356,92 @@ Clinical Trial Portal
     );
   }
 
+  /// Send password reset link to user
+  Future<EmailResult> sendPasswordResetEmail({
+    required String recipientEmail,
+    required String resetLink,
+    String? recipientName,
+  }) async {
+    if (!isReady) {
+      return EmailResult.failure('Email service not ready');
+    }
+
+    final greeting = recipientName != null ? 'Hi $recipientName' : 'Hello';
+    final subject = 'Reset Your Clinical Trial Portal Password';
+    final bodyText =
+        '''
+$greeting,
+
+You requested to reset your Clinical Trial Portal password.
+
+Click the link below to reset your password:
+$resetLink
+
+This link expires in 24 hours.
+
+IMPORTANT SECURITY NOTICE:
+- Do not share this link with anyone
+- If you didn't request this password reset, please ignore this email
+- Your password will not change until you create a new one using this link
+
+Questions? Contact your administrator.
+
+---
+Clinical Trial Portal
+    ''';
+
+    final bodyHtml =
+        '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .footer { margin-top: 30px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 20px; }
+    .button { display: inline-block; background: #1976d2; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px; margin: 20px 0; }
+    .warning-title { font-weight: bold; color: #856404; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <p>$greeting,</p>
+  <p>You requested to reset your <strong>Clinical Trial Portal</strong> password.</p>
+
+  <p>Click the button below to reset your password:</p>
+
+  <p><a href="$resetLink" class="button" style="display: inline-block; background: #1976d2; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a></p>
+
+  <p><em>This link expires in 24 hours.</em></p>
+
+  <div class="warning">
+    <div class="warning-title">IMPORTANT SECURITY NOTICE:</div>
+    <ul style="margin: 0; padding-left: 20px;">
+      <li>Do not share this link with anyone</li>
+      <li>If you didn't request this password reset, please ignore this email</li>
+      <li>Your password will not change until you create a new one using this link</li>
+    </ul>
+  </div>
+
+  <p>Questions? Contact your administrator.</p>
+
+  <div class="footer">
+    <p>Clinical Trial Portal</p>
+  </div>
+</body>
+</html>
+    ''';
+
+    return _sendEmail(
+      recipientEmail: recipientEmail,
+      recipientName: recipientName,
+      subject: subject,
+      bodyText: bodyText,
+      bodyHtml: bodyHtml,
+      emailType: 'password_reset',
+    );
+  }
+
   /// Internal method to send email via Gmail API
   Future<EmailResult> _sendEmail({
     required String recipientEmail,
@@ -344,7 +452,35 @@ Clinical Trial Portal
     required String emailType,
     String? sentByUserId,
   }) async {
-    if (_gmailApi == null || _config == null) {
+    if (_config == null) {
+      return EmailResult.failure('Email service not configured');
+    }
+
+    // Console mode - log to console instead of sending
+    if (_config!.consoleMode) {
+      print('');
+      print('=' * 60);
+      print('[EMAIL CONSOLE MODE] Would send $emailType email:');
+      print('  To: ${recipientName ?? recipientEmail} <$recipientEmail>');
+      print('  Subject: $subject');
+      print('-' * 60);
+      print(bodyText);
+      print('=' * 60);
+      print('');
+
+      // Log to audit table as 'console' (local dev mode)
+      await _logEmailAudit(
+        recipientEmail: recipientEmail,
+        emailType: emailType,
+        status: 'console',
+        messageId: 'console-${DateTime.now().millisecondsSinceEpoch}',
+        sentByUserId: sentByUserId,
+      );
+
+      return EmailResult.success('console-mode');
+    }
+
+    if (_gmailApi == null) {
       return EmailResult.failure('Gmail API not initialized');
     }
 
