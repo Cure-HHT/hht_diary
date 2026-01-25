@@ -96,7 +96,7 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 
 # REQ-o00005: Audit Trail Monitoring
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00004, p00010, p00011
+**Level**: Ops | **Status**: Draft | **Implements**: p00004, p00010, p00011, p80030
 
 ## Rationale
 

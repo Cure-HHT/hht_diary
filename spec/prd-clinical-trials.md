@@ -46,7 +46,7 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00044, p80002
 
 ## Rationale
 
@@ -79,7 +79,7 @@ S. The system SHALL include a complete validation documentation package.
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010
+**Level**: PRD | **Status**: Draft | **Implements**: p00010, p80005-A
 
 ## Rationale
 

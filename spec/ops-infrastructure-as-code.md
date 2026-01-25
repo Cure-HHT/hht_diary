@@ -17,7 +17,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 # REQ-o00041: Infrastructure as Code for Cloud Resources
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010
+**Level**: Ops | **Status**: Draft | **Implements**: p00010, o80030
 
 ## Rationale
 
