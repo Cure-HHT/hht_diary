@@ -254,31 +254,6 @@ L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
 *End* *Sponsor Portal Application* | **Hash**: be01f827
 ---
 
-# REQ-p70003: Multi-Sponsor Isolation
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00001, p00009
-
-## Rationale
-
-Clinical trial sponsors require complete data privacy and cannot share patient data with competitors. Separate deployments and databases ensure no cross-sponsor data access is possible. Custom roles allow each sponsor to configure the system according to their organizational structure and trial requirements.
-
-## Assertions
-
-A. The system SHALL provide complete data isolation between sponsors through separate portal deployments.
-
-B. The system SHALL provide complete data isolation between sponsors through separate databases.
-
-C. Each sponsor SHALL have their own portal instance with custom branding.
-
-D. Each sponsor SHALL have their own portal instance with custom role definitions.
-
-E. Each sponsor SHALL have isolated data that is not accessible to other sponsors.
-
-F. Users SHALL NOT be able to access data from other sponsor instances.
-
-*End* *Multi-Sponsor Isolation* | **Hash**: 0d03cdf1
----
-
 # REQ-p70005: Customizable Role-Based Access Control
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00011, p00018

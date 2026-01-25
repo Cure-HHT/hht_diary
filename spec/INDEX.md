@@ -115,7 +115,6 @@ This file provides a complete index of all requirements.
 | REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 97122b72 |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
-| REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | 0d03cdf1 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
 | REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | fe32ff5f |
