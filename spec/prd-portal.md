@@ -182,25 +182,6 @@ The patient's trial data is secured from unauthorized access on the lost device.
 
 ## Requirements
 
-# REQ-p70002: Web Application Platform
-
-**Level**: PRD | **Status**: Draft | **Implements**: -
-
-## Rationale
-
-Clinical trial staff perform complex data entry and review tasks that require full-screen workspace and keyboard input. Desktop/laptop browsers provide optimal user experience for these workflows.
-
-## Assertions
-
-A. The system SHALL be accessible as a web application via desktop browsers.
-
-B. The system SHALL be accessible via laptop browsers.
-
-C. The system SHALL provide responsive design for various desktop screen sizes.
-
-*End* *Web Application Platform* | **Hash**: 5dd94e9d
----
-
 # REQ-p70007: Linking Code Lifecycle Management
 
 **Level**: PRD | **Status**: Draft | **Implements**: p70001

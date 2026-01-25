@@ -83,7 +83,7 @@ H. The portal SHALL NOT be capable of querying database records belonging to oth
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00009
 
 ## Rationale
 
@@ -139,7 +139,7 @@ J. The platform SHALL implement network isolation to prevent cross-sponsor traff
 
 # REQ-p01057: Mono Repository with Sponsor Repositories
 
-**Level**: PRD | **Status**: Active | **Implements**: p00001
+**Level**: PRD | **Status**: Active | **Implements**: p00009
 
 ## Rationale
 
