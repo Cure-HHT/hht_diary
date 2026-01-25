@@ -39,13 +39,13 @@ The Clinical Diary platform enables multiple pharmaceutical sponsors to conduct 
 
 ## Rationale
 
-This requirement establishes a unified mobile application architecture that simplifies the patient experience while maintaining strict sponsor isolation. By publishing a single app under Cure HHT branding, patients can easily find and download one application regardless of which pharmaceutical sponsor's trial they are enrolled in. This approach eliminates confusion from multiple app listings, ensures consistent quality and security updates across all sponsors simultaneously, and reduces maintenance overhead. Dynamic configuration loading based on enrollment links allows the app to serve multiple sponsors without exposing sponsor participation or allowing cross-sponsor data access. This design aligns with multi-sponsor isolation requirements (REQ-p00001) while optimizing operational efficiency and user experience.
+This requirement establishes a unified mobile application architecture that simplifies the patient experience while maintaining strict sponsor isolation. By publishing a single app under sponsor branding, patients can easily find and download one application regardless of which pharmaceutical sponsor's trial they are enrolled in. This approach eliminates confusion from multiple app listings, ensures consistent quality and security updates across all sponsors simultaneously, and reduces maintenance overhead. Dynamic configuration loading based on enrollment links allows the app to serve multiple sponsors without exposing sponsor participation or allowing cross-sponsor data access. This design aligns with multi-sponsor isolation requirements (REQ-p00001) while optimizing operational efficiency and user experience.
 
 ## Assertions
 
 A. The platform SHALL publish exactly one mobile application listing in the iOS App Store.
 B. The platform SHALL publish exactly one mobile application listing in the Google Play Store.
-C. The mobile application listings SHALL use Cure HHT branding.
+C. The mobile application listings SHALL use sponsor branding.
 D. The mobile application package SHALL contain configurations for all pharmaceutical sponsors.
 E. The system SHALL determine sponsor context based on the patient's enrollment link.
 F. The system SHALL NOT present manual sponsor selection to patients.
@@ -56,7 +56,7 @@ J. The platform SHALL deploy application updates to all sponsors simultaneously.
 K. The mobile application package size SHALL remain within reasonable limits for app store distribution when containing multiple sponsor configurations.
 L. The system SHALL NOT allow configuration or data from one sponsor to be accessible to patients enrolled with a different sponsor.
 
-*End* *Single Mobile App for All Sponsors* | **Hash**: ea74c9ac
+*End* *Single Mobile App for All Sponsors* | **Hash**: 6be0ee0f
 ---
 
 # REQ-p00009: Sponsor-Specific Portals
@@ -83,7 +83,7 @@ H. The portal SHALL NOT be capable of querying database records belonging to oth
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 
@@ -139,7 +139,7 @@ J. The platform SHALL implement network isolation to prevent cross-sponsor traff
 
 # REQ-p01057: Mono Repository with Sponsor Repositories
 
-**Level**: PRD | **Status**: Active | **Implements**: p00001
+**Level**: PRD | **Status**: Active | **Implements**: p00009
 
 ## Rationale
 
@@ -215,7 +215,7 @@ F. The system SHALL capture all approved UX changes during active trials in the 
 
 ## Rationale
 
-Minimizing customization reduces maintenance burden and code divergence as sponsor count grows. The system embodies best-practices for HHT Diary data collection, therefore gratuitous changes are counter to this objective. A clear policy defines when customizations are allowed, how they are governed, and ensures sponsor-specific modifications remain confidential and isolated.
+Minimizing customization reduces maintenance burden and code divergence as sponsor count grows. The system embodies best-practices for Diary data collection, therefore gratuitous changes are counter to this objective. A clear policy defines when customizations are allowed, how they are governed, and ensures sponsor-specific modifications remain confidential and isolated.
 
 ## Assertions
 
@@ -231,7 +231,7 @@ I. The system SHALL store sponsor configurations separately from each other.
 J. The system SHALL require both customer and operator approval for changes to sponsor configurations.
 K. The system SHALL document custom features in the sponsor repository.
 
-*End* *Customization Policy* | **Hash**: 0d180219
+*End* *Customization Policy* | **Hash**: 1b9d5965
 ---
 
 ## Sponsor Confidentiality

@@ -62,7 +62,7 @@ REQ-p01041: Open Source Licensing (Parallel to Root)
 
 ### Level 2: Major System Components (implements: p00044)
 ```
-├── REQ-p00043: Clinical Diary Mobile Application
+├── REQ-p00043: Diary Mobile Application
 ├── REQ-p00045: Sponsor Portal Application
 ├── REQ-p00046: Clinical Data Storage System
 ├── REQ-p00047: Data Backup and Archival
@@ -108,7 +108,7 @@ REQ-p01041: Open Source Licensing (Parallel to Root)
    - ISO 27001 alignment
 
 2. **Missing System Components**
-   - HHT Diary Auth Service (mentioned in dev but no PRD)
+   - Diary Auth Service (mentioned in dev but no PRD)
    - Sponsor Portal Routing Service (implicit but not formalized)
    - EDC Integration Service (architecture only)
    - API Gateway / Reverse Proxy specification

@@ -20,7 +20,7 @@
 
 ## Steps
 
-1. James opens the HHT Diary app
+1. James opens the Diary app
 2. James taps to add a new nosebleed record
 3. James selects the start time using the time picker (defaults to current time)
 4. James observes that his nosebleed has stopped and enters the end time
@@ -45,7 +45,7 @@ James successfully records his nosebleed with accurate timing and intensity. The
 
 ## Steps
 
-1. James opens the HHT Diary app
+1. James opens the Diary app
 2. James navigates to today's date
 3. James selects the "No nosebleeds" option
 4. The app confirms the daily summary is recorded
@@ -67,7 +67,7 @@ James successfully records a "No nosebleeds" entry for the day, which is capture
 
 ## Steps
 
-1. Sarah opens the HHT Diary app
+1. Sarah opens the Diary app
 2. Sarah navigates to today's date
 3. Sarah realizes she cannot accurately recall if she had nosebleeds
 4. Sarah selects the "Don't remember" option
@@ -89,7 +89,7 @@ Sarah honestly records her uncertainty rather than guessing, maintaining data in
 
 ## Steps
 
-1. James opens the HHT Diary app
+1. James opens the Diary app
 2. James navigates to the date containing the record to edit
 3. James selects the nosebleed record he wants to modify
 4. James taps to edit the record

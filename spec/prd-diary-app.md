@@ -1,4 +1,4 @@
-# Clinical Diary Mobile Application
+# Diary Mobile Application
 
 **Version**: 1.0
 **Audience**: Product Requirements
@@ -12,7 +12,7 @@
 
 ---
 
-# REQ-p00043: Clinical Diary Mobile Application
+# REQ-p00043: Diary Mobile Application
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00044
 
@@ -32,22 +32,20 @@ G. The system SHALL NOT require account creation for personal use mode.
 H. The system SHALL store all personal use mode data locally on device only.
 I. The system SHALL NOT transmit personal use mode data over network for storage purposes.
 J. The system SHALL enable enrollment via sponsor-provided enrollment link.
-K. The system SHALL enable enrollment via CureHHT observational study.
-L. The system SHALL automatically synchronize enrolled user data to study database when online.
-M. The system SHALL support multi-sponsor deployments with automatic configuration based on enrollment link.
-N. The system SHALL apply sponsor-specific branding for enrolled users based on their enrollment.
-O. The system SHALL apply sponsor-specific customization for enrolled users based on their enrollment.
-P. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for enrolled users.
-Q. The system SHALL NOT maintain audit trails for personal use mode users.
-R. The system SHALL synchronize existing local data to study database upon user enrollment.
-S. The system SHALL maintain complete data isolation between sponsors.
-T. The system SHALL be available via iOS app store.
-U. The system SHALL be available via Android app store.
-V. The system SHALL support offline operation for core diary operations in personal use mode.
-W. The system SHALL support offline operation for core diary operations in enrolled use mode.
+K. The system SHALL automatically synchronize enrolled user data to study database when online.
+L. The system SHALL support multi-sponsor deployments with automatic configuration based on enrollment link.
+M. The system SHALL apply sponsor-specific branding for enrolled users based on their enrollment.
+N. The system SHALL apply sponsor-specific customization for enrolled users based on their enrollment.
+O. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for enrolled users.
+P. The system SHALL NOT maintain audit trails for personal use mode users.
+Q. The system SHALL synchronize existing local data to study database upon user enrollment.
+R. The system SHALL maintain complete data isolation between sponsors.
+S. The system SHALL be available via iOS app store.
+T. The system SHALL be available via Android app store.
+U. The system SHALL support offline operation for core diary operations in personal use mode.
+V. The system SHALL support offline operation for core diary operations in enrolled use mode.
 
-*End* *Clinical Diary Mobile Application* | **Hash**: aedbfb5a
-
+*End* *Diary Mobile Application* | **Hash**: 85554ec9
 ---
 
 ## Local Data Storage
@@ -77,24 +75,23 @@ L. The system SHALL NOT make network requests for data storage in personal use m
 M. The system SHALL NOT require user credentials in personal use mode.
 N. The system SHALL persist data across app restarts.
 O. The system SHALL persist data across app updates.
-P. The system SHALL provide users the option to enroll in the CureHHT observational study to enable cloud backup.
+P. The system SHALL provide users the option to enroll in a Cure HHT program to enable cloud backup.
 Q. The system SHALL provide users the option to enroll in clinical trials via enrollment link.
 R. The system SHALL synchronize existing local data to the study database after user enrollment.
 S. The system SHALL NOT automatically enroll users in any study.
 T. The system SHALL require user-initiated action for study enrollment.
 U. The system SHALL back up enrolled users' data through study database synchronization.
 
-*End* *Local Data Storage* | **Hash**: af5c0a9d
-
+*End* *Local Data Storage* | **Hash**: 86fa6920
 ---
 
 ## Executive Summary
 
-The Clinical Diary mobile application is a smartphone app for iOS and Android that allows users to record daily health observations. The app supports two usage modes:
+The Diary mobile application is a smartphone app for iOS and Android that allows users to record daily health observations. The app supports two usage modes:
 
 **Personal Use**: Download and use immediately with no account required. All data stored locally on device. Ideal for personal health tracking.
 
-**Enrolled Use**: Join a clinical trial or CureHHT observational study to gain cloud backup and contribute to research. Automatic synchronization keeps data safe.
+**Enrolled Use**: Join a Cure HHT program to gain cloud backup and contribute to research. Automatic synchronization keeps data safe.
 
 **Key Benefits**:
 - Works without internet connection (both modes)

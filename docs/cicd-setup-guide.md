@@ -17,7 +17,7 @@
 
 ## Executive Summary
 
-This document specifies the CI/CD pipeline for the Clinical Trial Diary system, covering automated builds, testing, deployment, and release processes for the Flutter mobile application and supporting infrastructure.
+This document specifies the CI/CD pipeline for the Diary Platform, covering automated builds, testing, deployment, and release processes for the Flutter mobile application and supporting infrastructure.
 
 **Pipeline Objectives**:
 - Automated build process for iOS and Android

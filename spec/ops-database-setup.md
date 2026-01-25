@@ -149,7 +149,7 @@ L. Project provisioning procedures SHALL be documented in a runbook.
 
 # REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00009, p00014
+**Level**: Ops | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 
@@ -1319,7 +1319,7 @@ SET app.current_user_role = 'USER';
 - Identity Platform: https://cloud.google.com/identity-platform/docs
 - Cloud Run: https://cloud.google.com/run/docs
 
-**Clinical Diary System**:
+**Diary Platform**:
 - Review spec/ directory for architecture and implementation details
 - Contact platform team for architecture questions
 - Refer to ops-operations.md for incident response procedures

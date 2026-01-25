@@ -19,7 +19,7 @@
 
 ## Steps
 
-1. Maria opens the HHT Diary app and sees the pending NOSE HHT questionnaire
+1. Maria opens the Diary app and sees the pending NOSE HHT questionnaire
 2. Maria reads the preamble explaining the two-week recall period
 3. Maria begins answering questions, seeing one question at a time
 4. Maria notices the category header changes as she moves from Physical to Functional questions

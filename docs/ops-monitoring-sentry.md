@@ -8,7 +8,7 @@
 
 ## Overview
 
-Sentry provides real-time error tracking and performance monitoring for the Clinical Diary Mobile Application. This guide covers setup for all environments (development, staging, production).
+Sentry provides real-time error tracking and performance monitoring for the Diary Mobile Application. This guide covers setup for all environments (development, staging, production).
 
 **Benefits**:
 - Automatic error capture and grouping

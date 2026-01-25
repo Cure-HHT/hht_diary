@@ -1,6 +1,6 @@
 # Build Reports
 
-This directory contains auto-generated build and validation reports for the Clinical Trial Diary Platform. All files in this directory are produced by automated CI/CD pipelines and should not be manually edited.
+This directory contains auto-generated build and validation reports for the Diary Platform. All files in this directory are produced by automated CI/CD pipelines and should not be manually edited.
 
 ## Directory Structure
 

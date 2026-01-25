@@ -7,7 +7,7 @@
 
 ## Context
 
-The HHT Diary system uses event sourcing for FDA 21 CFR Part 11 compliance. Several implementation questions arose regarding data redundancy and timestamp handling in an event-sourced architecture.
+The Diary Platform uses event sourcing for FDA 21 CFR Part 11 compliance. Several implementation questions arose regarding data redundancy and timestamp handling in an event-sourced architecture.
 
 ---
 
@@ -44,7 +44,7 @@ The HHT Diary system uses event sourcing for FDA 21 CFR Part 11 compliance. Seve
 
 **Rationale**: ALCOA+ "Contemporaneous" principle requires complete chain of custody. Three timestamps exist:
 1. `client_timestamp` - when patient performed action
-2. `diary_sync_timestamp` - when received by HHT Diary backend
+2. `diary_sync_timestamp` - when received by Diary Platform backend
 3. `edc_timestamp` - when received by EDC (captured by EDC)
 
 Including timestamp #2 in EDC metadata provides complete audit visibility without requiring auditors to query multiple systems.

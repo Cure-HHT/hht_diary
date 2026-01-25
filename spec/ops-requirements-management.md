@@ -19,7 +19,7 @@ This document defines operational procedures for maintaining formal requirements
 
 # REQ-o00013: Requirements Format Validation
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00036
+**Level**: Ops | **Status**: Draft | **Implements**: p00020
 
 ## Rationale
 
@@ -49,7 +49,7 @@ P. Generated matrices SHALL be viewable in HTML format for interactive browsing.
 
 # REQ-o00014: Top-Down Requirement Cascade
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00036
+**Level**: Ops | **Status**: Draft | **Implements**: p00020
 
 ## Rationale
 
@@ -80,7 +80,7 @@ Q. Code header comments SHALL reference requirements.
 
 # REQ-o00015: Documentation Structure Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00036
+**Level**: Ops | **Status**: Draft | **Implements**: p00020
 
 ## Rationale
 
@@ -111,7 +111,7 @@ Q. Each topic in spec/ SHALL have a narrow, focused scope as defined in spec/REA
 
 # REQ-o00016: Architecture Decision Process
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00037
+**Level**: Ops | **Status**: Draft | **Implements**: p00021
 
 ## Rationale
 
@@ -145,7 +145,7 @@ T. ADRs SHALL NOT be created for easily reversible choices.
 
 # REQ-o00017: Version Control Workflow
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00036, p00037
+**Level**: Ops | **Status**: Draft | **Implements**: p00020
 
 ## Rationale
 

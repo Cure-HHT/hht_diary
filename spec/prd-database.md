@@ -15,7 +15,7 @@
 
 # REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00010
 
 ## Rationale
 

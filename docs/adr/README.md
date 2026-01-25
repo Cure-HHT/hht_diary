@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains Architecture Decision Records (ADRs) documenting significant architectural and design decisions for the Clinical Trial Diary Database.
+This directory contains Architecture Decision Records (ADRs) documenting significant architectural and design decisions for the Diary Database.
 
 ## What is an ADR?
 
@@ -44,6 +44,13 @@ What other options did we consider and why were they rejected?
 | [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Accepted | 2025-10-14 |
 | [004](./ADR-004-investigator-annotations.md) | Separation of Investigator Annotations | Accepted | 2025-10-14 |
 | [005](./ADR-005-database-migration-strategy.md) | Database Migration Strategy | Accepted | 2025-10-14 |
+| [006](./ADR-006-docker-dev-environments.md) | Docker Dev Environments | Accepted | 2025-10-15 |
+| [007](./ADR-007-multi-sponsor-build-reports.md) | Multi-Sponsor Build Reports | Accepted | 2025-10-16 |
+| [008](./ADR-008-timestamp-attestation.md) | Timestamp Attestation | Accepted | 2025-10-20 |
+| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Accepted | 2025-11-01 |
+| [010](./ADR-010-requirements-format-enhancements.md) | Requirements Format Enhancements | Accepted | 2025-11-15 |
+| [011](./ADR-011-event-sourcing-refinements.md) | Event Sourcing Refinements | Accepted | 2026-01-01 |
+| [012](./ADR-012-terminology-standardization.md) | Terminology Standardization | Accepted | 2026-01-25 |
 
 ## When to Create an ADR
 

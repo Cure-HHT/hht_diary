@@ -5,7 +5,7 @@ This file provides a complete index of all requirements.
 ## Product Requirements (PRD)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-p00001 | Complete Multi-Sponsor Data Separation | prd-security.md | 081d1dc6 |
 | REQ-p00002 | Multi-Factor Authentication for Staff | prd-security.md | 0c06ec29 |
 | REQ-p00003 | Separate Database Per Sponsor | prd-database.md | bfb45afa |
@@ -35,7 +35,7 @@ This file provides a complete index of all requirements.
 | REQ-p00039 | Administrator Access with Audit Trail | prd-security-RLS.md | 4672a9dc |
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 06025d8a |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | f0a37c7e |
-| REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | aedbfb5a |
+| REQ-p00043 | Diary Mobile Application | prd-diary-app.md | aedbfb5a |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | a72852cf |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | 2e588136 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | cf938097 |
@@ -115,8 +115,6 @@ This file provides a complete index of all requirements.
 | REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 97122b72 |
 | REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
-| REQ-p70002 | Web Application Platform | prd-portal.md | 5dd94e9d |
-| REQ-p70003 | Multi-Sponsor Isolation | prd-portal.md | 0d03cdf1 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
 | REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | fe32ff5f |
@@ -128,7 +126,7 @@ This file provides a complete index of all requirements.
 ## Operations Requirements (OPS)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-o00001 | Separate GCP Projects Per Sponsor | ops-deployment.md | 7f9aaf0b |
 | REQ-o00002 | Environment-Specific Configuration Management | ops-deployment.md | 720a8e57 |
 | REQ-o00003 | GCP Project Provisioning Per Sponsor | ops-database-setup.md | 7110fea1 |
@@ -193,7 +191,7 @@ This file provides a complete index of all requirements.
 ## Development Requirements (DEV)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-d00001 | Sponsor-Specific Configuration Loading | dev-configuration.md | 5950765d |
 | REQ-d00002 | Pre-Build Configuration Validation | dev-configuration.md | c7f7afe9 |
 | REQ-d00003 | Identity Platform Configuration Per Sponsor | dev-security.md | 12a3c3c0 |
@@ -236,10 +234,10 @@ This file provides a complete index of all requirements.
 | REQ-d00067 | Streamlined Ticket Creation Agent | dev-ai-claude.md | 4fe51e65 |
 | REQ-d00068 | Enhanced Workflow New Work Detection | dev-ai-claude.md | 36d736e0 |
 | REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | a84bf289 |
-| REQ-d00078 | HHT Diary Auth Service | dev-linking.md | d484bab8 |
-| REQ-d00079 | Linking Code Pattern Matching | dev-linking.md | 8e2b291e |
+| REQ-d00078 | Linking Code Validation | dev-linking.md | 0a89ae19 |
+| REQ-d00079 | Linking Code Pattern Matching | dev-linking.md | 958939ee |
 | REQ-d00080 | Web Session Management Implementation | dev-diary-web.md | 1ed9928f |
-| REQ-d00081 | User Document Schema | dev-linking.md | b5b5f999 |
+| REQ-d00081 | Linked Device Records | dev-linking.md | d44ac005 |
 | REQ-d00082 | Password Hashing Implementation | dev-diary-web.md | 2f426f50 |
 | REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | 781a1594 |
 | REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 654added |

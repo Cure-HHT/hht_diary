@@ -14,7 +14,7 @@
 
 # REQ-p00047: Data Backup and Archival
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 

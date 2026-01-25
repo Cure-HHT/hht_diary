@@ -1,14 +1,14 @@
 # Clinical Trial Sponsor Portal
 
 **Version**: 1.0
-**Status**: Draft
-**Last Updated**: 2026-01-05 - Elvira Koliadina
+**Status**: Active
+**Last Updated**: 2026-01-18
 
 ---
 
 ## What Is This Application?
 
-The Sponsor Portal is a web-based application that enables clinical trial staff to manage HHT clinical studies. It provides tools for linking patients to the mobile app, managing questionnaires, and monitoring trial activities.
+The Sponsor Portal is a web-based application that enables clinical trial staff to manage clinical studies. It provides tools for linking patients to the mobile app, managing questionnaires, and monitoring trial activities.
 
 **Important**: The Sponsor Portal is an **optional** component. It is only necessary when sponsors require a web interface for clinical trial staff to manage patients and monitor trial activities.
 
@@ -182,25 +182,6 @@ The patient's trial data is secured from unauthorized access on the lost device.
 
 ## Requirements
 
-# REQ-p70002: Web Application Platform
-
-**Level**: PRD | **Status**: Draft | **Implements**: -
-
-## Rationale
-
-Clinical trial staff perform complex data entry and review tasks that require full-screen workspace and keyboard input. Desktop/laptop browsers provide optimal user experience for these workflows.
-
-## Assertions
-
-A. The system SHALL be accessible as a web application via desktop browsers.
-
-B. The system SHALL be accessible via laptop browsers.
-
-C. The system SHALL provide responsive design for various desktop screen sizes.
-
-*End* *Web Application Platform* | **Hash**: 5dd94e9d
----
-
 # REQ-p70007: Linking Code Lifecycle Management
 
 **Level**: PRD | **Status**: Draft | **Implements**: p70001
@@ -271,31 +252,6 @@ K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the inter
 L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
 
 *End* *Sponsor Portal Application* | **Hash**: be01f827
----
-
-# REQ-p70003: Multi-Sponsor Isolation
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00001, p00009
-
-## Rationale
-
-Clinical trial sponsors require complete data privacy and cannot share patient data with competitors. Separate deployments and databases ensure no cross-sponsor data access is possible. Custom roles allow each sponsor to configure the system according to their organizational structure and trial requirements.
-
-## Assertions
-
-A. The system SHALL provide complete data isolation between sponsors through separate portal deployments.
-
-B. The system SHALL provide complete data isolation between sponsors through separate databases.
-
-C. Each sponsor SHALL have their own portal instance with custom branding.
-
-D. Each sponsor SHALL have their own portal instance with custom role definitions.
-
-E. Each sponsor SHALL have isolated data that is not accessible to other sponsors.
-
-F. Users SHALL NOT be able to access data from other sponsor instances.
-
-*End* *Multi-Sponsor Isolation* | **Hash**: 0d03cdf1
 ---
 
 # REQ-p70005: Customizable Role-Based Access Control

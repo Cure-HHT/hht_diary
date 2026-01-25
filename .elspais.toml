@@ -23,6 +23,10 @@ id_template = "{prefix}-{type}{id}"
 prefix = "REQ"
 id_format = { style = "numeric", digits = 5, leading_zeros = true }
 
+[patterns.assertions]
+label_style = "uppercase"
+max_count = 26
+
 [patterns.types]
 prd = { id = "p", name = "Product Requirement", level = 1 }
 ops = { id = "o", name = "Operations Requirement", level = 2 }

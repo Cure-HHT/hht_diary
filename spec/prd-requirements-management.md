@@ -64,7 +64,7 @@ Q. OPS requirements SHALL NOT drive PRD requirements.
 
 # REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 
