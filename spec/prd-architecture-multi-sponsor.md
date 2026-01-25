@@ -83,7 +83,7 @@ H. The portal SHALL NOT be capable of querying database records belonging to oth
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00009
+**Level**: PRD | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 

@@ -19,7 +19,7 @@ This document specifies the technical implementation requirements for one-time l
 
 # REQ-d00078: Linking Code Validation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00009
+**Level**: Dev | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 
@@ -69,7 +69,7 @@ O. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
 # REQ-d00081: Linked Device Records
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00009
+**Level**: Dev | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 

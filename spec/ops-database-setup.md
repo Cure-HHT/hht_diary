@@ -149,7 +149,7 @@ L. Project provisioning procedures SHALL be documented in a runbook.
 
 # REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00009, p00014
+**Level**: Ops | **Status**: Draft | **Implements**: p70001
 
 ## Rationale
 
