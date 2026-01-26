@@ -411,10 +411,20 @@ class _UserManagementTabState extends State<UserManagementTab> {
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
                             DataCell(
-                              // Use system role names for RoleBadge -
-                              // RoleBadge.fromString uses UserRole.fromString
-                              // which only recognizes system names
-                              RoleBadgeList(roles: systemRoles, compact: true),
+                              // Pair sponsor display name with system role
+                              // so badge gets correct color from system role
+                              // and shows sponsor name as text
+                              RoleBadgeList(
+                                roles: systemRoles
+                                    .map(
+                                      (r) => RoleDisplayData(
+                                        displayName: _toSponsorName(r),
+                                        systemRole: r,
+                                      ),
+                                    )
+                                    .toList(),
+                                compact: true,
+                              ),
                             ),
                             DataCell(
                               Text(
@@ -1138,10 +1148,17 @@ class UserInfoDialog extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  // Use system role names - RoleBadge.fromString uses
-                  // UserRole.fromString which only recognizes system names
+                  // Pair sponsor display name with system role
+                  // so badge gets correct color and shows sponsor name
                   children: systemRoles
-                      .map((role) => RoleBadge.fromString(role))
+                      .map(
+                        (role) => RoleBadge.fromDisplayData(
+                          RoleDisplayData(
+                            displayName: toSponsorName(role),
+                            systemRole: role,
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               const SizedBox(height: 24),
