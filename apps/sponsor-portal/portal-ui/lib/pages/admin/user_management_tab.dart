@@ -4,6 +4,8 @@
 //   REQ-d00035: User Management API
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-CAL-p00029: Create User Account (multi-select roles, site requirements)
+//   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00034: Site Visibility and Assignment
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -256,6 +258,46 @@ class _UserManagementTabState extends State<UserManagementTab> {
     }
   }
 
+  /// Show user information dialog (read-only view)
+  void _showUserInfo(Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (context) => UserInfoDialog(
+        user: user,
+        sites: _sites,
+        roleMappings: _roleMappings,
+        toSponsorName: _toSponsorName,
+        onEdit: () {
+          Navigator.pop(context);
+          _editUser(user);
+        },
+        onDeactivate: () {
+          Navigator.pop(context);
+          _revokeUser(user['id'], user['name'] ?? 'this user');
+        },
+        apiClient: _apiClient,
+      ),
+    );
+  }
+
+  /// Show edit user dialog
+  Future<void> _editUser(Map<String, dynamic> user) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => EditUserDialog(
+        user: user,
+        sites: _sites,
+        apiClient: _apiClient,
+        roleMappings: _roleMappings,
+        toSponsorName: _toSponsorName,
+      ),
+    );
+
+    if (result == true) {
+      _loadData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -325,6 +367,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       ),
                     )
                   : DataTable(
+                      showCheckboxColumn: false,
                       columns: const [
                         DataColumn(label: Text('Name')),
                         DataColumn(label: Text('Email')),
@@ -368,6 +411,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                             : '${sitesList.length} sites assigned';
 
                         return DataRow(
+                          onSelectChanged: (_) => _showUserInfo(user),
                           cells: [
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
@@ -388,6 +432,12 @@ class _UserManagementTabState extends State<UserManagementTab> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  if (!isRevoked)
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined),
+                                      onPressed: () => _editUser(user),
+                                      tooltip: 'Edit User',
+                                    ),
                                   if (!isRevoked && !isPending)
                                     IconButton(
                                       icon: Icon(
@@ -988,6 +1038,704 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Read-only dialog showing user details, roles, and assigned sites.
+/// Provides actions to edit or deactivate the user.
+///
+/// IMPLEMENTS REQUIREMENTS:
+///   REQ-CAL-p00030: Edit User Account
+///   REQ-CAL-p00034: Site Visibility and Assignment
+class UserInfoDialog extends StatelessWidget {
+  final Map<String, dynamic> user;
+  final List<Map<String, dynamic>> sites;
+  final List<SponsorRoleMapping> roleMappings;
+  final String Function(String) toSponsorName;
+  final VoidCallback onEdit;
+  final VoidCallback onDeactivate;
+  final ApiClient apiClient;
+
+  const UserInfoDialog({
+    super.key,
+    required this.user,
+    required this.sites,
+    required this.roleMappings,
+    required this.toSponsorName,
+    required this.onEdit,
+    required this.onDeactivate,
+    required this.apiClient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final status = user['status'] as String? ?? 'pending';
+    final isRevoked = status == 'revoked';
+
+    // Get roles
+    final systemRoles = <String>[];
+    if (user['roles'] != null) {
+      systemRoles.addAll((user['roles'] as List).cast<String>());
+    } else if (user['role'] != null) {
+      systemRoles.add(user['role'] as String);
+    }
+    final displayRoles = systemRoles.map(toSponsorName).toList();
+
+    // Get sites
+    final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+
+    return AlertDialog(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('User Information'),
+          const SizedBox(height: 4),
+          Text(
+            'View and manage user details, roles, and assigned sites.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // User name and email
+              Text(
+                user['name'] ?? 'N/A',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user['email'] ?? '',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              StatusBadge.fromString(status),
+              const SizedBox(height: 24),
+
+              // Roles section
+              Text('Roles', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              if (displayRoles.isEmpty)
+                Text(
+                  'No roles assigned',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: displayRoles
+                      .map((role) => RoleBadge.fromString(role))
+                      .toList(),
+                ),
+              const SizedBox(height: 24),
+
+              // Sites section
+              Text(
+                'Assigned Sites (${sitesList.length})',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (sitesList.isEmpty)
+                Text(
+                  systemRoles.contains('Investigator')
+                      ? 'No sites assigned'
+                      : 'All sites (role does not require site assignment)',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                )
+              else
+                ...sitesList.map((site) {
+                  final siteNumber = site['site_number'] as String? ?? '';
+                  final siteName = site['site_name'] as String? ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$siteNumber - $siteName',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        if (!isRevoked)
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+            onPressed: onDeactivate,
+            child: const Text('Deactivate User'),
+          ),
+        if (!isRevoked)
+          OutlinedButton(onPressed: onEdit, child: const Text('Edit User')),
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog for editing user roles and site assignments.
+/// Name is editable, email is read-only.
+/// Shows session termination warning.
+///
+/// IMPLEMENTS REQUIREMENTS:
+///   REQ-CAL-p00030: Edit User Account
+///   REQ-CAL-p00034: Site Visibility and Assignment
+class EditUserDialog extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final List<Map<String, dynamic>> sites;
+  final ApiClient apiClient;
+  final List<SponsorRoleMapping> roleMappings;
+  final String Function(String) toSponsorName;
+
+  const EditUserDialog({
+    super.key,
+    required this.user,
+    required this.sites,
+    required this.apiClient,
+    required this.roleMappings,
+    required this.toSponsorName,
+  });
+
+  @override
+  State<EditUserDialog> createState() => _EditUserDialogState();
+}
+
+class _EditUserDialogState extends State<EditUserDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late Set<String> _selectedSponsorRoles;
+  late Set<String> _selectedSites;
+  bool _isSaving = false;
+  String? _error;
+
+  // Track original values for change detection
+  late final String _originalName;
+  late final Set<String> _originalSponsorRoles;
+  late final Set<String> _originalSites;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _originalName = widget.user['name'] as String? ?? '';
+    _nameController = TextEditingController(text: _originalName);
+
+    // Get current system roles and convert to sponsor names
+    final systemRoles = <String>[];
+    if (widget.user['roles'] != null) {
+      systemRoles.addAll((widget.user['roles'] as List).cast<String>());
+    }
+    _originalSponsorRoles = systemRoles.map(widget.toSponsorName).toSet();
+    _selectedSponsorRoles = Set<String>.from(_originalSponsorRoles);
+
+    // Get current site IDs
+    final sitesList = (widget.user['sites'] as List<dynamic>?) ?? [];
+    _originalSites = sitesList.map((s) => s['site_id'] as String).toSet();
+    _selectedSites = Set<String>.from(_originalSites);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  /// Get system role from sponsor name
+  String _toSystemRole(String sponsorName) {
+    final mapping = widget.roleMappings.firstWhere(
+      (m) => m.sponsorName == sponsorName,
+      orElse: () =>
+          SponsorRoleMapping(sponsorName: sponsorName, systemRole: sponsorName),
+    );
+    return mapping.systemRole;
+  }
+
+  List<String> get _selectedSystemRoles =>
+      _selectedSponsorRoles.map(_toSystemRole).toList();
+
+  bool get _needsSites => _selectedSystemRoles.contains('Investigator');
+
+  bool get _hasChanges {
+    if (_nameController.text.trim() != _originalName) return true;
+    if (!_setEquals(_selectedSponsorRoles, _originalSponsorRoles)) return true;
+    if (!_setEquals(_selectedSites, _originalSites)) return true;
+    return false;
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    return a.length == b.length && a.containsAll(b);
+  }
+
+  /// Get list of permissions being removed
+  List<String> _getRemovedPermissions() {
+    final removed = <String>[];
+
+    // Check removed roles
+    for (final role in _originalSponsorRoles) {
+      if (!_selectedSponsorRoles.contains(role)) {
+        removed.add('Role: $role');
+      }
+    }
+
+    // Check removed sites
+    for (final siteId in _originalSites) {
+      if (!_selectedSites.contains(siteId)) {
+        final site = widget.sites.firstWhere(
+          (s) => s['site_id'] == siteId,
+          orElse: () => {'site_name': siteId},
+        );
+        removed.add('Site: ${site['site_name']}');
+      }
+    }
+
+    return removed;
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedSponsorRoles.isEmpty) {
+      setState(() => _error = 'At least one role is required');
+      return;
+    }
+
+    if (_needsSites && _selectedSites.isEmpty) {
+      setState(
+        () => _error = 'At least one site is required for the selected role(s)',
+      );
+      return;
+    }
+
+    // Check for permission removals and confirm
+    final removedPermissions = _getRemovedPermissions();
+    if (removedPermissions.isNotEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirm Permission Changes'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('The following permissions will be removed:'),
+              const SizedBox(height: 12),
+              ...removedPermissions.map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.remove_circle_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(p),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Active sessions will be terminated.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+
+    try {
+      final body = <String, dynamic>{};
+
+      // Include name if changed
+      final newName = _nameController.text.trim();
+      if (newName != _originalName) {
+        body['name'] = newName;
+      }
+
+      // Include roles if changed
+      if (!_setEquals(_selectedSponsorRoles, _originalSponsorRoles)) {
+        body['roles'] = _selectedSystemRoles;
+      }
+
+      // Include sites if changed
+      if (!_setEquals(_selectedSites, _originalSites)) {
+        body['site_ids'] = _selectedSites.toList();
+      }
+
+      if (body.isEmpty) {
+        // No changes
+        if (mounted) Navigator.pop(context, false);
+        return;
+      }
+
+      final response = await widget.apiClient.patch(
+        '/api/v1/portal/users/${widget.user['id']}',
+        body,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User updated successfully')),
+        );
+        Navigator.pop(context, true);
+      } else {
+        setState(() {
+          _error = response.error ?? 'Failed to update user';
+          _isSaving = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Error updating user: $e';
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return AlertDialog(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Edit User'),
+          const SizedBox(height: 4),
+          Text(
+            'Update user roles and site assignments. Changes will take effect '
+            'immediately and active sessions will be terminated.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_error != null) ...[
+                  ErrorMessage(
+                    message: _error!,
+                    supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+                    onDismiss: () => setState(() => _error = null),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Name field (editable)
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty)
+                      return 'Name is required';
+                    return null;
+                  },
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 16),
+
+                // Email field (read-only display)
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    widget.user['email'] as String? ?? '',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Roles section
+                Text('Roles *', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _selectedSponsorRoles.isEmpty
+                          ? colorScheme.error
+                          : colorScheme.outline,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: widget.roleMappings.map((mapping) {
+                      final isOriginal = _originalSponsorRoles.contains(
+                        mapping.sponsorName,
+                      );
+                      final isSelected = _selectedSponsorRoles.contains(
+                        mapping.sponsorName,
+                      );
+                      final isRemoving = isOriginal && !isSelected;
+
+                      return CheckboxListTile(
+                        title: Row(
+                          children: [
+                            Text(mapping.sponsorName),
+                            if (isRemoving) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Removing',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        value: isSelected,
+                        onChanged: (checked) {
+                          setState(() {
+                            if (checked == true) {
+                              _selectedSponsorRoles.add(mapping.sponsorName);
+                            } else {
+                              _selectedSponsorRoles.remove(mapping.sponsorName);
+                              if (!_needsSites) {
+                                _selectedSites.clear();
+                              }
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+                if (_selectedSponsorRoles.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Select at least one role',
+                      style: TextStyle(color: colorScheme.error, fontSize: 12),
+                    ),
+                  ),
+
+                // Sites section
+                if (_needsSites) ...[
+                  const SizedBox(height: 24),
+                  Text('Assigned Sites *', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  if (widget.sites.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('No sites available'),
+                    )
+                  else
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outline),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: widget.sites.map((site) {
+                            final siteId = site['site_id'] as String;
+                            final siteNumber =
+                                site['site_number'] as String? ?? '';
+                            final siteName =
+                                site['site_name'] as String? ?? siteId;
+                            final isOriginal = _originalSites.contains(siteId);
+                            final isSelected = _selectedSites.contains(siteId);
+                            final isRemoving = isOriginal && !isSelected;
+
+                            return CheckboxListTile(
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text('$siteNumber - $siteName'),
+                                  ),
+                                  if (isRemoving) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Removing',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colorScheme.onErrorContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              value: isSelected,
+                              onChanged: (checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    _selectedSites.add(siteId);
+                                  } else {
+                                    _selectedSites.remove(siteId);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  if (_selectedSites.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'At least one site must be selected',
+                        style: TextStyle(
+                          color: colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+
+                // Session termination warning (always shown)
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    border: Border.all(color: Colors.amber.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        color: Colors.amber.shade800,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Active sessions will be terminated when changes are saved.',
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _isSaving || !_hasChanges ? null : _saveChanges,
+          child: _isSaving
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save Changes'),
         ),
       ],
     );
