@@ -9,6 +9,7 @@
 
 import 'dart:io';
 
+import 'package:meta/meta.dart';
 import 'package:postgres/postgres.dart';
 
 /// User context for RLS enforcement
@@ -125,7 +126,11 @@ class Database {
     _pool = Pool.withEndpoints([endpoint], settings: settings);
   }
 
-  /// Execute a query with the pool (no RLS context - use for service operations)
+  /// Execute a query without RLS context (test setup/teardown only).
+  ///
+  /// Production code must use [executeWithContext] with an explicit
+  /// [UserContext] so that every query has RLS context set.
+  @visibleForTesting
   Future<Result> execute(
     String query, {
     Map<String, dynamic>? parameters,

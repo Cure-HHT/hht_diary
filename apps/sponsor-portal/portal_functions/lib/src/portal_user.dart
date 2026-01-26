@@ -41,10 +41,11 @@ Future<Response> getPortalUsersHandler(Request request) async {
   }
 
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
   // Get users with roles aggregated from portal_user_roles
   // Exclude Developer Admin users - they are system bootstrap accounts
-  final result = await db.execute('''
+  final result = await db.executeWithContext('''
     SELECT
       pu.id,
       pu.email,
@@ -78,7 +79,7 @@ Future<Response> getPortalUsersHandler(Request request) async {
     )
     GROUP BY pu.id
     ORDER BY pu.created_at DESC
-  ''');
+  ''', context: serviceContext);
 
   final users = result.map((r) {
     // Parse roles array
@@ -127,8 +128,9 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
   }
 
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
-  final result = await db.execute(
+  final result = await db.executeWithContext(
     '''
     SELECT
       pu.id,
@@ -159,6 +161,7 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
     GROUP BY pu.id
   ''',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
 
   if (result.isEmpty) {
@@ -187,7 +190,7 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
   }
 
   // Check for pending email change
-  final pendingEmail = await db.execute(
+  final pendingEmail = await db.executeWithContext(
     '''
     SELECT new_email, requested_at, expires_at
     FROM portal_pending_email_changes
@@ -198,6 +201,7 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
     LIMIT 1
   ''',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
 
   Map<String, dynamic>? pendingEmailChange;
@@ -313,11 +317,13 @@ Future<Response> createPortalUserHandler(Request request) async {
   print('[PORTAL_USER] Generated activation_code=$activationCode for $email');
 
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
   // Check for duplicate email
-  final existing = await db.execute(
+  final existing = await db.executeWithContext(
     'SELECT id FROM portal_users WHERE email = @email',
     parameters: {'email': email},
+    context: serviceContext,
   );
   if (existing.isNotEmpty) {
     return _jsonResponse({'error': 'Email already exists'}, 409);
@@ -325,7 +331,7 @@ Future<Response> createPortalUserHandler(Request request) async {
 
   // Create user with pending status
   // NOTE: linking_code is NULL for portal users - only patients get linking codes
-  final createResult = await db.execute(
+  final createResult = await db.executeWithContext(
     '''
     INSERT INTO portal_users (
       email, name, activation_code,
@@ -343,6 +349,7 @@ Future<Response> createPortalUserHandler(Request request) async {
       'activationCode': activationCode,
       'activationExpiry': activationExpiry,
     },
+    context: serviceContext,
   );
 
   final newUserId = createResult.first[0] as String;
@@ -351,9 +358,10 @@ Future<Response> createPortalUserHandler(Request request) async {
   );
 
   // Verify the code was stored correctly
-  final verifyResult = await db.execute(
+  final verifyResult = await db.executeWithContext(
     'SELECT activation_code FROM portal_users WHERE id = @id::uuid',
     parameters: {'id': newUserId},
+    context: serviceContext,
   );
   final storedCode = verifyResult.isNotEmpty
       ? verifyResult.first[0]
@@ -364,26 +372,28 @@ Future<Response> createPortalUserHandler(Request request) async {
 
   // Create role assignments in portal_user_roles
   for (final role in roles) {
-    await db.execute(
+    await db.executeWithContext(
       '''
       INSERT INTO portal_user_roles (user_id, role, assigned_by)
       VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
       ON CONFLICT (user_id, role) DO NOTHING
       ''',
       parameters: {'userId': newUserId, 'role': role, 'assignedBy': user.id},
+      context: serviceContext,
     );
   }
 
   // Create site assignments for site-based roles
   if (needsSites && siteIds.isNotEmpty) {
     for (final siteId in siteIds) {
-      await db.execute(
+      await db.executeWithContext(
         '''
         INSERT INTO portal_user_site_access (user_id, site_id)
         VALUES (@userId::uuid, @siteId)
         ON CONFLICT (user_id, site_id) DO NOTHING
         ''',
         parameters: {'userId': newUserId, 'siteId': siteId},
+        context: serviceContext,
       );
     }
   }
@@ -461,11 +471,13 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   }
 
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
   // Get target user with current state
-  final userResult = await db.execute(
+  final userResult = await db.executeWithContext(
     'SELECT id, name, email, status FROM portal_users WHERE id = @userId::uuid',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
   if (userResult.isEmpty) {
     return _jsonResponse({'error': 'User not found'}, 404);
@@ -475,7 +487,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   final currentStatus = userResult.first[3] as String;
 
   // Get target user's current roles
-  final rolesResult = await db.execute(
+  final rolesResult = await db.executeWithContext(
     '''
     SELECT COALESCE(
       array_agg(role::text ORDER BY role),
@@ -485,6 +497,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     WHERE user_id = @userId::uuid
     ''',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
   List<String> targetRoles = [];
   if (rolesResult.isNotEmpty && rolesResult.first[0] != null) {
@@ -492,7 +505,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   }
 
   // Get target user's current sites
-  final sitesResult = await db.execute(
+  final sitesResult = await db.executeWithContext(
     '''
     SELECT COALESCE(
       array_agg(site_id ORDER BY site_id),
@@ -502,6 +515,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     WHERE user_id = @userId::uuid
     ''',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
   List<String> currentSiteIds = [];
   if (sitesResult.isNotEmpty && sitesResult.first[0] != null) {
@@ -524,9 +538,10 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   // Handle name update
   final newName = body['name'] as String?;
   if (newName != null && newName.isNotEmpty && newName != currentName) {
-    await db.execute(
+    await db.executeWithContext(
       'UPDATE portal_users SET name = @name, updated_at = now() WHERE id = @userId::uuid',
       parameters: {'userId': userId, 'name': newName},
+      context: serviceContext,
     );
 
     await _logAudit(
@@ -546,13 +561,14 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       return _jsonResponse({'error': 'Invalid status'}, 400);
     }
 
-    await db.execute(
+    await db.executeWithContext(
       '''
       UPDATE portal_users
       SET status = @status, updated_at = now()
       WHERE id = @userId::uuid
       ''',
       parameters: {'userId': userId, 'status': status},
+      context: serviceContext,
     );
 
     await _logAudit(
@@ -594,20 +610,22 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     }
 
     // Clear existing role assignments
-    await db.execute(
+    await db.executeWithContext(
       'DELETE FROM portal_user_roles WHERE user_id = @userId::uuid',
       parameters: {'userId': userId},
+      context: serviceContext,
     );
 
     // Add new role assignments
     for (final role in newRolesList) {
-      await db.execute(
+      await db.executeWithContext(
         '''
         INSERT INTO portal_user_roles (user_id, role, assigned_by)
         VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
         ON CONFLICT (user_id, role) DO NOTHING
         ''',
         parameters: {'userId': userId, 'role': role, 'assignedBy': user.id},
+        context: serviceContext,
       );
     }
 
@@ -634,20 +652,22 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     final newSiteIds = siteIds.cast<String>();
 
     // Clear existing assignments
-    await db.execute(
+    await db.executeWithContext(
       'DELETE FROM portal_user_site_access WHERE user_id = @userId::uuid',
       parameters: {'userId': userId},
+      context: serviceContext,
     );
 
     // Add new assignments
     for (final siteId in newSiteIds) {
-      await db.execute(
+      await db.executeWithContext(
         '''
         INSERT INTO portal_user_site_access (user_id, site_id)
         VALUES (@userId::uuid, @siteId)
         ON CONFLICT (user_id, site_id) DO NOTHING
         ''',
         parameters: {'userId': userId, 'siteId': siteId},
+        context: serviceContext,
       );
     }
 
@@ -673,7 +693,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     final activationCode = _generateCode();
     final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
-    await db.execute(
+    await db.executeWithContext(
       '''
       UPDATE portal_users
       SET activation_code = @code,
@@ -687,6 +707,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
         'code': activationCode,
         'expiry': activationExpiry,
       },
+      context: serviceContext,
     );
 
     return _jsonResponse({'success': true, 'activation_code': activationCode});
@@ -694,13 +715,14 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
 
   // Terminate active sessions if permissions changed
   if (permissionsChanged) {
-    await db.execute(
+    await db.executeWithContext(
       '''
       UPDATE portal_users
       SET tokens_revoked_at = now(), updated_at = now()
       WHERE id = @userId::uuid
       ''',
       parameters: {'userId': userId},
+      context: serviceContext,
     );
 
     await _logAudit(
@@ -732,7 +754,7 @@ Future<void> _logAudit(
   required Map<String, dynamic>? before,
   required Map<String, dynamic>? after,
 }) async {
-  await db.execute(
+  await db.executeWithContext(
     '''
     INSERT INTO portal_user_audit_log (user_id, changed_by, action, before_value, after_value)
     VALUES (@userId::uuid, @changedBy::uuid, @action,
@@ -745,6 +767,7 @@ Future<void> _logAudit(
       'before': before != null ? jsonEncode(before) : null,
       'after': after != null ? jsonEncode(after) : null,
     },
+    context: UserContext.service,
   );
 }
 
@@ -769,12 +792,13 @@ Future<Response> getPortalSitesHandler(Request request) async {
   }
 
   final db = Database.instance;
-  final result = await db.execute('''
+  const serviceContext = UserContext.service;
+  final result = await db.executeWithContext('''
     SELECT site_id, site_name, site_number, edc_synced_at
     FROM sites
     WHERE is_active = true
     ORDER BY site_number
-  ''');
+  ''', context: serviceContext);
 
   final sites = result.map((r) {
     return {
@@ -800,10 +824,11 @@ Future<Response> getPortalSitesHandler(Request request) async {
 /// Validates the token, updates the user's email, and revokes sessions.
 Future<Response> verifyEmailChangeHandler(Request request, String token) async {
   final db = Database.instance;
+  const serviceContext = UserContext.service;
   final tokenHash = hashVerificationToken(token);
 
   // Find pending change with matching token
-  final result = await db.execute(
+  final result = await db.executeWithContext(
     '''
     SELECT pec.id, pec.user_id, pec.new_email, pec.expires_at, pu.email as old_email
     FROM portal_pending_email_changes pec
@@ -813,6 +838,7 @@ Future<Response> verifyEmailChangeHandler(Request request, String token) async {
     LIMIT 1
   ''',
     parameters: {'tokenHash': tokenHash},
+    context: serviceContext,
   );
 
   if (result.isEmpty) {
@@ -833,30 +859,34 @@ Future<Response> verifyEmailChangeHandler(Request request, String token) async {
   }
 
   // Check new email isn't already taken
-  final emailExists = await db.execute(
+  final emailExists = await db.executeWithContext(
     'SELECT id FROM portal_users WHERE email = @email AND id != @userId::uuid',
     parameters: {'email': newEmail, 'userId': userId},
+    context: serviceContext,
   );
   if (emailExists.isNotEmpty) {
     return _jsonResponse({'error': 'Email address is already in use'}, 409);
   }
 
   // Update email
-  await db.execute(
+  await db.executeWithContext(
     'UPDATE portal_users SET email = @email, updated_at = now() WHERE id = @userId::uuid',
     parameters: {'email': newEmail, 'userId': userId},
+    context: serviceContext,
   );
 
   // Mark verification as used
-  await db.execute(
+  await db.executeWithContext(
     'UPDATE portal_pending_email_changes SET verified_at = now() WHERE id = @id::uuid',
     parameters: {'id': changeId},
+    context: serviceContext,
   );
 
   // Revoke sessions
-  await db.execute(
+  await db.executeWithContext(
     'UPDATE portal_users SET tokens_revoked_at = now() WHERE id = @userId::uuid',
     parameters: {'userId': userId},
+    context: serviceContext,
   );
 
   // Audit log

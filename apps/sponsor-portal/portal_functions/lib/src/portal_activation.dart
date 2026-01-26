@@ -35,12 +35,13 @@ Future<Response> validateActivationCodeHandler(
 
   final db = Database.instance;
 
-  // Debug: Check what codes exist in the database (direct query, no RLS)
-  final debugResult = await db.execute('''
+  // Debug: Check what codes exist in the database
+  const serviceContext = UserContext.service;
+  final debugResult = await db.executeWithContext('''
     SELECT id, email, activation_code, status
     FROM portal_users
     WHERE activation_code IS NOT NULL
-    ''');
+    ''', context: serviceContext);
   print(
     '[ACTIVATION] DEBUG: Found ${debugResult.length} users with activation codes:',
   );
@@ -49,10 +50,6 @@ Future<Response> validateActivationCodeHandler(
       '[ACTIVATION] DEBUG:   id=${row[0]}, email=${row[1]}, code=${row[2]}, status=${row[3]}',
     );
   }
-
-  // Use service context for unauthenticated activation code lookup
-  // This is a privileged operation before user identity is established
-  const serviceContext = UserContext.service;
 
   print('[ACTIVATION] Querying with service context for code: $code');
   final result = await db.executeWithContext(
