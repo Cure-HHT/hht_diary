@@ -24,7 +24,9 @@ const _identityApiUrl = 'https://identitytoolkit.googleapis.com/v1';
 
 /// Get the portal URL for constructing reset links
 String get _portalUrl {
-  return Platform.environment['PORTAL_BASE_URL'] ?? 'http://localhost:8080';
+  return Platform.environment['PORTAL_URL'] ??
+      Platform.environment['PORTAL_BASE_URL'] ??
+      'http://localhost:8080';
 }
 
 /// Get access token for Identity Platform API
