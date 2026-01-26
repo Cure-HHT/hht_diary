@@ -210,9 +210,7 @@ H. The system SHALL validate that the linking code is valid before completing th
 
 I. The Mobile App SHALL provide input interface for linking codes during enrollment.
 
-J. The system SHALL display the linking code only once at generation time; subsequent views SHALL require generating a new code.
-
-K. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
+J. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
 
 *End* *Linking Code Lifecycle Management* | **Hash**: fe32ff5f
 ---
