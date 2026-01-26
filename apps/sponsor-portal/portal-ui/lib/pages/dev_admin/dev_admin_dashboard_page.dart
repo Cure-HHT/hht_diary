@@ -512,7 +512,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          SelectableText(
                             'Email could not be sent',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -520,7 +520,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
+                          SelectableText(
                             'Please share the activation code manually.',
                             style: TextStyle(color: Colors.orange.shade800),
                           ),
@@ -545,7 +545,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
+                      child: SelectableText(
                         'Send this code to the admin along with the activation URL:\n'
                         '/activate?code=$_activationCode',
                         style: TextStyle(
@@ -574,7 +574,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
+                  child: SelectableText(
                     'Send this code to the admin along with the activation URL:\n'
                     '/activate?code=$_activationCode',
                     style: TextStyle(
