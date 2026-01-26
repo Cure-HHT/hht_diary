@@ -29,8 +29,13 @@ WORKDIR /app/apps/sponsor-portal/portal-ui
 # APP_FLAVOR=prod means the app will fetch Identity Platform config from server
 # at runtime via /api/v1/portal/config/identity (Doppler provides the values)
 # This allows the same Docker image to work across all environments
+# APP_VERSION is extracted from pubspec.yaml so it's always in sync
 RUN flutter pub get
-RUN flutter build web --release --dart-define=APP_FLAVOR=prod --pwa-strategy=none
+RUN APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//') && \
+    flutter build web --release \
+      --dart-define=APP_FLAVOR=prod \
+      --dart-define=APP_VERSION=$APP_VERSION \
+      --pwa-strategy=none
 
 # =============================================================================
 # Stage 2: Build Dart Server

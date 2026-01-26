@@ -391,16 +391,6 @@ class _UserManagementTabState extends State<UserManagementTab> {
                           systemRoles.add(user['role'] as String);
                         }
 
-                        // Build paired role data (sponsor name + system role)
-                        final roleDisplayData = systemRoles
-                            .map(
-                              (sysRole) => RoleDisplayData(
-                                displayName: _toSponsorName(sysRole),
-                                systemRole: sysRole,
-                              ),
-                            )
-                            .toList();
-
                         // Check if user has investigator role for sites display
                         final hasInvestigatorRole = systemRoles.contains(
                           'Investigator',
@@ -421,10 +411,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
                             DataCell(
-                              RoleBadgeList(
-                                roles: roleDisplayData,
-                                compact: true,
-                              ),
+                              // Use system role names for RoleBadge -
+                              // RoleBadge.fromString uses UserRole.fromString
+                              // which only recognizes system names
+                              RoleBadgeList(roles: systemRoles, compact: true),
                             ),
                             DataCell(
                               Text(
@@ -1086,21 +1076,13 @@ class UserInfoDialog extends StatelessWidget {
     final status = user['status'] as String? ?? 'pending';
     final isRevoked = status == 'revoked';
 
-    // Get roles
+    // Get roles (system names for RoleBadge compatibility)
     final systemRoles = <String>[];
     if (user['roles'] != null) {
       systemRoles.addAll((user['roles'] as List).cast<String>());
     } else if (user['role'] != null) {
       systemRoles.add(user['role'] as String);
     }
-    final roleDisplayData = systemRoles
-        .map(
-          (sysRole) => RoleDisplayData(
-            displayName: toSponsorName(sysRole),
-            systemRole: sysRole,
-          ),
-        )
-        .toList();
 
     // Get sites
     final sitesList = (user['sites'] as List<dynamic>?) ?? [];
@@ -1147,7 +1129,7 @@ class UserInfoDialog extends StatelessWidget {
               // Roles section
               Text('Roles', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (roleDisplayData.isEmpty)
+              if (systemRoles.isEmpty)
                 Text(
                   'No roles assigned',
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -1156,8 +1138,10 @@ class UserInfoDialog extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: roleDisplayData
-                      .map((data) => RoleBadge.fromDisplayData(data))
+                  // Use system role names - RoleBadge.fromString uses
+                  // UserRole.fromString which only recognizes system names
+                  children: systemRoles
+                      .map((role) => RoleBadge.fromString(role))
                       .toList(),
                 ),
               const SizedBox(height: 24),

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../flavors.dart';
 import '../services/auth_service.dart';
 import '../widgets/error_message.dart';
 import '../widgets/totp_input_dialog.dart';
@@ -252,6 +253,15 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               )
                             : const Text('Sign In'),
+                      ),
+                      const SizedBox(height: 16),
+                      // Version
+                      Text(
+                        'v${F.version}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outline,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),

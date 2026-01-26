@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../flavors.dart';
 import '../services/auth_service.dart';
 import 'role_badge.dart';
 
@@ -62,6 +63,12 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Center(child: RoleBadge(role: user.activeRole)),
             ),
+          // About
+          IconButton(
+            icon: const Icon(Icons.info_outline, size: 18),
+            tooltip: 'About',
+            onPressed: () => _showAbout(context),
+          ),
           // Logout button
           TextButton.icon(
             icon: const Icon(Icons.logout, size: 18),
@@ -76,6 +83,44 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 8),
         ],
       ],
+    );
+  }
+
+  void _showAbout(BuildContext context) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.medication, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            const Text('Clinical Trial Portal'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Version ${F.version}', style: theme.textTheme.bodyLarge),
+            if (F.showDevTools) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Environment: ${F.name}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
