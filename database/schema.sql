@@ -606,6 +606,7 @@ CREATE TABLE portal_users (
     mfa_enrolled_at TIMESTAMPTZ,
     mfa_method TEXT CHECK (mfa_method IN ('totp', 'sms', 'email')),
     mfa_type TEXT CHECK (mfa_type IN ('totp', 'email_otp', 'none')) DEFAULT 'email_otp',
+    tokens_revoked_at TIMESTAMPTZ,          -- When all sessions were invalidated (edit triggers revocation)
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -635,6 +636,7 @@ COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA e
 COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
 COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
 COMMENT ON COLUMN portal_users.mfa_type IS 'MFA method to use: totp (authenticator app for Dev Admins), email_otp (email codes), none (disabled)';
+COMMENT ON COLUMN portal_users.tokens_revoked_at IS 'Timestamp when all sessions were invalidated - tokens with auth_time before this are rejected';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
@@ -706,6 +708,77 @@ COMMENT ON TABLE portal_user_roles IS 'Maps portal users to their roles - suppor
 COMMENT ON COLUMN portal_user_roles.user_id IS 'Reference to portal_users.id';
 COMMENT ON COLUMN portal_user_roles.role IS 'Role from portal_user_role enum';
 COMMENT ON COLUMN portal_user_roles.assigned_by IS 'Admin who assigned this role (null for seeded data)';
+
+-- =====================================================
+-- PORTAL USER AUDIT LOG (Immutable)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--
+-- Tracks all modifications to portal user accounts
+-- Immutable append-only log for compliance
+
+CREATE TABLE portal_user_audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES portal_users(id),
+    changed_by UUID NOT NULL REFERENCES portal_users(id),
+    action TEXT NOT NULL CHECK (action IN (
+        'update_name', 'update_email', 'update_roles',
+        'update_sites', 'update_status', 'revoke_sessions'
+    )),
+    before_value JSONB,           -- State before the change
+    after_value JSONB,            -- State after the change
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ip_address INET,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- Immutability rules - audit log is append-only
+CREATE RULE portal_user_audit_log_no_update AS ON UPDATE TO portal_user_audit_log DO INSTEAD NOTHING;
+CREATE RULE portal_user_audit_log_no_delete AS ON DELETE TO portal_user_audit_log DO INSTEAD NOTHING;
+
+CREATE INDEX idx_portal_user_audit_log_user ON portal_user_audit_log(user_id);
+CREATE INDEX idx_portal_user_audit_log_changed_by ON portal_user_audit_log(changed_by);
+CREATE INDEX idx_portal_user_audit_log_created ON portal_user_audit_log(created_at DESC);
+
+ALTER TABLE portal_user_audit_log ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_user_audit_log IS 'Immutable audit log of all portal user account modifications (REQ-CAL-p00030, REQ-p00010)';
+COMMENT ON COLUMN portal_user_audit_log.action IS 'Type of modification performed';
+COMMENT ON COLUMN portal_user_audit_log.before_value IS 'JSONB snapshot of state before change';
+COMMENT ON COLUMN portal_user_audit_log.after_value IS 'JSONB snapshot of state after change';
+
+-- =====================================================
+-- PORTAL PENDING EMAIL CHANGES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--
+-- Tracks pending email address changes awaiting verification
+-- Email changes require the new address to be verified before taking effect
+
+CREATE TABLE portal_pending_email_changes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    new_email TEXT NOT NULL,
+    token_hash TEXT NOT NULL,            -- SHA-256 hash of verification token
+    requested_by UUID NOT NULL REFERENCES portal_users(id),
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,     -- 24hr expiry
+    verified_at TIMESTAMPTZ,             -- NULL until verified
+    CONSTRAINT email_change_expiry CHECK (expires_at > requested_at)
+);
+
+CREATE INDEX idx_pending_email_user ON portal_pending_email_changes(user_id);
+CREATE INDEX idx_pending_email_expires ON portal_pending_email_changes(expires_at) WHERE verified_at IS NULL;
+
+ALTER TABLE portal_pending_email_changes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_pending_email_changes IS 'Pending email address changes awaiting verification (REQ-CAL-p00030)';
+COMMENT ON COLUMN portal_pending_email_changes.token_hash IS 'SHA-256 hash of the verification token sent via email';
+COMMENT ON COLUMN portal_pending_email_changes.expires_at IS '24-hour expiration from request time';
 
 -- =====================================================
 -- SPONSOR ROLE MAPPING
@@ -802,7 +875,7 @@ COMMENT ON COLUMN email_rate_limits.email_type IS 'Type of email: otp (login cod
 CREATE TABLE email_audit_log (
     id BIGSERIAL PRIMARY KEY,
     recipient_email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset', 'email_change')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced', 'console')),

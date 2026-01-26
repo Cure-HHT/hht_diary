@@ -518,6 +518,11 @@ class AuthService extends ChangeNotifier {
         // Clear email OTP state
         _emailOtpRequired = false;
         _maskedEmail = null;
+
+        // Refresh portal user data after OTP verification
+        // This ensures currentUser has up-to-date roles and status
+        await _fetchPortalUser();
+
         _isLoading = false;
         notifyListeners();
         return EmailOtpResult.success();

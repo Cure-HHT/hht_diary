@@ -5,14 +5,18 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
 //   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
+//   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00034: Site Visibility and Assignment
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
+// Supports editing user details with audit logging and session termination
 
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -111,6 +115,111 @@ Future<Response> getPortalUsersHandler(Request request) async {
   }).toList();
 
   return _jsonResponse({'users': users});
+}
+
+/// Get a single portal user by ID (Admin/Auditor only)
+/// GET /api/v1/portal/users/:userId
+/// Returns user with roles, sites, and pending email change
+Future<Response> getPortalUserHandler(Request request, String userId) async {
+  final user = await requirePortalAuth(request, _viewAllRoles);
+  if (user == null) {
+    return _jsonResponse({'error': 'Unauthorized'}, 403);
+  }
+
+  final db = Database.instance;
+
+  final result = await db.execute(
+    '''
+    SELECT
+      pu.id,
+      pu.email,
+      pu.name,
+      pu.status,
+      pu.created_at,
+      pu.tokens_revoked_at,
+      COALESCE(
+        array_agg(DISTINCT pur.role::text) FILTER (WHERE pur.role IS NOT NULL),
+        ARRAY[]::text[]
+      ) as roles,
+      COALESCE(
+        json_agg(
+          DISTINCT jsonb_build_object(
+            'site_id', s.site_id,
+            'site_name', s.site_name,
+            'site_number', s.site_number
+          )
+        ) FILTER (WHERE s.site_id IS NOT NULL),
+        '[]'::json
+      ) as sites
+    FROM portal_users pu
+    LEFT JOIN portal_user_roles pur ON pu.id = pur.user_id
+    LEFT JOIN portal_user_site_access pusa ON pu.id = pusa.user_id
+    LEFT JOIN sites s ON pusa.site_id = s.site_id
+    WHERE pu.id = @userId::uuid
+    GROUP BY pu.id
+  ''',
+    parameters: {'userId': userId},
+  );
+
+  if (result.isEmpty) {
+    return _jsonResponse({'error': 'User not found'}, 404);
+  }
+
+  final r = result.first;
+
+  // Parse roles
+  List<String> roles = [];
+  if (r[6] != null) {
+    if (r[6] is List) {
+      roles = (r[6] as List).cast<String>();
+    }
+  }
+
+  // Parse sites
+  List<dynamic> sites = [];
+  final sitesJson = r[7];
+  if (sitesJson != null) {
+    if (sitesJson is String) {
+      sites = jsonDecode(sitesJson) as List<dynamic>;
+    } else if (sitesJson is List) {
+      sites = sitesJson;
+    }
+  }
+
+  // Check for pending email change
+  final pendingEmail = await db.execute(
+    '''
+    SELECT new_email, requested_at, expires_at
+    FROM portal_pending_email_changes
+    WHERE user_id = @userId::uuid
+      AND verified_at IS NULL
+      AND expires_at > now()
+    ORDER BY requested_at DESC
+    LIMIT 1
+  ''',
+    parameters: {'userId': userId},
+  );
+
+  Map<String, dynamic>? pendingEmailChange;
+  if (pendingEmail.isNotEmpty) {
+    pendingEmailChange = {
+      'new_email': pendingEmail.first[0] as String,
+      'requested_at': (pendingEmail.first[1] as DateTime).toIso8601String(),
+      'expires_at': (pendingEmail.first[2] as DateTime).toIso8601String(),
+    };
+  }
+
+  return _jsonResponse({
+    'id': r[0] as String,
+    'email': r[1] as String,
+    'name': r[2] as String,
+    'status': r[3] as String,
+    'created_at': (r[4] as DateTime).toIso8601String(),
+    'tokens_revoked_at': (r[5] as DateTime?)?.toIso8601String(),
+    'roles': roles,
+    'sites': sites,
+    if (pendingEmailChange != null) 'pending_email_change': pendingEmailChange,
+  });
 }
 
 /// Create new portal user (Admin only)
@@ -286,7 +395,9 @@ Future<Response> createPortalUserHandler(Request request) async {
   if (FeatureFlags.emailActivation) {
     // Construct activation URL from environment or request
     final portalBaseUrl =
-        Platform.environment['PORTAL_BASE_URL'] ?? 'http://localhost:8081';
+        Platform.environment['PORTAL_URL'] ??
+        Platform.environment['PORTAL_BASE_URL'] ??
+        'http://localhost:8081';
     final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
 
     final emailResult = await EmailService.instance.sendActivationCode(
@@ -328,14 +439,18 @@ Future<Response> createPortalUserHandler(Request request) async {
 
 /// Update portal user (Admin only)
 /// PATCH /api/v1/portal/users/:userId
-/// Body: { status: 'revoked'|'active' } or { site_ids: [...] } or { roles: [...] }
+/// Body: { name, roles: [...], site_ids: [...], status, regenerate_activation }
+///
+/// Supports updating name, roles, sites, and status.
+/// Changes to roles/sites trigger session termination (tokens_revoked_at).
+/// All changes are logged to portal_user_audit_log.
 Future<Response> updatePortalUserHandler(Request request, String userId) async {
   final user = await requirePortalAuth(request, _adminRoles);
   if (user == null) {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
   }
 
-  // Prevent self-revocation
+  // Prevent self-modification
   if (userId == user.id) {
     return _jsonResponse({'error': 'Cannot modify your own account'}, 400);
   }
@@ -347,11 +462,23 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
 
   final db = Database.instance;
 
-  // Check user exists and get their roles
-  final existing = await db.execute(
+  // Get target user with current state
+  final userResult = await db.execute(
+    'SELECT id, name, email, status FROM portal_users WHERE id = @userId::uuid',
+    parameters: {'userId': userId},
+  );
+  if (userResult.isEmpty) {
+    return _jsonResponse({'error': 'User not found'}, 404);
+  }
+
+  final currentName = userResult.first[1] as String;
+  final currentStatus = userResult.first[3] as String;
+
+  // Get target user's current roles
+  final rolesResult = await db.execute(
     '''
     SELECT COALESCE(
-      array_agg(role::text),
+      array_agg(role::text ORDER BY role),
       ARRAY[]::text[]
     ) as roles
     FROM portal_user_roles
@@ -359,19 +486,26 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     ''',
     parameters: {'userId': userId},
   );
-
-  final userExists = await db.execute(
-    'SELECT id FROM portal_users WHERE id = @userId::uuid',
-    parameters: {'userId': userId},
-  );
-  if (userExists.isEmpty) {
-    return _jsonResponse({'error': 'User not found'}, 404);
+  List<String> targetRoles = [];
+  if (rolesResult.isNotEmpty && rolesResult.first[0] != null) {
+    targetRoles = (rolesResult.first[0] as List).cast<String>();
   }
 
-  // Get target user's roles
-  List<String> targetRoles = [];
-  if (existing.isNotEmpty && existing.first[0] != null) {
-    targetRoles = (existing.first[0] as List).cast<String>();
+  // Get target user's current sites
+  final sitesResult = await db.execute(
+    '''
+    SELECT COALESCE(
+      array_agg(site_id ORDER BY site_id),
+      ARRAY[]::text[]
+    ) as site_ids
+    FROM portal_user_site_access
+    WHERE user_id = @userId::uuid
+    ''',
+    parameters: {'userId': userId},
+  );
+  List<String> currentSiteIds = [];
+  if (sitesResult.isNotEmpty && sitesResult.first[0] != null) {
+    currentSiteIds = (sitesResult.first[0] as List).cast<String>();
   }
 
   // Non-developer admins cannot modify admin users
@@ -382,6 +516,27 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     return _jsonResponse({
       'error': 'Only Developer Admin can modify admin users',
     }, 403);
+  }
+
+  // Track whether permissions changed (requires session termination)
+  bool permissionsChanged = false;
+
+  // Handle name update
+  final newName = body['name'] as String?;
+  if (newName != null && newName.isNotEmpty && newName != currentName) {
+    await db.execute(
+      'UPDATE portal_users SET name = @name, updated_at = now() WHERE id = @userId::uuid',
+      parameters: {'userId': userId, 'name': newName},
+    );
+
+    await _logAudit(
+      db,
+      userId: userId,
+      changedBy: user.id,
+      action: 'update_name',
+      before: {'name': currentName},
+      after: {'name': newName},
+    );
   }
 
   // Handle status update (revocation/activation)
@@ -399,11 +554,45 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       ''',
       parameters: {'userId': userId, 'status': status},
     );
+
+    await _logAudit(
+      db,
+      userId: userId,
+      changedBy: user.id,
+      action: 'update_status',
+      before: {'status': currentStatus},
+      after: {'status': status},
+    );
+
+    if (status == 'revoked') {
+      permissionsChanged = true;
+    }
   }
 
   // Handle roles update
   final newRoles = body['roles'] as List?;
   if (newRoles != null) {
+    final newRolesList = newRoles.cast<String>();
+
+    // Validate roles
+    const assignableRoles = [
+      'Investigator',
+      'Sponsor',
+      'Auditor',
+      'Analyst',
+      'Administrator',
+    ];
+    for (final role in newRolesList) {
+      if (role == 'Developer Admin') {
+        return _jsonResponse({
+          'error': 'Developer Admin role cannot be assigned',
+        }, 403);
+      }
+      if (!assignableRoles.contains(role)) {
+        return _jsonResponse({'error': 'Invalid role: $role'}, 400);
+      }
+    }
+
     // Clear existing role assignments
     await db.execute(
       'DELETE FROM portal_user_roles WHERE user_id = @userId::uuid',
@@ -411,7 +600,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     );
 
     // Add new role assignments
-    for (final role in newRoles.cast<String>()) {
+    for (final role in newRolesList) {
       await db.execute(
         '''
         INSERT INTO portal_user_roles (user_id, role, assigned_by)
@@ -421,11 +610,29 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
         parameters: {'userId': userId, 'role': role, 'assignedBy': user.id},
       );
     }
+
+    // Check if roles actually changed
+    final sortedOld = List<String>.from(targetRoles)..sort();
+    final sortedNew = List<String>.from(newRolesList)..sort();
+    if (sortedOld.join(',') != sortedNew.join(',')) {
+      permissionsChanged = true;
+
+      await _logAudit(
+        db,
+        userId: userId,
+        changedBy: user.id,
+        action: 'update_roles',
+        before: {'roles': targetRoles},
+        after: {'roles': newRolesList},
+      );
+    }
   }
 
   // Handle site assignment update
   final siteIds = body['site_ids'] as List?;
   if (siteIds != null) {
+    final newSiteIds = siteIds.cast<String>();
+
     // Clear existing assignments
     await db.execute(
       'DELETE FROM portal_user_site_access WHERE user_id = @userId::uuid',
@@ -433,7 +640,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     );
 
     // Add new assignments
-    for (final siteId in siteIds.cast<String>()) {
+    for (final siteId in newSiteIds) {
       await db.execute(
         '''
         INSERT INTO portal_user_site_access (user_id, site_id)
@@ -441,6 +648,22 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
         ON CONFLICT (user_id, site_id) DO NOTHING
         ''',
         parameters: {'userId': userId, 'siteId': siteId},
+      );
+    }
+
+    // Check if sites actually changed
+    final sortedOld = List<String>.from(currentSiteIds)..sort();
+    final sortedNew = List<String>.from(newSiteIds)..sort();
+    if (sortedOld.join(',') != sortedNew.join(',')) {
+      permissionsChanged = true;
+
+      await _logAudit(
+        db,
+        userId: userId,
+        changedBy: user.id,
+        action: 'update_sites',
+        before: {'site_ids': currentSiteIds},
+        after: {'site_ids': newSiteIds},
       );
     }
   }
@@ -469,7 +692,60 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     return _jsonResponse({'success': true, 'activation_code': activationCode});
   }
 
-  return _jsonResponse({'success': true});
+  // Terminate active sessions if permissions changed
+  if (permissionsChanged) {
+    await db.execute(
+      '''
+      UPDATE portal_users
+      SET tokens_revoked_at = now(), updated_at = now()
+      WHERE id = @userId::uuid
+      ''',
+      parameters: {'userId': userId},
+    );
+
+    await _logAudit(
+      db,
+      userId: userId,
+      changedBy: user.id,
+      action: 'revoke_sessions',
+      before: null,
+      after: {'reason': 'permissions_changed'},
+    );
+
+    print(
+      '[PORTAL_USER] Sessions terminated for user $userId due to permission changes',
+    );
+  }
+
+  return _jsonResponse({
+    'success': true,
+    'sessions_terminated': permissionsChanged,
+  });
+}
+
+/// Log an audit entry for user modifications
+Future<void> _logAudit(
+  Database db, {
+  required String userId,
+  required String changedBy,
+  required String action,
+  required Map<String, dynamic>? before,
+  required Map<String, dynamic>? after,
+}) async {
+  await db.execute(
+    '''
+    INSERT INTO portal_user_audit_log (user_id, changed_by, action, before_value, after_value)
+    VALUES (@userId::uuid, @changedBy::uuid, @action,
+            @before::jsonb, @after::jsonb)
+    ''',
+    parameters: {
+      'userId': userId,
+      'changedBy': changedBy,
+      'action': action,
+      'before': before != null ? jsonEncode(before) : null,
+      'after': after != null ? jsonEncode(after) : null,
+    },
+  );
 }
 
 /// Get available sites (for user creation dialog)
@@ -516,6 +792,96 @@ Future<Response> getPortalSitesHandler(Request request) async {
   }
 
   return _jsonResponse(response);
+}
+
+/// Verify an email change using a verification token
+/// POST /api/v1/portal/email-verification/:token
+///
+/// Validates the token, updates the user's email, and revokes sessions.
+Future<Response> verifyEmailChangeHandler(Request request, String token) async {
+  final db = Database.instance;
+  final tokenHash = hashVerificationToken(token);
+
+  // Find pending change with matching token
+  final result = await db.execute(
+    '''
+    SELECT pec.id, pec.user_id, pec.new_email, pec.expires_at, pu.email as old_email
+    FROM portal_pending_email_changes pec
+    JOIN portal_users pu ON pec.user_id = pu.id
+    WHERE pec.token_hash = @tokenHash
+      AND pec.verified_at IS NULL
+    LIMIT 1
+  ''',
+    parameters: {'tokenHash': tokenHash},
+  );
+
+  if (result.isEmpty) {
+    return _jsonResponse({
+      'error': 'Invalid or expired verification link',
+    }, 400);
+  }
+
+  final changeId = result.first[0] as String;
+  final userId = result.first[1] as String;
+  final newEmail = result.first[2] as String;
+  final expiresAt = result.first[3] as DateTime;
+  final oldEmail = result.first[4] as String;
+
+  // Check expiration
+  if (DateTime.now().isAfter(expiresAt)) {
+    return _jsonResponse({'error': 'Verification link has expired'}, 400);
+  }
+
+  // Check new email isn't already taken
+  final emailExists = await db.execute(
+    'SELECT id FROM portal_users WHERE email = @email AND id != @userId::uuid',
+    parameters: {'email': newEmail, 'userId': userId},
+  );
+  if (emailExists.isNotEmpty) {
+    return _jsonResponse({'error': 'Email address is already in use'}, 409);
+  }
+
+  // Update email
+  await db.execute(
+    'UPDATE portal_users SET email = @email, updated_at = now() WHERE id = @userId::uuid',
+    parameters: {'email': newEmail, 'userId': userId},
+  );
+
+  // Mark verification as used
+  await db.execute(
+    'UPDATE portal_pending_email_changes SET verified_at = now() WHERE id = @id::uuid',
+    parameters: {'id': changeId},
+  );
+
+  // Revoke sessions
+  await db.execute(
+    'UPDATE portal_users SET tokens_revoked_at = now() WHERE id = @userId::uuid',
+    parameters: {'userId': userId},
+  );
+
+  // Audit log
+  await _logAudit(
+    db,
+    userId: userId,
+    changedBy: userId,
+    action: 'update_email',
+    before: {'email': oldEmail},
+    after: {'email': newEmail},
+  );
+
+  return _jsonResponse({'success': true, 'email': newEmail});
+}
+
+/// Generate a cryptographic verification token (URL-safe)
+String generateVerificationToken() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+  return base64Url.encode(bytes);
+}
+
+/// Hash a verification token using SHA-256
+String hashVerificationToken(String token) {
+  return sha256.convert(utf8.encode(token)).toString();
 }
 
 /// Generate a random code in XXXXX-XXXXX format

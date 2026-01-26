@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00010: First Admin Provisioning
 //   REQ-CAL-p00029: Create User Account
+//   REQ-CAL-p00030: Edit User Account
 //   REQ-d00031: Identity Platform Integration
 //
 // Test helpers for portal-ui integration tests.
@@ -181,6 +182,86 @@ class TestDatabase {
       'activation_code': row[4],
       'firebase_uid': row[5],
     };
+  }
+
+  /// Get tokens_revoked_at for a user
+  Future<DateTime?> getTokensRevokedAt(String userId) async {
+    final result = await execute(
+      'SELECT tokens_revoked_at FROM portal_users WHERE id = @id::uuid',
+      parameters: {'id': userId},
+    );
+    if (result.isEmpty) return null;
+    return result.first[0] as DateTime?;
+  }
+
+  /// Get audit log entries for a user
+  Future<List<Map<String, dynamic>>> getAuditLog(String userId) async {
+    final result = await execute(
+      '''
+      SELECT action, before_value, after_value, changed_by, created_at
+      FROM portal_user_audit_log
+      WHERE user_id = @userId::uuid
+      ORDER BY created_at DESC
+    ''',
+      parameters: {'userId': userId},
+    );
+
+    return result.map((row) {
+      return {
+        'action': row[0] as String,
+        'before_value': row[1],
+        'after_value': row[2],
+        'changed_by': row[3] as String,
+        'created_at': row[4] as DateTime,
+      };
+    }).toList();
+  }
+
+  /// Clean up edit test data (extended cleanup for journey 02)
+  Future<void> cleanupEditTestData() async {
+    await execute('''
+      DELETE FROM portal_user_site_access
+      WHERE user_id IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+    ''');
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await execute('''
+      DELETE FROM portal_user_audit_log
+      WHERE user_id IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+      OR changed_by IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+    ''');
+    await execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
+    await execute('''
+      DELETE FROM portal_pending_email_changes
+      WHERE user_id IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+    ''');
+    await execute('''
+      DELETE FROM portal_user_roles
+      WHERE user_id IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+    ''');
+    await execute('''
+      DELETE FROM portal_users
+      WHERE email LIKE '%@user-edit-test.example.com'
+    ''');
   }
 }
 
@@ -533,6 +614,49 @@ class TestPortalApiClient {
         'email': email,
         'roles': roles,
         if (siteIds != null) 'site_ids': siteIds,
+      }),
+    );
+    return (
+      statusCode: response.statusCode,
+      body: jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  /// Get a single portal user by ID (admin only)
+  Future<({int statusCode, Map<String, dynamic> body})> getUser(
+    String idToken,
+    String userId,
+  ) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/portal/users/$userId'),
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+    return (
+      statusCode: response.statusCode,
+      body: jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  /// Update a portal user (admin only)
+  Future<({int statusCode, Map<String, dynamic> body})> updateUser({
+    required String idToken,
+    required String userId,
+    String? name,
+    List<String>? roles,
+    List<String>? siteIds,
+    String? status,
+  }) async {
+    final response = await _client.patch(
+      Uri.parse('$baseUrl/api/v1/portal/users/$userId'),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        if (name != null) 'name': name,
+        if (roles != null) 'roles': roles,
+        if (siteIds != null) 'site_ids': siteIds,
+        if (status != null) 'status': status,
       }),
     );
     return (
