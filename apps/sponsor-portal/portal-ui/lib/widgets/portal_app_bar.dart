@@ -164,8 +164,10 @@ class _RoleSwitcher extends StatelessWidget {
         context.go('/auditor');
         break;
       case UserRole.sponsor:
+        context.go('/sponsor');
+        break;
       case UserRole.analyst:
-        context.go('/admin'); // Default for now
+        context.go('/analyst');
         break;
     }
   }

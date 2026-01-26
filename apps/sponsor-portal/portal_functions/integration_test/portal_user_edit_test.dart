@@ -455,10 +455,17 @@ Future<void> _cleanup() async {
     'DELETE FROM portal_user_site_access WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',
     parameters: {'pattern': '%@user-edit-test.example.com'},
   );
+  // Temporarily disable no-delete rule so audit log entries can be removed
+  await db.execute(
+    'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+  );
   await db.execute(
     '''DELETE FROM portal_user_audit_log WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)
        OR changed_by IN (SELECT id FROM portal_users WHERE email LIKE @pattern)''',
     parameters: {'pattern': '%@user-edit-test.example.com'},
+  );
+  await db.execute(
+    'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
   );
   await db.execute(
     'DELETE FROM portal_pending_email_changes WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',

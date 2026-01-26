@@ -226,7 +226,24 @@ class TestDatabase {
         WHERE email LIKE '%@user-edit-test.example.com'
       )
     ''');
-    // Note: audit log has no-delete rule; entries persist
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await execute('''
+      DELETE FROM portal_user_audit_log
+      WHERE user_id IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+      OR changed_by IN (
+        SELECT id FROM portal_users
+        WHERE email LIKE '%@user-edit-test.example.com'
+      )
+    ''');
+    await execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
     await execute('''
       DELETE FROM portal_pending_email_changes
       WHERE user_id IN (

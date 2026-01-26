@@ -61,6 +61,26 @@ void main() {
         'revokedId': testRevokedUserId,
       },
     );
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      '''DELETE FROM portal_user_audit_log WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR changed_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      'DELETE FROM portal_pending_email_changes WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',
+      parameters: {'pattern': '%@portal-test.example.com'},
+    );
     // Delete from portal_user_roles before portal_users (assigned_by FK)
     await db.execute(
       '''DELETE FROM portal_user_roles WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
@@ -153,6 +173,26 @@ void main() {
         'invId': testInvestigatorId,
         'revokedId': testRevokedUserId,
       },
+    );
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      '''DELETE FROM portal_user_audit_log WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR changed_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      'DELETE FROM portal_pending_email_changes WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',
+      parameters: {'pattern': '%@portal-test.example.com'},
     );
     // Delete from portal_user_roles before portal_users (assigned_by FK)
     await db.execute(

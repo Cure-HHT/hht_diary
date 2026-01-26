@@ -8,8 +8,8 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
 
-class AuditorDashboardPage extends StatelessWidget {
-  const AuditorDashboardPage({super.key});
+class SponsorDashboardPage extends StatelessWidget {
+  const SponsorDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,21 +24,21 @@ class AuditorDashboardPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: const PortalAppBar(title: 'Auditor Dashboard'),
+      appBar: const PortalAppBar(title: 'Sponsor Dashboard'),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.fact_check_outlined,
+              Icons.business_outlined,
               size: 64,
               color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
-            Text('Auditor Dashboard', style: theme.textTheme.headlineMedium),
+            Text('Sponsor Dashboard', style: theme.textTheme.headlineMedium),
             const SizedBox(height: 8),
             Text(
-              'Audit trail review and data export features coming soon.',
+              'Study oversight and management features coming soon.',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
