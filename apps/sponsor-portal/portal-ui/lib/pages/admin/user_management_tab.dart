@@ -391,9 +391,14 @@ class _UserManagementTabState extends State<UserManagementTab> {
                           systemRoles.add(user['role'] as String);
                         }
 
-                        // Convert system roles to sponsor display names
-                        final displayRoles = systemRoles
-                            .map(_toSponsorName)
+                        // Build paired role data (sponsor name + system role)
+                        final roleDisplayData = systemRoles
+                            .map(
+                              (sysRole) => RoleDisplayData(
+                                displayName: _toSponsorName(sysRole),
+                                systemRole: sysRole,
+                              ),
+                            )
                             .toList();
 
                         // Check if user has investigator role for sites display
@@ -416,7 +421,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
                             DataCell(
-                              RoleBadgeList(roles: displayRoles, compact: true),
+                              RoleBadgeList(
+                                roles: roleDisplayData,
+                                compact: true,
+                              ),
                             ),
                             DataCell(
                               Text(
@@ -1085,7 +1093,14 @@ class UserInfoDialog extends StatelessWidget {
     } else if (user['role'] != null) {
       systemRoles.add(user['role'] as String);
     }
-    final displayRoles = systemRoles.map(toSponsorName).toList();
+    final roleDisplayData = systemRoles
+        .map(
+          (sysRole) => RoleDisplayData(
+            displayName: toSponsorName(sysRole),
+            systemRole: sysRole,
+          ),
+        )
+        .toList();
 
     // Get sites
     final sitesList = (user['sites'] as List<dynamic>?) ?? [];
@@ -1132,7 +1147,7 @@ class UserInfoDialog extends StatelessWidget {
               // Roles section
               Text('Roles', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (displayRoles.isEmpty)
+              if (roleDisplayData.isEmpty)
                 Text(
                   'No roles assigned',
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -1141,8 +1156,8 @@ class UserInfoDialog extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: displayRoles
-                      .map((role) => RoleBadge.fromString(role))
+                  children: roleDisplayData
+                      .map((data) => RoleBadge.fromDisplayData(data))
                       .toList(),
                 ),
               const SizedBox(height: 24),
