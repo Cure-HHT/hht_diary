@@ -229,7 +229,7 @@ K. The system SHALL log all linking code generation, usage attempts, and validat
 
 # REQ-p70001: Sponsor Portal Application
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-D
 
 ## Rationale
 

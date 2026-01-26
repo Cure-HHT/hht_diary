@@ -1,6 +1,6 @@
-# REQ-p80001: Regulatory Compliance for Electronic Records and Data Integrity
+# REQ-p80001: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-A
 
 ## Rationale
 
@@ -18,10 +18,9 @@ C. The system SHALL satisfy the detailed audit trail and data correction require
    *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
 
 D. The system SHALL conform to FDA guidance on use of electronic records, electronic signatures, and electronic systems in clinical investigations.
-   *Source: 2024 10 FDA Guidance on electronic storaage 0 58358119fnl.pdf*
+   *Source: 2024 10 FDA Guidance on electronic storage.pdf*
 
-*End* *Regulatory Compliance for Electronic Records and Data Integrity* | **Hash**: d7a03378
-
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 7bdc5305
 ---
 
 # REQ-p80002: 21 CFR Part 11 Compliance
@@ -454,10 +453,9 @@ PC-W. Before or at the same time a person uses an electronic signature in an ele
 
 ---
 
-*Source: 2024 10 FDA Guidance on electronic storaage 0 58358119fnl.pdf*
+*Source: 2024 10 FDA Guidance on electronic storage.pdf*
 
-*End* *FDA Guidance on Electronic Records in Clinical Investigations* | **Hash**: 400e1660
-
+*End* *FDA Guidance on Electronic Records in Clinical Investigations* | **Hash**: 435fab0f
 ---
 
 # REQ-p80004: GCP Data Requirements for Audit Trails and Data Corrections

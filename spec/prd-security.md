@@ -31,7 +31,7 @@ The system protects clinical trial data through multiple layers of security, ens
 
 # REQ-p00001: Complete Multi-Sponsor Data Separation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00044-B
 
 ## Rationale
 

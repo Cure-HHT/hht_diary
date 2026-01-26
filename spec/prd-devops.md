@@ -13,7 +13,7 @@
 
 # REQ-p00048: Platform Operations and Monitoring
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-E
 
 ## Rationale
 
