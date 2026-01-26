@@ -15,7 +15,7 @@
 
 ## Executive Summary
 
-This guide provides comprehensive setup instructions for the Clinical Trial Diary development environment, including IDE configuration, tooling, and Claude Code integration for AI-assisted development with requirement traceability.
+This guide provides comprehensive setup instructions for the Diary Platform development environment, including IDE configuration, tooling, and Claude Code integration for AI-assisted development with requirement traceability.
 
 **Estimated Setup Time**: 2-4 hours for complete environment
 

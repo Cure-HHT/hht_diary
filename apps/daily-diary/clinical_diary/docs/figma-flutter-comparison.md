@@ -9,7 +9,7 @@ This is a temporary document and can be removed.
 
 ## Executive Summary
 
-This document compares the Flutter implementation of the Clinical Diary mobile app against the Figma Make design prototype. The analysis identifies missing features, visual differences, and implementation gaps that should be addressed for design fidelity.
+This document compares the Flutter implementation of the Diary mobile app against the Figma Make design prototype. The analysis identifies missing features, visual differences, and implementation gaps that should be addressed for design fidelity.
 
 **Key Findings**:
 - **2 Major Missing Features** - Questionnaire system, Survey Events

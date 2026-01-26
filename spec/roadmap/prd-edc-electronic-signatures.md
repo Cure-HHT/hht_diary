@@ -8,7 +8,7 @@
 
 ## Overview
 
-Electronic signature workflow requirements for FDA 21 CFR Part 11 compliance. Required if HHT Diary evolves into a full EDC, replacing Medidata RAVE.
+Electronic signature workflow requirements for FDA 21 CFR Part 11 compliance. Required if the Diary Platform evolves into a full EDC, replacing Medidata RAVE.
 
 ---
 

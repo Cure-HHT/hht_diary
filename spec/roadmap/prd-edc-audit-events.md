@@ -8,7 +8,7 @@
 
 ## Overview
 
-Audit event types required if HHT Diary evolves into a full Electronic Data Capture (EDC) system. Currently handled by Medidata RAVE.
+Audit event types required if the Diary Platform evolves into a full Electronic Data Capture (EDC) system. Currently handled by Medidata RAVE.
 
 ---
 

@@ -14,11 +14,11 @@
 
 ## Executive Summary
 
-This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom HHT Diary Auth service for authentication (avoiding Identity Platform for GDPR compliance), and Firestore for data storage.
+This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom Diary Auth service for authentication (avoiding Identity Platform for GDPR compliance), and Firestore for data storage.
 
 **Technology Stack**:
 - **Frontend**: Flutter Web (Dart)
-- **Authentication**: Custom HHT Diary Auth service on Cloud Run
+- **Authentication**: Custom Diary Auth service on Cloud Run
 - **Database**: Firestore (same collections as mobile app)
 - **Hosting**: Firebase Hosting or Cloud Run
 - **Password Hashing**: Argon2id (client-side before transmission)

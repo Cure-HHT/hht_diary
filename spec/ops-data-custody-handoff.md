@@ -921,7 +921,7 @@ import 'package:crypto/crypto.dart';
 Future<void> main(List<String> args) async {
   final packageDir = args.isNotEmpty ? args[0] : '.';
 
-  print('HHT Diary Data Package Verification Tool');
+  print('Diary Data Package Verification Tool');
   print('=========================================\n');
 
   final results = <String, bool>{};

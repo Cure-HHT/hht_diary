@@ -29,7 +29,7 @@ This document specifies the monitoring and observability stack for the Clinical 
 
 # REQ-o00045: Error Tracking and Monitoring
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 
@@ -69,7 +69,7 @@ Z. Error capture latency SHALL be less than 5 seconds.
 
 # REQ-o00046: Uptime Monitoring
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 
@@ -104,7 +104,7 @@ U. Alerting SHALL be configured with on-call rotation support.
 
 # REQ-o00047: Performance Monitoring
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 

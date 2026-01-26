@@ -16,7 +16,7 @@
 
 ## Executive Summary
 
-This guide covers **how to implement CDISC standards** for the Clinical Diary Platform. CDISC compliance enables regulatory submission, EDC integration, and data interoperability.
+This guide covers **how to implement CDISC standards** for the Diary Platform. CDISC compliance enables regulatory submission, EDC integration, and data interoperability.
 
 **Implementation Areas**:
 - Field-level mapping to CDASH standards

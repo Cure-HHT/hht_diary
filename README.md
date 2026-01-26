@@ -1,4 +1,4 @@
-# Clinical Trial Diary System
+# Diary Platform
 
 [![Pre-release](https://img.shields.io/badge/status-PRE--RELEASE-orange?style=for-the-badge)](https://github.com/Cure-HHT/hht_diary#-pre-release-notice)
 [![PR Validation](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml)

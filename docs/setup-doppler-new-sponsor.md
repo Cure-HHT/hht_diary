@@ -14,7 +14,7 @@
 
 ## Overview
 
-This document describes how to add a new pharmaceutical sponsor to the HHT Diary platform. Each sponsor receives:
+This document describes how to add a new pharmaceutical sponsor to the Diary Platform. Each sponsor receives:
 - Isolated Doppler project for sponsor-specific secrets
 - Entry in the core sponsor manifest
 - GitHub Actions integration for CI/CD

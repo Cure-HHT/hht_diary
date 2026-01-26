@@ -1,6 +1,6 @@
 # Database Schema Files
 
-This directory contains the complete database schema for the Clinical Trial Diary Database.
+This directory contains the complete database schema for the Diary Database.
 
 ## Quick Start
 

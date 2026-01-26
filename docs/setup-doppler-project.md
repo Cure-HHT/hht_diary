@@ -10,7 +10,7 @@
 
 ## Overview
 
-This document describes the **one-time setup** of Doppler projects and configurations for the HHT Diary platform. These steps create the foundational Doppler infrastructure that all developers and sponsors will use.
+This document describes the **one-time setup** of Doppler projects and configurations for the Diary Platform. These steps create the foundational Doppler infrastructure that all developers and sponsors will use.
 
 **After completing this setup**:
 - Developers can use [doppler-setup-new-dev.md](./doppler-setup-new-dev.md) to configure their local environments
@@ -18,7 +18,7 @@ This document describes the **one-time setup** of Doppler projects and configura
 
 ## Architecture Overview
 
-The HHT Diary platform uses a nested Doppler project structure:
+The Diary Platform uses a nested Doppler project structure:
 
 - **hht-diary-core**: Core application secrets and sponsor manifest
   - Configs: `dev`, `staging`, `production`

@@ -27,7 +27,7 @@ Operational requirements for the Clinical Trial Diary Platform ensuring FDA 21 C
 
 # REQ-o00065: Clinical Trial Diary Platform Operations
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00044
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 

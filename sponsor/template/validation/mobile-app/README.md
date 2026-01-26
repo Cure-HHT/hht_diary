@@ -1,6 +1,6 @@
 # Mobile App Operational Validation
 
-**Component**: Clinical Diary Mobile Application
+**Component**: Diary Mobile Application
 **Version**: 1.0
 **Audience**: QA/Validation Team
 **Status**: Template

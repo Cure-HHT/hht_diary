@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-The Web Diary is a browser-based companion to the Clinical Diary mobile application. It allows patients to access their diary from any computer when the mobile app is unavailable. Due to the inherently less secure nature of web access (shared computers, public terminals), the Web Diary implements strict session management and stores no data locally after logout.
+The Web Diary is a browser-based companion to the Diary mobile application. It allows patients to access their diary from any computer when the mobile app is unavailable. Due to the inherently less secure nature of web access (shared computers, public terminals), the Web Diary implements strict session management and stores no data locally after logout.
 
 **Key Differences from Mobile App**:
 - No offline capability (requires constant internet connection)
@@ -66,7 +66,7 @@ B. The system SHALL require username and password credentials created specifical
 C. The system SHALL NOT use email addresses for authentication.
 D. The system SHALL NOT use third-party authentication providers.
 E. Linking codes SHALL contain embedded patterns identifying the sponsor.
-F. The HHT Diary Auth service SHALL maintain a mapping table of linking code patterns to Sponsor Portal URLs.
+F. The Diary Auth service SHALL maintain a mapping table of linking code patterns to Sponsor Portal URLs.
 G. The mapping table SHALL be updated when sponsors deploy or decommission portals.
 H. The system SHALL NOT collect personally identifiable information during authentication.
 I. The system SHALL hash passwords before network transmission.
@@ -80,8 +80,7 @@ P. Session JWTs SHALL be scoped to the authenticated sponsor.
 Q. The system SHALL NOT store or process email addresses.
 R. The authentication system SHALL function correctly across all supported browsers.
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: 314e312d
-
+*End* *Web Diary Authentication via Linking Code* | **Hash**: f9efb798
 ---
 
 # REQ-p01044: Web Diary Session Management

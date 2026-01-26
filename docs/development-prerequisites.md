@@ -6,11 +6,11 @@
 - REQ-d00058: Secrets Management via Doppler
 - REQ-d00059: Development Tool Specifications
 
-This guide consolidates all tool installation and environment setup requirements for working on the Clinical Diary Platform. It serves as the single source of truth for development environment setup.
+This guide consolidates all tool installation and environment setup requirements for working on the Diary Platform. It serves as the single source of truth for development environment setup.
 
 ## Overview
 
-The Clinical Diary Platform requires several core tools and optional utilities depending on your role. This document covers:
+The Diary Platform requires several core tools and optional utilities depending on your role. This document covers:
 
 - Prerequisites by role (developer, QA, operations)
 - Core tools required for all developers
@@ -632,7 +632,7 @@ gcloud components list
 
 #### gcloud Configuration Management
 
-The Clinical Diary Platform uses multiple GCP projects (one per sponsor per environment). Use gcloud configurations to switch between them easily.
+The Diary Platform uses multiple GCP projects (one per sponsor per environment). Use gcloud configurations to switch between them easily.
 
 **Create configurations for each project**:
 

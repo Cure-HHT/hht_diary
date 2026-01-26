@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document describes the comprehensive security scanning strategy for the Clinical Diary Platform. Our approach uses multiple specialized tools to provide defense-in-depth security coverage across all code, dependencies, infrastructure, and containers.
+This document describes the comprehensive security scanning strategy for the Diary Platform. Our approach uses multiple specialized tools to provide defense-in-depth security coverage across all code, dependencies, infrastructure, and containers.
 
 ## Executive Summary
 

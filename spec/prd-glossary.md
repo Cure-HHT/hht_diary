@@ -464,7 +464,7 @@ TODO - It's it linking the patient id (or "participant Id" below) with the enrol
 
 **Definition**: An architectural pattern separating write operations (commands that create events) from read operations (queries that read current state).
 
-**Implementation in Clinical Diary Platform**:
+**Implementation in Diary Platform**:
 - **Write side**: Diary entries create events in Event Store
 - **Read side**: Portal queries read optimized Record State tables
 - Event Store and Record State are separate but synchronized

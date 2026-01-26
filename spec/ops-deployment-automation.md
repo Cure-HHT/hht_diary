@@ -12,7 +12,7 @@
 
 # REQ-o00043: Automated Deployment Pipeline
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 
@@ -46,7 +46,7 @@ T. The system SHALL complete production environment deployments within 20 minute
 
 # REQ-o00044: Database Migration Automation
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: Ops | **Status**: Draft | **Implements**: p00048
 
 ## Rationale
 

@@ -1,6 +1,6 @@
 # Database Test Suite
 
-Comprehensive test suite for the Clinical Trial Diary Database, covering compliance requirements, data integrity, and business logic.
+Comprehensive test suite for the Diary Database, covering compliance requirements, data integrity, and business logic.
 
 ## Overview
 

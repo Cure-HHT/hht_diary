@@ -19,7 +19,7 @@
 
 ## Steps
 
-1. Sarah opens the HHT Diary app and sees the pending HHT QoL questionnaire
+1. Sarah opens the Diary app and sees the pending HHT QoL questionnaire
 2. Sarah reads the preamble explaining the four-week recall period
 3. Sarah answers the first question about work/school interruption, noting the emphasized key phrase
 4. Sarah moves to the second question about social activities being interrupted

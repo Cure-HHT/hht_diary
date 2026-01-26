@@ -14,7 +14,7 @@
 
 ## Overview
 
-This runbook defines procedures for detecting, responding to, and resolving production incidents in the Clinical Diary Mobile Application.
+This runbook defines procedures for detecting, responding to, and resolving production incidents in the Diary Mobile Application.
 
 **Incident Severity Levels**:
 - **Critical (P0)**: Production down, data loss, security breach
