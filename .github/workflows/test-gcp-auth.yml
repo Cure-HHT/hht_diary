@@ -4,18 +4,29 @@
 #   REQ-o00043: Automated Deployment Pipeline
 #
 # This workflow tests GCP authentication using Workload Identity Federation
-# Triggered manually for testing purposes
+# Triggered manually via workflow_dispatch or called from build-portal-server.yml
+
+name: 'Test GCP Authentication with Workload Identity Federation'
 
 on:
   workflow_dispatch:
-
-name: 'Test GCP Authentication with Workload Identity Federation'
+    inputs:
+      image_path:
+        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      image_path:
+        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
+        required: true
+        type: string
 
 env:
   GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
 
 jobs:
-  deploy:
+  test-gcp-auth:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -33,6 +44,7 @@ jobs:
 
       - name: 'Test the Connection'
         run: |
+          echo "Testing GCP authentication for image: ${{ inputs.image_path }}"
           gcloud config set project ${{ vars.GCP_PROJECT_ID }}
           gcloud auth list
           gcloud artifacts docker images list ${{ env.GCP_REPO_PATH }}
