@@ -1,9 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00031: Deactivate User Account
+//   REQ-CAL-p00066: Capture deactivation reason
+//   REQ-CAL-p00067: Active/Inactive user tabs
 //
 // Widget tests for UserManagementTab
-// Tests search/filter functionality and edit button visibility
+// Tests search/filter, edit button visibility, tabs, and deactivation dialog
 
 import 'dart:convert';
 
@@ -53,6 +56,9 @@ final _testUsers = [
     'linking_code': null,
     'activation_code': null,
     'created_at': '2024-01-03T00:00:00Z',
+    'status_change_reason': 'Employee left the organization',
+    'status_changed_at': '2024-06-15T10:30:00Z',
+    'status_changed_by': 'user-001',
   },
 ];
 
@@ -160,11 +166,13 @@ void main() {
       expect(find.text('Portal Users'), findsOneWidget);
     });
 
-    testWidgets('displays user names in the table', (tester) async {
+    testWidgets('displays active user names in Active tab', (tester) async {
       await _pumpUserManagementTab(tester);
+      // Active Users tab is default — shows Alice and Bob
       expect(find.text('Alice Admin'), findsOneWidget);
       expect(find.text('Bob Investigator'), findsOneWidget);
-      expect(find.text('Carol Auditor'), findsOneWidget);
+      // Carol is revoked — not visible on Active tab
+      expect(find.text('Carol Auditor'), findsNothing);
     });
 
     testWidgets('shows search field with hint text', (tester) async {
@@ -179,10 +187,9 @@ void main() {
     testWidgets('search filters users by name', (tester) async {
       await _pumpUserManagementTab(tester);
 
-      // All 3 users visible initially
+      // Active tab: Alice and Bob visible initially
       expect(find.text('Alice Admin'), findsOneWidget);
       expect(find.text('Bob Investigator'), findsOneWidget);
-      expect(find.text('Carol Auditor'), findsOneWidget);
 
       // Type "Alice" in the search field
       await tester.enterText(
@@ -194,7 +201,6 @@ void main() {
       // Only Alice should remain
       expect(find.text('Alice Admin'), findsOneWidget);
       expect(find.text('Bob Investigator'), findsNothing);
-      expect(find.text('Carol Auditor'), findsNothing);
     });
 
     testWidgets('search filters users by email', (tester) async {
@@ -216,12 +222,12 @@ void main() {
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Search by name or email'),
-        'CAROL',
+        'ALICE',
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Carol Auditor'), findsOneWidget);
-      expect(find.text('Alice Admin'), findsNothing);
+      expect(find.text('Alice Admin'), findsOneWidget);
+      expect(find.text('Bob Investigator'), findsNothing);
     });
 
     testWidgets('shows "no match" message when search has no results', (
@@ -258,10 +264,9 @@ void main() {
       await tester.tap(find.byIcon(Icons.clear));
       await tester.pumpAndSettle();
 
-      // All users visible again
+      // Active tab users visible again
       expect(find.text('Alice Admin'), findsOneWidget);
       expect(find.text('Bob Investigator'), findsOneWidget);
-      expect(find.text('Carol Auditor'), findsOneWidget);
     });
 
     testWidgets('edit button uses primary colored filled icon', (tester) async {
@@ -277,10 +282,12 @@ void main() {
       expect(iconWidget.color, equals(colorScheme.primary));
     });
 
-    testWidgets('revoked users do not show edit button', (tester) async {
+    testWidgets('Active tab shows edit buttons for active users only', (
+      tester,
+    ) async {
       await _pumpUserManagementTab(tester);
 
-      // Carol is revoked — only Alice + Bob get edit icons
+      // Active tab: Alice + Bob each get edit icons
       expect(find.byIcon(Icons.edit), findsNWidgets(2));
     });
 
@@ -291,47 +298,59 @@ void main() {
       expect(find.byIcon(Icons.refresh), findsOneWidget);
     });
 
-    testWidgets('active non-pending users show revoke button', (tester) async {
-      await _pumpUserManagementTab(tester);
-
-      // Alice and Bob are both active (non-pending) → both show block icon
-      expect(find.byIcon(Icons.block), findsNWidgets(2));
-    });
-
-    testWidgets('revoked users show reactivate button', (tester) async {
-      await _pumpUserManagementTab(tester);
-
-      // Carol is revoked → shows check_circle_outline for reactivate
-      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
-    });
-
-    testWidgets('shows role badges with sponsor display names', (tester) async {
-      await _pumpUserManagementTab(tester);
-
-      // Role mappings: Admin→Administrator, Study Coordinator→Investigator, CRA→Auditor
-      expect(find.text('Admin'), findsOneWidget); // Alice
-      expect(find.text('Study Coordinator'), findsOneWidget); // Bob
-      expect(find.text('CRA'), findsOneWidget); // Carol
-    });
-
-    testWidgets('investigator shows site name, others show All sites', (
+    testWidgets('active non-pending users show deactivate button', (
       tester,
     ) async {
       await _pumpUserManagementTab(tester);
 
-      // Bob is Investigator with 1 site → shows site name
-      expect(find.text('Site One'), findsOneWidget);
-      // Alice is Administrator → shows "All sites"
-      // Carol is Auditor → shows "All sites"
-      expect(find.text('All sites'), findsNWidgets(2));
+      // Active tab: Alice and Bob are both active (non-pending) → both show block icon
+      expect(find.byIcon(Icons.block), findsNWidgets(2));
     });
 
-    testWidgets('shows status badges for all users', (tester) async {
+    testWidgets('Inactive tab shows reactivate button for revoked users', (
+      tester,
+    ) async {
       await _pumpUserManagementTab(tester);
 
-      // Alice and Bob are active, Carol is revoked (shown as "Inactive")
+      // Switch to Inactive Users tab
+      await tester.tap(find.text('Inactive Users'));
+      await tester.pumpAndSettle();
+
+      // Carol is revoked → shows check_circle_outline for reactivate
+      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
+      expect(find.text('Carol Auditor'), findsOneWidget);
+    });
+
+    testWidgets('shows role badges with sponsor display names on Active tab', (
+      tester,
+    ) async {
+      await _pumpUserManagementTab(tester);
+
+      // Active tab: Admin→Administrator (Alice), Study Coordinator→Investigator (Bob)
+      expect(find.text('Admin'), findsOneWidget); // Alice
+      expect(find.text('Study Coordinator'), findsOneWidget); // Bob
+      // Carol (CRA) is on Inactive tab, not visible
+      expect(find.text('CRA'), findsNothing);
+    });
+
+    testWidgets('investigator shows site name, admin shows All sites', (
+      tester,
+    ) async {
+      await _pumpUserManagementTab(tester);
+
+      // Active tab only: Bob is Investigator with 1 site → shows site name
+      expect(find.text('Site One'), findsOneWidget);
+      // Alice is Administrator → shows "All sites"
+      expect(find.text('All sites'), findsOneWidget);
+    });
+
+    testWidgets('Active tab shows Active status badges', (tester) async {
+      await _pumpUserManagementTab(tester);
+
+      // Active tab: Alice and Bob are active
       expect(find.text('Active'), findsNWidgets(2));
-      expect(find.text('Inactive'), findsOneWidget);
+      // Carol is on Inactive tab
+      expect(find.text('Inactive'), findsNothing);
     });
   });
 
@@ -1192,6 +1211,344 @@ void main() {
       });
       expect(mapping.sponsorName, equals('Study Coordinator'));
       expect(mapping.systemRole, equals('Investigator'));
+    });
+  });
+
+  // REQ-CAL-p00067: Active/Inactive tabs
+  group('Active/Inactive Tabs', () {
+    testWidgets('shows Active Users and Inactive Users tabs', (tester) async {
+      await _pumpUserManagementTab(tester);
+      expect(find.text('Active Users'), findsOneWidget);
+      expect(find.text('Inactive Users'), findsOneWidget);
+    });
+
+    testWidgets('Active Users tab shows correct count badge', (tester) async {
+      await _pumpUserManagementTab(tester);
+      // 2 active users (Alice + Bob)
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('Inactive Users tab shows correct count badge', (tester) async {
+      await _pumpUserManagementTab(tester);
+      // 1 inactive user (Carol)
+      expect(find.text('1'), findsOneWidget);
+    });
+
+    testWidgets('switching to Inactive tab shows revoked users', (
+      tester,
+    ) async {
+      await _pumpUserManagementTab(tester);
+
+      // Initially on Active tab — Carol not visible
+      expect(find.text('Carol Auditor'), findsNothing);
+
+      // Switch to Inactive tab
+      await tester.tap(find.text('Inactive Users'));
+      await tester.pumpAndSettle();
+
+      // Carol visible, Alice and Bob not visible
+      expect(find.text('Carol Auditor'), findsOneWidget);
+      expect(find.text('Alice Admin'), findsNothing);
+      expect(find.text('Bob Investigator'), findsNothing);
+    });
+
+    testWidgets('search works across Inactive tab', (tester) async {
+      await _pumpUserManagementTab(tester);
+
+      // Switch to Inactive tab
+      await tester.tap(find.text('Inactive Users'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Carol Auditor'), findsOneWidget);
+
+      // Search for "nonexistent"
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Search by name or email'),
+        'nonexistent',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Carol Auditor'), findsNothing);
+    });
+  });
+
+  // REQ-CAL-p00031: DeactivateUserDialog
+  group('DeactivateUserDialog', () {
+    Future<void> pumpDeactivateDialog(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) =>
+                        const DeactivateUserDialog(userName: 'Lisa Test'),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows dialog title and user name', (tester) async {
+      await pumpDeactivateDialog(tester);
+      expect(find.text('Deactivate User Account'), findsOneWidget);
+      expect(find.textContaining('Lisa Test'), findsOneWidget);
+    });
+
+    testWidgets('shows consequences list', (tester) async {
+      await pumpDeactivateDialog(tester);
+      expect(
+        find.textContaining('Terminate all active sessions'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Prevent the user from logging in'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Move the user to the Inactive Users tab'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('can be reversed'), findsOneWidget);
+    });
+
+    testWidgets('shows reason text field', (tester) async {
+      await pumpDeactivateDialog(tester);
+      expect(
+        find.widgetWithText(TextField, 'Reason for deactivation *'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Deactivate button disabled when reason is empty', (
+      tester,
+    ) async {
+      await pumpDeactivateDialog(tester);
+
+      // Find the Deactivate button
+      final deactivateButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Deactivate'),
+      );
+      expect(deactivateButton.onPressed, isNull);
+    });
+
+    testWidgets('Deactivate button enabled when reason is entered', (
+      tester,
+    ) async {
+      await pumpDeactivateDialog(tester);
+
+      // Enter a reason
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Reason for deactivation *'),
+        'Employee left the company',
+      );
+      await tester.pumpAndSettle();
+
+      // Deactivate button should now be enabled
+      final deactivateButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Deactivate'),
+      );
+      expect(deactivateButton.onPressed, isNotNull);
+    });
+
+    testWidgets('Cancel button closes dialog without result', (tester) async {
+      await pumpDeactivateDialog(tester);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Dialog should be dismissed
+      expect(find.text('Deactivate User Account'), findsNothing);
+    });
+  });
+
+  // REQ-CAL-p00031: UserInfoDialog shows deactivation details
+  group('UserInfoDialog - deactivation info', () {
+    testWidgets('shows deactivation details for revoked user', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: const {
+                'id': 'u3',
+                'name': 'Deactivated User',
+                'email': 'deactivated@example.com',
+                'status': 'revoked',
+                'roles': ['Auditor'],
+                'sites': <dynamic>[],
+                'status_change_reason': 'Employee left the organization',
+                'status_changed_at': '2024-06-15T10:30:00Z',
+                'status_changed_by': 'admin-user-id',
+              },
+              sites: const [],
+              roleMappings: const [],
+              toSponsorName: (role) => role,
+              onEdit: () {},
+              onDeactivate: () {},
+              onReactivate: () {},
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+
+      // Shows deactivation details section
+      expect(find.text('Deactivation Details'), findsOneWidget);
+      expect(find.text('Reason'), findsOneWidget);
+      expect(find.text('Employee left the organization'), findsOneWidget);
+      expect(find.text('Deactivated on'), findsOneWidget);
+      expect(find.text('2024-06-15T10:30:00Z'), findsOneWidget);
+    });
+
+    testWidgets('shows Reactivate button for revoked user', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: const {
+                'id': 'u3',
+                'name': 'Revoked User',
+                'email': 'revoked@example.com',
+                'status': 'revoked',
+                'roles': ['Auditor'],
+                'sites': <dynamic>[],
+                'status_change_reason': 'Left company',
+                'status_changed_at': '2024-06-15T10:30:00Z',
+                'status_changed_by': null,
+              },
+              sites: const [],
+              roleMappings: const [],
+              toSponsorName: (role) => role,
+              onEdit: () {},
+              onDeactivate: () {},
+              onReactivate: () {},
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+
+      // Should show Reactivate button, not Edit/Deactivate
+      expect(find.text('Reactivate User'), findsOneWidget);
+      expect(find.text('Edit User'), findsNothing);
+      expect(find.text('Deactivate User'), findsNothing);
+    });
+
+    testWidgets('hides deactivation details for active user', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: const {
+                'id': 'u1',
+                'name': 'Active User',
+                'email': 'active@example.com',
+                'status': 'active',
+                'roles': ['Administrator'],
+                'sites': <dynamic>[],
+              },
+              sites: const [],
+              roleMappings: const [],
+              toSponsorName: (role) => role,
+              onEdit: () {},
+              onDeactivate: () {},
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+
+      // No deactivation section for active user
+      expect(find.text('Deactivation Details'), findsNothing);
+      expect(find.text('Reactivate User'), findsNothing);
     });
   });
 }

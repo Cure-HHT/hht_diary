@@ -5,7 +5,10 @@
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-CAL-p00029: Create User Account (multi-select roles, site requirements)
 //   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00031: Deactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
+//   REQ-CAL-p00066: Capture deactivation reason
+//   REQ-CAL-p00067: Active/Inactive user tabs
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -46,7 +49,8 @@ class SponsorRoleMapping {
   }
 }
 
-class _UserManagementTabState extends State<UserManagementTab> {
+class _UserManagementTabState extends State<UserManagementTab>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _sites = [];
   List<SponsorRoleMapping> _roleMappings = [];
@@ -55,6 +59,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
   late ApiClient _apiClient;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  late final TabController _tabController;
 
   /// Convert system role to sponsor display name
   String _toSponsorName(String systemRole) {
@@ -69,6 +74,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _apiClient = widget.apiClient ?? ApiClient(context.read<AuthService>());
       _loadData();
@@ -77,6 +83,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -167,44 +174,25 @@ class _UserManagementTabState extends State<UserManagementTab> {
     }
   }
 
-  Future<void> _revokeUser(String userId, String userName) async {
-    final confirm = await showDialog<bool>(
+  Future<void> _deactivateUser(String userId, String userName) async {
+    final reason = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Revoke Access'),
-        content: Text(
-          'Are you sure you want to revoke access for "$userName"? '
-          'They will not be able to log in until reactivated.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Revoke'),
-          ),
-        ],
-      ),
+      builder: (context) => DeactivateUserDialog(userName: userName),
     );
 
-    if (confirm == true && mounted) {
+    if (reason != null && reason.isNotEmpty && mounted) {
       try {
         final response = await _apiClient.patch(
           '/api/v1/portal/users/$userId',
-          {'status': 'revoked'},
+          {'status': 'revoked', 'reason': reason},
         );
 
         if (!mounted) return;
 
         if (response.isSuccess) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('User access revoked')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User account deactivated')),
+          );
           _loadData();
         } else {
           ScaffoldMessenger.of(
@@ -213,9 +201,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error revoking user: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deactivating user: $e')),
+          );
         }
       }
     }
@@ -287,7 +275,11 @@ class _UserManagementTabState extends State<UserManagementTab> {
         },
         onDeactivate: () {
           Navigator.pop(context);
-          _revokeUser(user['id'], user['name'] ?? 'this user');
+          _deactivateUser(user['id'], user['name'] ?? 'this user');
+        },
+        onReactivate: () {
+          Navigator.pop(context);
+          _reactivateUser(user['id'], user['name'] ?? 'this user');
         },
         apiClient: _apiClient,
       ),
@@ -310,6 +302,165 @@ class _UserManagementTabState extends State<UserManagementTab> {
     if (result == true) {
       _loadData();
     }
+  }
+
+  /// Filter users by search query and status category
+  List<Map<String, dynamic>> _filterUsers({required bool showActive}) {
+    return _users.where((user) {
+      final status = user['status'] as String? ?? 'pending';
+      // Active tab: active + pending; Inactive tab: revoked
+      final matchesTab = showActive
+          ? (status == 'active' || status == 'pending')
+          : (status == 'revoked');
+      if (!matchesTab) return false;
+
+      if (_searchQuery.isEmpty) return true;
+      final query = _searchQuery.toLowerCase();
+      final name = (user['name'] as String? ?? '').toLowerCase();
+      final email = (user['email'] as String? ?? '').toLowerCase();
+      return name.contains(query) || email.contains(query);
+    }).toList();
+  }
+
+  Widget _buildUserTable(
+    List<Map<String, dynamic>> users,
+    ColorScheme colorScheme, {
+    required bool isActiveTab,
+  }) {
+    if (users.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            _searchQuery.isNotEmpty
+                ? 'No users match "$_searchQuery".'
+                : isActiveTab
+                ? 'No active users found. Create the first user to get started.'
+                : 'No inactive users.',
+          ),
+        ),
+      );
+    }
+
+    return DataTable(
+      showCheckboxColumn: false,
+      columns: const [
+        DataColumn(label: Text('Name')),
+        DataColumn(label: Text('Email')),
+        DataColumn(label: Text('Roles')),
+        DataColumn(label: Text('Sites')),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Actions')),
+      ],
+      rows: users.map((user) {
+        final status = user['status'] as String? ?? 'pending';
+        final isPending = status == 'pending';
+        final isRevoked = status == 'revoked';
+
+        // Get roles as list (system names from backend)
+        final systemRoles = <String>[];
+        if (user['roles'] != null) {
+          systemRoles.addAll((user['roles'] as List).cast<String>());
+        } else if (user['role'] != null) {
+          systemRoles.add(user['role'] as String);
+        }
+
+        // Check if user has investigator role for sites display
+        final hasInvestigatorRole = systemRoles.contains('Investigator');
+
+        // Get sites
+        final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+        final sitesDisplay = sitesList.isEmpty
+            ? 'No sites'
+            : sitesList.length == 1
+            ? (sitesList.first['site_name'] ?? 'Unknown')
+            : '${sitesList.length} sites assigned';
+
+        return DataRow(
+          onSelectChanged: (_) => _showUserInfo(user),
+          cells: [
+            DataCell(Text(user['name'] ?? 'N/A')),
+            DataCell(Text(user['email'] ?? '')),
+            DataCell(
+              RoleBadgeList(
+                roles: systemRoles
+                    .map(
+                      (r) => RoleDisplayData(
+                        displayName: _toSponsorName(r),
+                        systemRole: r,
+                      ),
+                    )
+                    .toList(),
+                compact: true,
+              ),
+            ),
+            DataCell(Text(hasInvestigatorRole ? sitesDisplay : 'All sites')),
+            DataCell(StatusBadge.fromString(status, compact: true)),
+            DataCell(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isRevoked)
+                    IconButton(
+                      icon: Icon(Icons.edit, color: colorScheme.primary),
+                      onPressed: () => _editUser(user),
+                      tooltip: 'Edit User',
+                    ),
+                  if (!isRevoked && !isPending)
+                    IconButton(
+                      icon: Icon(Icons.block, color: colorScheme.error),
+                      onPressed: () => _deactivateUser(
+                        user['id'],
+                        user['name'] ?? 'this user',
+                      ),
+                      tooltip: 'Deactivate',
+                    ),
+                  if (isRevoked)
+                    IconButton(
+                      icon: Icon(
+                        Icons.check_circle_outline,
+                        color: colorScheme.primary,
+                      ),
+                      onPressed: () => _reactivateUser(
+                        user['id'],
+                        user['name'] ?? 'this user',
+                      ),
+                      tooltip: 'Reactivate',
+                    ),
+                  if (isPending && user['activation_code'] != null)
+                    IconButton(
+                      icon: const Icon(Icons.vpn_key),
+                      onPressed: () => _showActivationCode(
+                        user['name'] ?? 'User',
+                        user['activation_code'],
+                      ),
+                      tooltip: 'Show Activation Code',
+                    ),
+                  if (isPending && user['activation_code'] == null)
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: () => _regenerateActivationCode(
+                        user['id'],
+                        user['name'] ?? 'User',
+                      ),
+                      tooltip: 'Generate Activation Code',
+                    ),
+                  if (user['linking_code'] != null)
+                    IconButton(
+                      icon: const Icon(Icons.link),
+                      onPressed: () => _showLinkingCode(
+                        user['name'] ?? 'User',
+                        user['linking_code'],
+                      ),
+                      tooltip: 'Show Linking Code',
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
   }
 
   @override
@@ -340,15 +491,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
       );
     }
 
-    // Filter users by search query (name or email, case-insensitive)
-    final filteredUsers = _searchQuery.isEmpty
-        ? _users
-        : _users.where((user) {
-            final query = _searchQuery.toLowerCase();
-            final name = (user['name'] as String? ?? '').toLowerCase();
-            final email = (user['email'] as String? ?? '').toLowerCase();
-            return name.contains(query) || email.contains(query);
-          }).toList();
+    // Compute tab counts for badges (REQ-CAL-p00067)
+    final activeUsers = _filterUsers(showActive: true);
+    final inactiveUsers = _filterUsers(showActive: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -407,166 +552,97 @@ class _UserManagementTabState extends State<UserManagementTab> {
             ],
           ),
         ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              child: filteredUsers.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Center(
-                        child: Text(
-                          _searchQuery.isNotEmpty
-                              ? 'No users match "$_searchQuery".'
-                              : 'No users found. Create the first user to get started.',
-                        ),
-                      ),
-                    )
-                  : DataTable(
-                      showCheckboxColumn: false,
-                      columns: const [
-                        DataColumn(label: Text('Name')),
-                        DataColumn(label: Text('Email')),
-                        DataColumn(label: Text('Roles')),
-                        DataColumn(label: Text('Sites')),
-                        DataColumn(label: Text('Status')),
-                        DataColumn(label: Text('Actions')),
-                      ],
-                      rows: filteredUsers.map((user) {
-                        final status = user['status'] as String? ?? 'pending';
-                        final isPending = status == 'pending';
-                        final isRevoked = status == 'revoked';
-
-                        // Get roles as list (system names from backend)
-                        final systemRoles = <String>[];
-                        if (user['roles'] != null) {
-                          systemRoles.addAll(
-                            (user['roles'] as List).cast<String>(),
-                          );
-                        } else if (user['role'] != null) {
-                          systemRoles.add(user['role'] as String);
-                        }
-
-                        // Check if user has investigator role for sites display
-                        final hasInvestigatorRole = systemRoles.contains(
-                          'Investigator',
-                        );
-
-                        // Get sites
-                        final sitesList =
-                            (user['sites'] as List<dynamic>?) ?? [];
-                        final sitesDisplay = sitesList.isEmpty
-                            ? 'No sites'
-                            : sitesList.length == 1
-                            ? (sitesList.first['site_name'] ?? 'Unknown')
-                            : '${sitesList.length} sites assigned';
-
-                        return DataRow(
-                          onSelectChanged: (_) => _showUserInfo(user),
-                          cells: [
-                            DataCell(Text(user['name'] ?? 'N/A')),
-                            DataCell(Text(user['email'] ?? '')),
-                            DataCell(
-                              // Pair sponsor display name with system role
-                              // so badge gets correct color from system role
-                              // and shows sponsor name as text
-                              RoleBadgeList(
-                                roles: systemRoles
-                                    .map(
-                                      (r) => RoleDisplayData(
-                                        displayName: _toSponsorName(r),
-                                        systemRole: r,
-                                      ),
-                                    )
-                                    .toList(),
-                                compact: true,
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                hasInvestigatorRole
-                                    ? sitesDisplay
-                                    : 'All sites',
-                              ),
-                            ),
-                            DataCell(
-                              StatusBadge.fromString(status, compact: true),
-                            ),
-                            DataCell(
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (!isRevoked)
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.edit,
-                                        color: colorScheme.primary,
-                                      ),
-                                      onPressed: () => _editUser(user),
-                                      tooltip: 'Edit User',
-                                    ),
-                                  if (!isRevoked && !isPending)
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.block,
-                                        color: colorScheme.error,
-                                      ),
-                                      onPressed: () => _revokeUser(
-                                        user['id'],
-                                        user['name'] ?? 'this user',
-                                      ),
-                                      tooltip: 'Revoke Access',
-                                    ),
-                                  if (isRevoked)
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.check_circle_outline,
-                                        color: colorScheme.primary,
-                                      ),
-                                      onPressed: () => _reactivateUser(
-                                        user['id'],
-                                        user['name'] ?? 'this user',
-                                      ),
-                                      tooltip: 'Reactivate',
-                                    ),
-                                  if (isPending &&
-                                      user['activation_code'] != null)
-                                    IconButton(
-                                      icon: const Icon(Icons.vpn_key),
-                                      onPressed: () => _showActivationCode(
-                                        user['name'] ?? 'User',
-                                        user['activation_code'],
-                                      ),
-                                      tooltip: 'Show Activation Code',
-                                    ),
-                                  if (isPending &&
-                                      user['activation_code'] == null)
-                                    IconButton(
-                                      icon: const Icon(Icons.refresh),
-                                      onPressed: () =>
-                                          _regenerateActivationCode(
-                                            user['id'],
-                                            user['name'] ?? 'User',
-                                          ),
-                                      tooltip: 'Generate Activation Code',
-                                    ),
-                                  if (user['linking_code'] != null)
-                                    IconButton(
-                                      icon: const Icon(Icons.link),
-                                      onPressed: () => _showLinkingCode(
-                                        user['name'] ?? 'User',
-                                        user['linking_code'],
-                                      ),
-                                      tooltip: 'Show Linking Code',
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
+        // Tab bar for Active / Inactive users (REQ-CAL-p00067)
+        TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Active Users'),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
                     ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${activeUsers.length}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Inactive Users'),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${inactiveUsers.length}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              // Active Users tab
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Card(
+                  child: _buildUserTable(
+                    activeUsers,
+                    colorScheme,
+                    isActiveTab: true,
+                  ),
+                ),
+              ),
+              // Inactive Users tab
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Card(
+                  child: _buildUserTable(
+                    inactiveUsers,
+                    colorScheme,
+                    isActiveTab: false,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1113,9 +1189,11 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 
 /// Read-only dialog showing user details, roles, and assigned sites.
 /// Provides actions to edit or deactivate the user.
+/// For revoked users, shows deactivation reason and reactivate option.
 ///
 /// IMPLEMENTS REQUIREMENTS:
 ///   REQ-CAL-p00030: Edit User Account
+///   REQ-CAL-p00031: Deactivate User Account
 ///   REQ-CAL-p00034: Site Visibility and Assignment
 class UserInfoDialog extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -1124,6 +1202,7 @@ class UserInfoDialog extends StatelessWidget {
   final String Function(String) toSponsorName;
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
+  final VoidCallback? onReactivate;
   final ApiClient apiClient;
 
   const UserInfoDialog({
@@ -1134,6 +1213,7 @@ class UserInfoDialog extends StatelessWidget {
     required this.toSponsorName,
     required this.onEdit,
     required this.onDeactivate,
+    this.onReactivate,
     required this.apiClient,
   });
 
@@ -1144,6 +1224,11 @@ class UserInfoDialog extends StatelessWidget {
 
     final status = user['status'] as String? ?? 'pending';
     final isRevoked = status == 'revoked';
+
+    // Deactivation details (REQ-CAL-p00031)
+    final statusChangeReason = user['status_change_reason'] as String?;
+    final statusChangedAt = user['status_changed_at'] as String?;
+    final statusChangedBy = user['status_changed_by'] as String?;
 
     // Get roles (system names for RoleBadge compatibility)
     final systemRoles = <String>[];
@@ -1262,6 +1347,69 @@ class UserInfoDialog extends StatelessWidget {
                     ),
                   );
                 }),
+
+              // Deactivation info section (REQ-CAL-p00031)
+              if (isRevoked) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Deactivation Details',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                    border: Border.all(
+                      color: colorScheme.error.withValues(alpha: 0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (statusChangeReason != null &&
+                          statusChangeReason.isNotEmpty) ...[
+                        Text(
+                          'Reason',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(statusChangeReason),
+                        const SizedBox(height: 8),
+                      ],
+                      if (statusChangedAt != null) ...[
+                        Text(
+                          'Deactivated on',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(statusChangedAt),
+                        const SizedBox(height: 8),
+                      ],
+                      if (statusChangedBy != null) ...[
+                        Text(
+                          'Deactivated by',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(statusChangedBy),
+                      ],
+                      if (statusChangeReason == null && statusChangedAt == null)
+                        Text(
+                          'No deactivation details available.',
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1272,6 +1420,11 @@ class UserInfoDialog extends StatelessWidget {
             style: TextButton.styleFrom(foregroundColor: colorScheme.error),
             onPressed: onDeactivate,
             child: const Text('Deactivate User'),
+          ),
+        if (isRevoked && onReactivate != null)
+          OutlinedButton(
+            onPressed: onReactivate,
+            child: const Text('Reactivate User'),
           ),
         if (!isRevoked)
           OutlinedButton(onPressed: onEdit, child: const Text('Edit User')),
@@ -1814,6 +1967,150 @@ class _EditUserDialogState extends State<EditUserDialog> {
               : const Text('Save Changes'),
         ),
       ],
+    );
+  }
+}
+
+/// Dialog for deactivating a user account (REQ-CAL-p00031).
+/// Shows consequences of deactivation and requires a reason.
+/// Returns the reason string if confirmed, null if cancelled.
+class DeactivateUserDialog extends StatefulWidget {
+  final String userName;
+
+  const DeactivateUserDialog({super.key, required this.userName});
+
+  @override
+  State<DeactivateUserDialog> createState() => _DeactivateUserDialogState();
+}
+
+class _DeactivateUserDialogState extends State<DeactivateUserDialog> {
+  final _reasonController = TextEditingController();
+  String _reason = '';
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.person_off, color: colorScheme.error),
+          const SizedBox(width: 8),
+          const Text('Deactivate User Account'),
+        ],
+      ),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You are about to deactivate the account for "${widget.userName}".',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+            // Consequences warning
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                border: Border.all(
+                  color: colorScheme.error.withValues(alpha: 0.3),
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'This will:',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildConsequence(
+                    Icons.cancel_outlined,
+                    'Terminate all active sessions immediately',
+                    colorScheme,
+                  ),
+                  _buildConsequence(
+                    Icons.lock_outline,
+                    'Prevent the user from logging in',
+                    colorScheme,
+                  ),
+                  _buildConsequence(
+                    Icons.swap_horiz,
+                    'Move the user to the Inactive Users tab',
+                    colorScheme,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This action can be reversed by reactivating the user.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Reason field (required)
+            TextField(
+              controller: _reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Reason for deactivation *',
+                hintText: 'e.g., Employee left the organization',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+              onChanged: (value) {
+                setState(() {
+                  _reason = value.trim();
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+          onPressed: _reason.isEmpty
+              ? null
+              : () => Navigator.pop(context, _reason),
+          child: const Text('Deactivate'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConsequence(
+    IconData icon,
+    String text,
+    ColorScheme colorScheme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
     );
   }
 }
