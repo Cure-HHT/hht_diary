@@ -5,7 +5,7 @@ This file provides a complete index of all requirements.
 ## Product Requirements (PRD)
 
 | ID | Title | File | Hash |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | REQ-p00001 | Complete Multi-Sponsor Data Separation | prd-security.md | 081d1dc6 |
 | REQ-p00002 | Multi-Factor Authentication for Staff | prd-security.md | 0c06ec29 |
 | REQ-p00003 | Separate Database Per Sponsor | prd-database.md | bfb45afa |
@@ -13,7 +13,7 @@ This file provides a complete index of all requirements.
 | REQ-p00005 | Role-Based Access Control | prd-security-RBAC.md | 83122106 |
 | REQ-p00006 | Offline-First Data Entry | prd-diary-app.md | 438d5f2d |
 | REQ-p00007 | Automatic Sponsor Configuration | prd-diary-app.md | 5498f554 |
-| REQ-p00008 | Single Mobile App for All Sponsors | prd-architecture-multi-sponsor.md | ea74c9ac |
+| REQ-p00008 | Single Mobile App for All Sponsors | prd-architecture-multi-sponsor.md | 6be0ee0f |
 | REQ-p00009 | Sponsor-Specific Portals | prd-architecture-multi-sponsor.md | f3149879 |
 | REQ-p00010 | FDA 21 CFR Part 11 Compliance | prd-clinical-trials.md | 192ec8c7 |
 | REQ-p00011 | ALCOA+ Data Integrity Principles | prd-clinical-trials.md | 75efc558 |
@@ -35,7 +35,7 @@ This file provides a complete index of all requirements.
 | REQ-p00039 | Administrator Access with Audit Trail | prd-security-RLS.md | 4672a9dc |
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 06025d8a |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | f0a37c7e |
-| REQ-p00043 | Diary Mobile Application | prd-diary-app.md | aedbfb5a |
+| REQ-p00043 | Diary Mobile Application | prd-diary-app.md | 85554ec9 |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | a72852cf |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | 2e588136 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | cf938097 |
@@ -85,7 +85,7 @@ This file provides a complete index of all requirements.
 | REQ-p01040 | Calendar Visual Indicators for Entry Status | prd-diary-app.md | ae8a494b |
 | REQ-p01041 | Open Source Licensing | prd-system.md | 85c600f4 |
 | REQ-p01042 | Web Diary Application | prd-diary-web.md | 3a7e056b |
-| REQ-p01043 | Web Diary Authentication via Linking Code | prd-diary-web.md | 314e312d |
+| REQ-p01043 | Web Diary Authentication via Linking Code | prd-diary-web.md | f9efb798 |
 | REQ-p01044 | Web Diary Session Management | prd-diary-web.md | e1565e20 |
 | REQ-p01045 | Web Diary Privacy Protection | prd-diary-web.md | 3f9fee14 |
 | REQ-p01046 | Web Diary Account Creation | prd-diary-web.md | 6f862e69 |
@@ -101,7 +101,7 @@ This file provides a complete index of all requirements.
 | REQ-p01056 | Confidentiality Sufficiency | prd-architecture-multi-sponsor.md | f340c7b7 |
 | REQ-p01057 | Mono Repository with Sponsor Repositories | prd-architecture-multi-sponsor.md | 06c463fb |
 | REQ-p01058 | Unified App Deployment | prd-architecture-multi-sponsor.md | 97c79ca1 |
-| REQ-p01059 | Customization Policy | prd-architecture-multi-sponsor.md | 0d180219 |
+| REQ-p01059 | Customization Policy | prd-architecture-multi-sponsor.md | 1b9d5965 |
 | REQ-p01060 | UX Changes During Trials | prd-architecture-multi-sponsor.md | a93a58d7 |
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
@@ -113,7 +113,7 @@ This file provides a complete index of all requirements.
 | REQ-p01069 | Daily Epistaxis Record User Interface | prd-questionnaire-epistaxis.md | 3cd9c967 |
 | REQ-p01070 | NOSE HHT User Interface | prd-questionnaire-nose-hht.md | 1f1f5598 |
 | REQ-p01071 | HHT Quality of Life User Interface | prd-questionnaire-qol.md | 97122b72 |
-| REQ-p70000 | Local Data Storage | prd-diary-app.md | af5c0a9d |
+| REQ-p70000 | Local Data Storage | prd-diary-app.md | 86fa6920 |
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
@@ -126,7 +126,7 @@ This file provides a complete index of all requirements.
 ## Operations Requirements (OPS)
 
 | ID | Title | File | Hash |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | REQ-o00001 | Separate GCP Projects Per Sponsor | ops-deployment.md | 7f9aaf0b |
 | REQ-o00002 | Environment-Specific Configuration Management | ops-deployment.md | 720a8e57 |
 | REQ-o00003 | GCP Project Provisioning Per Sponsor | ops-database-setup.md | 7110fea1 |
@@ -191,7 +191,7 @@ This file provides a complete index of all requirements.
 ## Development Requirements (DEV)
 
 | ID | Title | File | Hash |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | REQ-d00001 | Sponsor-Specific Configuration Loading | dev-configuration.md | 5950765d |
 | REQ-d00002 | Pre-Build Configuration Validation | dev-configuration.md | c7f7afe9 |
 | REQ-d00003 | Identity Platform Configuration Per Sponsor | dev-security.md | 12a3c3c0 |
