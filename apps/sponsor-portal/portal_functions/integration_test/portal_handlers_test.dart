@@ -404,6 +404,64 @@ void main() {
     );
 
     test(
+      'getPortalUsersHandler returns roles as non-empty string lists',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Ensure investigator has a role in portal_user_roles table
+        final db = Database.instance;
+        await db.execute(
+          '''
+          INSERT INTO portal_user_roles (user_id, role)
+          VALUES (@userId::uuid, 'Investigator')
+          ON CONFLICT (user_id, role) DO NOTHING
+          ''',
+          parameters: {'userId': testInvestigatorId},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createGetRequest(
+          '/api/v1/portal/users',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await getPortalUsersHandler(request);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          final users = json['users'] as List;
+
+          // Find the investigator user
+          final investigator = users.firstWhere(
+            (u) => u['email'] == testInvestigatorEmail,
+            orElse: () => null,
+          );
+          expect(
+            investigator,
+            isNotNull,
+            reason: 'Investigator should appear in user list',
+          );
+
+          if (investigator != null) {
+            final roles = investigator['roles'] as List;
+            expect(
+              roles,
+              isNotEmpty,
+              reason:
+                  'Roles must not be empty — string_agg should return parsed roles',
+            );
+            expect(roles, contains('Investigator'));
+            // Each role should be a plain String (not a nested structure)
+            for (final role in roles) {
+              expect(role, isA<String>());
+            }
+          }
+        }
+      },
+    );
+
+    test(
       'getPortalSitesHandler returns sites when authenticated',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {

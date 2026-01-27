@@ -106,11 +106,11 @@ class _TotpInputDialogState extends State<TotpInputDialog> {
           TextField(
             controller: _codeController,
             focusNode: _focusNode,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Verification Code',
               hintText: '000000',
-              prefixIcon: const Icon(Icons.pin),
-              border: const OutlineInputBorder(),
+              prefixIcon: Icon(Icons.pin),
+              border: OutlineInputBorder(),
               counterText: '',
             ),
             keyboardType: TextInputType.number,

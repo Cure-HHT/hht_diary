@@ -424,11 +424,11 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
                       TextField(
                         controller: _codeController,
                         focusNode: _codeFocusNode,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Verification Code',
                           hintText: '000000',
-                          prefixIcon: const Icon(Icons.pin),
-                          border: const OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.pin),
+                          border: OutlineInputBorder(),
                           counterText: '',
                           errorText: null,
                         ),
@@ -514,7 +514,7 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
                       onPressed: () async {
                         // Sign out and go back to activation
                         await FirebaseAuth.instance.signOut();
-                        if (mounted) {
+                        if (context.mounted) {
                           context.go('/activate');
                         }
                       },

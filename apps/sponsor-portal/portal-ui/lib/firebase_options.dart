@@ -26,11 +26,14 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         throw UnsupportedError('iOS not supported for portal');
       case TargetPlatform.macOS:
-        throw UnsupportedError('macOS not supported for portal');
+        // Portal is web-first but macOS desktop is used for integration tests.
+        // Same FlavorConfig credentials apply — Firebase Auth is project-level.
+        return web;
       case TargetPlatform.windows:
         throw UnsupportedError('Windows not supported for portal');
       case TargetPlatform.linux:
-        throw UnsupportedError('Linux not supported for portal');
+        // Portal is web-first but Linux desktop is used for CI integration tests.
+        return web;
       default:
         throw UnsupportedError('Unsupported platform');
     }

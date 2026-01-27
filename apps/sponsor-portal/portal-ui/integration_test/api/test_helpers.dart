@@ -60,7 +60,7 @@ class TestDatabase {
         username: TestConfig.dbUser,
         password: TestConfig.dbPassword,
       ),
-      settings: ConnectionSettings(sslMode: SslMode.disable),
+      settings: const ConnectionSettings(sslMode: SslMode.disable),
     );
   }
 
@@ -105,7 +105,7 @@ class TestDatabase {
     required String email,
     required String name,
   }) async {
-    final activationCode = 'TEST1-ACTV1';
+    const activationCode = 'TEST1-ACTV1';
     final expiry = DateTime.now().add(const Duration(days: 14));
 
     final result = await execute(

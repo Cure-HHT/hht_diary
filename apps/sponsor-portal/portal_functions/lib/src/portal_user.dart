@@ -54,10 +54,7 @@ Future<Response> getPortalUsersHandler(Request request) async {
       pu.linking_code,
       pu.activation_code,
       pu.created_at,
-      COALESCE(
-        array_agg(DISTINCT pur.role::text) FILTER (WHERE pur.role IS NOT NULL),
-        ARRAY[]::text[]
-      ) as roles,
+      string_agg(DISTINCT pur.role::text, ',' ORDER BY pur.role::text) as roles,
       COALESCE(
         json_agg(
           json_build_object(
@@ -82,13 +79,18 @@ Future<Response> getPortalUsersHandler(Request request) async {
   ''', context: serviceContext);
 
   final users = result.map((r) {
-    // Parse roles array
+    // Parse roles - string_agg returns comma-separated text (not text[])
+    // which the postgres v3 package reliably decodes as a Dart String.
     final rolesData = r[7];
+    print(
+      '[PORTAL_USER] rolesData type=${rolesData.runtimeType}, value=$rolesData',
+    );
     List<String> roles = [];
-    if (rolesData != null) {
-      if (rolesData is List) {
-        roles = rolesData.cast<String>();
-      }
+    if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
+      roles = rolesData.split(',');
+    } else if (rolesData is List) {
+      // Fallback in case postgres package does return a List
+      roles = rolesData.cast<String>();
     }
 
     // Parse sites JSON
@@ -139,10 +141,7 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
       pu.status,
       pu.created_at,
       pu.tokens_revoked_at,
-      COALESCE(
-        array_agg(DISTINCT pur.role::text) FILTER (WHERE pur.role IS NOT NULL),
-        ARRAY[]::text[]
-      ) as roles,
+      string_agg(DISTINCT pur.role::text, ',' ORDER BY pur.role::text) as roles,
       COALESCE(
         json_agg(
           DISTINCT jsonb_build_object(
@@ -170,12 +169,17 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
 
   final r = result.first;
 
-  // Parse roles
+  // Parse roles - string_agg returns comma-separated text
+  final rolesData = r[6];
+  print(
+    '[PORTAL_USER] single user rolesData type=${rolesData.runtimeType}, value=$rolesData',
+  );
   List<String> roles = [];
-  if (r[6] != null) {
-    if (r[6] is List) {
-      roles = (r[6] as List).cast<String>();
-    }
+  if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
+    roles = rolesData.split(',');
+  } else if (rolesData is List) {
+    // Fallback in case postgres package does return a List
+    roles = rolesData.cast<String>();
   }
 
   // Parse sites

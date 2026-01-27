@@ -18,7 +18,11 @@ import '../../widgets/role_badge.dart';
 import '../../widgets/status_badge.dart';
 
 class UserManagementTab extends StatefulWidget {
-  const UserManagementTab({super.key});
+  /// Optional API client for dependency injection (used in tests).
+  @visibleForTesting
+  final ApiClient? apiClient;
+
+  const UserManagementTab({super.key, this.apiClient});
 
   @override
   State<UserManagementTab> createState() => _UserManagementTabState();
@@ -49,6 +53,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
   bool _isLoading = true;
   String? _error;
   late ApiClient _apiClient;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   /// Convert system role to sponsor display name
   String _toSponsorName(String systemRole) {
@@ -64,15 +70,23 @@ class _UserManagementTabState extends State<UserManagementTab> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _apiClient = ApiClient(context.read<AuthService>());
+      _apiClient = widget.apiClient ?? ApiClient(context.read<AuthService>());
       _loadData();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _searchQuery = '';
+      _searchController.clear();
     });
 
     try {
@@ -326,6 +340,16 @@ class _UserManagementTabState extends State<UserManagementTab> {
       );
     }
 
+    // Filter users by search query (name or email, case-insensitive)
+    final filteredUsers = _searchQuery.isEmpty
+        ? _users
+        : _users.where((user) {
+            final query = _searchQuery.toLowerCase();
+            final name = (user['name'] as String? ?? '').toLowerCase();
+            final email = (user['email'] as String? ?? '').toLowerCase();
+            return name.contains(query) || email.contains(query);
+          }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -337,6 +361,36 @@ class _UserManagementTabState extends State<UserManagementTab> {
               Text('Portal Users', style: theme.textTheme.headlineMedium),
               Row(
                 children: [
+                  SizedBox(
+                    width: 250,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or email',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   IconButton(
                     onPressed: _loadData,
                     icon: const Icon(Icons.refresh),
@@ -357,12 +411,14 @@ class _UserManagementTabState extends State<UserManagementTab> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Card(
-              child: _users.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(32),
+              child: filteredUsers.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
                       child: Center(
                         child: Text(
-                          'No users found. Create the first user to get started.',
+                          _searchQuery.isNotEmpty
+                              ? 'No users match "$_searchQuery".'
+                              : 'No users found. Create the first user to get started.',
                         ),
                       ),
                     )
@@ -376,7 +432,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         DataColumn(label: Text('Status')),
                         DataColumn(label: Text('Actions')),
                       ],
-                      rows: _users.map((user) {
+                      rows: filteredUsers.map((user) {
                         final status = user['status'] as String? ?? 'pending';
                         final isPending = status == 'pending';
                         final isRevoked = status == 'revoked';
@@ -442,7 +498,10 @@ class _UserManagementTabState extends State<UserManagementTab> {
                                 children: [
                                   if (!isRevoked)
                                     IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
+                                      icon: Icon(
+                                        Icons.edit,
+                                        color: colorScheme.primary,
+                                      ),
                                       onPressed: () => _editUser(user),
                                       tooltip: 'Edit User',
                                     ),
@@ -1519,8 +1578,9 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   ),
                   textCapitalization: TextCapitalization.words,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Name is required';
+                    }
                     return null;
                   },
                   onChanged: (_) => setState(() {}),
