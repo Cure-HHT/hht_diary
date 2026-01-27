@@ -1,9 +1,11 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00031: Deactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
+//   REQ-CAL-p00066: Capture deactivation reason
 //   REQ-p00004: Immutable Audit Trail via Event Sourcing
 //
-// Integration tests for portal user edit functionality
+// Integration tests for portal user edit and deactivation functionality
 // Requires PostgreSQL database with schema applied and Firebase Auth emulator
 
 @TestOn('vm')
@@ -522,6 +524,178 @@ void main() {
           );
           final countAfter = afterCount.first[0] as int;
           expect(countAfter, greaterThan(countBefore));
+        }
+      },
+    );
+  });
+
+  group('updatePortalUserHandler - deactivation with reason (REQ-CAL-p00066)', () {
+    test(
+      'stores status_change_reason when deactivating user',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+
+        // Ensure target is active first
+        final db = Database.instance;
+        await db.execute(
+          "UPDATE portal_users SET status = 'active' WHERE id = @id::uuid",
+          parameters: {'id': testTargetId},
+        );
+
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'status': 'revoked', 'reason': 'Employee left the organization'},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          expect(json['success'], isTrue);
+          expect(json['sessions_terminated'], isTrue);
+
+          // Verify reason stored in DB
+          final result = await db.execute(
+            '''SELECT status, status_change_reason, status_changed_at, status_changed_by
+               FROM portal_users WHERE id = @id::uuid''',
+            parameters: {'id': testTargetId},
+          );
+          expect(result.first[0], equals('revoked'));
+          expect(result.first[1], equals('Employee left the organization'));
+          expect(result.first[2], isNotNull); // status_changed_at
+          expect(result.first[3], isNotNull); // status_changed_by
+        }
+      },
+    );
+
+    test(
+      'reason appears in single-user GET response',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+
+        // Deactivate with reason first
+        final db = Database.instance;
+        await db.execute(
+          '''UPDATE portal_users
+             SET status = 'revoked',
+                 status_change_reason = 'Test reason for GET',
+                 status_changed_at = now(),
+                 status_changed_by = @adminId::uuid
+             WHERE id = @id::uuid''',
+          parameters: {'id': testTargetId, 'adminId': testAdminId},
+        );
+
+        final request = createGetRequest(
+          '/api/v1/portal/users/$testTargetId',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await getPortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          expect(json['status'], equals('revoked'));
+          expect(json['status_change_reason'], equals('Test reason for GET'));
+          expect(json['status_changed_at'], isNotNull);
+          expect(json['status_changed_by'], isNotNull);
+        }
+      },
+    );
+
+    test(
+      'reason included in audit log after_value',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+
+        // Reset to active first
+        final db = Database.instance;
+        await db.execute(
+          "UPDATE portal_users SET status = 'active' WHERE id = @id::uuid",
+          parameters: {'id': testTargetId},
+        );
+
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'status': 'revoked', 'reason': 'Audit log reason test'},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          // Check audit log for the reason in after_value
+          final auditResult = await db.execute(
+            '''SELECT after_value
+               FROM portal_user_audit_log
+               WHERE user_id = @userId::uuid AND action = 'update_status'
+               ORDER BY created_at DESC LIMIT 1''',
+            parameters: {'userId': testTargetId},
+          );
+          if (auditResult.isNotEmpty) {
+            final afterValue = auditResult.first[0];
+            // after_value is stored as JSONB
+            Map<String, dynamic> afterMap;
+            if (afterValue is String) {
+              afterMap = jsonDecode(afterValue) as Map<String, dynamic>;
+            } else {
+              afterMap = afterValue as Map<String, dynamic>;
+            }
+            expect(afterMap['status'], equals('revoked'));
+            expect(afterMap['reason'], equals('Audit log reason test'));
+          }
+        }
+      },
+    );
+
+    test(
+      'reactivation clears reason fields',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+
+        // Ensure user is revoked with a reason
+        final db = Database.instance;
+        await db.execute(
+          '''UPDATE portal_users
+             SET status = 'revoked',
+                 status_change_reason = 'To be cleared',
+                 status_changed_at = now(),
+                 status_changed_by = @adminId::uuid
+             WHERE id = @id::uuid''',
+          parameters: {'id': testTargetId, 'adminId': testAdminId},
+        );
+
+        // Reactivate
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'status': 'active'},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          // Verify reason is cleared (status_change_reason set to null by backend)
+          final result = await db.execute(
+            '''SELECT status, status_change_reason
+               FROM portal_users WHERE id = @id::uuid''',
+            parameters: {'id': testTargetId},
+          );
+          expect(result.first[0], equals('active'));
+          // On reactivation with no reason, it's set to null
+          expect(result.first[1], isNull);
         }
       },
     );

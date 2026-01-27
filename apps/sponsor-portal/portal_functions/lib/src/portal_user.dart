@@ -6,7 +6,9 @@
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
 //   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 //   REQ-CAL-p00030: Edit User Account
+//   REQ-CAL-p00031: Deactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
+//   REQ-CAL-p00066: Capture deactivation reason
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -64,7 +66,10 @@ Future<Response> getPortalUsersHandler(Request request) async {
           )
         ) FILTER (WHERE s.site_id IS NOT NULL),
         '[]'::json
-      ) as sites
+      ) as sites,
+      pu.status_change_reason,
+      pu.status_changed_at,
+      pu.status_changed_by
     FROM portal_users pu
     LEFT JOIN portal_user_roles pur ON pu.id = pur.user_id
     LEFT JOIN portal_user_site_access pusa ON pu.id = pusa.user_id
@@ -114,6 +119,9 @@ Future<Response> getPortalUsersHandler(Request request) async {
       'created_at': (r[6] as DateTime).toIso8601String(),
       'roles': roles,
       'sites': sites,
+      'status_change_reason': r[9] as String?,
+      'status_changed_at': (r[10] as DateTime?)?.toIso8601String(),
+      'status_changed_by': r[11] as String?,
     };
   }).toList();
 
@@ -151,7 +159,10 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
           )
         ) FILTER (WHERE s.site_id IS NOT NULL),
         '[]'::json
-      ) as sites
+      ) as sites,
+      pu.status_change_reason,
+      pu.status_changed_at,
+      pu.status_changed_by
     FROM portal_users pu
     LEFT JOIN portal_user_roles pur ON pu.id = pur.user_id
     LEFT JOIN portal_user_site_access pusa ON pu.id = pusa.user_id
@@ -226,6 +237,9 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
     'tokens_revoked_at': (r[5] as DateTime?)?.toIso8601String(),
     'roles': roles,
     'sites': sites,
+    'status_change_reason': r[8] as String?,
+    'status_changed_at': (r[9] as DateTime?)?.toIso8601String(),
+    'status_changed_by': r[10] as String?,
     if (pendingEmailChange != null) 'pending_email_change': pendingEmailChange,
   });
 }
@@ -565,13 +579,25 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       return _jsonResponse({'error': 'Invalid status'}, 400);
     }
 
+    // Capture optional reason for status change (REQ-CAL-p00066)
+    final reason = body['reason'] as String?;
+
     await db.executeWithContext(
       '''
       UPDATE portal_users
-      SET status = @status, updated_at = now()
+      SET status = @status,
+          status_change_reason = @reason,
+          status_changed_at = now(),
+          status_changed_by = @changedBy::uuid,
+          updated_at = now()
       WHERE id = @userId::uuid
       ''',
-      parameters: {'userId': userId, 'status': status},
+      parameters: {
+        'userId': userId,
+        'status': status,
+        'reason': reason,
+        'changedBy': user.id,
+      },
       context: serviceContext,
     );
 
@@ -581,7 +607,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       changedBy: user.id,
       action: 'update_status',
       before: {'status': currentStatus},
-      after: {'status': status},
+      after: {'status': status, if (reason != null) 'reason': reason},
     );
 
     if (status == 'revoked') {

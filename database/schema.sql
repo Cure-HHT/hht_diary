@@ -601,6 +601,9 @@ CREATE TABLE portal_users (
     password_reset_code_expires_at TIMESTAMPTZ, -- Password reset code expiry (24 hours)
     password_reset_used_at TIMESTAMPTZ, -- When password reset was completed (audit)
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
+    status_change_reason TEXT,              -- Reason for last status change (deactivation/reactivation)
+    status_changed_at TIMESTAMPTZ,          -- When status was last changed
+    status_changed_by UUID REFERENCES portal_users(id),  -- Who changed the status
     -- MFA tracking (FDA 21 CFR Part 11 compliance)
     mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
     mfa_enrolled_at TIMESTAMPTZ,
@@ -637,6 +640,9 @@ COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was succes
 COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
 COMMENT ON COLUMN portal_users.mfa_type IS 'MFA method to use: totp (authenticator app for Dev Admins), email_otp (email codes), none (disabled)';
 COMMENT ON COLUMN portal_users.tokens_revoked_at IS 'Timestamp when all sessions were invalidated - tokens with auth_time before this are rejected';
+COMMENT ON COLUMN portal_users.status_change_reason IS 'Reason for last status change (deactivation/reactivation) - REQ-CAL-p00066';
+COMMENT ON COLUMN portal_users.status_changed_at IS 'Timestamp when account status was last changed';
+COMMENT ON COLUMN portal_users.status_changed_by IS 'UUID of admin who last changed the account status';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
