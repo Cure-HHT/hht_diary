@@ -159,6 +159,43 @@ COMMENT ON COLUMN sites.edc_oid IS 'Original OID from RAVE EDC system';
 COMMENT ON COLUMN sites.edc_synced_at IS 'Timestamp of last sync from EDC';
 
 -- =====================================================
+-- PATIENTS TABLE (REQ-CAL-p00063, REQ-CAL-p00073)
+-- =====================================================
+-- Stores patient (subject) records synced from EDC (RAVE)
+-- One-way sync: portal reads from EDC, does not write back
+
+-- Mobile linking status enum (REQ-CAL-p00073)
+CREATE TYPE mobile_linking_status AS ENUM (
+    'not_connected',
+    'linking_in_progress',
+    'connected',
+    'disconnected'
+);
+
+CREATE TABLE patients (
+    patient_id TEXT PRIMARY KEY,
+    site_id TEXT NOT NULL REFERENCES sites(site_id),
+    edc_subject_key TEXT NOT NULL,
+    mobile_linking_status mobile_linking_status NOT NULL DEFAULT 'not_connected',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    edc_synced_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX idx_patients_site_id ON patients(site_id);
+CREATE INDEX idx_patients_linking_status ON patients(mobile_linking_status);
+CREATE INDEX idx_patients_edc_synced_at ON patients(edc_synced_at);
+
+COMMENT ON TABLE patients IS 'Patient (subject) records synced from EDC (REQ-CAL-p00063). One-way sync from RAVE.';
+COMMENT ON COLUMN patients.patient_id IS 'RAVE SubjectKey (e.g., "840-001-001") used as primary identifier';
+COMMENT ON COLUMN patients.site_id IS 'FK to sites table, derived from SiteRef.LocationOID in RAVE';
+COMMENT ON COLUMN patients.edc_subject_key IS 'Original SubjectKey from RAVE EDC (same as patient_id, kept for traceability)';
+COMMENT ON COLUMN patients.mobile_linking_status IS 'Patient mobile app linking status (REQ-CAL-p00073)';
+COMMENT ON COLUMN patients.edc_synced_at IS 'Timestamp of last sync from EDC';
+COMMENT ON COLUMN patients.metadata IS 'Additional patient metadata from EDC';
+
+-- =====================================================
 -- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
 -- =====================================================
 -- Tracks all synchronization events from EDC systems
@@ -168,7 +205,7 @@ CREATE TABLE edc_sync_log (
     sync_id BIGSERIAL PRIMARY KEY,
     sync_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     source_system TEXT NOT NULL CHECK (source_system IN ('RAVE', 'MEDIDATA', 'OTHER')),
-    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
+    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PATIENTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
     sites_created INTEGER NOT NULL DEFAULT 0,
     sites_updated INTEGER NOT NULL DEFAULT 0,
     sites_deactivated INTEGER NOT NULL DEFAULT 0,
@@ -1384,4 +1421,7 @@ CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON inves
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

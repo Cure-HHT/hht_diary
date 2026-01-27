@@ -2,6 +2,7 @@ import 'package:xml/xml.dart';
 
 import 'models/exceptions.dart';
 import 'models/site.dart';
+import 'models/subject.dart';
 
 /// Parser for RAVE ODM (Operational Data Model) XML responses.
 ///
@@ -138,6 +139,99 @@ class OdmParser {
       // Check if there are any Location elements
       for (final admin in adminData) {
         if (admin.findElements('Location').isNotEmpty) {
+          return false;
+        }
+      }
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Parses subjects (patients) from the RAVE subjects endpoint response.
+  ///
+  /// Expected format:
+  /// ```xml
+  /// <ODM>
+  ///   <ClinicalData>
+  ///     <SubjectData SubjectKey="840-001-001">
+  ///       <SiteRef LocationOID="12345" mdsol:StudyEnvSiteNumber="001"/>
+  ///     </SubjectData>
+  ///   </ClinicalData>
+  /// </ODM>
+  /// ```
+  static List<RaveSubject> parseSubjects(String xml) {
+    validateComplete(xml);
+
+    final XmlDocument document;
+    try {
+      document = XmlDocument.parse(xml);
+    } on XmlException catch (e) {
+      throw RaveParseException('Failed to parse ODM XML: ${e.message}');
+    }
+
+    final subjects = <RaveSubject>[];
+
+    // Find all ClinicalData elements
+    final clinicalDataElements = document.findAllElements('ClinicalData');
+    for (final clinicalData in clinicalDataElements) {
+      final subjectElements = clinicalData.findElements('SubjectData');
+      for (final subjectData in subjectElements) {
+        final subject = _parseSubjectData(subjectData);
+        if (subject != null) {
+          subjects.add(subject);
+        }
+      }
+    }
+
+    return subjects;
+  }
+
+  /// Parses a single SubjectData element into a RaveSubject.
+  static RaveSubject? _parseSubjectData(XmlElement subjectData) {
+    final subjectKey = subjectData.getAttribute('SubjectKey');
+    if (subjectKey == null) {
+      return null;
+    }
+
+    // Get SiteRef for site information
+    final siteRefs = subjectData.findElements('SiteRef');
+    if (siteRefs.isEmpty) {
+      return null;
+    }
+
+    final siteRef = siteRefs.first;
+    final locationOid = siteRef.getAttribute('LocationOID');
+    if (locationOid == null) {
+      return null;
+    }
+
+    // Parse mdsol:StudyEnvSiteNumber
+    var siteNumber = siteRef.getAttribute(
+      'StudyEnvSiteNumber',
+      namespace: mdsolNamespace,
+    );
+    siteNumber ??= siteRef.getAttribute('mdsol:StudyEnvSiteNumber');
+
+    return RaveSubject(
+      subjectKey: subjectKey,
+      siteOid: locationOid,
+      siteNumber: siteNumber,
+    );
+  }
+
+  /// Checks if an ODM subjects response is empty (no subjects returned).
+  ///
+  /// An empty response indicates no subjects or no permission.
+  static bool isSubjectsEmpty(String xml) {
+    try {
+      final document = XmlDocument.parse(xml);
+      final clinicalData = document.findAllElements('ClinicalData');
+      if (clinicalData.isEmpty) {
+        return true;
+      }
+      for (final data in clinicalData) {
+        if (data.findElements('SubjectData').isNotEmpty) {
           return false;
         }
       }
