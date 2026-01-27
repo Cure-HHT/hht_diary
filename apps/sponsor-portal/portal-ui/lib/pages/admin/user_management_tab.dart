@@ -6,8 +6,10 @@
 //   REQ-CAL-p00029: Create User Account (multi-select roles, site requirements)
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00031: Deactivate User Account
+//   REQ-CAL-p00032: Reactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
-//   REQ-CAL-p00066: Capture deactivation reason
+//   REQ-CAL-p00062: Activation code generation on reactivation
+//   REQ-CAL-p00066: Capture deactivation/reactivation reason
 //   REQ-CAL-p00067: Active/Inactive user tabs
 
 import 'package:flutter/material.dart';
@@ -209,41 +211,39 @@ class _UserManagementTabState extends State<UserManagementTab>
     }
   }
 
-  Future<void> _reactivateUser(String userId, String userName) async {
-    final confirm = await showDialog<bool>(
+  Future<void> _reactivateUser(Map<String, dynamic> user) async {
+    final reason = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reactivate User'),
-        content: Text(
-          'Are you sure you want to reactivate "$userName"? '
-          'They will be able to log in again.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Reactivate'),
-          ),
-        ],
+      builder: (context) => ReactivateUserDialog(
+        user: user,
+        roleMappings: _roleMappings,
+        toSponsorName: _toSponsorName,
       ),
     );
 
-    if (confirm == true && mounted) {
+    if (reason != null && reason.isNotEmpty && mounted) {
       try {
         final response = await _apiClient.patch(
-          '/api/v1/portal/users/$userId',
-          {'status': 'active'},
+          '/api/v1/portal/users/${user['id']}',
+          {'status': 'active', 'reason': reason},
         );
 
         if (!mounted) return;
 
         if (response.isSuccess) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('User reactivated')));
+          final data = response.data as Map<String, dynamic>?;
+          final emailSent = data?['email_sent'] == true;
+          final userEmail = user['email'] as String? ?? '';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                emailSent
+                    ? 'Activation email sent to $userEmail'
+                    : 'User reactivation initiated — activation code generated',
+              ),
+            ),
+          );
           _loadData();
         } else {
           ScaffoldMessenger.of(
@@ -279,7 +279,7 @@ class _UserManagementTabState extends State<UserManagementTab>
         },
         onReactivate: () {
           Navigator.pop(context);
-          _reactivateUser(user['id'], user['name'] ?? 'this user');
+          _reactivateUser(user);
         },
         apiClient: _apiClient,
       ),
@@ -421,10 +421,7 @@ class _UserManagementTabState extends State<UserManagementTab>
                         Icons.check_circle_outline,
                         color: colorScheme.primary,
                       ),
-                      onPressed: () => _reactivateUser(
-                        user['id'],
-                        user['name'] ?? 'this user',
-                      ),
+                      onPressed: () => _reactivateUser(user),
                       tooltip: 'Reactivate',
                     ),
                   if (isPending && user['activation_code'] != null)
@@ -2107,6 +2104,253 @@ class _DeactivateUserDialogState extends State<DeactivateUserDialog> {
       child: Row(
         children: [
           Icon(icon, size: 16, color: colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dialog for reactivating a previously deactivated user account
+/// (REQ-CAL-p00032, REQ-CAL-p00062, REQ-CAL-p00066).
+/// Shows previous roles/sites, deactivation reason, what-happens info,
+/// and requires a reactivation reason.
+/// Returns the reason string if confirmed, null if cancelled.
+class ReactivateUserDialog extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final List<SponsorRoleMapping> roleMappings;
+  final String Function(String) toSponsorName;
+
+  const ReactivateUserDialog({
+    super.key,
+    required this.user,
+    required this.roleMappings,
+    required this.toSponsorName,
+  });
+
+  @override
+  State<ReactivateUserDialog> createState() => _ReactivateUserDialogState();
+}
+
+class _ReactivateUserDialogState extends State<ReactivateUserDialog> {
+  final _reasonController = TextEditingController();
+  String _reason = '';
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final userName = widget.user['name'] as String? ?? 'Unknown';
+    final userEmail = widget.user['email'] as String? ?? '';
+    final statusChangeReason = widget.user['status_change_reason'] as String?;
+
+    // Get roles
+    final systemRoles = <String>[];
+    if (widget.user['roles'] != null) {
+      systemRoles.addAll((widget.user['roles'] as List).cast<String>());
+    }
+
+    // Get sites
+    final sitesList = (widget.user['sites'] as List<dynamic>?) ?? [];
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.person_add_alt_1, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          const Text('Reactivate User Account'),
+        ],
+      ),
+      content: SizedBox(
+        width: 480,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User summary
+              Text(userName, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                userEmail,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Previous deactivation reason
+              if (statusChangeReason != null &&
+                  statusChangeReason.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                    border: Border.all(
+                      color: colorScheme.error.withValues(alpha: 0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Previous deactivation reason',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(statusChangeReason),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Previous access section
+              Text('Previous Access', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              if (systemRoles.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: systemRoles
+                      .map(
+                        (role) => RoleBadge.fromDisplayData(
+                          RoleDisplayData(
+                            displayName: widget.toSponsorName(role),
+                            systemRole: role,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                )
+              else
+                Text(
+                  'No roles assigned',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+              if (sitesList.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...sitesList.map((site) {
+                  final siteNumber = site['site_number'] as String? ?? '';
+                  final siteName = site['site_name'] as String? ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$siteNumber - $siteName',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+              const SizedBox(height: 16),
+
+              // What happens section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What happens next',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoItem(
+                      Icons.email_outlined,
+                      'A new activation email will be sent to the user',
+                      colorScheme,
+                    ),
+                    _buildInfoItem(
+                      Icons.lock_reset,
+                      'User must create a new password for security',
+                      colorScheme,
+                    ),
+                    _buildInfoItem(
+                      Icons.shield_outlined,
+                      'Previous roles and site assignments will be preserved',
+                      colorScheme,
+                    ),
+                    _buildInfoItem(
+                      Icons.swap_horiz,
+                      'Account will move to Active Users once activated',
+                      colorScheme,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Reason field (required)
+              TextField(
+                controller: _reasonController,
+                decoration: const InputDecoration(
+                  labelText: 'Reason for reactivation *',
+                  hintText: 'e.g., Employee returning to the project',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+                onChanged: (value) {
+                  setState(() {
+                    _reason = value.trim();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _reason.isEmpty
+              ? null
+              : () => Navigator.pop(context, _reason),
+          child: const Text('Reactivate'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(IconData icon, String text, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: colorScheme.primary),
           const SizedBox(width: 8),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
