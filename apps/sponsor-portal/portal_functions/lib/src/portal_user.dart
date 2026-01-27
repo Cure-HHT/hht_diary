@@ -7,8 +7,10 @@
 //   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00031: Deactivate User Account
+//   REQ-CAL-p00032: Reactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
-//   REQ-CAL-p00066: Capture deactivation reason
+//   REQ-CAL-p00062: Activation code generation on reactivation
+//   REQ-CAL-p00066: Capture deactivation/reactivation reason
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -572,7 +574,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     );
   }
 
-  // Handle status update (revocation/activation)
+  // Handle status update (revocation/reactivation)
   final status = body['status'] as String?;
   if (status != null) {
     if (status != 'revoked' && status != 'active' && status != 'pending') {
@@ -582,6 +584,87 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     // Capture optional reason for status change (REQ-CAL-p00066)
     final reason = body['reason'] as String?;
 
+    // Reactivation from revoked: generate new activation code, set pending,
+    // and send activation email (REQ-CAL-p00032, REQ-CAL-p00062)
+    if (status == 'active' && currentStatus == 'revoked') {
+      final activationCode = _generateCode();
+      final activationExpiry = DateTime.now().add(const Duration(days: 14));
+
+      await db.executeWithContext(
+        '''
+        UPDATE portal_users
+        SET status = 'pending',
+            activation_code = @code,
+            activation_code_expires_at = @expiry,
+            status_change_reason = @reason,
+            status_changed_at = now(),
+            status_changed_by = @changedBy::uuid,
+            updated_at = now()
+        WHERE id = @userId::uuid
+        ''',
+        parameters: {
+          'userId': userId,
+          'code': activationCode,
+          'expiry': activationExpiry,
+          'reason': reason,
+          'changedBy': user.id,
+        },
+        context: serviceContext,
+      );
+
+      await _logAudit(
+        db,
+        userId: userId,
+        changedBy: user.id,
+        action: 'reactivate_user',
+        before: {'status': currentStatus},
+        after: {'status': 'pending', if (reason != null) 'reason': reason},
+      );
+
+      // Send activation email
+      final currentEmail = userResult.first[2] as String;
+      bool emailSent = false;
+      String? emailError;
+
+      if (FeatureFlags.emailActivation) {
+        final portalBaseUrl =
+            Platform.environment['PORTAL_URL'] ??
+            Platform.environment['PORTAL_BASE_URL'] ??
+            'http://localhost:8081';
+        final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
+
+        final emailResult = await EmailService.instance.sendActivationCode(
+          recipientEmail: currentEmail,
+          recipientName: currentName,
+          activationCode: activationCode,
+          activationUrl: activationUrl,
+          sentByUserId: user.id,
+        );
+
+        emailSent = emailResult.success;
+        emailError = emailResult.error;
+
+        if (emailSent) {
+          print('[PORTAL_USER] Reactivation email sent to $currentEmail');
+        } else {
+          print('[PORTAL_USER] Failed to send reactivation email: $emailError');
+        }
+      }
+
+      print(
+        '[PORTAL_USER] User $userId reactivated: '
+        'status=pending, activation_code=$activationCode',
+      );
+
+      return _jsonResponse({
+        'success': true,
+        'activation_code': activationCode,
+        'email_sent': emailSent,
+        if (emailError != null) 'email_error': emailError,
+      });
+    }
+
+    // Standard status update (deactivation or other transitions)
     await db.executeWithContext(
       '''
       UPDATE portal_users

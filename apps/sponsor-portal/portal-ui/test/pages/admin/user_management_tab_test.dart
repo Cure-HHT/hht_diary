@@ -2,11 +2,13 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00031: Deactivate User Account
-//   REQ-CAL-p00066: Capture deactivation reason
+//   REQ-CAL-p00032: Reactivate User Account
+//   REQ-CAL-p00062: Activation code generation on reactivation
+//   REQ-CAL-p00066: Capture deactivation/reactivation reason
 //   REQ-CAL-p00067: Active/Inactive user tabs
 //
 // Widget tests for UserManagementTab
-// Tests search/filter, edit button visibility, tabs, and deactivation dialog
+// Tests search/filter, edit button visibility, tabs, deactivation, and reactivation dialogs
 
 import 'dart:convert';
 
@@ -1549,6 +1551,195 @@ void main() {
       // No deactivation section for active user
       expect(find.text('Deactivation Details'), findsNothing);
       expect(find.text('Reactivate User'), findsNothing);
+    });
+  });
+
+  // REQ-CAL-p00032: ReactivateUserDialog
+  group('ReactivateUserDialog', () {
+    final roleMappings = [
+      const SponsorRoleMapping(
+        sponsorName: 'Admin',
+        systemRole: 'Administrator',
+      ),
+      const SponsorRoleMapping(
+        sponsorName: 'Study Coordinator',
+        systemRole: 'Investigator',
+      ),
+      const SponsorRoleMapping(sponsorName: 'CRA', systemRole: 'Auditor'),
+    ];
+
+    String toSponsorName(String systemRole) {
+      final m = roleMappings.firstWhere(
+        (r) => r.systemRole == systemRole,
+        orElse: () =>
+            SponsorRoleMapping(sponsorName: systemRole, systemRole: systemRole),
+      );
+      return m.sponsorName;
+    }
+
+    Future<void> pumpReactivateDialog(
+      WidgetTester tester, {
+      Map<String, dynamic>? userOverride,
+    }) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final user =
+          userOverride ??
+          const {
+            'id': 'u3',
+            'name': 'Maria Garcia',
+            'email': 'maria@example.com',
+            'status': 'revoked',
+            'roles': ['Investigator'],
+            'sites': [
+              {'site_id': 's1', 'site_name': 'Site One', 'site_number': 'S001'},
+            ],
+            'status_change_reason': 'Employee left the organization',
+            'status_changed_at': '2024-06-15T10:30:00Z',
+            'status_changed_by': 'user-001',
+          };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => ReactivateUserDialog(
+                      user: user,
+                      roleMappings: roleMappings,
+                      toSponsorName: toSponsorName,
+                    ),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows dialog title with icon', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('Reactivate User Account'), findsOneWidget);
+      expect(find.byIcon(Icons.person_add_alt_1), findsOneWidget);
+    });
+
+    testWidgets('shows user name and email', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('Maria Garcia'), findsOneWidget);
+      expect(find.text('maria@example.com'), findsOneWidget);
+    });
+
+    testWidgets('shows previous deactivation reason', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('Previous deactivation reason'), findsOneWidget);
+      expect(find.text('Employee left the organization'), findsOneWidget);
+    });
+
+    testWidgets('shows previous access section with role badges', (
+      tester,
+    ) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('Previous Access'), findsOneWidget);
+      // Investigator maps to Study Coordinator
+      expect(find.text('Study Coordinator'), findsOneWidget);
+    });
+
+    testWidgets('shows previous access section with sites', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('S001 - Site One'), findsOneWidget);
+    });
+
+    testWidgets('shows what-happens info section', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(find.text('What happens next'), findsOneWidget);
+      expect(
+        find.text('A new activation email will be sent to the user'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('User must create a new password for security'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Previous roles and site assignments will be preserved'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Account will move to Active Users once activated'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows required reason field', (tester) async {
+      await pumpReactivateDialog(tester);
+      expect(
+        find.widgetWithText(TextField, 'Reason for reactivation *'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Reactivate button disabled without reason', (tester) async {
+      await pumpReactivateDialog(tester);
+
+      final reactivateButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Reactivate'),
+      );
+      expect(reactivateButton.onPressed, isNull);
+    });
+
+    testWidgets('Reactivate button enabled when reason is entered', (
+      tester,
+    ) async {
+      await pumpReactivateDialog(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Reason for reactivation *'),
+        'Employee returning to project',
+      );
+      await tester.pumpAndSettle();
+
+      final reactivateButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Reactivate'),
+      );
+      expect(reactivateButton.onPressed, isNotNull);
+    });
+
+    testWidgets('Cancel button closes dialog', (tester) async {
+      await pumpReactivateDialog(tester);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reactivate User Account'), findsNothing);
+    });
+
+    testWidgets('hides deactivation reason when not available', (tester) async {
+      await pumpReactivateDialog(
+        tester,
+        userOverride: const {
+          'id': 'u4',
+          'name': 'No Reason User',
+          'email': 'noreason@example.com',
+          'status': 'revoked',
+          'roles': ['Auditor'],
+          'sites': <dynamic>[],
+        },
+      );
+
+      expect(find.text('Previous deactivation reason'), findsNothing);
     });
   });
 }
