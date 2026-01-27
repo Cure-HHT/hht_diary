@@ -6,7 +6,7 @@
 # This workflow tests GCP authentication using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
 
-name: 'Deploy Portal Server to GCP Artifact Registry'
+name: 'Deploy portal-server to GCP'
 
 on:
   workflow_dispatch:
@@ -21,12 +21,16 @@ on:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
         type: string
+    secrets:
+      DOPPLER_TOKEN:
+        description: 'Doppler service token for the target environment'
+        required: true
 
 env:
   GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
 
 jobs:
-  test-gcp-auth:
+  deploy-portal-server:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -72,9 +76,9 @@ jobs:
 
           # Map image names if needed (portal-server -> clinical-diary-portal-server)
           case "$IMAGE_NAME" in
-            "portal-server")
-              MAPPED_IMAGE="clinical-diary-portal-server"
-              ;;
+            # "portal-server")
+            #   MAPPED_IMAGE="clinical-diary-portal-server"
+            #   ;;
             *)
               MAPPED_IMAGE="$IMAGE_NAME"
               ;;
@@ -107,6 +111,19 @@ jobs:
           }
 
           echo "✅ Image validation successful: $GAR_PATH"
+
+      - name: 'Deploy to Cloud Run'
+        run: |
+          GAR_PATH="${{ steps.translate-path.outputs.gar_path }}"
+          echo "Deploying image to Cloud Run: $GAR_PATH"
+
+          gcloud run services update portal-server \
+            --region=europe-west9 \
+            --project=${{ vars.GCP_DEPLOY2_PROJECT_ID }} \
+            --image="$GAR_PATH" \
+            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=dev"
+
+          echo "✅ Cloud Run deployment successful"
 
       - name: 'Display authentication info'
         run: |
