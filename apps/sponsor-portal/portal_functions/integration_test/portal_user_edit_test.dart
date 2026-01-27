@@ -235,6 +235,87 @@ void main() {
         expect(response.statusCode, equals(404));
       },
     );
+
+    test(
+      'returns roles as non-empty list of strings (string_agg parsing)',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createGetRequest(
+          '/api/v1/portal/users/$testTargetId',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await getPortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          final roles = json['roles'] as List;
+          expect(
+            roles,
+            isNotEmpty,
+            reason:
+                'Roles must not be empty — string_agg should return parsed roles',
+          );
+          // Each role must be a plain String
+          for (final role in roles) {
+            expect(role, isA<String>());
+            expect(role, isNotEmpty);
+          }
+          expect(roles, contains('Investigator'));
+        }
+      },
+    );
+
+    test(
+      'returns multiple roles for multi-role user',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Add a second role to the target user
+        final db = Database.instance;
+        await db.execute(
+          '''
+          INSERT INTO portal_user_roles (user_id, role, assigned_by)
+          VALUES (@userId::uuid, 'Auditor', @assignedBy::uuid)
+          ON CONFLICT (user_id, role) DO NOTHING
+          ''',
+          parameters: {'userId': testTargetId, 'assignedBy': testAdminId},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createGetRequest(
+          '/api/v1/portal/users/$testTargetId',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await getPortalUserHandler(request, testTargetId);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          final roles = json['roles'] as List;
+          expect(
+            roles.length,
+            greaterThanOrEqualTo(2),
+            reason: 'Multi-role user should have both roles from string_agg',
+          );
+          expect(roles, contains('Investigator'));
+          expect(roles, contains('Auditor'));
+        }
+
+        // Clean up the extra role
+        await db.execute(
+          '''
+          DELETE FROM portal_user_roles
+          WHERE user_id = @userId::uuid AND role = 'Auditor'
+          ''',
+          parameters: {'userId': testTargetId},
+        );
+      },
+    );
   });
 
   group('updatePortalUserHandler - name change', () {
