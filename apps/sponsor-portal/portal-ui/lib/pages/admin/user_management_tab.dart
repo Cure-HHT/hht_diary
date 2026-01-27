@@ -1578,8 +1578,9 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   ),
                   textCapitalization: TextCapitalization.words,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Name is required';
+                    }
                     return null;
                   },
                   onChanged: (_) => setState(() {}),

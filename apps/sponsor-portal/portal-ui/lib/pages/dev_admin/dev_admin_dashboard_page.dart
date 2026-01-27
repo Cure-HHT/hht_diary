@@ -413,7 +413,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
       children: [
         Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
+            const Icon(Icons.check_circle, color: Colors.green, size: 32),
             const SizedBox(width: 12),
             Text(
               'Administrator Created!',
