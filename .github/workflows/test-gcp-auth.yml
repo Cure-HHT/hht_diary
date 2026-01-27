@@ -6,7 +6,7 @@
 # This workflow tests GCP authentication using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
 
-name: 'Test GCP Authentication with Workload Identity Federation'
+name: 'Deploy Portal Server to GCP Artifact Registry'
 
 on:
   workflow_dispatch:
@@ -35,8 +35,8 @@ jobs:
     steps:
       - uses: 'actions/checkout@v4'
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
+      - name: 'Authenticate with Google Cloud'
+        id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
           workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
