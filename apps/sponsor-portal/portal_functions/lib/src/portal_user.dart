@@ -10,7 +10,9 @@
 //   REQ-CAL-p00032: Reactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
 //   REQ-CAL-p00062: Activation code generation on reactivation
+//   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-CAL-p00066: Capture deactivation/reactivation reason
+//   REQ-CAL-p00073: Patient Status Definitions
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -26,6 +28,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'email_service.dart';
 import 'feature_flags.dart';
+import 'patients_sync.dart';
 import 'portal_auth.dart';
 import 'sites_sync.dart';
 
@@ -924,6 +927,64 @@ Future<Response> getPortalSitesHandler(Request request) async {
 
   // Include sync info in response for transparency
   final response = <String, dynamic>{'sites': sites};
+  if (syncResult != null) {
+    response['sync'] = syncResult.toJson();
+  }
+
+  return _jsonResponse(response);
+}
+
+/// Get patients synced from EDC (RAVE)
+/// GET /api/v1/portal/patients
+///
+/// Automatically syncs patients from EDC if:
+/// - No patients exist in the database
+/// - Patients were last synced more than 1 day ago
+///
+/// IMPLEMENTS REQUIREMENTS:
+///   REQ-CAL-p00063: EDC Patient Ingestion
+///   REQ-CAL-p00073: Patient Status Definitions
+Future<Response> getPortalPatientsHandler(Request request) async {
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Unauthorized'}, 403);
+  }
+
+  // Sync patients from EDC if needed (stale or missing)
+  final syncResult = await syncPatientsIfNeeded();
+  if (syncResult != null && syncResult.hasError) {
+    print('Patients sync warning: ${syncResult.error}');
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+  final result = await db.executeWithContext('''
+    SELECT
+      p.patient_id,
+      p.site_id,
+      p.edc_subject_key,
+      p.mobile_linking_status::text,
+      p.edc_synced_at,
+      s.site_name,
+      s.site_number
+    FROM patients p
+    JOIN sites s ON p.site_id = s.site_id
+    ORDER BY p.patient_id
+  ''', context: serviceContext);
+
+  final patients = result.map((r) {
+    return {
+      'patient_id': r[0] as String,
+      'site_id': r[1] as String,
+      'edc_subject_key': r[2] as String,
+      'mobile_linking_status': r[3] as String,
+      'edc_synced_at': (r[4] as DateTime?)?.toIso8601String(),
+      'site_name': r[5] as String,
+      'site_number': r[6] as String,
+    };
+  }).toList();
+
+  final response = <String, dynamic>{'patients': patients};
   if (syncResult != null) {
     response['sync'] = syncResult.toJson();
   }

@@ -7,6 +7,7 @@
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
+//   REQ-CAL-p00063: EDC Patient Ingestion
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -34,6 +35,7 @@ Router createRouter() {
   router.post('/api/v1/portal/users', createPortalUserHandler);
   router.patch('/api/v1/portal/users/<userId>', updatePortalUserHandler);
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
+  router.get('/api/v1/portal/patients', getPortalPatientsHandler);
 
   // Email change verification
   router.post(

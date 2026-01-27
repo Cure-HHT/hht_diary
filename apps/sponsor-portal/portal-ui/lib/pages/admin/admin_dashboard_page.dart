@@ -3,6 +3,8 @@
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: User Management Interface
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC sites display)
+//   REQ-CAL-p00063: EDC Patient Ingestion
+//   REQ-CAL-p00073: Patient Status Definitions
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
+import 'patients_overview_tab.dart';
 import 'sites_tab.dart';
 import 'user_management_tab.dart';
 
@@ -98,6 +101,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       selectedIcon: Icon(Icons.location_city),
                       label: Text('Sites'),
                     ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.people_alt_outlined),
+                      selectedIcon: Icon(Icons.people_alt),
+                      label: Text('Patients'),
+                    ),
                   ],
                 ),
                 const VerticalDivider(thickness: 1, width: 1),
@@ -118,6 +126,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return _buildUsersTab(theme);
       case 2:
         return _buildSitesTab(theme);
+      case 3:
+        return _buildPatientsTab(theme);
       default:
         return _buildOverviewTab(user, theme);
     }
@@ -161,6 +171,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Icons.location_city,
                 'View clinical trial sites',
                 () => setState(() => _selectedIndex = 2),
+              ),
+              _buildStatCard(
+                theme,
+                'Patients',
+                Icons.people_alt,
+                'View patients from EDC',
+                () => setState(() => _selectedIndex = 3),
               ),
               _buildStatCard(
                 theme,
@@ -234,6 +251,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildUsersTab(ThemeData theme) => const UserManagementTab();
 
   Widget _buildSitesTab(ThemeData theme) => const SitesTab();
+
+  Widget _buildPatientsTab(ThemeData theme) => const PatientsTab();
 
   Color _getRoleBannerColor(UserRole role, ThemeData theme) {
     switch (role) {
