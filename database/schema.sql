@@ -592,7 +592,7 @@ COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g
 --   REQ-p00008: User Account Management
 --
 -- Mobile app user accounts - any user can use the app to track nosebleeds
--- Study enrollment is separate (see study_enrollments)
+-- Patient linking handled via patient_linking_codes table
 
 CREATE TABLE app_users (
     user_id TEXT PRIMARY KEY,
@@ -615,36 +615,6 @@ COMMENT ON COLUMN app_users.username IS 'Optional username for registered users'
 -- Indexes
 CREATE INDEX idx_app_users_username ON app_users(username);
 CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
-
--- =====================================================
--- STUDY ENROLLMENTS TABLE
--- =====================================================
--- Links app users to clinical studies via enrollment code
--- User can enroll in multiple studies (different sponsors)
-
-CREATE TABLE study_enrollments (
-    enrollment_id BIGSERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES app_users(user_id) ON DELETE CASCADE,
-    enrollment_code TEXT NOT NULL UNIQUE,
-    site_id TEXT REFERENCES sites(site_id),
-    patient_id TEXT,  -- From sponsor's EDC, may be assigned later
-    sponsor_id TEXT,  -- Identifies which sponsor/study
-    enrolled_at TIMESTAMPTZ DEFAULT now(),
-    status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'WITHDRAWN')),
-    metadata JSONB DEFAULT '{}'::jsonb
-);
-
-COMMENT ON TABLE study_enrollments IS 'Links app users to clinical studies via enrollment code';
-COMMENT ON COLUMN study_enrollments.enrollment_code IS 'One-time code from study coordinator (e.g., CUREHHT1)';
-COMMENT ON COLUMN study_enrollments.patient_id IS 'De-identified patient ID from sponsor EDC (assigned after enrollment)';
-COMMENT ON COLUMN study_enrollments.site_id IS 'Clinical trial site where patient is enrolled';
-COMMENT ON COLUMN study_enrollments.sponsor_id IS 'Sponsor/study identifier';
-
--- Indexes
-CREATE INDEX idx_study_enrollments_user_id ON study_enrollments(user_id);
-CREATE INDEX idx_study_enrollments_enrollment_code ON study_enrollments(enrollment_code);
-CREATE INDEX idx_study_enrollments_patient_id ON study_enrollments(patient_id);
-CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
 -- PORTAL USERS (STAFF)

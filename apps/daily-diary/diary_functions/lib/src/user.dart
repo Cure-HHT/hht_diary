@@ -4,7 +4,8 @@
 //   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-p00004: Immutable Audit Trail via Event Sourcing
 //
-// User enrollment and data sync handlers - converted from Firebase user.ts
+// User linking and data sync handlers
+// Patient linking uses patient_linking_codes (via sponsor portal)
 // Sync writes to record_audit (event store), not separate tables
 
 import 'dart:convert';
@@ -14,95 +15,35 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'jwt.dart';
 
-// Valid enrollment code pattern: CUREHHT followed by a digit (0-9)
-final _enrollmentCodePattern = RegExp(r'^CUREHHT[0-9]$', caseSensitive: false);
-
-/// Enrollment handler - enrolls user in a clinical study
-/// POST /api/v1/user/enroll
+/// Link handler - links app user to a patient via linking code
+/// POST /api/v1/user/link
 /// Authorization: Bearer <jwt>
 /// Body: { code }
 ///
-/// Links existing app user to a clinical study via enrollment code
-Future<Response> enrollHandler(Request request) async {
+/// Validates linking code from sponsor portal and links app user to patient.
+/// This is the mobile app side of the patient linking flow.
+/// TODO: Implement linking code validation against patient_linking_codes table
+Future<Response> linkHandler(Request request) async {
   if (request.method != 'POST') {
     return _jsonResponse({'error': 'Method not allowed'}, 405);
   }
 
-  try {
-    // Verify JWT - user must already have an account
-    final auth = verifyAuthHeader(request.headers['authorization']);
-    if (auth == null) {
-      return _jsonResponse({'error': 'Invalid or missing authorization'}, 401);
-    }
+  // Patient linking will be implemented in a future ticket
+  // The sponsor portal generates codes via patient_linking_codes table
+  // This endpoint will validate the code and create the link
+  return _jsonResponse({
+    'error':
+        'Patient linking not yet implemented. Use sponsor portal to generate linking codes.',
+  }, 501);
+}
 
-    final body = await _parseJson(request);
-    if (body == null) {
-      return _jsonResponse({'error': 'Invalid JSON body'}, 400);
-    }
-
-    final code = body['code'] as String?;
-
-    if (code == null || code.isEmpty) {
-      return _jsonResponse({'error': 'Enrollment code is required'}, 400);
-    }
-
-    final normalizedCode = code.toUpperCase();
-    if (!_enrollmentCodePattern.hasMatch(normalizedCode)) {
-      return _jsonResponse({'error': 'Invalid enrollment code'}, 400);
-    }
-
-    final db = Database.instance;
-
-    // Check if code has been used
-    final existing = await db.execute(
-      'SELECT enrollment_id FROM study_enrollments WHERE enrollment_code = @code',
-      parameters: {'code': normalizedCode},
-    );
-
-    if (existing.isNotEmpty) {
-      return _jsonResponse({
-        'error': 'This enrollment code has already been used',
-      }, 409);
-    }
-
-    // Verify user exists
-    final userResult = await db.execute(
-      'SELECT user_id FROM app_users WHERE auth_code = @authCode',
-      parameters: {'authCode': auth.authCode},
-    );
-
-    if (userResult.isEmpty) {
-      return _jsonResponse({'error': 'User not found'}, 401);
-    }
-
-    final userId = userResult.first[0] as String;
-
-    // Extract sponsor from enrollment code (e.g., CUREHHT1 -> curehht)
-    final sponsorId = normalizedCode
-        .replaceAll(RegExp(r'[0-9]$'), '')
-        .toLowerCase();
-
-    // Create study enrollment
-    await db.execute(
-      '''
-      INSERT INTO study_enrollments (user_id, enrollment_code, sponsor_id, status)
-      VALUES (@userId, @code, @sponsorId, 'ACTIVE')
-      ''',
-      parameters: {
-        'userId': userId,
-        'code': normalizedCode,
-        'sponsorId': sponsorId,
-      },
-    );
-
-    return _jsonResponse({
-      'success': true,
-      'enrollmentCode': normalizedCode,
-      'sponsorId': sponsorId,
-    });
-  } catch (e) {
-    return _jsonResponse({'error': 'Internal server error'}, 500);
-  }
+/// Legacy enrollment handler - DEPRECATED
+/// Use linkHandler instead for patient linking via sponsor portal codes
+Future<Response> enrollHandler(Request request) async {
+  return _jsonResponse({
+    'error':
+        'Legacy enrollment deprecated. Use /api/v1/user/link with sponsor portal linking codes.',
+  }, 410); // 410 Gone
 }
 
 /// Sync handler - appends events to record_audit (event store)
@@ -125,12 +66,13 @@ Future<Response> syncHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and their enrollment
+    // Look up user and their site assignment
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, e.site_id, e.patient_id
+      SELECT u.user_id, usa.site_id, usa.study_patient_id
       FROM app_users u
-      LEFT JOIN study_enrollments e ON u.user_id = e.user_id AND e.status = 'ACTIVE'
+      LEFT JOIN user_site_assignments usa ON u.user_id = usa.patient_id
+        AND usa.enrollment_status = 'ACTIVE'
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -236,12 +178,13 @@ Future<Response> getRecordsHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and patient_id
+    // Look up user and patient_id from site assignment
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, e.patient_id
+      SELECT u.user_id, usa.study_patient_id
       FROM app_users u
-      LEFT JOIN study_enrollments e ON u.user_id = e.user_id AND e.status = 'ACTIVE'
+      LEFT JOIN user_site_assignments usa ON u.user_id = usa.patient_id
+        AND usa.enrollment_status = 'ACTIVE'
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},

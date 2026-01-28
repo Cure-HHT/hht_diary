@@ -31,9 +31,6 @@ ON CONFLICT (site_id) DO UPDATE SET is_active = true;
 DELETE FROM record_audit WHERE created_by IN (
     SELECT user_id FROM app_users WHERE auth_code LIKE 'test-sync-%'
 );
-DELETE FROM study_enrollments WHERE user_id IN (
-    SELECT user_id FROM app_users WHERE auth_code LIKE 'test-sync-%'
-);
 DELETE FROM user_site_assignments WHERE patient_id IN (
     SELECT user_id FROM app_users WHERE auth_code LIKE 'test-sync-%'
 );
@@ -60,23 +57,6 @@ INSERT INTO user_site_assignments (
     'TEST-PATIENT-001',
     'ACTIVE'
 );
-
--- Also create study_enrollment for the user
-INSERT INTO study_enrollments (
-    user_id,
-    patient_id,
-    site_id,
-    sponsor_id,
-    enrollment_code,
-    status
-) VALUES (
-    '11111111-1111-1111-1111-111111111111',
-    '11111111-1111-1111-1111-111111111111',
-    'DEFAULT',
-    'TEST',
-    'CUREHHT9',
-    'ACTIVE'
-) ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- Sponsor Role Mappings for testing
