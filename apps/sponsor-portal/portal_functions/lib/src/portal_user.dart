@@ -950,6 +950,12 @@ Future<Response> getPortalPatientsHandler(Request request) async {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
   }
 
+  // Ensure sites are synced first (patients FK to sites)
+  final sitesSyncResult = await syncSitesIfNeeded();
+  if (sitesSyncResult != null && sitesSyncResult.hasError) {
+    print('Sites sync warning: ${sitesSyncResult.error}');
+  }
+
   // Sync patients from EDC if needed (stale or missing)
   final syncResult = await syncPatientsIfNeeded();
   if (syncResult != null && syncResult.hasError) {

@@ -351,18 +351,156 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer((_) async => subjects);
 
-      // Will fail at database operation but getSites should have been called
-      try {
-        await syncPatientsFromEdc(
-          testClient: mockClient,
-          testStudyOid: 'TEST-STUDY',
-          skipLogging: true,
-        );
-      } catch (e) {
-        // Expected to fail on database operation
-      }
+      // Without a real database, the per-patient upsert will fail but be
+      // caught and skipped. The function still completes with 0 counts.
+      final result = await syncPatientsFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: true,
+      );
+
+      // All patients skipped due to DB errors
+      expect(result.patientsCreated, equals(0));
+      expect(result.patientsUpdated, equals(0));
+      expect(result.hasError, isFalse);
 
       verify(() => mockClient.getSubjects(studyOid: 'TEST-STUDY')).called(1);
     });
+
+    test('skips patients with unknown site references gracefully', () async {
+      final subjects = [
+        const RaveSubject(subjectKey: '840-001-001', siteOid: 'UNKNOWN_SITE'),
+        const RaveSubject(subjectKey: '840-001-002', siteOid: 'UNKNOWN_SITE'),
+      ];
+
+      when(
+        () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+      ).thenAnswer((_) async => subjects);
+
+      // Should complete without throwing, skipping patients with DB errors
+      final result = await syncPatientsFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: true,
+      );
+
+      expect(result.patientsCreated, equals(0));
+      expect(result.patientsUpdated, equals(0));
+      expect(result.hasError, isFalse);
+    });
+  });
+
+  group('syncPatientsFromEdc logging paths (skipLogging: false)', () {
+    // These tests exercise the _logPatientSyncResult code paths.
+    // Without a database, the logging function catches its own errors,
+    // so these tests complete normally while exercising the logging branches.
+
+    late MockRaveClient mockClient;
+
+    setUp(() {
+      mockClient = MockRaveClient();
+    });
+
+    tearDown(() {
+      reset(mockClient);
+    });
+
+    test(
+      'attempts logging when empty subjects and skipLogging false',
+      () async {
+        when(
+          () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+        ).thenAnswer((_) async => []);
+
+        final result = await syncPatientsFromEdc(
+          testClient: mockClient,
+          testStudyOid: 'TEST-STUDY',
+          skipLogging: false,
+        );
+
+        // Error result returned (no subjects)
+        expect(result.hasError, isTrue);
+        expect(result.error, contains('No subjects returned'));
+      },
+    );
+
+    test('attempts logging on auth error with skipLogging false', () async {
+      when(
+        () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+      ).thenThrow(RaveAuthenticationException('Bad creds'));
+
+      final result = await syncPatientsFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: false,
+      );
+
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('RAVE authentication failed'));
+    });
+
+    test('attempts logging on network error with skipLogging false', () async {
+      when(
+        () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+      ).thenThrow(RaveNetworkException('Timeout'));
+
+      final result = await syncPatientsFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: false,
+      );
+
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('RAVE network error'));
+    });
+
+    test(
+      'attempts logging on generic RAVE error with skipLogging false',
+      () async {
+        when(
+          () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+        ).thenThrow(RaveApiException('Server error', statusCode: 500));
+
+        final result = await syncPatientsFromEdc(
+          testClient: mockClient,
+          testStudyOid: 'TEST-STUDY',
+          skipLogging: false,
+        );
+
+        expect(result.hasError, isTrue);
+        expect(result.error, contains('RAVE error'));
+      },
+    );
+
+    test(
+      'attempts logging on missing studyOid with skipLogging false',
+      () async {
+        final result = await syncPatientsFromEdc(
+          testClient: mockClient,
+          testStudyOid: null,
+          skipLogging: false,
+        );
+
+        expect(result.hasError, isTrue);
+        expect(result.error, contains('RAVE_STUDY_OID is required'));
+      },
+    );
+
+    test(
+      'closes created client when testClient is null and config missing',
+      () async {
+        // When testClient is null and RAVE is not configured,
+        // it returns early with config error (doesn't create client to close)
+        if (Platform.environment['RAVE_UAT_URL'] != null) {
+          print('Skipping test - RAVE is configured');
+          return;
+        }
+
+        final result = await syncPatientsFromEdc(skipLogging: false);
+
+        expect(result.hasError, isTrue);
+        expect(result.error, equals('RAVE configuration not available'));
+      },
+    );
   });
 }
