@@ -27,6 +27,11 @@ on:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
+      tobe_deployed:
+        description: 'Deploy to GCP after build'
+        required: false
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
@@ -48,6 +53,7 @@ jobs:
     outputs:
       image_tag: ${{ steps.parse.outputs.tags }}
       image_digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.parse.outputs.version }}
 
     steps:
       - name: Free up disk space
@@ -290,6 +296,7 @@ jobs:
     name: Trigger GCP Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-portal-server]
+    if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     steps:
       - name: Trigger test-gcp-auth workflow
         env:
@@ -298,7 +305,8 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
-            -f image_path="ghcr.io/cure-hht/portal-server@${{ needs.build-portal-server.outputs.image_digest }}"
+            -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
+            -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered test-gcp-auth.yml asynchronously"
 
   summary:

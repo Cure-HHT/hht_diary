@@ -15,11 +15,19 @@ on:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
         type: string
+      version:
+        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        required: false
+        type: string
   workflow_call:
     inputs:
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
+        type: string
+      version:
+        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        required: false
         type: string
     secrets:
       DOPPLER_TOKEN:
@@ -115,7 +123,11 @@ jobs:
       - name: 'Deploy to Cloud Run'
         run: |
           GAR_PATH="${{ steps.translate-path.outputs.gar_path }}"
+          VERSION="${{ inputs.version }}"
           echo "Deploying image to Cloud Run: $GAR_PATH"
+          if [ -n "$VERSION" ]; then
+            echo "Version: $VERSION"
+          fi
 
           gcloud run services update portal-server \
             --region=europe-west9 \
@@ -123,7 +135,7 @@ jobs:
             --image="$GAR_PATH" \
             --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=dev"
 
-          echo "✅ Cloud Run deployment successful"
+          echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
 
       - name: 'Display authentication info'
         run: |
