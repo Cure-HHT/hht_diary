@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//   REQ-p70007: Linking Code Lifecycle Management
 
 import 'dart:convert';
 
@@ -23,6 +24,9 @@ void main() {
 
     setUp(() {
       mockStorage = MockSecureStorage();
+      // Pre-set auth JWT token - required for enrollment/linking
+      mockStorage.data['auth_jwt'] = 'test-jwt-token';
+      mockStorage.data['auth_username'] = 'test-user-id';
     });
 
     tearDown(() {
@@ -107,16 +111,27 @@ void main() {
     });
 
     group('enroll', () {
-      test('successfully enrolls with valid code', () async {
+      // Note: The enroll() method now requires a pre-existing JWT token
+      // (set in setUp via mockStorage.data['auth_jwt'])
+
+      test('successfully links with valid 10-character code', () async {
         final mockClient = MockClient((request) async {
           expect(request.method, 'POST');
           expect(request.headers['Content-Type'], 'application/json');
+          expect(request.headers['Authorization'], 'Bearer test-jwt-token');
 
           final body = jsonDecode(request.body) as Map<String, dynamic>;
-          expect(body['code'], 'CUREHHT1');
+          // Code should be uppercase with dash removed
+          expect(body['code'], 'CAXXXXXXXX');
 
           return http.Response(
-            jsonEncode({'jwt': 'new-jwt-token', 'userId': 'new-user-id'}),
+            jsonEncode({
+              'success': true,
+              'patientId': 'patient-123',
+              'siteId': 'site-001',
+              'siteName': 'Test Site',
+              'studyPatientId': 'STUDY-001',
+            }),
             200,
           );
         });
@@ -126,25 +141,29 @@ void main() {
           httpClient: mockClient,
         );
 
-        final result = await service.enroll('curehht1');
+        final result = await service.enroll('CAXXX-XXXXX');
 
-        expect(result.userId, 'new-user-id');
-        expect(result.jwtToken, 'new-jwt-token');
+        expect(result.userId, 'test-user-id');
+        expect(result.jwtToken, 'test-jwt-token');
+        expect(result.patientId, 'patient-123');
+        expect(result.siteId, 'site-001');
+        expect(result.siteName, 'Test Site');
         expect(result.enrolledAt, isNotNull);
+        expect(result.isLinkedToClinicalTrial, isTrue);
 
         // Verify it was saved
         final saved = await service.getEnrollment();
         expect(saved, isNotNull);
-        expect(saved!.userId, 'new-user-id');
+        expect(saved!.patientId, 'patient-123');
       });
 
-      test('normalizes code to uppercase', () async {
+      test('normalizes code to uppercase and removes dash', () async {
         String? capturedCode;
         final mockClient = MockClient((request) async {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           capturedCode = body['code'] as String?;
           return http.Response(
-            jsonEncode({'jwt': 'token', 'userId': 'user'}),
+            jsonEncode({'success': true, 'patientId': 'p1', 'siteId': 's1'}),
             200,
           );
         });
@@ -154,9 +173,9 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.enroll('CuReHhT5');
+        await service.enroll('CaXxX-yYyYy');
 
-        expect(capturedCode, 'CUREHHT5');
+        expect(capturedCode, 'CAXXXYyyyy'.toUpperCase());
       });
 
       test('trims whitespace from code', () async {
@@ -165,7 +184,7 @@ void main() {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           capturedCode = body['code'] as String?;
           return http.Response(
-            jsonEncode({'jwt': 'token', 'userId': 'user'}),
+            jsonEncode({'success': true, 'patientId': 'p1', 'siteId': 's1'}),
             200,
           );
         });
@@ -175,9 +194,35 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.enroll('  CUREHHT3  ');
+        await service.enroll('  CABCD-EFGHI  ');
 
-        expect(capturedCode, 'CUREHHT3');
+        expect(capturedCode, 'CABCDEFGHI');
+      });
+
+      test('throws authRequired when no JWT token exists', () async {
+        mockStorage.data.remove('auth_jwt');
+        mockStorage.data.remove('user_enrollment');
+
+        final mockClient = MockClient((request) async {
+          return http.Response('{}', 200);
+        });
+
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: mockClient,
+        );
+
+        expect(
+          () => service.enroll('CAXXXXXXXX'),
+          throwsA(
+            allOf(
+              isA<EnrollmentException>(),
+              predicate<EnrollmentException>(
+                (e) => e.type == EnrollmentErrorType.authRequired,
+              ),
+            ),
+          ),
+        );
       });
 
       test('throws EnrollmentException with codeAlreadyUsed for 409', () async {
@@ -191,12 +236,35 @@ void main() {
         );
 
         expect(
-          () => service.enroll('CUREHHT1'),
+          () => service.enroll('CAXXXXXXXX'),
           throwsA(
             allOf(
               isA<EnrollmentException>(),
               predicate<EnrollmentException>(
                 (e) => e.type == EnrollmentErrorType.codeAlreadyUsed,
+              ),
+            ),
+          ),
+        );
+      });
+
+      test('throws EnrollmentException with codeExpired for 410', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('{"error": "Code expired"}', 410);
+        });
+
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: mockClient,
+        );
+
+        expect(
+          () => service.enroll('CAXXXXXXXX'),
+          throwsA(
+            allOf(
+              isA<EnrollmentException>(),
+              predicate<EnrollmentException>(
+                (e) => e.type == EnrollmentErrorType.codeExpired,
               ),
             ),
           ),
@@ -237,7 +305,7 @@ void main() {
         );
 
         expect(
-          () => service.enroll('CUREHHT1'),
+          () => service.enroll('CAXXXXXXXX'),
           throwsA(
             allOf(
               isA<EnrollmentException>(),
@@ -262,7 +330,7 @@ void main() {
           );
 
           expect(
-            () => service.enroll('CUREHHT1'),
+            () => service.enroll('CAXXXXXXXX'),
             throwsA(
               allOf(
                 isA<EnrollmentException>(),
@@ -301,7 +369,11 @@ void main() {
     });
 
     group('getJwtToken', () {
-      test('returns null when not enrolled', () async {
+      test('returns null when not enrolled and no auth token', () async {
+        // Clear the pre-set auth tokens for this test
+        mockStorage.data.remove('auth_jwt');
+        mockStorage.data.remove('user_enrollment');
+
         service = EnrollmentService(
           secureStorage: mockStorage,
           httpClient: MockClient((_) async => http.Response('', 200)),
@@ -362,6 +434,14 @@ void main() {
       expect(
         EnrollmentErrorType.values,
         contains(EnrollmentErrorType.codeAlreadyUsed),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.codeExpired),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.authRequired),
       );
       expect(
         EnrollmentErrorType.values,
