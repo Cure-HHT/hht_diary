@@ -619,7 +619,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
         db,
         userId: userId,
         changedBy: user.id,
-        action: 'reactivate_user',
+        action: 'update_status',
         before: {'status': currentStatus},
         after: {'status': 'pending', if (reason != null) 'reason': reason},
       );
@@ -950,6 +950,12 @@ Future<Response> getPortalPatientsHandler(Request request) async {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
   }
 
+  // Ensure sites are synced first (patients FK to sites)
+  final sitesSyncResult = await syncSitesIfNeeded();
+  if (sitesSyncResult != null && sitesSyncResult.hasError) {
+    print('Sites sync warning: ${sitesSyncResult.error}');
+  }
+
   // Sync patients from EDC if needed (stale or missing)
   final syncResult = await syncPatientsIfNeeded();
   if (syncResult != null && syncResult.hasError) {
@@ -958,19 +964,52 @@ Future<Response> getPortalPatientsHandler(Request request) async {
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
-  final result = await db.executeWithContext('''
-    SELECT
-      p.patient_id,
-      p.site_id,
-      p.edc_subject_key,
-      p.mobile_linking_status::text,
-      p.edc_synced_at,
-      s.site_name,
-      s.site_number
-    FROM patients p
-    JOIN sites s ON p.site_id = s.site_id
-    ORDER BY p.patient_id
-  ''', context: serviceContext);
+
+  // Investigators (Study Coordinators) only see patients from assigned sites
+  final isInvestigator = user.activeRole == 'Investigator';
+  final siteIds = isInvestigator
+      ? user.sites.map((s) => s['site_id'] as String).toList()
+      : <String>[];
+
+  late final List<List<dynamic>> result;
+  if (isInvestigator && siteIds.isNotEmpty) {
+    result = await db.executeWithContext(
+      '''
+      SELECT
+        p.patient_id,
+        p.site_id,
+        p.edc_subject_key,
+        p.mobile_linking_status::text,
+        p.edc_synced_at,
+        s.site_name,
+        s.site_number
+      FROM patients p
+      JOIN sites s ON p.site_id = s.site_id
+      WHERE p.site_id = ANY(@siteIds)
+      ORDER BY p.patient_id
+    ''',
+      parameters: {'siteIds': siteIds},
+      context: serviceContext,
+    );
+  } else if (isInvestigator && siteIds.isEmpty) {
+    // Investigator with no assigned sites sees no patients
+    result = [];
+  } else {
+    // Admins, Sponsors, Auditors see all patients
+    result = await db.executeWithContext('''
+      SELECT
+        p.patient_id,
+        p.site_id,
+        p.edc_subject_key,
+        p.mobile_linking_status::text,
+        p.edc_synced_at,
+        s.site_name,
+        s.site_number
+      FROM patients p
+      JOIN sites s ON p.site_id = s.site_id
+      ORDER BY p.patient_id
+    ''', context: serviceContext);
+  }
 
   final patients = result.map((r) {
     return {
@@ -987,6 +1026,11 @@ Future<Response> getPortalPatientsHandler(Request request) async {
   final response = <String, dynamic>{'patients': patients};
   if (syncResult != null) {
     response['sync'] = syncResult.toJson();
+  }
+
+  // Include user's assigned sites for Investigators (UI needs for "My Sites")
+  if (isInvestigator) {
+    response['assigned_sites'] = user.sites;
   }
 
   return _jsonResponse(response);

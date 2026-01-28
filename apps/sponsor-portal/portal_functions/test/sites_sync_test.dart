@@ -447,4 +447,83 @@ void main() {
       expect(json.containsKey('first_invalid_sync_id'), isFalse);
     });
   });
+
+  group('syncSitesFromEdc logging paths (skipLogging: false)', () {
+    // These tests exercise the _logSyncResult code paths.
+    // Without a database, the logging function catches its own errors,
+    // so these tests complete normally while exercising the logging branches.
+
+    late MockRaveClient mockClient;
+
+    setUp(() {
+      mockClient = MockRaveClient();
+    });
+
+    tearDown(() {
+      reset(mockClient);
+    });
+
+    test('attempts logging when empty sites and skipLogging false', () async {
+      when(
+        () => mockClient.getSites(studyOid: any(named: 'studyOid')),
+      ).thenAnswer((_) async => []);
+
+      final result = await syncSitesFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: false,
+      );
+
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('No sites returned'));
+    });
+
+    test('attempts logging on auth error with skipLogging false', () async {
+      when(
+        () => mockClient.getSites(studyOid: any(named: 'studyOid')),
+      ).thenThrow(RaveAuthenticationException('Bad creds'));
+
+      final result = await syncSitesFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: false,
+      );
+
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('RAVE authentication failed'));
+    });
+
+    test('attempts logging on network error with skipLogging false', () async {
+      when(
+        () => mockClient.getSites(studyOid: any(named: 'studyOid')),
+      ).thenThrow(RaveNetworkException('Timeout'));
+
+      final result = await syncSitesFromEdc(
+        testClient: mockClient,
+        testStudyOid: 'TEST-STUDY',
+        skipLogging: false,
+      );
+
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('RAVE network error'));
+    });
+
+    test(
+      'attempts logging on generic RAVE error with skipLogging false',
+      () async {
+        when(
+          () => mockClient.getSites(studyOid: any(named: 'studyOid')),
+        ).thenThrow(RaveApiException('Server error', statusCode: 500));
+
+        final result = await syncSitesFromEdc(
+          testClient: mockClient,
+          testStudyOid: 'TEST-STUDY',
+          skipLogging: false,
+        );
+
+        expect(result.hasError, isTrue);
+        expect(result.error, contains('RAVE error'));
+      },
+    );
+  });
 }

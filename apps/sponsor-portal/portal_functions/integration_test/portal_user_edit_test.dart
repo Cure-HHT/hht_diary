@@ -832,7 +832,7 @@ void main() {
       );
 
       test(
-        'reactivation creates audit log with reactivate_user action',
+        'reactivation creates audit log with update_status action',
         skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
         () async {
           final token = createMockEmulatorToken(
@@ -860,16 +860,16 @@ void main() {
 
           expect(response.statusCode, equals(200));
 
-          // Check audit log for reactivate_user action
+          // Check audit log for update_status action (reactivation is a status change)
           final auditResult = await db.execute(
             '''SELECT action, after_value
              FROM portal_user_audit_log
-             WHERE user_id = @userId::uuid AND action = 'reactivate_user'
+             WHERE user_id = @userId::uuid AND action = 'update_status'
              ORDER BY created_at DESC LIMIT 1''',
             parameters: {'userId': testTargetId},
           );
           expect(auditResult, isNotEmpty);
-          expect(auditResult.first[0], equals('reactivate_user'));
+          expect(auditResult.first[0], equals('update_status'));
 
           // Verify after_value contains reason
           final afterValue = auditResult.first[1];
