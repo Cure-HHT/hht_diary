@@ -216,7 +216,8 @@ CREATE TABLE patient_linking_codes (
     generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at TIMESTAMPTZ NOT NULL,        -- 72-hour expiration
     used_at TIMESTAMPTZ,                    -- NULL until code is validated by mobile app
-    used_by_app_uuid TEXT,                  -- App UUID that validated the code
+    used_by_user_id TEXT REFERENCES app_users(user_id), -- App user who validated the code
+    used_by_app_uuid TEXT,                  -- App/device UUID that validated the code
     revoked_at TIMESTAMPTZ,                 -- If manually revoked before use
     revoked_by UUID REFERENCES portal_users(id),
     revoke_reason TEXT,
@@ -226,6 +227,8 @@ CREATE TABLE patient_linking_codes (
 
 CREATE INDEX idx_patient_linking_patient ON patient_linking_codes(patient_id);
 CREATE INDEX idx_patient_linking_code_hash ON patient_linking_codes(code_hash);
+CREATE INDEX idx_patient_linking_user ON patient_linking_codes(used_by_user_id)
+    WHERE used_by_user_id IS NOT NULL;
 CREATE INDEX idx_patient_linking_expires ON patient_linking_codes(expires_at)
     WHERE used_at IS NULL AND revoked_at IS NULL;
 CREATE INDEX idx_patient_linking_cleanup ON patient_linking_codes(generated_at)
@@ -238,7 +241,8 @@ COMMENT ON COLUMN patient_linking_codes.code IS '10-character code: 2-char spons
 COMMENT ON COLUMN patient_linking_codes.code_hash IS 'SHA-256 hash for secure validation from mobile app';
 COMMENT ON COLUMN patient_linking_codes.expires_at IS '72-hour expiration from generation';
 COMMENT ON COLUMN patient_linking_codes.used_at IS 'Timestamp when code was validated - codes are single-use';
-COMMENT ON COLUMN patient_linking_codes.used_by_app_uuid IS 'Mobile app UUID that validated the code';
+COMMENT ON COLUMN patient_linking_codes.used_by_user_id IS 'App user (patient) who validated the code - establishes patient-app link';
+COMMENT ON COLUMN patient_linking_codes.used_by_app_uuid IS 'Mobile app/device UUID that validated the code';
 COMMENT ON COLUMN patient_linking_codes.revoked_at IS 'Manual revocation timestamp (e.g., patient disconnect)';
 
 -- =====================================================
