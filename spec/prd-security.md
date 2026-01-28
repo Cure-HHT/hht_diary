@@ -57,7 +57,7 @@ J. The system architecture SHALL make cross-sponsor access technically impossibl
 
 # REQ-p00002: Multi-Factor Authentication for Staff
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80050
 
 ## Rationale
 

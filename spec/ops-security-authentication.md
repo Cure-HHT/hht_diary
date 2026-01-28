@@ -63,7 +63,7 @@ Authentication configuration and operations guide for the Clinical Trial Diary P
 
 # REQ-o00006: MFA Configuration for Staff Accounts
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00002
+**Level**: Ops | **Status**: Draft | **Implements**: p00002, o80030
 
 ## Rationale
 

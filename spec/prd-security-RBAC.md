@@ -35,7 +35,7 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 # REQ-p00005: Role-Based Access Control
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80050
 
 ## Rationale
 

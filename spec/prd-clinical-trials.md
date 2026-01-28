@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Last Updated**: 2026-01-26
 **Status**: Draft
 
 > **See**: dev-compliance-practices.md for implementation guidance
@@ -44,13 +44,33 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 ## Key Requirements
 
-# REQ-p00010: FDA 21 CFR Part 11 Compliance
+# REQ-p00045: Regulatory Compliance Framework
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00044, p80002
 
 ## Rationale
 
+Clinical trial systems must comply with multiple regulatory frameworks depending on geographic scope and data types processed. This requirement establishes the platform's overarching regulatory compliance posture, ensuring that all applicable regulations are systematically addressed through dedicated child requirements. By centralizing regulatory compliance under a single framework requirement, the platform maintains clear traceability from the top-level system definition down to specific regulatory implementations.
+
+## Assertions
+
+A. The system SHALL satisfy FDA 21 CFR Part 11 requirements for electronic records and electronic signatures.
+B. The system SHALL satisfy EU General Data Protection Regulation (GDPR) requirements for personal data protection.
+C. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
+D. The system SHALL support audit and inspection activities by regulatory authorities.
+
+*End* *Regulatory Compliance Framework* | **Hash**: d9364270
+---
+
+# REQ-p00010: FDA 21 CFR Part 11 Compliance
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00045
+
+## Rationale
+
 FDA 21 CFR Part 11 is the regulatory foundation for electronic clinical trial systems in the United States. Compliance is mandatory for regulatory submission acceptance and protects the integrity of clinical trial data used for drug approval decisions. This requirement establishes the comprehensive set of controls and capabilities needed to ensure the system meets federal standards for electronic records and electronic signatures, enabling regulatory authorities to trust the integrity and authenticity of clinical trial data collected through the platform.
+
+The detailed FDA regulatory requirements are defined in the FDA regulations specification (`spec/regulations/fda/`), which provides the authoritative source documentation for 21 CFR Part 11, FDA guidance documents, and ICH GCP requirements. This platform requirement ensures those regulatory standards are implemented in the system.
 
 ## Assertions
 
@@ -79,7 +99,7 @@ S. The system SHALL include a complete validation documentation package.
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010, p80005-A
+**Level**: PRD | **Status**: Draft | **Implements**: p00010, p80005-A, p80010
 
 ## Rationale
 
@@ -138,7 +158,7 @@ P. The system SHALL maintain data integrity throughout the retention period.
 
 # REQ-p01061: GDPR Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: p00045
 
 ## Rationale
 
@@ -307,11 +327,43 @@ For EU participants:
 
 ---
 
+## Regulatory Reference Documentation
+
+### FDA Requirements Source Documents
+
+The detailed FDA regulatory requirements in `spec/regulations/fda/` are derived from the following authoritative source documents:
+
+| Document | Description | Requirements Mapping |
+| --- | --- | --- |
+| **21 CFR Part 11** | FDA regulation governing electronic records and electronic signatures | REQ-p80202, REQ-p80302 |
+| **FDA Guidance for Industry: Part 11 Scope and Application** | FDA guidance on interpretation and enforcement priorities | REQ-p80203, REQ-p80303, REQ-p80403 |
+| **ICH E6(R2) GCP Consolidated Guideline** | International standards for clinical trial conduct | REQ-p80005 |
+| **ICH E6(R2) GCP Detailed Requirements** | Specific requirements for electronic systems in clinical trials | REQ-p80204, REQ-p80304, REQ-p80404 |
+
+### Traceability Chain
+
+The regulatory compliance hierarchy follows this structure:
+
+```
+REQ-p00044 (Platform) - Top-level system definition
+    └── REQ-p00045 (Regulatory Compliance Framework)
+            ├── REQ-p00010 (FDA 21 CFR Part 11 Compliance)
+            │       ├── REQ-p00011 (ALCOA+) → links to p80010
+            │       └── REQ-p00012 (Data Retention)
+            └── REQ-p01061 (GDPR Compliance)
+                    └── REQ-p01062 (Data Portability)
+```
+
+The FDA detailed requirements (p80xxx series) in `spec/regulations/fda/` provide the authoritative regulatory source material that REQ-p00010 ensures is implemented in the platform.
+
+---
+
 ## References
 
 - **Implementation Details**: dev-compliance-practices.md
 - **Data Architecture**: prd-database.md
 - **Security Architecture**: prd-security.md
 - **Operations**: ops-security.md
+- **FDA Detailed Requirements**: spec/regulations/fda/
 - **FDA Guidance**: FDA 21 CFR Part 11
 - **ALCOA+ Principles**: Data Integrity and Compliance Guidelines

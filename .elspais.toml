@@ -2,7 +2,7 @@ project = { name = "hht-diary", type = "core" }
 validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
 
 [directories]
-spec = "spec"
+spec = ["spec", "spec/regulations/fda"]
 docs = "docs"
 database = "database"
 code = ["apps", "packages", "server", "tools"]
@@ -53,9 +53,9 @@ skip_dirs = ["roadmap", "regulations/fda/reference"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"
 "dev-*.md" = "dev"
-"regulations/fda/prd-*.md" = "prd"
-"regulations/fda/ops-*.md" = "ops"
-"regulations/fda/dev-*.md" = "dev"
+"**/prd-*.md" = "prd"
+"**/ops-*.md" = "ops"
+"**/dev-*.md" = "dev"
 
 [rules]
 hierarchy = { allowed_implements = ["dev -> dev, ops, prd", "ops -> ops, prd", "prd -> prd"], allow_circular = false, allow_orphans = true, max_depth = 5 }

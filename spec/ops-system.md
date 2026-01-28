@@ -54,7 +54,7 @@ J. Routine compliance maintenance SHALL require zero manual steps.
 
 # REQ-o00066: Multi-Framework Compliance Automation
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010
+**Level**: Ops | **Status**: Draft | **Implements**: p00010, o80010, o80020, o80030
 
 ## Rationale
 
@@ -84,7 +84,7 @@ O. Incident response implementations SHALL satisfy FDA 21 CFR Part 11 §11.10(k)
 
 # REQ-o00067: Automated Compliance Evidence Collection
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010, o00066
+**Level**: Ops | **Status**: Draft | **Implements**: p00010, o00066, o80020
 
 ## Rationale
 

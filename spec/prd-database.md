@@ -120,7 +120,7 @@ M. Query execution SHALL NOT span multiple sponsor databases.
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80030
 
 ## Rationale
 
