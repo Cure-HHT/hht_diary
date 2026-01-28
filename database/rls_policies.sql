@@ -872,6 +872,45 @@ CREATE POLICY email_audit_log_admin_select ON email_audit_log
     TO authenticated
     USING (current_user_role() IN ('Administrator', 'Developer Admin', 'Auditor'));
 
+-- =====================================================
+-- PATIENT LINKING CODE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p70007: Linking Code Lifecycle Management
+--   REQ-d00078: Linking Code Validation
+--   REQ-CAL-p00049: Mobile Linking Codes
+--
+-- These tables are managed by the backend service
+-- Investigators can generate codes for patients at their assigned sites
+
+-- patient_linking_codes: Service role full access (backend manages lifecycle)
+CREATE POLICY patient_linking_codes_service_all ON patient_linking_codes
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Investigators can view linking codes for patients at their assigned sites
+CREATE POLICY patient_linking_codes_investigator_select ON patient_linking_codes
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'Investigator'
+        AND patient_id IN (
+            SELECT p.patient_id FROM patients p
+            WHERE p.site_id IN (
+                SELECT pusa.site_id FROM portal_user_site_access pusa
+                WHERE pusa.user_id = current_user_id()
+            )
+        )
+    );
+
+-- Grant service_role access to patient_linking_codes
+GRANT ALL ON patient_linking_codes TO service_role;
+
+-- Grant investigators SELECT on their site's patient linking codes
+GRANT SELECT ON patient_linking_codes TO authenticated;
+
 -- Grant service_role access to new tables
 GRANT ALL ON email_otp_codes TO service_role;
 GRANT ALL ON email_rate_limits TO service_role;

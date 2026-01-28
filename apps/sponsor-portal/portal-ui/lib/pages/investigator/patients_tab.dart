@@ -1,7 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-p70007: Linking Code Lifecycle Management
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -11,6 +14,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/link_patient_dialog.dart';
 
 /// Status filter for the patients tab
 enum PatientStatusFilter {
@@ -505,31 +509,34 @@ class _StudyCoordinatorPatientsTabState
   }
 
   Widget _buildActionButton(_PatientData patient, ThemeData theme) {
+    final authService = context.read<AuthService>();
+    final apiClient = ApiClient(authService);
+
     switch (patient.mobileLinkingStatus) {
       case 'not_connected':
         return TextButton.icon(
-          onPressed: null, // Linking flow not yet implemented
+          onPressed: () => _linkPatient(patient, apiClient),
           icon: const Icon(Icons.link, size: 16),
           label: const Text('Link Patient'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'linking_in_progress':
         return TextButton.icon(
-          onPressed: null, // Show linking code not yet implemented
+          onPressed: () => _showLinkingCode(patient, apiClient),
           icon: const Icon(Icons.qr_code, size: 16),
           label: const Text('Show Code'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
         return TextButton.icon(
-          onPressed: null, // Generate new code not yet implemented
+          onPressed: () => _linkPatient(patient, apiClient),
           icon: const Icon(Icons.refresh, size: 16),
           label: const Text('New Code'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'disconnected':
         return TextButton.icon(
-          onPressed: null, // Reconnect not yet implemented
+          onPressed: () => _linkPatient(patient, apiClient),
           icon: const Icon(Icons.link, size: 16),
           label: const Text('Reconnect'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
@@ -537,5 +544,33 @@ class _StudyCoordinatorPatientsTabState
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  /// Opens the LinkPatientDialog to generate a new linking code
+  Future<void> _linkPatient(_PatientData patient, ApiClient apiClient) async {
+    final success = await LinkPatientDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if a code was generated
+    if (success && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the ShowLinkingCodeDialog to display an existing code
+  Future<void> _showLinkingCode(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    await ShowLinkingCodeDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
   }
 }

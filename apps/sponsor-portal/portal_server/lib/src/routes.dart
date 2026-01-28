@@ -8,6 +8,8 @@
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
 //   REQ-CAL-p00063: EDC Patient Ingestion
+//   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-CAL-p00049: Mobile Linking Codes
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -36,6 +38,16 @@ Router createRouter() {
   router.patch('/api/v1/portal/users/<userId>', updatePortalUserHandler);
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
   router.get('/api/v1/portal/patients', getPortalPatientsHandler);
+
+  // Patient linking code endpoints (Investigator role)
+  router.post(
+    '/api/v1/portal/patients/<patientId>/link-code',
+    generatePatientLinkingCodeHandler,
+  );
+  router.get(
+    '/api/v1/portal/patients/<patientId>/link-code',
+    getPatientLinkingCodeHandler,
+  );
 
   // Email change verification
   router.post(

@@ -196,6 +196,56 @@ COMMENT ON COLUMN patients.edc_synced_at IS 'Timestamp of last sync from EDC';
 COMMENT ON COLUMN patients.metadata IS 'Additional patient metadata from EDC';
 
 -- =====================================================
+-- PATIENT LINKING CODES (REQ-p70007, REQ-d00078, REQ-d00079)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p70007: Linking Code Lifecycle Management
+--   REQ-d00078: Linking Code Validation
+--   REQ-d00079: Linking Code Pattern Matching
+--   REQ-CAL-p00049: Mobile Linking Codes
+--
+-- Stores time-limited linking codes for patient mobile app enrollment
+-- Codes are displayed once at generation (stored plaintext) and hashed for secure validation
+
+CREATE TABLE patient_linking_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id TEXT NOT NULL REFERENCES patients(patient_id) ON DELETE CASCADE,
+    code TEXT NOT NULL UNIQUE,              -- Full 10-char code (2-char prefix + 8 random)
+    code_hash TEXT NOT NULL,                -- SHA-256 hash for secure validation lookup
+    generated_by UUID NOT NULL REFERENCES portal_users(id),
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,        -- 72-hour expiration
+    used_at TIMESTAMPTZ,                    -- NULL until code is validated by mobile app
+    used_by_user_id TEXT REFERENCES app_users(user_id), -- App user who validated the code
+    used_by_app_uuid TEXT,                  -- App/device UUID that validated the code
+    revoked_at TIMESTAMPTZ,                 -- If manually revoked before use
+    revoked_by UUID REFERENCES portal_users(id),
+    revoke_reason TEXT,
+    ip_address INET,                        -- IP address of generator (audit)
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX idx_patient_linking_patient ON patient_linking_codes(patient_id);
+CREATE INDEX idx_patient_linking_code_hash ON patient_linking_codes(code_hash);
+CREATE INDEX idx_patient_linking_user ON patient_linking_codes(used_by_user_id)
+    WHERE used_by_user_id IS NOT NULL;
+CREATE INDEX idx_patient_linking_expires ON patient_linking_codes(expires_at)
+    WHERE used_at IS NULL AND revoked_at IS NULL;
+CREATE INDEX idx_patient_linking_cleanup ON patient_linking_codes(generated_at)
+    WHERE used_at IS NOT NULL OR revoked_at IS NOT NULL;
+
+ALTER TABLE patient_linking_codes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE patient_linking_codes IS 'Time-limited linking codes for patient mobile app enrollment (REQ-p70007)';
+COMMENT ON COLUMN patient_linking_codes.code IS '10-character code: 2-char sponsor prefix + 8-char random (REQ-d00079)';
+COMMENT ON COLUMN patient_linking_codes.code_hash IS 'SHA-256 hash for secure validation from mobile app';
+COMMENT ON COLUMN patient_linking_codes.expires_at IS '72-hour expiration from generation';
+COMMENT ON COLUMN patient_linking_codes.used_at IS 'Timestamp when code was validated - codes are single-use';
+COMMENT ON COLUMN patient_linking_codes.used_by_user_id IS 'App user (patient) who validated the code - establishes patient-app link';
+COMMENT ON COLUMN patient_linking_codes.used_by_app_uuid IS 'Mobile app/device UUID that validated the code';
+COMMENT ON COLUMN patient_linking_codes.revoked_at IS 'Manual revocation timestamp (e.g., patient disconnect)';
+
+-- =====================================================
 -- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
 -- =====================================================
 -- Tracks all synchronization events from EDC systems
@@ -546,7 +596,7 @@ COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g
 --   REQ-p00008: User Account Management
 --
 -- Mobile app user accounts - any user can use the app to track nosebleeds
--- Study enrollment is separate (see study_enrollments)
+-- Patient linking handled via patient_linking_codes table
 
 CREATE TABLE app_users (
     user_id TEXT PRIMARY KEY,
@@ -569,36 +619,6 @@ COMMENT ON COLUMN app_users.username IS 'Optional username for registered users'
 -- Indexes
 CREATE INDEX idx_app_users_username ON app_users(username);
 CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
-
--- =====================================================
--- STUDY ENROLLMENTS TABLE
--- =====================================================
--- Links app users to clinical studies via enrollment code
--- User can enroll in multiple studies (different sponsors)
-
-CREATE TABLE study_enrollments (
-    enrollment_id BIGSERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES app_users(user_id) ON DELETE CASCADE,
-    enrollment_code TEXT NOT NULL UNIQUE,
-    site_id TEXT REFERENCES sites(site_id),
-    patient_id TEXT,  -- From sponsor's EDC, may be assigned later
-    sponsor_id TEXT,  -- Identifies which sponsor/study
-    enrolled_at TIMESTAMPTZ DEFAULT now(),
-    status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'WITHDRAWN')),
-    metadata JSONB DEFAULT '{}'::jsonb
-);
-
-COMMENT ON TABLE study_enrollments IS 'Links app users to clinical studies via enrollment code';
-COMMENT ON COLUMN study_enrollments.enrollment_code IS 'One-time code from study coordinator (e.g., CUREHHT1)';
-COMMENT ON COLUMN study_enrollments.patient_id IS 'De-identified patient ID from sponsor EDC (assigned after enrollment)';
-COMMENT ON COLUMN study_enrollments.site_id IS 'Clinical trial site where patient is enrolled';
-COMMENT ON COLUMN study_enrollments.sponsor_id IS 'Sponsor/study identifier';
-
--- Indexes
-CREATE INDEX idx_study_enrollments_user_id ON study_enrollments(user_id);
-CREATE INDEX idx_study_enrollments_enrollment_code ON study_enrollments(enrollment_code);
-CREATE INDEX idx_study_enrollments_patient_id ON study_enrollments(patient_id);
-CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
 -- PORTAL USERS (STAFF)
