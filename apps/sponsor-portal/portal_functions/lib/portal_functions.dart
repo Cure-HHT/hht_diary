@@ -30,3 +30,6 @@ export 'src/sponsor.dart';
 // EDC Integration
 export 'src/patients_sync.dart';
 export 'src/sites_sync.dart';
+
+// Patient Linking
+export 'src/patient_linking.dart';
