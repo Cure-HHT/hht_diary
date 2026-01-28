@@ -14,7 +14,7 @@
 # Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
 # or when manually dispatched via the Actions UI with an input `version`.
 
-name: Build portal-server & Deploy to GCP
+name: Build portal-server
 on:
   push:
     branches:
