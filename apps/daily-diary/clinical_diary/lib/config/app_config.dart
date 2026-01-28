@@ -68,7 +68,9 @@ class AppConfig {
   }
 
   // API Endpoints
-  static String get enrollUrl => '$apiBase/enroll';
+  static String get enrollUrl => '$apiBase/enroll'; // Deprecated, use linkUrl
+  static String get linkUrl =>
+      '$apiBase/link'; // Patient linking via sponsor portal codes
   static String get healthUrl => '$apiBase/health';
   static String get syncUrl => '$apiBase/sync';
   static String get getRecordsUrl => '$apiBase/getRecords';

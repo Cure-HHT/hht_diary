@@ -3,6 +3,10 @@
 //   REQ-p00008: User Account Management
 //   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-p00004: Immutable Audit Trail via Event Sourcing
+//   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-d00078: Linking Code Validation
+//   REQ-CAL-p00049: Mobile Linking Codes
+//   REQ-CAL-p00073: Patient Status Definitions
 //
 // User linking and data sync handlers
 // Patient linking uses patient_linking_codes (via sponsor portal)
@@ -10,31 +14,205 @@
 
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
 
+/// Hash a linking code using SHA-256 for secure validation lookup
+/// Must match the hash algorithm used in sponsor portal (REQ-d00078)
+String _hashLinkingCode(String code) {
+  final bytes = utf8.encode(code);
+  final digest = sha256.convert(bytes);
+  return digest.toString();
+}
+
 /// Link handler - links app user to a patient via linking code
 /// POST /api/v1/user/link
 /// Authorization: Bearer <jwt>
-/// Body: { code }
+/// Body: { code, appUuid? }
 ///
 /// Validates linking code from sponsor portal and links app user to patient.
-/// This is the mobile app side of the patient linking flow.
-/// TODO: Implement linking code validation against patient_linking_codes table
+/// This is the mobile app side of the patient linking flow (REQ-p70007, REQ-d00078).
 Future<Response> linkHandler(Request request) async {
   if (request.method != 'POST') {
     return _jsonResponse({'error': 'Method not allowed'}, 405);
   }
 
-  // Patient linking will be implemented in a future ticket
-  // The sponsor portal generates codes via patient_linking_codes table
-  // This endpoint will validate the code and create the link
-  return _jsonResponse({
-    'error':
-        'Patient linking not yet implemented. Use sponsor portal to generate linking codes.',
-  }, 501);
+  try {
+    // Verify JWT
+    final auth = verifyAuthHeader(request.headers['authorization']);
+    if (auth == null) {
+      return _jsonResponse({'error': 'Invalid or missing authorization'}, 401);
+    }
+
+    final body = await _parseJson(request);
+    if (body == null) {
+      return _jsonResponse({'error': 'Invalid JSON body'}, 400);
+    }
+
+    // Extract and normalize the code
+    final code = (body['code'] as String?)?.toUpperCase().replaceAll('-', '');
+    if (code == null || code.isEmpty) {
+      return _jsonResponse({'error': 'Missing linking code'}, 400);
+    }
+
+    // Validate code format: 10 characters (2-char prefix + 8 random)
+    if (code.length != 10) {
+      return _jsonResponse({
+        'error': 'Invalid code format. Expected 10 characters.',
+      }, 400);
+    }
+
+    final appUuid = body['appUuid'] as String?;
+    final db = Database.instance;
+
+    // Get the authenticated user
+    final userResult = await db.execute(
+      'SELECT user_id FROM app_users WHERE auth_code = @authCode',
+      parameters: {'authCode': auth.authCode},
+    );
+
+    if (userResult.isEmpty) {
+      return _jsonResponse({'error': 'User not found'}, 401);
+    }
+
+    final userId = userResult.first[0] as String;
+
+    // Hash the code for lookup (REQ-d00078)
+    final codeHash = _hashLinkingCode(code);
+
+    // Look up the linking code in patient_linking_codes
+    // Must be: not expired, not used, not revoked
+    final codeResult = await db.execute(
+      '''
+      SELECT
+        plc.id,
+        plc.patient_id,
+        p.site_id,
+        p.edc_subject_key,
+        s.site_name,
+        s.site_number
+      FROM patient_linking_codes plc
+      JOIN patients p ON plc.patient_id = p.patient_id
+      JOIN sites s ON p.site_id = s.site_id
+      WHERE plc.code_hash = @codeHash
+        AND plc.expires_at > now()
+        AND plc.used_at IS NULL
+        AND plc.revoked_at IS NULL
+      ''',
+      parameters: {'codeHash': codeHash},
+    );
+
+    if (codeResult.isEmpty) {
+      // Check if code exists but is expired/used/revoked for better error message
+      final checkResult = await db.execute(
+        'SELECT used_at, expires_at, revoked_at FROM patient_linking_codes WHERE code_hash = @codeHash',
+        parameters: {'codeHash': codeHash},
+      );
+
+      if (checkResult.isEmpty) {
+        return _jsonResponse({
+          'error': 'Invalid linking code. Please check the code and try again.',
+        }, 400);
+      }
+
+      final row = checkResult.first;
+      final usedAt = row[0];
+      final expiresAt = row[1] as DateTime;
+      final revokedAt = row[2];
+
+      if (usedAt != null) {
+        return _jsonResponse({
+          'error':
+              'This linking code has already been used. Please request a new code from your research coordinator.',
+        }, 409);
+      }
+
+      if (revokedAt != null) {
+        return _jsonResponse({
+          'error':
+              'This linking code has been revoked. Please request a new code from your research coordinator.',
+        }, 410);
+      }
+
+      if (expiresAt.isBefore(DateTime.now())) {
+        return _jsonResponse({
+          'error':
+              'This linking code has expired. Please request a new code from your research coordinator.',
+        }, 410);
+      }
+
+      return _jsonResponse({'error': 'Invalid linking code.'}, 400);
+    }
+
+    final codeRow = codeResult.first;
+    final codeId = codeRow[0] as String;
+    final patientId = codeRow[1] as String;
+    final siteId = codeRow[2] as String;
+    final edcSubjectKey = codeRow[3] as String;
+    final siteName = codeRow[4] as String;
+    final siteNumber = codeRow[5] as String;
+
+    // Mark the code as used (REQ-p70007.J - single-use)
+    await db.execute(
+      '''
+      UPDATE patient_linking_codes
+      SET used_at = now(),
+          used_by_user_id = @userId,
+          used_by_app_uuid = @appUuid
+      WHERE id = @codeId::uuid
+      ''',
+      parameters: {'codeId': codeId, 'userId': userId, 'appUuid': appUuid},
+    );
+
+    // Update patient linking status to 'connected' (REQ-CAL-p00073)
+    await db.execute(
+      '''
+      UPDATE patients
+      SET mobile_linking_status = 'connected',
+          updated_at = now()
+      WHERE patient_id = @patientId
+      ''',
+      parameters: {'patientId': patientId},
+    );
+
+    // Create or update user_site_assignments to link app user to patient/site
+    await db.execute(
+      '''
+      INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+      VALUES (@userId, @siteId, @edcSubjectKey, 'ACTIVE')
+      ON CONFLICT (patient_id, site_id) DO UPDATE
+      SET study_patient_id = @edcSubjectKey,
+          enrollment_status = 'ACTIVE',
+          withdrawn_at = NULL,
+          withdrawal_reason = NULL
+      ''',
+      parameters: {
+        'userId': userId,
+        'siteId': siteId,
+        'edcSubjectKey': edcSubjectKey,
+      },
+    );
+
+    // Update app_users last_active_at
+    await db.execute(
+      'UPDATE app_users SET last_active_at = now() WHERE user_id = @userId',
+      parameters: {'userId': userId},
+    );
+
+    return _jsonResponse({
+      'success': true,
+      'patientId': patientId,
+      'siteId': siteId,
+      'siteName': siteName,
+      'siteNumber': siteNumber,
+      'studyPatientId': edcSubjectKey,
+    });
+  } catch (e) {
+    return _jsonResponse({'error': 'Internal server error: $e'}, 500);
+  }
 }
 
 /// Legacy enrollment handler - DEPRECATED
