@@ -148,6 +148,15 @@ if [ "$RUN_INTEGRATION" = true ]; then
         fi
     fi
 
+    # Set environment for integration tests
+    export DB_SSL="false"
+
+    # Export DB password for tests (get from Doppler if not already set)
+    if [ -z "$DB_PASSWORD" ]; then
+        DB_PASSWORD=$(doppler secrets get LOCAL_DB_PASSWORD --plain 2>/dev/null)
+    fi
+    export DB_PASSWORD
+
     if dart test integration_test/; then
         echo "Integration tests passed!"
     else

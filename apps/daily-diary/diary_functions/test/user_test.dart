@@ -17,43 +17,11 @@ void main() {
     return jsonDecode(body) as Map<String, dynamic>;
   }
 
-  group('enrollHandler HTTP validation', () {
-    test('returns 405 for GET request', () async {
-      final request = Request(
-        'GET',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-      );
+  group('enrollHandler deprecation', () {
+    // enrollHandler is deprecated and always returns 410 Gone
+    // Use /api/v1/user/link with sponsor portal linking codes instead
 
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(405));
-
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('Method'));
-    });
-
-    test('returns 405 for PUT request', () async {
-      final request = Request(
-        'PUT',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-        body: jsonEncode({'code': 'CUREHHT1'}),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(405));
-    });
-
-    test('returns 405 for DELETE request', () async {
-      final request = Request(
-        'DELETE',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(405));
-    });
-
-    test('returns 401 for missing Authorization header', () async {
+    test('returns 410 Gone for all requests (deprecated endpoint)', () async {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/user/enroll'),
@@ -62,45 +30,35 @@ void main() {
       );
 
       final response = await enrollHandler(request);
-      expect(response.statusCode, equals(401));
+      expect(response.statusCode, equals(410));
 
       final json = await getResponseJson(response);
-      expect(json['error'], contains('authorization'));
+      expect(json['error'], contains('deprecated'));
     });
 
-    test('returns 401 for invalid JWT token', () async {
+    test('returns 410 regardless of HTTP method', () async {
+      for (final method in ['GET', 'PUT', 'DELETE']) {
+        final request = Request(
+          method,
+          Uri.parse('http://localhost/api/v1/user/enroll'),
+        );
+
+        final response = await enrollHandler(request);
+        expect(response.statusCode, equals(410));
+      }
+    });
+
+    test('response mentions /api/v1/user/link as replacement', () async {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/user/enroll'),
         body: jsonEncode({'code': 'CUREHHT1'}),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer invalid.jwt.token',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       final response = await enrollHandler(request);
-      expect(response.statusCode, equals(401));
-    });
-
-    test('returns 401 for Authorization without Bearer prefix', () async {
-      final token = createJwtToken(
-        authCode: generateAuthCode(),
-        userId: generateUserId(),
-      );
-
-      final request = Request(
-        'POST',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-        body: jsonEncode({'code': 'CUREHHT1'}),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token, // Missing "Bearer " prefix
-        },
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(401));
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('/api/v1/user/link'));
     });
   });
 
