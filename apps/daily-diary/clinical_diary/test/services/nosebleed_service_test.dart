@@ -1029,7 +1029,7 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
@@ -1081,7 +1081,7 @@ void main() {
 
         // Now fetch a different cloud record for same date
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
@@ -1115,7 +1115,7 @@ void main() {
         var fetchCalled = false;
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             fetchCalled = true;
           }
           return http.Response('', 200);
@@ -1135,7 +1135,7 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response('{"error": "Server error"}', 500);
           }
           return http.Response('', 200);
@@ -1273,7 +1273,8 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          // Match both old (/getRecords) and new (/records) URL paths
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
