@@ -263,48 +263,57 @@ void main() {
           AppConfig.testApiBaseOverride = 'https://test-api.example.com';
         });
 
-        test('enrollUrl appends /enroll to apiBase', () {
-          expect(AppConfig.enrollUrl, 'https://test-api.example.com/enroll');
+        test('enrollUrl uses /api/v1/user/enroll path', () {
+          expect(
+            AppConfig.enrollUrl,
+            'https://test-api.example.com/api/v1/user/enroll',
+          );
         });
 
         test('healthUrl appends /health to apiBase', () {
           expect(AppConfig.healthUrl, 'https://test-api.example.com/health');
         });
 
-        test('syncUrl appends /sync to apiBase', () {
-          expect(AppConfig.syncUrl, 'https://test-api.example.com/sync');
+        test('syncUrl uses /api/v1/user/sync path', () {
+          expect(
+            AppConfig.syncUrl,
+            'https://test-api.example.com/api/v1/user/sync',
+          );
         });
 
-        test('getRecordsUrl appends /getRecords to apiBase', () {
+        test('getRecordsUrl uses /api/v1/user/records path', () {
           expect(
             AppConfig.getRecordsUrl,
-            'https://test-api.example.com/getRecords',
+            'https://test-api.example.com/api/v1/user/records',
           );
         });
 
-        test('registerUrl appends /register to apiBase', () {
+        test('registerUrl uses /api/v1/auth/register path', () {
           expect(
             AppConfig.registerUrl,
-            'https://test-api.example.com/register',
+            'https://test-api.example.com/api/v1/auth/register',
           );
         });
 
-        test('loginUrl appends /login to apiBase', () {
-          expect(AppConfig.loginUrl, 'https://test-api.example.com/login');
+        test('loginUrl uses /api/v1/auth/login path', () {
+          expect(
+            AppConfig.loginUrl,
+            'https://test-api.example.com/api/v1/auth/login',
+          );
         });
 
-        test('changePasswordUrl appends /changePassword to apiBase', () {
+        test('changePasswordUrl uses /api/v1/auth/change-password path', () {
           expect(
             AppConfig.changePasswordUrl,
-            'https://test-api.example.com/changePassword',
+            'https://test-api.example.com/api/v1/auth/change-password',
           );
         });
 
-        test('sponsorConfigUrl builds URL with sponsorId', () {
+        test('sponsorConfigUrl uses /api/v1/sponsor/config path', () {
           final url = AppConfig.sponsorConfigUrl('curehht');
           expect(
             url,
-            'https://test-api.example.com/sponsorConfig?sponsorId=curehht',
+            'https://test-api.example.com/api/v1/sponsor/config?sponsorId=curehht',
           );
         });
       });
