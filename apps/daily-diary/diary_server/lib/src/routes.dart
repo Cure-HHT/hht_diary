@@ -2,6 +2,8 @@
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00008: User Account Management
+//   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-d00078: Linking Code Validation
 //
 // Route definitions for diary server
 
@@ -22,7 +24,8 @@ Router createRouter() {
   router.post('/api/v1/auth/change-password', changePasswordHandler);
 
   // User routes
-  router.post('/api/v1/user/enroll', enrollHandler);
+  router.post('/api/v1/user/enroll', enrollHandler); // DEPRECATED - returns 410
+  router.post('/api/v1/user/link', linkHandler); // Patient linking via codes
   router.post('/api/v1/user/sync', syncHandler);
   router.post('/api/v1/user/records', getRecordsHandler);
 
