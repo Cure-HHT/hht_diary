@@ -29,7 +29,9 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      mockEnrollment = MockEnrollmentService();
+      mockEnrollment = MockEnrollmentService()
+        // Set default backend URL for tests that use sync/fetch
+        ..backendUrl = 'https://test-backend.example.com';
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('nosebleed_test_');
