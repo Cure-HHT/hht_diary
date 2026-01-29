@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 //   REQ-p00004: Immutable Audit Trail via Event Sourcing
+//   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-d00078: Linking Code Validation
 //
 // Unit tests for user handlers (non-database aspects)
 
@@ -59,6 +61,94 @@ void main() {
       final response = await enrollHandler(request);
       final json = await getResponseJson(response);
       expect(json['error'], contains('/api/v1/user/link'));
+    });
+  });
+
+  group('linkHandler HTTP validation', () {
+    test('returns 405 for GET request', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/user/link'),
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(405));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('Method'));
+    });
+
+    test('returns 405 for PUT request', () async {
+      final request = Request(
+        'PUT',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(405));
+    });
+
+    test('returns 405 for DELETE request', () async {
+      final request = Request(
+        'DELETE',
+        Uri.parse('http://localhost/api/v1/user/link'),
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(405));
+    });
+
+    test('returns 401 for missing Authorization', () async {
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(401));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('authorization'));
+    });
+
+    test('returns 401 for malformed JWT', () async {
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer abc.def.ghi',
+        },
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(401));
+    });
+
+    test('returns 401 for expired JWT', () async {
+      final token = createJwtToken(
+        authCode: generateAuthCode(),
+        userId: generateUserId(),
+        expiresIn: const Duration(seconds: -10), // Already expired
+      );
+
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(401));
     });
   });
 
