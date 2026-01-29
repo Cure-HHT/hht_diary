@@ -900,7 +900,7 @@ CREATE POLICY patient_linking_codes_investigator_select ON patient_linking_codes
             SELECT p.patient_id FROM patients p
             WHERE p.site_id IN (
                 SELECT pusa.site_id FROM portal_user_site_access pusa
-                WHERE pusa.user_id = current_user_id()
+                WHERE pusa.user_id = current_user_id()::uuid
             )
         )
     );

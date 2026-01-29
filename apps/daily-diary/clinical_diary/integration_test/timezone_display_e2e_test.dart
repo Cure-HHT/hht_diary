@@ -116,8 +116,8 @@ void main() {
         // ===== STEP 3: Click on the day before today =====
         debugPrint('Step 3: Click on yesterday ($yesterdayDay)');
         // Tap on yesterday's date in the calendar
-        await tester.tap(yesterdayText.first);
-        await tester.pumpAndSettle();
+        // Use helper to tap the correct day (inside month, full opacity)
+        await _tapInsideMonthDay(tester, yesterdayDay);
 
         // ===== STEP 4: Click "+Add nosebleed event" =====
         debugPrint('Step 4: Click +Add nosebleed event');
@@ -334,22 +334,13 @@ void main() {
         // We'll verify by clicking on it and seeing entries
 
         // ===== STEP 14: Click on the day where record was saved =====
-        // Since we clicked -15 from midnight of Dec 17, the record is on Dec 16
+        // Since we clicked -15 from midnight of yesterday, the record is on day before yesterday
         debugPrint(
           'Step 14: Click on day before yesterday ($dayBeforeYesterdayDay) to see entries',
         );
-        // Find and click on the correct date
-        final recordDayText = find.text(dayBeforeYesterdayDay);
-        debugPrint(
-          'Found recordDayText ($dayBeforeYesterdayDay): ${recordDayText.evaluate().length} matches',
-        );
-
-        if (recordDayText.evaluate().isNotEmpty) {
-          await tester.tap(recordDayText.first);
-          await tester.pumpAndSettle();
-        } else {
-          debugPrint('ERROR: Could not find day number $dayBeforeYesterdayDay');
-        }
+        // Use helper to tap the correct day (inside month, full opacity)
+        // This handles the case where the day number appears twice in a 6-week calendar view
+        await _tapInsideMonthDay(tester, dayBeforeYesterdayDay);
 
         // Debug: print all text after clicking
         debugPrint(
@@ -436,9 +427,8 @@ void main() {
 
       // ===== STEP 2: Click on yesterday =====
       debugPrint('Step 2: Click on yesterday ($yesterdayDay)');
-      final yesterdayText = find.text(yesterdayDay);
-      await tester.tap(yesterdayText.first);
-      await tester.pumpAndSettle();
+      // Use helper to tap the correct day (inside month, full opacity)
+      await _tapInsideMonthDay(tester, yesterdayDay);
 
       // ===== STEP 3: Click Add nosebleed event =====
       debugPrint('Step 3: Click Add nosebleed event');
@@ -552,11 +542,8 @@ void main() {
       );
 
       // Click on yesterday in calendar
-      final yesterdayTextAgain = find.text(yesterdayDay);
-      if (yesterdayTextAgain.evaluate().isNotEmpty) {
-        await tester.tap(yesterdayTextAgain.first);
-        await tester.pumpAndSettle();
-      }
+      // Use helper to tap the correct day (inside month, full opacity)
+      await _tapInsideMonthDay(tester, yesterdayDay);
 
       // Show what's on the records screen
       debugPrint('=== Records screen ===');
@@ -1724,4 +1711,62 @@ void main() {
       },
     );
   });
+}
+
+/// Helper to tap the correct day cell in a calendar that may show 6 weeks.
+/// When a day number like "28" appears twice (previous/next month), this
+/// function finds and taps the one in the current month (full opacity).
+Future<void> _tapInsideMonthDay(WidgetTester tester, String dayText) async {
+  final textFinder = find.text(dayText);
+  final textWidgets = textFinder.evaluate().toList();
+
+  debugPrint('Looking for day "$dayText": found ${textWidgets.length} matches');
+
+  if (textWidgets.isEmpty) {
+    debugPrint('ERROR: No widgets found for day "$dayText"');
+    await tester.tap(textFinder); // This will fail with a helpful error
+    return;
+  }
+
+  if (textWidgets.length == 1) {
+    debugPrint('Single match for "$dayText", tapping directly');
+    await tester.tap(textFinder);
+    await tester.pumpAndSettle();
+    return;
+  }
+
+  // Multiple matches - find the one in the current month (full opacity)
+  // Use find.ancestor to find Container parents with BoxDecoration
+  for (var i = 0; i < textWidgets.length; i++) {
+    final textWidget = textWidgets[i].widget;
+    final ancestorFinder = find.ancestor(
+      of: find.byWidget(textWidget),
+      matching: find.byType(Container),
+    );
+
+    final containers = tester.widgetList<Container>(ancestorFinder);
+    for (final container in containers) {
+      if (container.decoration is BoxDecoration) {
+        final decoration = container.decoration as BoxDecoration;
+        if (decoration.color != null) {
+          final alpha = decoration.color!.a;
+          debugPrint('Day "$dayText" match $i: alpha = $alpha');
+          // Inside month days have full opacity (1.0 or 255 for int representation)
+          if (alpha == 1.0 || alpha == 255) {
+            debugPrint('Tapping inside-month day "$dayText" at index $i');
+            await tester.tap(find.byWidget(textWidget));
+            await tester.pumpAndSettle();
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback: tap the first match
+  debugPrint(
+    'Warning: Could not determine inside-month day for "$dayText", using first',
+  );
+  await tester.tap(textFinder.first);
+  await tester.pumpAndSettle();
 }

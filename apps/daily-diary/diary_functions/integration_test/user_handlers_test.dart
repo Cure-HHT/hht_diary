@@ -35,6 +35,26 @@ void main() {
     );
 
     await Database.instance.initialize(config);
+
+    // Ensure patient_linking_codes table exists (required for user handlers)
+    await Database.instance.execute('''
+      CREATE TABLE IF NOT EXISTS patient_linking_codes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        patient_id TEXT NOT NULL,
+        code TEXT NOT NULL UNIQUE,
+        code_hash TEXT NOT NULL,
+        generated_by UUID NOT NULL,
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        used_by_user_id TEXT,
+        used_by_app_uuid TEXT,
+        revoked_at TIMESTAMPTZ,
+        revoked_by UUID,
+        ip_address INET,
+        metadata JSONB DEFAULT '{}'::jsonb
+      )
+    ''');
   });
 
   tearDownAll(() async {
@@ -136,20 +156,76 @@ void main() {
   });
 
   group('linkHandler', () {
-    test(
-      'returns 501 Not Implemented - patient linking not yet implemented',
-      () async {
-        final request = createPostRequest('/api/v1/user/link', {
-          'code': 'CAXXXXXXXX',
-        });
+    test('returns 405 for non-POST requests', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/user/link'),
+      );
 
-        final response = await linkHandler(request);
-        expect(response.statusCode, equals(501));
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(405));
+    });
 
-        final json = await getResponseJson(response);
-        expect(json['error'], contains('not yet implemented'));
-      },
-    );
+    test('returns 401 without authorization', () async {
+      final request = createPostRequest('/api/v1/user/link', {
+        'code': 'CAXXXXXXXX',
+      });
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(401));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('authorization'));
+    });
+
+    test('returns 400 for missing code', () async {
+      // Create a test user to get auth token
+      final (_, authToken) = await createTestUser();
+
+      final request = createPostRequest(
+        '/api/v1/user/link',
+        {},
+        headers: {'Authorization': 'Bearer $authToken'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(400));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('linking code'));
+    });
+
+    test('returns 400 for invalid code format', () async {
+      final (_, authToken) = await createTestUser();
+
+      final request = createPostRequest(
+        '/api/v1/user/link',
+        {'code': 'SHORT'},
+        headers: {'Authorization': 'Bearer $authToken'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(400));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('10 characters'));
+    });
+
+    test('returns 400 for non-existent code', () async {
+      final (_, authToken) = await createTestUser();
+
+      final request = createPostRequest(
+        '/api/v1/user/link',
+        {'code': 'CAXXXXXXXX'},
+        headers: {'Authorization': 'Bearer $authToken'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, equals(400));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('Invalid linking code'));
+    });
   });
 
   group('syncHandler', () {
@@ -162,23 +238,16 @@ void main() {
       testAuthToken = token;
 
       // Ensure DEFAULT site exists for testing
+      // Unlinked users (patient_id = user_id) sync to DEFAULT site
       await Database.instance.execute('''
         INSERT INTO sites (site_id, site_name, site_number, is_active)
         VALUES ('DEFAULT', 'Default Test Site', 'TEST-000', true)
         ON CONFLICT (site_id) DO UPDATE SET is_active = true
         ''');
 
-      // Insert site assignment so the user can sync events
-      // user_site_assignments links app user (patient_id) to site and study patient ID
-      final studyPatientId = 'TEST-${DateTime.now().millisecondsSinceEpoch}';
-      await Database.instance.execute(
-        '''
-        INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-        VALUES (@userId, 'DEFAULT', @studyPatientId, 'ACTIVE')
-        ON CONFLICT (patient_id, site_id) DO NOTHING
-        ''',
-        parameters: {'userId': testUserId, 'studyPatientId': studyPatientId},
-      );
+      // Note: syncHandler uses patient_linking_codes via LEFT JOIN.
+      // Unlinked users (no patient_linking_codes entry) sync to DEFAULT site
+      // with userId as the patientId fallback.
     });
 
     tearDownAll(() async {
@@ -188,7 +257,7 @@ void main() {
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(
-        'DELETE FROM user_site_assignments WHERE patient_id = @userId',
+        'DELETE FROM patient_linking_codes WHERE used_by_user_id = @userId',
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(

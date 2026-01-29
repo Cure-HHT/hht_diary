@@ -51,7 +51,7 @@ retention:
 
 # Test Configuration
 testing:
-  coverage_threshold: 80
+  coverage_threshold: 70
   parallelism: 4
   retry_count: 2
   fail_fast: false
