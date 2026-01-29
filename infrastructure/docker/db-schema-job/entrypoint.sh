@@ -56,16 +56,16 @@ main() {
 
 
     # Download schema file from GCS
-    log_info "Downloading schema from gs://${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
-    gsutil cp "gs://${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/schema.sql
+    log_info "Downloading schema from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
+    gsutil cp "${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/${SCHEMA_FILE}
 
-    if [[ ! -f /tmp/schema.sql ]]; then
+    if [[ ! -f /tmp/${SCHEMA_FILE} ]]; then
         log_error "Failed to download schema file"
         exit 1
     fi
 
     local schema_size
-    schema_size=$(wc -c < /tmp/schema.sql)
+    schema_size=$(wc -c < /tmp/${SCHEMA_FILE})
     log_info "Schema file downloaded: ${schema_size} bytes"
 
     export PGDATABASE="${DB_NAME}"
@@ -98,7 +98,7 @@ main() {
     local start_time
     start_time=$(date +%s)
 
-    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f /tmp/schema.sql 2>&1 | tee /tmp/schema_output.log
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f /tmp/${SCHEMA_FILE} 2>&1 | tee /tmp/schema_output.log
     local psql_status=$?
     local end_time duration
     end_time=$(date +%s)
