@@ -6,22 +6,18 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00057: Automated database schema deployment
 
-FROM postgres:17-alpine
+FROM google/cloud-sdk:slim
 
 # Set shell with pipefail for safer piped commands
-SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install required tools
-RUN apk add --no-cache \
-    bash=5.3.3-r1 \
-    curl=8.17.0-r1 \
-    jq=1.8.1-r0 \
-    python3=3.12.12-r0 \
-    py3-pip=25.1.1-r1
-
-# Install Google Cloud SDK for GCS access
-RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/opt
-ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
+# Install required tools (PostgreSQL client + utilities)
+# Note: google/cloud-sdk:slim is Debian-based and includes gcloud, gsutil, bq
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    jq \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create working directory
 WORKDIR /app

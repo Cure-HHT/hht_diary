@@ -68,76 +68,49 @@ main() {
     schema_size=$(wc -c < /tmp/schema.sql)
     log_info "Schema file downloaded: ${schema_size} bytes"
 
-    # Build connection string
-    # For Unix socket (Cloud SQL proxy sidecar)
-    # if [[ "${DB_HOST}" == /cloudsql/* ]]; then
-    #     export PGHOST="${DB_HOST}"
-    # else
-    #     export PGHOST="${DB_HOST}"
-    # fi
-    # export PGPORT="${DB_PORT}"
     export PGDATABASE="${DB_NAME}"
     export PGUSER="${DB_USER}"
     export PGPASSWORD="${DB_PASSWORD}"
     
-    local result
     env | grep PG > /tmp/env_vars.txt 2>&1
-    result=$(cat /tmp/env_vars.txt)
-    log_info "ENVIRONMENT VARIABLES: $(result)"
-    # Check database connectivity
-    log_info "Testing database connectivity..."
-    log_info "echo psql -h ${DB_HOST} -c 'SELECT 1'"
-    log_info "$(psql -h ${DB_HOST} -U ${DB_USER} -c 'SELECT 1')"
-    psql -h ${DB_HOST} -U ${DB_USER} -c 'SELECT 1' > /tmp/schema_test.txt 2>&1
-    if [ $? -ne 0 ]; then
-        log_error "Cannot connect to database"
-        exit 1
+    log_info "ENVIRONMENT VARIABLES: $(cat /tmp/env_vars.txt)"
+
+    # DROP database if it exists
+    log_info "Checking if database ${DB_NAME} exists..."
+    if psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'" | grep -q 1; then
+        log_info "Database ${DB_NAME} exists, dropping..."
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE \"${DB_NAME}\""
+        log_info "Database ${DB_NAME} dropped"
+    else
+        log_info "Database ${DB_NAME} does not exist, skipping drop"
     fi
-    log_info "Database connection successful"
 
-    result=$(cat /tmp/schema_test.txt)
-    log_info "Schema test: ${result}"
-    # Check if schema already applied (look for key tables)
-    # if [[ "${SKIP_IF_TABLES_EXIST}" == "true" ]]; then
-    #     log_info "Checking if schema already exists..."
-    #     local table_count
-    #     table_count=$(psql -t -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('sites', 'record_audit', 'record_state', 'portal_users')" 2>/dev/null | tr -d ' ')
-
-    #     if [[ "${table_count}" -ge 4 ]]; then
-    #         log_info "Schema already applied (found ${table_count} core tables). Skipping."
-    #         log_info "Set SKIP_IF_TABLES_EXIST=false to force re-application"
-
-    #         # Log current schema version info
-    #         local audit_count state_count
-    #         audit_count=$(psql -t -c "SELECT COUNT(*) FROM record_audit" 2>/dev/null | tr -d ' ' || echo "0")
-    #         state_count=$(psql -t -c "SELECT COUNT(*) FROM record_state" 2>/dev/null | tr -d ' ' || echo "0")
-    #         log_info "Current data: ${audit_count} audit records, ${state_count} state records"
-
-    #         exit 0
-    #     fi
-    #     log_info "Schema not yet applied (found ${table_count} core tables)"
-    # fi
-
+    # CREATE database
+    log_info "Creating database ${DB_NAME}..."
+    if ! psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE \"${DB_NAME}\""; then
+        log_error "Failed to create database ${DB_NAME}"
+        exit 2
+    fi
+    log_info "Database ${DB_NAME} created"
+ 
     # Apply schema
     log_info "Applying database schema..."
     local start_time
     start_time=$(date +%s)
 
-    psql -h ${DB_HOST} -U ${DB_USER} -v ON_ERROR_STOP=1 -f /tmp/schema.sql 2>&1 | tee /tmp/schema_output.log
-    if [ $? -ne 0 ]; then
-        local end_time duration
-        end_time=$(date +%s)
-        duration=$((end_time - start_time))
-        log_info "Schema applied successfully in ${duration} seconds"
-    else
-        log_error "Schema application failed"
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f /tmp/schema.sql 2>&1 | tee /tmp/schema_output.log
+    local psql_status=$?
+    local end_time duration
+    end_time=$(date +%s)
+    duration=$((end_time - start_time))
+    if [ $psql_status -ne 0 ]; then
+        log_error "Schema application failed after ${duration} seconds"
         log_error "Last 50 lines of output:"
         tail -50 /tmp/schema_output.log
-        exit 1
+        exit 3
     fi
-    # local result
-    result=$(cat /tmp/schema_output.log)
-    log_info "Schema execution: ${result}"
+    log_info "Schema applied successfully in ${duration} seconds"
+    log_info "Schema execution: $(cat /tmp/schema_output.log)"
 
     # Verify schema application
     log_info "Verifying schema application..."
@@ -149,9 +122,7 @@ main() {
         (SELECT COUNT(*) FROM pg_policies) as policy_count
     "
 
-    # local result
-    result=$(psql -h ${DB_HOST} -U ${DB_USER} -t -c "${verification_query}")
-    log_info "Schema verification: ${result}"
+    log_info "Schema verification: $(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -t -c "${verification_query}")"
 
     # Log completion
     log_info "=========================================="
@@ -159,6 +130,7 @@ main() {
     log_info "Sponsor: ${SPONSOR}"
     log_info "Environment: ${ENVIRONMENT}"
     log_info "Database: ${DB_NAME}"
+    log_info "Execution time: ${duration} seconds"
     log_info "=========================================="
 
     exit 0
