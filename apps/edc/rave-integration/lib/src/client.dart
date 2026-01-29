@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'models/exceptions.dart';
 import 'models/site.dart';
+import 'models/subject.dart';
 import 'odm_parser.dart';
 
 /// Client for Medidata RAVE Web Services API.
@@ -168,6 +169,56 @@ class RaveClient {
       }
 
       return OdmParser.parseSites(xml);
+    } on SocketException catch (e) {
+      throw RaveNetworkException('Failed to connect to RAVE server', cause: e);
+    } on http.ClientException catch (e) {
+      throw RaveNetworkException('HTTP client error', cause: e);
+    } on RaveException {
+      rethrow;
+    }
+  }
+
+  /// Retrieves all subjects (patients) for a study.
+  ///
+  /// [studyOid] - The study OID (required for subjects endpoint).
+  ///
+  /// Returns a list of [RaveSubject] objects.
+  /// Returns an empty list if no subjects are found or user has no access.
+  ///
+  /// Throws [RaveAuthenticationException] on 401 responses.
+  /// Throws [RaveIncompleteResponseException] if ODM response is truncated.
+  /// Throws [RaveParseException] if ODM XML is malformed.
+  /// Throws [RaveNetworkException] on network errors.
+  Future<List<RaveSubject>> getSubjects({required String studyOid}) async {
+    final uri = Uri.parse(
+      '$baseUrl/RaveWebServices/studies/${Uri.encodeComponent(studyOid)}/subjects',
+    );
+
+    try {
+      final response = await _httpClient.get(
+        uri,
+        headers: {'Authorization': _authHeader},
+      );
+
+      if (response.statusCode == 401) {
+        throw const RaveAuthenticationException();
+      }
+
+      if (response.statusCode != 200) {
+        throw RaveApiException(
+          'Subjects endpoint returned status ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final xml = response.body;
+
+      // Check for empty response (no permission or no data)
+      if (OdmParser.isSubjectsEmpty(xml)) {
+        return [];
+      }
+
+      return OdmParser.parseSubjects(xml);
     } on SocketException catch (e) {
       throw RaveNetworkException('Failed to connect to RAVE server', cause: e);
     } on http.ClientException catch (e) {

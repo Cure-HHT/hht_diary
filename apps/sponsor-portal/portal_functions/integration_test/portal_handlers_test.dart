@@ -61,6 +61,26 @@ void main() {
         'revokedId': testRevokedUserId,
       },
     );
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      '''DELETE FROM portal_user_audit_log WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR changed_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      'DELETE FROM portal_pending_email_changes WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',
+      parameters: {'pattern': '%@portal-test.example.com'},
+    );
     // Delete from portal_user_roles before portal_users (assigned_by FK)
     await db.execute(
       '''DELETE FROM portal_user_roles WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
@@ -153,6 +173,26 @@ void main() {
         'invId': testInvestigatorId,
         'revokedId': testRevokedUserId,
       },
+    );
+    // Temporarily disable no-delete rule so audit log entries can be removed
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      '''DELETE FROM portal_user_audit_log WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR changed_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    await db.execute(
+      'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+    );
+    await db.execute(
+      'DELETE FROM portal_pending_email_changes WHERE user_id IN (SELECT id FROM portal_users WHERE email LIKE @pattern)',
+      parameters: {'pattern': '%@portal-test.example.com'},
     );
     // Delete from portal_user_roles before portal_users (assigned_by FK)
     await db.execute(
@@ -359,6 +399,64 @@ void main() {
         if (response.statusCode == 200) {
           final json = await getResponseJson(response);
           expect(json['users'], isA<List>());
+        }
+      },
+    );
+
+    test(
+      'getPortalUsersHandler returns roles as non-empty string lists',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Ensure investigator has a role in portal_user_roles table
+        final db = Database.instance;
+        await db.execute(
+          '''
+          INSERT INTO portal_user_roles (user_id, role)
+          VALUES (@userId::uuid, 'Investigator')
+          ON CONFLICT (user_id, role) DO NOTHING
+          ''',
+          parameters: {'userId': testInvestigatorId},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createGetRequest(
+          '/api/v1/portal/users',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await getPortalUsersHandler(request);
+
+        if (response.statusCode == 200) {
+          final json = await getResponseJson(response);
+          final users = json['users'] as List;
+
+          // Find the investigator user
+          final investigator = users.firstWhere(
+            (u) => u['email'] == testInvestigatorEmail,
+            orElse: () => null,
+          );
+          expect(
+            investigator,
+            isNotNull,
+            reason: 'Investigator should appear in user list',
+          );
+
+          if (investigator != null) {
+            final roles = investigator['roles'] as List;
+            expect(
+              roles,
+              isNotEmpty,
+              reason:
+                  'Roles must not be empty — string_agg should return parsed roles',
+            );
+            expect(roles, contains('Investigator'));
+            // Each role should be a plain String (not a nested structure)
+            for (final role in roles) {
+              expect(role, isA<String>());
+            }
+          }
         }
       },
     );

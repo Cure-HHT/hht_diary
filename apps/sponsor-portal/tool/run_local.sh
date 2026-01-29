@@ -620,6 +620,10 @@ start_server() {
 start_ui() {
     cd "$SPONSOR_PORTAL_DIR/portal-ui"
 
+    # Extract version from pubspec.yaml
+    local app_version
+    app_version=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//')
+
     if [ "$USE_DEV_IDENTITY" = true ]; then
         # Use dev flavor with GCP Identity Platform (real auth, local backend)
         # The Flutter app fetches Identity config from server at runtime
@@ -641,6 +645,7 @@ start_ui() {
         # PORTAL_API_URL points to the local server (which has the Identity config)
         flutter run -d chrome \
             --dart-define=APP_FLAVOR=dev \
+            --dart-define=APP_VERSION="$app_version" \
             --dart-define=PORTAL_API_URL=http://localhost:8080 &
         UI_PID=$!
     else
@@ -649,6 +654,7 @@ start_ui() {
 
         flutter run -d chrome \
             --dart-define=APP_FLAVOR=local \
+            --dart-define=APP_VERSION="$app_version" \
             --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
         UI_PID=$!
     fi

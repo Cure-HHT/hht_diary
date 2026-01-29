@@ -83,6 +83,13 @@ CREATE POLICY sites_admin_all ON sites
     USING (current_user_role() = 'ADMIN')
     WITH CHECK (current_user_role() = 'ADMIN');
 
+-- Service role has full access (for EDC site sync operations)
+CREATE POLICY sites_service_all ON sites
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
 -- =====================================================
 -- RECORD_AUDIT TABLE POLICIES (Event Store)
 -- =====================================================
@@ -759,6 +766,34 @@ CREATE POLICY sponsor_role_mapping_admin_all ON sponsor_role_mapping
     WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
 
 -- =====================================================
+-- PORTAL_USER_AUDIT_LOG TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--
+-- Immutable audit log of portal user modifications.
+-- INSERT only (UPDATE and DELETE blocked by table RULEs in schema.sql).
+
+-- Service role INSERT (backend logs audit entries via _logAudit)
+CREATE POLICY portal_user_audit_log_service_insert ON portal_user_audit_log
+    FOR INSERT
+    TO service_role
+    WITH CHECK (true);
+
+-- Service role SELECT (backend reads audit entries)
+CREATE POLICY portal_user_audit_log_service_select ON portal_user_audit_log
+    FOR SELECT
+    TO service_role
+    USING (true);
+
+-- Admins and Auditors can view portal user audit log (read-only)
+CREATE POLICY portal_user_audit_log_admin_select ON portal_user_audit_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin', 'Auditor'));
+
+-- =====================================================
 -- GRANT BASIC PERMISSIONS
 -- =====================================================
 
@@ -785,6 +820,12 @@ GRANT SELECT, INSERT, UPDATE ON portal_users TO authenticated;
 
 -- Grant all on portal_user_site_access to authenticated users (RLS will filter)
 GRANT SELECT, INSERT, DELETE ON portal_user_site_access TO authenticated;
+
+-- Grant select on portal_user_audit_log to authenticated users (RLS will filter)
+GRANT SELECT ON portal_user_audit_log TO authenticated;
+
+-- Grant insert on portal_user_audit_log to service_role (for audit logging)
+GRANT SELECT, INSERT ON portal_user_audit_log TO service_role;
 
 -- Grant select on sponsor_role_mapping to authenticated users
 GRANT SELECT ON sponsor_role_mapping TO authenticated;
@@ -830,6 +871,45 @@ CREATE POLICY email_audit_log_admin_select ON email_audit_log
     FOR SELECT
     TO authenticated
     USING (current_user_role() IN ('Administrator', 'Developer Admin', 'Auditor'));
+
+-- =====================================================
+-- PATIENT LINKING CODE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p70007: Linking Code Lifecycle Management
+--   REQ-d00078: Linking Code Validation
+--   REQ-CAL-p00049: Mobile Linking Codes
+--
+-- These tables are managed by the backend service
+-- Investigators can generate codes for patients at their assigned sites
+
+-- patient_linking_codes: Service role full access (backend manages lifecycle)
+CREATE POLICY patient_linking_codes_service_all ON patient_linking_codes
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Investigators can view linking codes for patients at their assigned sites
+CREATE POLICY patient_linking_codes_investigator_select ON patient_linking_codes
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'Investigator'
+        AND patient_id IN (
+            SELECT p.patient_id FROM patients p
+            WHERE p.site_id IN (
+                SELECT pusa.site_id FROM portal_user_site_access pusa
+                WHERE pusa.user_id = current_user_id()
+            )
+        )
+    );
+
+-- Grant service_role access to patient_linking_codes
+GRANT ALL ON patient_linking_codes TO service_role;
+
+-- Grant investigators SELECT on their site's patient linking codes
+GRANT SELECT ON patient_linking_codes TO authenticated;
 
 -- Grant service_role access to new tables
 GRANT ALL ON email_otp_codes TO service_role;

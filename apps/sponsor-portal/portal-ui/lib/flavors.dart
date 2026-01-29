@@ -22,6 +22,12 @@ enum Flavor {
 class F {
   static Flavor? appFlavor;
 
+  /// App version - injected at build time from pubspec.yaml via --dart-define
+  static const String version = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: 'dev',
+  );
+
   static String get name => appFlavor?.name ?? 'unknown';
 
   static String get title {

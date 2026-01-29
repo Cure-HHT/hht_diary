@@ -120,178 +120,41 @@ void main() {
     return (json['userId'] as String, json['jwt'] as String);
   }
 
-  group('enrollHandler', () {
-    late String testAuthToken;
-    late String testUserId;
-
-    setUpAll(() async {
-      final (userId, token) = await createTestUser();
-      testUserId = userId;
-      testAuthToken = token;
-    });
-
-    tearDownAll(() async {
-      // Clean up test user and enrollments
-      await Database.instance.execute(
-        'DELETE FROM study_enrollments WHERE user_id = @userId',
-        parameters: {'userId': testUserId},
-      );
-      await Database.instance.execute(
-        'DELETE FROM app_users WHERE user_id = @userId',
-        parameters: {'userId': testUserId},
-      );
-    });
-
-    test('returns 405 for non-POST requests', () async {
-      final request = Request(
-        'GET',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(405));
-    });
-
-    test('returns 401 without authorization', () async {
+  // enrollHandler is DEPRECATED - use linkHandler with sponsor portal codes
+  group('enrollHandler (deprecated)', () {
+    test('returns 410 Gone - legacy enrollment deprecated', () async {
       final request = createPostRequest('/api/v1/user/enroll', {
         'code': 'CUREHHT1',
       });
 
       final response = await enrollHandler(request);
-      expect(response.statusCode, equals(401));
-    });
-
-    test('returns 400 with missing enrollment code', () async {
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {},
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(400));
+      expect(response.statusCode, equals(410)); // Gone
 
       final json = await getResponseJson(response);
-      expect(json['error'], contains('required'));
+      expect(json['error'], contains('deprecated'));
     });
+  });
 
-    test('returns 400 with empty enrollment code', () async {
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': ''},
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
+  group('linkHandler', () {
+    test(
+      'returns 501 Not Implemented - patient linking not yet implemented',
+      () async {
+        final request = createPostRequest('/api/v1/user/link', {
+          'code': 'CAXXXXXXXX',
+        });
 
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(400));
-    });
+        final response = await linkHandler(request);
+        expect(response.statusCode, equals(501));
 
-    test('returns 400 with invalid enrollment code format', () async {
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': 'INVALID123'},
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(400));
-
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('Invalid'));
-    });
-
-    test('accepts valid CUREHHT enrollment codes (0-9)', () async {
-      // Test code CUREHHT1
-      final code = 'CUREHHT1';
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': code},
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(200));
-
-      final json = await getResponseJson(response);
-      expect(json['success'], isTrue);
-      expect(json['enrollmentCode'], equals(code.toUpperCase()));
-      expect(json['sponsorId'], equals('curehht'));
-    });
-
-    test('rejects already-used enrollment code', () async {
-      // The code CUREHHT1 was used in the previous test
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': 'CUREHHT1'},
-        headers: {'Authorization': 'Bearer $testAuthToken'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(409));
-
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('already been used'));
-    });
-
-    test('normalizes enrollment code to uppercase', () async {
-      // Create new user for this test
-      final (userId, token) = await createTestUser();
-
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': 'curehht2'}, // lowercase
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(200));
-
-      final json = await getResponseJson(response);
-      expect(json['enrollmentCode'], equals('CUREHHT2'));
-
-      // Cleanup
-      await Database.instance.execute(
-        'DELETE FROM study_enrollments WHERE user_id = @userId',
-        parameters: {'userId': userId},
-      );
-      await Database.instance.execute(
-        'DELETE FROM app_users WHERE user_id = @userId',
-        parameters: {'userId': userId},
-      );
-    });
-
-    test('returns 401 with invalid JWT', () async {
-      final request = createPostRequest(
-        '/api/v1/user/enroll',
-        {'code': 'CUREHHT3'},
-        headers: {'Authorization': 'Bearer invalid.jwt.token'},
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(401));
-    });
-
-    test('returns 400 with invalid JSON body', () async {
-      final request = Request(
-        'POST',
-        Uri.parse('http://localhost/api/v1/user/enroll'),
-        body: 'not valid json',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $testAuthToken',
-        },
-      );
-
-      final response = await enrollHandler(request);
-      expect(response.statusCode, equals(400));
-    });
+        final json = await getResponseJson(response);
+        expect(json['error'], contains('not yet implemented'));
+      },
+    );
   });
 
   group('syncHandler', () {
     late String testAuthToken;
     late String testUserId;
-    late String testPatientId;
 
     setUpAll(() async {
       final (userId, token) = await createTestUser();
@@ -305,31 +168,16 @@ void main() {
         ON CONFLICT (site_id) DO UPDATE SET is_active = true
         ''');
 
-      // Create a patient_id for this user and enroll at DEFAULT site
-      testPatientId = generateUserId();
-
-      // Insert enrollment so the user can sync events
+      // Insert site assignment so the user can sync events
+      // user_site_assignments links app user (patient_id) to site and study patient ID
       final studyPatientId = 'TEST-${DateTime.now().millisecondsSinceEpoch}';
       await Database.instance.execute(
         '''
         INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-        VALUES (@patientId, 'DEFAULT', @studyPatientId, 'ACTIVE')
+        VALUES (@userId, 'DEFAULT', @studyPatientId, 'ACTIVE')
         ON CONFLICT (patient_id, site_id) DO NOTHING
         ''',
-        parameters: {
-          'patientId': testPatientId,
-          'studyPatientId': studyPatientId,
-        },
-      );
-
-      // Link user to patient via study_enrollments
-      await Database.instance.execute(
-        '''
-        INSERT INTO study_enrollments (user_id, patient_id, site_id, sponsor_id, enrollment_code, status)
-        VALUES (@userId, @patientId, 'DEFAULT', 'TEST', 'CUREHHT0', 'ACTIVE')
-        ON CONFLICT DO NOTHING
-        ''',
-        parameters: {'userId': testUserId, 'patientId': testPatientId},
+        parameters: {'userId': testUserId, 'studyPatientId': studyPatientId},
       );
     });
 
@@ -340,11 +188,7 @@ void main() {
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(
-        'DELETE FROM user_site_assignments WHERE patient_id = @patientId',
-        parameters: {'patientId': testPatientId},
-      );
-      await Database.instance.execute(
-        'DELETE FROM study_enrollments WHERE user_id = @userId',
+        'DELETE FROM user_site_assignments WHERE patient_id = @userId',
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(
@@ -695,10 +539,6 @@ void main() {
       // Clean up
       await Database.instance.execute(
         'DELETE FROM record_audit WHERE created_by = @userId',
-        parameters: {'userId': testUserId},
-      );
-      await Database.instance.execute(
-        'DELETE FROM study_enrollments WHERE user_id = @userId',
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(

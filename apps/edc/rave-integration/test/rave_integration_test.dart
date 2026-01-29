@@ -190,6 +190,208 @@ void main() {
     });
   });
 
+  group('OdmParser.parseSubjects', () {
+    test('parses single subject with all attributes', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3" xmlns:mdsol="http://www.mdsol.com/ns/odm/metadata">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef LocationOID="12345" mdsol:StudyEnvSiteNumber="001"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+
+      expect(subjects, hasLength(1));
+      expect(subjects[0].subjectKey, equals('840-001-001'));
+      expect(subjects[0].siteOid, equals('12345'));
+      expect(subjects[0].siteNumber, equals('001'));
+    });
+
+    test('parses multiple subjects', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3" xmlns:mdsol="http://www.mdsol.com/ns/odm/metadata">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef LocationOID="12345" mdsol:StudyEnvSiteNumber="001"/>
+    </SubjectData>
+    <SubjectData SubjectKey="840-001-002">
+      <SiteRef LocationOID="12345" mdsol:StudyEnvSiteNumber="001"/>
+    </SubjectData>
+    <SubjectData SubjectKey="840-002-001">
+      <SiteRef LocationOID="55555" mdsol:StudyEnvSiteNumber="002"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+
+      expect(subjects, hasLength(3));
+      expect(subjects[0].subjectKey, equals('840-001-001'));
+      expect(subjects[1].subjectKey, equals('840-001-002'));
+      expect(subjects[2].subjectKey, equals('840-002-001'));
+      expect(subjects[2].siteOid, equals('55555'));
+    });
+
+    test('handles empty ClinicalData', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+      expect(subjects, isEmpty);
+    });
+
+    test('skips subjects without SubjectKey', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+    <SubjectData>
+      <SiteRef LocationOID="12345"/>
+    </SubjectData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef LocationOID="12345"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+      expect(subjects, hasLength(1));
+      expect(subjects[0].subjectKey, equals('840-001-001'));
+    });
+
+    test('skips subjects without SiteRef', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+    </SubjectData>
+    <SubjectData SubjectKey="840-001-002">
+      <SiteRef LocationOID="12345"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+      expect(subjects, hasLength(1));
+      expect(subjects[0].subjectKey, equals('840-001-002'));
+    });
+
+    test('skips subjects without LocationOID', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+      expect(subjects, isEmpty);
+    });
+
+    test('handles subject without StudyEnvSiteNumber', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef LocationOID="12345"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+
+      final subjects = OdmParser.parseSubjects(xml);
+      expect(subjects, hasLength(1));
+      expect(subjects[0].siteNumber, isNull);
+    });
+
+    test('throws RaveParseException on malformed XML', () {
+      const xml = '<ODM><ClinicalData><invalid></ODM>';
+      expect(
+        () => OdmParser.parseSubjects(xml),
+        throwsA(isA<RaveParseException>()),
+      );
+    });
+
+    test('throws RaveIncompleteResponseException on unclosed ODM', () {
+      const xml = '<ODM><ClinicalData>';
+      expect(
+        () => OdmParser.parseSubjects(xml),
+        throwsA(isA<RaveIncompleteResponseException>()),
+      );
+    });
+  });
+
+  group('OdmParser.isSubjectsEmpty', () {
+    test('returns true for ODM with no ClinicalData', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+</ODM>''';
+      expect(OdmParser.isSubjectsEmpty(xml), isTrue);
+    });
+
+    test('returns true for ClinicalData with no SubjectData', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+  </ClinicalData>
+</ODM>''';
+      expect(OdmParser.isSubjectsEmpty(xml), isTrue);
+    });
+
+    test('returns false when SubjectData exists', () {
+      const xml = '''
+<?xml version="1.0" encoding="utf-8"?>
+<ODM ODMVersion="1.3">
+  <ClinicalData>
+    <SubjectData SubjectKey="840-001-001">
+      <SiteRef LocationOID="12345"/>
+    </SubjectData>
+  </ClinicalData>
+</ODM>''';
+      expect(OdmParser.isSubjectsEmpty(xml), isFalse);
+    });
+
+    test('returns true on invalid XML', () {
+      expect(OdmParser.isSubjectsEmpty('<invalid'), isTrue);
+    });
+  });
+
+  group('RaveSubject', () {
+    test('toString includes key fields', () {
+      const subject = RaveSubject(
+        subjectKey: '840-001-001',
+        siteOid: '12345',
+        siteNumber: '001',
+      );
+      expect(subject.toString(), contains('840-001-001'));
+      expect(subject.toString(), contains('12345'));
+      expect(subject.toString(), contains('001'));
+    });
+
+    test('equality based on key fields', () {
+      const s1 = RaveSubject(subjectKey: '840-001-001', siteOid: '12345');
+      const s2 = RaveSubject(subjectKey: '840-001-001', siteOid: '12345');
+      const s3 = RaveSubject(subjectKey: '840-001-002', siteOid: '12345');
+
+      expect(s1, equals(s2));
+      expect(s1, isNot(equals(s3)));
+    });
+  });
+
   group('RaveSite', () {
     test('toString includes key fields', () {
       const site = RaveSite(

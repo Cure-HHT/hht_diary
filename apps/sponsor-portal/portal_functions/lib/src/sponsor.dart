@@ -147,7 +147,8 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
 
   try {
     // Exclude Developer Admin - it's a system role, not user-assignable
-    final result = await db.execute(
+    const serviceContext = UserContext.service;
+    final result = await db.executeWithContext(
       '''
       SELECT sponsor_role_name, mapped_role::text
       FROM sponsor_role_mapping
@@ -156,6 +157,7 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
       ORDER BY sponsor_role_name
       ''',
       parameters: {'sponsorId': sponsorId},
+      context: serviceContext,
     );
 
     final mappings = <Map<String, String>>[];

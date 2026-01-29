@@ -10,8 +10,12 @@ import 'package:go_router/go_router.dart';
 
 import '../pages/activation_page.dart';
 import '../pages/admin/admin_dashboard_page.dart';
+import '../pages/analyst/analyst_dashboard_page.dart';
+import '../pages/auditor/auditor_dashboard_page.dart';
 import '../pages/dev_admin/dev_admin_dashboard_page.dart';
 import '../pages/email_otp_page.dart';
+import '../pages/investigator/investigator_dashboard_page.dart';
+import '../pages/sponsor/sponsor_dashboard_page.dart';
 import '../pages/forgot_password_page.dart';
 import '../pages/login_page.dart';
 import '../pages/reset_password_page.dart';
@@ -80,26 +84,25 @@ final appRouter = GoRouter(
       name: 'dev-admin',
       builder: (context, state) => const DevAdminDashboardPage(),
     ),
-    // Placeholder routes for other roles - redirect to login for now
     GoRoute(
       path: '/investigator',
       name: 'investigator',
-      redirect: (context, state) => '/login',
+      builder: (context, state) => const InvestigatorDashboardPage(),
     ),
     GoRoute(
       path: '/auditor',
       name: 'auditor',
-      redirect: (context, state) => '/login',
+      builder: (context, state) => const AuditorDashboardPage(),
     ),
     GoRoute(
       path: '/analyst',
       name: 'analyst',
-      redirect: (context, state) => '/login',
+      builder: (context, state) => const AnalystDashboardPage(),
     ),
     GoRoute(
       path: '/sponsor',
       name: 'sponsor',
-      redirect: (context, state) => '/login',
+      builder: (context, state) => const SponsorDashboardPage(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

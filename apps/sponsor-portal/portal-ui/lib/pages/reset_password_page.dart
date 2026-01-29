@@ -416,7 +416,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Success icon
-        Icon(Icons.check_circle, size: 64, color: Colors.green),
+        const Icon(Icons.check_circle, size: 64, color: Colors.green),
         const SizedBox(height: 16),
 
         // Title

@@ -50,7 +50,7 @@ class LocalDatabaseService implements DatabaseService {
       'last_login': null,
       'last_diary_entry': null,
       'created_at': DateTime.now()
-          .subtract(Duration(days: 2))
+          .subtract(const Duration(days: 2))
           .toIso8601String(),
       'sites': {'site_name': 'Test Site Alpha'},
       'questionnaires': [],

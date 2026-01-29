@@ -23,6 +23,7 @@ dependencies:
 
   # Utilities
   crypto: ^3.0.7
+  meta: ^1.16.0
 
   # JWT/Identity Platform
   jose: ^0.3.4

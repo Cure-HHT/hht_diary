@@ -159,6 +159,93 @@ COMMENT ON COLUMN sites.edc_oid IS 'Original OID from RAVE EDC system';
 COMMENT ON COLUMN sites.edc_synced_at IS 'Timestamp of last sync from EDC';
 
 -- =====================================================
+-- PATIENTS TABLE (REQ-CAL-p00063, REQ-CAL-p00073)
+-- =====================================================
+-- Stores patient (subject) records synced from EDC (RAVE)
+-- One-way sync: portal reads from EDC, does not write back
+
+-- Mobile linking status enum (REQ-CAL-p00073)
+CREATE TYPE mobile_linking_status AS ENUM (
+    'not_connected',
+    'linking_in_progress',
+    'connected',
+    'disconnected'
+);
+
+CREATE TABLE patients (
+    patient_id TEXT PRIMARY KEY,
+    site_id TEXT NOT NULL REFERENCES sites(site_id),
+    edc_subject_key TEXT NOT NULL,
+    mobile_linking_status mobile_linking_status NOT NULL DEFAULT 'not_connected',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    edc_synced_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX idx_patients_site_id ON patients(site_id);
+CREATE INDEX idx_patients_linking_status ON patients(mobile_linking_status);
+CREATE INDEX idx_patients_edc_synced_at ON patients(edc_synced_at);
+
+COMMENT ON TABLE patients IS 'Patient (subject) records synced from EDC (REQ-CAL-p00063). One-way sync from RAVE.';
+COMMENT ON COLUMN patients.patient_id IS 'RAVE SubjectKey (e.g., "840-001-001") used as primary identifier';
+COMMENT ON COLUMN patients.site_id IS 'FK to sites table, derived from SiteRef.LocationOID in RAVE';
+COMMENT ON COLUMN patients.edc_subject_key IS 'Original SubjectKey from RAVE EDC (same as patient_id, kept for traceability)';
+COMMENT ON COLUMN patients.mobile_linking_status IS 'Patient mobile app linking status (REQ-CAL-p00073)';
+COMMENT ON COLUMN patients.edc_synced_at IS 'Timestamp of last sync from EDC';
+COMMENT ON COLUMN patients.metadata IS 'Additional patient metadata from EDC';
+
+-- =====================================================
+-- PATIENT LINKING CODES (REQ-p70007, REQ-d00078, REQ-d00079)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p70007: Linking Code Lifecycle Management
+--   REQ-d00078: Linking Code Validation
+--   REQ-d00079: Linking Code Pattern Matching
+--   REQ-CAL-p00049: Mobile Linking Codes
+--
+-- Stores time-limited linking codes for patient mobile app enrollment
+-- Codes are displayed once at generation (stored plaintext) and hashed for secure validation
+
+CREATE TABLE patient_linking_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id TEXT NOT NULL REFERENCES patients(patient_id) ON DELETE CASCADE,
+    code TEXT NOT NULL UNIQUE,              -- Full 10-char code (2-char prefix + 8 random)
+    code_hash TEXT NOT NULL,                -- SHA-256 hash for secure validation lookup
+    generated_by UUID NOT NULL REFERENCES portal_users(id),
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,        -- 72-hour expiration
+    used_at TIMESTAMPTZ,                    -- NULL until code is validated by mobile app
+    used_by_user_id TEXT REFERENCES app_users(user_id), -- App user who validated the code
+    used_by_app_uuid TEXT,                  -- App/device UUID that validated the code
+    revoked_at TIMESTAMPTZ,                 -- If manually revoked before use
+    revoked_by UUID REFERENCES portal_users(id),
+    revoke_reason TEXT,
+    ip_address INET,                        -- IP address of generator (audit)
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX idx_patient_linking_patient ON patient_linking_codes(patient_id);
+CREATE INDEX idx_patient_linking_code_hash ON patient_linking_codes(code_hash);
+CREATE INDEX idx_patient_linking_user ON patient_linking_codes(used_by_user_id)
+    WHERE used_by_user_id IS NOT NULL;
+CREATE INDEX idx_patient_linking_expires ON patient_linking_codes(expires_at)
+    WHERE used_at IS NULL AND revoked_at IS NULL;
+CREATE INDEX idx_patient_linking_cleanup ON patient_linking_codes(generated_at)
+    WHERE used_at IS NOT NULL OR revoked_at IS NOT NULL;
+
+ALTER TABLE patient_linking_codes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE patient_linking_codes IS 'Time-limited linking codes for patient mobile app enrollment (REQ-p70007)';
+COMMENT ON COLUMN patient_linking_codes.code IS '10-character code: 2-char sponsor prefix + 8-char random (REQ-d00079)';
+COMMENT ON COLUMN patient_linking_codes.code_hash IS 'SHA-256 hash for secure validation from mobile app';
+COMMENT ON COLUMN patient_linking_codes.expires_at IS '72-hour expiration from generation';
+COMMENT ON COLUMN patient_linking_codes.used_at IS 'Timestamp when code was validated - codes are single-use';
+COMMENT ON COLUMN patient_linking_codes.used_by_user_id IS 'App user (patient) who validated the code - establishes patient-app link';
+COMMENT ON COLUMN patient_linking_codes.used_by_app_uuid IS 'Mobile app/device UUID that validated the code';
+COMMENT ON COLUMN patient_linking_codes.revoked_at IS 'Manual revocation timestamp (e.g., patient disconnect)';
+
+-- =====================================================
 -- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
 -- =====================================================
 -- Tracks all synchronization events from EDC systems
@@ -168,7 +255,7 @@ CREATE TABLE edc_sync_log (
     sync_id BIGSERIAL PRIMARY KEY,
     sync_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     source_system TEXT NOT NULL CHECK (source_system IN ('RAVE', 'MEDIDATA', 'OTHER')),
-    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
+    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PATIENTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
     sites_created INTEGER NOT NULL DEFAULT 0,
     sites_updated INTEGER NOT NULL DEFAULT 0,
     sites_deactivated INTEGER NOT NULL DEFAULT 0,
@@ -509,7 +596,7 @@ COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g
 --   REQ-p00008: User Account Management
 --
 -- Mobile app user accounts - any user can use the app to track nosebleeds
--- Study enrollment is separate (see study_enrollments)
+-- Patient linking handled via patient_linking_codes table
 
 CREATE TABLE app_users (
     user_id TEXT PRIMARY KEY,
@@ -532,36 +619,6 @@ COMMENT ON COLUMN app_users.username IS 'Optional username for registered users'
 -- Indexes
 CREATE INDEX idx_app_users_username ON app_users(username);
 CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
-
--- =====================================================
--- STUDY ENROLLMENTS TABLE
--- =====================================================
--- Links app users to clinical studies via enrollment code
--- User can enroll in multiple studies (different sponsors)
-
-CREATE TABLE study_enrollments (
-    enrollment_id BIGSERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES app_users(user_id) ON DELETE CASCADE,
-    enrollment_code TEXT NOT NULL UNIQUE,
-    site_id TEXT REFERENCES sites(site_id),
-    patient_id TEXT,  -- From sponsor's EDC, may be assigned later
-    sponsor_id TEXT,  -- Identifies which sponsor/study
-    enrolled_at TIMESTAMPTZ DEFAULT now(),
-    status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'WITHDRAWN')),
-    metadata JSONB DEFAULT '{}'::jsonb
-);
-
-COMMENT ON TABLE study_enrollments IS 'Links app users to clinical studies via enrollment code';
-COMMENT ON COLUMN study_enrollments.enrollment_code IS 'One-time code from study coordinator (e.g., CUREHHT1)';
-COMMENT ON COLUMN study_enrollments.patient_id IS 'De-identified patient ID from sponsor EDC (assigned after enrollment)';
-COMMENT ON COLUMN study_enrollments.site_id IS 'Clinical trial site where patient is enrolled';
-COMMENT ON COLUMN study_enrollments.sponsor_id IS 'Sponsor/study identifier';
-
--- Indexes
-CREATE INDEX idx_study_enrollments_user_id ON study_enrollments(user_id);
-CREATE INDEX idx_study_enrollments_enrollment_code ON study_enrollments(enrollment_code);
-CREATE INDEX idx_study_enrollments_patient_id ON study_enrollments(patient_id);
-CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
 -- PORTAL USERS (STAFF)
@@ -601,11 +658,15 @@ CREATE TABLE portal_users (
     password_reset_code_expires_at TIMESTAMPTZ, -- Password reset code expiry (24 hours)
     password_reset_used_at TIMESTAMPTZ, -- When password reset was completed (audit)
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
+    status_change_reason TEXT,              -- Reason for last status change (deactivation/reactivation)
+    status_changed_at TIMESTAMPTZ,          -- When status was last changed
+    status_changed_by UUID REFERENCES portal_users(id),  -- Who changed the status
     -- MFA tracking (FDA 21 CFR Part 11 compliance)
     mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
     mfa_enrolled_at TIMESTAMPTZ,
     mfa_method TEXT CHECK (mfa_method IN ('totp', 'sms', 'email')),
     mfa_type TEXT CHECK (mfa_type IN ('totp', 'email_otp', 'none')) DEFAULT 'email_otp',
+    tokens_revoked_at TIMESTAMPTZ,          -- When all sessions were invalidated (edit triggers revocation)
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -635,6 +696,10 @@ COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA e
 COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
 COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
 COMMENT ON COLUMN portal_users.mfa_type IS 'MFA method to use: totp (authenticator app for Dev Admins), email_otp (email codes), none (disabled)';
+COMMENT ON COLUMN portal_users.tokens_revoked_at IS 'Timestamp when all sessions were invalidated - tokens with auth_time before this are rejected';
+COMMENT ON COLUMN portal_users.status_change_reason IS 'Reason for last status change (deactivation/reactivation) - REQ-CAL-p00066';
+COMMENT ON COLUMN portal_users.status_changed_at IS 'Timestamp when account status was last changed';
+COMMENT ON COLUMN portal_users.status_changed_by IS 'UUID of admin who last changed the account status';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
@@ -706,6 +771,77 @@ COMMENT ON TABLE portal_user_roles IS 'Maps portal users to their roles - suppor
 COMMENT ON COLUMN portal_user_roles.user_id IS 'Reference to portal_users.id';
 COMMENT ON COLUMN portal_user_roles.role IS 'Role from portal_user_role enum';
 COMMENT ON COLUMN portal_user_roles.assigned_by IS 'Admin who assigned this role (null for seeded data)';
+
+-- =====================================================
+-- PORTAL USER AUDIT LOG (Immutable)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--
+-- Tracks all modifications to portal user accounts
+-- Immutable append-only log for compliance
+
+CREATE TABLE portal_user_audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES portal_users(id),
+    changed_by UUID NOT NULL REFERENCES portal_users(id),
+    action TEXT NOT NULL CHECK (action IN (
+        'update_name', 'update_email', 'update_roles',
+        'update_sites', 'update_status', 'revoke_sessions'
+    )),
+    before_value JSONB,           -- State before the change
+    after_value JSONB,            -- State after the change
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ip_address INET,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- Immutability rules - audit log is append-only
+CREATE RULE portal_user_audit_log_no_update AS ON UPDATE TO portal_user_audit_log DO INSTEAD NOTHING;
+CREATE RULE portal_user_audit_log_no_delete AS ON DELETE TO portal_user_audit_log DO INSTEAD NOTHING;
+
+CREATE INDEX idx_portal_user_audit_log_user ON portal_user_audit_log(user_id);
+CREATE INDEX idx_portal_user_audit_log_changed_by ON portal_user_audit_log(changed_by);
+CREATE INDEX idx_portal_user_audit_log_created ON portal_user_audit_log(created_at DESC);
+
+ALTER TABLE portal_user_audit_log ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_user_audit_log IS 'Immutable audit log of all portal user account modifications (REQ-CAL-p00030, REQ-p00010)';
+COMMENT ON COLUMN portal_user_audit_log.action IS 'Type of modification performed';
+COMMENT ON COLUMN portal_user_audit_log.before_value IS 'JSONB snapshot of state before change';
+COMMENT ON COLUMN portal_user_audit_log.after_value IS 'JSONB snapshot of state after change';
+
+-- =====================================================
+-- PORTAL PENDING EMAIL CHANGES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--
+-- Tracks pending email address changes awaiting verification
+-- Email changes require the new address to be verified before taking effect
+
+CREATE TABLE portal_pending_email_changes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    new_email TEXT NOT NULL,
+    token_hash TEXT NOT NULL,            -- SHA-256 hash of verification token
+    requested_by UUID NOT NULL REFERENCES portal_users(id),
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,     -- 24hr expiry
+    verified_at TIMESTAMPTZ,             -- NULL until verified
+    CONSTRAINT email_change_expiry CHECK (expires_at > requested_at)
+);
+
+CREATE INDEX idx_pending_email_user ON portal_pending_email_changes(user_id);
+CREATE INDEX idx_pending_email_expires ON portal_pending_email_changes(expires_at) WHERE verified_at IS NULL;
+
+ALTER TABLE portal_pending_email_changes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_pending_email_changes IS 'Pending email address changes awaiting verification (REQ-CAL-p00030)';
+COMMENT ON COLUMN portal_pending_email_changes.token_hash IS 'SHA-256 hash of the verification token sent via email';
+COMMENT ON COLUMN portal_pending_email_changes.expires_at IS '24-hour expiration from request time';
 
 -- =====================================================
 -- SPONSOR ROLE MAPPING
@@ -802,7 +938,7 @@ COMMENT ON COLUMN email_rate_limits.email_type IS 'Type of email: otp (login cod
 CREATE TABLE email_audit_log (
     id BIGSERIAL PRIMARY KEY,
     recipient_email TEXT NOT NULL,
-    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset')),
+    email_type TEXT NOT NULL CHECK (email_type IN ('otp', 'activation', 'notification', 'password_reset', 'email_change')),
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     sent_by UUID REFERENCES portal_users(id),  -- NULL for system-generated emails
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'bounced', 'console')),
@@ -1305,4 +1441,7 @@ CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON inves
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

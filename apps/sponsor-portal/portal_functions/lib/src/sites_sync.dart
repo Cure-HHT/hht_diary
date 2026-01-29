@@ -123,8 +123,9 @@ Future<void> logSyncEvent({
   Map<String, dynamic>? metadata,
 }) async {
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
-  await db.execute(
+  await db.executeWithContext(
     '''
     INSERT INTO edc_sync_log (
       sync_timestamp, source_system, operation,
@@ -150,6 +151,7 @@ Future<void> logSyncEvent({
       'errorMessage': result.error,
       'metadata': jsonEncode(metadata ?? {}),
     },
+    context: serviceContext,
   );
 }
 
@@ -161,12 +163,13 @@ Future<List<Map<String, dynamic>>> getRecentSyncEvents({
   String? sourceSystem,
 }) async {
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
   final whereClause = sourceSystem != null
       ? 'WHERE source_system = @sourceSystem'
       : '';
 
-  final result = await db.execute(
+  final result = await db.executeWithContext(
     '''
     SELECT
       sync_id, sync_timestamp, source_system, operation,
@@ -181,6 +184,7 @@ Future<List<Map<String, dynamic>>> getRecentSyncEvents({
       'limit': limit,
       if (sourceSystem != null) 'sourceSystem': sourceSystem,
     },
+    context: serviceContext,
   );
 
   return result
@@ -238,9 +242,11 @@ class ChainVerificationResult {
 /// A broken chain indicates potential tampering with sync log records.
 Future<ChainVerificationResult> verifySyncLogChain() async {
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
-  final result = await db.execute(
+  final result = await db.executeWithContext(
     'SELECT * FROM check_edc_sync_chain_status()',
+    context: serviceContext,
   );
 
   if (result.isEmpty) {
@@ -273,14 +279,15 @@ Future<bool> shouldSyncSites({
   Duration syncInterval = defaultSyncInterval,
 }) async {
   final db = Database.instance;
+  const serviceContext = UserContext.service;
 
   // Check if any sites exist and when they were last synced
-  final result = await db.execute('''
+  final result = await db.executeWithContext('''
     SELECT
       COUNT(*) as count,
       MAX(edc_synced_at) as last_sync
     FROM sites
-  ''');
+  ''', context: serviceContext);
 
   if (result.isEmpty) {
     return true;
@@ -384,14 +391,16 @@ Future<SitesSyncResult> syncSitesFromEdc({
     }
 
     final db = Database.instance;
+    const serviceContext = UserContext.service;
     final syncedAt = DateTime.now().toUtc();
 
     var created = 0;
     var updated = 0;
 
     // Get existing site IDs for deactivation tracking
-    final existingResult = await db.execute(
+    final existingResult = await db.executeWithContext(
       'SELECT site_id FROM sites WHERE is_active = true',
+      context: serviceContext,
     );
     final existingSiteIds = existingResult.map((r) => r[0] as String).toSet();
     final syncedSiteIds = <String>{};
@@ -406,7 +415,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
       syncedSiteIds.add(siteId);
 
       // Use upsert to handle both create and update
-      final upsertResult = await db.execute(
+      final upsertResult = await db.executeWithContext(
         '''
         INSERT INTO sites (
           site_id, site_name, site_number, is_active,
@@ -433,6 +442,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
           'edcOid': site.oid,
           'syncedAt': syncedAt,
         },
+        context: serviceContext,
       );
 
       if (upsertResult.isNotEmpty) {
@@ -450,7 +460,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
     var deactivated = 0;
 
     if (sitesToDeactivate.isNotEmpty) {
-      final deactivateResult = await db.execute(
+      final deactivateResult = await db.executeWithContext(
         '''
         UPDATE sites
         SET is_active = false, updated_at = now(), edc_synced_at = @syncedAt
@@ -462,6 +472,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
           'siteIds': sitesToDeactivate.toList(),
           'syncedAt': syncedAt,
         },
+        context: serviceContext,
       );
       deactivated = deactivateResult.length;
     }

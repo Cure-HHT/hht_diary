@@ -8,6 +8,14 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 
+/// Pairs a sponsor display name with its system role for correct color mapping
+class RoleDisplayData {
+  final String displayName;
+  final String systemRole;
+
+  const RoleDisplayData({required this.displayName, required this.systemRole});
+}
+
 /// Role-to-color mapping for visual role indication
 /// Colors selected for accessibility (WCAG AA contrast)
 Color getRoleBadgeColor(UserRole role, ColorScheme colorScheme) {
@@ -31,12 +39,30 @@ Color getRoleBadgeColor(UserRole role, ColorScheme colorScheme) {
 class RoleBadge extends StatelessWidget {
   final UserRole role;
   final bool compact;
+  final String? _displayNameOverride;
 
-  const RoleBadge({super.key, required this.role, this.compact = false});
+  const RoleBadge({
+    super.key,
+    required this.role,
+    this.compact = false,
+    String? displayName,
+  }) : _displayNameOverride = displayName;
 
-  /// Create from a role string (e.g., from API response)
+  /// Create from a system role string (e.g., 'Administrator')
   factory RoleBadge.fromString(String roleString, {bool compact = false}) {
     return RoleBadge(role: UserRole.fromString(roleString), compact: compact);
+  }
+
+  /// Create from paired display data (sponsor name + system role for color)
+  factory RoleBadge.fromDisplayData(
+    RoleDisplayData data, {
+    bool compact = false,
+  }) {
+    return RoleBadge(
+      role: UserRole.fromString(data.systemRole),
+      compact: compact,
+      displayName: data.displayName,
+    );
   }
 
   @override
@@ -54,7 +80,7 @@ class RoleBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        role.displayName,
+        _displayNameOverride ?? role.displayName,
         style: TextStyle(
           color: Colors.white,
           fontSize: compact ? 11 : 12,
@@ -67,7 +93,7 @@ class RoleBadge extends StatelessWidget {
 
 /// A row of role badges for users with multiple roles
 class RoleBadgeList extends StatelessWidget {
-  final List<String> roles;
+  final List<RoleDisplayData> roles;
   final bool compact;
   final int maxVisible;
 
@@ -98,7 +124,7 @@ class RoleBadgeList extends StatelessWidget {
       runSpacing: 4,
       children: [
         ...visibleRoles.map(
-          (role) => RoleBadge.fromString(role, compact: compact),
+          (role) => RoleBadge.fromDisplayData(role, compact: compact),
         ),
         if (remainingCount > 0)
           Container(

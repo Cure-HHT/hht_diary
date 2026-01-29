@@ -1,0 +1,38 @@
+---
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00044: GCP Authentication via Workload Identity Federation
+#   REQ-o00043: Automated Deployment Pipeline
+#
+# This workflow tests GCP authentication using Workload Identity Federation
+# Triggered manually for testing purposes
+
+on:
+  workflow_dispatch:
+
+name: 'Test GCP Authentication with Workload Identity Federation'
+
+env:
+  GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'  # Required to request the OIDC token
+
+    steps:
+      - uses: 'actions/checkout@v4'
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.GCP_SA_EMAIL }}'
+
+      - name: 'Test the Connection'
+        run: |
+          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+          gcloud auth list
+          gcloud artifacts docker images list ${{ env.GCP_REPO_PATH }}
