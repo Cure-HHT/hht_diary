@@ -178,23 +178,11 @@ Future<Response> linkHandler(Request request) async {
       parameters: {'patientId': patientId},
     );
 
-    // Create or update user_site_assignments to link app user to patient/site
-    await db.execute(
-      '''
-      INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-      VALUES (@userId, @siteId, @edcSubjectKey, 'ACTIVE')
-      ON CONFLICT (patient_id, site_id) DO UPDATE
-      SET study_patient_id = @edcSubjectKey,
-          enrollment_status = 'ACTIVE',
-          withdrawn_at = NULL,
-          withdrawal_reason = NULL
-      ''',
-      parameters: {
-        'userId': userId,
-        'siteId': siteId,
-        'edcSubjectKey': edcSubjectKey,
-      },
-    );
+    // Note: The app user → patient → site relationship is established through:
+    // - patient_linking_codes.used_by_user_id → app_users.user_id
+    // - patient_linking_codes.patient_id → patients.patient_id
+    // - patients.site_id → sites.site_id
+    // user_site_assignments is for portal users (coordinators, investigators), not app users.
 
     // Update app_users last_active_at
     await db.execute(
@@ -244,13 +232,14 @@ Future<Response> syncHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and their site assignment
+    // Look up user and their linked patient/site via patient_linking_codes
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, usa.site_id, usa.study_patient_id
+      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key
       FROM app_users u
-      LEFT JOIN user_site_assignments usa ON u.user_id = usa.patient_id
-        AND usa.enrollment_status = 'ACTIVE'
+      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+        AND plc.used_at IS NOT NULL
+      LEFT JOIN patients p ON plc.patient_id = p.patient_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -263,7 +252,8 @@ Future<Response> syncHandler(Request request) async {
     final row = userResult.first;
     final userId = row[0] as String;
     final siteId = row[1] as String?;
-    final patientId = row[2] as String? ?? userId; // Use userId if no patientId
+    final patientId =
+        row[2] as String? ?? userId; // Use userId if no linked patient
 
     final body = await _parseJson(request);
     if (body == null) {
@@ -356,13 +346,14 @@ Future<Response> getRecordsHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and patient_id from site assignment
+    // Look up user and linked patient via patient_linking_codes
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, usa.study_patient_id
+      SELECT u.user_id, p.patient_id
       FROM app_users u
-      LEFT JOIN user_site_assignments usa ON u.user_id = usa.patient_id
-        AND usa.enrollment_status = 'ACTIVE'
+      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+        AND plc.used_at IS NOT NULL
+      LEFT JOIN patients p ON plc.patient_id = p.patient_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -374,7 +365,8 @@ Future<Response> getRecordsHandler(Request request) async {
 
     final row = userResult.first;
     final userId = row[0] as String;
-    final patientId = row[1] as String? ?? userId;
+    final patientId =
+        row[1] as String? ?? userId; // Use userId if no linked patient
 
     // Fetch current state from record_state (materialized view)
     final recordsResult = await db.execute(
