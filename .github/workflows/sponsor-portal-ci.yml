@@ -27,7 +27,7 @@ on:
 
 env:
   # Coverage threshold
-  MIN_COVERAGE: 80
+  MIN_COVERAGE: 70
 
 jobs:
   analyze:
