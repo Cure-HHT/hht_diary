@@ -238,15 +238,16 @@ void main() {
       testAuthToken = token;
 
       // Ensure DEFAULT site exists for testing
+      // Unlinked users (patient_id = user_id) sync to DEFAULT site
       await Database.instance.execute('''
         INSERT INTO sites (site_id, site_name, site_number, is_active)
         VALUES ('DEFAULT', 'Default Test Site', 'TEST-000', true)
         ON CONFLICT (site_id) DO UPDATE SET is_active = true
         ''');
 
-      // Note: syncHandler now uses patient_linking_codes via LEFT JOIN.
-      // Unlinked users (no patient_linking_codes entry) can still sync -
-      // they just use userId as the patientId fallback.
+      // Note: syncHandler uses patient_linking_codes via LEFT JOIN.
+      // Unlinked users (no patient_linking_codes entry) sync to DEFAULT site
+      // with userId as the patientId fallback.
     });
 
     tearDownAll(() async {
