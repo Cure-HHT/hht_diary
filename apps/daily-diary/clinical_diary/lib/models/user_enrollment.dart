@@ -9,6 +9,8 @@ class UserEnrollment {
     required this.userId,
     required this.jwtToken,
     required this.enrolledAt,
+    this.sponsorId,
+    this.backendUrl,
     this.patientId,
     this.siteId,
     this.siteName,
@@ -21,6 +23,8 @@ class UserEnrollment {
       userId: json['userId'] as String,
       jwtToken: json['jwtToken'] as String,
       enrolledAt: DateTime.parse(json['enrolledAt'] as String),
+      sponsorId: json['sponsorId'] as String?,
+      backendUrl: json['backendUrl'] as String?,
       patientId: json['patientId'] as String?,
       siteId: json['siteId'] as String?,
       siteName: json['siteName'] as String?,
@@ -31,6 +35,14 @@ class UserEnrollment {
   final String userId;
   final String jwtToken;
   final DateTime enrolledAt;
+
+  /// Sponsor ID for this enrollment (e.g., 'callisto')
+  /// Determines which backend to use for API calls
+  final String? sponsorId;
+
+  /// Backend URL for this sponsor's diary-server
+  /// Used for subsequent API calls (sync, records, etc.)
+  final String? backendUrl;
 
   /// Patient ID from linking code (links to patients table)
   final String? patientId;
@@ -53,6 +65,8 @@ class UserEnrollment {
       'userId': userId,
       'jwtToken': jwtToken,
       'enrolledAt': enrolledAt.toIso8601String(),
+      if (sponsorId != null) 'sponsorId': sponsorId,
+      if (backendUrl != null) 'backendUrl': backendUrl,
       if (patientId != null) 'patientId': patientId,
       if (siteId != null) 'siteId': siteId,
       if (siteName != null) 'siteName': siteName,

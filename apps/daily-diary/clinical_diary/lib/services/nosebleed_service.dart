@@ -7,7 +7,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
-import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
@@ -360,8 +359,15 @@ class NosebleedService {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;
 
+      // Get the sync URL from enrollment (sponsor-specific backend)
+      final syncUrl = await _enrollmentService.getSyncUrl();
+      if (syncUrl == null) {
+        debugPrint('No sync URL available - user not enrolled');
+        return;
+      }
+
       final response = await _httpClient.post(
-        Uri.parse(AppConfig.syncUrl),
+        Uri.parse(syncUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',
@@ -408,8 +414,16 @@ class NosebleedService {
         return SyncResult.success(syncedCount: 0); // No auth, nothing to sync
       }
 
+      // Get the sync URL from enrollment (sponsor-specific backend)
+      final syncUrl = await _enrollmentService.getSyncUrl();
+      if (syncUrl == null) {
+        return SyncResult.success(
+          syncedCount: 0,
+        ); // Not enrolled, nothing to sync
+      }
+
       final response = await _httpClient.post(
-        Uri.parse(AppConfig.syncUrl),
+        Uri.parse(syncUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',
@@ -446,8 +460,15 @@ class NosebleedService {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;
 
+      // Get the records URL from enrollment (sponsor-specific backend)
+      final recordsUrl = await _enrollmentService.getRecordsUrl();
+      if (recordsUrl == null) {
+        debugPrint('No records URL available - user not enrolled');
+        return;
+      }
+
       final response = await _httpClient.post(
-        Uri.parse(AppConfig.getRecordsUrl),
+        Uri.parse(recordsUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',

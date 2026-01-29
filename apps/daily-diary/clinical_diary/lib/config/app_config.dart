@@ -57,8 +57,7 @@ class AppConfig {
   static String? testApiBaseOverride;
 
   /// API base URL - derived from the current flavor.
-  /// Uses Firebase Hosting rewrites to proxy to functions,
-  /// avoiding CORS issues and org policy restrictions.
+  /// Points to the diary-server Cloud Run service.
   static String get apiBase {
     // Allow test override
     if (testApiBaseOverride != null) {
@@ -67,18 +66,26 @@ class AppConfig {
     return FlavorConfig.byName(F.name).apiBase;
   }
 
-  // API Endpoints
-  static String get enrollUrl => '$apiBase/enroll'; // Deprecated, use linkUrl
+  // API Endpoints - paths match diary_server routes.dart
+  // Auth routes
+  static String get registerUrl => '$apiBase/api/v1/auth/register';
+  static String get loginUrl => '$apiBase/api/v1/auth/login';
+  static String get changePasswordUrl => '$apiBase/api/v1/auth/change-password';
+
+  // User routes
+  static String get enrollUrl =>
+      '$apiBase/api/v1/user/enroll'; // Deprecated, returns 410
   static String get linkUrl =>
-      '$apiBase/link'; // Patient linking via sponsor portal codes
-  static String get healthUrl => '$apiBase/health';
-  static String get syncUrl => '$apiBase/sync';
-  static String get getRecordsUrl => '$apiBase/getRecords';
-  static String get registerUrl => '$apiBase/register';
-  static String get loginUrl => '$apiBase/login';
-  static String get changePasswordUrl => '$apiBase/changePassword';
+      '$apiBase/api/v1/user/link'; // Patient linking via sponsor portal codes
+  static String get syncUrl => '$apiBase/api/v1/user/sync';
+  static String get getRecordsUrl => '$apiBase/api/v1/user/records';
+
+  // Sponsor routes
   static String sponsorConfigUrl(String sponsorId) =>
-      '$apiBase/sponsorConfig?sponsorId=$sponsorId';
+      '$apiBase/api/v1/sponsor/config?sponsorId=$sponsorId';
+
+  // Health check
+  static String get healthUrl => '$apiBase/health';
 
   // ============================================================
   // App Metadata
