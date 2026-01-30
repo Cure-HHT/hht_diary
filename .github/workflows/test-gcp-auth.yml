@@ -10,8 +10,29 @@ name: 'Deploy portal-service to GCP'
 
 on:
   workflow_dispatch:
-
-name: 'Test GCP Authentication with Workload Identity Federation'
+    inputs:
+      image_path:
+        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
+        required: true
+        type: string
+      version:
+        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      image_path:
+        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
+        required: true
+        type: string
+      version:
+        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        required: false
+        type: string
+    secrets:
+      DOPPLER_TOKEN:
+        description: 'Doppler service token for the target environment'
+        required: true
 
 env:
   GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
