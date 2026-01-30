@@ -55,6 +55,7 @@ jobs:
     outputs:
       image_tag: ${{ steps.parse.outputs.tags }}
       image_digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.parse.outputs.version }}
 
     steps:
       - name: Free up disk space
@@ -93,48 +94,74 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Source tag:
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            RAW_TAG="${{ github.event.inputs.version }}"
-          else
-            RAW_TAG="${GITHUB_REF#refs/tags/}"
-          fi
-
-          # Normalize (strip optional leading v)
-          VERSION="${RAW_TAG#v}"
-
-          # semver regex that accepts prerelease and build metadata per semver.org
-          SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
-
-          if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
-            echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
-            exit 1
-          fi
-
-          CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
-          MAJOR="${CORE%%.*}"
-          MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
-
-          # is there prerelease or build metadata?
-          if echo "$VERSION" | grep -Eq '[-+]'; then
-            IS_RELEASE=false
-          else
-            IS_RELEASE=true
-          fi
-
-          # sanitize for docker tags: convert '+' to '-' and lowercase
-          DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
-
           SHORT_SHA="${GITHUB_SHA::7}"
-          TAG_FULL="v${VERSION}"   # canonical tag with leading v
 
-          echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+          # Determine source of version based on trigger type
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual dispatch: use input version
+            RAW_TAG="${{ github.event.inputs.version }}"
+            IS_MAIN_PUSH=false
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Tag push: use the tag
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+            IS_MAIN_PUSH=false
+          else
+            # Branch push (e.g., merge to main): use short SHA as version
+            RAW_TAG="${SHORT_SHA}"
+            IS_MAIN_PUSH=true
+            echo "::notice::Main branch push detected, using commit SHA as version: ${SHORT_SHA}"
+          fi
 
-          # Build the newline-separated tags list for build-push-action
-          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
-          if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          # For main branch pushes, skip semver validation and use SHA-based tagging
+          if [ "$IS_MAIN_PUSH" = "true" ]; then
+            VERSION="${SHORT_SHA}"
+            DOCKER_VER="${SHORT_SHA}"
+            CORE="${SHORT_SHA}"
+            MAJOR=""
+            MAJOR_MINOR=""
+            IS_RELEASE=false
+            TAG_FULL="${SHORT_SHA}"
+
+            # For main branch: tag with SHA and 'main-latest'
+            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
+
+            echo "::notice::Main branch build: version='$VERSION', tags='$TAGS'"
+          else
+            # Normalize (strip optional leading v)
+            VERSION="${RAW_TAG#v}"
+
+            # semver regex that accepts prerelease and build metadata per semver.org
+            SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+
+            if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
+              echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
+              exit 1
+            fi
+
+            CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+            MAJOR="${CORE%%.*}"
+            MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+
+            # is there prerelease or build metadata?
+            if echo "$VERSION" | grep -Eq '[-+]'; then
+              IS_RELEASE=false
+            else
+              IS_RELEASE=true
+            fi
+
+            # sanitize for docker tags: convert '+' to '-' and lowercase
+            DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
+
+            TAG_FULL="v${VERSION}"   # canonical tag with leading v
+
+            echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+
+            # Build the newline-separated tags list for build-push-action
+            # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
+            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+            if [ "$IS_RELEASE" = "true" ]; then
+              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+            fi
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -146,6 +173,7 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
+          echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
           # tags is multiline output
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
@@ -160,6 +188,7 @@ jobs:
           echo "is_release=${IS_RELEASE}"
           echo "short_sha=${SHORT_SHA}"
           echo "tag_full=${TAG_FULL}"
+          echo "is_main_push=${IS_MAIN_PUSH}"
           # tags is multiline output
           echo "tags<<EOF"
           printf "%s\n" "$TAGS"
