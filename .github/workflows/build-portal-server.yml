@@ -292,8 +292,8 @@ jobs:
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
 
-  trigger-gcp-auth-test:
-    name: Trigger GCP Deployment (async)
+  deploy-run-service:
+    name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-portal-server]
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
@@ -305,6 +305,9 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
+            --memory=4Gi \
+            --set-cloudsql-instances=$DB_CONNECTION_NAME \
+            --vpc-connector $SERVERLESS_VPC_CONNECTOR \
             -f service-name="portal-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
@@ -314,7 +317,7 @@ jobs:
   summary:
     name: Build Summary
     runs-on: ubuntu-22.04
-    needs: [verify-images, sign-and-sbom, build-portal-server, trigger-gcp-auth-test]
+    needs: [verify-images, sign-and-sbom, build-portal-server, deploy-run-service]
     if: always()
 
     steps:
