@@ -8,7 +8,6 @@
 # Build args:
 ARG DART_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
 ARG DEBIAN_IMAGE=debian:bookworm-slim 
-ARG DOPPLER_VERSION=3.75.1
 # =============================================================================
 # Stage 1: Build Dart Server
 # =============================================================================
@@ -38,9 +37,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install Doppler CLI
 # Pinned to specific version for reproducibility
-RUN wget -q "https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz" && \
+ARG DOPPLER_VERSION=3.75.1
+# Download and install Doppler CLI
+RUN wget -q https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
     tar xzf doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
     chmod +x doppler && \
     rm doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz
