@@ -6,19 +6,13 @@
 # Hosts diary_functions as HTTP endpoints via shelf
 #
 # Build args:
-#   DART_VERSION - from .github/versions.env
-# Default values satisfy Docker's static linter; overridden by --build-arg in CI
-# ARG DART_BASE_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
-# Runtime stage - minimal image
-# Using :nonroot tag for security (DS001, DS002)
-# ARG DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
-ARG DART_IMAGE=dart-base:3.10.7
+ARG DART_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
 ARG DEBIAN_IMAGE=debian:bookworm-slim 
 ARG DOPPLER_VERSION=3.75.1
 # =============================================================================
 # Stage 1: Build Dart Server
 # =============================================================================
-FROM ghcr.io/cure-hht/${DART_IMAGE} AS dart-build
+FROM ${DART_IMAGE} AS dart-build
 # Copy shared dependencies first (for layer caching)
 # Use --chown because dart-base runs as appuser
 COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
