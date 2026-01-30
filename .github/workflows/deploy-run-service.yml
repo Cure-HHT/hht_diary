@@ -2,6 +2,11 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00044: GCP Authentication via Workload Identity Federation
 #   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00002: Environment-Specific Configuration Management
+#   REQ-o00001: Separate GCP Projects Per Sponsor
+#   REQ-o00051: Change Control and Audit Trail
+#   REQ-d00058: Secrets Management via Doppler
+#   REQ-o00070: Data Residency Enforcement
 #
 # This workflow tests GCP authentication using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
