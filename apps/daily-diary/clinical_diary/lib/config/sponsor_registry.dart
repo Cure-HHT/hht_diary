@@ -6,41 +6,12 @@
 // Sponsor registry for mapping linking code prefixes to backend URLs.
 // Each sponsor has a unique 2-letter prefix (e.g., CA for Callisto).
 // The mobile app uses this to determine which diary-server to connect to.
+//
+// Backend URLs are configured in FlavorConfig (lib/flavors.dart).
+// TODO: Replace with central config service on cure-hht-admin GCP project
+// so new sponsors can be added without app updates.
 
 import 'package:clinical_diary/flavors.dart';
-
-/// Registry entry for a sponsor's backend configuration.
-class SponsorBackend {
-  const SponsorBackend({
-    required this.sponsorId,
-    required this.prefix,
-    required this.name,
-    required this.backendUrls,
-  });
-
-  /// Unique sponsor identifier (e.g., 'callisto')
-  final String sponsorId;
-
-  /// 2-letter code prefix (e.g., 'CA')
-  final String prefix;
-
-  /// Human-readable sponsor name
-  final String name;
-
-  /// Backend URLs per flavor/environment
-  final Map<Flavor, String> backendUrls;
-
-  /// Get the backend URL for the current flavor
-  String getBackendUrl(Flavor flavor) {
-    final url = backendUrls[flavor];
-    if (url == null) {
-      throw SponsorRegistryException(
-        'No backend URL configured for sponsor $sponsorId in $flavor environment',
-      );
-    }
-    return url;
-  }
-}
 
 /// Exception thrown when sponsor lookup fails.
 class SponsorRegistryException implements Exception {
@@ -51,62 +22,56 @@ class SponsorRegistryException implements Exception {
   String toString() => 'SponsorRegistryException: $message';
 }
 
-/// Registry of all sponsors and their backend configurations.
+/// Sponsor metadata for display purposes.
+/// Backend URLs are in FlavorConfig.sponsorBackends.
+class SponsorInfo {
+  const SponsorInfo({required this.id, required this.name});
+
+  final String id;
+  final String name;
+}
+
+/// Registry of sponsors and their linking code prefixes.
 ///
 /// The mobile app uses this to:
 /// 1. Extract the 2-letter prefix from a linking code
-/// 2. Look up the corresponding sponsor's diary-server URL
+/// 2. Look up the corresponding sponsor's diary-server URL from FlavorConfig
 /// 3. Call the /api/v1/user/link endpoint on that server
-///
-/// New sponsors are added here when onboarded to the platform.
 class SponsorRegistry {
   SponsorRegistry._();
 
-  /// All registered sponsors.
-  /// Add new sponsors here as they are onboarded.
-  static const _sponsors = <SponsorBackend>[
-    // Callisto (CA) - First sponsor
-    SponsorBackend(
-      sponsorId: 'callisto',
-      prefix: 'CA',
-      name: 'Callisto Pharmaceuticals',
-      backendUrls: {
-        // Cloud Run URLs per environment
-        // TODO: Update qa/uat/prod URLs when deployed
-        Flavor.dev: 'https://patient-server-1012274191696.europe-west9.run.app',
-        Flavor.qa: 'https://patient-server-qa-PROJECTID.europe-west9.run.app',
-        Flavor.uat: 'https://patient-server-uat-PROJECTID.europe-west9.run.app',
-        Flavor.prod: 'https://patient-server-PROJECTID.europe-west9.run.app',
-      },
-    ),
+  /// Sponsor metadata by prefix.
+  /// Backend URLs are in FlavorConfig.sponsorBackends.
+  static const _sponsors = <String, SponsorInfo>{
+    'CA': SponsorInfo(id: 'callisto', name: 'Callisto'),
     // Add more sponsors here as they are onboarded:
-    // SponsorBackend(
-    //   sponsorId: 'orion',
-    //   prefix: 'OR',
-    //   name: 'Orion Therapeutics',
-    //   backendUrls: { ... },
-    // ),
-  ];
+    // 'OR': SponsorInfo(id: 'orion', name: 'Orion'),
+  };
 
-  /// Look up a sponsor by their linking code prefix.
+  /// Get sponsor info by prefix.
   /// Returns null if no sponsor matches the prefix.
-  static SponsorBackend? getByPrefix(String prefix) {
-    final upperPrefix = prefix.toUpperCase();
-    for (final sponsor in _sponsors) {
-      if (sponsor.prefix == upperPrefix) {
-        return sponsor;
+  static SponsorInfo? getByPrefix(String prefix) {
+    return _sponsors[prefix.toUpperCase()];
+  }
+
+  /// Get sponsor info by ID.
+  /// Returns null if no sponsor matches the ID.
+  static SponsorInfo? getById(String sponsorId) {
+    final lowerId = sponsorId.toLowerCase();
+    for (final entry in _sponsors.entries) {
+      if (entry.value.id == lowerId) {
+        return entry.value;
       }
     }
     return null;
   }
 
-  /// Look up a sponsor by their ID.
-  /// Returns null if no sponsor matches the ID.
-  static SponsorBackend? getById(String sponsorId) {
+  /// Get the prefix for a sponsor ID.
+  static String? getPrefixForId(String sponsorId) {
     final lowerId = sponsorId.toLowerCase();
-    for (final sponsor in _sponsors) {
-      if (sponsor.sponsorId == lowerId) {
-        return sponsor;
+    for (final entry in _sponsors.entries) {
+      if (entry.value.id == lowerId) {
+        return entry.key;
       }
     }
     return null;
@@ -125,10 +90,12 @@ class SponsorRegistry {
     return normalized.substring(0, 2);
   }
 
-  /// Get the backend URL for a linking code in the current flavor.
-  /// Extracts the prefix and looks up the corresponding sponsor.
+  /// Get the backend URL for a linking code in the given flavor.
+  /// Extracts the prefix and looks up the URL from FlavorConfig.
   static String getBackendUrlForCode(String code, Flavor flavor) {
     final prefix = extractPrefix(code);
+
+    // Validate sponsor exists
     final sponsor = getByPrefix(prefix);
     if (sponsor == null) {
       throw SponsorRegistryException(
@@ -136,10 +103,20 @@ class SponsorRegistry {
         'Please check your linking code or contact support.',
       );
     }
-    return sponsor.getBackendUrl(flavor);
+
+    // Get URL from flavor config
+    final flavorConfig = FlavorConfig.byName(flavor.name);
+    final url = flavorConfig.sponsorBackends[prefix];
+    if (url == null) {
+      throw SponsorRegistryException(
+        'No backend URL configured for sponsor ${sponsor.name} '
+        'in ${flavor.name} environment.',
+      );
+    }
+
+    return url;
   }
 
   /// Get all registered sponsor prefixes.
-  static List<String> get allPrefixes =>
-      _sponsors.map((s) => s.prefix).toList();
+  static List<String> get allPrefixes => _sponsors.keys.toList();
 }

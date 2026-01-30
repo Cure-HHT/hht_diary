@@ -168,14 +168,14 @@ class EnrollmentService {
 
       debugPrint(
         'Link successful: patientId=$patientId, siteId=$siteId, '
-        'siteName=$siteName, sponsor=${sponsor?.sponsorId}',
+        'siteName=$siteName, sponsor=${sponsor?.id}',
       );
 
       final enrollment = UserEnrollment(
         userId: userId,
         jwtToken: jwtToken,
         enrolledAt: DateTime.now(),
-        sponsorId: sponsor?.sponsorId,
+        sponsorId: sponsor?.id,
         backendUrl: backendUrl,
         patientId: patientId,
         siteId: siteId,
