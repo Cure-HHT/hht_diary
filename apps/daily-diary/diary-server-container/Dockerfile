@@ -24,16 +24,17 @@ COPY --chown=1000:1000 apps/daily-diary/diary_functions /app/apps/daily-diary/di
 # Copy diary_server package
 COPY --chown=1000:1000 apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
 
-# Get dependencies and compile
+# Get dependencies and compile to native executable
 WORKDIR /app/apps/daily-diary/diary_server
 RUN dart pub get
+RUN dart compile exe bin/server.dart -o bin/server
 
 # Runtime stage - minimal image
 # Using :nonroot tag for security (DS001, DS002)
 FROM ${DEBIAN_IMAGE} AS runtime
 # FROM gcr.io/distroless/cc-debian12:nonroot
 
-COPY --from=base /app/apps/daily-diary/diary_server/bin/server.dart /app/server
+COPY --from=base --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
