@@ -281,8 +281,9 @@ void main() {
           httpClient: mockClient,
         );
 
+        // Use a code with known prefix (CA) to test server's 400 response
         expect(
-          () => service.enroll('INVALID'),
+          () => service.enroll('CASHORT123'),
           throwsA(
             allOf(
               isA<EnrollmentException>(),
@@ -293,6 +294,33 @@ void main() {
           ),
         );
       });
+
+      test(
+        'throws EnrollmentException with unknownSponsor for invalid prefix',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response('{"error": "Invalid code"}', 400);
+          });
+
+          service = EnrollmentService(
+            secureStorage: mockStorage,
+            httpClient: mockClient,
+          );
+
+          // Code starting with "XX" is not a known sponsor prefix
+          expect(
+            () => service.enroll('XXINVALID1'),
+            throwsA(
+              allOf(
+                isA<EnrollmentException>(),
+                predicate<EnrollmentException>(
+                  (e) => e.type == EnrollmentErrorType.unknownSponsor,
+                ),
+              ),
+            ),
+          );
+        },
+      );
 
       test('throws EnrollmentException with serverError for 500', () async {
         final mockClient = MockClient((request) async {

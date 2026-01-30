@@ -119,36 +119,50 @@ void main() {
   group('FlavorConfig', () {
     test('dev has correct values', () {
       expect(FlavorConfig.dev.name, 'dev');
-      expect(FlavorConfig.dev.apiBase, 'https://hht-diary-mvp.web.app/api');
+      expect(
+        FlavorConfig.dev.apiBase,
+        'https://patient-server-1012274191696.europe-west9.run.app/api',
+      );
       expect(FlavorConfig.dev.environment, 'dev');
       expect(FlavorConfig.dev.showDevTools, true);
       expect(FlavorConfig.dev.showBanner, true);
+      expect(FlavorConfig.dev.sponsorBackends['CA'], isNotNull);
     });
 
     test('qa has correct values', () {
       expect(FlavorConfig.qa.name, 'qa');
-      expect(FlavorConfig.qa.apiBase, 'https://hht-diary-qa.web.app/api');
+      expect(
+        FlavorConfig.qa.apiBase,
+        'https://patient-server-qa.europe-west9.run.app/api',
+      );
       expect(FlavorConfig.qa.environment, 'qa');
       expect(FlavorConfig.qa.showDevTools, true);
       expect(FlavorConfig.qa.showBanner, true);
+      expect(FlavorConfig.qa.sponsorBackends['CA'], isNotNull);
     });
 
     test('uat has correct values', () {
       expect(FlavorConfig.uat.name, 'uat');
-      // NOTE: Temporarily pointing to MVP backend for pre-UAT release
-      // TODO: Revert to https://hht-diary-uat.web.app/api when UAT backend is ready
-      expect(FlavorConfig.uat.apiBase, 'https://hht-diary-mvp.web.app/api');
+      expect(
+        FlavorConfig.uat.apiBase,
+        'https://patient-server-uat.europe-west9.run.app/api',
+      );
       expect(FlavorConfig.uat.environment, 'uat');
       expect(FlavorConfig.uat.showDevTools, false);
       expect(FlavorConfig.uat.showBanner, false);
+      expect(FlavorConfig.uat.sponsorBackends['CA'], isNotNull);
     });
 
     test('prod has correct values', () {
       expect(FlavorConfig.prod.name, 'prod');
-      expect(FlavorConfig.prod.apiBase, 'https://hht-diary.web.app/api');
+      expect(
+        FlavorConfig.prod.apiBase,
+        'https://patient-server.europe-west9.run.app/api',
+      );
       expect(FlavorConfig.prod.environment, 'prod');
       expect(FlavorConfig.prod.showDevTools, false);
       expect(FlavorConfig.prod.showBanner, false);
+      expect(FlavorConfig.prod.sponsorBackends['CA'], isNotNull);
     });
 
     group('byName', () {
@@ -263,48 +277,57 @@ void main() {
           AppConfig.testApiBaseOverride = 'https://test-api.example.com';
         });
 
-        test('enrollUrl appends /enroll to apiBase', () {
-          expect(AppConfig.enrollUrl, 'https://test-api.example.com/enroll');
+        test('enrollUrl uses /api/v1/user/enroll path', () {
+          expect(
+            AppConfig.enrollUrl,
+            'https://test-api.example.com/api/v1/user/enroll',
+          );
         });
 
         test('healthUrl appends /health to apiBase', () {
           expect(AppConfig.healthUrl, 'https://test-api.example.com/health');
         });
 
-        test('syncUrl appends /sync to apiBase', () {
-          expect(AppConfig.syncUrl, 'https://test-api.example.com/sync');
+        test('syncUrl uses /api/v1/user/sync path', () {
+          expect(
+            AppConfig.syncUrl,
+            'https://test-api.example.com/api/v1/user/sync',
+          );
         });
 
-        test('getRecordsUrl appends /getRecords to apiBase', () {
+        test('getRecordsUrl uses /api/v1/user/records path', () {
           expect(
             AppConfig.getRecordsUrl,
-            'https://test-api.example.com/getRecords',
+            'https://test-api.example.com/api/v1/user/records',
           );
         });
 
-        test('registerUrl appends /register to apiBase', () {
+        test('registerUrl uses /api/v1/auth/register path', () {
           expect(
             AppConfig.registerUrl,
-            'https://test-api.example.com/register',
+            'https://test-api.example.com/api/v1/auth/register',
           );
         });
 
-        test('loginUrl appends /login to apiBase', () {
-          expect(AppConfig.loginUrl, 'https://test-api.example.com/login');
+        test('loginUrl uses /api/v1/auth/login path', () {
+          expect(
+            AppConfig.loginUrl,
+            'https://test-api.example.com/api/v1/auth/login',
+          );
         });
 
-        test('changePasswordUrl appends /changePassword to apiBase', () {
+        test('changePasswordUrl uses /api/v1/auth/change-password path', () {
           expect(
             AppConfig.changePasswordUrl,
-            'https://test-api.example.com/changePassword',
+            'https://test-api.example.com/api/v1/auth/change-password',
           );
         });
 
-        test('sponsorConfigUrl builds URL with sponsorId', () {
+        test('sponsorConfigUrl uses /api/v1/sponsor/config path', () {
           final url = AppConfig.sponsorConfigUrl('curehht');
           expect(
             url,
-            'https://test-api.example.com/sponsorConfig?sponsorId=curehht',
+            'https://test-api.example.com/api/v1/sponsor/config?sponsorId=curehht',
           );
         });
       });
