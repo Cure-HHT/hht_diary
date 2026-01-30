@@ -299,6 +299,8 @@ jobs:
     name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-diary-server]
+    permissions:
+      actions: write  # For triggering workflows
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     steps:
       - name: Trigger test-gcp-auth workflow
@@ -308,7 +310,7 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
-            -f service-name="deploy-service" \
+            -f service-name="diary-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
             -f version="${{ needs.build-diary-server.outputs.version }}"
           echo "Triggered test-gcp-auth.yml asynchronously"
