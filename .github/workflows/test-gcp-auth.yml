@@ -147,10 +147,16 @@ jobs:
             echo "Version: $VERSION"
           fi
 
-          gcloud run services create ${{ inputs.service-name }} \
+          gcloud run services update ${{ inputs.service-name }} \
             --region=europe-west9 \
             --project=${{ vars.GCP_DEPLOY2_PROJECT_ID }} \
             --image="$GAR_PATH" \
+            --cpu=2 \
+            --memory=4Gi \
+            --min-instances=1 \
+            --max-instances=2 \
+            --add-cloudsql-instances=${{ vars.GCP_DB_CONNECTION_NAME }} \
+            --vpc-connector ${{ vars.GCP_SERVERLESS_VPC_CONNECTOR }} \
             --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=dev"
 
           echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"

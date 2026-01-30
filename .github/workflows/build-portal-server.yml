@@ -305,9 +305,6 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
-            --memory=4Gi \
-            --set-cloudsql-instances=$DB_CONNECTION_NAME \
-            --vpc-connector $SERVERLESS_VPC_CONNECTOR \
             -f service-name="portal-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
