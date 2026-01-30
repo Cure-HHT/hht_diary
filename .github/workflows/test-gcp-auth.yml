@@ -4,41 +4,18 @@
 #   REQ-o00043: Automated Deployment Pipeline
 #
 # This workflow tests GCP authentication using Workload Identity Federation
-# Triggered manually via workflow_dispatch or called from build-portal-server.yml
-
-name: 'Deploy portal-server to GCP'
+# Triggered manually for testing purposes
 
 on:
   workflow_dispatch:
-    inputs:
-      image_path:
-        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
-        required: true
-        type: string
-      version:
-        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
-        required: false
-        type: string
-  workflow_call:
-    inputs:
-      image_path:
-        description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
-        required: true
-        type: string
-      version:
-        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
-        required: false
-        type: string
-    secrets:
-      DOPPLER_TOKEN:
-        description: 'Doppler service token for the target environment'
-        required: true
+
+name: 'Test GCP Authentication with Workload Identity Federation'
 
 env:
   GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
 
 jobs:
-  deploy-portal-server:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -47,98 +24,15 @@ jobs:
     steps:
       - uses: 'actions/checkout@v4'
 
-      - name: 'Authenticate with Google Cloud'
-        id: 'auth'
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
           workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: '${{ vars.GCP_SA_EMAIL }}'
 
-      - name: 'Translate ghcr.io path to Google Artifact Registry'
-        id: translate-path
+      - name: 'Test the Connection'
         run: |
-          INPUT_IMAGE="${{ inputs.image_path }}"
-          echo "Input image: $INPUT_IMAGE"
-
-          # Extract components from ghcr.io path
-          # Format: ghcr.io/org/image:tag or ghcr.io/org/image
-          if [[ ! "$INPUT_IMAGE" =~ ^ghcr\.io/ ]]; then
-            echo "::error::Image path must start with ghcr.io/"
-            exit 1
-          fi
-
-          # Remove ghcr.io/ prefix
-          IMAGE_PATH="${INPUT_IMAGE#ghcr.io/}"
-
-          # Split into path and tag
-          if [[ "$IMAGE_PATH" =~ : ]]; then
-            TAG="${IMAGE_PATH##*:}"
-            IMAGE_PATH="${IMAGE_PATH%:*}"
-          else
-            TAG="latest"
-          fi
-
-          # Extract org and image name
-          ORG="${IMAGE_PATH%%/*}"
-          IMAGE_NAME="${IMAGE_PATH#*/}"
-
-          # Map image names if needed (portal-server -> clinical-diary-portal-server)
-          case "$IMAGE_NAME" in
-            # "portal-server")
-            #   MAPPED_IMAGE="clinical-diary-portal-server"
-            #   ;;
-            *)
-              MAPPED_IMAGE="$IMAGE_NAME"
-              ;;
-          esac
-
-          # Construct GAR path
-          GAR_PATH="${{ env.GCP_REPO_PATH }}/${ORG}/${MAPPED_IMAGE}:${TAG}"
-
-          echo "Translated GAR path: $GAR_PATH"
-          echo "gar_path=$GAR_PATH" >> $GITHUB_OUTPUT
-          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
-          echo "image_name=$MAPPED_IMAGE" >> $GITHUB_OUTPUT
-
-      - name: 'Configure Docker for Artifact Registry'
-        run: |
-          gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
-
-      - name: 'Validate image exists in Artifact Registry'
-        run: |
-          GAR_PATH="${{ steps.translate-path.outputs.gar_path }}"
-          echo "Validating image: $GAR_PATH"
-
           gcloud config set project ${{ vars.GCP_PROJECT_ID }}
-
-          # Try to describe the image (validates it exists)
-          echo "Checking image metadata..."
-          gcloud artifacts docker images describe "$GAR_PATH" --format="table(image_summary.digest,image_summary.fully_qualified_digest,package,tags)" || {
-            echo "::warning::Image not found via describe, attempting docker pull..."
-            docker pull "$GAR_PATH"
-          }
-
-          echo "✅ Image validation successful: $GAR_PATH"
-
-      - name: 'Deploy to Cloud Run'
-        run: |
-          GAR_PATH="${{ steps.translate-path.outputs.gar_path }}"
-          VERSION="${{ inputs.version }}"
-          echo "Deploying image to Cloud Run: $GAR_PATH"
-          if [ -n "$VERSION" ]; then
-            echo "Version: $VERSION"
-          fi
-
-          gcloud run services update portal-server \
-            --region=europe-west9 \
-            --project=${{ vars.GCP_DEPLOY2_PROJECT_ID }} \
-            --image="$GAR_PATH" \
-            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=dev"
-
-          echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
-
-      - name: 'Display authentication info'
-        run: |
-          echo "GCP Project: ${{ vars.GCP_PROJECT_ID }}"
           gcloud auth list
-          gcloud artifacts docker images list ${{ env.GCP_REPO_PATH }} --limit=5
+          gcloud artifacts docker images list ${{ env.GCP_REPO_PATH }}

@@ -13,6 +13,7 @@
 *.sql~
 *.backup
 *.dump
+database/init-consolidated.sql
 
 # IDE and editor files - allow run/launch configs, ignore workspace-specific
 # VS Code - allow launch.json for shared run configurations
@@ -202,7 +203,7 @@ tools/requirements/trace_view/tests/results/*.json
 # =====================================
 # Local .terraform directories (plugins, modules)
 **/.terraform/
-.terraform.lock.hcl
+**/.terraform.lock.hcl
 
 # tfstate files - state is stored in GCS, not in repo
 *.tfstate
