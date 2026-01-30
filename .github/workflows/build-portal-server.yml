@@ -305,9 +305,11 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
+            -f portal-service="portal-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered test-gcp-auth.yml asynchronously"
+          # TODO ${{ needs.build-portal-server.outputs.service-name }}
 
   summary:
     name: Build Summary

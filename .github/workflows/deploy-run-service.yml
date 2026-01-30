@@ -6,11 +6,18 @@
 # This workflow tests GCP authentication using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
 
-name: 'Deploy portal-service to GCP'
+name: 'Deploy cloud run service'
 
 on:
   workflow_dispatch:
     inputs:
+      service-name:
+        description: 'Cloud Run service to deploy'
+        required: true
+        type: choice
+        options:
+          - diary-service
+          - portal-service
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -21,6 +28,10 @@ on:
         type: string
   workflow_call:
     inputs:
+      service-name:
+        description: 'Cloud Run service to deploy (diary-service or portal-service)'
+        required: true
+        type: string
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -45,6 +56,13 @@ jobs:
       id-token: 'write'  # Required to request the OIDC token
 
     steps:
+      - name: 'Validate service-name'
+        run: |
+          if [[ "${{ inputs.service-name }}" != "diary-service" && "${{ inputs.service-name }}" != "portal-service" ]]; then
+            echo "::error::service-name must be 'diary-service' or 'portal-service', got '${{ inputs.service-name }}'"
+            exit 1
+          fi
+
       - uses: 'actions/checkout@v4'
 
       - name: 'Authenticate with Google Cloud'
@@ -129,7 +147,7 @@ jobs:
             echo "Version: $VERSION"
           fi
 
-          gcloud run services update portal-service \
+          gcloud run services create ${{ inputs.service-name }} \
             --region=europe-west9 \
             --project=${{ vars.GCP_DEPLOY2_PROJECT_ID }} \
             --image="$GAR_PATH" \
