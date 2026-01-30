@@ -17,7 +17,7 @@
 # - Adds workflow_dispatch with an input string named `version`
 # - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
 
-name: Build, push and sign diary-server image
+name: Build diary-server
 on:
   push:
     tags:
