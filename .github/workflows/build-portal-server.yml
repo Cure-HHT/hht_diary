@@ -292,27 +292,27 @@ jobs:
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
 
-  deploy-portal-service:
+  trigger-gcp-auth-test:
     name: Trigger GCP Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-portal-server]
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     steps:
-      - name: Deploy to GCP asynchronously
+      - name: Trigger test-gcp-auth workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run deploy-portal-service.yml \
+          gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
-          echo "Triggered deploy-portal-service.yml asynchronously"
+          echo "Triggered test-gcp-auth.yml asynchronously"
 
   summary:
     name: Build Summary
     runs-on: ubuntu-22.04
-    needs: [verify-images, sign-and-sbom, build-portal-server, deploy-portal-service]
+    needs: [verify-images, sign-and-sbom, build-portal-server, trigger-gcp-auth-test]
     if: always()
 
     steps:
