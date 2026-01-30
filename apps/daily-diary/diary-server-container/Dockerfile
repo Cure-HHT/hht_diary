@@ -7,43 +7,88 @@
 #
 # Build args:
 #   DART_VERSION - from .github/versions.env
-#   GCP_PROJECT_ID - GCP project for base image
-
 # Default values satisfy Docker's static linter; overridden by --build-arg in CI
-ARG BASE_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
-ARG DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
-FROM ${BASE_IMAGE} AS base
-# FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS build
-
+# ARG DART_BASE_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
+# Runtime stage - minimal image
+# Using :nonroot tag for security (DS001, DS002)
+# ARG DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
+ARG DART_IMAGE=dart-base:3.10.7
+ARG DEBIAN_IMAGE=debian:bookworm-slim 
+ARG DOPPLER_VERSION=3.75.1
+# =============================================================================
+# Stage 1: Build Dart Server
+# =============================================================================
+FROM ghcr.io/cure-hht/${DART_IMAGE} AS dart-build
 # Copy shared dependencies first (for layer caching)
-COPY --chown=1000:1000 apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+# Use --chown because dart-base runs as appuser
+COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 
 # Copy diary_functions package
-COPY --chown=1000:1000 apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
+COPY --chown=appuser:appuser apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
 
 # Copy diary_server package
-COPY --chown=1000:1000 apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
+COPY --chown=appuser:appuser apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
 
 # Get dependencies and compile to native executable
 WORKDIR /app/apps/daily-diary/diary_server
 RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
-# Runtime stage - minimal image
-# Using :nonroot tag for security (DS001, DS002)
-FROM ${DEBIAN_IMAGE} AS runtime
-# FROM gcr.io/distroless/cc-debian12:nonroot
+# =============================================================================
+# Stage 2: Install Doppler CLI
+# =============================================================================
+FROM ${DEBIAN_IMAGE} AS doppler-install
 
-COPY --from=base --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Doppler CLI
+# Pinned to specific version for reproducibility
+RUN wget -q "https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz" && \
+    tar xzf doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    chmod +x doppler && \
+    rm doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz
+
+# =============================================================================
+# Stage 3: Runtime - nginx + Dart server + Doppler
+# =============================================================================
+FROM ${DEBIAN_IMAGE} AS runtime
+
+# Install nginx and required runtime libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Doppler CLI from download stage
+COPY --from=doppler-install /doppler /usr/local/bin/doppler
+
+# Create non-root user with home directory for Doppler config
+RUN useradd -r -m -d /home/appuser -s /bin/false appuser
+
+# Copy Dart server binary
+COPY --from=dart-build --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
+
+# Create nginx runtime directories with correct permissions
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx \
+    && chown -R appuser:appuser /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx /app
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
 EXPOSE 8080
 
 # Explicit non-root user (uid 65532 in distroless)
-USER nonroot:nonroot
+# USER nonroot:nonroot
+USER appuser:appuser
 
 # Note: HEALTHCHECK not used - Cloud Run uses HTTP probes to /health endpoint
 # See: https://cloud.google.com/run/docs/configuring/healthchecks
+
+# Labels for container registry
+LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"
+LABEL org.opencontainers.image.description="Diary Service - nginx + Dart API server"
 
 ENTRYPOINT ["/app/server"]
