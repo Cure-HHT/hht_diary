@@ -1,0 +1,95 @@
+---
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00044: GCP Authentication via Workload Identity Federation
+#   REQ-o00043: Automated Deployment Pipeline
+#
+# This workflow tests GCP authentication using Workload Identity Federation
+# Triggered manually for testing purposes
+
+name: 'Reset DB in GCP'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environ:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+          - prod
+        default: 'dev'
+      debug:
+        description: 'Enable debug mode'
+        required: true
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+
+env:
+  GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
+  SCHEMA_BUCKET: 'gs://cure-hht-admin_cloudbuild'
+  SCHEMA_FILE: 'init-consolidated.sql'
+  SPONSOR_DATA_FILE: 'seed_data_dev.sql'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'  # Required to request the OIDC token
+
+    steps:
+      - uses: 'actions/checkout@v4'
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.GCP_SA_EMAIL }}'
+
+      - name: 'Pull current branch'
+        run: |
+          git fetch origin ${{ github.ref_name }}
+          git checkout ${{ github.ref_name }}
+          git pull origin ${{ github.ref_name }}
+
+      - name: 'List files'
+        if: inputs.debug == 'true'
+        run: find . -type f
+
+      - name: 'Consolidate schema'
+        run: |
+          if [ "${{ inputs.debug }}" == "true" ]; then
+            bash -x ./database/tool/consolidate-schema.sh
+          else
+            ./database/tool/consolidate-schema.sh
+          fi
+
+      - name: 'Copy schema to GCP'
+        run: |
+          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
+            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+
+      - name: 'Pull Sponsor repo for seed data'
+        uses: 'actions/checkout@v4'
+        with:
+          repository: Cure-HHT/hht_diary_callisto
+          path: sponsor-data
+          token: ${{ secrets.SPONSOR_REPO_PAT }}
+
+      - name: 'Copy seed data to GCP'
+        run: |
+          gcloud storage cp sponsor-data/database/${{ env.SPONSOR_DATA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SPONSOR_DATA_FILE }} \
+            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+
+      - name: 'Drop, deploy and seed DB'
+        run: |
+          gcloud run jobs execute deploy-db \
+            --project=${{ vars.GCP_DB_PROJECT_ID }} \
+            --region=${{ vars.GCP_REGION }}

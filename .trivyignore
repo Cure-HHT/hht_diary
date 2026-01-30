@@ -1,0 +1,6 @@
+# Trivy ignore rules
+# See: https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/#trivyignore
+
+# DS026: HEALTHCHECK not required for batch job containers (Cloud Run Jobs)
+# The db-schema-job runs to completion and exits; there is no process to health-check.
+DS026
