@@ -4,6 +4,12 @@
 #   REQ-d00030: CI/CD Integration
 #   REQ-d00033: FDA Validation Documentation
 #   REQ-d00035: Security and Compliance
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00009: Portal Deployment Per Sponsor
+#   REQ-o00052: CI/CD Pipeline for Requirement Traceability
+#   REQ-o00054: Audit Trail Generation for CI/CD
+#   REQ-o00049: Artifact Retention and Archival
+#   REQ-p01018: Security Audit and Compliance
 #
 # Portal Server Docker Image Build & Publish
 # Builds, signs, and publishes Docker images to GitHub Container Registry
@@ -36,8 +42,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/portal-server
-  DART_VERSION: 3.10.7
-  FLUTTER_VERSION: 3.38.7
+  DART_BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
+  FLUTTER_IMAGE: 'ghcr.io/cure-hht/flutter-base:3.38.7'
+  DEBIAN_IMAGE: 'debian:12-slim'
 
 permissions:
   contents: read
@@ -93,10 +100,12 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
 
           # Determine source of version based on trigger type
+          IS_DISPATCH=false
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual dispatch: use input version
             RAW_TAG="${{ github.event.inputs.version }}"
             IS_MAIN_PUSH=false
+            IS_DISPATCH=true
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # Tag push: use the tag
             RAW_TAG="${GITHUB_REF#refs/tags/}"
@@ -118,7 +127,6 @@ jobs:
             IS_RELEASE=false
             TAG_FULL="${SHORT_SHA}"
 
-            # For main branch: tag with SHA and 'main-latest'
             TAGS="${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
 
             echo "::notice::Main branch build: version='$VERSION', tags='$TAGS'"
@@ -157,6 +165,13 @@ jobs:
             TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
             if [ "$IS_RELEASE" = "true" ]; then
               TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+            fi
+
+            # For workflow_dispatch, also tag with the sanitized branch name
+            if [ "$IS_DISPATCH" = "true" ]; then
+              BRANCH_TAG="$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')"
+              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${BRANCH_TAG}-latest"
+              echo "::notice::Workflow dispatch from branch '${GITHUB_REF_NAME}', added tag '${BRANCH_TAG}-latest'"
             fi
           fi
 
@@ -213,8 +228,9 @@ jobs:
           # NOTE: Temporarily building only amd64 for faster builds (remove arm64/v8 for now)
           platforms: linux/amd64
           build-args: |
-            DART_VERSION=${{ env.DART_VERSION }}
-            FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}
+            DART_BASE_IMAGE=${{ env.DART_BASE_IMAGE }}
+            FLUTTER_IMAGE=${{ env.FLUTTER_IMAGE }}
+            DEBIAN_IMAGE=${{ env.DEBIAN_IMAGE }}
           push: true
           tags: ${{ steps.parse.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -292,11 +308,13 @@ jobs:
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}
 
-  trigger-gcp-auth-test:
-    name: Trigger GCP Deployment (async)
+  deploy-run-service:
+    name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-portal-server]
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
+    permissions:
+      actions: write  # For triggering workflows
     steps:
       - name: Trigger test-gcp-auth workflow
         env:
@@ -305,14 +323,16 @@ jobs:
           gh workflow run test-gcp-auth.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
+            -f service-name="portal-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered test-gcp-auth.yml asynchronously"
+          # TODO ${{ needs.build-portal-server.outputs.service-name }}
 
   summary:
     name: Build Summary
     runs-on: ubuntu-22.04
-    needs: [verify-images, sign-and-sbom, build-portal-server, trigger-gcp-auth-test]
+    needs: [verify-images, sign-and-sbom, build-portal-server, deploy-run-service]
     if: always()
 
     steps:

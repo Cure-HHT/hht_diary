@@ -4,6 +4,11 @@
 #   REQ-d00030: CI/CD Integration
 #   REQ-d00033: FDA Validation Documentation
 #   REQ-d00035: Security and Compliance
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00052: CI/CD Pipeline for Requirement Traceability
+#   REQ-o00054: Audit Trail Generation for CI/CD
+#   REQ-o00049: Artifact Retention and Archival
+#   REQ-p01018: Security Audit and Compliance
 #
 # Diary Server Docker Image Build & Publish
 # Builds, signs, and publishes Docker images to GitHub Container Registry
@@ -17,9 +22,11 @@
 # - Adds workflow_dispatch with an input string named `version`
 # - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
 
-name: Build, push and sign diary-server image
+name: Build diary-server
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -28,27 +35,34 @@ on:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
-
+      tobe_deployed:
+        description: 'Deploy to GCP after build'
+        required: false
+        type: boolean
+        default: true
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/diary-server
-  DART_VERSION: 3.10.7
-  BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
-  DEBIAN_IMAGE: 'gcr.io/distroless/cc-debian12:nonroot'
+  DART_BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
+  DEBIAN_IMAGE: 'debian:12-slim'
+# Using :nonroot tag for security (DS001, DS002)
+# TODO DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 
 permissions:
   contents: read
   packages: write
   id-token: write  # For Cosign signing
+  actions: write   # For triggering workflows
 
 jobs:
   build-diary-server:
     name: Build diary-server Image
-    runs-on: ubuntu-22.04 
+    runs-on: ubuntu-22.04
 
     outputs:
       image_tag: ${{ steps.parse.outputs.tags }}
       image_digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.parse.outputs.version }}
 
     steps:
       - name: Free up disk space
@@ -87,48 +101,82 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Source tag:
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            RAW_TAG="${{ github.event.inputs.version }}"
-          else
-            RAW_TAG="${GITHUB_REF#refs/tags/}"
-          fi
-
-          # Normalize (strip optional leading v)
-          VERSION="${RAW_TAG#v}"
-
-          # semver regex that accepts prerelease and build metadata per semver.org
-          SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
-
-          if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
-            echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
-            exit 1
-          fi
-
-          CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
-          MAJOR="${CORE%%.*}"
-          MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
-
-          # is there prerelease or build metadata?
-          if echo "$VERSION" | grep -Eq '[-+]'; then
-            IS_RELEASE=false
-          else
-            IS_RELEASE=true
-          fi
-
-          # sanitize for docker tags: convert '+' to '-' and lowercase
-          DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
-
           SHORT_SHA="${GITHUB_SHA::7}"
-          TAG_FULL="v${VERSION}"   # canonical tag with leading v
 
-          echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+          # Determine source of version based on trigger type
+          IS_DISPATCH=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual dispatch: use input version
+            RAW_TAG="${{ github.event.inputs.version }}"
+            IS_MAIN_PUSH=false
+            IS_DISPATCH=true
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Tag push: use the tag
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+            IS_MAIN_PUSH=false
+          else
+            # Branch push (e.g., merge to main): use short SHA as version
+            RAW_TAG="${SHORT_SHA}"
+            IS_MAIN_PUSH=true
+            echo "::notice::Main branch push detected, using commit SHA as version: ${SHORT_SHA}"
+          fi
 
-          # Build the newline-separated tags list for build-push-action
-          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
-          if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          # For main branch pushes, skip semver validation and use SHA-based tagging
+          if [ "$IS_MAIN_PUSH" = "true" ]; then
+            VERSION="${SHORT_SHA}"
+            DOCKER_VER="${SHORT_SHA}"
+            CORE="${SHORT_SHA}"
+            MAJOR=""
+            MAJOR_MINOR=""
+            IS_RELEASE=false
+            TAG_FULL="${SHORT_SHA}"
+
+            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
+
+            echo "::notice::Main branch build: version='$VERSION', tags='$TAGS'"
+          else
+            # Normalize (strip optional leading v)
+            VERSION="${RAW_TAG#v}"
+
+            # semver regex that accepts prerelease and build metadata per semver.org
+            SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+
+            if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
+              echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
+              exit 1
+            fi
+
+            CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+            MAJOR="${CORE%%.*}"
+            MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+
+            # is there prerelease or build metadata?
+            if echo "$VERSION" | grep -Eq '[-+]'; then
+              IS_RELEASE=false
+            else
+              IS_RELEASE=true
+            fi
+
+            # sanitize for docker tags: convert '+' to '-' and lowercase
+            DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
+
+            TAG_FULL="v${VERSION}"   # canonical tag with leading v
+
+            echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+
+            # Build the newline-separated tags list for build-push-action
+            # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
+            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+            if [ "$IS_RELEASE" = "true" ]; then
+              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+            fi
+
+            # For workflow_dispatch, also tag with the sanitized branch name
+            if [ "$IS_DISPATCH" = "true" ]; then
+              BRANCH_TAG="$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')"
+              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${BRANCH_TAG}-latest"
+              echo "::notice::Workflow dispatch from branch '${GITHUB_REF_NAME}', added tag '${BRANCH_TAG}-latest'"
+            fi
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -140,6 +188,7 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
+          echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
           # tags is multiline output
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
@@ -154,6 +203,7 @@ jobs:
           echo "is_release=${IS_RELEASE}"
           echo "short_sha=${SHORT_SHA}"
           echo "tag_full=${TAG_FULL}"
+          echo "is_main_push=${IS_MAIN_PUSH}"
           # tags is multiline output
           echo "tags<<EOF"
           printf "%s\n" "$TAGS"
@@ -181,7 +231,7 @@ jobs:
           # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
           platforms: linux/amd64, linux/arm64/v8
           build-args: |
-            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            DART_BASE_IMAGE=${{ env.DART_BASE_IMAGE }}
             DEBIAN_IMAGE=${{ env.DEBIAN_IMAGE }}
           push: true
           tags: ${{ steps.parse.outputs.tags }}
@@ -193,7 +243,7 @@ jobs:
 
   sign-and-sbom:
     name: Sign Images & Attach SBOMs
-    runs-on: ubuntu-22.04 
+    runs-on: ubuntu-22.04
     needs: [build-diary-server]
 
     steps:
@@ -238,7 +288,7 @@ jobs:
 
   verify-images:
     name: Verify Image Signatures
-    runs-on: ubuntu-22.04 
+    runs-on: ubuntu-22.04
     needs: [sign-and-sbom, build-diary-server]
 
     steps:
@@ -260,10 +310,31 @@ jobs:
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}
 
+  deploy-run-service:
+    name: Trigger Service Deployment (async)
+    runs-on: ubuntu-latest
+    needs: [verify-images, build-diary-server]
+    permissions:
+      actions: write  # For triggering workflows
+    if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
+    steps:
+      - name: Trigger test-gcp-auth workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run test-gcp-auth.yml \
+            --repo ${{ github.repository }} \
+            --ref ${{ github.ref }} \
+            -f service-name="diary-service" \
+            -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
+            -f version="${{ needs.build-diary-server.outputs.version }}"
+          echo "Triggered test-gcp-auth.yml asynchronously"
+          # TODO ${{ needs.build-diary-server.outputs.service-name }}
+
   summary:
     name: Build Summary
-    runs-on: ubuntu-22.04 
-    needs: [verify-images, sign-and-sbom, build-diary-server]
+    runs-on: ubuntu-22.04
+    needs: [verify-images, sign-and-sbom, build-diary-server, deploy-run-service]
     if: always()
 
     steps:

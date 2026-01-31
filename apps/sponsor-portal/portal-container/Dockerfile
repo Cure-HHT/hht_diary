@@ -7,18 +7,15 @@
 # Hosts portal_server (Dart API) + portal-ui (Flutter web) via nginx
 #
 # Build args:
-#   DART_VERSION - from .github/versions.env
-#   FLUTTER_VERSION - from .github/versions.env
-#   GCP_PROJECT_ID - GCP project for base image
+#   FLUTTER_IMAGE - from .github/workflows/build-portal-server.yml
 
-ARG DART_VERSION=3.10.7
-ARG FLUTTER_VERSION=3.38.7
-ARG GCP_PROJECT_ID
-
+ARG FLUTTER_IMAGE=ghcr.io/cure-hht/flutter-base:3.38.7
+ARG DART_BASE_IMAGE=ghcr.io/cure-hht/dart-base:3.10.7
+ARG DEBIAN_IMAGE=debian:12-slim
 # =============================================================================
 # Stage 1: Build Flutter Web UI
 # =============================================================================
-FROM ghcr.io/cure-hht/flutter-base:${FLUTTER_VERSION} AS flutter-build
+FROM ${FLUTTER_IMAGE} AS flutter-build
 
 # Copy portal-ui source (use --chown because flutter-base runs as appuser)
 COPY --chown=appuser:appuser apps/sponsor-portal/portal-ui /app/apps/sponsor-portal/portal-ui
@@ -30,17 +27,18 @@ WORKDIR /app/apps/sponsor-portal/portal-ui
 # at runtime via /api/v1/portal/config/identity (Doppler provides the values)
 # This allows the same Docker image to work across all environments
 # APP_VERSION is extracted from pubspec.yaml so it's always in sync
-RUN flutter pub get
-RUN APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//') && \
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN flutter pub get && \
+    APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//') && \
     flutter build web --release \
       --dart-define=APP_FLAVOR=prod \
-      --dart-define=APP_VERSION=$APP_VERSION \
+      --dart-define=APP_VERSION="$APP_VERSION" \
       --pwa-strategy=none
 
 # =============================================================================
 # Stage 2: Build Dart Server
 # =============================================================================
-FROM ghcr.io/cure-hht/dart-base:${DART_VERSION} AS dart-build
+FROM ${DART_BASE_IMAGE} AS dart-build
 
 # Copy shared dependencies first (for layer caching)
 # Use --chown because dart-base runs as appuser
@@ -57,17 +55,17 @@ COPY --chown=appuser:appuser apps/sponsor-portal/portal_server /app/apps/sponsor
 
 # Get dependencies and compile
 WORKDIR /app/apps/sponsor-portal/portal_server
-RUN dart pub get
-RUN dart compile exe bin/server.dart -o bin/server
+RUN dart pub get && \
+    dart compile exe bin/server.dart -o bin/server
 
 # =============================================================================
 # Stage 3a: Download Doppler CLI
 # =============================================================================
-FROM debian:bookworm-slim AS doppler-download
+FROM ${DEBIAN_IMAGE} AS doppler-download
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    ca-certificates \
+    wget=1.21.3-1+deb12u1 \
+    ca-certificates=20230311+deb12u1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install Doppler CLI
@@ -81,14 +79,14 @@ RUN wget -q https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION
 # =============================================================================
 # Stage 3b: Runtime - nginx + Dart server + Doppler
 # =============================================================================
-FROM debian:bookworm-slim
+FROM ${DEBIAN_IMAGE} AS runtime
 
 # Install nginx and required runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    nginx=1.22.1-9+deb12u3 \
+    curl=7.88.1-10+deb12u14 \
+    ca-certificates=20230311+deb12u1 \
+     && rm -rf /var/lib/apt/lists/*
 
 # Copy Doppler CLI from download stage
 COPY --from=doppler-download /doppler /usr/local/bin/doppler
