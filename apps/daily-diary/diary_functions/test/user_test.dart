@@ -100,55 +100,69 @@ void main() {
       expect(response.statusCode, equals(405));
     });
 
-    test('returns 401 for missing Authorization', () async {
+    // Note: linkHandler no longer requires Authorization - the linking code IS the auth
+    // JWT is returned upon successful linking (REQ-p70007)
+
+    test('returns 400 for missing code', () async {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/user/link'),
-        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        body: jsonEncode({}),
         headers: {'Content-Type': 'application/json'},
       );
 
       final response = await linkHandler(request);
-      expect(response.statusCode, equals(401));
+      expect(response.statusCode, equals(400));
 
       final json = await getResponseJson(response);
-      expect(json['error'], contains('authorization'));
+      expect(json['error'], contains('code'));
     });
 
-    test('returns 401 for malformed JWT', () async {
+    test('returns 400 for invalid code format (too short)', () async {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/user/link'),
-        body: jsonEncode({'code': 'CAXXXXXXXX'}),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer abc.def.ghi',
-        },
+        body: jsonEncode({'code': 'SHORT'}),
+        headers: {'Content-Type': 'application/json'},
       );
 
       final response = await linkHandler(request);
-      expect(response.statusCode, equals(401));
+      expect(response.statusCode, equals(400));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('10 characters'));
     });
 
-    test('returns 401 for expired JWT', () async {
-      final token = createJwtToken(
-        authCode: generateAuthCode(),
-        userId: generateUserId(),
-        expiresIn: const Duration(seconds: -10), // Already expired
-      );
-
+    test('returns 400 for invalid code format (too long)', () async {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/user/link'),
-        body: jsonEncode({'code': 'CAXXXXXXXX'}),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        body: jsonEncode({'code': 'CATOOLONG12345'}),
+        headers: {'Content-Type': 'application/json'},
       );
 
       final response = await linkHandler(request);
-      expect(response.statusCode, equals(401));
+      expect(response.statusCode, equals(400));
+
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('10 characters'));
+    });
+
+    test('normalizes code format (removes dash, uppercases)', () async {
+      // This test verifies normalization works - the actual DB lookup
+      // will fail in unit tests without a real database, but we verify
+      // the code doesn't fail before the DB lookup due to format issues
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'caxxx-xxxxx'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final response = await linkHandler(request);
+      // Will be 500 because DB not available, but at least validates format
+      // The code should normalize to CAXXXXXXXXX (10 chars) before DB call
+      expect(response.statusCode, isNot(equals(400)));
     });
   });
 

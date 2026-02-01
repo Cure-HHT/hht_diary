@@ -116,19 +116,6 @@ class _ClinicalTrialEnrollmentScreenState
     setState(() {});
   }
 
-  void _onCode2KeyDown(KeyEvent event) {
-    // Handle backspace to move to previous field when empty
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.backspace &&
-        _code2Controller.text.isEmpty) {
-      _code1FocusNode.requestFocus();
-      // Move cursor to end of first field
-      _code1Controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _code1Controller.text.length),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -259,50 +246,46 @@ class _ClinicalTrialEnrollmentScreenState
 
                             // Second 5 characters
                             Expanded(
-                              child: KeyboardListener(
-                                focusNode: FocusNode(),
-                                onKeyEvent: _onCode2KeyDown,
-                                child: TextField(
-                                  controller: _code2Controller,
-                                  focusNode: _code2FocusNode,
-                                  enabled: !_isLoading,
-                                  textAlign: TextAlign.center,
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  maxLength: 5,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        letterSpacing: 4,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'monospace',
-                                      ),
-                                  decoration: InputDecoration(
-                                    hintText: 'XXXXX',
-                                    hintStyle: TextStyle(
+                              child: TextField(
+                                controller: _code2Controller,
+                                focusNode: _code2FocusNode,
+                                enabled: !_isLoading,
+                                textAlign: TextAlign.center,
+                                textCapitalization:
+                                    TextCapitalization.characters,
+                                maxLength: 5,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
                                       letterSpacing: 4,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.3),
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace',
                                     ),
-                                    counterText: '',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
+                                decoration: InputDecoration(
+                                  hintText: 'XXXXX',
+                                  hintStyle: TextStyle(
+                                    letterSpacing: 4,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.3),
                                   ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp('[a-zA-Z0-9]'),
-                                    ),
-                                    UpperCaseTextFormatter(),
-                                  ],
-                                  onChanged: _onCode2Changed,
-                                  onSubmitted: (_) => _enroll(),
+                                  counterText: '',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
                                 ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp('[a-zA-Z0-9]'),
+                                  ),
+                                  UpperCaseTextFormatter(),
+                                ],
+                                onChanged: _onCode2Changed,
+                                onSubmitted: (_) => _enroll(),
                               ),
                             ),
                           ],
