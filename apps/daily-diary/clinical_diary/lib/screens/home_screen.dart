@@ -66,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  // ignore: unused_field
   bool _isLoggedIn = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
