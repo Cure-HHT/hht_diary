@@ -89,4 +89,6 @@ USER appuser:appuser
 LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"
 LABEL org.opencontainers.image.description="Diary Service - nginx + Dart API server"
 
-ENTRYPOINT ["/app/server"]
+# Use Doppler to inject secrets (DB_HOST, DB_PASSWORD, etc.) at runtime
+# Requires DOPPLER_TOKEN environment variable to be set in Cloud Run
+ENTRYPOINT ["doppler", "run", "--", "/app/server"]
