@@ -13,12 +13,24 @@
 // Sync writes to record_audit (event store), not separate tables
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
+
+/// Simple structured logger for Cloud Run
+void _log(String level, String message, [Map<String, dynamic>? data]) {
+  final logEntry = {
+    'severity': level,
+    'message': message,
+    'time': DateTime.now().toUtc().toIso8601String(),
+    if (data != null) ...data,
+  };
+  stderr.writeln(jsonEncode(logEntry));
+}
 
 /// Hash a linking code using SHA-256 for secure validation lookup
 /// Must match the hash algorithm used in sponsor portal (REQ-d00078)
@@ -64,6 +76,13 @@ Future<Response> linkHandler(Request request) async {
 
     // Hash the code for lookup (REQ-d00078)
     final codeHash = _hashLinkingCode(code);
+    final codePrefix = code.substring(0, 2);
+
+    _log('INFO', 'Link attempt', {
+      'codePrefix': codePrefix,
+      'codeLength': code.length,
+      'hasAppUuid': appUuid != null,
+    });
 
     // Look up the linking code in patient_linking_codes
     // Must be: not expired, not used, not revoked
@@ -95,6 +114,18 @@ Future<Response> linkHandler(Request request) async {
       );
 
       if (checkResult.isEmpty) {
+        // Also check total codes in table for debugging
+        final countResult = await db.execute(
+          'SELECT COUNT(*) FROM patient_linking_codes',
+        );
+        final totalCodes = countResult.first[0] as int;
+
+        _log('WARNING', 'Linking code not found', {
+          'codePrefix': codePrefix,
+          'hashPrefix': codeHash.substring(0, 8),
+          'totalCodesInTable': totalCodes,
+        });
+
         return _jsonResponse({
           'error': 'Invalid linking code. Please check the code and try again.',
         }, 400);
@@ -106,6 +137,9 @@ Future<Response> linkHandler(Request request) async {
       final revokedAt = row[2];
 
       if (usedAt != null) {
+        _log('WARNING', 'Linking code already used', {
+          'codePrefix': codePrefix,
+        });
         return _jsonResponse({
           'error':
               'This linking code has already been used. Please request a new code from your research coordinator.',
@@ -113,6 +147,7 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (revokedAt != null) {
+        _log('WARNING', 'Linking code revoked', {'codePrefix': codePrefix});
         return _jsonResponse({
           'error':
               'This linking code has been revoked. Please request a new code from your research coordinator.',
@@ -120,12 +155,19 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (expiresAt.isBefore(DateTime.now())) {
+        _log('WARNING', 'Linking code expired', {
+          'codePrefix': codePrefix,
+          'expiredAt': expiresAt.toIso8601String(),
+        });
         return _jsonResponse({
           'error':
               'This linking code has expired. Please request a new code from your research coordinator.',
         }, 410);
       }
 
+      _log('WARNING', 'Linking code invalid (unknown reason)', {
+        'codePrefix': codePrefix,
+      });
       return _jsonResponse({'error': 'Invalid linking code.'}, 400);
     }
 
@@ -219,6 +261,12 @@ Future<Response> linkHandler(Request request) async {
       parameters: {'userId': userId},
     );
 
+    _log('INFO', 'Patient linked successfully', {
+      'codePrefix': codePrefix,
+      'siteId': siteId,
+      'patientLinked': true,
+    });
+
     return _jsonResponse({
       'success': true,
       'jwt': jwtToken,
@@ -229,7 +277,11 @@ Future<Response> linkHandler(Request request) async {
       'siteNumber': siteNumber,
       'studyPatientId': edcSubjectKey,
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    _log('ERROR', 'Link handler error', {
+      'error': e.toString(),
+      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
+    });
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }
