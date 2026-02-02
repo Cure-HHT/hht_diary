@@ -36,7 +36,7 @@ Auditors provide monitoring and oversight across multiple sites. They:
 
 - View Investigator activities at assigned sites
 - Review audit logs for compliance verification
-- Monitor patient enrollment and linking metrics
+- Monitor patient study joining and linking metrics
 - Prepare for monitoring visits
 
 ### Admin
@@ -95,7 +95,7 @@ Investigators and Auditors can:
 
 - Track Mobile Linking Status
 - Receive inactivity alerts
-- View patient enrollment metrics
+- View patient study joining metrics
 
 ### Audit Trail
 
@@ -127,32 +127,32 @@ All user actions are logged for regulatory compliance:
 
 ## User Journeys
 
-# JNY-Portal-Enrollment-01: New Patient Enrollment
+# JNY-Portal-Joining-01: New Patient Joins the Study
 
 **Actor**: Dr. Sarah Mitchell (Investigator)
-**Goal**: Enroll a new patient into the clinical trial and provide them with mobile app access
-**Context**: A patient has consented to participate in the trial. Dr. Mitchell needs to create their portal record and provide credentials for the mobile app.
+**Goal**: Link a new patient to the study and provide them with mobile app access
+**Context**: A patient has consented to participate in the trial. Dr. Mitchell needs to create their portal record and provide a Mobile Linking Code for the mobile app.
 
 ## Steps
 
-1. Dr. Mitchell opens the Sponsor Portal and navigates to patient enrollment
-2. Dr. Mitchell clicks "Enroll New Patient" and selects the patient's site
-3. The system generates a unique linking code and displays it once on screen
-4. Dr. Mitchell provides the linking code to the patient verbally or on paper
-5. The patient downloads the mobile app and enters the linking code
+1. Dr. Mitchell opens the Sponsor Portal and navigates to patient linking
+2. Dr. Mitchell clicks "Link New Patient" and selects the patient's site
+3. The system generates a unique Mobile Linking Code and displays it once on screen
+4. Dr. Mitchell provides the Mobile Linking Code to the patient verbally or on paper
+5. The patient downloads the mobile app and enters the Mobile Linking Code
 6. The system validates the code and links the patient to the portal
-7. The patient begins using the app for diary entries and questionnaires
+7. The patient has joined the study and begins using the app for diary entries and questionnaires
 8. The mobile app syncs data to the portal automatically
 
 ## Expected Outcome
 
-The patient is successfully enrolled and can use the mobile app to participate in the trial. Their data syncs to the portal where Dr. Mitchell can monitor their progress.
+The patient has successfully joined the study and can use the mobile app to participate in the trial. Their data syncs to the portal where Dr. Mitchell can monitor their progress.
 
-*End* *New Patient Enrollment*
+*End* *New Patient Joins the Study*
 
 ---
 
-# JNY-Portal-Enrollment-02: Lost Mobile Phone Recovery
+# JNY-Portal-Joining-02: Lost Mobile Phone Recovery
 
 **Actor**: Dr. Sarah Mitchell (Investigator)
 **Goal**: Secure a patient's trial data after they report a lost phone and restore their access on a new device
@@ -188,11 +188,11 @@ The patient's trial data is secured from unauthorized access on the lost device.
 
 ## Rationale
 
-Secure linking codes provide a mechanism for clinical staff to safely enroll patients into trials without requiring complex authentication setup. The 72-hour expiration window balances security (limited validity, single-use) with patient convenience, providing sufficient time to download the app and link their account. Time-limited, single-use codes minimize security risks while maintaining usability. Audit logging ensures traceability of patient enrollment events for regulatory compliance.
+Secure linking codes provide a mechanism for clinical staff to safely link patients to the study without requiring complex authentication setup. The 72-hour expiration window balances security (limited validity, single-use) with patient convenience, providing sufficient time to download the app and link their account. Time-limited, single-use codes minimize security risks while maintaining usability. Audit logging ensures traceability of patient study joining events for regulatory compliance.
 
 ## Assertions
 
-A. The Sponsor Portal SHALL generate a unique linking code when clinical staff initiates the patient enrollment workflow.
+A. The Sponsor Portal SHALL generate a unique Mobile Linking Code when clinical staff initiates the patient study joining workflow.
 
 B. Linking codes SHALL expire after 72 hours from generation.
 
@@ -208,7 +208,7 @@ G. The system SHALL reject invalid linking codes with a generic "Invalid Code" e
 
 H. The system SHALL validate that the linking code is valid before completing the link.
 
-I. The Mobile App SHALL provide input interface for linking codes during enrollment.
+I. The Mobile App SHALL provide input interface for Mobile Linking Codes during study joining.
 
 J. The system SHALL display the linking code only once at generation time; subsequent views SHALL require generating a new code.
 
@@ -233,7 +233,7 @@ B. The Sponsor Portal SHALL be deployed as a separate instance per sponsor.
 
 C. The platform SHALL enforce role-based access control distinguishing between Admin, Investigator, and Auditor roles.
 
-D. The Sponsor Portal SHALL provide patient enrollment workflows.
+D. The Sponsor Portal SHALL provide patient study joining workflows.
 
 E. The Sponsor Portal SHALL provide patient monitoring workflows.
 
@@ -348,11 +348,13 @@ H. Role mapping changes SHALL be logged in the audit trail.
 
 Patient linking establishes secure connection between patient's mobile device and sponsor portal, enabling questionnaire distribution and diary data collection. Unique codes prevent unauthorized access. Clinical staff controls when linking occurs, ensuring patient is ready to begin trial participation.
 
+**Note on Mobile Linking Statuses**: The core Mobile Linking Status workflow is: **Not Connected** → **Pending** → **Connected**. However, sponsors may define additional statuses (e.g., "Screening", "Active", "On Hold") based on their specific study protocol and requirements. The assertions below describe the core status transitions; sponsor-specific statuses are configured per sponsor deployment.
+
 ## Assertions
 
-A. The system SHALL allow clinical staff to link patients to the mobile app by generating linking codes per REQ-p70007 (Linking Code Lifecycle Management).
+A. The system SHALL allow clinical staff to link patients to the mobile app by generating Mobile Linking Codes per REQ-p70007 (Linking Code Lifecycle Management).
 
-B. The patient SHALL enter the code in the mobile app to complete linking.
+B. The patient SHALL enter the Mobile Linking Code in the mobile app to complete linking.
 
 C. The Mobile Linking Status SHALL change to "Pending" when code is generated.
 
@@ -361,6 +363,8 @@ D. The Mobile Linking Status SHALL change to "Connected" when patient successful
 E. The system SHALL reject invalid or expired codes.
 
 F. The linking action SHALL be logged in the audit trail with timestamp and username.
+
+G. Sponsors MAY configure additional Mobile Linking Statuses beyond the core workflow to match their study protocol requirements.
 
 *End* *Link New Patient Workflow* | **Hash**: 4f1edfe6
 
@@ -372,7 +376,9 @@ F. The linking action SHALL be logged in the audit trail with timestamp and user
 
 ## Rationale
 
-Patients may lose their phone, upgrade devices, or experience technical issues requiring disconnection. Disconnection invalidates the linking code to prevent unauthorized access from lost/stolen devices while preserving all patient data for reconnection. This is a temporary state allowing patients to resume participation after receiving replacement device or resolving technical issues.
+Patients may lose their phone, upgrade devices, or experience technical issues requiring disconnection. Disconnection invalidates the Mobile Linking Code to prevent unauthorized access from lost/stolen devices while preserving all patient data for reconnection. This is a temporary state allowing patients to resume participation after receiving replacement device or resolving technical issues.
+
+**Note on Mobile Linking Statuses**: The core status transitions for disconnection are part of the overall workflow: **Not Connected** → **Pending** → **Connected** → **Disconnected**. Sponsors may define additional or alternative statuses based on their study protocol. The assertions below describe core disconnection behavior; sponsor-specific status names and transitions are configured per sponsor deployment.
 
 ## Assertions
 
@@ -384,17 +390,19 @@ C. The system SHALL display a confirmation dialog with patient ID and require re
 
 D. The patient status SHALL change to "Disconnected" upon confirmation.
 
-E. The linking code SHALL be invalidated immediately upon disconnection.
+E. The Mobile Linking Code SHALL be invalidated immediately upon disconnection.
 
 F. The patient mobile app SHALL stop syncing data after disconnection.
 
-G. The mobile app SHALL display a prominent error message if its linking code is no longer valid.
+G. The mobile app SHALL display a prominent error message if its Mobile Linking Code is no longer valid.
 
-H. Mobile App operation and local storage of data SHALL NOT change due to an expired or revoked linking code.
+H. Mobile App operation and local storage of data SHALL NOT change due to an expired or revoked Mobile Linking Code.
 
 I. The disconnection SHALL be logged in the audit trail with reason, timestamp, and username.
 
 J. The "Reconnect Patient" option SHALL become available after disconnection.
+
+K. Sponsors MAY configure additional disconnection-related statuses or reasons to match their study protocol requirements.
 
 *End* *Patient Disconnection Workflow* | **Hash**: 0e956c62
 ---
@@ -405,21 +413,23 @@ J. The "Reconnect Patient" option SHALL become available after disconnection.
 
 ## Rationale
 
-Patients who were disconnected due to lost phone, device upgrade, or technical issues need ability to reconnect and resume trial participation. New linking code ensures security (old code cannot be reused) while enabling legitimate reconnection. Requiring reason documents why reconnection occurred for audit purposes. Clinical staff controls reconnection timing and provides code directly to patient.
+Patients who were disconnected due to lost phone, device upgrade, or technical issues need ability to reconnect and resume trial participation. A new Mobile Linking Code ensures security (old code cannot be reused) while enabling legitimate reconnection. Requiring reason documents why reconnection occurred for audit purposes. Clinical staff controls reconnection timing and provides code directly to patient.
+
+**Note on Mobile Linking Statuses**: Reconnection restores the patient to "Connected" status as part of the core workflow. Sponsors may define additional intermediate statuses for the reconnection process based on their study protocol. The assertions below describe core reconnection behavior; sponsor-specific status names and transitions are configured per sponsor deployment.
 
 ## Assertions
 
-A. The system SHALL allow clinical staff to reconnect patients with "Disconnected" status by generating a new linking code.
+A. The system SHALL allow clinical staff to reconnect patients with "Disconnected" status by generating a new Mobile Linking Code.
 
 B. The "Reconnect Patient" action SHALL only be available for patients with "Disconnected" status.
 
 C. The confirmation dialog SHALL display the patient ID and require a reason.
 
-D. The system SHALL generate a new linking code upon confirmation.
+D. The system SHALL generate a new Mobile Linking Code upon confirmation.
 
-E. The previous linking code SHALL remain invalidated and cannot be reused.
+E. The previous Mobile Linking Code SHALL remain invalidated and cannot be reused.
 
-F. The patient SHALL enter the new code in the mobile app to restore access.
+F. The patient SHALL enter the new Mobile Linking Code in the mobile app to restore access.
 
 G. The Mobile Linking Status SHALL change to "Connected" after successful code entry.
 
@@ -428,5 +438,7 @@ H. The patient SHALL be able to resume data sync and questionnaire completion.
 I. The reconnection SHALL be logged in the audit trail with reason, timestamp, and username.
 
 J. The reconnected Mobile App SHALL sync data to the portal that was collected during the disconnected period.
+
+K. Sponsors MAY configure additional reconnection-related statuses to match their study protocol requirements.
 
 *End* *Patient Reconnection Workflow* | **Hash**: c192cad5
