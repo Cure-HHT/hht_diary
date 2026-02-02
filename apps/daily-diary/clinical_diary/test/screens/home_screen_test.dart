@@ -183,7 +183,9 @@ void main() {
       // We ignore overflow errors for these tests since the menu functionality
       // still works correctly.
 
-      testWidgets('shows login option when not logged in', (tester) async {
+      testWidgets('does not show login option (linking code is auth)', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
@@ -202,7 +204,8 @@ void main() {
         await tester.tap(find.byIcon(Icons.person_outline));
         await tester.pumpAndSettle();
 
-        expect(find.text('Login'), findsOneWidget);
+        // Login option is hidden - linking code is the authentication mechanism
+        expect(find.text('Login'), findsNothing);
       });
 
       testWidgets('shows accessibility option', (tester) async {

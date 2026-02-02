@@ -83,6 +83,8 @@ void main() {
         final now = DateTime.now();
         final yesterday = DateTime(now.year, now.month, now.day - 1);
         final yesterdayDay = yesterday.day.toString();
+        // Check if yesterday is in a different month (e.g., today is 1st)
+        final yesterdayInDifferentMonth = yesterday.month != now.month;
         // When we click -15 from midnight of yesterday, we end up on the day before yesterday
         final dayBeforeYesterday = DateTime(now.year, now.month, now.day - 2);
         final dayBeforeYesterdayDay = dayBeforeYesterday.day.toString();
@@ -101,6 +103,14 @@ void main() {
         );
         await tester.tap(calendarTab);
         await tester.pumpAndSettle();
+
+        // If yesterday is in a different month, navigate to that month
+        if (yesterdayInDifferentMonth) {
+          debugPrint(
+            'Yesterday ($yesterdayDay) is in previous month, navigating...',
+          );
+          await _navigateToPreviousMonth(tester);
+        }
 
         // ===== STEP 2: Verify day before today is NOT red (no records) =====
         debugPrint('Step 2: Verify yesterday ($yesterdayDay) is not red');
@@ -415,6 +425,8 @@ void main() {
       final now = DateTime.now();
       final yesterday = DateTime(now.year, now.month, now.day - 1);
       final yesterdayDay = yesterday.day.toString();
+      // Check if yesterday is in a different month (e.g., today is 1st)
+      final yesterdayInDifferentMonth = yesterday.month != now.month;
 
       // Launch the actual ClinicalDiaryApp
       await tester.pumpWidget(const ClinicalDiaryApp());
@@ -424,6 +436,14 @@ void main() {
       debugPrint('Step 1: Click Calendar');
       await tester.tap(find.byIcon(Icons.calendar_today));
       await tester.pumpAndSettle();
+
+      // If yesterday is in a different month, navigate to that month
+      if (yesterdayInDifferentMonth) {
+        debugPrint(
+          'Yesterday ($yesterdayDay) is in previous month, navigating...',
+        );
+        await _navigateToPreviousMonth(tester);
+      }
 
       // ===== STEP 2: Click on yesterday =====
       debugPrint('Step 2: Click on yesterday ($yesterdayDay)');
@@ -1769,4 +1789,24 @@ Future<void> _tapInsideMonthDay(WidgetTester tester, String dayText) async {
   );
   await tester.tap(textFinder.first);
   await tester.pumpAndSettle();
+}
+
+/// Helper to navigate to the previous month in the calendar.
+/// TableCalendar shows chevron_left icon for navigating to previous month.
+Future<void> _navigateToPreviousMonth(WidgetTester tester) async {
+  // TableCalendar uses chevron_left for previous month navigation
+  final prevMonthButton = find.byIcon(Icons.chevron_left);
+  if (prevMonthButton.evaluate().isNotEmpty) {
+    debugPrint('Tapping chevron_left to navigate to previous month');
+    await tester.tap(prevMonthButton);
+    await tester.pumpAndSettle();
+  } else {
+    // Fallback: try swiping right to go to previous month
+    debugPrint('No chevron_left found, trying swipe gesture');
+    await tester.drag(
+      find.byType(Table).first,
+      const Offset(300, 0), // Swipe right
+    );
+    await tester.pumpAndSettle();
+  }
 }
