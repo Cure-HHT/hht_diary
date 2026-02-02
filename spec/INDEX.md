@@ -265,6 +265,10 @@ This file provides a complete index of all requirements.
 | REQ-d00106 | Study Start Questionnaire Rendering | dev-diary-app-linking.md | f05aab6f |
 | REQ-d00107 | Questionnaire Response Collection and Storage | dev-diary-app-linking.md | 76b26c02 |
 | REQ-d00108 | Questionnaire Submission Flow | dev-diary-app-linking.md | fb00fce8 |
+| REQ-d00109 | Portal Linking Code Validation Endpoint | dev-portal-api.md | a1b2c3d4 |
+| REQ-d00110 | Linking API Error Response Strategy | dev-portal-api.md | e5f6g7h8 |
+| REQ-d00111 | Linking API Audit Trail | dev-portal-api.md | i9j0k1l2 |
+| REQ-d00112 | Enrollment Token Revocation | dev-portal-api.md | c3d4e5f6 |
 
 ---
 

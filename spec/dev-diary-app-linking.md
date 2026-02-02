@@ -149,45 +149,39 @@ M. The system SHALL regenerate storage encryption key if device security state c
 
 ---
 
-# REQ-d00097: Token Refresh and Expiration Handling
+# REQ-d00097: Token Lifecycle and Network Resilience
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078, REQ-p00006
 
 ## Rationale
 
-JWT access tokens have limited lifetimes to reduce the impact of token compromise. Proactive token refresh before expiration ensures uninterrupted data synchronization. Background refresh prevents user disruption during active sessions. Offline handling ensures the app continues functioning when refresh is not possible, with automatic recovery when connectivity returns.
+Enrollment tokens issued during the linking process are perpetual—they have no expiration date and remain valid until explicitly revoked through portal-side actions (patient disconnection, lost device reported, administrative action). This simplifies client implementation and ensures uninterrupted data collection. The client must handle network unavailability gracefully, queuing synchronization requests and retrying when connectivity is restored. Token revocation is detected through server responses, not client-side expiration checks.
 
 ## Assertions
 
-A. The system SHALL store token expiration timestamp in secure storage.
+A. The system SHALL treat enrollment tokens as perpetual with no client-enforced expiration.
 
-B. The system SHALL proactively refresh tokens when remaining validity is less than 15 minutes.
+B. The system SHALL NOT implement client-side token expiration or automatic refresh cycles.
 
-C. The system SHALL attempt token refresh in the background without interrupting user activity.
+C. The system SHALL determine token validity solely through server response codes (valid request succeeds, revoked token returns HTTP 401/403).
 
-D. The system SHALL retry failed token refresh with exponential backoff (1s, 2s, 4s, 8s, max 60s).
+D. The system SHALL queue synchronization requests when network is unavailable.
 
-E. The system SHALL limit token refresh retry attempts to 5 consecutive failures before requiring re-authentication.
+E. The system SHALL process queued synchronization requests when network connectivity is restored.
 
-F. The system SHALL queue synchronization requests when access token is expired and refresh is pending.
+F. The system SHALL retry failed synchronization requests with exponential backoff (1s, 2s, 4s, 8s, max 60s).
 
-G. The system SHALL process queued synchronization requests after successful token refresh.
+G. The system SHALL limit consecutive retry attempts to 5 before pausing synchronization until next app foreground or network change event.
 
-H. The system SHALL continue offline operation when token refresh fails due to network unavailability.
+H. The system SHALL continue offline diary entry creation regardless of network or token state.
 
-I. The system SHALL automatically attempt token refresh when network connectivity is restored.
+I. The system SHALL NOT interrupt diary entry creation during synchronization operations.
 
-J. The system SHALL invalidate both access token and refresh token on refresh failure due to server rejection (HTTP 401/403).
+J. The system SHALL timestamp the last successful server communication in local storage for diagnostic purposes.
 
-K. The system SHALL transition to "Not Participating" state when refresh token is rejected by server.
+K. The system SHALL distinguish between network errors (retry-able) and token revocation errors (not retry-able) based on HTTP response codes.
 
-L. The system SHALL display re-enrollment prompt when both access and refresh tokens are invalid.
-
-M. The system SHALL NOT interrupt diary entry creation during token refresh operations.
-
-N. The system SHALL timestamp the last successful token refresh in local storage for diagnostic purposes.
-
-*End* *Token Refresh and Expiration Handling* | **Hash**: 5d535979
+*End* *Token Lifecycle and Network Resilience* | **Hash**: a7b8c9d0
 
 ---
 
