@@ -21,8 +21,8 @@ on:
         required: true
         type: choice
         options:
-          - diary-server
-          - portal-server
+          - diary-service
+          - portal-service
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -34,7 +34,7 @@ on:
   workflow_call:
     inputs:
       service-name:
-        description: 'Cloud Run service to deploy (diary-server or portal-server)'
+        description: 'Cloud Run service to deploy (diary-service or portal-service)'
         required: true
         type: string
       image_path:
@@ -63,8 +63,8 @@ jobs:
     steps:
       - name: 'Validate service-name'
         run: |
-          if [[ "${{ inputs.service-name }}" != "diary-server" && "${{ inputs.service-name }}" != "portal-server" ]]; then
-            echo "::error::service-name must be 'diary-server' or 'portal-server', got '${{ inputs.service-name }}'"
+          if [[ "${{ inputs.service-name }}" != "diary-service" && "${{ inputs.service-name }}" != "portal-service" ]]; then
+            echo "::error::service-name must be 'diary-service' or 'portal-service', got '${{ inputs.service-name }}'"
             exit 1
           fi
 
