@@ -316,17 +316,17 @@ jobs:
     permissions:
       actions: write  # For triggering workflows
     steps:
-      - name: Trigger test-gcp-auth workflow
+      - name: Trigger deploy-run-service workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run test-gcp-auth.yml \
+          gh workflow run deploy-run-service.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
             -f service-name="portal-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
-          echo "Triggered test-gcp-auth.yml asynchronously"
+          echo "Triggered deploy-run-service.yml asynchronously"
           # TODO ${{ needs.build-portal-server.outputs.service-name }}
 
   summary:

@@ -318,17 +318,17 @@ jobs:
       actions: write  # For triggering workflows
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     steps:
-      - name: Trigger test-gcp-auth workflow
+      - name: Trigger deploy-run-service workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run test-gcp-auth.yml \
+          gh workflow run deploy-run-service.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
             -f service-name="diary-service" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
             -f version="${{ needs.build-diary-server.outputs.version }}"
-          echo "Triggered test-gcp-auth.yml asynchronously"
+          echo "Triggered deploy-run-service.yml asynchronously"
           # TODO ${{ needs.build-diary-server.outputs.service-name }}
 
   summary:
