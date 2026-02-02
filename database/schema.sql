@@ -432,7 +432,8 @@ CREATE TABLE admin_action_log (
     action_type TEXT NOT NULL CHECK (action_type IN (
         'ASSIGN_USER', 'ASSIGN_INVESTIGATOR', 'ASSIGN_ANALYST',
         'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
-        'EMERGENCY_ACCESS', 'BULK_OPERATION'
+        'EMERGENCY_ACCESS', 'BULK_OPERATION',
+        'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE'
     )),
     target_resource TEXT,
     action_details JSONB NOT NULL,

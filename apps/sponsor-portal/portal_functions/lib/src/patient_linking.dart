@@ -117,7 +117,7 @@ Future<Response> generatePatientLinkingCodeHandler(
   }
 
   // Invalidate any existing unused codes for this patient
-  await db.executeWithContext(
+  final revokeResult = await db.executeWithContext(
     '''
     UPDATE patient_linking_codes
     SET revoked_at = now(),
@@ -127,10 +127,41 @@ Future<Response> generatePatientLinkingCodeHandler(
       AND used_at IS NULL
       AND revoked_at IS NULL
       AND expires_at > now()
+    RETURNING id
     ''',
     parameters: {'patientId': patientId, 'userId': user.id},
     context: serviceContext,
   );
+
+  // Log revocation if any codes were superseded
+  if (revokeResult.isNotEmpty) {
+    await db.executeWithContext(
+      '''
+      INSERT INTO admin_action_log (
+        admin_id, action_type, target_resource, action_details,
+        justification, requires_review, ip_address
+      )
+      VALUES (
+        @adminId, 'REVOKE_LINKING_CODE', @targetResource,
+        @actionDetails::jsonb, @justification, false, @ipAddress::inet
+      )
+      ''',
+      parameters: {
+        'adminId': user.id,
+        'targetResource': 'patient:$patientId',
+        'actionDetails': jsonEncode({
+          'patient_id': patientId,
+          'revoked_code_count': revokeResult.length,
+          'reason': 'Superseded by new code',
+          'revoked_by_email': user.email,
+        }),
+        'justification':
+            'Previous linking code(s) revoked - superseded by new code',
+        'ipAddress': clientIp,
+      },
+      context: serviceContext,
+    );
+  }
 
   // Generate new code
   final code = generatePatientLinkingCode(sponsorLinkingPrefix);
@@ -171,6 +202,36 @@ Future<Response> generatePatientLinkingCodeHandler(
     WHERE patient_id = @patientId
     ''',
     parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Log to admin_action_log for audit trail (CUR-690)
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'GENERATE_LINKING_CODE', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'expires_at': expiresAt.toIso8601String(),
+        'generated_by_email': user.email,
+        'generated_by_name': user.name,
+      }),
+      'justification':
+          'Patient linking code generated for mobile app enrollment',
+      'ipAddress': clientIp,
+    },
     context: serviceContext,
   );
 
