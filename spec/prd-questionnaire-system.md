@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Status**: Draft
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-02-02
 
 > **See**: prd-questionnaire-approval.md for investigator approval workflow (REQ-p01064)
 > **See**: prd-event-sourcing-system.md for versioning model (REQ-p01051, REQ-p01052, REQ-p01053)
@@ -69,8 +69,7 @@ Maria successfully enrolls in the clinical trial. Her Study Start questionnaire 
 | ------ | ----------- |
 | Triggered | Questionnaire requested, awaiting patient action |
 | In Progress | Patient is actively completing the questionnaire |
-| Submitted | Patient has submitted, awaiting investigator review (if scored) |
-| Review | Investigator has unlocked for patient edits |
+| Submitted | Patient has submitted, awaiting investigator review (if scored). Patient may still edit and resubmit. |
 | Finalized | Permanently locked, score calculated (if applicable) |
 
 ---

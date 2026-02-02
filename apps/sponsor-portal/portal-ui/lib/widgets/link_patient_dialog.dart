@@ -460,7 +460,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.qr_code, color: theme.colorScheme.primary),
+          Icon(Icons.key, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
           const Text('Linking Code'),
         ],

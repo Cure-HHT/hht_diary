@@ -523,7 +523,7 @@ class _StudyCoordinatorPatientsTabState
       case 'linking_in_progress':
         return TextButton.icon(
           onPressed: () => _showLinkingCode(patient, apiClient),
-          icon: const Icon(Icons.qr_code, size: 16),
+          icon: const Icon(Icons.key, size: 16),
           label: const Text('Show Code'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
