@@ -66,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  // ignore: unused_field
   bool _isLoggedIn = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
@@ -903,8 +904,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context) {
                       final l10n = AppLocalizations.of(context);
                       return [
-                        // Login/Logout button
-                        if (_isLoggedIn) ...[
+                        // Login option hidden - linking code is the auth mechanism
+                        // Account/Logout only shown if enrolled (linked to patient)
+                        if (_isEnrolled) ...[
                           PopupMenuItem(
                             value: 'account',
                             child: Row(
@@ -915,28 +917,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 'logout',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.logout, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.logout),
-                              ],
-                            ),
-                          ),
-                        ] else
-                          PopupMenuItem(
-                            value: 'login',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.login, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.login),
-                              ],
-                            ),
-                          ),
-                        const PopupMenuDivider(),
+                        ],
                         PopupMenuItem(
                           value: 'accessibility',
                           child: Row(

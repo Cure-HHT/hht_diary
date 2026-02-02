@@ -30,10 +30,10 @@ String _hashLinkingCode(String code) {
 
 /// Link handler - links app user to a patient via linking code
 /// POST /api/v1/user/link
-/// Authorization: Bearer <jwt>
 /// Body: { code, appUuid? }
 ///
-/// Validates linking code from sponsor portal and links app user to patient.
+/// The linking code IS the authentication mechanism (REQ-p70007).
+/// Creates app_user if needed and returns JWT for future API calls.
 /// This is the mobile app side of the patient linking flow (REQ-p70007, REQ-d00078).
 Future<Response> linkHandler(Request request) async {
   if (request.method != 'POST') {
@@ -41,12 +41,6 @@ Future<Response> linkHandler(Request request) async {
   }
 
   try {
-    // Verify JWT
-    final auth = verifyAuthHeader(request.headers['authorization']);
-    if (auth == null) {
-      return _jsonResponse({'error': 'Invalid or missing authorization'}, 401);
-    }
-
     final body = await _parseJson(request);
     if (body == null) {
       return _jsonResponse({'error': 'Invalid JSON body'}, 400);
@@ -67,18 +61,6 @@ Future<Response> linkHandler(Request request) async {
 
     final appUuid = body['appUuid'] as String?;
     final db = Database.instance;
-
-    // Get the authenticated user
-    final userResult = await db.execute(
-      'SELECT user_id FROM app_users WHERE auth_code = @authCode',
-      parameters: {'authCode': auth.authCode},
-    );
-
-    if (userResult.isEmpty) {
-      return _jsonResponse({'error': 'User not found'}, 401);
-    }
-
-    final userId = userResult.first[0] as String;
 
     // Hash the code for lookup (REQ-d00078)
     final codeHash = _hashLinkingCode(code);
@@ -155,6 +137,53 @@ Future<Response> linkHandler(Request request) async {
     final siteName = codeRow[4] as String;
     final siteNumber = codeRow[5] as String;
 
+    // Create or find app_user for this device
+    // The linking code IS the authentication - no prior login needed
+    String userId;
+    String authCode;
+
+    if (appUuid != null) {
+      // Check if user exists by appUuid
+      final existingUser = await db.execute(
+        'SELECT user_id, auth_code FROM app_users WHERE app_uuid = @appUuid',
+        parameters: {'appUuid': appUuid},
+      );
+
+      if (existingUser.isNotEmpty) {
+        userId = existingUser.first[0] as String;
+        authCode = existingUser.first[1] as String;
+      } else {
+        // Create new user
+        userId = generateUserId();
+        authCode = generateAuthCode();
+        await db.execute(
+          '''
+          INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
+          VALUES (@userId, @authCode, @appUuid, now(), now())
+          ''',
+          parameters: {
+            'userId': userId,
+            'authCode': authCode,
+            'appUuid': appUuid,
+          },
+        );
+      }
+    } else {
+      // No appUuid - create anonymous user
+      userId = generateUserId();
+      authCode = generateAuthCode();
+      await db.execute(
+        '''
+        INSERT INTO app_users (user_id, auth_code, created_at, last_active_at)
+        VALUES (@userId, @authCode, now(), now())
+        ''',
+        parameters: {'userId': userId, 'authCode': authCode},
+      );
+    }
+
+    // Generate JWT for the user
+    final jwtToken = createJwtToken(authCode: authCode, userId: userId);
+
     // Mark the code as used (REQ-p70007.J - single-use)
     await db.execute(
       '''
@@ -192,6 +221,8 @@ Future<Response> linkHandler(Request request) async {
 
     return _jsonResponse({
       'success': true,
+      'jwt': jwtToken,
+      'userId': userId,
       'patientId': patientId,
       'siteId': siteId,
       'siteName': siteName,

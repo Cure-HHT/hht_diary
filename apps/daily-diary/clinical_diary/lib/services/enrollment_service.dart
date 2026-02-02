@@ -78,25 +78,15 @@ class EnrollmentService {
       // Build the full link URL for this sponsor's backend
       final linkUrl = '$backendUrl/api/v1/user/link';
 
-      // Get existing JWT token for authentication
-      final jwtToken = await getJwtToken();
-      if (jwtToken == null) {
-        throw EnrollmentException(
-          'Please sign in before linking to a clinical trial.',
-          EnrollmentErrorType.authRequired,
-        );
-      }
-
-      // Get app UUID for tracking
+      // Get app UUID for tracking (device identifier)
       final appUuid = await _secureStorage.read(key: 'app_uuid');
 
       // Call the link function via HTTP (REQ-p70007)
+      // No JWT required - the linking code IS the authentication
+      // Server will create user and return JWT
       final response = await _httpClient.post(
         Uri.parse(linkUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $jwtToken',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'code': normalizedCode,
           if (appUuid != null) 'appUuid': appUuid,
@@ -148,11 +138,14 @@ class EnrollmentService {
 
       final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Get user ID from existing auth or response
-      final userId = await getUserId();
-      if (userId == null) {
+      // Extract JWT and user data from response
+      // The /link endpoint creates the user and returns the JWT
+      final jwtToken = responseBody['jwt'] as String?;
+      final userId = responseBody['userId'] as String?;
+
+      if (jwtToken == null || userId == null) {
         throw EnrollmentException(
-          'Unable to determine user ID.',
+          'Server did not return authentication token.',
           EnrollmentErrorType.serverError,
         );
       }
