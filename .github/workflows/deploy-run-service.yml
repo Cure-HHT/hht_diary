@@ -21,8 +21,8 @@ on:
         required: true
         type: choice
         options:
-          - diary-service
-          - portal-service
+          - diary-server
+          - portal-server
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -34,7 +34,7 @@ on:
   workflow_call:
     inputs:
       service-name:
-        description: 'Cloud Run service to deploy (diary-service or portal-service)'
+        description: 'Cloud Run service to deploy (diary-server or portal-server)'
         required: true
         type: string
       image_path:
@@ -54,7 +54,7 @@ env:
   GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
 
 jobs:
-  deploy-portal-service:
+  deploy-portal-server:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -63,8 +63,8 @@ jobs:
     steps:
       - name: 'Validate service-name'
         run: |
-          if [[ "${{ inputs.service-name }}" != "diary-service" && "${{ inputs.service-name }}" != "portal-service" ]]; then
-            echo "::error::service-name must be 'diary-service' or 'portal-service', got '${{ inputs.service-name }}'"
+          if [[ "${{ inputs.service-name }}" != "diary-server" && "${{ inputs.service-name }}" != "portal-server" ]]; then
+            echo "::error::service-name must be 'diary-server' or 'portal-server', got '${{ inputs.service-name }}'"
             exit 1
           fi
 

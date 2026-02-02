@@ -138,11 +138,22 @@ if [ "$RUN_INTEGRATION" = true ]; then
         fi
     fi
 
-    if dart test integration_test/; then
-        echo "Integration tests passed!"
+    # Use doppler run to inject DB credentials if LOCAL_DB_PASSWORD is not already set
+    if [ -z "$LOCAL_DB_PASSWORD" ] && command -v doppler &> /dev/null; then
+        echo "Using Doppler for database credentials..."
+        if doppler run -- dart test integration_test/; then
+            echo "Integration tests passed!"
+        else
+            echo "Integration tests failed!"
+            INTEGRATION_PASSED=false
+        fi
     else
-        echo "Integration tests failed!"
-        INTEGRATION_PASSED=false
+        if dart test integration_test/; then
+            echo "Integration tests passed!"
+        else
+            echo "Integration tests failed!"
+            INTEGRATION_PASSED=false
+        fi
     fi
 fi
 
