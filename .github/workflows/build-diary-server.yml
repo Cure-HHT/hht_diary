@@ -325,7 +325,7 @@ jobs:
           gh workflow run deploy-run-service.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
-            -f service-name="diary-service" \
+            -f service-name="diary-server" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
             -f version="${{ needs.build-diary-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"

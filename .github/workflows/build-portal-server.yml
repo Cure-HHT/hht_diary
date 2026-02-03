@@ -323,7 +323,7 @@ jobs:
           gh workflow run deploy-run-service.yml \
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
-            -f service-name="portal-service" \
+            -f service-name="portal-server" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
