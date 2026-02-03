@@ -541,30 +541,16 @@ class _StudyCoordinatorPatientsTabState
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton.icon(
-              onPressed: () => _linkPatient(patient, apiClient),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('New Code'),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-            const SizedBox(width: 4),
-            TextButton.icon(
-              onPressed: () => _disconnectPatient(patient, apiClient),
-              icon: Icon(
-                Icons.link_off,
-                size: 16,
-                color: theme.colorScheme.error,
-              ),
-              label: Text(
-                'Disconnect',
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-          ],
+        // REQ-CAL-p00073: Connected patients can only be disconnected.
+        // Code regeneration is NOT available for connected patients.
+        return TextButton.icon(
+          onPressed: () => _disconnectPatient(patient, apiClient),
+          icon: Icon(Icons.link_off, size: 16, color: theme.colorScheme.error),
+          label: Text(
+            'Disconnect',
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'disconnected':
         return TextButton.icon(
