@@ -12,6 +12,7 @@
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -55,6 +56,18 @@ Router createRouter() {
   router.post(
     '/api/v1/portal/patients/<patientId>/disconnect',
     disconnectPatientHandler,
+  );
+
+  // Mark patient as not participating endpoint (Investigator role)
+  router.post(
+    '/api/v1/portal/patients/<patientId>/not-participating',
+    markPatientNotParticipatingHandler,
+  );
+
+  // Reactivate patient endpoint (Investigator role)
+  router.post(
+    '/api/v1/portal/patients/<patientId>/reactivate',
+    reactivatePatientHandler,
   );
 
   // Email change verification

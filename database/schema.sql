@@ -169,7 +169,8 @@ CREATE TYPE mobile_linking_status AS ENUM (
     'not_connected',
     'linking_in_progress',
     'connected',
-    'disconnected'
+    'disconnected',
+    'not_participating'
 );
 
 CREATE TABLE patients (
@@ -433,7 +434,8 @@ CREATE TABLE admin_action_log (
         'ASSIGN_USER', 'ASSIGN_INVESTIGATOR', 'ASSIGN_ANALYST',
         'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
         'EMERGENCY_ACCESS', 'BULK_OPERATION',
-        'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PATIENT', 'RECONNECT_PATIENT'
+        'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
+        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT'
     )),
     target_resource TEXT,
     action_details JSONB NOT NULL,

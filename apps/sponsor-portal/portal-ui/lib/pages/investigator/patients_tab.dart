@@ -8,6 +8,7 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -19,7 +20,8 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
-import '../../widgets/reconnect_patient_dialog.dart';
+import '../../widgets/patient_actions_dialog.dart';
+import '../../widgets/reactivate_patient_dialog.dart';
 
 /// Status filter for the patients tab
 enum PatientStatusFilter {
@@ -75,6 +77,7 @@ class _PatientData {
       case 'linking_in_progress':
         return PatientStatusFilter.active;
       case 'disconnected':
+      case 'not_participating':
         return PatientStatusFilter.inactive;
       default:
         return PatientStatusFilter.notConnected;
@@ -489,6 +492,11 @@ class _StudyCoordinatorPatientsTabState
         theme.colorScheme.error,
         Icons.link_off,
       ),
+      'not_participating' => (
+        'Not Participating',
+        theme.colorScheme.outline,
+        Icons.person_off,
+      ),
       _ => (
         'Not Connected',
         theme.colorScheme.outline,
@@ -560,9 +568,16 @@ class _StudyCoordinatorPatientsTabState
         );
       case 'disconnected':
         return TextButton.icon(
-          onPressed: () => _reconnectPatient(patient, apiClient),
-          icon: const Icon(Icons.link, size: 16),
-          label: const Text('Reconnect'),
+          onPressed: () => _openPatientActions(patient, apiClient),
+          icon: const Icon(Icons.more_horiz, size: 16),
+          label: const Text('Actions'),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        );
+      case 'not_participating':
+        return TextButton.icon(
+          onPressed: () => _reactivatePatient(patient, apiClient),
+          icon: const Icon(Icons.refresh, size: 16),
+          label: const Text('Reactivate'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       default:
@@ -616,19 +631,38 @@ class _StudyCoordinatorPatientsTabState
     }
   }
 
-  /// Opens the ReconnectPatientDialog to reconnect a disconnected patient
-  Future<void> _reconnectPatient(
+  /// Opens the PatientActionsDialog for disconnected patients
+  Future<void> _openPatientActions(
     _PatientData patient,
     ApiClient apiClient,
   ) async {
-    final success = await ReconnectPatientDialog.show(
+    final result = await PatientActionsDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      mobileLinkingStatus: patient.mobileLinkingStatus,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if an action was taken
+    if (result == PatientActionResult.actionTaken && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the ReactivatePatientDialog to reactivate a not_participating patient
+  Future<void> _reactivatePatient(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    final success = await ReactivatePatientDialog.show(
       context: context,
       patientId: patient.patientId,
       patientDisplayId: patient.edcSubjectKey,
       apiClient: apiClient,
     );
 
-    // Refresh the patient list if reconnection was successful
+    // Refresh the patient list if reactivation was successful
     if (success && mounted) {
       await _loadPatients();
     }
