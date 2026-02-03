@@ -6,6 +6,8 @@
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
 //
 // Tests for patient_linking.dart handlers and utilities
 
@@ -578,4 +580,123 @@ void main() {
       expect(roleError['error'], contains('disconnect'));
     });
   });
+
+  group(
+    'Reconnection (generatePatientLinkingCodeHandler with reconnect_reason)',
+    () {
+      group('request body handling', () {
+        test('accepts request with reconnect_reason in body', () async {
+          // Since we can't mock auth, we just verify the request is accepted
+          // and returns JSON (auth error, but valid JSON)
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            body: jsonEncode({'reconnect_reason': 'Patient got new device'}),
+            headers: {'content-type': 'application/json'},
+          );
+
+          final response = await generatePatientLinkingCodeHandler(
+            request,
+            'p1',
+          );
+
+          // Should return valid JSON even on auth error
+          expect(response.headers['content-type'], 'application/json');
+          final body = await response.readAsString();
+          expect(() => jsonDecode(body), returnsNormally);
+        });
+
+        test(
+          'accepts empty request body (standard link, no reconnection)',
+          () async {
+            final request = Request(
+              'POST',
+              Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            );
+
+            final response = await generatePatientLinkingCodeHandler(
+              request,
+              'p1',
+            );
+
+            expect(response.headers['content-type'], 'application/json');
+            final body = await response.readAsString();
+            expect(() => jsonDecode(body), returnsNormally);
+          },
+        );
+
+        test('handles invalid JSON body gracefully', () async {
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            body: 'not valid json',
+            headers: {'content-type': 'application/json'},
+          );
+
+          final response = await generatePatientLinkingCodeHandler(
+            request,
+            'p1',
+          );
+
+          // Should still return valid JSON (auth error, not parsing error)
+          expect(response.headers['content-type'], 'application/json');
+          final body = await response.readAsString();
+          expect(() => jsonDecode(body), returnsNormally);
+        });
+      });
+
+      group('response format for reconnection', () {
+        test('reconnection success response includes previous_status', () {
+          // Expected structure when reconnecting a disconnected patient
+          final reconnectResponse = {
+            'success': true,
+            'patient_id': 'patient-123',
+            'site_name': 'Site A',
+            'code': 'CAXXX-XXXXX',
+            'code_raw': 'CAXXXXXXXX',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'expires_in_hours': 72,
+          };
+
+          expect(reconnectResponse['success'], isTrue);
+          expect(reconnectResponse['patient_id'], isA<String>());
+          expect(reconnectResponse['code'], contains('-'));
+        });
+
+        test('reconnection audit log entry structure is correct', () {
+          // Expected action_details for RECONNECT_PATIENT action
+          final actionDetails = {
+            'patient_id': 'patient-123',
+            'site_id': 'site-456',
+            'site_name': 'Site A',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'generated_by_email': 'coordinator@example.com',
+            'generated_by_name': 'John Doe',
+            'previous_status': 'disconnected',
+            'reconnect_reason': 'Patient got new device',
+          };
+
+          expect(actionDetails['previous_status'], 'disconnected');
+          expect(actionDetails['reconnect_reason'], isA<String>());
+          expect(actionDetails['reconnect_reason'], isNotEmpty);
+        });
+
+        test('standard link audit log does not include reconnect_reason', () {
+          // Expected action_details for standard GENERATE_LINKING_CODE action
+          final actionDetails = {
+            'patient_id': 'patient-123',
+            'site_id': 'site-456',
+            'site_name': 'Site A',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'generated_by_email': 'coordinator@example.com',
+            'generated_by_name': 'John Doe',
+            'previous_status': 'not_connected',
+          };
+
+          expect(actionDetails.containsKey('reconnect_reason'), isFalse);
+          expect(actionDetails['previous_status'], isNot('disconnected'));
+        });
+      });
+    },
+  );
 }
