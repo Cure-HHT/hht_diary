@@ -55,7 +55,6 @@ This file provides a complete index of all requirements.
 | REQ-p01010 | Multi-tenancy Support | prd-event-sourcing-system.md | 4284f635 |
 | REQ-p01011 | Event Transformation and Migration | prd-event-sourcing-system.md | adff05f2 |
 | REQ-p01012 | Batch Event Operations | prd-event-sourcing-system.md | 0070c072 |
-| REQ-p01013 | GraphQL or gRPC Transport Option | prd-event-sourcing-system.md | 2c52f7e9 |
 | REQ-p01014 | Observability and Monitoring | prd-event-sourcing-system.md | 9df008fb |
 | REQ-p01015 | Automated Testing Support | prd-event-sourcing-system.md | fb5dbbff |
 | REQ-p01016 | Performance Benchmarking | prd-event-sourcing-system.md | 2c0805cf |
