@@ -7,6 +7,8 @@
 //   REQ-d00078: Linking Code Validation
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 //
 // User linking and data sync handlers
 // Patient linking uses patient_linking_codes (via sponsor portal)
@@ -316,9 +318,11 @@ Future<Response> syncHandler(Request request) async {
     final db = Database.instance;
 
     // Look up user and their linked patient/site via patient_linking_codes
+    // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key
+      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key,
+             p.mobile_linking_status::text
       FROM app_users u
       LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
@@ -337,6 +341,7 @@ Future<Response> syncHandler(Request request) async {
     final siteId = row[1] as String?;
     final patientId =
         row[2] as String? ?? userId; // Use userId if no linked patient
+    final mobileLinkingStatus = row[4] as String?;
 
     final body = await _parseJson(request);
     if (body == null) {
@@ -406,6 +411,10 @@ Future<Response> syncHandler(Request request) async {
       'success': true,
       'syncedCount': syncedEventIds.length,
       'syncedEventIds': syncedEventIds,
+      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      if (mobileLinkingStatus != null)
+        'mobileLinkingStatus': mobileLinkingStatus,
+      'isDisconnected': mobileLinkingStatus == 'disconnected',
     });
   } catch (e) {
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
@@ -430,9 +439,10 @@ Future<Response> getRecordsHandler(Request request) async {
     final db = Database.instance;
 
     // Look up user and linked patient via patient_linking_codes
+    // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id
+      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text
       FROM app_users u
       LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
@@ -450,6 +460,7 @@ Future<Response> getRecordsHandler(Request request) async {
     final userId = row[0] as String;
     final patientId =
         row[1] as String? ?? userId; // Use userId if no linked patient
+    final mobileLinkingStatus = row[2] as String?;
 
     // Fetch current state from record_state (materialized view)
     final recordsResult = await db.execute(
@@ -471,7 +482,13 @@ Future<Response> getRecordsHandler(Request request) async {
       };
     }).toList();
 
-    return _jsonResponse({'records': records});
+    return _jsonResponse({
+      'records': records,
+      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      if (mobileLinkingStatus != null)
+        'mobileLinkingStatus': mobileLinkingStatus,
+      'isDisconnected': mobileLinkingStatus == 'disconnected',
+    });
   } catch (e) {
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }

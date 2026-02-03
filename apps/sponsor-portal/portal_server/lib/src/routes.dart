@@ -10,6 +10,8 @@
 //   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00049: Mobile Linking Codes
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -47,6 +49,12 @@ Router createRouter() {
   router.get(
     '/api/v1/portal/patients/<patientId>/link-code',
     getPatientLinkingCodeHandler,
+  );
+
+  // Patient disconnection endpoint (Investigator role)
+  router.post(
+    '/api/v1/portal/patients/<patientId>/disconnect',
+    disconnectPatientHandler,
   );
 
   // Email change verification

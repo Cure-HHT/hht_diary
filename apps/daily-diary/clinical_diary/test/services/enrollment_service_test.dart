@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 
 import 'dart:convert';
 
@@ -11,6 +13,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../test_helpers/flavor_setup.dart';
 
@@ -492,6 +495,108 @@ void main() {
         EnrollmentErrorType.values,
         contains(EnrollmentErrorType.networkError),
       );
+    });
+
+    group('disconnection tracking', () {
+      late MockSecureStorage mockStorage;
+      late EnrollmentService service;
+
+      setUp(() {
+        SharedPreferences.setMockInitialValues({});
+        mockStorage = MockSecureStorage();
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+      });
+
+      tearDown(() {
+        service.dispose();
+      });
+
+      test('isDisconnected returns false by default', () async {
+        final result = await service.isDisconnected();
+        expect(result, false);
+      });
+
+      test('setDisconnected updates disconnection state', () async {
+        await service.setDisconnected(true);
+        final result = await service.isDisconnected();
+        expect(result, true);
+      });
+
+      test('setDisconnected(false) clears banner dismissed state', () async {
+        // Set disconnected and dismiss banner
+        await service.setDisconnected(true);
+        await service.setDisconnectionBannerDismissed(true);
+
+        // Reconnect
+        await service.setDisconnected(false);
+
+        // Banner dismissed state should be cleared
+        final bannerDismissed = await service.isDisconnectionBannerDismissed();
+        expect(bannerDismissed, false);
+      });
+
+      test('isDisconnectionBannerDismissed returns false by default', () async {
+        final result = await service.isDisconnectionBannerDismissed();
+        expect(result, false);
+      });
+
+      test('setDisconnectionBannerDismissed updates state', () async {
+        await service.setDisconnectionBannerDismissed(true);
+        final result = await service.isDisconnectionBannerDismissed();
+        expect(result, true);
+      });
+
+      test('resetDisconnectionBannerDismissed clears state', () async {
+        await service.setDisconnectionBannerDismissed(true);
+        await service.resetDisconnectionBannerDismissed();
+        final result = await service.isDisconnectionBannerDismissed();
+        expect(result, false);
+      });
+
+      test('processDisconnectionStatus returns true when disconnected', () {
+        final response = {
+          'isDisconnected': true,
+          'mobileLinkingStatus': 'disconnected',
+        };
+
+        final result = service.processDisconnectionStatus(response);
+        expect(result, true);
+      });
+
+      test('processDisconnectionStatus returns false when connected', () {
+        final response = {
+          'isDisconnected': false,
+          'mobileLinkingStatus': 'connected',
+        };
+
+        final result = service.processDisconnectionStatus(response);
+        expect(result, false);
+      });
+
+      test('processDisconnectionStatus handles missing fields', () {
+        final response = <String, dynamic>{};
+
+        final result = service.processDisconnectionStatus(response);
+        expect(result, false);
+      });
+
+      test('processDisconnectionStatus updates local state', () async {
+        final response = {
+          'isDisconnected': true,
+          'mobileLinkingStatus': 'disconnected',
+        };
+
+        service.processDisconnectionStatus(response);
+
+        // Wait for async update
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        final result = await service.isDisconnected();
+        expect(result, true);
+      });
     });
   });
 }

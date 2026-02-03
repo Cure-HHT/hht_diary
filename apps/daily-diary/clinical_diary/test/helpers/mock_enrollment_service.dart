@@ -7,6 +7,10 @@ class MockEnrollmentService implements EnrollmentService {
   String? backendUrl;
   UserEnrollment? enrollment;
 
+  // REQ-CAL-p00077: Disconnection state for testing
+  bool _isDisconnected = false;
+  bool _bannerDismissed = false;
+
   @override
   Future<String?> getJwtToken() async => jwtToken;
 
@@ -40,4 +44,36 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   Future<String?> getRecordsUrl() async =>
       backendUrl != null ? '$backendUrl/api/v1/user/records' : null;
+
+  // REQ-CAL-p00077: Disconnection tracking methods
+  @override
+  Future<bool> isDisconnected() async => _isDisconnected;
+
+  @override
+  Future<void> setDisconnected(bool disconnected) async {
+    _isDisconnected = disconnected;
+    if (!disconnected) {
+      _bannerDismissed = false;
+    }
+  }
+
+  @override
+  Future<bool> isDisconnectionBannerDismissed() async => _bannerDismissed;
+
+  @override
+  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
+    _bannerDismissed = dismissed;
+  }
+
+  @override
+  Future<void> resetDisconnectionBannerDismissed() async {
+    _bannerDismissed = false;
+  }
+
+  @override
+  bool processDisconnectionStatus(Map<String, dynamic> response) {
+    final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    _isDisconnected = isDisconnected;
+    return isDisconnected;
+  }
 }

@@ -2,6 +2,8 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00049: Mobile Linking Codes
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 
 /// Represents a user's enrollment/linking to a clinical trial
 class UserEnrollment {

@@ -416,6 +416,11 @@ class AppLocalizations {
       'whatsNew': "What's New",
       'checkForUpdates': 'Check for updates',
       'youAreUpToDate': 'You are up to date',
+
+      // Disconnection Banner (REQ-CAL-p00077)
+      'disconnectedFromStudy': 'Disconnected from Study',
+      'contactYourSite': 'Please contact your study site.',
+      'contactYourSiteWithName': 'Please contact {0}.',
     },
     'es': {
       // General
@@ -805,6 +810,11 @@ class AppLocalizations {
       'whatsNew': 'Novedades',
       'checkForUpdates': 'Buscar actualizaciones',
       'youAreUpToDate': 'Esta actualizado',
+
+      // Disconnection Banner (REQ-CAL-p00077)
+      'disconnectedFromStudy': 'Desconectado del Estudio',
+      'contactYourSite': 'Por favor, contacte a su sitio de estudio.',
+      'contactYourSiteWithName': 'Por favor, contacte a {0}.',
     },
     'fr': {
       // General
@@ -1205,6 +1215,11 @@ class AppLocalizations {
       'whatsNew': 'Nouveautes',
       'checkForUpdates': 'Rechercher des mises a jour',
       'youAreUpToDate': 'Vous etes a jour',
+
+      // Disconnection Banner (REQ-CAL-p00077)
+      'disconnectedFromStudy': "Deconnecte de l'Etude",
+      'contactYourSite': "Veuillez contacter votre site d'etude.",
+      'contactYourSiteWithName': 'Veuillez contacter {0}.',
     },
     'de': {
       // General
@@ -1598,6 +1613,11 @@ class AppLocalizations {
       'whatsNew': 'Was ist neu',
       'checkForUpdates': 'Nach Updates suchen',
       'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
+
+      // Disconnection Banner (REQ-CAL-p00077)
+      'disconnectedFromStudy': 'Von der Studie getrennt',
+      'contactYourSite': 'Bitte kontaktieren Sie Ihre Studienstelle.',
+      'contactYourSiteWithName': 'Bitte kontaktieren Sie {0}.',
     },
   };
 
@@ -2009,6 +2029,12 @@ class AppLocalizations {
   String get whatsNew => translate('whatsNew');
   String get checkForUpdates => translate('checkForUpdates');
   String get youAreUpToDate => translate('youAreUpToDate');
+
+  // Disconnection Banner (REQ-CAL-p00077)
+  String get disconnectedFromStudy => translate('disconnectedFromStudy');
+  String get contactYourSite => translate('contactYourSite');
+  String contactYourSiteWithName(String siteName) =>
+      translateWithParams('contactYourSiteWithName', [siteName]);
 }
 
 class _AppLocalizationsDelegate
