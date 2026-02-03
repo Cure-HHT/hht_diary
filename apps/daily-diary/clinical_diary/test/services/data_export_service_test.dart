@@ -7,9 +7,7 @@ import 'dart:io';
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/models/app_state_export.dart';
-import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/data_export_service.dart';
-import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/mock_enrollment_service.dart';
 import '../test_helpers/flavor_setup.dart';
 
 void main() {
@@ -445,43 +444,4 @@ void main() {
       });
     });
   });
-}
-
-class MockEnrollmentService implements EnrollmentService {
-  String? jwtToken;
-  String? backendUrl;
-
-  @override
-  Future<String?> getJwtToken() async => jwtToken;
-
-  @override
-  Future<bool> isEnrolled() async => jwtToken != null;
-
-  @override
-  Future<UserEnrollment?> getEnrollment() async => null;
-
-  @override
-  Future<UserEnrollment> enroll(String code) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> clearEnrollment() async {}
-
-  @override
-  Future<String?> getUserId() async => 'test-user-id';
-
-  @override
-  void dispose() {}
-
-  @override
-  Future<String?> getBackendUrl() async => backendUrl;
-
-  @override
-  Future<String?> getSyncUrl() async =>
-      backendUrl != null ? '$backendUrl/api/v1/user/sync' : null;
-
-  @override
-  Future<String?> getRecordsUrl() async =>
-      backendUrl != null ? '$backendUrl/api/v1/user/records' : null;
 }

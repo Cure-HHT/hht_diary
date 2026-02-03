@@ -6,6 +6,10 @@
 //   REQ-CAL-p00019: Link New Patient Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
 //
 // Patient linking code handlers - generate and manage linking codes
 // for patient mobile app enrollment
@@ -34,12 +38,14 @@ String get sponsorLinkingPrefix =>
 /// Generate a patient linking code
 /// POST /api/v1/portal/patients/:patientId/link-code
 /// Authorization: Bearer <Identity Platform ID token>
+/// Body (optional): { "reconnect_reason": "..." } for reconnecting disconnected patients
 ///
 /// Generates a new linking code for the patient.
 /// - Requires Investigator role with site access to patient's site
 /// - Invalidates any existing unused codes for this patient
 /// - Updates patient status to 'linking_in_progress'
 /// - Returns the code for display (shown only once)
+/// - If reconnect_reason is provided for a disconnected patient, logs RECONNECT_PATIENT action
 ///
 /// Returns:
 ///   200: { "code": "CAXXXX-XXXXX", "code_raw": "CAXXXXXXXX", "expires_at": "...", "patient_id": "..." }
@@ -65,6 +71,18 @@ Future<Response> generatePatientLinkingCodeHandler(
     return _jsonResponse({
       'error': 'Only Investigators can generate patient linking codes',
     }, 403);
+  }
+
+  // Parse optional reconnect_reason from request body
+  String? reconnectReason;
+  try {
+    final body = await request.readAsString();
+    if (body.isNotEmpty) {
+      final requestData = jsonDecode(body) as Map<String, dynamic>;
+      reconnectReason = requestData['reconnect_reason'] as String?;
+    }
+  } catch (_) {
+    // Ignore parsing errors - body is optional
   }
 
   final db = Database.instance;
@@ -117,7 +135,7 @@ Future<Response> generatePatientLinkingCodeHandler(
   }
 
   // Invalidate any existing unused codes for this patient
-  await db.executeWithContext(
+  final revokeResult = await db.executeWithContext(
     '''
     UPDATE patient_linking_codes
     SET revoked_at = now(),
@@ -127,10 +145,41 @@ Future<Response> generatePatientLinkingCodeHandler(
       AND used_at IS NULL
       AND revoked_at IS NULL
       AND expires_at > now()
+    RETURNING id
     ''',
     parameters: {'patientId': patientId, 'userId': user.id},
     context: serviceContext,
   );
+
+  // Log revocation if any codes were superseded
+  if (revokeResult.isNotEmpty) {
+    await db.executeWithContext(
+      '''
+      INSERT INTO admin_action_log (
+        admin_id, action_type, target_resource, action_details,
+        justification, requires_review, ip_address
+      )
+      VALUES (
+        @adminId, 'REVOKE_LINKING_CODE', @targetResource,
+        @actionDetails::jsonb, @justification, false, @ipAddress::inet
+      )
+      ''',
+      parameters: {
+        'adminId': user.id,
+        'targetResource': 'patient:$patientId',
+        'actionDetails': jsonEncode({
+          'patient_id': patientId,
+          'revoked_code_count': revokeResult.length,
+          'reason': 'Superseded by new code',
+          'revoked_by_email': user.email,
+        }),
+        'justification':
+            'Previous linking code(s) revoked - superseded by new code',
+        'ipAddress': clientIp,
+      },
+      context: serviceContext,
+    );
+  }
 
   // Generate new code
   final code = generatePatientLinkingCode(sponsorLinkingPrefix);
@@ -171,6 +220,50 @@ Future<Response> generatePatientLinkingCodeHandler(
     WHERE patient_id = @patientId
     ''',
     parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Determine if this is a reconnection (disconnected patient with reason provided)
+  final isReconnection =
+      currentStatus == 'disconnected' &&
+      reconnectReason != null &&
+      reconnectReason.isNotEmpty;
+  final actionType = isReconnection
+      ? 'RECONNECT_PATIENT'
+      : 'GENERATE_LINKING_CODE';
+  final justification = isReconnection
+      ? 'Patient reconnected to mobile app: $reconnectReason'
+      : 'Patient linking code generated for mobile app enrollment';
+
+  // Log to admin_action_log for audit trail (CUR-690)
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, @actionType, @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'actionType': actionType,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'expires_at': expiresAt.toIso8601String(),
+        'generated_by_email': user.email,
+        'generated_by_name': user.name,
+        'previous_status': currentStatus,
+        if (isReconnection) 'reconnect_reason': reconnectReason,
+      }),
+      'justification': justification,
+      'ipAddress': clientIp,
+    },
     context: serviceContext,
   );
 
@@ -310,6 +403,220 @@ String hashLinkingCode(String code) {
   final bytes = utf8.encode(code);
   final digest = sha256.convert(bytes);
   return digest.toString();
+}
+
+/// Valid disconnect reasons per CUR-768 specification
+const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
+
+/// Disconnect a patient from the mobile app
+/// POST /api/v1/portal/patients/:patientId/disconnect
+/// Authorization: Bearer <Identity Platform ID token>
+/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other", "notes": "..." }
+///
+/// Disconnects a connected patient:
+/// - Requires Investigator role with site access to patient's site
+/// - Patient must be in 'connected' status
+/// - Revokes all active linking codes
+/// - Updates patient status to 'disconnected'
+/// - Logs action to admin_action_log
+///
+/// Returns:
+///   200: { "success": true, "patient_id": "...", "previous_status": "connected", "new_status": "disconnected", ... }
+///   400: Invalid or missing reason value
+///   401: Missing or invalid authorization
+///   403: Unauthorized (not Investigator role or wrong site)
+///   404: Patient not found
+///   409: Patient is not in 'connected' status
+Future<Response> disconnectPatientHandler(
+  Request request,
+  String patientId,
+) async {
+  print('[PATIENT_LINKING] disconnectPatientHandler for: $patientId');
+
+  // Authenticate and get user
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Check role - only Investigators can disconnect patients
+  if (user.activeRole != 'Investigator') {
+    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
+    return _jsonResponse({
+      'error': 'Only Investigators can disconnect patients',
+    }, 403);
+  }
+
+  // Parse request body
+  String body;
+  try {
+    body = await request.readAsString();
+  } catch (e) {
+    return _jsonResponse({'error': 'Failed to read request body'}, 400);
+  }
+
+  Map<String, dynamic> requestData;
+  try {
+    requestData = body.isNotEmpty
+        ? jsonDecode(body) as Map<String, dynamic>
+        : <String, dynamic>{};
+  } catch (e) {
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
+  }
+
+  // Validate reason field
+  final reason = requestData['reason'] as String?;
+  if (reason == null || reason.isEmpty) {
+    return _jsonResponse({'error': 'Missing required field: reason'}, 400);
+  }
+
+  if (!validDisconnectReasons.contains(reason)) {
+    return _jsonResponse({
+      'error':
+          'Invalid reason. Must be one of: ${validDisconnectReasons.join(", ")}',
+    }, 400);
+  }
+
+  // If reason is "Other", notes are required
+  final notes = requestData['notes'] as String?;
+  if (reason == 'Other' && (notes == null || notes.trim().isEmpty)) {
+    return _jsonResponse({
+      'error': 'Notes are required when reason is "Other"',
+    }, 400);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch patient and verify site access
+  final patientResult = await db.executeWithContext(
+    '''
+    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM patients p
+    JOIN sites s ON p.site_id = s.site_id
+    WHERE p.patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (patientResult.isEmpty) {
+    print('[PATIENT_LINKING] Patient not found: $patientId');
+    return _jsonResponse({'error': 'Patient not found'}, 404);
+  }
+
+  final patientSiteId = patientResult.first[1] as String;
+  final currentStatus = patientResult.first[2] as String;
+  final siteName = patientResult.first[3] as String;
+
+  // Verify Investigator has access to this patient's site
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    print(
+      '[PATIENT_LINKING] User ${user.id} has no access to site $patientSiteId',
+    );
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  // Check patient status - can only disconnect if connected
+  if (currentStatus != 'connected') {
+    print(
+      '[PATIENT_LINKING] Patient $patientId is not connected (status: $currentStatus)',
+    );
+    return _jsonResponse({
+      'error':
+          'Patient is not in "connected" status. Current status: $currentStatus',
+    }, 409);
+  }
+
+  // Revoke all active linking codes with reason "Patient disconnected"
+  final revokeResult = await db.executeWithContext(
+    '''
+    UPDATE patient_linking_codes
+    SET revoked_at = now(),
+        revoked_by = @userId::uuid,
+        revoke_reason = @revokeReason
+    WHERE patient_id = @patientId
+      AND used_at IS NULL
+      AND revoked_at IS NULL
+      AND expires_at > now()
+    RETURNING id
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'userId': user.id,
+      'revokeReason': 'Patient disconnected: $reason',
+    },
+    context: serviceContext,
+  );
+
+  final codesRevoked = revokeResult.length;
+  print('[PATIENT_LINKING] Revoked $codesRevoked active codes for: $patientId');
+
+  // Update patient status to 'disconnected'
+  await db.executeWithContext(
+    '''
+    UPDATE patients
+    SET mobile_linking_status = 'disconnected',
+        updated_at = now()
+    WHERE patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Log to admin_action_log for audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'DISCONNECT_PATIENT', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'previous_status': currentStatus,
+        'new_status': 'disconnected',
+        'reason': reason,
+        'notes': notes,
+        'codes_revoked': codesRevoked,
+        'disconnected_by_email': user.email,
+        'disconnected_by_name': user.name,
+      }),
+      'justification': 'Patient disconnected from mobile app: $reason',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print(
+    '[PATIENT_LINKING] Patient disconnected successfully: $patientId, reason: $reason',
+  );
+
+  return _jsonResponse({
+    'success': true,
+    'patient_id': patientId,
+    'previous_status': currentStatus,
+    'new_status': 'disconnected',
+    'codes_revoked': codesRevoked,
+    'reason': reason,
+  });
 }
 
 Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {

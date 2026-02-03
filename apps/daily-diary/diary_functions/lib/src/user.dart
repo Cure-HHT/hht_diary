@@ -7,18 +7,32 @@
 //   REQ-d00078: Linking Code Validation
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 //
 // User linking and data sync handlers
 // Patient linking uses patient_linking_codes (via sponsor portal)
 // Sync writes to record_audit (event store), not separate tables
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
+
+/// Simple structured logger for Cloud Run
+void _log(String level, String message, [Map<String, dynamic>? data]) {
+  final logEntry = {
+    'severity': level,
+    'message': message,
+    'time': DateTime.now().toUtc().toIso8601String(),
+    if (data != null) ...data,
+  };
+  stderr.writeln(jsonEncode(logEntry));
+}
 
 /// Hash a linking code using SHA-256 for secure validation lookup
 /// Must match the hash algorithm used in sponsor portal (REQ-d00078)
@@ -30,10 +44,10 @@ String _hashLinkingCode(String code) {
 
 /// Link handler - links app user to a patient via linking code
 /// POST /api/v1/user/link
-/// Authorization: Bearer <jwt>
 /// Body: { code, appUuid? }
 ///
-/// Validates linking code from sponsor portal and links app user to patient.
+/// The linking code IS the authentication mechanism (REQ-p70007).
+/// Creates app_user if needed and returns JWT for future API calls.
 /// This is the mobile app side of the patient linking flow (REQ-p70007, REQ-d00078).
 Future<Response> linkHandler(Request request) async {
   if (request.method != 'POST') {
@@ -41,12 +55,6 @@ Future<Response> linkHandler(Request request) async {
   }
 
   try {
-    // Verify JWT
-    final auth = verifyAuthHeader(request.headers['authorization']);
-    if (auth == null) {
-      return _jsonResponse({'error': 'Invalid or missing authorization'}, 401);
-    }
-
     final body = await _parseJson(request);
     if (body == null) {
       return _jsonResponse({'error': 'Invalid JSON body'}, 400);
@@ -68,20 +76,15 @@ Future<Response> linkHandler(Request request) async {
     final appUuid = body['appUuid'] as String?;
     final db = Database.instance;
 
-    // Get the authenticated user
-    final userResult = await db.execute(
-      'SELECT user_id FROM app_users WHERE auth_code = @authCode',
-      parameters: {'authCode': auth.authCode},
-    );
-
-    if (userResult.isEmpty) {
-      return _jsonResponse({'error': 'User not found'}, 401);
-    }
-
-    final userId = userResult.first[0] as String;
-
     // Hash the code for lookup (REQ-d00078)
     final codeHash = _hashLinkingCode(code);
+    final codePrefix = code.substring(0, 2);
+
+    _log('INFO', 'Link attempt', {
+      'codePrefix': codePrefix,
+      'codeLength': code.length,
+      'hasAppUuid': appUuid != null,
+    });
 
     // Look up the linking code in patient_linking_codes
     // Must be: not expired, not used, not revoked
@@ -113,6 +116,18 @@ Future<Response> linkHandler(Request request) async {
       );
 
       if (checkResult.isEmpty) {
+        // Also check total codes in table for debugging
+        final countResult = await db.execute(
+          'SELECT COUNT(*) FROM patient_linking_codes',
+        );
+        final totalCodes = countResult.first[0] as int;
+
+        _log('WARNING', 'Linking code not found', {
+          'codePrefix': codePrefix,
+          'hashPrefix': codeHash.substring(0, 8),
+          'totalCodesInTable': totalCodes,
+        });
+
         return _jsonResponse({
           'error': 'Invalid linking code. Please check the code and try again.',
         }, 400);
@@ -124,6 +139,9 @@ Future<Response> linkHandler(Request request) async {
       final revokedAt = row[2];
 
       if (usedAt != null) {
+        _log('WARNING', 'Linking code already used', {
+          'codePrefix': codePrefix,
+        });
         return _jsonResponse({
           'error':
               'This linking code has already been used. Please request a new code from your research coordinator.',
@@ -131,6 +149,7 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (revokedAt != null) {
+        _log('WARNING', 'Linking code revoked', {'codePrefix': codePrefix});
         return _jsonResponse({
           'error':
               'This linking code has been revoked. Please request a new code from your research coordinator.',
@@ -138,12 +157,19 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (expiresAt.isBefore(DateTime.now())) {
+        _log('WARNING', 'Linking code expired', {
+          'codePrefix': codePrefix,
+          'expiredAt': expiresAt.toIso8601String(),
+        });
         return _jsonResponse({
           'error':
               'This linking code has expired. Please request a new code from your research coordinator.',
         }, 410);
       }
 
+      _log('WARNING', 'Linking code invalid (unknown reason)', {
+        'codePrefix': codePrefix,
+      });
       return _jsonResponse({'error': 'Invalid linking code.'}, 400);
     }
 
@@ -154,6 +180,53 @@ Future<Response> linkHandler(Request request) async {
     final edcSubjectKey = codeRow[3] as String;
     final siteName = codeRow[4] as String;
     final siteNumber = codeRow[5] as String;
+
+    // Create or find app_user for this device
+    // The linking code IS the authentication - no prior login needed
+    String userId;
+    String authCode;
+
+    if (appUuid != null) {
+      // Check if user exists by appUuid
+      final existingUser = await db.execute(
+        'SELECT user_id, auth_code FROM app_users WHERE app_uuid = @appUuid',
+        parameters: {'appUuid': appUuid},
+      );
+
+      if (existingUser.isNotEmpty) {
+        userId = existingUser.first[0] as String;
+        authCode = existingUser.first[1] as String;
+      } else {
+        // Create new user
+        userId = generateUserId();
+        authCode = generateAuthCode();
+        await db.execute(
+          '''
+          INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
+          VALUES (@userId, @authCode, @appUuid, now(), now())
+          ''',
+          parameters: {
+            'userId': userId,
+            'authCode': authCode,
+            'appUuid': appUuid,
+          },
+        );
+      }
+    } else {
+      // No appUuid - create anonymous user
+      userId = generateUserId();
+      authCode = generateAuthCode();
+      await db.execute(
+        '''
+        INSERT INTO app_users (user_id, auth_code, created_at, last_active_at)
+        VALUES (@userId, @authCode, now(), now())
+        ''',
+        parameters: {'userId': userId, 'authCode': authCode},
+      );
+    }
+
+    // Generate JWT for the user
+    final jwtToken = createJwtToken(authCode: authCode, userId: userId);
 
     // Mark the code as used (REQ-p70007.J - single-use)
     await db.execute(
@@ -190,15 +263,27 @@ Future<Response> linkHandler(Request request) async {
       parameters: {'userId': userId},
     );
 
+    _log('INFO', 'Patient linked successfully', {
+      'codePrefix': codePrefix,
+      'siteId': siteId,
+      'patientLinked': true,
+    });
+
     return _jsonResponse({
       'success': true,
+      'jwt': jwtToken,
+      'userId': userId,
       'patientId': patientId,
       'siteId': siteId,
       'siteName': siteName,
       'siteNumber': siteNumber,
       'studyPatientId': edcSubjectKey,
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    _log('ERROR', 'Link handler error', {
+      'error': e.toString(),
+      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
+    });
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }
@@ -233,9 +318,11 @@ Future<Response> syncHandler(Request request) async {
     final db = Database.instance;
 
     // Look up user and their linked patient/site via patient_linking_codes
+    // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key
+      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key,
+             p.mobile_linking_status::text
       FROM app_users u
       LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
@@ -254,6 +341,7 @@ Future<Response> syncHandler(Request request) async {
     final siteId = row[1] as String?;
     final patientId =
         row[2] as String? ?? userId; // Use userId if no linked patient
+    final mobileLinkingStatus = row[4] as String?;
 
     final body = await _parseJson(request);
     if (body == null) {
@@ -323,6 +411,10 @@ Future<Response> syncHandler(Request request) async {
       'success': true,
       'syncedCount': syncedEventIds.length,
       'syncedEventIds': syncedEventIds,
+      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      if (mobileLinkingStatus != null)
+        'mobileLinkingStatus': mobileLinkingStatus,
+      'isDisconnected': mobileLinkingStatus == 'disconnected',
     });
   } catch (e) {
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
@@ -347,9 +439,10 @@ Future<Response> getRecordsHandler(Request request) async {
     final db = Database.instance;
 
     // Look up user and linked patient via patient_linking_codes
+    // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id
+      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text
       FROM app_users u
       LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
@@ -367,6 +460,7 @@ Future<Response> getRecordsHandler(Request request) async {
     final userId = row[0] as String;
     final patientId =
         row[1] as String? ?? userId; // Use userId if no linked patient
+    final mobileLinkingStatus = row[2] as String?;
 
     // Fetch current state from record_state (materialized view)
     final recordsResult = await db.execute(
@@ -388,7 +482,13 @@ Future<Response> getRecordsHandler(Request request) async {
       };
     }).toList();
 
-    return _jsonResponse({'records': records});
+    return _jsonResponse({
+      'records': records,
+      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      if (mobileLinkingStatus != null)
+        'mobileLinkingStatus': mobileLinkingStatus,
+      'isDisconnected': mobileLinkingStatus == 'disconnected',
+    });
   } catch (e) {
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }

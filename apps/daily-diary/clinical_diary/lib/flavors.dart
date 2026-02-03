@@ -92,13 +92,13 @@ class FlavorConfig {
   /// Development flavor configuration
   static const dev = FlavorValues(
     name: 'dev',
-    apiBase: 'https://patient-server-1012274191696.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-1012274191696.europe-west9.run.app/api',
     environment: 'dev',
     showDevTools: true,
     showBanner: true,
     sponsorBackends: {
       // Callisto dev Cloud Run
-      'CA': 'https://patient-server-1012274191696.europe-west9.run.app',
+      'CA': 'https://diary-server-1012274191696.europe-west9.run.app',
     },
   );
 
@@ -106,33 +106,33 @@ class FlavorConfig {
   static const qa = FlavorValues(
     name: 'qa',
     // TODO: Update when QA environment deployed
-    apiBase: 'https://patient-server-qa.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-qa.europe-west9.run.app/api',
     environment: 'qa',
     showDevTools: true,
     showBanner: true,
-    sponsorBackends: {'CA': 'https://patient-server-qa.europe-west9.run.app'},
+    sponsorBackends: {'CA': 'https://diary-server-qa.europe-west9.run.app'},
   );
 
   /// UAT flavor configuration
   static const uat = FlavorValues(
     name: 'uat',
     // TODO: Update when UAT environment deployed
-    apiBase: 'https://patient-server-uat.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-uat.europe-west9.run.app/api',
     environment: 'uat',
     showDevTools: false,
     showBanner: false,
-    sponsorBackends: {'CA': 'https://patient-server-uat.europe-west9.run.app'},
+    sponsorBackends: {'CA': 'https://diary-server-uat.europe-west9.run.app'},
   );
 
   /// Production flavor configuration
   static const prod = FlavorValues(
     name: 'prod',
     // TODO: Update when prod environment deployed
-    apiBase: 'https://patient-server.europe-west9.run.app/api',
+    apiBase: 'https://diary-server.europe-west9.run.app/api',
     environment: 'prod',
     showDevTools: false,
     showBanner: false,
-    sponsorBackends: {'CA': 'https://patient-server.europe-west9.run.app'},
+    sponsorBackends: {'CA': 'https://diary-server.europe-west9.run.app'},
   );
 
   /// Get flavor by name
@@ -168,7 +168,7 @@ class FlavorValues {
   final bool showBanner;
 
   /// Sponsor backend URLs mapped by 2-letter code prefix.
-  /// E.g., {'CA': 'https://patient-server-xxx.run.app'}
+  /// E.g., {'CA': 'https://diary-server-xxx.run.app'}
   ///
   /// TODO: Replace with central config service on cure-hht-admin GCP project
   /// so new sponsors can be added without app updates.

@@ -600,33 +600,6 @@ H. The system SHALL provide error handling for partial batch failures.
 *End* *Batch Event Operations* | **Hash**: 0070c072
 ---
 
----
-
-TODO - This adds unnecessary complexity
-
-# REQ-p01013: GraphQL or gRPC Transport Option
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
-
-## Rationale
-
-Different deployment scenarios have different performance and bandwidth requirements. Clinical trial sites may have varying network conditions, from high-bandwidth hospital networks to limited connectivity in remote locations. A pluggable transport architecture allows the system to adapt to these constraints while maintaining a consistent API for application code. This design supports future transport protocols without requiring changes to business logic, and enables automatic fallback mechanisms when advanced transports are unavailable.
-
-## Assertions
-
-A. The module SHALL provide an interface-based transport layer abstraction that decouples core logic from transport implementation.
-B. The system SHALL include a default transport implementation using HTTP REST with JSON encoding.
-C. The system SHALL support GraphQL as an optional transport protocol for efficient query operations.
-D. The system SHALL support gRPC as an optional transport protocol for high-performance scenarios.
-E. GraphQL transport SHALL be implemented as an optional dependency that can be excluded from builds.
-F. gRPC transport SHALL be implemented as an optional dependency that can be excluded from builds.
-G. The system SHALL provide automatic transport negotiation based on server capabilities.
-H. The transport interface SHALL allow selection of transport protocol without modifying application code.
-I. All transport implementations SHALL conform to the same abstract transport interface.
-
-*End* *GraphQL or gRPC Transport Option* | **Hash**: 2c52f7e9
----
-
 ## DevOps and Production Requirements
 
 ---

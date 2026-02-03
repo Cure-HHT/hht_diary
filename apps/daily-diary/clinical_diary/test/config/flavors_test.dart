@@ -154,7 +154,7 @@ void main() {
         expect(FlavorConfig.dev.name, 'dev');
         expect(
           FlavorConfig.dev.apiBase,
-          'https://patient-server-1012274191696.europe-west9.run.app/api',
+          'https://diary-server-1012274191696.europe-west9.run.app/api',
         );
         expect(FlavorConfig.dev.environment, 'dev');
         expect(FlavorConfig.dev.showDevTools, true);
@@ -166,7 +166,7 @@ void main() {
         expect(FlavorConfig.qa.name, 'qa');
         expect(
           FlavorConfig.qa.apiBase,
-          'https://patient-server-qa.europe-west9.run.app/api',
+          'https://diary-server-qa.europe-west9.run.app/api',
         );
         expect(FlavorConfig.qa.environment, 'qa');
         expect(FlavorConfig.qa.showDevTools, true);
@@ -178,7 +178,7 @@ void main() {
         expect(FlavorConfig.uat.name, 'uat');
         expect(
           FlavorConfig.uat.apiBase,
-          'https://patient-server-uat.europe-west9.run.app/api',
+          'https://diary-server-uat.europe-west9.run.app/api',
         );
         expect(FlavorConfig.uat.environment, 'uat');
         expect(FlavorConfig.uat.showDevTools, false);
@@ -190,7 +190,7 @@ void main() {
         expect(FlavorConfig.prod.name, 'prod');
         expect(
           FlavorConfig.prod.apiBase,
-          'https://patient-server.europe-west9.run.app/api',
+          'https://diary-server.europe-west9.run.app/api',
         );
         expect(FlavorConfig.prod.environment, 'prod');
         expect(FlavorConfig.prod.showDevTools, false);

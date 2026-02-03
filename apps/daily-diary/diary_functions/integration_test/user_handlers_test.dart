@@ -166,27 +166,12 @@ void main() {
       expect(response.statusCode, equals(405));
     });
 
-    test('returns 401 without authorization', () async {
-      final request = createPostRequest('/api/v1/user/link', {
-        'code': 'CAXXXXXXXX',
-      });
-
-      final response = await linkHandler(request);
-      expect(response.statusCode, equals(401));
-
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('authorization'));
-    });
+    // Note: linkHandler no longer requires Authorization - the linking code IS the auth
+    // JWT is returned upon successful linking (REQ-p70007)
 
     test('returns 400 for missing code', () async {
-      // Create a test user to get auth token
-      final (_, authToken) = await createTestUser();
-
-      final request = createPostRequest(
-        '/api/v1/user/link',
-        {},
-        headers: {'Authorization': 'Bearer $authToken'},
-      );
+      // No auth required - linking code is the authentication
+      final request = createPostRequest('/api/v1/user/link', {});
 
       final response = await linkHandler(request);
       expect(response.statusCode, equals(400));
@@ -196,13 +181,8 @@ void main() {
     });
 
     test('returns 400 for invalid code format', () async {
-      final (_, authToken) = await createTestUser();
-
-      final request = createPostRequest(
-        '/api/v1/user/link',
-        {'code': 'SHORT'},
-        headers: {'Authorization': 'Bearer $authToken'},
-      );
+      // No auth required - linking code is the authentication
+      final request = createPostRequest('/api/v1/user/link', {'code': 'SHORT'});
 
       final response = await linkHandler(request);
       expect(response.statusCode, equals(400));
@@ -212,13 +192,10 @@ void main() {
     });
 
     test('returns 400 for non-existent code', () async {
-      final (_, authToken) = await createTestUser();
-
-      final request = createPostRequest(
-        '/api/v1/user/link',
-        {'code': 'CAXXXXXXXX'},
-        headers: {'Authorization': 'Bearer $authToken'},
-      );
+      // No auth required - linking code is the authentication
+      final request = createPostRequest('/api/v1/user/link', {
+        'code': 'CAXXXXXXXX',
+      });
 
       final response = await linkHandler(request);
       expect(response.statusCode, equals(400));
