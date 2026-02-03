@@ -6,6 +6,8 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -17,6 +19,7 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
+import '../../widgets/reconnect_patient_dialog.dart';
 
 /// Status filter for the patients tab
 enum PatientStatusFilter {
@@ -557,7 +560,7 @@ class _StudyCoordinatorPatientsTabState
         );
       case 'disconnected':
         return TextButton.icon(
-          onPressed: () => _linkPatient(patient, apiClient),
+          onPressed: () => _reconnectPatient(patient, apiClient),
           icon: const Icon(Icons.link, size: 16),
           label: const Text('Reconnect'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
@@ -608,6 +611,24 @@ class _StudyCoordinatorPatientsTabState
     );
 
     // Refresh the patient list if disconnection was successful
+    if (success && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the ReconnectPatientDialog to reconnect a disconnected patient
+  Future<void> _reconnectPatient(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    final success = await ReconnectPatientDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if reconnection was successful
     if (success && mounted) {
       await _loadPatients();
     }

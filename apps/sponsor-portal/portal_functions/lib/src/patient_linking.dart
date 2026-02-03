@@ -8,6 +8,8 @@
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
 //
 // Patient linking code handlers - generate and manage linking codes
 // for patient mobile app enrollment
@@ -36,12 +38,14 @@ String get sponsorLinkingPrefix =>
 /// Generate a patient linking code
 /// POST /api/v1/portal/patients/:patientId/link-code
 /// Authorization: Bearer <Identity Platform ID token>
+/// Body (optional): { "reconnect_reason": "..." } for reconnecting disconnected patients
 ///
 /// Generates a new linking code for the patient.
 /// - Requires Investigator role with site access to patient's site
 /// - Invalidates any existing unused codes for this patient
 /// - Updates patient status to 'linking_in_progress'
 /// - Returns the code for display (shown only once)
+/// - If reconnect_reason is provided for a disconnected patient, logs RECONNECT_PATIENT action
 ///
 /// Returns:
 ///   200: { "code": "CAXXXX-XXXXX", "code_raw": "CAXXXXXXXX", "expires_at": "...", "patient_id": "..." }
@@ -67,6 +71,18 @@ Future<Response> generatePatientLinkingCodeHandler(
     return _jsonResponse({
       'error': 'Only Investigators can generate patient linking codes',
     }, 403);
+  }
+
+  // Parse optional reconnect_reason from request body
+  String? reconnectReason;
+  try {
+    final body = await request.readAsString();
+    if (body.isNotEmpty) {
+      final requestData = jsonDecode(body) as Map<String, dynamic>;
+      reconnectReason = requestData['reconnect_reason'] as String?;
+    }
+  } catch (_) {
+    // Ignore parsing errors - body is optional
   }
 
   final db = Database.instance;
@@ -207,6 +223,18 @@ Future<Response> generatePatientLinkingCodeHandler(
     context: serviceContext,
   );
 
+  // Determine if this is a reconnection (disconnected patient with reason provided)
+  final isReconnection =
+      currentStatus == 'disconnected' &&
+      reconnectReason != null &&
+      reconnectReason.isNotEmpty;
+  final actionType = isReconnection
+      ? 'RECONNECT_PATIENT'
+      : 'GENERATE_LINKING_CODE';
+  final justification = isReconnection
+      ? 'Patient reconnected to mobile app: $reconnectReason'
+      : 'Patient linking code generated for mobile app enrollment';
+
   // Log to admin_action_log for audit trail (CUR-690)
   await db.executeWithContext(
     '''
@@ -215,12 +243,13 @@ Future<Response> generatePatientLinkingCodeHandler(
       justification, requires_review, ip_address
     )
     VALUES (
-      @adminId, 'GENERATE_LINKING_CODE', @targetResource,
+      @adminId, @actionType, @targetResource,
       @actionDetails::jsonb, @justification, false, @ipAddress::inet
     )
     ''',
     parameters: {
       'adminId': user.id,
+      'actionType': actionType,
       'targetResource': 'patient:$patientId',
       'actionDetails': jsonEncode({
         'patient_id': patientId,
@@ -229,9 +258,10 @@ Future<Response> generatePatientLinkingCodeHandler(
         'expires_at': expiresAt.toIso8601String(),
         'generated_by_email': user.email,
         'generated_by_name': user.name,
+        'previous_status': currentStatus,
+        if (isReconnection) 'reconnect_reason': reconnectReason,
       }),
-      'justification':
-          'Patient linking code generated for mobile app enrollment',
+      'justification': justification,
       'ipAddress': clientIp,
     },
     context: serviceContext,
