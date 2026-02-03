@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 
 import 'dart:async';
 import 'dart:convert';
@@ -23,6 +25,7 @@ import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
@@ -71,6 +74,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
 
+  // REQ-CAL-p00077: Disconnection banner state
+  bool _isDisconnected = false;
+  bool _disconnectionBannerDismissed = false;
+
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
@@ -82,6 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadPreferences();
     _checkEnrollmentStatus();
     _checkLoginStatus();
+    _checkDisconnectionStatus();
+    // REQ-CAL-p00077: Reset banner dismissed state on app start
+    widget.enrollmentService.resetDisconnectionBannerDismissed();
   }
 
   Future<void> _loadPreferences() async {
@@ -112,12 +122,35 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _syncFromCloudAndReload() async {
     await widget.nosebleedService.fetchRecordsFromCloud();
     await _loadRecords();
+    // REQ-CAL-p00077: Check disconnection status after sync
+    await _checkDisconnectionStatus();
   }
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
     if (mounted) {
       setState(() => _isEnrolled = isEnrolled);
+    }
+  }
+
+  /// REQ-CAL-p00077: Check if patient is disconnected from the study
+  Future<void> _checkDisconnectionStatus() async {
+    final isDisconnected = await widget.enrollmentService.isDisconnected();
+    final bannerDismissed = await widget.enrollmentService
+        .isDisconnectionBannerDismissed();
+    if (mounted) {
+      setState(() {
+        _isDisconnected = isDisconnected;
+        _disconnectionBannerDismissed = bannerDismissed;
+      });
+    }
+  }
+
+  /// REQ-CAL-p00077: Handle dismissing the disconnection banner
+  Future<void> _handleDismissDisconnectionBanner() async {
+    await widget.enrollmentService.setDisconnectionBannerDismissed(true);
+    if (mounted) {
+      setState(() => _disconnectionBannerDismissed = true);
     }
   }
 
@@ -958,6 +991,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Banners section
             if (!_isLoading) ...[
+              // REQ-CAL-p00077: Disconnection banner (red) - highest priority
+              if (_isDisconnected && !_disconnectionBannerDismissed)
+                DisconnectionBanner(
+                  onDismiss: _handleDismissDisconnectionBanner,
+                ),
+
               // Incomplete records banner (orange)
               if (_incompleteRecords.isNotEmpty)
                 Builder(

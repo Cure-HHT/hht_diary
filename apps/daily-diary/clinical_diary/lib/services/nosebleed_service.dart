@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-d00013: Application Instance UUID Generation
 //   REQ-p00006: Offline-First Data Entry
+//   REQ-CAL-p00077: Disconnection Notification
 
 import 'dart:async';
 import 'dart:convert';
@@ -437,6 +438,16 @@ class NosebleedService {
           unsynced.map((r) => r.id).toList(),
         );
         debugPrint('Synced ${unsynced.length} records');
+
+        // REQ-CAL-p00077: Check for disconnection status in response
+        try {
+          final responseBody =
+              jsonDecode(response.body) as Map<String, dynamic>;
+          _enrollmentService.processDisconnectionStatus(responseBody);
+        } catch (e) {
+          debugPrint('Error processing sync response: $e');
+        }
+
         return SyncResult.success(syncedCount: unsynced.length);
       } else {
         debugPrint('Bulk sync failed: ${response.statusCode}');
@@ -478,6 +489,10 @@ class NosebleedService {
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // REQ-CAL-p00077: Check for disconnection status in response
+        _enrollmentService.processDisconnectionStatus(responseBody);
+
         final cloudRecords = (responseBody['records'] as List<dynamic>)
             .map(
               (json) => NosebleedRecord.fromJson(json as Map<String, dynamic>),

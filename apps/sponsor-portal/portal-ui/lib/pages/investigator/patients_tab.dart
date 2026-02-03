@@ -5,6 +5,7 @@
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-CAL-p00020: Patient Disconnection Workflow
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -14,6 +15,7 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
 
 /// Status filter for the patients tab
@@ -528,11 +530,30 @@ class _StudyCoordinatorPatientsTabState
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
-        return TextButton.icon(
-          onPressed: () => _linkPatient(patient, apiClient),
-          icon: const Icon(Icons.refresh, size: 16),
-          label: const Text('New Code'),
-          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton.icon(
+              onPressed: () => _linkPatient(patient, apiClient),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('New Code'),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+            const SizedBox(width: 4),
+            TextButton.icon(
+              onPressed: () => _disconnectPatient(patient, apiClient),
+              icon: Icon(
+                Icons.link_off,
+                size: 16,
+                color: theme.colorScheme.error,
+              ),
+              label: Text(
+                'Disconnect',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
         );
       case 'disconnected':
         return TextButton.icon(
@@ -572,5 +593,23 @@ class _StudyCoordinatorPatientsTabState
       patientDisplayId: patient.edcSubjectKey,
       apiClient: apiClient,
     );
+  }
+
+  /// Opens the DisconnectPatientDialog to disconnect a patient
+  Future<void> _disconnectPatient(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    final success = await DisconnectPatientDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if disconnection was successful
+    if (success && mounted) {
+      await _loadPatients();
+    }
   }
 }

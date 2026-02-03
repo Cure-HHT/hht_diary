@@ -4,6 +4,8 @@
 //   REQ-d00078: Linking Code Validation
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
 
 import 'dart:convert';
 
@@ -13,6 +15,7 @@ import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for handling patient linking with 10-character codes
 /// Uses HTTP calls to server functions for enrollment/linking
@@ -20,12 +23,23 @@ class EnrollmentService {
   EnrollmentService({
     FlutterSecureStorage? secureStorage,
     http.Client? httpClient,
+    SharedPreferences? sharedPreferences,
   }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
-       _httpClient = httpClient ?? http.Client();
+       _httpClient = httpClient ?? http.Client(),
+       _sharedPreferences = sharedPreferences;
 
   static const _storageKey = 'user_enrollment';
+  static const _disconnectedKey = 'patient_disconnected';
+  static const _disconnectionBannerDismissedKey =
+      'disconnection_banner_dismissed';
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
+  SharedPreferences? _sharedPreferences;
+
+  Future<SharedPreferences> _getPrefs() async {
+    _sharedPreferences ??= await SharedPreferences.getInstance();
+    return _sharedPreferences!;
+  }
 
   /// Check if user is enrolled
   Future<bool> isEnrolled() async {
@@ -253,6 +267,62 @@ class EnrollmentService {
     final baseUrl = await getBackendUrl();
     if (baseUrl == null) return null;
     return '$baseUrl/api/v1/user/records';
+  }
+
+  // REQ-CAL-p00077: Disconnection status tracking
+
+  /// Check if the patient has been disconnected from the study
+  Future<bool> isDisconnected() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_disconnectedKey) ?? false;
+  }
+
+  /// Set the disconnection status
+  /// Called when sync response indicates patient is disconnected
+  Future<void> setDisconnected(bool disconnected) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_disconnectedKey, disconnected);
+
+    // If reconnected, also clear the banner dismissed state
+    if (!disconnected) {
+      await prefs.remove(_disconnectionBannerDismissedKey);
+    }
+  }
+
+  /// Check if the disconnection banner has been dismissed by the user
+  /// The banner reappears on app restart even if dismissed
+  Future<bool> isDisconnectionBannerDismissed() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_disconnectionBannerDismissedKey) ?? false;
+  }
+
+  /// Set the banner dismissed state
+  /// Called when user taps the dismiss button
+  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_disconnectionBannerDismissedKey, dismissed);
+  }
+
+  /// Reset banner dismissed state (called on app restart)
+  Future<void> resetDisconnectionBannerDismissed() async {
+    final prefs = await _getPrefs();
+    await prefs.remove(_disconnectionBannerDismissedKey);
+  }
+
+  /// Process a sync/records response to check for disconnection status
+  /// Returns true if the patient is disconnected
+  bool processDisconnectionStatus(Map<String, dynamic> response) {
+    final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    final status = response['mobileLinkingStatus'] as String?;
+
+    debugPrint(
+      '[ENROLLMENT] Checking disconnection: status=$status, isDisconnected=$isDisconnected',
+    );
+
+    // Update local disconnection state asynchronously
+    setDisconnected(isDisconnected);
+
+    return isDisconnected;
   }
 
   /// Dispose resources
