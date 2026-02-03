@@ -167,6 +167,7 @@ class EnrollmentService {
       final patientId = responseBody['patientId'] as String?;
       final siteId = responseBody['siteId'] as String?;
       final siteName = responseBody['siteName'] as String?;
+      final sitePhoneNumber = responseBody['sitePhoneNumber'] as String?;
       final studyPatientId = responseBody['studyPatientId'] as String?;
 
       // Get sponsor info from registry for storage
@@ -175,7 +176,7 @@ class EnrollmentService {
 
       debugPrint(
         'Link successful: patientId=$patientId, siteId=$siteId, '
-        'siteName=$siteName, sponsor=${sponsor?.id}',
+        'siteName=$siteName, sitePhoneNumber=$sitePhoneNumber, sponsor=${sponsor?.id}',
       );
 
       final enrollment = UserEnrollment(
@@ -187,6 +188,7 @@ class EnrollmentService {
         patientId: patientId,
         siteId: siteId,
         siteName: siteName,
+        sitePhoneNumber: sitePhoneNumber,
         studyPatientId: studyPatientId,
       );
 
