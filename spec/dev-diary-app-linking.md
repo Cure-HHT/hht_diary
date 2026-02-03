@@ -75,7 +75,7 @@ P. The system SHALL provide haptic feedback on successful code submission (iOS/A
 
 # REQ-d00095: Linking Code Input Validation
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00079, REQ-p70007
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00079
 
 ## Rationale
 
@@ -111,7 +111,7 @@ J. The system SHALL clear validation errors when the user modifies the input.
 
 # REQ-d00096: Enrollment Token Secure Storage
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078, REQ-p00043
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00043 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -151,7 +151,7 @@ M. The system SHALL regenerate storage encryption key if device security state c
 
 # REQ-d00097: Token Lifecycle and Network Resilience
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078, REQ-p00006
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00006 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -187,7 +187,7 @@ K. The system SHALL distinguish between network errors (retry-able) and token re
 
 # REQ-d00098: Token Invalidation on Disconnection
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-d00078
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -223,7 +223,7 @@ J. The system SHALL NOT automatically request a new linking code; this must be i
 
 # REQ-d00099: Linking Code Error Handling
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007, REQ-d00078
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
 
 Addresses: JNY-Portal-Enrollment-01
 
@@ -261,7 +261,7 @@ K. The system SHALL display remaining cooldown time in the rate limit message.
 
 # REQ-d00100: Network Failure Handling During Linking
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00006, REQ-d00078
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00006 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -345,7 +345,7 @@ N. The system SHALL queue synchronization requests during STUDY_START_PENDING st
 
 # REQ-d00102: Enrollment State Behaviors
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00101, REQ-p70000
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70000 | **Refines**: REQ-d00101
 
 ## Rationale
 
@@ -393,7 +393,7 @@ Q. In NOT_PARTICIPATING state, the system SHALL allow continued diary entry crea
 
 # REQ-d00103: Disconnection Detection
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-d00098
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00098
 
 ## Rationale
 
@@ -427,7 +427,7 @@ J. The system SHALL log disconnection detection with timestamp and detection met
 
 # REQ-d00104: Contact Study Coordinator Screen
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-p70011, REQ-d00101
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-p70011 | **Refines**: REQ-d00101
 
 ## Rationale
 
@@ -469,7 +469,7 @@ N. The screen SHALL use sponsor branding colors if available in cached configura
 
 # REQ-d00105: Reconnection Recovery Path
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70011, REQ-d00101
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70011 | **Refines**: REQ-d00101
 
 Addresses: JNY-Portal-Enrollment-02
 

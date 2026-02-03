@@ -23,7 +23,7 @@ This specification defines the Portal Linking API endpoint that mobile apps call
 
 # REQ-d00109: Portal Linking Code Validation Endpoint
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078, REQ-p70007
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
 
 Addresses: JNY-Portal-Enrollment-01
 
@@ -75,7 +75,7 @@ Q. The system SHALL maintain token validity until explicitly revoked through por
 
 # REQ-d00110: Linking API Error Response Strategy
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078, REQ-p70007-G
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -111,7 +111,7 @@ J. The system SHALL NOT include stack traces, internal error codes, or debugging
 
 # REQ-d00111: Linking API Audit Trail
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-d00078-G, REQ-p00010
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00010 | **Refines**: REQ-d00078
 
 ## Rationale
 
@@ -151,7 +151,7 @@ L. The system SHALL log the `request_id` as a UUID v7 for correlation with other
 
 # REQ-d00112: Enrollment Token Revocation
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-d00078
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00078
 
 ## Rationale
 
