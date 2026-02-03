@@ -19,12 +19,16 @@ Dart library containing business logic for the HHT Diary API.
 - `auth_code`: Random code used in JWT for user lookup
 - `app_uuid`: Device/app instance identifier
 
-**study_enrollments** - Links app users to clinical studies
-- `enrollment_code`: One-time code from study coordinator (e.g., CUREHHT1)
-- `user_id`: References app_users
-- `patient_id`: De-identified ID from sponsor EDC (assigned after enrollment)
+**user_site_assignments** - Links app users to clinical sites
+- `patient_id`: References app_users.user_id
 - `site_id`: Clinical trial site
-- `sponsor_id`: Sponsor/study identifier
+- `study_patient_id`: De-identified ID from sponsor EDC
+- `enrollment_status`: ACTIVE, COMPLETED, WITHDRAWN
+
+**patient_linking_codes** - One-time codes for patient-app linking (generated via sponsor portal)
+- `code`: 10-char linking code (2-char sponsor prefix + 8 random)
+- `patient_id`: EDC patient being linked
+- `expires_at`: 72-hour expiration
 
 **record_audit** - Event store for all user data (existing table)
 - Sync data is written here as append-only events
@@ -32,16 +36,17 @@ Dart library containing business logic for the HHT Diary API.
 
 ### Handlers
 
-| Endpoint                          | Handler                 | Description                 |
-|-----------------------------------|-------------------------|-----------------------------|
-| GET /health                       | `healthHandler`         | Cloud Run health check      |
-| POST /api/v1/auth/register        | `registerHandler`       | Create new user account     |
-| POST /api/v1/auth/login           | `loginHandler`          | Authenticate user           |
-| POST /api/v1/auth/change-password | `changePasswordHandler` | Update password             |
-| POST /api/v1/user/enroll          | `enrollHandler`         | Enroll in clinical study    |
-| POST /api/v1/user/sync            | `syncHandler`           | Sync events to record_audit |
-| POST /api/v1/user/records         | `getRecordsHandler`     | Get current record state    |
-| GET /api/v1/sponsor/config        | `sponsorConfigHandler`  | Get sponsor feature flags   |
+| Endpoint                          | Handler                 | Description                        |
+|-----------------------------------|-------------------------|------------------------------------|
+| GET /health                       | `healthHandler`         | Cloud Run health check             |
+| POST /api/v1/auth/register        | `registerHandler`       | Create new user account            |
+| POST /api/v1/auth/login           | `loginHandler`          | Authenticate user                  |
+| POST /api/v1/auth/change-password | `changePasswordHandler` | Update password                    |
+| POST /api/v1/user/link            | `linkHandler`           | Link app to patient (via code)     |
+| POST /api/v1/user/enroll          | `enrollHandler`         | DEPRECATED - returns 410 Gone      |
+| POST /api/v1/user/sync            | `syncHandler`           | Sync events to record_audit        |
+| POST /api/v1/user/records         | `getRecordsHandler`     | Get current record state           |
+| GET /api/v1/sponsor/config        | `sponsorConfigHandler`  | Get sponsor feature flags          |
 
 ## Security
 
@@ -63,11 +68,11 @@ The `Sql.named()` function binds parameters at the driver level, ensuring that e
 
 Additional input validation provides defense-in-depth:
 
-| Input           | Validation                     | Pattern           |
-|-----------------|--------------------------------|-------------------|
-| Username        | Alphanumeric + underscore only | `^[a-zA-Z0-9_]+$` |
-| Password hash   | 64-char hex string (SHA-256)   | `^[a-f0-9]{64}$`  |
-| Enrollment code | Fixed format                   | `^CUREHHT[0-9]$`  |
+| Input         | Validation                     | Pattern                   |
+|---------------|--------------------------------|---------------------------|
+| Username      | Alphanumeric + underscore only | `^[a-zA-Z0-9_]+$`         |
+| Password hash | 64-char hex string (SHA-256)   | `^[a-f0-9]{64}$`          |
+| Linking code  | 10-char sponsor code           | `^[A-Z]{2}[A-Z0-9]{8}$`   |
 
 ### JWT Authentication
 

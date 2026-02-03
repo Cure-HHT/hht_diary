@@ -29,7 +29,9 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      mockEnrollment = MockEnrollmentService();
+      mockEnrollment = MockEnrollmentService()
+        // Set default backend URL for tests that use sync/fetch
+        ..backendUrl = 'https://test-backend.example.com';
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('nosebleed_test_');
@@ -1027,7 +1029,7 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
@@ -1079,7 +1081,7 @@ void main() {
 
         // Now fetch a different cloud record for same date
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
@@ -1113,7 +1115,7 @@ void main() {
         var fetchCalled = false;
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             fetchCalled = true;
           }
           return http.Response('', 200);
@@ -1133,7 +1135,7 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          if (request.url.path.contains('records')) {
             return http.Response('{"error": "Server error"}', 500);
           }
           return http.Response('', 200);
@@ -1271,7 +1273,8 @@ void main() {
         mockEnrollment.jwtToken = 'test-jwt-token';
 
         final mockClient = MockClient((request) async {
-          if (request.url.path.contains('getRecords')) {
+          // Match both old (/getRecords) and new (/records) URL paths
+          if (request.url.path.contains('records')) {
             return http.Response(
               jsonEncode({
                 'records': [
@@ -1312,6 +1315,7 @@ void main() {
 /// Mock EnrollmentService for testing
 class MockEnrollmentService implements EnrollmentService {
   String? jwtToken;
+  String? backendUrl;
 
   @override
   Future<String?> getJwtToken() async => jwtToken;
@@ -1335,4 +1339,15 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<String?> getUserId() async => 'test-user-id';
+
+  @override
+  Future<String?> getBackendUrl() async => backendUrl;
+
+  @override
+  Future<String?> getSyncUrl() async =>
+      backendUrl != null ? '$backendUrl/api/v1/user/sync' : null;
+
+  @override
+  Future<String?> getRecordsUrl() async =>
+      backendUrl != null ? '$backendUrl/api/v1/user/records' : null;
 }

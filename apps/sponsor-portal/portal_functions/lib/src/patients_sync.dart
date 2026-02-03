@@ -194,47 +194,58 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
 
     var created = 0;
     var updated = 0;
+    var skipped = 0;
 
     // Upsert each subject as a patient
     for (final subject in subjects) {
       final patientId = subject.subjectKey;
       final siteId = subject.siteOid;
 
-      final upsertResult = await db.executeWithContext(
-        '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
-          mobile_linking_status, edc_synced_at,
-          created_at, updated_at
-        )
-        VALUES (
-          @patientId, @siteId, @edcSubjectKey,
-          'not_connected', @syncedAt,
-          now(), now()
-        )
-        ON CONFLICT (patient_id) DO UPDATE SET
-          site_id = EXCLUDED.site_id,
-          edc_synced_at = EXCLUDED.edc_synced_at,
-          updated_at = now()
-        RETURNING (xmax = 0) as is_insert
-        ''',
-        parameters: {
-          'patientId': patientId,
-          'siteId': siteId,
-          'edcSubjectKey': subject.subjectKey,
-          'syncedAt': syncedAt,
-        },
-        context: serviceContext,
-      );
+      try {
+        final upsertResult = await db.executeWithContext(
+          '''
+          INSERT INTO patients (
+            patient_id, site_id, edc_subject_key,
+            mobile_linking_status, edc_synced_at,
+            created_at, updated_at
+          )
+          VALUES (
+            @patientId, @siteId, @edcSubjectKey,
+            'not_connected', @syncedAt,
+            now(), now()
+          )
+          ON CONFLICT (patient_id) DO UPDATE SET
+            site_id = EXCLUDED.site_id,
+            edc_synced_at = EXCLUDED.edc_synced_at,
+            updated_at = now()
+          RETURNING (xmax = 0) as is_insert
+          ''',
+          parameters: {
+            'patientId': patientId,
+            'siteId': siteId,
+            'edcSubjectKey': subject.subjectKey,
+            'syncedAt': syncedAt,
+          },
+          context: serviceContext,
+        );
 
-      if (upsertResult.isNotEmpty) {
-        final isInsert = upsertResult.first[0] as bool;
-        if (isInsert) {
-          created++;
-        } else {
-          updated++;
+        if (upsertResult.isNotEmpty) {
+          final isInsert = upsertResult.first[0] as bool;
+          if (isInsert) {
+            created++;
+          } else {
+            updated++;
+          }
         }
+      } catch (e) {
+        // Skip patients with invalid site references (FK violation)
+        print('[WARN] Skipping patient $patientId (site $siteId): $e');
+        skipped++;
       }
+    }
+
+    if (skipped > 0) {
+      print('[PATIENTS_SYNC] Skipped $skipped patients with unknown sites');
     }
 
     final result = PatientsSyncResult(

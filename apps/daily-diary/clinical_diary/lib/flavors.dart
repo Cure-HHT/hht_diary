@@ -92,38 +92,47 @@ class FlavorConfig {
   /// Development flavor configuration
   static const dev = FlavorValues(
     name: 'dev',
-    apiBase: 'https://hht-diary-mvp.web.app/api',
+    apiBase: 'https://patient-server-1012274191696.europe-west9.run.app/api',
     environment: 'dev',
     showDevTools: true,
     showBanner: true,
+    sponsorBackends: {
+      // Callisto dev Cloud Run
+      'CA': 'https://patient-server-1012274191696.europe-west9.run.app',
+    },
   );
 
   /// QA flavor configuration
   static const qa = FlavorValues(
     name: 'qa',
-    apiBase: 'https://hht-diary-qa.web.app/api',
+    // TODO: Update when QA environment deployed
+    apiBase: 'https://patient-server-qa.europe-west9.run.app/api',
     environment: 'qa',
     showDevTools: true,
     showBanner: true,
+    sponsorBackends: {'CA': 'https://patient-server-qa.europe-west9.run.app'},
   );
 
   /// UAT flavor configuration
-  /// NOTE: Temporarily pointing to MVP backend for pre-UAT release
   static const uat = FlavorValues(
     name: 'uat',
-    apiBase: 'https://hht-diary-mvp.web.app/api',
+    // TODO: Update when UAT environment deployed
+    apiBase: 'https://patient-server-uat.europe-west9.run.app/api',
     environment: 'uat',
     showDevTools: false,
     showBanner: false,
+    sponsorBackends: {'CA': 'https://patient-server-uat.europe-west9.run.app'},
   );
 
   /// Production flavor configuration
   static const prod = FlavorValues(
     name: 'prod',
-    apiBase: 'https://hht-diary.web.app/api',
+    // TODO: Update when prod environment deployed
+    apiBase: 'https://patient-server.europe-west9.run.app/api',
     environment: 'prod',
     showDevTools: false,
     showBanner: false,
+    sponsorBackends: {'CA': 'https://patient-server.europe-west9.run.app'},
   );
 
   /// Get flavor by name
@@ -149,6 +158,7 @@ class FlavorValues {
     required this.environment,
     required this.showDevTools,
     required this.showBanner,
+    required this.sponsorBackends,
   });
 
   final String name;
@@ -156,6 +166,13 @@ class FlavorValues {
   final String environment;
   final bool showDevTools;
   final bool showBanner;
+
+  /// Sponsor backend URLs mapped by 2-letter code prefix.
+  /// E.g., {'CA': 'https://patient-server-xxx.run.app'}
+  ///
+  /// TODO: Replace with central config service on cure-hht-admin GCP project
+  /// so new sponsors can be added without app updates.
+  final Map<String, String> sponsorBackends;
 
   /// Generate dart-define argument for this flavor.
   /// Only APP_FLAVOR is needed - all other config is derived from FlavorConfig.

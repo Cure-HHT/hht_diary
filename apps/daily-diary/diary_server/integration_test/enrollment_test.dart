@@ -30,74 +30,33 @@ void main() {
     await server.stop();
   });
 
-  group('Enrollment Integration Tests', () {
-    late String authToken;
-    final testUsername = 'enrolltest_${DateTime.now().millisecondsSinceEpoch}';
-    const testPasswordHash =
-        '5e884898da28047d9166540d34e4b5eb9d06d6b9f7c0c0d3a75a3a75e8e0ab57';
+  group('Enrollment Integration Tests (deprecated endpoint)', () {
+    // The /api/v1/user/enroll endpoint is deprecated and returns 410 Gone
+    // Use /api/v1/user/link with sponsor portal linking codes instead
 
-    setUp(() async {
-      // Create a user for enrollment tests
-      final response = await client.post(
-        Uri.parse('${server.baseUrl}/api/v1/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': testUsername,
-          'passwordHash': testPasswordHash,
-          'appUuid': 'test-app-${DateTime.now().millisecondsSinceEpoch}',
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        authToken = body['jwt'] as String;
-      }
-    });
-
-    test('POST /api/v1/user/enroll requires authentication', () async {
+    test('POST /api/v1/user/enroll returns 410 Gone (deprecated)', () async {
       final response = await client.post(
         Uri.parse('${server.baseUrl}/api/v1/user/enroll'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': 'CUREHHT1'}),
       );
 
-      expect(response.statusCode, equals(401));
+      expect(response.statusCode, equals(410));
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(body['error'], contains('deprecated'));
     });
 
-    test(
-      'POST /api/v1/user/enroll rejects invalid enrollment code format',
-      () async {
-        final response = await client.post(
-          Uri.parse('${server.baseUrl}/api/v1/user/enroll'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $authToken',
-          },
-          body: jsonEncode({'code': 'INVALID'}),
-        );
-
-        expect(response.statusCode, equals(400));
-
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        expect(body['error'], contains('Invalid enrollment code'));
-      },
-    );
-
-    test('POST /api/v1/user/enroll rejects empty code', () async {
+    test('response mentions /api/v1/user/link as replacement', () async {
       final response = await client.post(
         Uri.parse('${server.baseUrl}/api/v1/user/enroll'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({'code': ''}),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': 'CUREHHT1'}),
       );
 
-      expect(response.statusCode, equals(400));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(body['error'], contains('/api/v1/user/link'));
     });
-
-    // Note: Successful enrollment test would need a valid unused enrollment code
-    // which requires test data setup in the database
   });
 
   group('Sync Integration Tests', () {

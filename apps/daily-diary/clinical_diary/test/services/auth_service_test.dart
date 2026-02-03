@@ -56,7 +56,8 @@ void main() {
             ),
             loginStatus,
           );
-        } else if (uri.contains('/changePassword')) {
+        } else if (uri.contains('/change-password') ||
+            uri.contains('/changePassword')) {
           return http.Response(
             jsonEncode(changePasswordResponse ?? {'success': true}),
             changePasswordStatus,

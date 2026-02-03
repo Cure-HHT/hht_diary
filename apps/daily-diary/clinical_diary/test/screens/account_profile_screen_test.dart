@@ -30,7 +30,9 @@ void main() {
       return MockClient((request) async {
         final uri = request.url.toString();
 
-        if (uri.contains('/changePassword')) {
+        // Match both old (/changePassword) and new (/change-password) URL paths
+        if (uri.contains('/change-password') ||
+            uri.contains('/changePassword')) {
           return http.Response(
             jsonEncode(changePasswordResponse ?? {'success': true}),
             changePasswordStatus,

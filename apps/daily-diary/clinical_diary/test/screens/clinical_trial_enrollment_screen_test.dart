@@ -1,9 +1,11 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//   REQ-p70007: Linking Code Lifecycle Management
 
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -18,16 +20,24 @@ void main() {
 
   group('ClinicalTrialEnrollmentScreen', () {
     late EnrollmentService enrollmentService;
+    late MockSecureStorage mockStorage;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
+      mockStorage = MockSecureStorage();
+      // Pre-set auth JWT token - required for enrollment/linking (REQ-p70007)
+      mockStorage.data['auth_jwt'] = 'test-jwt-token';
+      mockStorage.data['auth_username'] = 'test-user-id';
     });
 
     Widget buildScreen({http.Client? httpClient}) {
       final client =
           httpClient ??
           MockClient((_) async => http.Response('{"error": "error"}', 400));
-      enrollmentService = EnrollmentService(httpClient: client);
+      enrollmentService = EnrollmentService(
+        httpClient: client,
+        secureStorage: mockStorage,
+      );
 
       return wrapWithMaterialApp(
         ClinicalTrialEnrollmentScreen(enrollmentService: enrollmentService),
@@ -349,6 +359,9 @@ void main() {
     group('Navigation', () {
       testWidgets('back button pops screen', (tester) async {
         var popped = false;
+        final navMockStorage = MockSecureStorage();
+        navMockStorage.data['auth_jwt'] = 'test-jwt-token';
+        navMockStorage.data['auth_username'] = 'test-user-id';
 
         await tester.pumpWidget(
           MaterialApp(
@@ -363,6 +376,7 @@ void main() {
                           httpClient: MockClient(
                             (_) async => http.Response('{}', 200),
                           ),
+                          secureStorage: navMockStorage,
                         ),
                       ),
                     ),
@@ -454,4 +468,133 @@ void main() {
       expect(result.selection.extentOffset, 2);
     });
   });
+}
+
+/// Mock implementation of FlutterSecureStorage for testing
+class MockSecureStorage implements FlutterSecureStorage {
+  final Map<String, String> data = {};
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return data[key];
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (value == null) {
+      data.remove(key);
+    } else {
+      data[key] = value;
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    data.remove(key);
+  }
+
+  @override
+  Future<bool> containsKey({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return data.containsKey(key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return Map.from(data);
+  }
+
+  @override
+  Future<void> deleteAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    data.clear();
+  }
+
+  @override
+  IOSOptions get iOptions => IOSOptions.defaultOptions;
+
+  @override
+  AndroidOptions get aOptions => AndroidOptions.defaultOptions;
+
+  @override
+  LinuxOptions get lOptions => LinuxOptions.defaultOptions;
+
+  @override
+  WebOptions get webOptions => WebOptions.defaultOptions;
+
+  @override
+  MacOsOptions get mOptions => MacOsOptions.defaultOptions;
+
+  @override
+  WindowsOptions get wOptions => WindowsOptions.defaultOptions;
+
+  @override
+  Future<bool?> isCupertinoProtectedDataAvailable() async => true;
+
+  @override
+  Stream<bool> get onCupertinoProtectedDataAvailabilityChanged =>
+      Stream.value(true);
+
+  @override
+  void registerListener({
+    required String key,
+    required ValueChanged<String?> listener,
+  }) {}
+
+  @override
+  void unregisterListener({
+    required String key,
+    required ValueChanged<String?> listener,
+  }) {}
+
+  @override
+  void unregisterAllListeners() {}
+
+  @override
+  void unregisterAllListenersForKey({required String key}) {}
 }

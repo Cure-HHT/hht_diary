@@ -152,36 +152,50 @@ void main() {
     group('static constants', () {
       test('dev has correct values', () {
         expect(FlavorConfig.dev.name, 'dev');
-        expect(FlavorConfig.dev.apiBase, 'https://hht-diary-mvp.web.app/api');
+        expect(
+          FlavorConfig.dev.apiBase,
+          'https://patient-server-1012274191696.europe-west9.run.app/api',
+        );
         expect(FlavorConfig.dev.environment, 'dev');
         expect(FlavorConfig.dev.showDevTools, true);
         expect(FlavorConfig.dev.showBanner, true);
+        expect(FlavorConfig.dev.sponsorBackends['CA'], isNotNull);
       });
 
       test('qa has correct values', () {
         expect(FlavorConfig.qa.name, 'qa');
-        expect(FlavorConfig.qa.apiBase, 'https://hht-diary-qa.web.app/api');
+        expect(
+          FlavorConfig.qa.apiBase,
+          'https://patient-server-qa.europe-west9.run.app/api',
+        );
         expect(FlavorConfig.qa.environment, 'qa');
         expect(FlavorConfig.qa.showDevTools, true);
         expect(FlavorConfig.qa.showBanner, true);
+        expect(FlavorConfig.qa.sponsorBackends['CA'], isNotNull);
       });
 
       test('uat has correct values', () {
         expect(FlavorConfig.uat.name, 'uat');
-        // NOTE: Temporarily pointing to MVP backend for pre-UAT release
-        // TODO: Revert to https://hht-diary-uat.web.app/api when UAT backend is ready
-        expect(FlavorConfig.uat.apiBase, 'https://hht-diary-mvp.web.app/api');
+        expect(
+          FlavorConfig.uat.apiBase,
+          'https://patient-server-uat.europe-west9.run.app/api',
+        );
         expect(FlavorConfig.uat.environment, 'uat');
         expect(FlavorConfig.uat.showDevTools, false);
         expect(FlavorConfig.uat.showBanner, false);
+        expect(FlavorConfig.uat.sponsorBackends['CA'], isNotNull);
       });
 
       test('prod has correct values', () {
         expect(FlavorConfig.prod.name, 'prod');
-        expect(FlavorConfig.prod.apiBase, 'https://hht-diary.web.app/api');
+        expect(
+          FlavorConfig.prod.apiBase,
+          'https://patient-server.europe-west9.run.app/api',
+        );
         expect(FlavorConfig.prod.environment, 'prod');
         expect(FlavorConfig.prod.showDevTools, false);
         expect(FlavorConfig.prod.showBanner, false);
+        expect(FlavorConfig.prod.sponsorBackends['CA'], isNotNull);
       });
     });
 
@@ -235,6 +249,7 @@ void main() {
         environment: 'testing',
         showDevTools: true,
         showBanner: false,
+        sponsorBackends: {'CA': 'https://test-sponsor.example.com'},
       );
 
       expect(values.name, 'test');
@@ -242,6 +257,7 @@ void main() {
       expect(values.environment, 'testing');
       expect(values.showDevTools, true);
       expect(values.showBanner, false);
+      expect(values.sponsorBackends['CA'], 'https://test-sponsor.example.com');
     });
 
     group('dartDefine', () {

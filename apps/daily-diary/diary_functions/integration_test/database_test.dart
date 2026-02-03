@@ -104,12 +104,12 @@ void main() {
       expect(result.first[0], isTrue);
     });
 
-    test('study_enrollments table exists', () async {
+    test('patient_linking_codes table exists', () async {
       final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
-          AND table_name = 'study_enrollments'
+          AND table_name = 'patient_linking_codes'
         ) as exists
         ''');
 

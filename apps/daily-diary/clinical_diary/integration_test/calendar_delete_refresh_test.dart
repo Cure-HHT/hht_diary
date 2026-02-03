@@ -261,7 +261,11 @@ void main() {
   });
 }
 
-/// Helper to find the decorated container for a specific day in the calendar
+/// Helper to find the decorated container for a specific day in the calendar.
+/// When showing 6 weeks, a day number like "28" may appear twice:
+/// - Once in the previous month (outside day, rendered with alpha 0.5)
+/// - Once in the current month (inside day, rendered with alpha 1.0)
+/// This function finds the INSIDE month day (full opacity).
 BoxDecoration _findDayContainer(WidgetTester tester, String dayText) {
   final dayFinder = find.ancestor(
     of: find.text(dayText),
@@ -269,11 +273,23 @@ BoxDecoration _findDayContainer(WidgetTester tester, String dayText) {
   );
 
   final dayContainers = tester.widgetList<Container>(dayFinder);
-  final decoratedContainer = dayContainers.firstWhere(
-    (c) => c.decoration != null && c.decoration is BoxDecoration,
-    orElse: () =>
-        throw StateError('No decorated container found for day $dayText'),
-  );
 
-  return decoratedContainer.decoration! as BoxDecoration;
+  // Find decorated containers and prefer the one with full opacity (inside month)
+  final decoratedContainers = dayContainers
+      .where((c) => c.decoration != null && c.decoration is BoxDecoration)
+      .toList();
+
+  if (decoratedContainers.isEmpty) {
+    throw StateError('No decorated container found for day $dayText');
+  }
+
+  // Prefer the container with full opacity (inside month day)
+  // Outside month days have alpha 0.5
+  final insideMonthContainer = decoratedContainers.firstWhere((c) {
+    final decoration = c.decoration! as BoxDecoration;
+    return decoration.color != null &&
+        (decoration.color!.a == 1.0 || decoration.color!.a == 255);
+  }, orElse: () => decoratedContainers.first);
+
+  return insideMonthContainer.decoration! as BoxDecoration;
 }

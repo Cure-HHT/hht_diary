@@ -105,16 +105,31 @@ BEGIN
     -- Validate JSONB data structure
     PERFORM validate_diary_data(NEW.data);
 
-    -- Ensure patient is enrolled at the site
-    IF NOT EXISTS (
-        SELECT 1 FROM user_site_assignments
-        WHERE patient_id = NEW.patient_id
-        AND site_id = NEW.site_id
-        AND enrollment_status = 'ACTIVE'
-    ) THEN
-        -- Only enforce for USER operations (admin can create for any site)
-        IF NEW.role = 'USER' THEN
-            RAISE EXCEPTION 'Patient % is not enrolled at site %', NEW.patient_id, NEW.site_id;
+    -- Ensure patient/site relationship is valid for USER operations
+    -- Check in order: patients table (EDC), user_site_assignments (legacy), DEFAULT site
+    IF NEW.role = 'USER' THEN
+        -- Check if this is a known patient from EDC (patients table)
+        IF EXISTS (SELECT 1 FROM patients WHERE patient_id = NEW.patient_id) THEN
+            -- Verify the site matches the patient's assigned site
+            IF NOT EXISTS (
+                SELECT 1 FROM patients
+                WHERE patient_id = NEW.patient_id
+                AND site_id = NEW.site_id
+            ) THEN
+                RAISE EXCEPTION 'Patient % is not assigned to site %', NEW.patient_id, NEW.site_id;
+            END IF;
+        -- Check legacy enrollment in user_site_assignments
+        ELSIF EXISTS (
+            SELECT 1 FROM user_site_assignments
+            WHERE patient_id = NEW.patient_id
+            AND site_id = NEW.site_id
+            AND enrollment_status = 'ACTIVE'
+        ) THEN
+            -- Patient enrolled via legacy flow - allow
+            NULL;
+        ELSIF NEW.site_id != 'DEFAULT' THEN
+            -- Non-linked users (patient_id = user_id) must use DEFAULT site
+            RAISE EXCEPTION 'Unlinked user % cannot sync to site %', NEW.patient_id, NEW.site_id;
         END IF;
     END IF;
 

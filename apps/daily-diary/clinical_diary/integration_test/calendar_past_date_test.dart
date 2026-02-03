@@ -288,6 +288,7 @@ void main() {
 /// Mock EnrollmentService for testing
 class MockEnrollmentService implements EnrollmentService {
   String? jwtToken;
+  String? backendUrl;
   UserEnrollment? enrollment;
 
   @override
@@ -312,4 +313,15 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<String?> getUserId() async => 'test-user-id';
+
+  @override
+  Future<String?> getBackendUrl() async => backendUrl;
+
+  @override
+  Future<String?> getSyncUrl() async =>
+      backendUrl != null ? '$backendUrl/api/v1/user/sync' : null;
+
+  @override
+  Future<String?> getRecordsUrl() async =>
+      backendUrl != null ? '$backendUrl/api/v1/user/records' : null;
 }
