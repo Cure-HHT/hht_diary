@@ -59,7 +59,7 @@ HHT Quality of Life is a **scored questionnaire** that may require investigator 
 ### Questions
 
 | # | Question |
-|---|----------|
+| --- | ---------- |
 | 1 | How often in the past 4 weeks has an activity for your work, school, or regularly scheduled commitments been **interrupted** by a nose bleed? |
 | 2 | How often in the past 4 weeks has an activity with your partner, family, or friends been **interrupted** by a nose bleed? |
 | 3 | How often in the past 4 weeks have you **avoided** social activities because you were worried about having a nose bleed? |
@@ -70,7 +70,7 @@ HHT Quality of Life is a **scored questionnaire** that may require investigator 
 All questions use a single 5-point frequency scale (scored 0–4):
 
 | Value | Label |
-|-------|-------|
+| ----- | ----- |
 | 0 | Never |
 | 1 | Rarely |
 | 2 | Sometimes |

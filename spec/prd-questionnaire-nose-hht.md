@@ -64,7 +64,7 @@ NOSE HHT is a **scored questionnaire** that may require investigator approval be
 Stem: *Please rate how severe the following problems are due to your nosebleeds:*
 
 | # | Question |
-|---|----------|
+| --- | ---------- |
 | 1 | Blood running down the back of your throat |
 | 2 | Blocked up, stuffy nose |
 | 3 | Nasal crusting |
@@ -77,7 +77,7 @@ Stem: *Please rate how severe the following problems are due to your nosebleeds:
 Stem: *How difficult is it to perform the following tasks due to your nosebleeds?*
 
 | # | Question |
-|---|----------|
+| --- | ---------- |
 | 7 | Blow your nose |
 | 8 | Bend over/pick something up off the ground |
 | 9 | Breathe through your nose |
@@ -98,7 +98,7 @@ Stem: *How difficult is it to perform the following tasks due to your nosebleeds
 Stem: *How bothered are you by the following due to your nosebleeds?*
 
 | # | Question |
-|---|----------|
+| --- | ---------- |
 | 21 | Fear of nosebleeds in public |
 | 22 | Fear of not knowing when next nosebleed |
 | 23 | Getting blood on your clothes |
@@ -116,7 +116,7 @@ Each category uses a 5-point scale (scored 0–4) with category-specific labels:
 #### Physical Response Scale
 
 | Value | Label |
-|-------|-------|
+| ----- | ----- |
 | 0 | No problem |
 | 1 | Mild problem |
 | 2 | Moderate problem |
@@ -126,7 +126,7 @@ Each category uses a 5-point scale (scored 0–4) with category-specific labels:
 #### Functional Response Scale
 
 | Value | Label |
-|-------|-------|
+| ----- | ----- |
 | 0 | No difficulty |
 | 1 | Mild difficulty |
 | 2 | Moderate difficulty |
@@ -136,7 +136,7 @@ Each category uses a 5-point scale (scored 0–4) with category-specific labels:
 #### Emotional Response Scale
 
 | Value | Label |
-|-------|-------|
+| ----- | ----- |
 | 0 | Not bothered |
 | 1 | Very rarely bothered |
 | 2 | Rarely bothered |
