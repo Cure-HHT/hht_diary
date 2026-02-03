@@ -10,6 +10,7 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //
 // Patient linking code handlers - generate and manage linking codes
 // for patient mobile app enrollment
@@ -615,6 +616,364 @@ Future<Response> disconnectPatientHandler(
     'previous_status': currentStatus,
     'new_status': 'disconnected',
     'codes_revoked': codesRevoked,
+    'reason': reason,
+  });
+}
+
+/// Valid reasons for marking patient as not participating per CUR-770 specification
+const validNotParticipatingReasons = [
+  'Subject Withdrawal',
+  'Death',
+  'Protocol treatment/study complete',
+  'Other',
+];
+
+/// Mark a patient as not participating in the study
+/// POST /api/v1/portal/patients/:patientId/not-participating
+/// Authorization: Bearer <Identity Platform ID token>
+/// Body: { "reason": "Subject Withdrawal" | "Death" | "Protocol treatment/study complete" | "Other", "notes": "..." }
+///
+/// Marks a disconnected patient as not participating:
+/// - Requires Investigator role with site access to patient's site
+/// - Patient must be in 'disconnected' status
+/// - Updates patient status to 'not_participating'
+/// - Logs action to admin_action_log
+///
+/// Returns:
+///   200: { "success": true, "patient_id": "...", "previous_status": "disconnected", "new_status": "not_participating", ... }
+///   400: Invalid or missing reason value
+///   401: Missing or invalid authorization
+///   403: Unauthorized (not Investigator role or wrong site)
+///   404: Patient not found
+///   409: Patient is not in 'disconnected' status
+Future<Response> markPatientNotParticipatingHandler(
+  Request request,
+  String patientId,
+) async {
+  print('[PATIENT_LINKING] markPatientNotParticipatingHandler for: $patientId');
+
+  // Authenticate and get user
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Check role - only Investigators can mark patients as not participating
+  if (user.activeRole != 'Investigator') {
+    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
+    return _jsonResponse({
+      'error': 'Only Investigators can mark patients as not participating',
+    }, 403);
+  }
+
+  // Parse request body
+  String body;
+  try {
+    body = await request.readAsString();
+  } catch (e) {
+    return _jsonResponse({'error': 'Failed to read request body'}, 400);
+  }
+
+  Map<String, dynamic> requestData;
+  try {
+    requestData = body.isNotEmpty
+        ? jsonDecode(body) as Map<String, dynamic>
+        : <String, dynamic>{};
+  } catch (e) {
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
+  }
+
+  // Validate reason field
+  final reason = requestData['reason'] as String?;
+  if (reason == null || reason.isEmpty) {
+    return _jsonResponse({'error': 'Missing required field: reason'}, 400);
+  }
+
+  if (!validNotParticipatingReasons.contains(reason)) {
+    return _jsonResponse({
+      'error':
+          'Invalid reason. Must be one of: ${validNotParticipatingReasons.join(", ")}',
+    }, 400);
+  }
+
+  // If reason is "Other", notes are required
+  final notes = requestData['notes'] as String?;
+  if (reason == 'Other' && (notes == null || notes.trim().isEmpty)) {
+    return _jsonResponse({
+      'error': 'Notes are required when reason is "Other"',
+    }, 400);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch patient and verify site access
+  final patientResult = await db.executeWithContext(
+    '''
+    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM patients p
+    JOIN sites s ON p.site_id = s.site_id
+    WHERE p.patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (patientResult.isEmpty) {
+    print('[PATIENT_LINKING] Patient not found: $patientId');
+    return _jsonResponse({'error': 'Patient not found'}, 404);
+  }
+
+  final patientSiteId = patientResult.first[1] as String;
+  final currentStatus = patientResult.first[2] as String;
+  final siteName = patientResult.first[3] as String;
+
+  // Verify Investigator has access to this patient's site
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    print(
+      '[PATIENT_LINKING] User ${user.id} has no access to site $patientSiteId',
+    );
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  // Check patient status - can only mark as not participating if disconnected
+  if (currentStatus != 'disconnected') {
+    print(
+      '[PATIENT_LINKING] Patient $patientId is not disconnected (status: $currentStatus)',
+    );
+    return _jsonResponse({
+      'error':
+          'Patient must be in "disconnected" status. Current status: $currentStatus',
+    }, 409);
+  }
+
+  // Update patient status to 'not_participating'
+  await db.executeWithContext(
+    '''
+    UPDATE patients
+    SET mobile_linking_status = 'not_participating',
+        updated_at = now()
+    WHERE patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Log to admin_action_log for audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'MARK_NOT_PARTICIPATING', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'previous_status': currentStatus,
+        'new_status': 'not_participating',
+        'reason': reason,
+        'notes': notes,
+        'marked_by_email': user.email,
+        'marked_by_name': user.name,
+      }),
+      'justification': 'Patient marked as not participating: $reason',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print(
+    '[PATIENT_LINKING] Patient marked as not participating: $patientId, reason: $reason',
+  );
+
+  return _jsonResponse({
+    'success': true,
+    'patient_id': patientId,
+    'previous_status': currentStatus,
+    'new_status': 'not_participating',
+    'reason': reason,
+  });
+}
+
+/// Reactivate a patient who was marked as not participating
+/// POST /api/v1/portal/patients/:patientId/reactivate
+/// Authorization: Bearer <Identity Platform ID token>
+/// Body: { "reason": "..." }
+///
+/// Reactivates a patient who was marked as not participating:
+/// - Requires Investigator role with site access to patient's site
+/// - Patient must be in 'not_participating' status
+/// - Updates patient status to 'disconnected' (requires reconnection)
+/// - Logs action to admin_action_log
+///
+/// Returns:
+///   200: { "success": true, "patient_id": "...", "previous_status": "not_participating", "new_status": "disconnected", ... }
+///   400: Invalid or missing reason value
+///   401: Missing or invalid authorization
+///   403: Unauthorized (not Investigator role or wrong site)
+///   404: Patient not found
+///   409: Patient is not in 'not_participating' status
+Future<Response> reactivatePatientHandler(
+  Request request,
+  String patientId,
+) async {
+  print('[PATIENT_LINKING] reactivatePatientHandler for: $patientId');
+
+  // Authenticate and get user
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Check role - only Investigators can reactivate patients
+  if (user.activeRole != 'Investigator') {
+    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
+    return _jsonResponse({
+      'error': 'Only Investigators can reactivate patients',
+    }, 403);
+  }
+
+  // Parse request body
+  String body;
+  try {
+    body = await request.readAsString();
+  } catch (e) {
+    return _jsonResponse({'error': 'Failed to read request body'}, 400);
+  }
+
+  Map<String, dynamic> requestData;
+  try {
+    requestData = body.isNotEmpty
+        ? jsonDecode(body) as Map<String, dynamic>
+        : <String, dynamic>{};
+  } catch (e) {
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
+  }
+
+  // Validate reason field
+  final reason = requestData['reason'] as String?;
+  if (reason == null || reason.trim().isEmpty) {
+    return _jsonResponse({'error': 'Missing required field: reason'}, 400);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch patient and verify site access
+  final patientResult = await db.executeWithContext(
+    '''
+    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM patients p
+    JOIN sites s ON p.site_id = s.site_id
+    WHERE p.patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (patientResult.isEmpty) {
+    print('[PATIENT_LINKING] Patient not found: $patientId');
+    return _jsonResponse({'error': 'Patient not found'}, 404);
+  }
+
+  final patientSiteId = patientResult.first[1] as String;
+  final currentStatus = patientResult.first[2] as String;
+  final siteName = patientResult.first[3] as String;
+
+  // Verify Investigator has access to this patient's site
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    print(
+      '[PATIENT_LINKING] User ${user.id} has no access to site $patientSiteId',
+    );
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  // Check patient status - can only reactivate if not_participating
+  if (currentStatus != 'not_participating') {
+    print(
+      '[PATIENT_LINKING] Patient $patientId is not "not_participating" (status: $currentStatus)',
+    );
+    return _jsonResponse({
+      'error':
+          'Patient must be in "not_participating" status. Current status: $currentStatus',
+    }, 409);
+  }
+
+  // Update patient status to 'disconnected' (they will need to reconnect)
+  await db.executeWithContext(
+    '''
+    UPDATE patients
+    SET mobile_linking_status = 'disconnected',
+        updated_at = now()
+    WHERE patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Log to admin_action_log for audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'REACTIVATE_PATIENT', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'previous_status': currentStatus,
+        'new_status': 'disconnected',
+        'reason': reason,
+        'reactivated_by_email': user.email,
+        'reactivated_by_name': user.name,
+      }),
+      'justification': 'Patient reactivated: $reason',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print('[PATIENT_LINKING] Patient reactivated: $patientId, reason: $reason');
+
+  return _jsonResponse({
+    'success': true,
+    'patient_id': patientId,
+    'previous_status': currentStatus,
+    'new_status': 'disconnected',
     'reason': reason,
   });
 }
