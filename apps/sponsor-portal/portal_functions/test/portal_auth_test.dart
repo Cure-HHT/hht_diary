@@ -249,6 +249,129 @@ void main() {
       expect(devAdminUser.isAdmin, isTrue);
       expect(nonAdminUser.isAdmin, isFalse);
     });
+
+    test('isDeveloperAdmin returns true only for Developer Admin role', () {
+      final devAdminUser = PortalUser(
+        id: 'user-456',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final adminUser = PortalUser(
+        id: 'user-123',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      final investigatorUser = PortalUser(
+        id: 'user-789',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      expect(devAdminUser.isDeveloperAdmin, isTrue);
+      expect(adminUser.isDeveloperAdmin, isFalse);
+      expect(investigatorUser.isDeveloperAdmin, isFalse);
+    });
+
+    test('emailOtpRequired returns correct value for role', () {
+      final devAdminUser = PortalUser(
+        id: 'user-dev',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final investigatorUser = PortalUser(
+        id: 'user-inv',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      final adminUser = PortalUser(
+        id: 'user-admin',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      // Developer Admin uses TOTP, not email OTP
+      expect(devAdminUser.emailOtpRequired, isFalse);
+      // Other roles use email OTP
+      expect(investigatorUser.emailOtpRequired, isTrue);
+      expect(adminUser.emailOtpRequired, isTrue);
+    });
+
+    test('mfaType is included in toJson', () {
+      final userWithMfa = PortalUser(
+        id: 'user-mfa',
+        email: 'mfa@example.com',
+        name: 'MFA User',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+        mfaType: 'totp',
+      );
+
+      final userWithoutMfa = PortalUser(
+        id: 'user-no-mfa',
+        email: 'nomfa@example.com',
+        name: 'No MFA User',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      // When mfaType is explicitly set, it should be returned
+      expect(userWithMfa.toJson()['mfa_type'], equals('totp'));
+
+      // When mfaType is null, toJson should use getMfaTypeForRole
+      final json = userWithoutMfa.toJson();
+      expect(json.containsKey('mfa_type'), isTrue);
+      expect(json['mfa_type'], isNotNull);
+    });
+
+    test('email_otp_required is included in toJson', () {
+      final devAdmin = PortalUser(
+        id: 'user-1',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final investigator = PortalUser(
+        id: 'user-2',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      // Developer Admin does not require email OTP
+      expect(devAdmin.toJson()['email_otp_required'], isFalse);
+
+      // Investigator requires email OTP
+      expect(investigator.toJson()['email_otp_required'], isTrue);
+    });
   });
 
   // Helper to create test requests

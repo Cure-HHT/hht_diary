@@ -516,6 +516,31 @@ void main() {
     });
   });
 
+  group('validNotParticipatingReasons', () {
+    test('contains expected reasons', () {
+      expect(validNotParticipatingReasons, contains('Subject Withdrawal'));
+      expect(validNotParticipatingReasons, contains('Death'));
+      expect(
+        validNotParticipatingReasons,
+        contains('Protocol treatment/study complete'),
+      );
+      expect(validNotParticipatingReasons, contains('Other'));
+    });
+
+    test('has exactly 4 options', () {
+      expect(validNotParticipatingReasons.length, 4);
+    });
+  });
+
+  group('sponsorLinkingPrefix', () {
+    test('returns value from environment or default', () {
+      // This tests the accessor but actual value depends on environment
+      final prefix = sponsorLinkingPrefix;
+      expect(prefix, isA<String>());
+      expect(prefix.length, equals(2));
+    });
+  });
+
   group('Disconnect response formats', () {
     test('success response has expected fields', () {
       // Expected success response structure
