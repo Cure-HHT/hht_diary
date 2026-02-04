@@ -177,7 +177,7 @@ Future<List<Map<String, dynamic>>> getRecentSyncEvents({
       content_hash, chain_hash, duration_ms, success, error_message, metadata
     FROM edc_sync_log
     $whereClause
-    ORDER BY sync_timestamp DESC
+    ORDER BY sync_id DESC
     LIMIT @limit
     ''',
     parameters: {

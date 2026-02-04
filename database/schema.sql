@@ -178,6 +178,10 @@ CREATE TABLE patients (
     site_id TEXT NOT NULL REFERENCES sites(site_id),
     edc_subject_key TEXT NOT NULL,
     mobile_linking_status mobile_linking_status NOT NULL DEFAULT 'not_connected',
+    -- Start Trial workflow fields (REQ-CAL-p00079)
+    trial_started BOOLEAN NOT NULL DEFAULT false,
+    trial_started_at TIMESTAMPTZ,
+    trial_started_by TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     edc_synced_at TIMESTAMPTZ,
@@ -187,6 +191,8 @@ CREATE TABLE patients (
 CREATE INDEX idx_patients_site_id ON patients(site_id);
 CREATE INDEX idx_patients_linking_status ON patients(mobile_linking_status);
 CREATE INDEX idx_patients_edc_synced_at ON patients(edc_synced_at);
+CREATE INDEX idx_patients_trial_started ON patients(trial_started)
+  WHERE mobile_linking_status = 'connected' AND trial_started = false;
 
 COMMENT ON TABLE patients IS 'Patient (subject) records synced from EDC (REQ-CAL-p00063). One-way sync from RAVE.';
 COMMENT ON COLUMN patients.patient_id IS 'RAVE SubjectKey (e.g., "840-001-001") used as primary identifier';
@@ -195,6 +201,9 @@ COMMENT ON COLUMN patients.edc_subject_key IS 'Original SubjectKey from RAVE EDC
 COMMENT ON COLUMN patients.mobile_linking_status IS 'Patient mobile app linking status (REQ-CAL-p00073)';
 COMMENT ON COLUMN patients.edc_synced_at IS 'Timestamp of last sync from EDC';
 COMMENT ON COLUMN patients.metadata IS 'Additional patient metadata from EDC';
+COMMENT ON COLUMN patients.trial_started IS 'Whether Start Trial workflow completed - enables EQ questionnaire and data sync (REQ-CAL-p00079)';
+COMMENT ON COLUMN patients.trial_started_at IS 'Timestamp when trial was started';
+COMMENT ON COLUMN patients.trial_started_by IS 'Portal user ID who started the trial';
 
 -- =====================================================
 -- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
@@ -435,7 +444,7 @@ CREATE TABLE admin_action_log (
         'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
         'EMERGENCY_ACCESS', 'BULK_OPERATION',
         'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
-        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT'
+        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT', 'START_TRIAL'
     )),
     target_resource TEXT,
     action_details JSONB NOT NULL,
