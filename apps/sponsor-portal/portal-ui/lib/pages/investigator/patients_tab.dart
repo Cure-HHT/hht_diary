@@ -74,12 +74,16 @@ class _PatientData {
   }
 
   /// Categorize the patient for filter tabs
+  /// Per REQ-CAL-p00073:
+  /// - Not Connected: not_connected, linking_in_progress (Pending)
+  /// - Active: connected (both "Linked - Awaiting Start" and "Trial Active")
+  /// - Inactive: disconnected, not_participating
   PatientStatusFilter get statusCategory {
     switch (mobileLinkingStatus) {
       case 'not_connected':
+      case 'linking_in_progress': // "Pending" status belongs in Not Connected tab
         return PatientStatusFilter.notConnected;
       case 'connected':
-      case 'linking_in_progress':
         return PatientStatusFilter.active;
       case 'disconnected':
       case 'not_participating':

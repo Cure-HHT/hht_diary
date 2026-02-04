@@ -295,6 +295,33 @@ void main() {
         expect(find.textContaining('Active'), findsWidgets);
         expect(find.textContaining('Inactive'), findsOneWidget);
       });
+
+      testWidgets(
+        'Not Connected tab should include Pending patients (REQ-CAL-p00073)',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // Test data has:
+          // - PAT-001: not_connected
+          // - PAT-003: linking_in_progress (Pending)
+          // Both should be in Not Connected tab, so count should be 2
+          expect(find.text('Not Connected (2)'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Active tab should only include connected patients (REQ-CAL-p00073)',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // Test data has:
+          // - PAT-002: connected, trial_started=true
+          // - PAT-004: connected, trial_started=false
+          // Both should be in Active tab, so count should be 2
+          // PAT-003 (linking_in_progress) should NOT be counted
+          expect(find.text('Active (2)'), findsOneWidget);
+        },
+      );
     });
   });
 }
