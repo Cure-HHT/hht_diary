@@ -170,6 +170,7 @@ jobs:
             --region=europe-west9 \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --image="$GAR_PATH" \
+            --no-allow-unauthenticated \
             --cpu=2 \
             --memory=4Gi \
             --min-instances=1 \
