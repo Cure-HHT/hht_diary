@@ -19,6 +19,7 @@
 
 # Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
 # or when manually dispatched via the Actions UI with an input `version`.
+# or upon a merge to the main branch
 
 name: Build portal-server
 on:
@@ -33,18 +34,27 @@ on:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
+      sponsor-env:
+        description: 'Callisto environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+        default: dev
       tobe_deployed:
         description: 'Deploy to GCP after build'
         required: false
         type: boolean
         default: true
-
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/portal-server
   DART_BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
   FLUTTER_IMAGE: 'ghcr.io/cure-hht/flutter-base:3.38.7'
   DEBIAN_IMAGE: 'debian:12-slim'
+# Using :nonroot tag for security (DS001, DS002)
+# TODO DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 
 permissions:
   contents: read
@@ -83,6 +93,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
+          # Use **docker** driver for PR builds to enable docker load/image sharing between jobs
+          # Use **docker-container** driver (default) for main builds to support provenance/SBOM
           driver: docker-container
 
       - name: Log in to GitHub Container Registry
@@ -225,8 +237,7 @@ jobs:
           context: .
           file: apps/sponsor-portal/portal-container/Dockerfile
           # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
-          # NOTE: Temporarily building only amd64 for faster builds (remove arm64/v8 for now)
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64/v8
           build-args: |
             DART_BASE_IMAGE=${{ env.DART_BASE_IMAGE }}
             FLUTTER_IMAGE=${{ env.FLUTTER_IMAGE }}
@@ -312,7 +323,7 @@ jobs:
     name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-portal-server]
-    if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
+    if: inputs.tobe_deployed != false
     permissions:
       actions: write  # For triggering workflows
     steps:
@@ -322,8 +333,9 @@ jobs:
         run: |
           gh workflow run deploy-run-service.yml \
             --repo ${{ github.repository }} \
-            --ref ${{ github.ref }} \
+            --ref ${{ github.ref_name }} \
             -f service-name="portal-server" \
+            -f sponsor-env="${{ github.event.inputs.sponsor-env || 'dev' }}" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
@@ -356,5 +368,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
           echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
-          echo "- GCP authentication test triggered (async)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -18,9 +18,7 @@
 
 # Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
 # or when manually dispatched via the Actions UI with an input `version`.
-# - Restores the "Determine tag and validate semver" step (id: parse)
-# - Adds workflow_dispatch with an input string named `version`
-# - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
+# or upon a merge to the main branch
 
 name: Build diary-server
 on:
@@ -321,10 +319,10 @@ jobs:
   deploy-run-service:
     name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
-    needs: [verify-images, build-diary-server]
+    needs: [verify-images, build-portal-server]
+    if: inputs.tobe_deployed != false
     permissions:
       actions: write  # For triggering workflows
-    if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     steps:
       - name: Trigger deploy-run-service workflow
         env:
@@ -367,20 +365,3 @@ jobs:
           echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
           echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-  # call-deploy-run-service2callisto:
-  #   name: Deploy to Callisto via Reusable Workflow
-  #   needs: [verify-images, build-diary-server]
-  #   if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
-  #   permissions:
-  #     contents: read
-  #     id-token: write
-  #   uses: Cure-HHT/hht_diary_callisto/.github/workflows/deploy-run-service.yml@feature/CUR-710extend-cicd2qa
-  #   # uses: Cure-HHT/hht_diary_callisto/.github/workflows/deploy-run-service.yml@main
-  #   with:
-  #     service-name: 'diary-server'
-  #     sponsor-env: ${{ github.event.inputs.sponsor-env || 'dev' }}
-  #     image_path: 'ghcr.io/cure-hht/diary-server@${{ needs.build-diary-server.outputs.image_digest }}'
-  #     version: '${{ needs.build-diary-server.outputs.version }}'
-  #   secrets:
-  #     DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
