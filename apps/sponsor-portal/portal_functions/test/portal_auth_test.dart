@@ -317,6 +317,61 @@ void main() {
       expect(investigatorUser.emailOtpRequired, isTrue);
       expect(adminUser.emailOtpRequired, isTrue);
     });
+
+    test('mfaType is included in toJson', () {
+      final userWithMfa = PortalUser(
+        id: 'user-mfa',
+        email: 'mfa@example.com',
+        name: 'MFA User',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+        mfaType: 'totp',
+      );
+
+      final userWithoutMfa = PortalUser(
+        id: 'user-no-mfa',
+        email: 'nomfa@example.com',
+        name: 'No MFA User',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      // When mfaType is explicitly set, it should be returned
+      expect(userWithMfa.toJson()['mfa_type'], equals('totp'));
+
+      // When mfaType is null, toJson should use getMfaTypeForRole
+      final json = userWithoutMfa.toJson();
+      expect(json.containsKey('mfa_type'), isTrue);
+      expect(json['mfa_type'], isNotNull);
+    });
+
+    test('email_otp_required is included in toJson', () {
+      final devAdmin = PortalUser(
+        id: 'user-1',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final investigator = PortalUser(
+        id: 'user-2',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      // Developer Admin does not require email OTP
+      expect(devAdmin.toJson()['email_otp_required'], isFalse);
+
+      // Investigator requires email OTP
+      expect(investigator.toJson()['email_otp_required'], isTrue);
+    });
   });
 
   // Helper to create test requests
