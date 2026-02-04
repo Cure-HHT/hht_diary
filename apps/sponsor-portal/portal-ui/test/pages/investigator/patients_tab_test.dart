@@ -2,6 +2,7 @@
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00074: Dashboard columns
 //   REQ-CAL-p00063: EDC Patient Ingestion
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Widget tests for StudyCoordinatorPatientsTab (Study Coordinator Dashboard)
 // Tests column structure, search/filter, and patient display
@@ -28,6 +29,7 @@ final _testPatients = [
     'edc_synced_at': '2024-01-01T00:00:00Z',
     'site_name': 'Test Site One',
     'site_number': '001',
+    'trial_started': false,
   },
   {
     'patient_id': 'PAT-002',
@@ -37,6 +39,7 @@ final _testPatients = [
     'edc_synced_at': '2024-01-02T00:00:00Z',
     'site_name': 'Test Site One',
     'site_number': '001',
+    'trial_started': true, // Trial Active
   },
   {
     'patient_id': 'PAT-003',
@@ -46,6 +49,17 @@ final _testPatients = [
     'edc_synced_at': '2024-01-03T00:00:00Z',
     'site_name': 'Test Site One',
     'site_number': '001',
+    'trial_started': false,
+  },
+  {
+    'patient_id': 'PAT-004',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-004',
+    'mobile_linking_status': 'connected',
+    'edc_synced_at': '2024-01-04T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false, // Linked - Awaiting Start
   },
 ];
 
@@ -203,8 +217,62 @@ void main() {
 
         // Check status chips are displayed
         expect(find.text('Not Connected'), findsOneWidget);
-        expect(find.text('Connected'), findsOneWidget);
         expect(find.text('Pending'), findsOneWidget);
+      });
+
+      testWidgets(
+        'should show "Trial Active" for connected+trialStarted patients',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-002 is connected with trial_started=true
+          expect(find.text('Trial Active'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should show "Linked - Awaiting Start" for connected+!trialStarted patients',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-004 is connected with trial_started=false
+          expect(find.text('Linked - Awaiting Start'), findsOneWidget);
+        },
+      );
+    });
+
+    group('Start Trial (REQ-CAL-p00079)', () {
+      testWidgets(
+        'should show "Start Trial" button for connected+!trialStarted patients',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-004 is connected with trial_started=false - should show Start Trial
+          expect(find.text('Start Trial'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should show "Disconnect" button for connected+trialStarted patients',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-002 is connected with trial_started=true - should show Disconnect
+          expect(find.text('Disconnect'), findsOneWidget);
+        },
+      );
+
+      testWidgets('Start Trial button should have play_arrow icon', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // Find Start Trial button and verify icon
+        final startTrialButton = find.text('Start Trial');
+        expect(startTrialButton, findsOneWidget);
+
+        // The play_arrow icon should be present
+        expect(find.byIcon(Icons.play_arrow), findsOneWidget);
       });
     });
 

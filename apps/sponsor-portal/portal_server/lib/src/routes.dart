@@ -13,6 +13,7 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -68,6 +69,12 @@ Router createRouter() {
   router.post(
     '/api/v1/portal/patients/<patientId>/reactivate',
     reactivatePatientHandler,
+  );
+
+  // Start trial endpoint (Investigator role)
+  router.post(
+    '/api/v1/portal/patients/<patientId>/start-trial',
+    startTrialHandler,
   );
 
   // Email change verification

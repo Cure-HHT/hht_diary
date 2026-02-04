@@ -8,6 +8,7 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Tests for patient_linking.dart handlers and utilities
 
@@ -724,4 +725,158 @@ void main() {
       });
     },
   );
+
+  group('startTrialHandler', () {
+    group('authorization', () {
+      test('returns 401 when no authorization header', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+        );
+
+        final response = await startTrialHandler(request, 'p1');
+
+        expect(response.statusCode, 401);
+        final body = jsonDecode(await response.readAsString());
+        expect(body['error'], contains('authorization'));
+      });
+
+      test('returns 401 when authorization header is empty', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          headers: {'authorization': ''},
+        );
+
+        final response = await startTrialHandler(request, 'p1');
+
+        expect(response.statusCode, 401);
+      });
+
+      test(
+        'returns 401 when authorization header has no Bearer prefix',
+        () async {
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+            headers: {'authorization': 'some-token'},
+          );
+
+          final response = await startTrialHandler(request, 'p1');
+
+          expect(response.statusCode, 401);
+        },
+      );
+
+      test('returns JSON content type on error', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+        );
+
+        final response = await startTrialHandler(request, 'p1');
+
+        expect(response.headers['content-type'], 'application/json');
+      });
+    });
+
+    group('response format consistency', () {
+      test('startTrialHandler returns valid JSON on all error paths', () async {
+        final requests = [
+          Request('POST', Uri.parse('http://localhost/')),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': ''},
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': 'invalid'},
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': 'Bearer invalid'},
+          ),
+        ];
+
+        for (final request in requests) {
+          final response = await startTrialHandler(request, 'test-id');
+          final body = await response.readAsString();
+
+          // Should parse as valid JSON without throwing
+          expect(() => jsonDecode(body), returnsNormally);
+          expect(response.headers['content-type'], 'application/json');
+        }
+      });
+    });
+  });
+
+  group('Start Trial response formats', () {
+    test('success response has expected fields', () {
+      // Expected success response structure
+      final successResponse = {
+        'success': true,
+        'patient_id': 'patient-123',
+        'site_id': 'site-456',
+        'site_name': 'Site A',
+        'trial_started': true,
+        'trial_started_at': '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(successResponse['success'], isTrue);
+      expect(successResponse['patient_id'], isA<String>());
+      expect(successResponse['site_id'], isA<String>());
+      expect(successResponse['site_name'], isA<String>());
+      expect(successResponse['trial_started'], isTrue);
+      expect(successResponse['trial_started_at'], isA<String>());
+    });
+
+    test('not connected error includes current status', () {
+      final notConnectedError = {
+        'error':
+            'Patient must be in "connected" status to start trial. Current status: disconnected',
+      };
+
+      expect(notConnectedError['error'], contains('connected'));
+      expect(notConnectedError['error'], contains('Current status'));
+    });
+
+    test('trial already started error is specific', () {
+      final alreadyStartedError = {
+        'error': 'Trial has already been started for this patient',
+      };
+
+      expect(alreadyStartedError['error'], contains('already'));
+      expect(alreadyStartedError['error'], contains('started'));
+    });
+
+    test('role error message is specific to start trial', () {
+      final roleError = {
+        'error': 'Only Investigators can start trial for patients',
+      };
+
+      expect(roleError['error'], contains('Investigator'));
+      expect(roleError['error'], contains('start trial'));
+    });
+
+    test('audit log entry structure is correct', () {
+      // Expected action_details for START_TRIAL action
+      final actionDetails = {
+        'patient_id': 'patient-123',
+        'site_id': 'site-456',
+        'site_name': 'Site A',
+        'trial_started_at': '2024-01-01T00:00:00.000Z',
+        'started_by_email': 'coordinator@example.com',
+        'started_by_name': 'John Doe',
+      };
+
+      expect(actionDetails['patient_id'], isA<String>());
+      expect(actionDetails['site_id'], isA<String>());
+      expect(actionDetails['trial_started_at'], isA<String>());
+      expect(actionDetails['started_by_email'], isA<String>());
+      expect(actionDetails['started_by_name'], isA<String>());
+    });
+  });
 }

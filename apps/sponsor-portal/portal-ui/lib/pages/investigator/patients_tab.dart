@@ -9,6 +9,7 @@
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -22,6 +23,7 @@ import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
 import '../../widgets/patient_actions_dialog.dart';
 import '../../widgets/reactivate_patient_dialog.dart';
+import '../../widgets/start_trial_dialog.dart';
 
 /// Status filter for the patients tab
 enum PatientStatusFilter {
@@ -43,6 +45,7 @@ class _PatientData {
   final DateTime? edcSyncedAt;
   final String siteName;
   final String siteNumber;
+  final bool trialStarted;
 
   _PatientData({
     required this.patientId,
@@ -52,6 +55,7 @@ class _PatientData {
     this.edcSyncedAt,
     required this.siteName,
     required this.siteNumber,
+    required this.trialStarted,
   });
 
   factory _PatientData.fromJson(Map<String, dynamic> json) {
@@ -65,6 +69,7 @@ class _PatientData {
           : null,
       siteName: json['site_name'] as String,
       siteNumber: json['site_number'] as String,
+      trialStarted: json['trial_started'] as bool? ?? false,
     );
   }
 
@@ -466,20 +471,26 @@ class _StudyCoordinatorPatientsTabState
         // Site
         DataCell(Text('${patient.siteNumber} - ${patient.siteName}')),
         // Mobile Linking Status
-        DataCell(_buildLinkingStatusChip(patient.mobileLinkingStatus, theme)),
+        DataCell(_buildLinkingStatusChip(patient, theme)),
         // Actions
         DataCell(_buildActionButton(patient, theme)),
       ],
     );
   }
 
-  Widget _buildLinkingStatusChip(String status, ThemeData theme) {
+  Widget _buildLinkingStatusChip(_PatientData patient, ThemeData theme) {
+    final status = patient.mobileLinkingStatus;
+
+    // For connected patients, show different status based on trial_started
     final (label, color, icon) = switch (status) {
-      'connected' => (
-        'Connected',
-        theme.colorScheme.primary,
-        Icons.check_circle,
-      ),
+      'connected' =>
+        patient.trialStarted
+            ? ('Trial Active', theme.colorScheme.primary, Icons.check_circle)
+            : (
+                'Linked - Awaiting Start',
+                theme.colorScheme.tertiary,
+                Icons.hourglass_top,
+              ),
       'linking_in_progress' => (
         'Pending',
         theme.colorScheme.tertiary,
@@ -531,8 +542,17 @@ class _StudyCoordinatorPatientsTabState
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
-        // REQ-CAL-p00073: Connected patients can only be disconnected.
-        // Code regeneration is NOT available for connected patients.
+        // REQ-CAL-p00079: Show Start Trial for connected patients with !trialStarted
+        // REQ-CAL-p00073: Show Disconnect for connected patients with trialStarted
+        if (!patient.trialStarted) {
+          return TextButton.icon(
+            onPressed: () => _startTrial(patient, apiClient),
+            icon: const Icon(Icons.play_arrow, size: 16),
+            label: const Text('Start Trial'),
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+          );
+        }
+        // Trial already started - allow disconnect
         return TextButton.icon(
           onPressed: () => _disconnectPatient(patient, apiClient),
           icon: Icon(Icons.link_off, size: 16, color: theme.colorScheme.error),
@@ -602,6 +622,21 @@ class _StudyCoordinatorPatientsTabState
     );
 
     // Refresh the patient list if disconnection was successful
+    if (success && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the StartTrialDialog to start trial for a patient
+  Future<void> _startTrial(_PatientData patient, ApiClient apiClient) async {
+    final success = await StartTrialDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if trial was started
     if (success && mounted) {
       await _loadPatients();
     }
