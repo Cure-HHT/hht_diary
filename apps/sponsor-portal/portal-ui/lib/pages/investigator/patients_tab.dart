@@ -108,7 +108,14 @@ class _SiteInfo {
 
 /// Study Coordinator Patients Tab widget
 class StudyCoordinatorPatientsTab extends StatefulWidget {
-  const StudyCoordinatorPatientsTab({super.key});
+  /// Creates a StudyCoordinatorPatientsTab.
+  ///
+  /// The [apiClient] parameter is optional and intended for testing.
+  /// If not provided, a new ApiClient will be created internally.
+  const StudyCoordinatorPatientsTab({super.key, this.apiClient});
+
+  /// Optional ApiClient for dependency injection (used in tests)
+  final ApiClient? apiClient;
 
   @override
   State<StudyCoordinatorPatientsTab> createState() =>
@@ -144,7 +151,7 @@ class _StudyCoordinatorPatientsTabState
     });
 
     final authService = context.read<AuthService>();
-    final apiClient = ApiClient(authService);
+    final apiClient = widget.apiClient ?? ApiClient(authService);
 
     final response = await apiClient.get('/api/v1/portal/patients');
 
@@ -404,9 +411,6 @@ class _StudyCoordinatorPatientsTabState
               DataColumn(label: Text('Patient ID')),
               DataColumn(label: Text('Site')),
               DataColumn(label: Text('Mobile Linking')),
-              DataColumn(label: Text('EQ')),
-              DataColumn(label: Text('NOSE HHT')),
-              DataColumn(label: Text('QoL')),
               DataColumn(label: Text('Actions')),
             ],
             rows: filtered
@@ -463,12 +467,6 @@ class _StudyCoordinatorPatientsTabState
         DataCell(Text('${patient.siteNumber} - ${patient.siteName}')),
         // Mobile Linking Status
         DataCell(_buildLinkingStatusChip(patient.mobileLinkingStatus, theme)),
-        // EQ (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
-        // NOSE HHT (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
-        // QoL (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
         // Actions
         DataCell(_buildActionButton(patient, theme)),
       ],
@@ -510,14 +508,6 @@ class _StudyCoordinatorPatientsTabState
       side: BorderSide(color: color.withValues(alpha: 0.3)),
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
-    );
-  }
-
-  Widget _buildQuestionnairePlaceholder(ThemeData theme) {
-    return Icon(
-      Icons.horizontal_rule,
-      size: 20,
-      color: theme.colorScheme.outline.withValues(alpha: 0.4),
     );
   }
 

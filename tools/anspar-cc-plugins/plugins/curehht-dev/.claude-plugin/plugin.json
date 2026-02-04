@@ -1,0 +1,21 @@
+{
+  "name": "curehht-dev",
+  "version": "1.0.0",
+  "description": "CureHHT development workflow practices and guidelines",
+  "author": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "documentation",
+    "practices",
+    "tdd",
+    "testing",
+    "guidelines"
+  ],
+  "repository": "https://github.com/anspar/diary",
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/curehht-dev",
+  "commands": "./commands"
+}
