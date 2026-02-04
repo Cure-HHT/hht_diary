@@ -63,8 +63,8 @@ permissions:
   actions: write   # For triggering workflows
 
 jobs:
-  build-portal-server:
-    name: Build portal-server Image
+  build-diary-server:
+    name: Build diary-server Image
     runs-on: ubuntu-22.04
 
     outputs:
