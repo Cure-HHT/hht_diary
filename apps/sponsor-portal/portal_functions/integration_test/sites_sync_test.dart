@@ -311,6 +311,14 @@ void main() {
   });
 
   group('Sync Event Logging', () {
+    setUp(() async {
+      // Clean up test sync logs BEFORE each test to ensure isolation
+      final db = Database.instance;
+      await db.execute(
+        "DELETE FROM edc_sync_log WHERE content_hash LIKE 'abc%' OR content_hash LIKE 'hash-%' OR content_hash = 'no-content' OR content_hash = 'other-hash'",
+      );
+    });
+
     test('logSyncEvent logs successful sync', () async {
       final result = SitesSyncResult(
         sitesCreated: 3,
