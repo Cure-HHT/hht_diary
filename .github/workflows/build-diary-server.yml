@@ -270,11 +270,11 @@ jobs:
       - name: Sign diary-server image
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.short_sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}
 
       - name: Generate SBOM for diary-server image
         run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.short_sha }} \
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }} \
             -o spdx-json \
             --file diary-server-sbom.spdx.json
 
@@ -291,7 +291,7 @@ jobs:
           cosign attest --yes \
             --predicate diary-server-sbom.spdx.json \
             --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.short_sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}
 
   verify-images:
     name: Verify Image Signatures
@@ -315,7 +315,7 @@ jobs:
           cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.short_sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}
 
   deploy-run-service:
     name: Trigger Service Deployment (async)
