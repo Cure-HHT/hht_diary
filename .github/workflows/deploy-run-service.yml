@@ -165,7 +165,7 @@ jobs:
             echo "Version: $VERSION"
           fi
 
-          gcloud run services update ${{ inputs.service-name }} \
+          gcloud run services create ${{ inputs.service-name }} \
             --region=europe-west9 \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --image="$GAR_PATH" \
