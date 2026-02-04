@@ -35,6 +35,14 @@ on:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
         required: true
         default: ''
+      sponsor-env:
+        description: 'Callisto environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+        default: dev
       tobe_deployed:
         description: 'Deploy to GCP after build'
         required: false
@@ -326,6 +334,7 @@ jobs:
             --repo ${{ github.repository }} \
             --ref ${{ github.ref }} \
             -f service-name="diary-server" \
+            -f sponsor-env="${{ github.event.inputs.sponsor-env || 'dev' }}" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
             -f version="${{ needs.build-diary-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
@@ -359,3 +368,16 @@ jobs:
           echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
           echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+  call-workflow-passing-data:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: Cure-HHT/hht_diary_callisto/.github/workflows/deploy-run-service.yml@main
+    with:
+      service-name: 'diary-service'
+      sponsor-env: '${{ github.event.inputs.sponsor-env }}'
+      image_path: 'ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}'
+      version: '${{ needs.build-diary-server.outputs.version }}'
+    secrets:
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
