@@ -249,6 +249,74 @@ void main() {
       expect(devAdminUser.isAdmin, isTrue);
       expect(nonAdminUser.isAdmin, isFalse);
     });
+
+    test('isDeveloperAdmin returns true only for Developer Admin role', () {
+      final devAdminUser = PortalUser(
+        id: 'user-456',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final adminUser = PortalUser(
+        id: 'user-123',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      final investigatorUser = PortalUser(
+        id: 'user-789',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      expect(devAdminUser.isDeveloperAdmin, isTrue);
+      expect(adminUser.isDeveloperAdmin, isFalse);
+      expect(investigatorUser.isDeveloperAdmin, isFalse);
+    });
+
+    test('emailOtpRequired returns correct value for role', () {
+      final devAdminUser = PortalUser(
+        id: 'user-dev',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final investigatorUser = PortalUser(
+        id: 'user-inv',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      final adminUser = PortalUser(
+        id: 'user-admin',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      // Developer Admin uses TOTP, not email OTP
+      expect(devAdminUser.emailOtpRequired, isFalse);
+      // Other roles use email OTP
+      expect(investigatorUser.emailOtpRequired, isTrue);
+      expect(adminUser.emailOtpRequired, isTrue);
+    });
   });
 
   // Helper to create test requests
