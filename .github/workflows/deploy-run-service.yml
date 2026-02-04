@@ -69,6 +69,7 @@ env:
 jobs:
   deploy-portal-server:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.sponsor-env }}
     permissions:
       contents: 'read'
       id-token: 'write'  # Required to request the OIDC token
