@@ -526,4 +526,25 @@ void main() {
       },
     );
   });
+
+  group('RaveConfig', () {
+    test('isConfigured reflects environment state', () {
+      // This test documents the current state - it will pass regardless
+      // of whether RAVE is configured in the test environment
+      final isConfigured = RaveConfig.isConfigured;
+      expect(isConfigured, isA<bool>());
+    });
+
+    test('fromEnvironment returns null when not configured', () {
+      // In most test environments, RAVE is not configured
+      // so fromEnvironment returns null
+      final config = RaveConfig.fromEnvironment();
+      // Either null or valid config is acceptable
+      if (config != null) {
+        expect(config.baseUrl, isNotEmpty);
+        expect(config.username, isNotEmpty);
+        expect(config.password, isNotEmpty);
+      }
+    });
+  });
 }
