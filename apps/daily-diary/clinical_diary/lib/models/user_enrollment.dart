@@ -4,6 +4,7 @@
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00065: Reactivate Patient
 
 /// Represents a user's enrollment/linking to a clinical trial
 class UserEnrollment {
@@ -16,6 +17,7 @@ class UserEnrollment {
     this.patientId,
     this.siteId,
     this.siteName,
+    this.sitePhoneNumber,
     this.studyPatientId,
   });
 
@@ -30,6 +32,7 @@ class UserEnrollment {
       patientId: json['patientId'] as String?,
       siteId: json['siteId'] as String?,
       siteName: json['siteName'] as String?,
+      sitePhoneNumber: json['sitePhoneNumber'] as String?,
       studyPatientId: json['studyPatientId'] as String?,
     );
   }
@@ -55,6 +58,9 @@ class UserEnrollment {
   /// Human-readable site name
   final String? siteName;
 
+  /// Site phone number for patient contact (REQ-CAL-p00077)
+  final String? sitePhoneNumber;
+
   /// De-identified patient ID for the study (from EDC)
   final String? studyPatientId;
 
@@ -72,6 +78,7 @@ class UserEnrollment {
       if (patientId != null) 'patientId': patientId,
       if (siteId != null) 'siteId': siteId,
       if (siteName != null) 'siteName': siteName,
+      if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
       if (studyPatientId != null) 'studyPatientId': studyPatientId,
     };
   }

@@ -13,6 +13,7 @@
 //   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-CAL-p00066: Capture deactivation/reactivation reason
 //   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Portal user management - create users, assign sites, revoke access
 // Supports multi-role users with activation code flow
@@ -982,7 +983,8 @@ Future<Response> getPortalPatientsHandler(Request request) async {
         p.mobile_linking_status::text,
         p.edc_synced_at,
         s.site_name,
-        s.site_number
+        s.site_number,
+        p.trial_started
       FROM patients p
       JOIN sites s ON p.site_id = s.site_id
       WHERE p.site_id = ANY(@siteIds)
@@ -1004,7 +1006,8 @@ Future<Response> getPortalPatientsHandler(Request request) async {
         p.mobile_linking_status::text,
         p.edc_synced_at,
         s.site_name,
-        s.site_number
+        s.site_number,
+        p.trial_started
       FROM patients p
       JOIN sites s ON p.site_id = s.site_id
       ORDER BY p.patient_id
@@ -1020,6 +1023,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
       'edc_synced_at': (r[4] as DateTime?)?.toIso8601String(),
       'site_name': r[5] as String,
       'site_number': r[6] as String,
+      'trial_started': r[7] as bool,
     };
   }).toList();
 

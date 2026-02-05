@@ -96,7 +96,8 @@ Future<Response> linkHandler(Request request) async {
         p.site_id,
         p.edc_subject_key,
         s.site_name,
-        s.site_number
+        s.site_number,
+        s.contact_info
       FROM patient_linking_codes plc
       JOIN patients p ON plc.patient_id = p.patient_id
       JOIN sites s ON p.site_id = s.site_id
@@ -180,6 +181,10 @@ Future<Response> linkHandler(Request request) async {
     final edcSubjectKey = codeRow[3] as String;
     final siteName = codeRow[4] as String;
     final siteNumber = codeRow[5] as String;
+    final contactInfo = codeRow[6] as Map<String, dynamic>?;
+
+    // Extract phone number from contact_info JSONB (REQ-CAL-p00077)
+    final sitePhoneNumber = contactInfo?['phone'] as String?;
 
     // Create or find app_user for this device
     // The linking code IS the authentication - no prior login needed
@@ -278,6 +283,7 @@ Future<Response> linkHandler(Request request) async {
       'siteName': siteName,
       'siteNumber': siteNumber,
       'studyPatientId': edcSubjectKey,
+      if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
     });
   } catch (e, stackTrace) {
     _log('ERROR', 'Link handler error', {

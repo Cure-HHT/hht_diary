@@ -8,6 +8,8 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00079: Start Trial Workflow
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -19,7 +21,9 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
-import '../../widgets/reconnect_patient_dialog.dart';
+import '../../widgets/patient_actions_dialog.dart';
+import '../../widgets/reactivate_patient_dialog.dart';
+import '../../widgets/start_trial_dialog.dart';
 
 /// Status filter for the patients tab
 enum PatientStatusFilter {
@@ -41,6 +45,7 @@ class _PatientData {
   final DateTime? edcSyncedAt;
   final String siteName;
   final String siteNumber;
+  final bool trialStarted;
 
   _PatientData({
     required this.patientId,
@@ -50,6 +55,7 @@ class _PatientData {
     this.edcSyncedAt,
     required this.siteName,
     required this.siteNumber,
+    required this.trialStarted,
   });
 
   factory _PatientData.fromJson(Map<String, dynamic> json) {
@@ -63,6 +69,7 @@ class _PatientData {
           : null,
       siteName: json['site_name'] as String,
       siteNumber: json['site_number'] as String,
+      trialStarted: json['trial_started'] as bool? ?? false,
     );
   }
 
@@ -75,6 +82,7 @@ class _PatientData {
       case 'linking_in_progress':
         return PatientStatusFilter.active;
       case 'disconnected':
+      case 'not_participating':
         return PatientStatusFilter.inactive;
       default:
         return PatientStatusFilter.notConnected;
@@ -105,7 +113,14 @@ class _SiteInfo {
 
 /// Study Coordinator Patients Tab widget
 class StudyCoordinatorPatientsTab extends StatefulWidget {
-  const StudyCoordinatorPatientsTab({super.key});
+  /// Creates a StudyCoordinatorPatientsTab.
+  ///
+  /// The [apiClient] parameter is optional and intended for testing.
+  /// If not provided, a new ApiClient will be created internally.
+  const StudyCoordinatorPatientsTab({super.key, this.apiClient});
+
+  /// Optional ApiClient for dependency injection (used in tests)
+  final ApiClient? apiClient;
 
   @override
   State<StudyCoordinatorPatientsTab> createState() =>
@@ -141,7 +156,7 @@ class _StudyCoordinatorPatientsTabState
     });
 
     final authService = context.read<AuthService>();
-    final apiClient = ApiClient(authService);
+    final apiClient = widget.apiClient ?? ApiClient(authService);
 
     final response = await apiClient.get('/api/v1/portal/patients');
 
@@ -401,9 +416,6 @@ class _StudyCoordinatorPatientsTabState
               DataColumn(label: Text('Patient ID')),
               DataColumn(label: Text('Site')),
               DataColumn(label: Text('Mobile Linking')),
-              DataColumn(label: Text('EQ')),
-              DataColumn(label: Text('NOSE HHT')),
-              DataColumn(label: Text('QoL')),
               DataColumn(label: Text('Actions')),
             ],
             rows: filtered
@@ -459,26 +471,26 @@ class _StudyCoordinatorPatientsTabState
         // Site
         DataCell(Text('${patient.siteNumber} - ${patient.siteName}')),
         // Mobile Linking Status
-        DataCell(_buildLinkingStatusChip(patient.mobileLinkingStatus, theme)),
-        // EQ (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
-        // NOSE HHT (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
-        // QoL (grayed out placeholder)
-        DataCell(_buildQuestionnairePlaceholder(theme)),
+        DataCell(_buildLinkingStatusChip(patient, theme)),
         // Actions
         DataCell(_buildActionButton(patient, theme)),
       ],
     );
   }
 
-  Widget _buildLinkingStatusChip(String status, ThemeData theme) {
+  Widget _buildLinkingStatusChip(_PatientData patient, ThemeData theme) {
+    final status = patient.mobileLinkingStatus;
+
+    // For connected patients, show different status based on trial_started
     final (label, color, icon) = switch (status) {
-      'connected' => (
-        'Connected',
-        theme.colorScheme.primary,
-        Icons.check_circle,
-      ),
+      'connected' =>
+        patient.trialStarted
+            ? ('Trial Active', theme.colorScheme.primary, Icons.check_circle)
+            : (
+                'Linked - Awaiting Start',
+                theme.colorScheme.tertiary,
+                Icons.hourglass_top,
+              ),
       'linking_in_progress' => (
         'Pending',
         theme.colorScheme.tertiary,
@@ -488,6 +500,11 @@ class _StudyCoordinatorPatientsTabState
         'Disconnected',
         theme.colorScheme.error,
         Icons.link_off,
+      ),
+      'not_participating' => (
+        'Not Participating',
+        theme.colorScheme.outline,
+        Icons.person_off,
       ),
       _ => (
         'Not Connected',
@@ -502,14 +519,6 @@ class _StudyCoordinatorPatientsTabState
       side: BorderSide(color: color.withValues(alpha: 0.3)),
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
-    );
-  }
-
-  Widget _buildQuestionnairePlaceholder(ThemeData theme) {
-    return Icon(
-      Icons.horizontal_rule,
-      size: 20,
-      color: theme.colorScheme.outline.withValues(alpha: 0.4),
     );
   }
 
@@ -533,36 +542,38 @@ class _StudyCoordinatorPatientsTabState
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton.icon(
-              onPressed: () => _linkPatient(patient, apiClient),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('New Code'),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-            const SizedBox(width: 4),
-            TextButton.icon(
-              onPressed: () => _disconnectPatient(patient, apiClient),
-              icon: Icon(
-                Icons.link_off,
-                size: 16,
-                color: theme.colorScheme.error,
-              ),
-              label: Text(
-                'Disconnect',
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-          ],
+        // REQ-CAL-p00079: Show Start Trial for connected patients with !trialStarted
+        // REQ-CAL-p00073: Show Disconnect for connected patients with trialStarted
+        if (!patient.trialStarted) {
+          return TextButton.icon(
+            onPressed: () => _startTrial(patient, apiClient),
+            icon: const Icon(Icons.play_arrow, size: 16),
+            label: const Text('Start Trial'),
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+          );
+        }
+        // Trial already started - allow disconnect
+        return TextButton.icon(
+          onPressed: () => _disconnectPatient(patient, apiClient),
+          icon: Icon(Icons.link_off, size: 16, color: theme.colorScheme.error),
+          label: Text(
+            'Disconnect',
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'disconnected':
         return TextButton.icon(
-          onPressed: () => _reconnectPatient(patient, apiClient),
-          icon: const Icon(Icons.link, size: 16),
-          label: const Text('Reconnect'),
+          onPressed: () => _openPatientActions(patient, apiClient),
+          icon: const Icon(Icons.more_horiz, size: 16),
+          label: const Text('Actions'),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        );
+      case 'not_participating':
+        return TextButton.icon(
+          onPressed: () => _reactivatePatient(patient, apiClient),
+          icon: const Icon(Icons.refresh, size: 16),
+          label: const Text('Reactivate'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       default:
@@ -616,19 +627,53 @@ class _StudyCoordinatorPatientsTabState
     }
   }
 
-  /// Opens the ReconnectPatientDialog to reconnect a disconnected patient
-  Future<void> _reconnectPatient(
-    _PatientData patient,
-    ApiClient apiClient,
-  ) async {
-    final success = await ReconnectPatientDialog.show(
+  /// Opens the StartTrialDialog to start trial for a patient
+  Future<void> _startTrial(_PatientData patient, ApiClient apiClient) async {
+    final success = await StartTrialDialog.show(
       context: context,
       patientId: patient.patientId,
       patientDisplayId: patient.edcSubjectKey,
       apiClient: apiClient,
     );
 
-    // Refresh the patient list if reconnection was successful
+    // Refresh the patient list if trial was started
+    if (success && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the PatientActionsDialog for disconnected patients
+  Future<void> _openPatientActions(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    final result = await PatientActionsDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      mobileLinkingStatus: patient.mobileLinkingStatus,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if an action was taken
+    if (result == PatientActionResult.actionTaken && mounted) {
+      await _loadPatients();
+    }
+  }
+
+  /// Opens the ReactivatePatientDialog to reactivate a not_participating patient
+  Future<void> _reactivatePatient(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    final success = await ReactivatePatientDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
+
+    // Refresh the patient list if reactivation was successful
     if (success && mounted) {
       await _loadPatients();
     }

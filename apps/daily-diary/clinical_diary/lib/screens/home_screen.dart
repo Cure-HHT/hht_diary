@@ -77,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // REQ-CAL-p00077: Disconnection banner state
   bool _isDisconnected = false;
   bool _disconnectionBannerDismissed = false;
+  String? _siteName;
+  String? _sitePhoneNumber;
 
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
@@ -138,10 +140,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDisconnected = await widget.enrollmentService.isDisconnected();
     final bannerDismissed = await widget.enrollmentService
         .isDisconnectionBannerDismissed();
+    // REQ-CAL-p00065: Get site contact info for disconnection banner
+    final enrollment = await widget.enrollmentService.getEnrollment();
     if (mounted) {
       setState(() {
         _isDisconnected = isDisconnected;
         _disconnectionBannerDismissed = bannerDismissed;
+        _siteName = enrollment?.siteName;
+        _sitePhoneNumber = enrollment?.sitePhoneNumber;
       });
     }
   }
@@ -995,6 +1001,8 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_isDisconnected && !_disconnectionBannerDismissed)
                 DisconnectionBanner(
                   onDismiss: _handleDismissDisconnectionBanner,
+                  siteName: _siteName,
+                  sitePhoneNumber: _sitePhoneNumber,
                 ),
 
               // Incomplete records banner (orange)
