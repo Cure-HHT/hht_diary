@@ -455,4 +455,172 @@ void main() {
       expect(EmailService.instance.isReady, isFalse);
     });
   });
+
+  group('EmailConfig console mode', () {
+    test('consoleMode defaults to false', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: 'test@example.iam.gserviceaccount.com',
+        senderEmail: 'noreply@example.com',
+        enabled: true,
+      );
+
+      expect(config.consoleMode, isFalse);
+    });
+
+    test('consoleMode can be set to true', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: 'test@example.iam.gserviceaccount.com',
+        senderEmail: 'noreply@example.com',
+        enabled: true,
+        consoleMode: true,
+      );
+
+      expect(config.consoleMode, isTrue);
+    });
+
+    test('isConfigured returns true in console mode even without SA email', () {
+      final config = EmailConfig(
+        gmailServiceAccountEmail: null,
+        senderEmail: 'noreply@example.com',
+        enabled: true,
+        consoleMode: true,
+      );
+
+      // Console mode counts as configured
+      expect(config.isConfigured, isTrue);
+    });
+  });
+
+  group('EmailService console mode', () {
+    setUp(() {
+      EmailService.resetForTesting();
+    });
+
+    tearDown(() {
+      EmailService.resetForTesting();
+    });
+
+    test('isConsoleMode returns true when initialized with console mode', () {
+      final consoleConfig = EmailConfig(
+        gmailServiceAccountEmail: null,
+        senderEmail: 'noreply@test.com',
+        enabled: true,
+        consoleMode: true,
+      );
+
+      EmailService.initializeWithMock(MockGmailApi(), consoleConfig);
+
+      expect(EmailService.instance.isConsoleMode, isTrue);
+    });
+
+    test('isConsoleMode returns false when not in console mode', () {
+      final normalConfig = EmailConfig(
+        gmailServiceAccountEmail: 'sa@test.iam.gserviceaccount.com',
+        senderEmail: 'noreply@test.com',
+        enabled: true,
+        consoleMode: false,
+      );
+
+      EmailService.initializeWithMock(MockGmailApi(), normalConfig);
+
+      expect(EmailService.instance.isConsoleMode, isFalse);
+    });
+
+    test('isConsoleMode returns false when not initialized', () {
+      expect(EmailService.instance.isConsoleMode, isFalse);
+    });
+  });
+
+  group('sendPasswordResetEmail', () {
+    late MockGmailApi mockGmailApi;
+    late MockUsersResource mockUsersResource;
+    late MockMessagesResource mockMessagesResource;
+    late EmailConfig testConfig;
+
+    setUp(() {
+      EmailService.resetForTesting();
+
+      mockGmailApi = MockGmailApi();
+      mockUsersResource = MockUsersResource();
+      mockMessagesResource = MockMessagesResource();
+      testConfig = EmailConfig(
+        gmailServiceAccountEmail: 'test-sa@project.iam.gserviceaccount.com',
+        senderEmail: 'noreply@test.com',
+        enabled: true,
+      );
+
+      when(() => mockGmailApi.users).thenReturn(mockUsersResource);
+      when(() => mockUsersResource.messages).thenReturn(mockMessagesResource);
+    });
+
+    tearDown(() {
+      EmailService.resetForTesting();
+    });
+
+    test(
+      'sendPasswordResetEmail returns success when Gmail API succeeds',
+      () async {
+        when(
+          () => mockMessagesResource.send(any(), any()),
+        ).thenAnswer((_) async => gmail.Message()..id = 'reset-msg-123');
+
+        EmailService.initializeWithMock(mockGmailApi, testConfig);
+
+        final result = await EmailService.instance.sendPasswordResetEmail(
+          recipientEmail: 'user@example.com',
+          resetLink: 'https://portal.example.com/reset?code=abc123',
+          recipientName: 'Test User',
+        );
+
+        expect(result.success, isTrue);
+        expect(result.messageId, equals('reset-msg-123'));
+      },
+    );
+
+    test('sendPasswordResetEmail returns failure when not ready', () async {
+      final result = await EmailService.instance.sendPasswordResetEmail(
+        recipientEmail: 'user@example.com',
+        resetLink: 'https://portal.example.com/reset?code=abc123',
+      );
+
+      expect(result.success, isFalse);
+      expect(result.error, equals('Email service not ready'));
+    });
+
+    test('sendPasswordResetEmail works without recipientName', () async {
+      when(
+        () => mockMessagesResource.send(any(), any()),
+      ).thenAnswer((_) async => gmail.Message()..id = 'reset-msg-noname');
+
+      EmailService.initializeWithMock(mockGmailApi, testConfig);
+
+      final result = await EmailService.instance.sendPasswordResetEmail(
+        recipientEmail: 'user@example.com',
+        resetLink: 'https://portal.example.com/reset?code=def456',
+        // No recipientName - uses "Hello" greeting
+      );
+
+      expect(result.success, isTrue);
+      expect(result.messageId, equals('reset-msg-noname'));
+    });
+
+    test(
+      'sendPasswordResetEmail returns failure when Gmail API throws',
+      () async {
+        when(
+          () => mockMessagesResource.send(any(), any()),
+        ).thenThrow(Exception('SMTP connection failed'));
+
+        EmailService.initializeWithMock(mockGmailApi, testConfig);
+
+        final result = await EmailService.instance.sendPasswordResetEmail(
+          recipientEmail: 'user@example.com',
+          resetLink: 'https://portal.example.com/reset?code=xyz789',
+        );
+
+        expect(result.success, isFalse);
+        expect(result.error, contains('SMTP connection failed'));
+      },
+    );
+  });
 }

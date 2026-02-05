@@ -47,6 +47,104 @@ This specification defines the platform's implementation of the NOSE HHT (Nasal 
 
 NOSE HHT is a **scored questionnaire** that may require investigator approval before score calculation per REQ-p01064.
 
+---
+
+## Questionnaire Content
+
+### Preamble
+
+> Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia. Below you will find a list of physical, functional, and emotional consequences of your nosebleeds. We would like to know more about these problems and would appreciate you answering the following questions to the best of your ability.
+> There are no right or wrong answers, as your responses are unique to you.
+> Please rate your problems as they have been over the past two weeks.
+
+### Questions
+
+#### Physical (Questions 1–6)
+
+Stem: *Please rate how severe the following problems are due to your nosebleeds:*
+
+| # | Question |
+| --- | ---------- |
+| 1 | Blood running down the back of your throat |
+| 2 | Blocked up, stuffy nose |
+| 3 | Nasal crusting |
+| 4 | Fatigue |
+| 5 | Shortness of breath |
+| 6 | Decreased sense of smell or taste |
+
+#### Functional (Questions 7–20)
+
+Stem: *How difficult is it to perform the following tasks due to your nosebleeds?*
+
+| # | Question |
+| --- | ---------- |
+| 7 | Blow your nose |
+| 8 | Bend over/pick something up off the ground |
+| 9 | Breathe through your nose |
+| 10 | Exercise |
+| 11 | Work at your job (or school) |
+| 12 | Stay asleep |
+| 13 | Enjoy time with friends or family |
+| 14 | Eat certain foods (e.g. spicy) |
+| 15 | Have intimacy with spouse or significant other |
+| 16 | Travel (e.g. by plane) |
+| 17 | Fall asleep |
+| 18 | Clean your house/apartment |
+| 19 | Go outdoors regardless of the weather or season |
+| 20 | Cook or prepare meals |
+
+#### Emotional (Questions 21–29)
+
+Stem: *How bothered are you by the following due to your nosebleeds?*
+
+| # | Question |
+| --- | ---------- |
+| 21 | Fear of nosebleeds in public |
+| 22 | Fear of not knowing when next nosebleed |
+| 23 | Getting blood on your clothes |
+| 24 | Fear of not being able to stop a nosebleed |
+| 25 | Embarrassment |
+| 26 | Frustration, restlessness, irritability |
+| 27 | Reduced concentration |
+| 28 | Sadness |
+| 29 | The need to buy new clothes |
+
+### Response Options
+
+Each category uses a 5-point scale (scored 0–4) with category-specific labels:
+
+#### Physical Response Scale
+
+| Value | Label |
+| ----- | ----- |
+| 0 | No problem |
+| 1 | Mild problem |
+| 2 | Moderate problem |
+| 3 | Severe problem |
+| 4 | As bad as possible |
+
+#### Functional Response Scale
+
+| Value | Label |
+| ----- | ----- |
+| 0 | No difficulty |
+| 1 | Mild difficulty |
+| 2 | Moderate difficulty |
+| 3 | Severe difficulty |
+| 4 | Complete difficulty |
+
+#### Emotional Response Scale
+
+| Value | Label |
+| ----- | ----- |
+| 0 | Not bothered |
+| 1 | Very rarely bothered |
+| 2 | Rarely bothered |
+| 3 | Frequently bothered |
+| 4 | Very frequently bothered |
+
+---
+
 ## Requirements
 
 # REQ-p01067: NOSE HHT Questionnaire

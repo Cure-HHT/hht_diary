@@ -11,6 +11,8 @@
 //   REQ-CAL-p00021: Patient Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
 // Patient linking code handlers - generate and manage linking codes
 // for patient mobile app enrollment
@@ -975,6 +977,162 @@ Future<Response> reactivatePatientHandler(
     'previous_status': currentStatus,
     'new_status': 'disconnected',
     'reason': reason,
+  });
+}
+
+/// Start trial for a patient
+/// POST /api/v1/portal/patients/:patientId/start-trial
+/// Authorization: Bearer <Identity Platform ID token>
+/// Body: {} (empty body)
+///
+/// Starts the trial for a connected patient who hasn't started yet:
+/// - Requires Investigator role with site access to patient's site
+/// - Patient must be in 'connected' status with trial_started = false
+/// - Updates patient: trial_started = true, trial_started_at, trial_started_by
+/// - Logs action to admin_action_log with START_TRIAL
+///
+/// Returns:
+///   200: { "success": true, "patient_id": "...", "trial_started": true, ... }
+///   401: Missing or invalid authorization
+///   403: Unauthorized (not Investigator role or wrong site)
+///   404: Patient not found
+///   409: Patient is not in 'connected' status OR trial already started
+Future<Response> startTrialHandler(Request request, String patientId) async {
+  print('[PATIENT_LINKING] startTrialHandler for: $patientId');
+
+  // Authenticate and get user
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Check role - only Investigators can start trial
+  if (user.activeRole != 'Investigator') {
+    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
+    return _jsonResponse({
+      'error': 'Only Investigators can start trial for patients',
+    }, 403);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch patient and verify site access
+  final patientResult = await db.executeWithContext(
+    '''
+    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text,
+           p.trial_started, s.site_name
+    FROM patients p
+    JOIN sites s ON p.site_id = s.site_id
+    WHERE p.patient_id = @patientId
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (patientResult.isEmpty) {
+    print('[PATIENT_LINKING] Patient not found: $patientId');
+    return _jsonResponse({'error': 'Patient not found'}, 404);
+  }
+
+  final patientSiteId = patientResult.first[1] as String;
+  final currentStatus = patientResult.first[2] as String;
+  final trialStarted = patientResult.first[3] as bool;
+  final siteName = patientResult.first[4] as String;
+
+  // Verify Investigator has access to this patient's site
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    print(
+      '[PATIENT_LINKING] User ${user.id} has no access to site $patientSiteId',
+    );
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  // Check patient status - must be connected to start trial
+  if (currentStatus != 'connected') {
+    print(
+      '[PATIENT_LINKING] Patient $patientId is not connected (status: $currentStatus)',
+    );
+    return _jsonResponse({
+      'error':
+          'Patient must be in "connected" status to start trial. Current status: $currentStatus',
+    }, 409);
+  }
+
+  // Check if trial already started
+  if (trialStarted) {
+    print('[PATIENT_LINKING] Trial already started for patient: $patientId');
+    return _jsonResponse({
+      'error': 'Trial has already been started for this patient',
+    }, 409);
+  }
+
+  final now = DateTime.now().toUtc();
+
+  // Update patient: trial_started = true
+  await db.executeWithContext(
+    '''
+    UPDATE patients
+    SET trial_started = true,
+        trial_started_at = @trialStartedAt,
+        trial_started_by = @trialStartedBy,
+        updated_at = now()
+    WHERE patient_id = @patientId
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'trialStartedAt': now.toIso8601String(),
+      'trialStartedBy': user.id,
+    },
+    context: serviceContext,
+  );
+
+  // Log to admin_action_log for audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'START_TRIAL', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'patient:$patientId',
+      'actionDetails': jsonEncode({
+        'patient_id': patientId,
+        'site_id': patientSiteId,
+        'site_name': siteName,
+        'trial_started_at': now.toIso8601String(),
+        'started_by_email': user.email,
+        'started_by_name': user.name,
+      }),
+      'justification': 'Trial started for patient - EQ questionnaire sent',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print('[PATIENT_LINKING] Trial started successfully for patient: $patientId');
+
+  return _jsonResponse({
+    'success': true,
+    'patient_id': patientId,
+    'site_id': patientSiteId,
+    'site_name': siteName,
+    'trial_started': true,
+    'trial_started_at': now.toIso8601String(),
   });
 }
 

@@ -168,4 +168,53 @@ void main() {
       expect(response.headers['Content-Type'], equals('application/json'));
     });
   });
+
+  group('sponsorRoleMappingsHandler', () {
+    test('returns 405 for non-GET requests', () async {
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/sponsor/roles?sponsorId=callisto'),
+      );
+      final response = await sponsorRoleMappingsHandler(request);
+
+      expect(response.statusCode, equals(405));
+    });
+
+    test('returns 400 when sponsorId is missing', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/roles'),
+      );
+      final response = await sponsorRoleMappingsHandler(request);
+      final body = jsonDecode(await response.readAsString());
+
+      expect(response.statusCode, equals(400));
+      expect(body['error'], contains('sponsorId'));
+    });
+
+    test('returns 400 for empty sponsorId', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/roles?sponsorId='),
+      );
+      final response = await sponsorRoleMappingsHandler(request);
+      final body = jsonDecode(await response.readAsString());
+
+      expect(response.statusCode, equals(400));
+      expect(body['error'], contains('sponsorId'));
+    });
+
+    test('returns 500 when database is not initialized', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/roles?sponsorId=callisto'),
+      );
+      final response = await sponsorRoleMappingsHandler(request);
+      final body = jsonDecode(await response.readAsString());
+
+      // Without database initialized, should return error
+      expect(response.statusCode, equals(500));
+      expect(body['error'], contains('Database error'));
+    });
+  });
 }

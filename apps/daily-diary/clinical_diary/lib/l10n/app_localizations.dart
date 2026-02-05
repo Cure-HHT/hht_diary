@@ -417,10 +417,12 @@ class AppLocalizations {
       'checkForUpdates': 'Check for updates',
       'youAreUpToDate': 'You are up to date',
 
-      // Disconnection Banner (REQ-CAL-p00077)
+      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Disconnected from Study',
       'contactYourSite': 'Please contact your study site.',
       'contactYourSiteWithName': 'Please contact {0}.',
+      'siteContactInfo': 'Site Contact Information',
+      'tapToCall': 'Tap phone number to call',
     },
     'es': {
       // General
@@ -811,10 +813,12 @@ class AppLocalizations {
       'checkForUpdates': 'Buscar actualizaciones',
       'youAreUpToDate': 'Esta actualizado',
 
-      // Disconnection Banner (REQ-CAL-p00077)
+      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Desconectado del Estudio',
       'contactYourSite': 'Por favor, contacte a su sitio de estudio.',
       'contactYourSiteWithName': 'Por favor, contacte a {0}.',
+      'siteContactInfo': 'Informacion de Contacto del Sitio',
+      'tapToCall': 'Toque el numero para llamar',
     },
     'fr': {
       // General
@@ -1216,10 +1220,12 @@ class AppLocalizations {
       'checkForUpdates': 'Rechercher des mises a jour',
       'youAreUpToDate': 'Vous etes a jour',
 
-      // Disconnection Banner (REQ-CAL-p00077)
+      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': "Deconnecte de l'Etude",
       'contactYourSite': "Veuillez contacter votre site d'etude.",
       'contactYourSiteWithName': 'Veuillez contacter {0}.',
+      'siteContactInfo': 'Coordonnees du Site',
+      'tapToCall': 'Appuyez pour appeler',
     },
     'de': {
       // General
@@ -1614,10 +1620,12 @@ class AppLocalizations {
       'checkForUpdates': 'Nach Updates suchen',
       'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
 
-      // Disconnection Banner (REQ-CAL-p00077)
+      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Von der Studie getrennt',
       'contactYourSite': 'Bitte kontaktieren Sie Ihre Studienstelle.',
       'contactYourSiteWithName': 'Bitte kontaktieren Sie {0}.',
+      'siteContactInfo': 'Kontaktinformationen der Studienstelle',
+      'tapToCall': 'Tippen Sie auf die Telefonnummer, um anzurufen',
     },
   };
 
@@ -2030,11 +2038,13 @@ class AppLocalizations {
   String get checkForUpdates => translate('checkForUpdates');
   String get youAreUpToDate => translate('youAreUpToDate');
 
-  // Disconnection Banner (REQ-CAL-p00077)
+  // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
   String get disconnectedFromStudy => translate('disconnectedFromStudy');
   String get contactYourSite => translate('contactYourSite');
   String contactYourSiteWithName(String siteName) =>
       translateWithParams('contactYourSiteWithName', [siteName]);
+  String get siteContactInfo => translate('siteContactInfo');
+  String get tapToCall => translate('tapToCall');
 }
 
 class _AppLocalizationsDelegate
