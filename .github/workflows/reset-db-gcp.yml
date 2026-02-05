@@ -54,12 +54,16 @@ jobs:
         if: inputs.debug == 'true'
         run: find . -type f
 
+      - name: 'Configure Docker for Artifact Registry'
+        run: |
+          gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
+
       - name: 'Build and push deploy-db image'
         run: |
-          gcloud builds submit \
-            --config=infrastructure/docker/db-schema-job/cloudbuild.yaml \
-            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }} \
-            .
+          docker build \
+            -t ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
+            infrastructure/docker/db-schema-job/
+          docker push ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest
 
       - name: 'Consolidate schema'
         run: |
