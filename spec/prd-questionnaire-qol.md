@@ -47,6 +47,38 @@ HHT Quality of Life is a **scored questionnaire** that may require investigator 
 
 ---
 
+## Questionnaire Content
+
+### Preamble
+
+> This questionnaire helps us understand how your nosebleeds affect your daily life and wellbeing.
+> Please think about your experiences over the past 4 weeks when answering these questions. There are no right or wrong answers.
+> Your honest responses will help healthcare providers develop better treatment plans and support strategies.
+> You must answer all questions to submit the survey.
+
+### Questions
+
+| # | Question |
+| --- | ---------- |
+| 1 | How often in the past 4 weeks has an activity for your work, school, or regularly scheduled commitments been **interrupted** by a nose bleed? |
+| 2 | How often in the past 4 weeks has an activity with your partner, family, or friends been **interrupted** by a nose bleed? |
+| 3 | How often in the past 4 weeks have you **avoided** social activities because you were worried about having a nose bleed? |
+| 4 | How often in the past 4 weeks have you **had to miss** your work, school, or regularly scheduled commitments because of HHT-related problems **other than nosebleeds**? |
+
+### Response Options
+
+All questions use a single 5-point frequency scale (scored 0–4):
+
+| Value | Label |
+| ----- | ----- |
+| 0 | Never |
+| 1 | Rarely |
+| 2 | Sometimes |
+| 3 | Often |
+| 4 | Always |
+
+---
+
 ## Requirements
 
 # REQ-p01068: HHT Quality of Life Questionnaire

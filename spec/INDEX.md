@@ -249,6 +249,25 @@ This file provides a complete index of all requirements.
 | REQ-d00091 | Development Environment Operational Qualification | dev-environment.md | fe899a74 |
 | REQ-d00092 | Development Environment Performance Qualification | dev-environment.md | 5185eb02 |
 | REQ-d00093 | Development Environment Change Control | dev-environment.md | 25b6fc05 |
+| REQ-d00094 | Linking Code Entry Interface | dev-diary-app-linking.md | deedd87f |
+| REQ-d00095 | Linking Code Input Validation | dev-diary-app-linking.md | ed645d36 |
+| REQ-d00096 | Enrollment Token Secure Storage | dev-diary-app-linking.md | 55d1d6ba |
+| REQ-d00097 | Token Refresh and Expiration Handling | dev-diary-app-linking.md | 5d535979 |
+| REQ-d00098 | Token Invalidation on Disconnection | dev-diary-app-linking.md | 83697992 |
+| REQ-d00099 | Linking Code Error Handling | dev-diary-app-linking.md | 514e1bf0 |
+| REQ-d00100 | Network Failure Handling During Linking | dev-diary-app-linking.md | 69917b62 |
+| REQ-d00101 | Enrollment State Machine | dev-diary-app-linking.md | cdda8a9f |
+| REQ-d00102 | Enrollment State Behaviors | dev-diary-app-linking.md | 9a325df1 |
+| REQ-d00103 | Disconnection Detection | dev-diary-app-linking.md | e6b7dc66 |
+| REQ-d00104 | Contact Study Coordinator Screen | dev-diary-app-linking.md | b5ced74b |
+| REQ-d00105 | Reconnection Recovery Path | dev-diary-app-linking.md | ee420ab8 |
+| REQ-d00106 | Study Start Questionnaire Rendering | dev-diary-app-linking.md | f05aab6f |
+| REQ-d00107 | Questionnaire Response Collection and Storage | dev-diary-app-linking.md | 76b26c02 |
+| REQ-d00108 | Questionnaire Submission Flow | dev-diary-app-linking.md | fb00fce8 |
+| REQ-d00109 | Portal Linking Code Validation Endpoint | dev-portal-api.md | a1b2c3d4 |
+| REQ-d00110 | Linking API Error Response Strategy | dev-portal-api.md | e5f6g7h8 |
+| REQ-d00111 | Linking API Audit Trail | dev-portal-api.md | i9j0k1l2 |
+| REQ-d00112 | Enrollment Token Revocation | dev-portal-api.md | c3d4e5f6 |
 
 ---
 
