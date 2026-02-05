@@ -26,7 +26,7 @@ on:
         options:
           - dev
           - qa
-        default: dev
+        default: qa
       debug:
         description: 'Enable debug mode'
         required: true
@@ -122,7 +122,7 @@ jobs:
             --set-env-vars="SPONSOR_DATA_FILE=${{ vars.SPONSOR_DATA_FILE }}" \
             --set-env-vars="SPONSOR=${{ inputs.sponsor }}" \
             --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
-            --vpc-connector ${{ vars.CALLISTO_VPC_CONNECTOR }}
+            --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }}
 
       - name: 'Execute deploy-db job'
         run: |
