@@ -3,24 +3,22 @@
 #   REQ-o00044: GCP Authentication via Workload Identity Federation
 #   REQ-o00043: Automated Deployment Pipeline
 #
-# This workflow tests GCP authentication using Workload Identity Federation
-# Triggered manually for testing purposes
+# This workflow resets the database in GCP Cloud SQL database
+# in whichever environment is specified.
 
 name: 'Reset DB in GCP'
 
 on:
   workflow_dispatch:
     inputs:
-      environ:
-        description: 'Target environment'
+      sponsor-env:
+        description: 'Callisto environment'
         required: true
         type: choice
         options:
           - dev
           - qa
-          - uat
-          - prod
-        default: 'dev'
+        default: dev
       debug:
         description: 'Enable debug mode'
         required: true
@@ -31,14 +29,13 @@ on:
         default: 'false'
 
 env:
-  GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
-  SCHEMA_BUCKET: 'gs://cure-hht-admin_cloudbuild'
+  CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/cloud-run-source-deploy'
   SCHEMA_FILE: 'init-consolidated.sql'
-  SPONSOR_DATA_FILE: 'seed_data_dev.sql'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.sponsor-env }}
     permissions:
       contents: 'read'
       id-token: 'write'  # Required to request the OIDC token
@@ -50,18 +47,19 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: '${{ vars.GCP_SA_EMAIL }}'
-
-      - name: 'Pull current branch'
-        run: |
-          git fetch origin ${{ github.ref_name }}
-          git checkout ${{ github.ref_name }}
-          git pull origin ${{ github.ref_name }}
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.CUREHHT_ADMIN_SA_EMAIL }}'
 
       - name: 'List files'
         if: inputs.debug == 'true'
         run: find . -type f
+
+      - name: 'Build and push deploy-db image'
+        run: |
+          gcloud builds submit \
+            --config=infrastructure/docker/db-schema-job/cloudbuild.yaml \
+            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }} \
+            .
 
       - name: 'Consolidate schema'
         run: |
@@ -73,8 +71,8 @@ jobs:
 
       - name: 'Copy schema to GCP'
         run: |
-          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
-            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
+            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
 
       - name: 'Pull Sponsor repo for seed data'
         uses: 'actions/checkout@v4'
@@ -85,11 +83,19 @@ jobs:
 
       - name: 'Copy seed data to GCP'
         run: |
-          gcloud storage cp sponsor-data/database/${{ env.SPONSOR_DATA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SPONSOR_DATA_FILE }} \
-            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+          gcloud storage cp sponsor-data/database/${{ vars.SPONSOR_DATA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ vars.SPONSOR_DATA_FILE }} \
+            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
 
-      - name: 'Drop, deploy and seed DB'
+      - name: 'Deploy deploy-db job to Cloud Run'
+        run: |
+          gcloud run jobs deploy deploy-db \
+            --image=${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --region=${{ vars.GCP_REGION }}
+
+      - name: 'Execute deploy-db job'
         run: |
           gcloud run jobs execute deploy-db \
-            --project=${{ vars.GCP_DB_PROJECT_ID }} \
-            --region=${{ vars.GCP_REGION }}
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --region=${{ vars.GCP_REGION }} \
+            --wait
