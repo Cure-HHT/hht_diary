@@ -8,7 +8,7 @@
 #   REQ-d00058: Secrets Management via Doppler
 #   REQ-o00070: Data Residency Enforcement
 #
-# This workflow tests GCP authentication using Workload Identity Federation
+# This workflow deploys to GCP using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
 
 name: 'Deploy cloud run service'
