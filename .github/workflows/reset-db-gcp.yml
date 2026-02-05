@@ -11,8 +11,16 @@ name: 'Reset DB in GCP'
 on:
   workflow_dispatch:
     inputs:
+      sponsor:
+        description: 'Sponsor'
+        required: true
+        type: choice
+        options:
+          - callisto4
+          - cure-hht
+        default: callisto4
       sponsor-env:
-        description: 'Callisto environment'
+        description: 'Environment'
         required: true
         type: choice
         options:
@@ -92,10 +100,29 @@ jobs:
 
       - name: 'Deploy deploy-db job to Cloud Run'
         run: |
+          DB_INSTANCE_IP=$(gcloud sql instances describe ${{ vars.SPONSOR_DB_INSTANCE_NAME }} \
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --format=json | jq \
+            --raw-output '.ipAddresses[] | select(.type == "PRIVATE") | .ipAddress')
+
           gcloud run jobs deploy deploy-db \
             --image=${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
-            --region=${{ vars.GCP_REGION }}
+            --region=${{ vars.GCP_REGION }} \
+            --task-timeout=5m \
+            --max-retries=1 \
+            --set-env-vars="DB_HOST=$DB_INSTANCE_IP" \
+            --set-env-vars="DB_NAME=${{ vars.SPONSOR_DB_NAME }}" \
+            --set-env-vars="DB_PASSWORD=${{ secrets.SPONSOR_DB_PASSWORD }}" \
+            --set-env-vars="DB_PORT=${{ vars.SPONSOR_DB_PORT }}" \
+            --set-env-vars="DB_USER=${{ vars.SPONSOR_DB_USER }}" \
+            --set-env-vars="ENVIRONMENT=${{ inputs.sponsor-env }}" \
+            --set-env-vars="SCHEMA_BUCKET=${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}" \
+            --set-env-vars="SCHEMA_FILE=${{ env.SCHEMA_FILE }}" \
+            --set-env-vars="SPONSOR_DATA_FILE=${{ vars.SPONSOR_DATA_FILE }}" \
+            --set-env-vars="SPONSOR=${{ inputs.sponsor }}" \
+            --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
+            --vpc-connector ${{ vars.CALLISTO_VPC_CONNECTOR }}
 
       - name: 'Execute deploy-db job'
         run: |
