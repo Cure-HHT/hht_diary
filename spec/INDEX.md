@@ -116,7 +116,7 @@ This file provides a complete index of all requirements.
 | REQ-p70001 | Sponsor Portal Application | prd-portal.md | be01f827 |
 | REQ-p70005 | Customizable Role-Based Access Control | prd-portal.md | a9f3141f |
 | REQ-p70006 | Comprehensive Audit Trail | prd-portal.md | 6d89830c |
-| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | fe32ff5f |
+| REQ-p70007 | Linking Code Lifecycle Management | prd-portal.md | 0a7d6119 |
 | REQ-p70008 | Sponsor-Specific Role Mapping | prd-portal.md | 74b1201e |
 | REQ-p70009 | Link New Patient Workflow | prd-portal.md | 4f1edfe6 |
 | REQ-p70010 | Patient Disconnection Workflow | prd-portal.md | 0e956c62 |
