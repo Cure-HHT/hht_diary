@@ -239,3 +239,4 @@ terraform.rc
 /apps/sponsor-portal/portal-ui/coverage/
 /apps/tool/deploy_diary_server.sh
 /apps/tool/deploy_portal_server.sh
+tools/one-time-migrations/

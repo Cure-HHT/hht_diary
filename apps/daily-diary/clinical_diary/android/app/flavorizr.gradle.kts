@@ -8,22 +8,22 @@ android.apply {
     productFlavors {
         create("dev") {
             dimension = "environment"
-            applicationId = "org.curehht.clinicaldiary.dev"
+            applicationId = "org.anspar.curehht.app.dev"
             resValue(type = "string", name = "app_name", value = "Diary DEV")
         }
         create("qa") {
             dimension = "environment"
-            applicationId = "org.curehht.clinicaldiary.qa"
+            applicationId = "org.anspar.curehht.app.qa"
             resValue(type = "string", name = "app_name", value = "Diary QA")
         }
         create("uat") {
             dimension = "environment"
-            applicationId = "org.curehht.clinicaldiary.uat"
+            applicationId = "org.anspar.curehht.app.uat"
             resValue(type = "string", name = "app_name", value = "Clinical Diary")
         }
         create("prod") {
             dimension = "environment"
-            applicationId = "org.curehht.clinicaldiary"
+            applicationId = "org.anspar.curehht.app"
             resValue(type = "string", name = "app_name", value = "Clinical Diary")
         }
     }

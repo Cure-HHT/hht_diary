@@ -25,6 +25,37 @@ void main(List<String> args) async {
 
   final log = Logger('portal_server');
 
+  // Log environment configuration at startup (secrets masked)
+  log.info('=== Environment Configuration ===');
+  final envVars = [
+    'PORT',
+    'DB_HOST',
+    'DB_PORT',
+    'DB_NAME',
+    'DB_USER',
+    'GMAIL_SERVICE_ACCOUNT_EMAIL',
+    'EMAIL_SENDER',
+    'EMAIL_SENDER_NAME',
+    'EMAIL_CONSOLE_MODE',
+    'IDENTITY_PLATFORM_PROJECT_ID',
+    'GOOGLE_CLOUD_PROJECT',
+    'K_SERVICE',
+    'K_REVISION',
+  ];
+  for (final key in envVars) {
+    final value = Platform.environment[key];
+    log.info('  $key: ${value ?? "(not set)"}');
+  }
+  // Log presence of secrets without revealing values
+  final secretVars = ['DB_PASSWORD', 'IDENTITY_PLATFORM_API_KEY'];
+  for (final key in secretVars) {
+    final value = Platform.environment[key];
+    log.info(
+      '  $key: ${value != null ? "(set, ${value.length} chars)" : "(not set)"}',
+    );
+  }
+  log.info('=================================');
+
   // Initialize database connection pool
   log.info('Initializing database connection...');
   final dbConfig = DatabaseConfig.fromEnvironment();

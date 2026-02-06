@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '681337116402',
     projectId: 'hht-diary-mvp',
     storageBucket: 'hht-diary-mvp.firebasestorage.app',
-    iosBundleId: 'org.curehht.clinicalDiary',
+    iosBundleId: 'org.anspar.curehht.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -72,7 +72,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '681337116402',
     projectId: 'hht-diary-mvp',
     storageBucket: 'hht-diary-mvp.firebasestorage.app',
-    iosBundleId: 'org.curehht.clinicalDiary',
+    iosBundleId: 'org.anspar.curehht.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

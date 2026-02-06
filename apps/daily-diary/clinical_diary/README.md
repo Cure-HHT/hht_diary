@@ -60,12 +60,12 @@ flutter run
 
 The app uses [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr) to support four environments with distinct app identities:
 
-| Flavor | App Name       | Bundle ID                     | Banner | Dev Tools |
-| ------ | -------------- | ----------------------------- | ------ | --------- |
-| `dev`  | Diary DEV      | org.curehht.clinicaldiary.dev | Orange | Yes       |
-| `qa`   | Diary QA       | org.curehht.clinicaldiary.qa  | Purple | Yes       |
-| `uat`  | Clinical Diary | org.curehht.clinicaldiary.uat | None   | No        |
-| `prod` | Clinical Diary | org.curehht.clinicaldiary     | None   | No        |
+| Flavor | App Name       | Bundle ID                  | Banner | Dev Tools |
+|--------|----------------|----------------------------|--------|-----------|
+| `dev`  | Diary DEV      | org.anspar.curehht.app.dev | Orange | Yes       |
+| `qa`   | Diary QA       | org.anspar.curehht.app.qa  | Purple | Yes       |
+| `uat`  | Clinical Diary | org.anspar.curehht.app.uat | None   | No        |
+| `prod` | Clinical Diary | org.anspar.curehht.app     | None   | No        |
 
 Each flavor has:
 - **Distinct bundle ID** - Allows side-by-side installation on the same device

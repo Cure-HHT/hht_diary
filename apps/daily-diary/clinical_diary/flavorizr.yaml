@@ -26,70 +26,70 @@ app:
 flavors:
   dev:
     app:
-      name: "Diary DEV"
+      name: "CureHHT Tracker DEV"
     android:
-      applicationId: "org.curehht.clinicaldiary.dev"
+      applicationId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
       firebase:
         config: ".firebase/dev/google-services.json"
     ios:
-      bundleId: "org.curehht.clinicaldiary-dev"
+      bundleId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
       firebase:
         config: ".firebase/dev/GoogleService-Info.plist"
     macos:
-      bundleId: "org.curehht.clinicaldiary-dev"
+      bundleId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
 
   qa:
     app:
       name: "Diary QA"
     android:
-      applicationId: "org.curehht.clinicaldiary.qa"
+      applicationId: "org.anspar.curehht.app-qa"
       icon: "assets/icons/qa/app_icon.png"
       firebase:
         config: ".firebase/qa/google-services.json"
     ios:
-      bundleId: "org.curehht.clinicaldiary-qa"
+      bundleId: "org.anspar.curehht.app-qa"
       icon: "assets/icons/qa/app_icon.png"
       firebase:
         config: ".firebase/qa/GoogleService-Info.plist"
     macos:
-      bundleId: "org.curehht.clinicaldiary-qa"
+      bundleId: "org.anspar.curehht.app-qa"
       icon: "assets/icons/qa/app_icon.png"
 
   uat:
     app:
       name: "Clinical Diary"
     android:
-      applicationId: "org.curehht.clinicaldiary.uat"
+      applicationId: "org.anspar.curehht.app-uat"
       icon: "assets/icons/uat/app_icon.png"
       firebase:
         config: ".firebase/uat/google-services.json"
     ios:
-      bundleId: "org.curehht.clinicaldiary-uat"
+      bundleId: "org.anspar.curehht.app-uat"
       icon: "assets/icons/uat/app_icon.png"
       firebase:
         config: ".firebase/uat/GoogleService-Info.plist"
     macos:
-      bundleId: "org.curehht.clinicaldiary-uat"
+      bundleId: "org.anspar.curehht.app-uat"
       icon: "assets/icons/uat/app_icon.png"
 
   prod:
     app:
       name: "Clinical Diary"
     android:
-      applicationId: "org.curehht.clinicaldiary"
+      applicationId: "org.anspar.curehht.app"
       icon: "assets/icons/prod/app_icon.png"
       firebase:
         config: ".firebase/prod/google-services.json"
     ios:
-      bundleId: "org.curehht.clinicaldiary"
+      bundleId: "org.anspar.curehht.app"
       icon: "assets/icons/prod/app_icon.png"
       firebase:
         config: ".firebase/prod/GoogleService-Info.plist"
     macos:
-      bundleId: "org.curehht.clinicaldiary"
+      bundleId: "org.anspar.curehht.app"
       icon: "assets/icons/prod/app_icon.png"
 
 # IDE configuration - generates VS Code launch configurations

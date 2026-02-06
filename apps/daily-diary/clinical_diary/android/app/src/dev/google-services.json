@@ -34,7 +34,7 @@
               "client_id": "681337116402-pteum8i65siq7mq3pmp3ave68i0vl1kb.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "org.curehht.clinicalDiary"
+                "bundle_id": "org.anspar.curehht.app"
               }
             }
           ]
@@ -45,7 +45,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:681337116402:android:6086788bf6d97eaaf5626b",
         "android_client_info": {
-          "package_name": "org.curehht.clinicaldiary.dev"
+          "package_name": "org.anspar.curehht.app.dev"
         }
       },
       "oauth_client": [
@@ -70,7 +70,7 @@
               "client_id": "681337116402-pteum8i65siq7mq3pmp3ave68i0vl1kb.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "org.curehht.clinicalDiary"
+                "bundle_id": "org.anspar.curehht.app"
               }
             }
           ]
