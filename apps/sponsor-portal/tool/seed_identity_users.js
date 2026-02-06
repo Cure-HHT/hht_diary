@@ -32,7 +32,7 @@ const admin = require('firebase-admin');
 function parseArgs() {
   const args = process.argv.slice(2);
   const parsed = {
-    project: null,
+    project: 'cure-hht',
     env: null,
     password: null,
     users: null,
@@ -95,23 +95,23 @@ function validateArgs(args) {
   const errors = [];
 
   if (!args.project) {
-    errors.push('--project is required');
+    errors.push('--project, doppler project is required (hht-diary)');
   }
 
   if (!args.env) {
-    errors.push('--env is required (dev, qa, uat, prod)');
+    errors.push('--env, doppler config is required (dev, qa, uat, prod)');
   }
 
   if (!args.password) {
-    errors.push('--password is required');
+    errors.push('--password, user password is required');
   }
 
   if (!args.users || args.users.length === 0) {
-    errors.push('--users is required (comma-separated email list)');
+    errors.push('--users are required (comma-separated email list)');
   }
 
   if (!args.userNames || args.userNames.length === 0) {
-    errors.push('--user-names is required (comma-separated name list)');
+    errors.push('--user-names are required (comma-separated name list)');
   }
 
   if (args.users && args.userNames && args.users.length !== args.userNames.length) {

@@ -30,99 +30,99 @@ output "region" {
 # Cloud Run URLs
 # -----------------------------------------------------------------------------
 
-output "diary_server_url" {
-  description = "Diary server URL"
-  value       = module.cloud_run.diary_server_url
-}
+# output "diary_server_url" {
+#   description = "Diary server URL"
+#   value       = module.cloud_run.diary_server_url
+# }
 
-output "portal_server_url" {
-  description = "Portal server URL"
-  value       = module.cloud_run.portal_server_url
-}
+# output "portal_server_url" {
+#   description = "Portal server URL"
+#   value       = module.cloud_run.portal_server_url
+# }
 
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
 
-output "database_connection_name" {
-  description = "Cloud SQL connection name (for proxy)"
-  value       = module.cloud_sql.instance_connection_name
-}
+# output "database_connection_name" {
+#   description = "Cloud SQL connection name (for proxy)"
+#   value       = module.cloud_sql.instance_connection_name
+# }
 
-output "database_private_ip" {
-  description = "Cloud SQL private IP"
-  value       = module.cloud_sql.private_ip_address
-}
+# output "database_private_ip" {
+#   description = "Cloud SQL private IP"
+#   value       = module.cloud_sql.private_ip_address
+# }
 
-output "database_name" {
-  description = "Database name"
-  value       = module.cloud_sql.database_name
-}
+# output "database_name" {
+#   description = "Database name"
+#   value       = module.cloud_sql.database_name
+# }
 
 # -----------------------------------------------------------------------------
 # VPC
 # -----------------------------------------------------------------------------
 
-output "vpc_network_name" {
-  description = "VPC network name"
-  value       = module.vpc.network_name
-}
+# output "vpc_network_name" {
+#   description = "VPC network name"
+#   value       = module.vpc.network_name
+# }
 
-output "vpc_connector_name" {
-  description = "VPC connector name"
-  value       = module.vpc.connector_name
-}
+# output "vpc_connector_name" {
+#   description = "VPC connector name"
+#   value       = module.vpc.connector_name
+# }
 
-output "vpc_cidr" {
-  description = "VPC CIDR range"
-  value       = "10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18"
-}
+# output "vpc_cidr" {
+#   description = "VPC CIDR range"
+#   value       = "10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18"
+# }
 
 # -----------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------
 
-output "backup_bucket" {
-  description = "Backup bucket name"
-  value       = module.storage.backup_bucket_name
-}
+# output "backup_bucket" {
+#   description = "Backup bucket name"
+#   value       = module.storage.backup_bucket_name
+# }
 
-output "audit_log_bucket" {
-  description = "Audit log bucket name"
-  value       = module.audit_logs.bucket_name
-}
+# output "audit_log_bucket" {
+#   description = "Audit log bucket name"
+#   value       = module.audit_logs.bucket_name
+# }
 
 # -----------------------------------------------------------------------------
 # Container Images (via Artifact Registry GHCR proxy)
 # -----------------------------------------------------------------------------
 
-output "diary_server_image" {
-  description = "Diary server container image URL"
-  value       = var.diary_server_image
-}
+# output "diary_server_image" {
+#   description = "Diary server container image URL"
+#   value       = var.diary_server_image
+# }
 
-output "portal_server_image" {
-  description = "Portal server container image URL"
-  value       = var.portal_server_image
-}
+# output "portal_server_image" {
+#   description = "Portal server container image URL"
+#   value       = var.portal_server_image
+# }
 
 # -----------------------------------------------------------------------------
 # Compliance
 # -----------------------------------------------------------------------------
 
-output "audit_compliance_status" {
-  description = "FDA compliance status"
-  value       = module.audit_logs.compliance_status
-}
+# output "audit_compliance_status" {
+#   description = "FDA compliance status"
+#   value       = module.audit_logs.compliance_status
+# }
 
 # -----------------------------------------------------------------------------
 # Service Accounts
 # -----------------------------------------------------------------------------
 
-output "portal_server_service_account_email" {
-  description = "Portal server Cloud Run service account email (add to admin-project for Gmail SA impersonation)"
-  value       = module.cloud_run.portal_server_service_account_email
-}
+# output "portal_server_service_account_email" {
+#   description = "Portal server Cloud Run service account email (add to admin-project for Gmail SA impersonation)"
+#   value       = module.cloud_run.portal_server_service_account_email
+# }
 
 # -----------------------------------------------------------------------------
 # Identity Platform (if enabled)
@@ -147,15 +147,15 @@ output "identity_platform_auth_methods" {
 # Workforce Identity (if enabled)
 # -----------------------------------------------------------------------------
 
-output "workforce_identity_pool_id" {
-  description = "Workforce Identity Pool ID (if enabled)"
-  value       = module.workforce_identity.pool_id
-}
+# output "workforce_identity_pool_id" {
+#   description = "Workforce Identity Pool ID (if enabled)"
+#   value       = module.workforce_identity.pool_id
+# }
 
-output "workforce_identity_login_url" {
-  description = "Workforce Identity login URL (if enabled)"
-  value       = module.workforce_identity.login_url
-}
+# output "workforce_identity_login_url" {
+#   description = "Workforce Identity login URL (if enabled)"
+#   value       = module.workforce_identity.login_url
+# }
 
 # -----------------------------------------------------------------------------
 # Summary
@@ -175,19 +175,10 @@ output "summary" {
     Region:      ${var.region}
 
     URLs:
-      Portal:      ${module.cloud_run.portal_server_url}
-      API:         ${module.cloud_run.diary_server_url}
-
-    Database:
-      Instance:    ${module.cloud_sql.instance_name}
-      Private IP:  ${module.cloud_sql.private_ip_address}
+      portal:      ${var.portal_server_url}
+      API:         ${var.diary_server_url}
 
     VPC CIDR:    10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18
-
-    Audit Logs:
-      Bucket:      ${module.audit_logs.bucket_name}
-      Retention:   ${var.audit_retention_years} years
-      Locked:      ${local.lock_audit_retention}
 
     Container Images:
       Diary:       ${var.diary_server_image}
@@ -196,8 +187,6 @@ output "summary" {
     Identity Platform:
       Enabled:     ${var.enable_identity_platform}
       MFA:         ${var.enable_identity_platform ? module.identity_platform[0].mfa_state : "N/A"}
-
-    ${var.workforce_identity_enabled ? "Workforce Identity: ${module.workforce_identity.login_url}" : "Workforce Identity: Disabled"}
 
   EOT
 }

@@ -5,6 +5,12 @@
 #
 # Sponsor Portal Container
 # Hosts portal_server (Dart API) + portal-ui (Flutter web) via nginx
+# =============================================================================
+# Required environment variables
+# ENV DOPPLER_TOKEN=your_doppler_token_here
+# ENV ENVIRONMENT=dev | qa | uat | prod
+# TODO replace ENVIRONMENT with DOPPLER_CONFIG=dev | qa | uat | prod
+# TODO add DOPPLER_PROJECT=hht-diary | callisto
 #
 # Build args:
 #   FLUTTER_IMAGE - from .github/workflows/build-portal-server.yml

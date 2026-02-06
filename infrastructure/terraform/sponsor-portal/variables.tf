@@ -231,6 +231,18 @@ variable "identity_platform_session_duration" {
   default     = 60
 }
 
+variable "diary_server_url" {
+  description = "A web-service URL for Identity Platform OAuth configuration"
+  type        = string
+  default     = ""
+}
+
+variable "portal_server_url" {
+  description = "A web-app URL for Identity Platform OAuth configuration"
+  type        = string
+  default     = ""
+}
+
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Configuration (for external IdP federation)
 # -----------------------------------------------------------------------------
