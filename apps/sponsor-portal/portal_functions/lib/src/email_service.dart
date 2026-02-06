@@ -80,6 +80,13 @@ class EmailService {
   static EmailService? _instance;
   static EmailConfig? _config;
   static gmail.GmailApi? _gmailApi;
+  static DateTime? _tokenCreatedAt;
+
+  /// Token refresh buffer - refresh 5 minutes before expiry
+  static const _tokenRefreshBuffer = Duration(minutes: 5);
+
+  /// Token lifetime - tokens are valid for 1 hour
+  static const _tokenLifetime = Duration(hours: 1);
 
   EmailService._();
 
@@ -94,6 +101,35 @@ class EmailService {
     _instance = null;
     _config = null;
     _gmailApi = null;
+    _tokenCreatedAt = null;
+  }
+
+  /// Check if token needs refresh (expired or about to expire)
+  bool _needsTokenRefresh() {
+    if (_tokenCreatedAt == null) return false;
+    final tokenAge = DateTime.now().difference(_tokenCreatedAt!);
+    final needsRefresh = tokenAge >= (_tokenLifetime - _tokenRefreshBuffer);
+    if (needsRefresh) {
+      print('[EMAIL] Token age: ${tokenAge.inMinutes} minutes - needs refresh');
+    }
+    return needsRefresh;
+  }
+
+  /// Refresh the Gmail API client if token is expired
+  Future<void> _refreshIfNeeded() async {
+    if (_config == null || _config!.consoleMode) return;
+    if (!_needsTokenRefresh()) return;
+
+    print('[EMAIL] Refreshing Gmail API token...');
+    try {
+      final httpClient = await _createWifClient(_config!);
+      _gmailApi = gmail.GmailApi(httpClient);
+      _tokenCreatedAt = DateTime.now();
+      print('[EMAIL] Token refreshed successfully');
+    } catch (e) {
+      print('[EMAIL] Failed to refresh token: $e');
+      // Don't null out _gmailApi - let it try with old token and fail explicitly
+    }
   }
 
   /// Initialize with a mock Gmail API for testing
@@ -128,10 +164,12 @@ class EmailService {
       print('[EMAIL] Using Workload Identity Federation');
       final httpClient = await _createWifClient(config);
       _gmailApi = gmail.GmailApi(httpClient);
+      _tokenCreatedAt = DateTime.now();
       print('[EMAIL] Email service initialized successfully');
     } catch (e) {
       print('[EMAIL] Failed to initialize email service: $e');
       _gmailApi = null;
+      _tokenCreatedAt = null;
     }
   }
 
@@ -145,10 +183,16 @@ class EmailService {
   /// gets a token as the service account itself. For Gmail API with domain-wide
   /// delegation, we must use signJwt with a sub claim.
   Future<http.Client> _createWifClient(EmailConfig config) async {
+    print('[EMAIL_WIF] Starting WIF client creation...');
+    print('[EMAIL_WIF] Gmail SA: ${config.gmailServiceAccountEmail}');
+    print('[EMAIL_WIF] Sender email: ${config.senderEmail}');
+
     // Get Application Default Credentials (Cloud Run's identity or local user)
+    print('[EMAIL_WIF] Getting Application Default Credentials...');
     final adcClient = await clientViaApplicationDefaultCredentials(
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     );
+    print('[EMAIL_WIF] ADC obtained successfully');
 
     final targetSa = config.gmailServiceAccountEmail!;
     final senderEmail = config.senderEmail;
@@ -177,7 +221,9 @@ class EmailService {
       body: jsonEncode({'payload': jwtClaims}),
     );
 
+    print('[EMAIL_WIF] Sign JWT response status: ${signResponse.statusCode}');
     if (signResponse.statusCode != 200) {
+      print('[EMAIL_WIF] Sign JWT FAILED: ${signResponse.body}');
       throw Exception(
         'Failed to sign JWT for Gmail SA: ${signResponse.statusCode} ${signResponse.body}',
       );
@@ -185,6 +231,7 @@ class EmailService {
 
     final signData = jsonDecode(signResponse.body) as Map<String, dynamic>;
     final signedJwt = signData['signedJwt'] as String;
+    print('[EMAIL_WIF] JWT signed successfully');
 
     // Step 3: Exchange signed JWT for access token (validates domain-wide delegation)
     final tokenResponse = await http.post(
@@ -194,7 +241,11 @@ class EmailService {
           'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$signedJwt',
     );
 
+    print(
+      '[EMAIL_WIF] Token exchange response status: ${tokenResponse.statusCode}',
+    );
     if (tokenResponse.statusCode != 200) {
+      print('[EMAIL_WIF] Token exchange FAILED: ${tokenResponse.body}');
       throw Exception(
         'Failed to exchange JWT for token (check domain-wide delegation): '
         '${tokenResponse.statusCode} ${tokenResponse.body}',
@@ -203,6 +254,7 @@ class EmailService {
 
     final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
     final accessToken = tokenData['access_token'] as String;
+    print('[EMAIL_WIF] Token exchange successful, got access token');
 
     // Create authenticated client with the impersonated user's token
     return authenticatedClient(
@@ -455,6 +507,9 @@ Clinical Trial Portal
     if (_config == null) {
       return EmailResult.failure('Email service not configured');
     }
+
+    // Refresh token if needed before sending
+    await _refreshIfNeeded();
 
     // Console mode - log to console instead of sending
     if (_config!.consoleMode) {

@@ -163,7 +163,6 @@
 				0D3C18C51C52B3D4909B7158 /* Pods-Runner.profile-prod.xcconfig */,
 				976211F96B9D47B41FD18571 /* Pods-Runner.release-prod.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -528,6 +527,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C6EB3D89D5147FC5DE1829C1 /* prodProfile.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-prod";
@@ -599,7 +600,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-test";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-test";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -667,7 +668,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-test";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-test";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -683,9 +684,95 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D66C33874582643CC4379501 /* uatDebug.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-uat";
+		};
+		0DF800AA2F363D04002349BE /* Debug-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-dev";
+		};
+		0DF800AB2F363D04002349BE /* Profile-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-dev";
+		};
+		0DF800AC2F363D04002349BE /* Release-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-dev";
+		};
+		0DF800AD2F363D04002349BE /* Debug-qa */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-qa";
+		};
+		0DF800AE2F363D04002349BE /* Profile-qa */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-qa";
+		};
+		0DF800AF2F363D04002349BE /* Release-qa */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-qa";
+		};
+		0DF800B02F363D04002349BE /* Debug-uat */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-uat";
+		};
+		0DF800B12F363D04002349BE /* Profile-uat */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-uat";
+		};
+		0DF800B22F363D04002349BE /* Release-uat */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-uat";
+		};
+		0DF800B32F363D04002349BE /* Debug-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-prod";
+		};
+		0DF800B42F363D04002349BE /* Profile-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-prod";
+		};
+		0DF800B52F363D04002349BE /* Release-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-prod";
 		};
 		131DD323942A4CBB80CECED3 /* Profile-dev */ = {
 			isa = XCBuildConfiguration;
@@ -747,7 +834,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -761,6 +848,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* qaProfile.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-qa";
@@ -769,6 +858,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* qaDebug.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-qa";
@@ -777,6 +868,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2FED7F1DE82C4546DEF83B74 /* prodRelease.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-prod";
@@ -840,14 +933,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2FCL8DARTZ;
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -864,7 +957,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -882,7 +975,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -898,7 +991,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -909,6 +1002,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 07F36771C0779C4807FBC617 /* devProfile.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-dev";
@@ -973,7 +1068,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -1045,7 +1140,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-uat";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1059,6 +1154,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* qaRelease.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-qa";
@@ -1123,7 +1220,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicaldiary;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -1195,7 +1292,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-test";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-test";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1272,7 +1369,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1398,14 +1495,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2FCL8DARTZ;
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1421,14 +1518,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2FCL8DARTZ;
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicalDiary;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1440,6 +1537,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B4BAC8D3299C8389F0CDE1DA /* uatProfile.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-uat";
@@ -1511,7 +1610,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-uat";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1523,6 +1622,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 86C80EC5647B2B6F73CC2481 /* devRelease.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-dev";
@@ -1531,6 +1632,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 83C5E766033F75292A1E9EB1 /* uatRelease.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-uat";
@@ -1602,7 +1705,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicaldiary;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1670,7 +1773,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.curehht.clinicaldiary-uat";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-uat";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -1686,6 +1789,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 54AFEC22D932E96AE943438D /* prodDebug.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-prod";
@@ -1750,7 +1855,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.curehht.clinicaldiary;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1764,6 +1869,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 30A692948C99AE488B5FD04F /* devDebug.xcconfig */;
 			buildSettings = {
+				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-dev";
@@ -1777,6 +1884,18 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+				0DF800AA2F363D04002349BE /* Debug-dev */,
+				0DF800AB2F363D04002349BE /* Profile-dev */,
+				0DF800AC2F363D04002349BE /* Release-dev */,
+				0DF800AD2F363D04002349BE /* Debug-qa */,
+				0DF800AE2F363D04002349BE /* Profile-qa */,
+				0DF800AF2F363D04002349BE /* Release-qa */,
+				0DF800B02F363D04002349BE /* Debug-uat */,
+				0DF800B12F363D04002349BE /* Profile-uat */,
+				0DF800B22F363D04002349BE /* Release-uat */,
+				0DF800B32F363D04002349BE /* Debug-prod */,
+				0DF800B42F363D04002349BE /* Profile-prod */,
+				0DF800B52F363D04002349BE /* Release-prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

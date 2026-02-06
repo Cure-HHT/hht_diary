@@ -507,6 +507,13 @@ CREATE POLICY admin_log_sponsor_select ON admin_action_log
     TO authenticated
     USING (current_user_role() = 'SPONSOR');
 
+-- SERVICE ROLE: Full access for backend operations (REQ-p70007)
+-- Required for linking code generation, patient workflows, etc.
+DROP POLICY IF EXISTS admin_log_service ON admin_action_log;
+CREATE POLICY admin_log_service ON admin_action_log
+    FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
+
 -- =====================================================
 -- AUDITOR_EXPORT_LOG TABLE POLICIES (REQ-d00024)
 -- =====================================================
