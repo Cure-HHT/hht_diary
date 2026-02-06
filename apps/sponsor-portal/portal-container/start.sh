@@ -46,7 +46,7 @@ echo "✅ ENVIRONMENT ${ENVIRONMENT} detected."
 if [ -z "$DOPPLER_TOKEN" ]; then
     echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
     echo "Cloud Run service must have DOPPLER_TOKEN configured for this environment."
-    exit 1
+    exit 2
 fi
 
 echo "✅ DOPPLER_TOKEN detected (length: ${#DOPPLER_TOKEN} chars)"
@@ -54,7 +54,7 @@ echo "✅ DOPPLER_TOKEN detected (length: ${#DOPPLER_TOKEN} chars)"
 # Verify Doppler CLI is available
 if ! command -v doppler &> /dev/null; then
     echo "❌ ERROR: Doppler CLI not found in PATH!"
-    exit 1
+    exit 3
 fi
 
 echo "✅ Doppler CLI version: $(doppler --version)"
@@ -71,7 +71,7 @@ echo "Testing Doppler connection..."
 if ! doppler secrets --only-names 2>&1 | head -5; then
     echo "❌ ERROR: Failed to connect to Doppler!"
     echo "Check that DOPPLER_TOKEN is valid for the target environment."
-    exit 1
+    exit 4
 fi
 
 echo "✅ Doppler connection successful"
@@ -80,14 +80,14 @@ echo "✅ Doppler connection successful"
 GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain 2>/dev/null)
 if [ -z "$GCP_PROJECT_ID" ]; then
     echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
-    exit 1
+    exit 5
 fi
 
 if [[ "$GCP_PROJECT_ID" != *"$ENVIRONMENT" ]]; then
     echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
     echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with ENVIRONMENT '$ENVIRONMENT'"
     echo "  This may indicate a misconfigured Doppler token for the wrong environment."
-    exit 1
+    exit 6
 fi
 echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$ENVIRONMENT'"
 
@@ -108,7 +108,7 @@ for _ in $(seq 1 60); do
     fi
     if ! kill -0 "$DART_PID" 2>/dev/null; then
         echo "Dart server failed to start!"
-        exit 1
+        exit 7
     fi
     sleep 1
 done
@@ -116,7 +116,7 @@ done
 # Check if Dart server started successfully
 if ! curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
     echo "Dart server failed to respond to health check!"
-    exit 1
+    exit 8
 fi
 
 # Start nginx in foreground (receives external traffic on port 8080)
