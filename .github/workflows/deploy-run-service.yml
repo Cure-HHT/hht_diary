@@ -67,7 +67,7 @@ env:
   CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/ghcr-remote'
 
 jobs:
-  deploy-portal-server:
+  deploy-cloud-run-service:
     runs-on: ubuntu-latest
     environment: ${{ inputs.sponsor-env }}
     permissions:
@@ -167,7 +167,7 @@ jobs:
           fi
 
           gcloud run deploy ${{ inputs.service-name }} \
-            --region=${{ vars.GCP_REGION}} \
+            --region=${{ vars.GCP_REGION }} \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --image="$GAR_PATH" \
             --ingress=all \
@@ -181,7 +181,7 @@ jobs:
             --max-instances=2 \
             --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
             --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }} \
-            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=${{ inputs.sponsor-env }}" \
+            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=${{ inputs.sponsor-env }}"
 
           echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
 
