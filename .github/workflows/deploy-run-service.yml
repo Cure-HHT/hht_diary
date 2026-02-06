@@ -8,7 +8,7 @@
 #   REQ-d00058: Secrets Management via Doppler
 #   REQ-o00070: Data Residency Enforcement
 #
-# This workflow tests GCP authentication using Workload Identity Federation
+# This workflow deploys to GCP using Workload Identity Federation
 # Triggered manually via workflow_dispatch or called from build-portal-server.yml
 
 name: 'Deploy cloud run service'
@@ -21,8 +21,16 @@ on:
         required: true
         type: choice
         options:
-          - diary-service
-          - portal-service
+          - diary-server
+          - portal-server
+      sponsor-env:
+        description: 'Callisto environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+        default: dev
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -34,9 +42,14 @@ on:
   workflow_call:
     inputs:
       service-name:
-        description: 'Cloud Run service to deploy (diary-service or portal-service)'
+        description: 'Cloud Run service to deploy (diary-server or portal-server)'
         required: true
         type: string
+      sponsor-env:
+        description: 'Callisto environment'
+        required: true
+        type: string
+        default: dev
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'
         required: true
@@ -51,11 +64,12 @@ on:
         required: true
 
 env:
-  GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
+  CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/ghcr-remote'
 
 jobs:
   deploy-portal-server:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.sponsor-env }}
     permissions:
       contents: 'read'
       id-token: 'write'  # Required to request the OIDC token
@@ -63,19 +77,19 @@ jobs:
     steps:
       - name: 'Validate service-name'
         run: |
-          if [[ "${{ inputs.service-name }}" != "diary-service" && "${{ inputs.service-name }}" != "portal-service" ]]; then
-            echo "::error::service-name must be 'diary-service' or 'portal-service', got '${{ inputs.service-name }}'"
+          if [[ "${{ inputs.service-name }}" != "diary-server" && "${{ inputs.service-name }}" != "portal-server" ]]; then
+            echo "::error::service-name must be 'diary-server' or 'portal-server', got '${{ inputs.service-name }}'"
             exit 1
           fi
 
-      - uses: 'actions/checkout@v4'
+      # - uses: 'actions/checkout@v4'
 
       - name: 'Authenticate with Google Cloud'
         id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: '${{ vars.GCP_SA_EMAIL }}'
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.CUREHHT_ADMIN_SA_EMAIL }}'
 
       - name: 'Translate ghcr.io path to Google Artifact Registry'
         id: translate-path
@@ -116,7 +130,7 @@ jobs:
           esac
 
           # Construct GAR path
-          GAR_PATH="${{ env.GCP_REPO_PATH }}/${ORG}/${MAPPED_IMAGE}:${TAG}"
+          GAR_PATH="${{ env.CUREHHT_ADMIN_REPO_PATH }}/${ORG}/${MAPPED_IMAGE}:${TAG}"
 
           echo "Translated GAR path: $GAR_PATH"
           echo "gar_path=$GAR_PATH" >> $GITHUB_OUTPUT
@@ -132,7 +146,7 @@ jobs:
           GAR_PATH="${{ steps.translate-path.outputs.gar_path }}"
           echo "Validating image: $GAR_PATH"
 
-          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+          gcloud config set project ${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
 
           # Try to describe the image (validates it exists)
           echo "Checking image metadata..."
@@ -152,22 +166,23 @@ jobs:
             echo "Version: $VERSION"
           fi
 
-          gcloud run services update ${{ inputs.service-name }} \
+          gcloud run deploy ${{ inputs.service-name }} \
             --region=europe-west9 \
-            --project=${{ vars.GCP_DEPLOY2_PROJECT_ID }} \
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --image="$GAR_PATH" \
+            --no-allow-unauthenticated \
             --cpu=2 \
             --memory=4Gi \
             --min-instances=1 \
             --max-instances=2 \
-            --add-cloudsql-instances=${{ vars.GCP_DB_CONNECTION_NAME }} \
-            --vpc-connector ${{ vars.GCP_SERVERLESS_VPC_CONNECTOR }} \
-            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=dev"
+            --add-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
+            --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }} \
+            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=${{ inputs.sponsor-env }}" \
 
           echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
 
       - name: 'Display authentication info'
         run: |
-          echo "GCP Project: ${{ vars.GCP_PROJECT_ID }}"
+          echo "GCP Project: ${{ vars.CUREHHT_ADMIN_PROJECT_ID }}"
           gcloud auth list
-          gcloud artifacts docker images list ${{ env.GCP_REPO_PATH }} --limit=5
+          gcloud artifacts docker images list ${{ env.CUREHHT_ADMIN_REPO_PATH }} --limit=5

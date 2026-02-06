@@ -3,24 +3,30 @@
 #   REQ-o00044: GCP Authentication via Workload Identity Federation
 #   REQ-o00043: Automated Deployment Pipeline
 #
-# This workflow tests GCP authentication using Workload Identity Federation
-# Triggered manually for testing purposes
+# This workflow resets the database in GCP Cloud SQL database
+# in whichever environment is specified.
 
 name: 'Reset DB in GCP'
 
 on:
   workflow_dispatch:
     inputs:
-      environ:
-        description: 'Target environment'
+      sponsor:
+        description: 'Sponsor'
+        required: true
+        type: choice
+        options:
+          - callisto4
+          - cure-hht
+        default: callisto4
+      sponsor-env:
+        description: 'Environment'
         required: true
         type: choice
         options:
           - dev
           - qa
-          - uat
-          - prod
-        default: 'dev'
+        default: qa
       debug:
         description: 'Enable debug mode'
         required: true
@@ -31,14 +37,13 @@ on:
         default: 'false'
 
 env:
-  GCP_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr-remote'
-  SCHEMA_BUCKET: 'gs://cure-hht-admin_cloudbuild'
+  CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/cloud-run-source-deploy'
   SCHEMA_FILE: 'init-consolidated.sql'
-  SPONSOR_DATA_FILE: 'seed_data_dev.sql'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.sponsor-env }}
     permissions:
       contents: 'read'
       id-token: 'write'  # Required to request the OIDC token
@@ -50,18 +55,23 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: '${{ vars.GCP_SA_EMAIL }}'
-
-      - name: 'Pull current branch'
-        run: |
-          git fetch origin ${{ github.ref_name }}
-          git checkout ${{ github.ref_name }}
-          git pull origin ${{ github.ref_name }}
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.CUREHHT_ADMIN_SA_EMAIL }}'
 
       - name: 'List files'
         if: inputs.debug == 'true'
         run: find . -type f
+
+      - name: 'Configure Docker for Artifact Registry'
+        run: |
+          gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
+
+      - name: 'Build and push deploy-db image'
+        run: |
+          docker build \
+            -t ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
+            infrastructure/docker/db-schema-job/
+          docker push ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest
 
       - name: 'Consolidate schema'
         run: |
@@ -73,8 +83,8 @@ jobs:
 
       - name: 'Copy schema to GCP'
         run: |
-          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
-            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
+            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
 
       - name: 'Pull Sponsor repo for seed data'
         uses: 'actions/checkout@v4'
@@ -85,11 +95,38 @@ jobs:
 
       - name: 'Copy seed data to GCP'
         run: |
-          gcloud storage cp sponsor-data/database/${{ env.SPONSOR_DATA_FILE }} ${{ env.SCHEMA_BUCKET }}/db-schema/${{ env.SPONSOR_DATA_FILE }} \
-            --project=${{ vars.GCP_ADMIN_PROJECT_ID }}
+          gcloud storage cp sponsor-data/database/${{ vars.SPONSOR_DATA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ vars.SPONSOR_DATA_FILE }} \
+            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
 
-      - name: 'Drop, deploy and seed DB'
+      - name: 'Deploy deploy-db job to Cloud Run'
+        run: |
+          DB_INSTANCE_IP=$(gcloud sql instances describe ${{ vars.SPONSOR_DB_INSTANCE_NAME }} \
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --format=json | jq \
+            --raw-output '.ipAddresses[] | select(.type == "PRIVATE") | .ipAddress')
+
+          gcloud run jobs deploy deploy-db \
+            --image=${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --region=${{ vars.GCP_REGION }} \
+            --task-timeout=5m \
+            --max-retries=1 \
+            --set-env-vars="DB_HOST=$DB_INSTANCE_IP" \
+            --set-env-vars="DB_NAME=${{ vars.SPONSOR_DB_NAME }}" \
+            --set-env-vars="DB_PASSWORD=${{ secrets.SPONSOR_DB_PASSWORD }}" \
+            --set-env-vars="DB_PORT=${{ vars.SPONSOR_DB_PORT }}" \
+            --set-env-vars="DB_USER=${{ vars.SPONSOR_DB_USER }}" \
+            --set-env-vars="ENVIRONMENT=${{ inputs.sponsor-env }}" \
+            --set-env-vars="SCHEMA_BUCKET=${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}" \
+            --set-env-vars="SCHEMA_FILE=${{ env.SCHEMA_FILE }}" \
+            --set-env-vars="SPONSOR_DATA_FILE=${{ vars.SPONSOR_DATA_FILE }}" \
+            --set-env-vars="SPONSOR=${{ inputs.sponsor }}" \
+            --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
+            --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }}
+
+      - name: 'Execute deploy-db job'
         run: |
           gcloud run jobs execute deploy-db \
-            --project=${{ vars.GCP_DB_PROJECT_ID }} \
-            --region=${{ vars.GCP_REGION }}
+            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
+            --region=${{ vars.GCP_REGION }} \
+            --wait
