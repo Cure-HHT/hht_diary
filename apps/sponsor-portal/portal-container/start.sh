@@ -5,7 +5,7 @@
 # Startup script for Sponsor Portal container
 # Runs Dart API server and nginx together
 
-set -e
+set -eo pipefail
 
 # Dart server listens on internal port 8081
 # nginx listens on external port 8080 and proxies to Dart
@@ -28,7 +28,6 @@ cleanup() {
 # Trap shutdown signals
 trap cleanup SIGTERM SIGINT SIGQUIT
 
-# Start Dart server in background with Doppler secrets injection
 echo "=========================================="
 echo "Sponsor Portal Startup"
 echo "=========================================="
@@ -62,7 +61,7 @@ echo "✅ Doppler CLI version: $(doppler --version)"
 
 # Fetch and display Doppler configuration info (without exposing secrets)
 echo "Fetching Doppler configuration info..."
-export DOPPLER_PROJECT=$(doppler configure get project --silent 2>/dev/null || echo "auto-detected")
+export DOPPLER_PROJECT="hht-diary"
 export DOPPLER_CONFIG="${ENVIRONMENT}"
 echo "  Project: ${DOPPLER_PROJECT}"
 echo "  Config: ${DOPPLER_CONFIG}"
@@ -101,7 +100,7 @@ DART_PID=$!
 
 # Wait for Dart server to be ready
 echo "Waiting for Dart server..."
-for i in $(seq 1 30); do
+for _ in $(seq 1 60); do
     if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
         echo "Dart server is ready!"
         break
