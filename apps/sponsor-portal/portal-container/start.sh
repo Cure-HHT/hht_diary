@@ -35,6 +35,14 @@ echo "=========================================="
 echo "Environment: ${ENVIRONMENT:-not-set}"
 echo "Port: $PORT"
 
+# Check if ENVIRONMENT is set
+if [ -z "$ENVIRONMENT" ]; then
+    echo "❌ ERROR: ENVIRONMENT variable is not set!"
+    echo "Cloud Run service must have ENVIRONMENT configured (e.g., dev, staging, prod)."
+    exit 1
+fi
+echo "✅ ENVIRONMENT ${ENVIRONMENT} detected."
+
 # Check if DOPPLER_TOKEN is set
 if [ -z "$DOPPLER_TOKEN" ]; then
     echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
@@ -55,7 +63,7 @@ echo "✅ Doppler CLI version: $(doppler --version)"
 # Fetch and display Doppler configuration info (without exposing secrets)
 echo "Fetching Doppler configuration info..."
 DOPPLER_PROJECT=$(doppler configure get project --silent 2>/dev/null || echo "auto-detected")
-DOPPLER_CONFIG=$(doppler configure get config --silent 2>/dev/null || echo "auto-detected")
+DOPPLER_CONFIG="${ENVIRONMENT}"
 echo "  Project: ${DOPPLER_PROJECT}"
 echo "  Config: ${DOPPLER_CONFIG}"
 
