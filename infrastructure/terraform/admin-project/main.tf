@@ -7,6 +7,12 @@
 #   REQ-o00056: IaC for portal deployment
 #   REQ-p00002: Multi-Factor Authentication for Staff (Gmail API for email OTP)
 #   REQ-p00010: FDA 21 CFR Part 11 Compliance
+#   REQ-p00042: Infrastructure audit trail for FDA compliance
+#   REQ-d00030: CI/CD Integration (Gmail API for notifications)
+#   REQ-d00035: Security and Compliance (Gmail API with domain-wide delegation
+#   REQ-d00001: Sponsor-Specific Configuration Loading (Gmail SA used by all sponsors)
+#   REQ-d00009: Role-Based Permission Enforcement Implementation (IAM roles for SA imperson
+#   REQ-d00010: Data Encryption Implementation (Gmail API uses TLS for email sending)
 #
 # NOTE: The cure-hht-admin project itself was created manually as a bootstrap
 # requirement for Terraform state storage. This configuration manages resources
@@ -147,5 +153,23 @@ resource "google_service_account_iam_member" "cloud_run_impersonate" {
 #     docker_repository {
 #       public_repository = "DOCKER_HUB"  # or custom for GHCR
 #     }
+#   }
+# }
+
+#TODO We will want one(1) global loadbalancer, external IP and certifactes
+# for ALL sponsors.
+# -----------------------------------------------------------------------------
+# Global External Load Balancer (GELB) for Sponsor Portals
+# -----------------------------------------------------------------------------
+# The GELB is set up in this admin project to provide a single global IP and
+# SSL certificate for all sponsor portals, simplifying DNS and certificate management.
+# The backend services for each portal will be added in their respective sponsor
+# project configurations.
+# resource "google_certificate_manager_certificate" "lb_default" {
+#   provider = google-beta
+#   name     = "myservice-ssl-cert"
+# 
+#   managed {
+#     domains = ["example.com"]
 #   }
 # }
