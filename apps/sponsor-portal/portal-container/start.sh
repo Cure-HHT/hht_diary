@@ -91,6 +91,7 @@ if [[ "$GCP_PROJECT_ID" != *"$ENVIRONMENT" ]]; then
 fi
 echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$ENVIRONMENT'"
 
+echo "=========================================="
 echo "Starting Dart API server with Doppler-injected secrets..."
 echo "=========================================="
 
