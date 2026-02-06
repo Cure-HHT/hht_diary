@@ -167,7 +167,7 @@ jobs:
           fi
 
           gcloud run deploy ${{ inputs.service-name }} \
-            --region=${{ vars.GCP_REGION}}
+            --region=${{ vars.GCP_REGION}} \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --image="$GAR_PATH" \
             --ingress=all \
