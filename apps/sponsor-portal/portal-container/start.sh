@@ -62,8 +62,8 @@ echo "✅ Doppler CLI version: $(doppler --version)"
 
 # Fetch and display Doppler configuration info (without exposing secrets)
 echo "Fetching Doppler configuration info..."
-DOPPLER_PROJECT=$(doppler configure get project --silent 2>/dev/null || echo "auto-detected")
-DOPPLER_CONFIG="${ENVIRONMENT}"
+export DOPPLER_PROJECT=$(doppler configure get project --silent 2>/dev/null || echo "auto-detected")
+export DOPPLER_CONFIG="${ENVIRONMENT}"
 echo "  Project: ${DOPPLER_PROJECT}"
 echo "  Config: ${DOPPLER_CONFIG}"
 
@@ -76,6 +76,22 @@ if ! doppler secrets --only-names 2>&1 | head -5; then
 fi
 
 echo "✅ Doppler connection successful"
+
+# Validate GCP_PROJECT_ID matches expected environment
+GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain 2>/dev/null)
+if [ -z "$GCP_PROJECT_ID" ]; then
+    echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
+    exit 1
+fi
+
+if [[ "$GCP_PROJECT_ID" != *"$ENVIRONMENT" ]]; then
+    echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
+    echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with ENVIRONMENT '$ENVIRONMENT'"
+    echo "  This may indicate a misconfigured Doppler token for the wrong environment."
+    exit 1
+fi
+echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$ENVIRONMENT'"
+
 echo "Starting Dart API server with Doppler-injected secrets..."
 echo "=========================================="
 
