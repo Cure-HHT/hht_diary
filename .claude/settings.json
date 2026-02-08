@@ -43,15 +43,6 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "workflow@anspar-cc-plugins": true,
-    "spec-compliance@anspar-cc-plugins": true,
-    "plugin-wizard@anspar-cc-plugins": true,
-    "debugging-toolkit@claude-code-workflows": true,
-    "unit-testing@claude-code-workflows": true,
-    "tdd-workflows@claude-code-workflows": true,
-    "cicd-automation@claude-code-workflows": true
-  },
   "extraKnownMarketplaces": {
     "anspar-cc-plugins": {
       "source": {
@@ -60,5 +51,14 @@
       },
       "version": "2.0.0"
     }
+  },
+  "enabledPlugins": {
+    "workflow@anspar-cc-plugins": true,
+    "spec-compliance@anspar-cc-plugins": true,
+    "plugin-wizard@anspar-cc-plugins": true,
+    "debugging-toolkit@claude-code-workflows": true,
+    "unit-testing@claude-code-workflows": true,
+    "tdd-workflows@claude-code-workflows": true,
+    "cicd-automation@claude-code-workflows": true
   }
 }
