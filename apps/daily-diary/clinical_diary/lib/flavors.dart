@@ -92,7 +92,7 @@ class FlavorConfig {
   /// Development flavor configuration
   static const dev = FlavorValues(
     name: 'dev',
-    apiBase: 'https://diary-server-1012274191696.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-1012274191696.europe-west9.run.app',
     environment: 'dev',
     showDevTools: true,
     showBanner: true,
@@ -106,7 +106,7 @@ class FlavorConfig {
   static const qa = FlavorValues(
     name: 'qa',
     // TODO: Update when QA environment deployed
-    apiBase: 'https://diary-server-qa.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-qa.europe-west9.run.app',
     environment: 'qa',
     showDevTools: true,
     showBanner: true,
@@ -117,7 +117,7 @@ class FlavorConfig {
   static const uat = FlavorValues(
     name: 'uat',
     // TODO: Update when UAT environment deployed
-    apiBase: 'https://diary-server-uat.europe-west9.run.app/api',
+    apiBase: 'https://diary-server-uat.europe-west9.run.app',
     environment: 'uat',
     showDevTools: false,
     showBanner: false,
@@ -128,7 +128,7 @@ class FlavorConfig {
   static const prod = FlavorValues(
     name: 'prod',
     // TODO: Update when prod environment deployed
-    apiBase: 'https://diary-server.europe-west9.run.app/api',
+    apiBase: 'https://diary-server.europe-west9.run.app',
     environment: 'prod',
     showDevTools: false,
     showBanner: false,
