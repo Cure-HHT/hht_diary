@@ -513,7 +513,17 @@ if [ -n "$TEST_DIRS" ]; then
         echo -e "${BLUE}Running tests for: $app_dir${NC}"
         echo ""
 
-        if ! "$TEST_SCRIPT"; then
+        # Resolve dependencies before running tests
+        PUBSPEC_FILE="$REPO_ROOT/$app_dir/pubspec.yaml"
+        if [ -f "$PUBSPEC_FILE" ]; then
+            if grep -q "flutter:" "$PUBSPEC_FILE" 2>/dev/null && command -v flutter &> /dev/null; then
+                (cd "$REPO_ROOT/$app_dir" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+            elif command -v dart &> /dev/null; then
+                (cd "$REPO_ROOT/$app_dir" && dart pub get) > /dev/null 2>&1 || true
+            fi
+        fi
+
+        if ! "$TEST_SCRIPT" -u; then
             VALIDATION_FAILED=true
             echo ""
             echo -e "${RED}Tests failed in $app_dir${NC}"
