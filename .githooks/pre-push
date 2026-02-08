@@ -302,6 +302,11 @@ echo ""
 # =====================================================
 # Only run pub get, format, and analyze on apps with changed files.
 # Walk up from each changed Dart file to find the nearest pubspec.yaml.
+#
+# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE before running Flutter/Dart commands.
+# Git hooks set these env vars, which causes Flutter to read version info from
+# the project repo instead of the Flutter SDK repo, resulting in "0.0.0-unknown".
+unset GIT_DIR GIT_WORK_TREE
 
 AFFECTED_APP_DIRS=""
 while IFS= read -r changed_file; do
@@ -523,6 +528,7 @@ if [ -n "$TEST_DIRS" ]; then
             fi
         fi
 
+        # Run unit tests only (integration tests require system deps like cmake/xvfb)
         if ! "$TEST_SCRIPT" -u; then
             VALIDATION_FAILED=true
             echo ""
