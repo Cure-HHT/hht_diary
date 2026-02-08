@@ -27,6 +27,11 @@
 
 set -e
 
+# =====================================================
+# anspar-wf plugin path (installed via pip)
+# =====================================================
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
+
 # Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -441,7 +446,7 @@ fi
 # 6. Auto-Discover and Execute Plugin Pre-Push Hooks
 # =====================================================
 
-PLUGIN_DIR="$REPO_ROOT/tools/anspar-cc-plugins/plugins"
+PLUGIN_DIR="$ANSPAR_PLUGINS"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin pre-push hooks
