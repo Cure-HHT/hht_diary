@@ -48,13 +48,13 @@ class F {
   static String get title {
     switch (appFlavor) {
       case Flavor.dev:
-        return 'Diary DEV';
+        return 'CureHHT Tracker DEV';
       case Flavor.qa:
-        return 'Diary QA';
+        return 'CureHHT Tracker QA';
       case Flavor.uat:
-        return 'Clinical Diary';
+        return 'CureHHT Tracker';
       case Flavor.prod:
-        return 'Clinical Diary';
+        return 'CureHHT Tracker';
     }
   }
 

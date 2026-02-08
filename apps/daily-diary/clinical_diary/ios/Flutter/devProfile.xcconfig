@@ -2,5 +2,5 @@
 #include "Generated.xcconfig"
 
 ASSET_PREFIX=dev
-BUNDLE_NAME=Diary DEV
-BUNDLE_DISPLAY_NAME=Diary DEV
+BUNDLE_NAME=CureHHT Tracker DEV
+BUNDLE_DISPLAY_NAME=CureHHT Tracker DEV

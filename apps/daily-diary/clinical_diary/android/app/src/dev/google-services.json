@@ -45,7 +45,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:681337116402:android:6086788bf6d97eaaf5626b",
         "android_client_info": {
-          "package_name": "org.anspar.curehht.app.dev"
+          "package_name": "org.anspar.curehht.app-dev"
         }
       },
       "oauth_client": [
