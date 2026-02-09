@@ -55,3 +55,35 @@ variable "sponsor_cloud_run_service_accounts" {
   type        = list(string)
   default     = []
 }
+
+variable "sponsor_cloud_run_service_agents" {
+  description = "List of Cloud Run Service Agent emails from sponsor projects that need to pull images from Artifact Registry (format: service-<PROJECT_NUMBER>@serverless-robot-prod.iam.gserviceaccount.com)"
+  type        = list(string)
+  default     = []
+}
+
+variable "sponsor_compute_default_service_accounts" {
+  description = "List of Compute Engine default service account emails from sponsor projects that need to read from the schema bucket (format: <PROJECT_NUMBER>-compute@developer.gserviceaccount.com)"
+  type        = list(string)
+  default     = []
+}
+
+# -----------------------------------------------------------------------------
+# Schema Bucket Configuration
+# -----------------------------------------------------------------------------
+
+variable "schema_bucket_name" {
+  description = "Name of the GCS bucket containing database schema files (bucket must already exist)"
+  type        = string
+  default     = "cure-hht-admin_cloudbuild"
+}
+
+# -----------------------------------------------------------------------------
+# Terraform Service Account Access
+# -----------------------------------------------------------------------------
+
+variable "sponsor_terraform_service_accounts" {
+  description = "List of Terraform service account emails from sponsor projects that need serviceUsageConsumer access to reference admin project resources"
+  type        = list(string)
+  default     = []
+}

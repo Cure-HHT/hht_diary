@@ -1,4 +1,4 @@
-# sponsor-portal/variables.tf
+# sponsor-envs/variables.tf
 #
 # Input variables for sponsor portal deployment
 #
@@ -367,4 +367,79 @@ variable "SLACK_INCIDENT_WEBHOOK_URL" {
   type        = string
   default     = ""
   sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Optional: GitHub Actions Service Account (Cross-Project Deployment)
+# -----------------------------------------------------------------------------
+
+variable "github_actions_sa" {
+  description = "GitHub Actions service account email from admin project (for cross-project Cloud Run deployments)"
+  type        = string
+  default     = ""
+}
+
+variable "compute_service_account" {
+  description = "Compute Engine default service account email (for Secret Manager access)"
+  type        = string
+  default     = ""
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Gmail API for Email Sending
+# -----------------------------------------------------------------------------
+
+variable "enable_gmail_api" {
+  description = "Enable Gmail API and create cloud-run-mailer service account for email sending"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Regional Load Balancer Configuration
+# -----------------------------------------------------------------------------
+
+variable "enable_regional_lb" {
+  description = "Enable Regional External HTTPS Load Balancer"
+  type        = bool
+  default     = false
+}
+
+variable "lb_domain" {
+  description = "Domain name for the load balancer SSL certificate (e.g., portal.sponsor.example.com)"
+  type        = string
+  default     = ""
+}
+
+# Note: lb_proxy_only_subnet_cidr is now derived from bootstrap outputs.
+# The proxy-only subnet is created by the vpc-network module in bootstrap.
+
+variable "lb_backend_timeout_sec" {
+  description = "Backend service timeout in seconds"
+  type        = number
+  default     = 30
+}
+
+variable "lb_enable_logging" {
+  description = "Enable logging for the load balancer backend service"
+  type        = bool
+  default     = true
+}
+
+variable "lb_log_sample_rate" {
+  description = "Sampling rate for load balancer logs (0.0 to 1.0)"
+  type        = number
+  default     = 1.0
+}
+
+variable "lb_enable_http_redirect" {
+  description = "Create HTTP to HTTPS redirect forwarding rule"
+  type        = bool
+  default     = true
+}
+
+variable "lb_cloud_run_service_name" {
+  description = "Name of the Cloud Run service to route traffic to (e.g., 'portal-server')"
+  type        = string
+  default     = ""
 }

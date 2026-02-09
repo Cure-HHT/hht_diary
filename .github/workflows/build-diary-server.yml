@@ -40,6 +40,7 @@ on:
         options:
           - dev
           - qa
+          - uat
         default: dev
       tobe_deployed:
         description: 'Deploy to GCP after build'
@@ -353,7 +354,7 @@ jobs:
     name: Trigger Service Deployment (async)
     runs-on: ubuntu-latest
     needs: [verify-images, build-diary-server]
-    if: inputs.tobe_deployed != false
+    if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     permissions:
       actions: write  # For triggering workflows
     steps:

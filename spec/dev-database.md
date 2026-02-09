@@ -1449,7 +1449,7 @@ SET app.site_id = 'site_001';
 - **Production Setup**: ops-database-setup.md
 - **Migration Strategy**: ops-database-migration.md
 - **Dev Container Setup**: .devcontainer/README.md
-- **Pulumi Infrastructure**: infrastructure/sponsor-portal/
+- **Pulumi Infrastructure**: infrastructure/sponsor-envs/
 - **Cloud SQL Documentation**: https://cloud.google.com/sql/docs/postgres
 - **PostgreSQL Documentation**: https://www.postgresql.org/docs/
 - **Pulumi GCP Provider**: https://www.pulumi.com/registry/packages/gcp/

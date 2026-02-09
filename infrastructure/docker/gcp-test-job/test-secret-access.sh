@@ -16,8 +16,12 @@ set -eo pipefail
 # Re-exec with line-buffered stdout/stderr so Cloud Run captures all log output
 if [ -z "$_UNBUFFERED" ]; then
     export _UNBUFFERED=1
-    exec stdbuf -oL -eL "$0" "$@"
+    exec stdbuf -o0 -eL "$0" "$@"
+    # exec stdbuf -oL -eL "$0" "$@"
 fi
+
+PATH="${PATH}:/usr/local/bin"
+echo "PATH=$PATH"
 
 echo "=========================================="
 echo "GCP Secret Manager Access Test"
@@ -32,6 +36,8 @@ echo "Running as: ${IDENTITY}"
 echo ""
 echo "Testing: gcloud secrets versions access latest --secret=DOPPLER_TOKEN"
 echo "------------------------------------------"
+gcloud secrets versions access latest --secret=DOPPLER_TOKEN >/dev/null
+export DOPPLER_TOKEN
 DOPPLER_TOKEN="$(gcloud secrets versions access latest --secret=DOPPLER_TOKEN 2>&1)"
 if [ $? -ne 0 ] || [ -z "$DOPPLER_TOKEN" ]; then
     echo "FAIL: Could not fetch DOPPLER_TOKEN from Secret Manager!"
@@ -41,6 +47,24 @@ if [ $? -ne 0 ] || [ -z "$DOPPLER_TOKEN" ]; then
 fi
 
 echo "PASS: DOPPLER_TOKEN fetched successfully (length: ${#DOPPLER_TOKEN} chars)"
+
+doppler secrets get GCP_PROJECT_ID --plain --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}"
+
+# Validate GCP_PROJECT_ID matches expected environment
+GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" 2>/dev/null)
+if [ -z "$GCP_PROJECT_ID" ]; then
+    echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
+    exit 4
+fi
+
+if [[ "$GCP_PROJECT_ID" != *"$DOPPLER_CONFIG_NAME" ]]; then
+    echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
+    echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with DOPPLER_CONFIG_NAME '$DOPPLER_CONFIG_NAME'"
+    echo "  This may indicate a misconfigured Doppler token for the wrong environment."
+    exit 5
+fi
+echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$DOPPLER_CONFIG_NAME'"
+
 echo ""
 echo "=========================================="
 echo "All tests passed."

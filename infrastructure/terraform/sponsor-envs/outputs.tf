@@ -1,4 +1,4 @@
-# sponsor-portal/outputs.tf
+# sponsor-envs/outputs.tf
 #
 # Outputs from sponsor portal deployment
 
@@ -156,6 +156,40 @@ output "identity_platform_auth_methods" {
 #   description = "Workforce Identity login URL (if enabled)"
 #   value       = module.workforce_identity.login_url
 # }
+
+# -----------------------------------------------------------------------------
+# Regional Load Balancer (if enabled)
+# -----------------------------------------------------------------------------
+
+output "enable_regional_lb" {
+  description = "Whether Regional Load Balancer is enabled"
+  value       = var.enable_regional_lb
+}
+
+output "lb_ip_address" {
+  description = "External IP address of the Regional Load Balancer"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].lb_ip_address : null
+}
+
+output "lb_dns_record_name" {
+  description = "CNAME record name to add at Gandi.net for SSL certificate validation"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].dns_record_name : null
+}
+
+output "lb_dns_record_data" {
+  description = "CNAME record data to add at Gandi.net for SSL certificate validation"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].dns_record_data : null
+}
+
+output "lb_backend_service_id" {
+  description = "Regional backend service ID (for attaching Cloud Run NEGs)"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].backend_service_id : null
+}
+
+output "lb_setup_instructions" {
+  description = "Instructions for completing Regional Load Balancer setup"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].setup_instructions : null
+}
 
 # -----------------------------------------------------------------------------
 # Summary
