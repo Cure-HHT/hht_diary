@@ -130,3 +130,5 @@ workforce_identity_enabled = false
 audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
+
+enable_cost_controls = false

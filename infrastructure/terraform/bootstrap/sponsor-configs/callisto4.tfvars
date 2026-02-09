@@ -37,8 +37,7 @@ default_region = "europe-west9"
 
 github_org               = "Cure-HHT"
 github_repo              = "hht_diary"
-enable_workload_identity = true
-
+enable_workload_identity = false # Set to true to enable Workload Identity Federation for GitHub Actions
 # -----------------------------------------------------------------------------
 # Admin Access
 # -----------------------------------------------------------------------------
@@ -49,4 +48,4 @@ anspar_admin_group = "devops-admins@anspar.org"
 # Budget Configuration (Temporary: disable cost controls for initial setup)
 # -----------------------------------------------------------------------------
 
-enable_cost_controls = false
+enable_cost_controls = true

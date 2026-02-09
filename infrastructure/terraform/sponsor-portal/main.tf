@@ -8,6 +8,19 @@
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
 
 # -----------------------------------------------------------------------------
+# Remote State – read bootstrap outputs (billing-budget topic, etc.)
+# -----------------------------------------------------------------------------
+
+data "terraform_remote_state" "bootstrap" {
+  backend = "gcs"
+
+  config = {
+    bucket = "cure-hht-terraform-state"
+    prefix = "bootstrap/${var.sponsor}"
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Local Variables
 # -----------------------------------------------------------------------------
 
@@ -49,11 +62,11 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
-# Secret Manager - Database Password
+# Secret Manager
 # -----------------------------------------------------------------------------
 
-resource "google_secret_manager_secret" "db_password" {
-  secret_id = "${var.sponsor}-${var.environment}-db-password"
+resource "google_secret_manager_secret" "doppler_token" {
+  secret_id = "DOPPLER_TOKEN"
   project   = var.project_id
 
   labels = local.common_labels
@@ -63,9 +76,9 @@ resource "google_secret_manager_secret" "db_password" {
   }
 }
 
-resource "google_secret_manager_secret_version" "db_password" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = var.DB_PASSWORD
+resource "google_secret_manager_secret_version" "doppler_token" {
+  secret      = google_secret_manager_secret.doppler_token.id
+  secret_data = var.DOPPLER_TOKEN
 }
 
 # -----------------------------------------------------------------------------
@@ -186,9 +199,48 @@ resource "google_secret_manager_secret_version" "db_password" {
 #   depends_on = [module.cloud_run]
 # }
 
+# module "cloud_functions" {
+#   source = "../modules/cloud-functions"
+
+#   project_id            = var.project_id
+#   project_number        = var.project_number
+#   region                = var.region
+#   sponsor               = var.sponsor
+#   environment           = var.environment
+#   budget_alert_topic_id = module.billing_budget.budget_alert_topic
+#   function_source_dir   = "${path.root}/../../functions"
+#   slack_webhook_url     = var.slack_webhook_devops_url
+# }
+
+# -----------------------------------------------------------------------------
+# Billing Alert Function (automated cost control)
+# Moved from bootstrap to sponsor-portal for per-environment deployment
+# -----------------------------------------------------------------------------
+
+module "billing_alerts" {
+  source = "../modules/billing-alert-funk"
+  count  = var.enable_cost_controls ? 1 : 0
+
+  project_id            = var.project_id
+  project_number        = var.project_number
+  region                = var.region
+  sponsor               = var.sponsor
+  environment           = var.environment
+  budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
+  # "${var.sponsor}-${var.environment}-budget-alerts"
+  function_source_dir   = "${path.module}/../modules/billing-alert-funk/src"
+  slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
+}
+
 # -----------------------------------------------------------------------------
 # Identity Platform (HIPAA/GDPR-compliant authentication)
 # -----------------------------------------------------------------------------
+
+# Import existing Identity Platform config that was enabled outside Terraform
+# import {
+#   to = module.identity_platform[0].google_identity_platform_config.main
+#   id = "projects/${var.project_id}"
+# }
 
 module "identity_platform" {
   source = "../modules/identity-platform"
@@ -250,15 +302,12 @@ module "identity_platform" {
 # Service Account IAM (Cross-Project Gmail SA Impersonation)
 # -----------------------------------------------------------------------------
 #
-# Grants this sponsor's service account permission to impersonate the
-# org-wide Gmail service account in the admin project for email sending.
-# See: infrastructure/terraform/admin-project/ for the Gmail SA definition.
-
-module "svc_accts" {
-  source = "../modules/svc-accts"
-  count  = var.impersonating_service_account_email != "" ? 1 : 0
-
-  admin_project_id                    = var.admin_project_id
-  gmail_service_account_email         = var.gmail_service_account_email
-  impersonating_service_account_email = var.impersonating_service_account_email
-}
+# The Gmail service account for email OTP and activation codes is managed
+# centrally in the cure-hht-admin project (infrastructure/terraform/admin-project/).
+#
+# To enable email sending for this sponsor/environment:
+# 1. Add the Cloud Run service account to the admin project's
+#    sponsor_cloud_run_service_accounts variable
+# 2. Store the Gmail SA key in Doppler for this environment
+#
+# Cloud Run service account: ${module.cloud_run.portal_server_service_account_email}

@@ -133,6 +133,23 @@ output "budget_alert_topics" {
   }
 }
 
+# Billing alert outputs moved to sponsor-portal
+# output "billing_alert_functions" {
+#   description = "Map of environment to billing alert Cloud Function name"
+#   value = {
+#     for env, alert in module.billing_alerts :
+#     env => alert.function_name
+#   }
+# }
+#
+# output "billing_alert_dead_letter_topics" {
+#   description = "Map of environment to dead-letter topic ID (null when disabled)"
+#   value = {
+#     for env, alert in module.billing_alerts :
+#     env => alert.dead_letter_topic
+#   }
+# }
+
 # -----------------------------------------------------------------------------
 # Database Configuration
 # -----------------------------------------------------------------------------
@@ -234,8 +251,8 @@ output "next_steps" {
        ../scripts/deploy-environment.sh ${var.sponsor} prod --apply
 
     3. Configure GitHub Actions secrets:
-       GCP_WORKLOAD_IDENTITY_PROVIDER: ${module.cicd.github_actions_provider}
-       GCP_SERVICE_ACCOUNT: ${module.cicd.service_account_email}
+       GCP_WORKLOAD_IDENTITY_PROVIDER: module.cicd.github_actions_provider
+       GCP_SERVICE_ACCOUNT: module.cicd.service_account_email
 
     4. Initialize databases (run schema deployment jobs):
        # For each environment, execute the schema job:

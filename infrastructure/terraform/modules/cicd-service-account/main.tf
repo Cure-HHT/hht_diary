@@ -39,6 +39,23 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
+# Enable Required APIs
+# -----------------------------------------------------------------------------
+
+resource "google_project_service" "required_apis" {
+  for_each = toset([
+    "iam.googleapis.com",                    # Service accounts and IAM
+    "iamcredentials.googleapis.com",         # Workload Identity token creation
+    "sts.googleapis.com",                    # Security Token Service (WIF token exchange)
+    "cloudresourcemanager.googleapis.com",   # Project IAM bindings
+  ])
+
+  project            = var.host_project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
+# -----------------------------------------------------------------------------
 # CI/CD Service Account
 # -----------------------------------------------------------------------------
 
@@ -85,7 +102,7 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   count = var.enable_workload_identity ? 1 : 0
 
   workload_identity_pool_id          = google_iam_workload_identity_pool.github[0].workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-provider"
+  workload_identity_pool_provider_id = "${var.sponsor}-github-provider"
   project                            = var.host_project_id
   display_name                       = "GitHub Provider"
   description                        = "OIDC provider for GitHub Actions"
