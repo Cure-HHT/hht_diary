@@ -42,8 +42,6 @@ separator = "-"
 [sponsors]
 config_file = ".github/config/sponsors.yml"
 manifest_env = "SPONSOR_MANIFEST"
-local_dir = "sponsor"
-clone_dir = "build/sponsors"
 repo_pattern = "hht_diary_{sponsor-name}"
 
 [spec]
@@ -81,11 +79,7 @@ scan_patterns = [
     "tools/**/*.py",
     ".github/workflows/**/*.yml",
 ]
-associated_patterns = [
-    "sponsor/{name}/**/*.dart",
-    "sponsor/{name}/**/*.sql",
-    "sponsor/{name}/**/*.py",
-]
+associated_patterns = []
 
 [testing]
 enabled = true
