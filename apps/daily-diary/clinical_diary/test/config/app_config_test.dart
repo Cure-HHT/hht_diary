@@ -50,24 +50,24 @@ void main() {
     });
 
     group('title', () {
-      test('returns Diary DEV for dev', () {
+      test('returns CureHHT Tracker DEV title for dev', () {
         F.appFlavor = Flavor.dev;
-        expect(F.title, 'Diary DEV');
+        expect(F.title, 'CureHHT Tracker DEV');
       });
 
-      test('returns Diary QA for qa', () {
+      test('returns CureHHT Tracker QA for qa', () {
         F.appFlavor = Flavor.qa;
-        expect(F.title, 'Diary QA');
+        expect(F.title, 'CureHHT Tracker QA');
       });
 
-      test('returns Clinical Diary for uat', () {
+      test('returns CureHHT Tracker for uat', () {
         F.appFlavor = Flavor.uat;
-        expect(F.title, 'Clinical Diary');
+        expect(F.title, 'CureHHT Tracker');
       });
 
-      test('returns Clinical Diary for prod', () {
+      test('returns CureHHT Tracker title for prod', () {
         F.appFlavor = Flavor.prod;
-        expect(F.title, 'Clinical Diary');
+        expect(F.title, 'CureHHT Tracker');
       });
     });
 
@@ -121,7 +121,7 @@ void main() {
       expect(FlavorConfig.dev.name, 'dev');
       expect(
         FlavorConfig.dev.apiBase,
-        'https://diary-server-1012274191696.europe-west9.run.app/api',
+        'https://diary-server-1012274191696.europe-west9.run.app',
       );
       expect(FlavorConfig.dev.environment, 'dev');
       expect(FlavorConfig.dev.showDevTools, true);
@@ -133,7 +133,7 @@ void main() {
       expect(FlavorConfig.qa.name, 'qa');
       expect(
         FlavorConfig.qa.apiBase,
-        'https://diary-server-qa.europe-west9.run.app/api',
+        'https://diary-server-qa.europe-west9.run.app',
       );
       expect(FlavorConfig.qa.environment, 'qa');
       expect(FlavorConfig.qa.showDevTools, true);
@@ -145,7 +145,7 @@ void main() {
       expect(FlavorConfig.uat.name, 'uat');
       expect(
         FlavorConfig.uat.apiBase,
-        'https://diary-server-uat.europe-west9.run.app/api',
+        'https://diary-server-uat.europe-west9.run.app',
       );
       expect(FlavorConfig.uat.environment, 'uat');
       expect(FlavorConfig.uat.showDevTools, false);
@@ -157,7 +157,7 @@ void main() {
       expect(FlavorConfig.prod.name, 'prod');
       expect(
         FlavorConfig.prod.apiBase,
-        'https://diary-server.europe-west9.run.app/api',
+        'https://diary-server.europe-west9.run.app',
       );
       expect(FlavorConfig.prod.environment, 'prod');
       expect(FlavorConfig.prod.showDevTools, false);
