@@ -395,7 +395,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           # Note: No pip cache - only elspais installed, no requirements.txt
 
       - name: Load version configuration
@@ -861,7 +861,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           # Note: No pip cache - pre-pr-compliance-check.py has no external deps
 
       - name: Run compliance check
