@@ -5,7 +5,7 @@
 # Startup script for Sponsor Portal container
 # Runs Dart API server and nginx together
 
-set -e
+set -eo pipefail
 
 # Dart server listens on internal port 8081
 # nginx listens on external port 8080 and proxies to Dart
@@ -28,18 +28,25 @@ cleanup() {
 # Trap shutdown signals
 trap cleanup SIGTERM SIGINT SIGQUIT
 
-# Start Dart server in background with Doppler secrets injection
 echo "=========================================="
 echo "Sponsor Portal Startup"
 echo "=========================================="
 echo "Environment: ${ENVIRONMENT:-not-set}"
 echo "Port: $PORT"
 
+# Check if ENVIRONMENT is set
+if [ -z "$ENVIRONMENT" ]; then
+    echo "❌ ERROR: ENVIRONMENT variable is not set!"
+    echo "Cloud Run service must have ENVIRONMENT configured (e.g., dev, staging, prod)."
+    exit 1
+fi
+echo "✅ ENVIRONMENT ${ENVIRONMENT} detected."
+
 # Check if DOPPLER_TOKEN is set
 if [ -z "$DOPPLER_TOKEN" ]; then
     echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
     echo "Cloud Run service must have DOPPLER_TOKEN configured for this environment."
-    exit 1
+    exit 2
 fi
 
 echo "✅ DOPPLER_TOKEN detected (length: ${#DOPPLER_TOKEN} chars)"
@@ -47,15 +54,15 @@ echo "✅ DOPPLER_TOKEN detected (length: ${#DOPPLER_TOKEN} chars)"
 # Verify Doppler CLI is available
 if ! command -v doppler &> /dev/null; then
     echo "❌ ERROR: Doppler CLI not found in PATH!"
-    exit 1
+    exit 3
 fi
 
 echo "✅ Doppler CLI version: $(doppler --version)"
 
 # Fetch and display Doppler configuration info (without exposing secrets)
 echo "Fetching Doppler configuration info..."
-DOPPLER_PROJECT=$(doppler configure get project --silent 2>/dev/null || echo "auto-detected")
-DOPPLER_CONFIG=$(doppler configure get config --silent 2>/dev/null || echo "auto-detected")
+export DOPPLER_PROJECT="hht-diary"
+export DOPPLER_CONFIG="${ENVIRONMENT}"
 echo "  Project: ${DOPPLER_PROJECT}"
 echo "  Config: ${DOPPLER_CONFIG}"
 
@@ -64,10 +71,27 @@ echo "Testing Doppler connection..."
 if ! doppler secrets --only-names 2>&1 | head -5; then
     echo "❌ ERROR: Failed to connect to Doppler!"
     echo "Check that DOPPLER_TOKEN is valid for the target environment."
-    exit 1
+    exit 4
 fi
 
 echo "✅ Doppler connection successful"
+
+# Validate GCP_PROJECT_ID matches expected environment
+GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain 2>/dev/null)
+if [ -z "$GCP_PROJECT_ID" ]; then
+    echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
+    exit 5
+fi
+
+if [[ "$GCP_PROJECT_ID" != *"$ENVIRONMENT" ]]; then
+    echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
+    echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with ENVIRONMENT '$ENVIRONMENT'"
+    echo "  This may indicate a misconfigured Doppler token for the wrong environment."
+    exit 6
+fi
+echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$ENVIRONMENT'"
+
+echo "=========================================="
 echo "Starting Dart API server with Doppler-injected secrets..."
 echo "=========================================="
 
@@ -77,14 +101,14 @@ DART_PID=$!
 
 # Wait for Dart server to be ready
 echo "Waiting for Dart server..."
-for i in $(seq 1 30); do
+for _ in $(seq 1 60); do
     if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
         echo "Dart server is ready!"
         break
     fi
     if ! kill -0 "$DART_PID" 2>/dev/null; then
         echo "Dart server failed to start!"
-        exit 1
+        exit 7
     fi
     sleep 1
 done
@@ -92,7 +116,7 @@ done
 # Check if Dart server started successfully
 if ! curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
     echo "Dart server failed to respond to health check!"
-    exit 1
+    exit 8
 fi
 
 # Start nginx in foreground (receives external traffic on port 8080)

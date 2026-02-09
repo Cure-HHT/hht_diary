@@ -54,7 +54,6 @@ min_instances    = 1
 max_instances    = 5
 container_memory = "512Mi"
 container_cpu    = "1"
-
 # -----------------------------------------------------------------------------
 # Optional: CI/CD Configuration
 # -----------------------------------------------------------------------------
@@ -69,11 +68,11 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = false
 
 # Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+# diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/diary-server:latest"
+# portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/portal-server:latest"
 
 # Disable public access due to organization policy restrictions
-allow_public_access = false
+allow_public_access = true
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -92,15 +91,19 @@ identity_platform_phone_auth     = false  # Phone number authentication
 identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
 identity_platform_password_min_length = 12        # HIPAA recommends 12+
 
-# Email configuration for invitations/password resets
-identity_platform_email_sender_name = ID_PLATFORM_NAME
-identity_platform_email_reply_to  = EMAIL_SUPPORT
+# Email configuration for invitations/password resets, from Doppler
+identity_platform_email_sender_name = "{var.id_platform_name}"
+identity_platform_email_reply_to  = "{var.email_support}"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
-# identity_platform_authorized_domains = ["portal.example.com"]
+identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
+    # "diary-qa.callisto.anspar.org", 
+
+portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
+diary_server_url = "https://diary-server-421945483876.europe-west9.run.app"
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation

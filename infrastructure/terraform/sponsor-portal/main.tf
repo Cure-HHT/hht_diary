@@ -71,122 +71,120 @@ resource "google_secret_manager_secret_version" "db_password" {
 # -----------------------------------------------------------------------------
 # VPC Network
 # -----------------------------------------------------------------------------
+# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+# module "vpc" {
+#   source = "../modules/vpc-network"
 
-module "vpc" {
-  source = "../modules/vpc-network"
+#   project_id      = var.project_id
+#   sponsor         = var.sponsor
+#   environment     = var.environment
+#   region          = var.region
+#   app_subnet_cidr = local.app_subnet_cidr
+#   db_subnet_cidr  = local.db_subnet_cidr
+#   connector_cidr  = local.connector_cidr
 
-  project_id      = var.project_id
-  sponsor         = var.sponsor
-  environment     = var.environment
-  region          = var.region
-  app_subnet_cidr = local.app_subnet_cidr
-  db_subnet_cidr  = local.db_subnet_cidr
-  connector_cidr  = local.connector_cidr
+#   connector_min_instances = local.connector_min
+#   connector_max_instances = local.connector_max
+# }
 
-  connector_min_instances = local.connector_min
-  connector_max_instances = local.connector_max
-}
+# -----------------------------------------------------------------------------
+# Audit Logs (FDA Compliant)
+# -----------------------------------------------------------------------------
+# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+# module "audit_logs" {
+#   source = "../modules/audit-logs"
+
+#   project_id            = var.project_id
+#   project_prefix        = var.project_prefix
+#   sponsor               = var.sponsor
+#   environment           = var.environment
+#   region                = var.region
+#   retention_years       = local.is_production ? var.audit_retention_years : 0
+#   lock_retention_policy = local.lock_audit_retention
+# }
 
 # -----------------------------------------------------------------------------
 # Cloud SQL
 # -----------------------------------------------------------------------------
+# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+# module "cloud_sql" {
+#   source = "../modules/cloud-sql"
 
-module "cloud_sql" {
-  source = "../modules/cloud-sql"
+#   project_id             = var.project_id
+#   sponsor                = var.sponsor
+#   environment            = var.environment
+#   region                 = var.region
+#   vpc_network_id         = module.vpc.network_id
+#   private_vpc_connection = module.vpc.private_vpc_connection
+#   DB_PASSWORD            = var.DB_PASSWORD
 
-  project_id             = var.project_id
-  sponsor                = var.sponsor
-  environment            = var.environment
-  region                 = var.region
-  vpc_network_id         = module.vpc.network_id
-  private_vpc_connection = module.vpc.private_vpc_connection
-  DB_PASSWORD            = var.DB_PASSWORD
-
-  depends_on = [module.vpc]
-}
+#   depends_on = [module.vpc]
+# }
 
 # -----------------------------------------------------------------------------
 # Cloud Run Services
 # -----------------------------------------------------------------------------
+# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+# module "cloud_run" {
+#   source = "../modules/cloud-run"
 
-module "cloud_run" {
-  source = "../modules/cloud-run"
+#   project_id       = var.project_id
+#   sponsor          = var.sponsor
+#   environment      = var.environment
+#   region           = var.region
+#   vpc_connector_id = module.vpc.connector_id
 
-  project_id       = var.project_id
-  sponsor          = var.sponsor
-  environment      = var.environment
-  region           = var.region
-  vpc_connector_id = module.vpc.connector_id
+#   # Container images (via Artifact Registry GHCR proxy)
+#   diary_server_image  = var.diary_server_image
+#   portal_server_image = var.portal_server_image
 
-  # Container images (via Artifact Registry GHCR proxy)
-  diary_server_image  = var.diary_server_image
-  portal_server_image = var.portal_server_image
+#   db_host               = module.cloud_sql.private_ip_address
+#   db_name               = module.cloud_sql.database_name
+#   db_user               = module.cloud_sql.database_user
+#   db_password_secret_id = google_secret_manager_secret.db_password.secret_id
 
-  db_host               = module.cloud_sql.private_ip_address
-  db_name               = module.cloud_sql.database_name
-  db_user               = module.cloud_sql.database_user
-  db_password_secret_id = google_secret_manager_secret.db_password.secret_id
+#   min_instances    = var.min_instances
+#   max_instances    = var.max_instances
+#   container_memory = var.container_memory
+#   container_cpu    = var.container_cpu
 
-  min_instances    = var.min_instances
-  max_instances    = var.max_instances
-  container_memory = var.container_memory
-  container_cpu    = var.container_cpu
+#   allow_public_access = var.allow_public_access
 
-  allow_public_access = var.allow_public_access
-
-  depends_on = [
-    module.vpc,
-    module.cloud_sql,
-    google_secret_manager_secret_version.db_password,
-  ]
-}
+#   depends_on = [
+#     module.vpc,
+#     module.cloud_sql,
+#     google_secret_manager_secret_version.db_password,
+#   ]
+# }
 
 # -----------------------------------------------------------------------------
 # Storage Buckets
 # -----------------------------------------------------------------------------
 
-module "storage" {
-  source = "../modules/storage-buckets"
+# module "storage" {
+#   source = "../modules/storage-buckets"
 
-  project_id    = var.project_id
-  sponsor       = var.sponsor
-  environment   = var.environment
-  region        = var.region
-}
-
-# -----------------------------------------------------------------------------
-# Audit Logs (FDA Compliant)
-# -----------------------------------------------------------------------------
-
-module "audit_logs" {
-  source = "../modules/audit-logs"
-
-  project_id            = var.project_id
-  project_prefix        = var.project_prefix
-  sponsor               = var.sponsor
-  environment           = var.environment
-  region                = var.region
-  retention_years       = local.is_production ? var.audit_retention_years : 0
-  lock_retention_policy = local.lock_audit_retention
-}
-
-
+#   project_id    = var.project_id
+#   sponsor       = var.sponsor
+#   environment   = var.environment
+#   region        = var.region
+# }
 
 # -----------------------------------------------------------------------------
 # Monitoring Alerts
 # -----------------------------------------------------------------------------
 
-module "monitoring" {
-  source = "../modules/monitoring-alerts"
+# module "monitoring" {
+#   source = "../modules/monitoring-alerts"
 
-  project_id            = var.project_id
-  sponsor               = var.sponsor
-  environment           = var.environment
-  portal_url            = module.cloud_run.portal_server_url
-  notification_channels = var.notification_channels
+#   project_id            = var.project_id
+#   sponsor               = var.sponsor
+#   environment           = var.environment
+#   portal_url            = module.cloud_run.portal_server_url
+#   notification_channels = var.notification_channels
 
-  depends_on = [module.cloud_run]
-}
+#   depends_on = [module.cloud_run]
+# }
 
 # -----------------------------------------------------------------------------
 # Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -219,34 +217,34 @@ module "identity_platform" {
 
   # Domain configuration
   authorized_domains = var.identity_platform_authorized_domains
-  portal_url         = module.cloud_run.portal_server_url
+  portal_url         = var.portal_server_url
 
   # Session settings
   session_duration_minutes = var.identity_platform_session_duration
 
-  depends_on = [module.cloud_run]
+  # depends_on = [module.cloud_run]
 }
 
 # -----------------------------------------------------------------------------
 # Workforce Identity (Optional - for external IdP federation)
 # -----------------------------------------------------------------------------
+# TODO 
+# module "workforce_identity" {
+#   source = "../modules/workforce-identity"
 
-module "workforce_identity" {
-  source = "../modules/workforce-identity"
-
-  enabled                = var.workforce_identity_enabled
-  project_id             = var.project_id
-  GCP_ORG_ID             = var.GCP_ORG_ID
-  sponsor                = var.sponsor
-  environment            = var.environment
-  region                 = var.region
-  provider_type          = var.workforce_identity_provider_type
-  oidc_issuer_uri        = var.workforce_identity_issuer_uri
-  oidc_client_id         = var.workforce_identity_client_id
-  oidc_client_secret     = var.workforce_identity_client_secret
-  allowed_email_domain   = var.workforce_identity_allowed_domain
-  cloud_run_service_name = module.cloud_run.portal_server_name
-}
+#   enabled                = var.workforce_identity_enabled
+#   project_id             = var.project_id
+#   GCP_ORG_ID             = var.GCP_ORG_ID
+#   sponsor                = var.sponsor
+#   environment            = var.environment
+#   region                 = var.region
+#   provider_type          = var.workforce_identity_provider_type
+#   oidc_issuer_uri        = var.workforce_identity_issuer_uri
+#   oidc_client_id         = var.workforce_identity_client_id
+#   oidc_client_secret     = var.workforce_identity_client_secret
+#   allowed_email_domain   = var.workforce_identity_allowed_domain
+#   cloud_run_service_name = module.cloud_run.portal_server_name
+# }
 
 # -----------------------------------------------------------------------------
 # Gmail Service Account (Org-Wide - in cure-hht-admin project)

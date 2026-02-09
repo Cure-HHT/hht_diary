@@ -49,6 +49,7 @@ resource "google_project" "main" {
 
 locals {
   required_apis = [
+    "serviceusage.googleapis.com",         # Required for Terraform to manage APIs
     "cloudresourcemanager.googleapis.com", # Project management
     "compute.googleapis.com",              # Compute Engine (VPC)
     "run.googleapis.com",                  # Cloud Run
