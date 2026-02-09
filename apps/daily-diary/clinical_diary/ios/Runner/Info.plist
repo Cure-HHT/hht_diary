@@ -47,5 +47,7 @@
       <string>UIInterfaceOrientationLandscapeLeft</string>
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app may access your photo library to allow you to attach images to your health diary entries.</string>
   </dict>
 </plist>
