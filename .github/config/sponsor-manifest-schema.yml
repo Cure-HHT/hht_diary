@@ -17,18 +17,7 @@ sponsors:
     portal: boolean           # Has portal application
     region: string            # AWS region (e.g., "eu-west-1")
 
-# Example Manifest (Current Mono-Repo):
-# sponsors:
-#   - name: callisto
-#     code: CAL
-#     enabled: true
-#     repo: local  # Points to sponsor/callisto/ directory
-#     tag: main    # Not used in mono-repo mode
-#     mobile_module: true
-#     portal: true
-#     region: eu-west-1
-
-# Example Manifest (Future Multi-Repo):
+# Example Manifest:
 # sponsors:
 #   - name: callisto
 #     code: CAL

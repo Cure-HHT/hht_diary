@@ -1,6 +1,0 @@
-# SECURITY: Never commit credentials or secrets
-supabase.env
-*.env
-*.key
-*.pem
-secrets/
