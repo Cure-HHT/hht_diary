@@ -138,6 +138,12 @@ E. The system SHALL display a review summary allowing patients to see all answer
 
 F. The system SHALL show clear confirmation when the questionnaire is submitted.
 
+G. The system SHALL display the preamble as a multi-screen sequence before presenting questions.
+
+H. The system SHALL require the patient to acknowledge each preamble screen before advancing.
+
+I. The system SHALL display the preamble every time the patient opens the questionnaire, regardless of prior completion attempts.
+
 *End* *HHT Quality of Life User Interface* | **Hash**: 97122b72
 ---
 
