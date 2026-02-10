@@ -54,17 +54,8 @@ class WidgetbookApp extends StatelessWidget {
         ),
       ],
       addons: [
-        // Viewport addon (replaces deprecated DeviceFrameAddon)
-        // Must be first in addons list per Widgetbook docs
-        ViewportAddon([
-          Viewports.none,
-          IosViewports.iPhone13,
-          IosViewports.iPhoneSE,
-          AndroidViewports.samsungGalaxyS20,
-          AndroidViewports.samsungGalaxyNote20,
-        ]),
-        // Theme addon
-        ThemeAddon(
+        // Material theme addon for Flutter Material themes
+        MaterialThemeAddon(
           themes: [
             WidgetbookTheme(
               name: 'Light',
@@ -75,9 +66,6 @@ class WidgetbookApp extends StatelessWidget {
               data: ThemeData.dark(useMaterial3: true),
             ),
           ],
-          themeBuilder: (context, theme, child) {
-            return Theme(data: theme, child: child);
-          },
         ),
         // Locale addon
         LocalizationAddon(
