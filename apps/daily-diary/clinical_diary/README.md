@@ -727,6 +727,69 @@ flutter test --update-goldens  # Update golden images
 flutter test                    # Run with comparison
 ```
 
+### Widgetbook Component Catalog
+
+[Widgetbook](https://www.widgetbook.io/) provides an interactive component catalog for developing and testing widgets in isolation. It's similar to Storybook for web development.
+
+**Running Widgetbook:**
+
+```bash
+# macOS (recommended for development)
+flutter run -t widgetbook/main.dart -d macos
+
+# Web
+flutter run -t widgetbook/main.dart -d chrome
+
+# iOS Simulator
+flutter run -t widgetbook/main.dart -d iPhone
+```
+
+**Features:**
+
+| Feature | Description |
+| ------- | ----------- |
+| **Viewports** | Test on iPhone 13, iPhone SE, Samsung Galaxy S20, Galaxy Note 20 |
+| **Themes** | Switch between Light and Dark modes |
+| **Locales** | Test all supported languages (EN, ES, FR, DE) |
+| **Text Scale** | Accessibility testing with text scaling (1.0x - 2.0x) |
+| **Knobs** | Interactive controls to modify widget properties |
+
+**Available Use Cases:**
+
+- **Profile Screen > Participation Status Badge**
+  - Active State - Enrolled and connected to clinical trial
+  - Disconnected State - Warning state with reconnect option
+  - Not Participating - Not enrolled in any trial
+  - Interactive - Modify properties via knobs
+
+**Adding New Use Cases:**
+
+Edit `widgetbook/main.dart` to add new components:
+
+```dart
+WidgetbookComponent(
+  name: 'My Widget',
+  useCases: [
+    WidgetbookUseCase(
+      name: 'Default State',
+      builder: (context) => MyWidget(),
+    ),
+    WidgetbookUseCase(
+      name: 'With Knobs',
+      builder: (context) {
+        final enabled = context.knobs.boolean(
+          label: 'Enabled',
+          initialValue: true,
+        );
+        return MyWidget(enabled: enabled);
+      },
+    ),
+  ],
+),
+```
+
+**Documentation:** [Widgetbook Docs](https://docs.widgetbook.io/)
+
 ## 📚 Development
 
 ### Project Structure

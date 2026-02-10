@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: User Profile Screen Implementation
+//   REQ-CAL-p00076: Participation Status Badge
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,9 +19,12 @@ class ProfileScreen extends StatefulWidget {
     required this.isSharingWithCureHHT,
     required this.userName,
     required this.onUpdateUserName,
+    this.isDisconnected = false,
     this.enrollmentCode,
     this.enrollmentDateTime,
     this.enrollmentEndDateTime,
+    this.siteName,
+    this.sitePhoneNumber,
     super.key,
   });
 
@@ -29,13 +34,16 @@ class ProfileScreen extends StatefulWidget {
   final VoidCallback onShareWithCureHHT;
   final VoidCallback onStopSharingWithCureHHT;
   final bool isEnrolledInTrial;
+  final bool isDisconnected;
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
-  final String enrollmentStatus; // 'active' or 'ended'
+  final String enrollmentStatus; // 'active', 'ended', or 'none'
   final bool isSharingWithCureHHT;
   final String userName;
   final ValueChanged<String> onUpdateUserName;
+  final String? siteName;
+  final String? sitePhoneNumber;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -125,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -134,30 +142,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: widget.onBack,
-                        icon: const Icon(Icons.arrow_back),
-                        tooltip: 'Back',
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'User Profile',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: widget.onBack,
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: l10n.back,
                   ),
-                  const SizedBox(height: 8),
-                  // CureHHT Logo placeholder
-                  Icon(
-                    Icons.medical_services,
-                    size: 48,
-                    color: colorScheme.primary,
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.profile,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -172,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // User Info Section
+                      // 1. User Info Section (Name)
                       Row(
                         children: [
                           Icon(
@@ -191,11 +188,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         child: TextField(
                                           controller: _nameController,
                                           focusNode: _nameFocusNode,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Enter your name',
+                                          decoration: InputDecoration(
+                                            hintText: l10n.enterYourName,
                                             isDense: true,
                                             contentPadding:
-                                                EdgeInsets.symmetric(
+                                                const EdgeInsets.symmetric(
                                                   horizontal: 12,
                                                   vertical: 8,
                                                 ),
@@ -207,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       const SizedBox(width: 8),
                                       TextButton(
                                         onPressed: _cancelEditing,
-                                        child: const Text('Cancel'),
+                                        child: Text(l10n.cancel),
                                       ),
                                     ],
                                   )
@@ -222,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       IconButton(
                                         onPressed: _startEditing,
                                         icon: const Icon(Icons.edit, size: 20),
-                                        tooltip: 'Edit name',
+                                        tooltip: l10n.editName,
                                       ),
                                     ],
                                   ),
@@ -232,11 +229,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Settings Button
+                      // 2. Accessibility & Preferences Button
                       OutlinedButton.icon(
                         onPressed: widget.onShowSettings,
                         icon: const Icon(Icons.settings, size: 20),
-                        label: const Text('Accessibility and Preferences'),
+                        label: Text(l10n.accessibilityAndPreferences),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 48),
                         ),
@@ -244,14 +241,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Data Sharing Section
+                      // 3. REQ-CAL-p00076: Participation Status Badge or Enroll Button
+                      if (widget.isEnrolledInTrial || widget.isDisconnected)
+                        _buildParticipationStatusBadge(theme, l10n)
+                      else
+                        OutlinedButton.icon(
+                          onPressed: widget.onStartClinicalTrialEnrollment,
+                          icon: const Icon(Icons.description, size: 20),
+                          label: Text(l10n.enrollInClinicalTrial),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      // 4. Data Sharing Section
                       if (widget.isSharingWithCureHHT)
                         _buildSharingCard(theme)
                       else
                         OutlinedButton.icon(
                           onPressed: widget.onShareWithCureHHT,
                           icon: const Icon(Icons.share, size: 20),
-                          label: const Text('Share with CureHHT'),
+                          label: Text(l10n.shareWithCureHHT),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                           ),
@@ -259,49 +271,172 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Privacy & Data Protection Card
+                      // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
-
-                      const SizedBox(height: 24),
-
-                      // Clinical Trial Section
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.groups,
-                            size: 20,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.8,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Clinical Trial',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      if (widget.isEnrolledInTrial)
-                        _buildEnrollmentCard(theme)
-                      else
-                        OutlinedButton.icon(
-                          onPressed: widget.onStartClinicalTrialEnrollment,
-                          icon: const Icon(Icons.description, size: 20),
-                          label: const Text('Enroll in Clinical Trial'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                        ),
                     ],
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// REQ-CAL-p00076: Build the participation status badge
+  Widget _buildParticipationStatusBadge(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    // Determine status and colors
+    final isActive = widget.isEnrolledInTrial && !widget.isDisconnected;
+    final isDisconnected = widget.isDisconnected;
+
+    Color bgColor;
+    Color borderColor;
+    Color iconBgColor;
+    Color iconColor;
+    Color textColor;
+    Color subtextColor;
+    IconData statusIcon;
+    String statusText;
+    String statusMessage;
+
+    if (isDisconnected) {
+      // Disconnected state - warning styling
+      bgColor = Colors.orange.shade50;
+      borderColor = Colors.orange.shade300;
+      iconBgColor = Colors.orange.shade100;
+      iconColor = Colors.orange.shade800;
+      textColor = Colors.orange.shade900;
+      subtextColor = Colors.orange.shade700;
+      statusIcon = Icons.warning_amber_rounded;
+      statusText = l10n.participationStatusDisconnected;
+      statusMessage = l10n.participationStatusDisconnectedMessage;
+    } else if (isActive) {
+      // Active state - green styling
+      bgColor = Colors.green.shade50;
+      borderColor = Colors.green.shade200;
+      iconBgColor = Colors.green.shade100;
+      iconColor = Colors.green.shade700;
+      textColor = Colors.green.shade900;
+      subtextColor = Colors.green.shade700;
+      statusIcon = Icons.check_circle;
+      statusText = l10n.participationStatusActive;
+      statusMessage = l10n.participationStatusActiveMessage;
+    } else {
+      // Not participating state - grey styling
+      bgColor = Colors.grey.shade100;
+      borderColor = Colors.grey.shade300;
+      iconBgColor = Colors.grey.shade200;
+      iconColor = Colors.grey.shade600;
+      textColor = Colors.grey.shade800;
+      subtextColor = Colors.grey.shade600;
+      statusIcon = Icons.person_off;
+      statusText = l10n.participationStatusNotParticipating;
+      statusMessage = l10n.participationStatusNotParticipatingMessage;
+    }
+
+    return Card(
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor, width: isDisconnected ? 2 : 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Sponsor logo placeholder
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.science, size: 28, color: iconColor),
+            ),
+            const SizedBox(height: 12),
+
+            // Status header row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(statusIcon, size: 20, color: iconColor),
+                const SizedBox(width: 8),
+                Text(
+                  statusText,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Status message
+            Text(
+              statusMessage,
+              style: theme.textTheme.bodySmall?.copyWith(color: subtextColor),
+              textAlign: TextAlign.center,
+            ),
+
+            // Enrollment details (if enrolled)
+            if (widget.isEnrolledInTrial) ...[
+              const SizedBox(height: 12),
+              if (widget.enrollmentCode != null)
+                Text(
+                  l10n.linkingCode(
+                    _formatEnrollmentCode(widget.enrollmentCode!),
+                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: subtextColor,
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                ),
+              if (widget.enrollmentDateTime != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  l10n.joinedDate(
+                    _formatEnrollmentDateTime(widget.enrollmentDateTime!),
+                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: subtextColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+
+            // Reconnect button for disconnected state
+            if (isDisconnected) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: widget.onStartClinicalTrialEnrollment,
+                icon: const Icon(Icons.link, size: 18),
+                label: Text(l10n.enterNewLinkingCode),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade600,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 44),
+                ),
+              ),
+              if (widget.siteName != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.contactYourSiteWithName(widget.siteName!),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: subtextColor,
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
           ],
         ),
       ),
@@ -388,128 +523,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEnrollmentCard(ThemeData theme) {
-    final isActive = widget.enrollmentStatus == 'active';
-    final bgColor = isActive ? Colors.green.shade50 : Colors.grey.shade100;
-    final borderColor = isActive ? Colors.green.shade200 : Colors.grey.shade300;
-    final iconBgColor = isActive ? Colors.green.shade100 : Colors.grey.shade200;
-    final iconColor = isActive ? Colors.green.shade700 : Colors.grey.shade600;
-    final textColor = isActive ? Colors.green.shade900 : Colors.grey.shade800;
-    final subtextColor = isActive
-        ? Colors.green.shade700
-        : Colors.grey.shade600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          color: bgColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: borderColor),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Clinical Trial Logo placeholder
-                Icon(
-                  Icons.science,
-                  size: 28,
-                  color: subtextColor.withValues(alpha: 0.75),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: iconBgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.check, size: 16, color: iconColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isActive
-                                ? 'Enrolled in Clinical Trial'
-                                : 'Clinical Trial Enrollment: Ended',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: textColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (widget.enrollmentCode != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Enrollment Code: ${_formatEnrollmentCode(widget.enrollmentCode!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontFamily: 'monospace',
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                          if (widget.enrollmentDateTime != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Enrolled: ${_formatEnrollmentDateTime(widget.enrollmentDateTime!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                          if (!isActive &&
-                              widget.enrollmentEndDateTime != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Ended: ${_formatEnrollmentDateTime(widget.enrollmentEndDateTime!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: Colors.blue.shade50,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.blue.shade200),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              isActive
-                  ? 'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.'
-                  : 'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.blue.shade800,
-                fontSize: 11,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

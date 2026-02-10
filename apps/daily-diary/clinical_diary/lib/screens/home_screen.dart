@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00076: Participation Status Badge
 
 import 'dart:async';
 import 'dart:convert';
@@ -15,6 +16,7 @@ import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/login_screen.dart';
+import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
@@ -656,6 +658,69 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
+  Future<void> _handleShowProfile() async {
+    final enrollment = await widget.enrollmentService.getEnrollment();
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      AppPageRoute<void>(
+        builder: (context) => ProfileScreen(
+          onBack: () => Navigator.pop(context),
+          onStartClinicalTrialEnrollment: () async {
+            Navigator.pop(context);
+            await Navigator.push(
+              context,
+              AppPageRoute<void>(
+                builder: (context) => ClinicalTrialEnrollmentScreen(
+                  enrollmentService: widget.enrollmentService,
+                ),
+              ),
+            );
+            await _checkEnrollmentStatus();
+            await _checkDisconnectionStatus();
+          },
+          onShowSettings: () async {
+            await Navigator.push(
+              context,
+              AppPageRoute<void>(
+                builder: (context) => SettingsScreen(
+                  preferencesService: widget.preferencesService,
+                  onLanguageChanged: widget.onLocaleChanged,
+                  onThemeModeChanged: widget.onThemeModeChanged,
+                  onLargerTextChanged: widget.onLargerTextChanged,
+                  onFontChanged: widget.onFontChanged,
+                ),
+              ),
+            );
+            await _loadPreferences();
+          },
+          onShareWithCureHHT: () {
+            // TODO: Implement CureHHT data sharing
+          },
+          onStopSharingWithCureHHT: () {
+            // TODO: Implement stop sharing
+          },
+          isEnrolledInTrial: _isEnrolled,
+          isDisconnected: _isDisconnected,
+          enrollmentStatus: _isEnrolled ? 'active' : 'none',
+          isSharingWithCureHHT: false,
+          userName: 'User',
+          onUpdateUserName: (name) {
+            // TODO: Implement username update
+          },
+          enrollmentCode: enrollment?.patientId,
+          enrollmentDateTime: enrollment?.enrolledAt,
+          siteName: _siteName,
+          sitePhoneNumber: _sitePhoneNumber,
+        ),
+      ),
+    );
+    // Refresh enrollment status after returning from profile
+    await _checkEnrollmentStatus();
+    await _checkDisconnectionStatus();
+  }
+
   Future<void> _handleIncompleteRecordsClick() async {
     if (_incompleteRecords.isEmpty) return;
 
@@ -902,6 +967,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         await _handleLogin();
                       } else if (value == 'logout') {
                         await _handleLogout();
+                      } else if (value == 'profile') {
+                        await _handleShowProfile();
                       } else if (value == 'account') {
                         await _handleShowAccountProfile();
                       } else if (value == 'accessibility') {
@@ -943,6 +1010,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context) {
                       final l10n = AppLocalizations.of(context);
                       return [
+                        // REQ-CAL-p00076: Profile menu item at top
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.profile),
+                            ],
+                          ),
+                        ),
                         // Login option hidden - linking code is the auth mechanism
                         // Account/Logout only shown if enrolled (linked to patient)
                         if (_isEnrolled) ...[
