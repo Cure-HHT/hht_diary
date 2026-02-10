@@ -374,9 +374,9 @@ E. The system SHALL reject invalid or expired codes.
 
 F. The linking action SHALL be logged in the audit trail with timestamp and username.
 
-G. Sponsors MAY configure additional Mobile Linking Statuses beyond the core workflow to match their study protocol requirements.
+G. The system SHALL support sponsor configuration of additional Mobile Linking Statuses beyond the core workflow.
 
-*End* *Link New Patient Workflow* | **Hash**: 2c7fce50
+*End* *Link New Patient Workflow* | **Hash**: 84d192e7
 
 ---
 
@@ -412,9 +412,9 @@ I. The disconnection SHALL be logged in the audit trail with reason, timestamp, 
 
 J. The "Reconnect Patient" option SHALL become available after disconnection.
 
-K. Sponsors MAY configure additional disconnection-related statuses or reasons to match their study protocol requirements.
+K. The system SHALL support sponsor configuration of additional disconnection-related statuses or reasons.
 
-*End* *Patient Disconnection Workflow* | **Hash**: 3318afb0
+*End* *Patient Disconnection Workflow* | **Hash**: 79bc39eb
 ---
 
 # REQ-p70011: Patient Reconnection Workflow
@@ -449,6 +449,6 @@ I. The reconnection SHALL be logged in the audit trail with reason, timestamp, a
 
 J. The reconnected Mobile App SHALL sync data to the portal that was collected during the disconnected period.
 
-K. Sponsors MAY configure additional reconnection-related statuses to match their study protocol requirements.
+K. The system SHALL support sponsor configuration of additional reconnection-related statuses.
 
-*End* *Patient Reconnection Workflow* | **Hash**: 3fba6ba6
+*End* *Patient Reconnection Workflow* | **Hash**: c386824f

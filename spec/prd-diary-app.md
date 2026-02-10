@@ -380,9 +380,9 @@ H. Each linking history entry SHALL display the most recent Mobile Linking Code 
 
 I. Each linking history entry SHALL display the current link status (e.g., active, ended, bad linking code, unreachable).
 
-J. Sponsors MAY configure which linking history fields are visible to patients based on their study protocol requirements.
+J. The system SHALL support sponsor configuration of which linking history fields are visible to patients.
 
-*End* *Mobile App Linking Status and History* | **Hash**: 37df7a87
+*End* *Mobile App Linking Status and History* | **Hash**: cf32de6c
 
 ---
 
