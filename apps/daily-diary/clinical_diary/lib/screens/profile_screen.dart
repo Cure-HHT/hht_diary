@@ -169,26 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // REQ-CAL-p00076: Participation Status Badge
-                      if (widget.isEnrolledInTrial || widget.isDisconnected)
-                        _buildParticipationStatusBadge(theme, l10n),
-
-                      if (widget.isEnrolledInTrial || widget.isDisconnected)
-                        const SizedBox(height: 24),
-
-                      // Settings Button - moved to top of profile
-                      OutlinedButton.icon(
-                        onPressed: widget.onShowSettings,
-                        icon: const Icon(Icons.settings, size: 20),
-                        label: Text(l10n.accessibilityAndPreferences),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // User Info Section
+                      // 1. User Info Section (Name)
                       Row(
                         children: [
                           Icon(
@@ -248,7 +229,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Data Sharing Section
+                      // 2. Accessibility & Preferences Button
+                      OutlinedButton.icon(
+                        onPressed: widget.onShowSettings,
+                        icon: const Icon(Icons.settings, size: 20),
+                        label: Text(l10n.accessibilityAndPreferences),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // 3. REQ-CAL-p00076: Participation Status Badge or Enroll Button
+                      if (widget.isEnrolledInTrial || widget.isDisconnected)
+                        _buildParticipationStatusBadge(theme, l10n)
+                      else
+                        OutlinedButton.icon(
+                          onPressed: widget.onStartClinicalTrialEnrollment,
+                          icon: const Icon(Icons.description, size: 20),
+                          label: Text(l10n.enrollInClinicalTrial),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      // 4. Data Sharing Section
                       if (widget.isSharingWithCureHHT)
                         _buildSharingCard(theme)
                       else
@@ -263,44 +271,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Privacy & Data Protection Card
+                      // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
-
-                      const SizedBox(height: 24),
-
-                      // Clinical Trial Section
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.groups,
-                            size: 20,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.8,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.clinicalTrialLabel,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      if (widget.isEnrolledInTrial)
-                        _buildEnrollmentCard(theme)
-                      else
-                        OutlinedButton.icon(
-                          onPressed: widget.onStartClinicalTrialEnrollment,
-                          icon: const Icon(Icons.description, size: 20),
-                          label: Text(l10n.enrollInClinicalTrial),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -551,128 +523,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEnrollmentCard(ThemeData theme) {
-    final isActive = widget.enrollmentStatus == 'active';
-    final bgColor = isActive ? Colors.green.shade50 : Colors.grey.shade100;
-    final borderColor = isActive ? Colors.green.shade200 : Colors.grey.shade300;
-    final iconBgColor = isActive ? Colors.green.shade100 : Colors.grey.shade200;
-    final iconColor = isActive ? Colors.green.shade700 : Colors.grey.shade600;
-    final textColor = isActive ? Colors.green.shade900 : Colors.grey.shade800;
-    final subtextColor = isActive
-        ? Colors.green.shade700
-        : Colors.grey.shade600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          color: bgColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: borderColor),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Clinical Trial Logo placeholder
-                Icon(
-                  Icons.science,
-                  size: 28,
-                  color: subtextColor.withValues(alpha: 0.75),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: iconBgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.check, size: 16, color: iconColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isActive
-                                ? 'Enrolled in Clinical Trial'
-                                : 'Clinical Trial Enrollment: Ended',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: textColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (widget.enrollmentCode != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Enrollment Code: ${_formatEnrollmentCode(widget.enrollmentCode!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontFamily: 'monospace',
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                          if (widget.enrollmentDateTime != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Enrolled: ${_formatEnrollmentDateTime(widget.enrollmentDateTime!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                          if (!isActive &&
-                              widget.enrollmentEndDateTime != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Ended: ${_formatEnrollmentDateTime(widget.enrollmentEndDateTime!)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: Colors.blue.shade50,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.blue.shade200),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              isActive
-                  ? 'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.'
-                  : 'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.blue.shade800,
-                fontSize: 11,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
