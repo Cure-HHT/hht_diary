@@ -35,7 +35,7 @@ G. The system SHALL maintain separate Pulumi stacks for dev, staging, and produc
 H. Per-sponsor infrastructure SHALL be isolated in separate GCP projects.
 I. Infrastructure provisioning SHALL complete in less than 1 hour during performance qualification testing.
 
-*End* *Infrastructure as Code for Cloud Resources* | **Hash**: ba0592d5
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: 0f754a8a
 ---
 
 # REQ-o00042: Infrastructure Change Control
@@ -59,7 +59,7 @@ H. Infrastructure change control processes SHALL be documented in Installation Q
 I. The pull request workflow SHALL be verified to prevent direct commits during Operational Qualification (OQ).
 J. Performance Qualification (PQ) SHALL verify that 100% of infrastructure changes were processed through the pull request workflow.
 
-*End* *Infrastructure Change Control* | **Hash**: 1a9f687d
+*End* *Infrastructure Change Control* | **Hash**: ee749ae7
 ---
 
 ## Architecture

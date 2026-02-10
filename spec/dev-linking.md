@@ -35,7 +35,7 @@ E. The sponsor portal SHALL record the app UUID associated with each linking cod
 F. The sponsor portal SHALL implement rate limiting on linking code validation requests.
 G. The sponsor portal SHALL log all linking code validation attempts.
 
-*End* *Linking Code Validation* | **Hash**: 0a89ae19
+*End* *Linking Code Validation* | **Hash**: 8cc744c2
 ---
 
 # REQ-d00079: Linking Code Pattern Matching
@@ -64,7 +64,7 @@ M. Linking codes SHALL use only uppercase letters A-Z and digits 0-9.
 N. Linking codes SHALL NOT use visually ambiguous characters: I, 1, O, 0, S, 5, Z, 2.
 O. Each sponsor deployment SHALL define a unique two-character sponsor prefix.
 
-*End* *Linking Code Pattern Matching* | **Hash**: 958939ee
+*End* *Linking Code Pattern Matching* | **Hash**: f5e20cde
 ---
 
 # REQ-d00081: Linked Device Records
@@ -86,7 +86,7 @@ F. Each linking code SHALL be associated with only one device UUID.
 G. The linked device collection SHALL be readable and writable only by the sponsor portal service account.
 H. The system SHALL NOT allow client-side access to linked device records.
 
-*End* *Linked Device Records* | **Hash**: d44ac005
+*End* *Linked Device Records* | **Hash**: 16853ebd
 ---
 
 ## Version History

@@ -99,7 +99,7 @@ J. Project credentials SHALL NOT be reused across projects.
 K. Staging and production environments SHALL use separate GCP projects.
 L. Project provisioning procedures SHALL be documented in a runbook.
 
-*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 7110fea1
+*End* *GCP Project Provisioning Per Sponsor* | **Hash**: f7f7d3bc
 ---
 
 ### Per-Sponsor GCP Projects
@@ -170,7 +170,7 @@ J. The system SHALL correctly capture site context in audit trail entries.
 K. Documentation SHALL exist for adding sites post-deployment.
 L. Documentation SHALL exist for removing sites post-deployment.
 
-*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 87a63123
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 529b59ce
 ---
 
 ## Step 1: GCP Project Setup
@@ -277,7 +277,7 @@ J. The system SHALL execute schema validation checks before deployment.
 K. Schema validation checks SHALL pass before deployment completes.
 L. The system SHALL provide rollback capability for failed deployments.
 
-*End* *Database Schema Deployment* | **Hash**: 7ae2ea75
+*End* *Database Schema Deployment* | **Hash**: 26cf428c
 ---
 
 ### Create Cloud SQL Instance via Pulumi

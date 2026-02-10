@@ -60,7 +60,7 @@ L. The system SHALL NOT leak data across sponsors in configuration storage or au
 M. The app bundle SHALL contain only masked sponsor URLs.
 N. The backend URL SHALL NOT reveal the sponsor or site identity.
 
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: ef873a14
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: 33d3b6b0
 ---
 
 ### Single App, Multiple Sponsors
@@ -135,7 +135,7 @@ Q. The system SHALL NOT lose data during offline periods.
 R. Background sync processes SHALL respect battery usage constraints.
 S. Background sync processes SHALL respect data usage constraints.
 
-*End* *Local-First Data Entry Implementation* | **Hash**: 2f8a00ce
+*End* *Local-First Data Entry Implementation* | **Hash**: 39589dad
 ---
 
 ### Core Principle
@@ -192,7 +192,7 @@ K. The application SHALL make the UUID accessible to conflict resolution logic.
 L. The application SHALL include the UUID in all record_audit.device_info JSONB fields.
 M. The conflict resolution logic SHALL be able to identify the source device for each change using the UUID.
 
-*End* *Application Instance UUID Generation* | **Hash**: ce4d2a77
+*End* *Application Instance UUID Generation* | **Hash**: 5a81d46b
 ---
 
 ### Conflict Resolution
@@ -310,7 +310,7 @@ S. The import function SHALL successfully restore diary entries from valid expor
 T. The system SHALL reject malformed or incompatible import files with a clear error message.
 U. The system SHALL complete export and import operations for datasets containing 1000 or more entries within 30 seconds.
 
-*End* *Local Database Export and Import* | **Hash**: 392092af
+*End* *Local Database Export and Import* | **Hash**: eaa18d27
 ---
 
 ## Deployment & Distribution
@@ -344,7 +344,7 @@ P. Version numbers SHALL be synchronized across iOS, Android, and web platforms.
 Q. Store listings SHALL NOT contain sponsor-specific branding.
 R. The build pipeline SHALL validate configuration completeness before producing release artifacts.
 
-*End* *Mobile App Build and Release Process* | **Hash**: af8f9240
+*End* *Mobile App Build and Release Process* | **Hash**: 3b07a626
 ---
 
 ### App Store Listing

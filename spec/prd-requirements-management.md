@@ -59,7 +59,7 @@ O. Top-down cascade SHALL be enforced such that PRD requirements drive OPS and D
 P. DEV requirements SHALL NOT drive PRD requirements.
 Q. OPS requirements SHALL NOT drive PRD requirements.
 
-*End* *System Validation and Traceability* | **Hash**: 59dad31e
+*End* *System Validation and Traceability* | **Hash**: 7d81caf7
 ---
 
 # REQ-p00021: Architecture Decision Documentation
@@ -88,7 +88,7 @@ M. ADRs SHALL follow a defined lifecycle of Proposed, Accepted, Deprecated, or S
 N. ADRs SHALL be maintained in version control with system evolution.
 O. The system SHALL maintain an ADR index showing all decisions and their status.
 
-*End* *Architecture Decision Documentation* | **Hash**: a6a58cac
+*End* *Architecture Decision Documentation* | **Hash**: 76c82ce6
 ---
 
 ## References

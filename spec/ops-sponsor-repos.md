@@ -42,7 +42,7 @@ M. New sponsor repositories SHALL pass validation by 'tools/build/verify-sponsor
 N. New sponsor repositories SHALL pass 'elspais validate' before being considered complete.
 O. The Doppler SPONSOR_MANIFEST SHALL be updated with a new entry for each provisioned sponsor.
 
-*End* *Sponsor Repository Provisioning* | **Hash**: a18bdb2a
+*End* *Sponsor Repository Provisioning* | **Hash**: 831fa654
 
 ---
 
@@ -70,6 +70,6 @@ K. The system SHALL create Linear tickets automatically when validation failures
 L. The system SHALL notify sponsor maintainers via email when validation failures occur.
 M. Validation reports SHALL include the output from 'elspais validate'.
 
-*End* *Sponsor CI/CD Integration* | **Hash**: 1f262276
+*End* *Sponsor CI/CD Integration* | **Hash**: 7104b083
 
 ---

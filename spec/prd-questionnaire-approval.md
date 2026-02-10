@@ -140,7 +140,7 @@ S. The system SHALL record all status transitions in the audit trail with timest
 
 T. The system SHALL record the investigator who finalized the questionnaire in the audit trail.
 
-*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 7ba8d6d5
+*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 8790cf5d
 ---
 
 ## Audit Trail Events

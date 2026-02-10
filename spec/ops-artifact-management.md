@@ -47,7 +47,7 @@ X. Cloud Storage buckets SHALL be created with encryption enabled.
 Y. Lifecycle policies SHALL be configured for all storage buckets.
 Z. Retrieval procedures SHALL be documented for all storage classes.
 
-*End* *Artifact Retention and Archival* | **Hash**: 657b1be8
+*End* *Artifact Retention and Archival* | **Hash**: 9bbb7f6e
 ---
 
 # REQ-o00050: Environment Parity and Separation
@@ -83,7 +83,7 @@ T. The system SHALL provision three separate GCP projects per sponsor.
 U. The system SHALL provide environment-specific Doppler configurations for each environment.
 V. The system SHALL create Terraform workspaces for each environment.
 
-*End* *Environment Parity and Separation* | **Hash**: 6e251c7f
+*End* *Environment Parity and Separation* | **Hash**: cc66f548
 ---
 
 # REQ-o00051: Change Control and Audit Trail
@@ -118,7 +118,7 @@ S. Terraform state versioning SHALL be enabled on GCS backend.
 T. Git commit signing SHALL be enforced for all commits.
 U. Doppler audit trail SHALL be enabled for all secret management operations.
 
-*End* *Change Control and Audit Trail* | **Hash**: 245582fc
+*End* *Change Control and Audit Trail* | **Hash**: e9a92b1f
 ---
 
 ## Architecture

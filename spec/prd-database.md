@@ -32,7 +32,7 @@ F. The system SHALL enable reconstruction of complete data history at any point 
 G. The system SHALL retain clinical trial data for a minimum of seven years to meet regulatory requirements.
 H. The system SHALL ensure all audit trails are tamper-evident in compliance with FDA 21 CFR Part 11.
 
-*End* *Clinical Data Storage System* | **Hash**: 2e588136
+*End* *Clinical Data Storage System* | **Hash**: 75ec9efe
 
 ---
 
@@ -83,7 +83,7 @@ O. Change history records SHALL include what was changed.
 P. Change history records SHALL include when the change occurred.
 Q. Change history records SHALL include why the change was made.
 
-*End* *Complete Data Change History* | **Hash**: 173331a9
+*End* *Complete Data Change History* | **Hash**: a5e8ac78
 
 ---
 
@@ -113,7 +113,7 @@ K. Backup operations SHALL be scoped to a single sponsor database.
 L. Restore operations SHALL be scoped to a single sponsor database.
 M. Query execution SHALL NOT span multiple sponsor databases.
 
-*End* *Separate Database Per Sponsor* | **Hash**: bfb45afa
+*End* *Separate Database Per Sponsor* | **Hash**: 08e74590
 ---
 
 ## Event Sourcing Architecture
@@ -147,7 +147,7 @@ P. The event store SHALL use append-only storage that grows over time.
 Q. The system SHALL maintain a current view of data that is automatically calculated from events.
 R. The system SHALL update the current view automatically when new events are created.
 
-*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 3be570a3
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 4353a766
 
 ---
 

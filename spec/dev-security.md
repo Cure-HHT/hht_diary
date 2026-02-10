@@ -104,7 +104,7 @@ N. The application SHALL clear all authentication state on logout.
 O. The application SHALL provide user feedback for authentication errors.
 P. Each sponsor SHALL use a dedicated Identity Platform instance in their GCP project.
 
-*End* *Identity Platform Configuration Per Sponsor* | **Hash**: 12a3c3c0
+*End* *Identity Platform Configuration Per Sponsor* | **Hash**: f4493561
 ---
 
 ### Identity Platform (Per Sponsor)
@@ -438,7 +438,7 @@ O. The system SHALL generate and securely store backup codes when backup code fe
 P. The system SHALL rate limit invalid code attempts to maximum 5 per minute.
 Q. The system SHALL log MFA events in the authentication audit trail.
 
-*End* *MFA Enrollment and Verification Implementation* | **Hash**: 6ed406fa
+*End* *MFA Enrollment and Verification Implementation* | **Hash**: c60371f2
 ---
 
 **MFA Implementation in Flutter**:
@@ -612,7 +612,7 @@ G. The application SHALL implement role-based navigation routing that directs us
 H. The application SHALL reflect role changes immediately in the UI when a multi-role user switches their active role context.
 I. The application SHALL redirect unauthorized navigation routes to the user's role-appropriate screen.
 
-*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 83f2e694
+*End* *Role-Based Permission Enforcement Implementation* | **Hash**: c713723f
 ---
 
 ### Role Hierarchy
@@ -944,7 +944,7 @@ F. The application SHALL encrypt local backup files using the device encryption 
 G. The application SHALL NOT store sensitive configuration values in plaintext.
 H. The application SHALL NOT log sensitive data in plaintext.
 
-*End* *Data Encryption Implementation* | **Hash**: ff125c2d
+*End* *Data Encryption Implementation* | **Hash**: be1c205f
 ---
 
 ### Transport Security

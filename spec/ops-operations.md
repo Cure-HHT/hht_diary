@@ -117,7 +117,7 @@ J. The system SHALL ensure all data changes have corresponding audit events.
 K. The system SHALL validate event chain links through parent_audit_id relationships.
 L. The system SHALL provide monitoring dashboards that display audit trail health status.
 
-*End* *Audit Trail Monitoring* | **Hash**: a01cc9d7
+*End* *Audit Trail Monitoring* | **Hash**: d5d52f2f
 ---
 
 #### 4. Audit Trail Integrity
@@ -919,7 +919,7 @@ H. The system SHALL conduct quarterly disaster recovery drills.
 I. Disaster recovery drill results SHALL be documented.
 J. The system SHALL perform automated backup integrity verification.
 
-*End* *Backup and Retention Policy* | **Hash**: 201d286b
+*End* *Backup and Retention Policy* | **Hash**: 9178fe2d
 ---
 
 ### Automated Backups

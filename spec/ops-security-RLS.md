@@ -45,7 +45,7 @@ M. Policies SHALL survive database restores.
 N. Policies SHALL survive database migrations.
 O. Policy deployment SHALL be logged in the change management system.
 
-*End* *Patient Data Isolation Policy Deployment* | **Hash**: 4bc3d244
+*End* *Patient Data Isolation Policy Deployment* | **Hash**: 21abbb15
 ---
 
 # REQ-o00021: Investigator Site-Scoped Access Policy Deployment
@@ -69,7 +69,7 @@ H. Migration scripts SHALL create both the assignment tables and RLS policies.
 I. The assignment table and RLS policies SHALL be deployed atomically via migration scripts.
 J. Investigators SHALL NOT be able to access data from sites they are not assigned to.
 
-*End* *Investigator Site-Scoped Access Policy Deployment* | **Hash**: c27a45e9
+*End* *Investigator Site-Scoped Access Policy Deployment* | **Hash**: 06f5f0f4
 ---
 
 # REQ-o00022: Investigator Annotation Access Policy Deployment
@@ -98,7 +98,7 @@ M. All annotation records SHALL include investigator ID.
 N. All annotation records SHALL include timestamp.
 O. The system SHALL prevent modification of patient diary entries by investigators.
 
-*End* *Investigator Annotation Access Policy Deployment* | **Hash**: ca9a1f99
+*End* *Investigator Annotation Access Policy Deployment* | **Hash**: c758cd88
 ---
 
 # REQ-o00023: Analyst Read-Only Access Policy Deployment
@@ -128,7 +128,7 @@ N. Site assignments SHALL restrict data visibility to assigned sites only.
 O. All analyst queries SHALL be logged in the audit trail.
 P. Patient identity SHALL NOT be accessible to the analyst role.
 
-*End* *Analyst Read-Only Access Policy Deployment* | **Hash**: 12b6ff84
+*End* *Analyst Read-Only Access Policy Deployment* | **Hash**: 98aa758b
 ---
 
 # REQ-o00024: Sponsor Global Access Policy Deployment
@@ -151,7 +151,7 @@ G. The RLS policies SHALL provide sponsor access to de-identified clinical data 
 H. The sponsor role SHALL NOT have INSERT, UPDATE, or DELETE policies defined on clinical data tables.
 I. Cross-sponsor data access SHALL be prevented through physical database separation in distinct GCP projects.
 
-*End* *Sponsor Global Access Policy Deployment* | **Hash**: 2959cd2c
+*End* *Sponsor Global Access Policy Deployment* | **Hash**: a3f24a6b
 ---
 
 # REQ-o00025: Auditor Compliance Access Policy Deployment
@@ -177,7 +177,7 @@ J. Data export functions SHALL require a justification parameter.
 K. Export actions SHALL be logged with auditor identity and case ID.
 L. Data export actions SHALL be logged with justification provided by the auditor.
 
-*End* *Auditor Compliance Access Policy Deployment* | **Hash**: 0e5f91ee
+*End* *Auditor Compliance Access Policy Deployment* | **Hash**: de3aa240
 ---
 
 # REQ-o00026: Administrator Access Policy Deployment
@@ -208,7 +208,7 @@ O. All admin actions SHALL be logged with administrator identity.
 P. All admin actions SHALL be logged with justification.
 Q. Access reviews SHALL be conducted quarterly.
 
-*End* *Administrator Access Policy Deployment* | **Hash**: 2797fed4
+*End* *Administrator Access Policy Deployment* | **Hash**: bd4a9530
 ---
 
 # REQ-o00027: Event Sourcing State Protection Policy Deployment
@@ -233,7 +233,7 @@ I. State derivation logic SHALL be tested for correctness prior to deployment.
 J. Direct modification attempts on record_state SHALL return permission denied errors.
 K. The system SHALL maintain event sourcing integrity at the database level.
 
-*End* *Event Sourcing State Protection Policy Deployment* | **Hash**: 3d86ff4e
+*End* *Event Sourcing State Protection Policy Deployment* | **Hash**: bd5a22c4
 ---
 
 ## Deployment Procedures

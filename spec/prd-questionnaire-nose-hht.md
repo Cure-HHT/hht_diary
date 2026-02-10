@@ -176,7 +176,7 @@ H. The system SHALL prevent modification of answers after the questionnaire has 
 I. The system SHALL record the exact response value (0-4) for each answered question as well as the displayed and normalized (English) versions of the answers.
 
 
-*End* *NOSE HHT Questionnaire* | **Hash**: 7473ad89
+*End* *NOSE HHT Questionnaire* | **Hash**: 1458c248
 ---
 
 # REQ-p01070: NOSE HHT User Interface
@@ -209,7 +209,7 @@ H. The system SHALL require the patient to acknowledge each preamble screen befo
 
 I. The system SHALL display the preamble every time the patient opens the questionnaire, regardless of prior completion attempts.
 
-*End* *NOSE HHT User Interface* | **Hash**: 1f1f5598
+*End* *NOSE HHT User Interface* | **Hash**: 84fa171d
 ---
 
 ## References

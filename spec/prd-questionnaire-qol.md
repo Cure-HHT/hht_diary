@@ -111,7 +111,7 @@ H. The system SHALL record the exact response value (0-4) for each answered ques
 
 K. The system SHALL record the questionnaire version used for each record.
 
-*End* *HHT Quality of Life Questionnaire* | **Hash**: 8feb18c9
+*End* *HHT Quality of Life Questionnaire* | **Hash**: 12efcb9b
 ---
 
 # REQ-p01071: HHT Quality of Life User Interface
@@ -144,7 +144,7 @@ H. The system SHALL require the patient to acknowledge each preamble screen befo
 
 I. The system SHALL display the preamble every time the patient opens the questionnaire, regardless of prior completion attempts.
 
-*End* *HHT Quality of Life User Interface* | **Hash**: 97122b72
+*End* *HHT Quality of Life User Interface* | **Hash**: a231a942
 ---
 
 ## References

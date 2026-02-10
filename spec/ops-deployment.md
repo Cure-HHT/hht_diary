@@ -555,7 +555,7 @@ L. Configuration settings SHALL NOT be shared between different sponsor GCP proj
 M. The platform SHALL provide documented runbook procedures for provisioning new sponsor GCP projects.
 N. Each sponsor's staging and production GCP projects SHALL maintain complete resource isolation from all other sponsors.
 
-*End* *Separate GCP Projects Per Sponsor* | **Hash**: 7f9aaf0b
+*End* *Separate GCP Projects Per Sponsor* | **Hash**: 5e07b75b
 ---
 
 # REQ-o00002: Environment-Specific Configuration Management
@@ -581,7 +581,7 @@ J. CI/CD pipelines SHALL use Workload Identity Federation for authentication.
 K. Cloud Run deployments SHALL access secrets via GCP Secret Manager.
 L. Git history SHALL NOT contain any credentials.
 
-*End* *Environment-Specific Configuration Management* | **Hash**: 720a8e57
+*End* *Environment-Specific Configuration Management* | **Hash**: 0d39cea7
 ---
 
 ### Environment Types
@@ -975,7 +975,7 @@ D. Release notes SHALL cover all sponsor-relevant changes included in the releas
 E. The system SHALL complete testing across all active sponsor configurations before releasing to production.
 F. The system SHALL deploy updates via automated CI/CD pipelines.
 
-*End* *Mobile App Release Process* | **Hash**: ad045610
+*End* *Mobile App Release Process* | **Hash**: c3b108f5
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -1026,7 +1026,7 @@ H. Each sponsor portal SHALL NOT be capable of accessing other sponsors' API end
 I. The system SHALL provide rollback capability for each sponsor portal independently.
 J. Each sponsor portal SHALL operate with complete isolation from other sponsor portals.
 
-*End* *Portal Deployment Per Sponsor* | **Hash**: bab34904
+*End* *Portal Deployment Per Sponsor* | **Hash**: 79fba7ec
 ---
 
 ### Cloud Run Static Site Deployment

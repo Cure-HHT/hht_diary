@@ -67,7 +67,7 @@ P. The system SHALL NOT include an expiration timestamp in the token response.
 
 Q. The system SHALL maintain token validity until explicitly revoked through portal administrative actions.
 
-*End* *Portal Linking Code Validation Endpoint* | **Hash**: b2c3d4e5
+*End* *Portal Linking Code Validation Endpoint* | **Hash**: bac91a72
 
 ---
 
@@ -103,7 +103,7 @@ I. The system SHALL include `Content-Type: application/json` header in all error
 
 J. The system SHALL NOT include stack traces, internal error codes, or debugging information in client-facing responses.
 
-*End* *Linking API Error Response Strategy* | **Hash**: e5f6g7h8
+*End* *Linking API Error Response Strategy* | **Hash**: 39ae2a18
 
 ---
 
@@ -143,7 +143,7 @@ K. The system SHALL index audit logs by `support_ref` and `timestamp` for effici
 
 L. The system SHALL log the `request_id` as a UUID v7 for correlation with other system logs.
 
-*End* *Linking API Audit Trail* | **Hash**: i9j0k1l2
+*End* *Linking API Audit Trail* | **Hash**: 90a41f24
 
 ---
 
@@ -183,7 +183,7 @@ K. The system SHALL allow issuing a new linking code after token revocation to e
 
 L. The system SHALL NOT delete historical data when revoking tokens; revocation only prevents future synchronization.
 
-*End* *Enrollment Token Revocation* | **Hash**: c3d4e5f6
+*End* *Enrollment Token Revocation* | **Hash**: e8863441
 
 ---
 

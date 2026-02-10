@@ -56,7 +56,7 @@ Q. The elspais validate command SHALL be executable manually via the command lin
 R. The fallback Python script SHALL be executable via python3 tools/requirements/validate_requirements.py.
 S. The system SHALL integrate requirement validation into git hooks to prevent invalid requirements from entering the codebase.
 
-*End* *Requirement Validation Tooling* | **Hash**: 5ef43845
+*End* *Requirement Validation Tooling* | **Hash**: ed143a48
 ---
 
 # REQ-d00015: Traceability Matrix Auto-Generation
@@ -93,7 +93,7 @@ U. The elspais CLI tool SHALL be installed and available in PATH.
 V. The system SHALL support manual execution via the elspais trace command.
 W. The system SHALL support fallback execution via python3 tools/requirements/generate_traceability.py --format both.
 
-*End* *Traceability Matrix Auto-Generation* | **Hash**: 761084dc
+*End* *Traceability Matrix Auto-Generation* | **Hash**: 235c988e
 ---
 
 # REQ-d00016: Code-to-Requirement Linking
@@ -125,7 +125,7 @@ P. The documentation SHALL include examples from mobile app code.
 Q. The documentation SHALL include examples from test files.
 R. CLAUDE.md SHALL document the requirement for header comments in implementation files.
 
-*End* *Code-to-Requirement Linking* | **Hash**: 8bf2c189
+*End* *Code-to-Requirement Linking* | **Hash**: 7723f737
 ---
 
 # REQ-d00017: ADR Template and Lifecycle Tooling
@@ -153,7 +153,7 @@ L. The system SHALL document the ADR workflow: ticket → ADR draft → review �
 M. The system SHALL provide instructions for updating the index when adding new ADRs.
 N. The system SHALL provide examples of ADR supersession showing how to link old ADRs to replacement ADRs.
 
-*End* *ADR Template and Lifecycle Tooling* | **Hash**: fc6fd26f
+*End* *ADR Template and Lifecycle Tooling* | **Hash**: 4fa259a5
 ---
 
 # REQ-d00018: Git Hook Implementation
@@ -182,7 +182,7 @@ M. The pre-push hook SHALL work correctly on Linux, macOS, and Windows Git Bash 
 N. The CLAUDE.md file SHALL document the hook setup requirement.
 O. Local Python scripts SHALL remain available for plugin and programmatic use.
 
-*End* *Git Hook Implementation* | **Hash**: 70fae011
+*End* *Git Hook Implementation* | **Hash**: fcfe6de1
 ---
 
 # REQ-d00053: Development Environment and Tooling Setup
@@ -210,7 +210,7 @@ L. Tool configurations SHALL maintain compatibility across the development team.
 M. Setup documentation SHALL be kept up-to-date with tool changes.
 N. Integration tools SHALL facilitate the requirement traceability workflow.
 
-*End* *Development Environment and Tooling Setup* | **Hash**: a00606aa
+*End* *Development Environment and Tooling Setup* | **Hash**: 31e32e36
 ---
 
 ## Tool Usage Examples

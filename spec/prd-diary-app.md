@@ -45,7 +45,7 @@ T. The system SHALL be available via Android app store.
 U. The system SHALL support offline operation for core diary operations in personal use mode.
 V. The system SHALL support offline operation for core diary operations in enrolled use mode.
 
-*End* *Diary Mobile Application* | **Hash**: 85554ec9
+*End* *Diary Mobile Application* | **Hash**: d5bc3ef8
 ---
 
 ## Local Data Storage
@@ -82,7 +82,7 @@ S. The system SHALL NOT automatically enroll users in any study.
 T. The system SHALL require user-initiated action for study enrollment.
 U. The system SHALL back up enrolled users' data through study database synchronization.
 
-*End* *Local Data Storage* | **Hash**: 86fa6920
+*End* *Local Data Storage* | **Hash**: ab1e5121
 ---
 
 ## Executive Summary
@@ -128,7 +128,7 @@ J. The app SHALL NOT allow patients to switch to a different sponsor after enrol
 K. The app SHALL reject invalid enrollment links with a clear error message.
 L. The app SHALL reject expired enrollment links with a clear error message.
 
-*End* *Automatic Sponsor Configuration* | **Hash**: 5498f554
+*End* *Automatic Sponsor Configuration* | **Hash**: 504e360e
 ---
 
 TODO - this needs another spec #
@@ -181,7 +181,7 @@ I. The system SHALL preserve all unsynchronized entries if the app closes before
 J. The system SHALL NOT synchronize diary entries to any study database for patients not enrolled in a study.
 K. The system SHALL activate synchronization only after a user enrolls in a study as defined in REQ-p70000.
 
-*End* *Offline-First Data Entry* | **Hash**: 438d5f2d
+*End* *Offline-First Data Entry* | **Hash**: 2224fecf
 ---
 
 ## Multi-Sponsor Support
@@ -277,7 +277,7 @@ S. The system SHALL display an error message identifying the conflicting entry w
 T. The system SHALL allow the user to navigate to view the conflicting record when a time overlap is detected.
 U. The system SHALL require confirmation when creating entries less than 2 minutes old.
 
-*End* *Temporal Entry Validation* | **Hash**: 0dff6cc4
+*End* *Temporal Entry Validation* | **Hash**: 7b918745
 
 ---
 
@@ -310,7 +310,7 @@ N. The system SHALL restore the start day correctly after app reinstallation for
 O. The system SHALL NOT provide cloud backup of the start day for personal use mode.
 P. The system SHALL NOT explicitly prompt users to set the start day during onboarding.
 
-*End* *Diary Start Day Definition* | **Hash**: fe48ad66
+*End* *Diary Start Day Definition* | **Hash**: acabeeb1
 
 ---
 
@@ -346,7 +346,43 @@ Q. The system SHALL announce entry status via screen reader when users navigate 
 R. The system SHALL allow sponsors to define accessible fonts via sponsor feature set configuration.
 S. The system SHALL allow users to select accessible fonts via user preferences.
 
-*End* *Calendar Visual Indicators for Entry Status* | **Hash**: ae8a494b
+*End* *Calendar Visual Indicators for Entry Status* | **Hash**: e4e1c4c2
+
+---
+
+## Linking Status and History
+
+# REQ-p01072: Mobile App Linking Status and History
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00043
+
+## Rationale
+
+Patients need visibility into their current linking status and a record of all systems with which their mobile app has shared data. Displaying the current Mobile Linking Code and connection status in the trial badge area helps patients verify their link is active and troubleshoot issues independently. A historical view of all linked systems — accessible from user preferences or a profile menu — supports patients who participate in multiple studies over time or whose link status changes due to device loss, reconnection, or study completion. This transparency builds trust and gives patients a clear record of their data-sharing relationships.
+
+## Assertions
+
+A. The mobile app SHALL display the current Mobile Linking Code for each active link in the trial badge area.
+
+B. The mobile app SHALL display the current Mobile Linking Status for each active link in the trial badge area (e.g., active, pending, unreachable).
+
+C. The mobile app SHALL provide a linking history view accessible from user preferences or profile menu.
+
+D. The linking history SHALL list all systems with which the mobile app has shared data.
+
+E. Each linking history entry SHALL display the sponsor or system name.
+
+F. Each linking history entry SHALL display the link start date.
+
+G. Each linking history entry SHALL display the link end date, if applicable.
+
+H. Each linking history entry SHALL display the most recent Mobile Linking Code associated with that link.
+
+I. Each linking history entry SHALL display the current link status (e.g., active, ended, bad linking code, unreachable).
+
+J. The system SHALL support sponsor configuration of which linking history fields are visible to patients.
+
+*End* *Mobile App Linking Status and History* | **Hash**: cf32de6c
 
 ---
 

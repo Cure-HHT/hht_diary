@@ -44,7 +44,7 @@ N. The system SHALL provide manual validation via the command: python3 tools/req
 O. Generated matrices SHALL be viewable in markdown format for documentation purposes.
 P. Generated matrices SHALL be viewable in HTML format for interactive browsing.
 
-*End* *Requirements Format Validation* | **Hash**: 1725f670
+*End* *Requirements Format Validation* | **Hash**: 73eb4415
 ---
 
 # REQ-o00014: Top-Down Requirement Cascade
@@ -75,7 +75,7 @@ O. Validation tooling SHALL warn when PRD requirements implement other PRD requi
 P. New features SHALL follow the sequence: ticket → PRD requirement → OPS requirement → DEV requirement → code.
 Q. Code header comments SHALL reference requirements.
 
-*End* *Top-Down Requirement Cascade* | **Hash**: 0bbda48b
+*End* *Top-Down Requirement Cascade* | **Hash**: 68a8deeb
 ---
 
 # REQ-o00015: Documentation Structure Enforcement
@@ -106,7 +106,7 @@ O. The spec/README.md file SHALL document topic scopes to prevent content duplic
 P. Documentation files SHALL use cross-references to related content instead of duplicating content.
 Q. Each topic in spec/ SHALL have a narrow, focused scope as defined in spec/README.md.
 
-*End* *Documentation Structure Enforcement* | **Hash**: 18aebcc6
+*End* *Documentation Structure Enforcement* | **Hash**: bafe78ff
 ---
 
 # REQ-o00016: Architecture Decision Process
@@ -140,7 +140,7 @@ R. ADRs SHALL NOT be created for routine implementation choices.
 S. ADRs SHALL NOT be created for trivial decisions.
 T. ADRs SHALL NOT be created for easily reversible choices.
 
-*End* *Architecture Decision Process* | **Hash**: 55014c6f
+*End* *Architecture Decision Process* | **Hash**: d2bf6cb2
 ---
 
 # REQ-o00017: Version Control Workflow
@@ -166,7 +166,7 @@ J. Developers SHALL configure git hooks by running: git config core.hooksPath .g
 K. The repository SHALL document hook configuration in .githooks/README.md.
 L. Feature branches SHALL be used for all non-trivial changes.
 
-*End* *Version Control Workflow* | **Hash**: 76d1310e
+*End* *Version Control Workflow* | **Hash**: c5c6c55e
 ---
 
 ## Workflow Examples

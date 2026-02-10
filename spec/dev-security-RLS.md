@@ -52,7 +52,7 @@ M. Patients SHALL be able to SELECT only records where patient_id matches their 
 N. Patients SHALL NOT be able to INSERT records with a patient_id different from their authenticated user ID.
 O. RLS policy execution SHALL complete with less than 50ms overhead per query.
 
-*End* *Patient Data Isolation RLS Implementation* | **Hash**: 51425522
+*End* *Patient Data Isolation RLS Implementation* | **Hash**: f3cbf5fe
 ---
 
 # REQ-d00020: Investigator Site-Scoped RLS Implementation
@@ -81,7 +81,7 @@ M. The system SHALL apply RLS policies to the record_audit table for investigato
 N. RLS policy subqueries SHALL execute in less than 100 milliseconds.
 O. Database migrations implementing these policies SHALL include rollback scripts.
 
-*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 75c2466d
+*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 2b982234
 ---
 
 # REQ-d00021: Investigator Annotation RLS Implementation
@@ -115,7 +115,7 @@ R. The system SHALL NOT implement DELETE policies on record_state for the INVEST
 S. The system SHALL implement a trigger that automatically populates investigator_id with current_user_id() before INSERT on investigator_annotations.
 T. The system SHALL implement a trigger that automatically populates created_at with now() before INSERT on investigator_annotations.
 
-*End* *Investigator Annotation RLS Implementation* | **Hash**: c020fead
+*End* *Investigator Annotation RLS Implementation* | **Hash**: 01b5e939
 ---
 
 # REQ-d00022: Analyst Read-Only RLS Implementation
@@ -149,7 +149,7 @@ R. Analysts SHALL NOT be able to DELETE any records from clinical data tables.
 S. The system SHALL log all analyst SELECT queries via pgaudit for compliance auditing.
 T. RLS policy query execution SHALL complete in less than 100ms when proper indexes are present.
 
-*End* *Analyst Read-Only RLS Implementation* | **Hash**: 62c367e5
+*End* *Analyst Read-Only RLS Implementation* | **Hash**: 0a4be6ec
 ---
 
 # REQ-d00023: Sponsor Global Access RLS Implementation
@@ -177,7 +177,7 @@ L. The system SHALL create audit log entries for UPDATE operations on administra
 M. The system SHALL create audit log entries for DELETE operations on administrative tables performed by SPONSOR role users.
 N. The system SHALL prevent SPONSOR role users from accessing data belonging to other sponsors through database instance separation.
 
-*End* *Sponsor Global Access RLS Implementation* | **Hash**: dba73524
+*End* *Sponsor Global Access RLS Implementation* | **Hash**: 3cad1719
 ---
 
 # REQ-d00024: Auditor Compliance RLS Implementation
@@ -213,7 +213,7 @@ T. The generate_access_review_report function SHALL count audit log entries with
 U. The generate_access_review_report function SHALL identify the most recent access timestamp for each user within the specified date range.
 V. The generate_access_review_report function SHALL order results by access_count in descending order.
 
-*End* *Auditor Compliance RLS Implementation* | **Hash**: c263fd32
+*End* *Auditor Compliance RLS Implementation* | **Hash**: 434eca80
 ---
 
 # REQ-d00025: Administrator Break-Glass RLS Implementation
@@ -244,7 +244,7 @@ O. The system SHALL automatically clean up expired break-glass sessions.
 P. The system SHALL revoke expired break-glass authorizations by setting revoked_at to the current timestamp.
 Q. The system SHALL NOT allow reuse of expired break-glass sessions.
 
-*End* *Administrator Break-Glass RLS Implementation* | **Hash**: 93358063
+*End* *Administrator Break-Glass RLS Implementation* | **Hash**: ca7b4eac
 ---
 
 # REQ-d00026: Event Sourcing State Protection RLS Implementation
@@ -278,7 +278,7 @@ R. Direct UPDATE attempts on record_state SHALL return permission denied.
 S. Direct DELETE attempts on record_state SHALL return permission denied.
 T. State updates SHALL occur exclusively through the record_audit trigger mechanism.
 
-*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: 46e9dc01
+*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: f670b1e5
 ---
 
 ## Implementation Guidelines

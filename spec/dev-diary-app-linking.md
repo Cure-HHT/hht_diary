@@ -69,7 +69,7 @@ O. The system SHALL display clear visual feedback during linking code validation
 
 P. The system SHALL provide haptic feedback on successful code submission (iOS/Android native).
 
-*End* *Linking Code Entry Interface* | **Hash**: deedd87f
+*End* *Linking Code Entry Interface* | **Hash**: dae36394
 
 ---
 
@@ -103,7 +103,7 @@ I. The system SHALL preserve user input on validation failure to allow correctio
 
 J. The system SHALL clear validation errors when the user modifies the input.
 
-*End* *Linking Code Input Validation* | **Hash**: ed645d36
+*End* *Linking Code Input Validation* | **Hash**: d124cbf4
 
 ---
 
@@ -145,7 +145,7 @@ L. The system SHALL securely delete all stored tokens when the app is uninstalle
 
 M. The system SHALL regenerate storage encryption key if device security state changes (e.g., device rooted/jailbroken).
 
-*End* *Enrollment Token Secure Storage* | **Hash**: 55d1d6ba
+*End* *Enrollment Token Secure Storage* | **Hash**: 2f2321ae
 
 ---
 
@@ -181,7 +181,7 @@ J. The system SHALL timestamp the last successful server communication in local 
 
 K. The system SHALL distinguish between network errors (retry-able) and token revocation errors (not retry-able) based on HTTP response codes.
 
-*End* *Token Lifecycle and Network Resilience* | **Hash**: a7b8c9d0
+*End* *Token Lifecycle and Network Resilience* | **Hash**: 8b7af588
 
 ---
 
@@ -215,7 +215,7 @@ I. The system SHALL log token invalidation event with timestamp to local diagnos
 
 J. The system SHALL NOT automatically request a new linking code; this must be initiated by clinical staff.
 
-*End* *Token Invalidation on Disconnection* | **Hash**: 83697992
+*End* *Token Invalidation on Disconnection* | **Hash**: 654a51e8
 
 ---
 
@@ -255,7 +255,7 @@ J. The system SHALL disable the submit button during the rate limit cooldown per
 
 K. The system SHALL display remaining cooldown time in the rate limit message.
 
-*End* *Linking Code Error Handling* | **Hash**: 514e1bf0
+*End* *Linking Code Error Handling* | **Hash**: 3a1f9cc5
 
 ---
 
@@ -293,7 +293,7 @@ K. The system SHALL NOT cache linking code validation responses.
 
 L. The system SHALL preserve entered linking code during network retry attempts.
 
-*End* *Network Failure Handling During Linking* | **Hash**: 69917b62
+*End* *Network Failure Handling During Linking* | **Hash**: fe5b5e9a
 
 ---
 
@@ -339,7 +339,7 @@ M. The system SHALL synchronize diary entries to Sponsor Portal only in ENROLLED
 
 N. The system SHALL queue synchronization requests during STUDY_START_PENDING state for processing after transition to ENROLLED.
 
-*End* *Enrollment State Machine* | **Hash**: cdda8a9f
+*End* *Enrollment State Machine* | **Hash**: 2505852b
 
 ---
 
@@ -387,7 +387,7 @@ P. In NOT_PARTICIPATING state, the system SHALL display the "Contact Study Coord
 
 Q. In NOT_PARTICIPATING state, the system SHALL allow continued diary entry creation for personal use.
 
-*End* *Enrollment State Behaviors* | **Hash**: 9a325df1
+*End* *Enrollment State Behaviors* | **Hash**: ae21987f
 
 ---
 
@@ -421,7 +421,7 @@ I. The system SHALL preserve the last successful sync timestamp for display on t
 
 J. The system SHALL log disconnection detection with timestamp and detection method to local diagnostics.
 
-*End* *Disconnection Detection* | **Hash**: e6b7dc66
+*End* *Disconnection Detection* | **Hash**: 0ef54680
 
 ---
 
@@ -463,7 +463,7 @@ M. The screen SHALL be displayed as the default view when app is opened in NOT_P
 
 N. The screen SHALL use sponsor branding colors if available in cached configuration, otherwise default branding.
 
-*End* *Contact Study Coordinator Screen* | **Hash**: b5ced74b
+*End* *Contact Study Coordinator Screen* | **Hash**: 9e53fe8a
 
 ---
 
@@ -503,7 +503,7 @@ K. The system SHALL log reconnection event with new linking timestamp and number
 
 L. The system SHALL NOT require the user to re-enter diary entries created during disconnection.
 
-*End* *Reconnection Recovery Path* | **Hash**: ee420ab8
+*End* *Reconnection Recovery Path* | **Hash**: 01389d10
 
 ---
 
@@ -547,7 +547,7 @@ L. The system SHALL support the Daily Epistaxis Record questionnaire type as the
 
 M. The system SHALL allow sponsors to configure alternative Study Start questionnaire types.
 
-*End* *Study Start Questionnaire Rendering* | **Hash**: f05aab6f
+*End* *Study Start Questionnaire Rendering* | **Hash**: d7b89124
 
 ---
 
@@ -583,7 +583,7 @@ J. The system SHALL maintain referential integrity between questionnaire instanc
 
 K. The system SHALL encrypt stored questionnaire responses using the same encryption as diary entries.
 
-*End* *Questionnaire Response Collection and Storage* | **Hash**: 76b26c02
+*End* *Questionnaire Response Collection and Storage* | **Hash**: d5097084
 
 ---
 
@@ -629,7 +629,7 @@ N. The confirmation screen SHALL display message "Welcome to the study! Your dai
 
 O. The system SHALL preserve questionnaire responses indefinitely for audit purposes.
 
-*End* *Questionnaire Submission Flow* | **Hash**: fb00fce8
+*End* *Questionnaire Submission Flow* | **Hash**: 50d5db71
 
 ---
 

@@ -74,7 +74,7 @@ Q. The system SHALL provide access controls that prevent unauthorized use.
 R. Records SHALL be retrievable in human-readable form for FDA inspection.
 S. The system SHALL include a complete validation documentation package.
 
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 192ec8c7
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 95110549
 ---
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
@@ -103,7 +103,7 @@ M. Data SHALL be enduring by being preserved for the entire retention period.
 N. Data SHALL be available by being accessible for review and audit when needed.
 O. The system SHALL maintain a complete audit trail for the entire data lifecycle.
 
-*End* *ALCOA+ Data Integrity Principles* | **Hash**: 75efc558
+*End* *ALCOA+ Data Integrity Principles* | **Hash**: 54818734
 ---
 
 # REQ-p00012: Clinical Data Retention Requirements
@@ -133,7 +133,7 @@ N. Exported data SHALL be readable without proprietary systems.
 O. The system SHALL prevent premature deletion by enforcing retention period requirements.
 P. The system SHALL maintain data integrity throughout the retention period.
 
-*End* *Clinical Data Retention Requirements* | **Hash**: 1e94b089
+*End* *Clinical Data Retention Requirements* | **Hash**: 42ddd27b
 ---
 
 # REQ-p01061: GDPR Compliance
@@ -164,7 +164,7 @@ O. The breach notification procedure SHALL be tested.
 P. A Data Protection Impact Assessment SHALL be completed for clinical trial data processing activities.
 Q. The system SHALL implement exceptions to these rules as applicable to GCP and FDA data retention requirements.
 
-*End* *GDPR Compliance* | **Hash**: c4ed4d8a
+*End* *GDPR Compliance* | **Hash**: ebe9e2ad
 ---
 
 # REQ-p01062: GDPR Data Portability
@@ -192,7 +192,7 @@ L. The export and import functionality SHALL operate without requiring network c
 M. The export SHALL NOT include system internals such as sync state.
 N. The export SHALL NOT include system internals such as device IDs.
 
-*End* *GDPR Data Portability* | **Hash**: 4d47581f
+*End* *GDPR Data Portability* | **Hash**: 30b27336
 ---
 
 ### System Validation

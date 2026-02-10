@@ -49,7 +49,7 @@ J. The sponsor-config.yml file SHALL pass schema validation.
 K. The README.md file SHALL contain complete setup instructions.
 L. The elspais validate command SHALL pass when executed in the sponsor repository.
 
-*End* *Sponsor Repository Structure Template* | **Hash**: 4b7874ee
+*End* *Sponsor Repository Structure Template* | **Hash**: 0ede3cec
 
 ---
 
@@ -77,7 +77,7 @@ K. The system SHALL validate cross-repository requirement links.
 L. The system SHALL display a warning when the `.core-repo` path is not found.
 M. CI/CD environments SHALL be able to override the core repo path via SPONSOR_MANIFEST.
 
-*End* *Core Repo Reference Configuration* | **Hash**: 91ce804d
+*End* *Core Repo Reference Configuration* | **Hash**: 2f2f7a26
 
 ---
 
@@ -106,7 +106,7 @@ L. Cross-namespace 'Implements' links from sponsor requirements to core requirem
 M. Cross-namespace 'Implements' links SHALL resolve correctly during validation.
 N. Sponsor .elspais.toml configuration files SHALL include a patterns.associated section with enabled=true and the sponsor prefix.
 
-*End* *Sponsor Requirement Namespace Validation* | **Hash**: 128e817d
+*End* *Sponsor Requirement Namespace Validation* | **Hash**: bfec100c
 
 ---
 
@@ -134,6 +134,6 @@ K. Per-sponsor traceability matrices SHALL filter to include only requirements r
 L. The system SHALL validate all cross-repository 'Implements' links during traceability matrix generation.
 M. The system SHALL report orphaned requirements with no implementation as warnings in the traceability output.
 
-*End* *Cross-Repository Traceability* | **Hash**: ca7aeae6
+*End* *Cross-Repository Traceability* | **Hash**: e0ee0f65
 
 ---

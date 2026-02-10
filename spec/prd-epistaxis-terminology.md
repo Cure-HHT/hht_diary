@@ -64,7 +64,7 @@ X. The system SHALL recalculate duration after any time or timezone adjustment.
 Y. The system SHALL store date_recorded as a system-generated timestamp in UTC for audit trail purposes.
 Z. The system SHALL display the actual user-entered timezone when loading stored data, not just the timezone offset.
 
-*End* *HHT Epistaxis Data Capture Standard* | **Hash**: f0a37c7e
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: 36dc9faf
 
 ---
 

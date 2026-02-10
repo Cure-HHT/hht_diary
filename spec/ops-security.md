@@ -190,7 +190,7 @@ M. The system SHALL log all role assignment changes in the audit trail.
 N. Role definitions in the Identity Platform custom claims SHALL match role definitions in database tables.
 O. Database RLS policies SHALL enforce permissions based on session variables set by the application.
 
-*End* *Role-Based Permission Configuration* | **Hash**: bafee84e
+*End* *Role-Based Permission Configuration* | **Hash**: d07993e9
 ---
 
 ### Role-Based Access Control (RBAC)
