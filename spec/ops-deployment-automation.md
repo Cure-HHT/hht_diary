@@ -41,7 +41,7 @@ R. The system SHALL complete development environment deployments within 10 minut
 S. The system SHALL complete staging environment deployments within 15 minutes.
 T. The system SHALL complete production environment deployments within 20 minutes.
 
-*End* *Automated Deployment Pipeline* | **Hash**: 0dacb8c9
+*End* *Automated Deployment Pipeline* | **Hash**: e74d24c7
 ---
 
 # REQ-o00044: Database Migration Automation
@@ -75,7 +75,7 @@ R. The migration framework SHALL integrate Cloud SQL migrations via pgmigrate.
 S. The system SHALL require rollback scripts for all migrations.
 T. Typical migrations SHALL complete within 5 minutes.
 
-*End* *Database Migration Automation* | **Hash**: 78684c79
+*End* *Database Migration Automation* | **Hash**: 52d9a6a1
 ---
 
 ## Architecture

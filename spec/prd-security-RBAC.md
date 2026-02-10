@@ -55,7 +55,7 @@ I. The system SHALL include role context in the audit log for all data access ev
 J. The system SHALL deny unauthorized access attempts.
 K. The system SHALL NOT allow role permissions to be bypassed.
 
-*End* *Role-Based Access Control* | **Hash**: 83122106
+*End* *Role-Based Access Control* | **Hash**: 83e3e545
 ---
 
 # REQ-p00014: Least Privilege Access
@@ -81,7 +81,7 @@ J. The system SHALL remove unnecessary permissions promptly when job function ch
 K. The system SHALL capture all permission grant events in the audit log.
 L. The system SHALL capture all permission revoke events in the audit log.
 
-*End* *Least Privilege Access* | **Hash**: 84b123a2
+*End* *Least Privilege Access* | **Hash**: 6b0df135
 ---
 
 ### RBAC Principles

@@ -86,7 +86,7 @@ L. The system SHALL require MFA verification at each login.
 M. The system SHALL NOT allow MFA bypass through configuration settings.
 N. The system SHALL log all MFA events in the audit trail.
 
-*End* *MFA Configuration for Staff Accounts* | **Hash**: 807dc978
+*End* *MFA Configuration for Staff Accounts* | **Hash**: 5bb3d071
 ---
 
 ## Identity Platform Setup

@@ -56,7 +56,7 @@ J. The platform SHALL deploy application updates to all sponsors simultaneously.
 K. The mobile application package size SHALL remain within reasonable limits for app store distribution when containing multiple sponsor configurations.
 L. The system SHALL NOT allow configuration or data from one sponsor to be accessible to patients enrolled with a different sponsor.
 
-*End* *Single Mobile App for All Sponsors* | **Hash**: 6be0ee0f
+*End* *Single Mobile App for All Sponsors* | **Hash**: 3fe1fad0
 ---
 
 # REQ-p00009: Sponsor-Specific Portals
@@ -78,7 +78,7 @@ F. Staff authenticated to one sponsor's portal SHALL NOT be able to access any o
 G. Each sponsor portal SHALL support independent customization without affecting other sponsors' portals.
 H. The portal SHALL NOT be capable of querying database records belonging to other sponsors.
 
-*End* *Sponsor-Specific Portals* | **Hash**: f3149879
+*End* *Sponsor-Specific Portals* | **Hash**: e26dfd95
 ---
 
 # REQ-p00018: Multi-Site Support Per Sponsor
@@ -106,7 +106,7 @@ L. The system SHALL restrict investigators to viewing only data from their assig
 M. The system SHALL track site assignments in the audit trail.
 N. The system SHALL include site information in data exports for regulatory submission.
 
-*End* *Multi-Site Support Per Sponsor* | **Hash**: 68512c64
+*End* *Multi-Site Support Per Sponsor* | **Hash**: c4d7df6f
 ---
 
 ## Infrastructure Isolation
@@ -132,7 +132,7 @@ H. Serverless functions SHALL NOT access resources belonging to other sponsors.
 I. Database connections SHALL be scoped to a single sponsor.
 J. The platform SHALL implement network isolation to prevent cross-sponsor traffic.
 
-*End* *Complete Infrastructure Isolation Per Sponsor* | **Hash**: be0a9046
+*End* *Complete Infrastructure Isolation Per Sponsor* | **Hash**: 5f9f93ed
 ---
 
 ## Repository and Deployment
@@ -161,7 +161,7 @@ K. The system SHALL require approval from authorized Sponsor personnel for all c
 L. The system SHALL require approval from authorized Developer personnel for all changes to sponsor repositories.
 M. Access control mechanisms SHALL enforce sponsor repository isolation.
 
-*End* *Mono Repository with Sponsor Repositories* | **Hash**: 06c463fb
+*End* *Mono Repository with Sponsor Repositories* | **Hash**: a54d5ad6
 ---
 
 # REQ-p01058: Unified App Deployment
@@ -184,7 +184,7 @@ G. Each Sponsor SHALL maintain an agreement with the Operator defining UAT param
 H. Each Sponsor SHALL maintain an agreement with the Operator regarding waiver conditions for the normal UAT process.
 I. The release process SHALL document approval status from all active Sponsors for each release.
 
-*End* *Unified App Deployment* | **Hash**: 97c79ca1
+*End* *Unified App Deployment* | **Hash**: c22435c6
 ---
 
 # REQ-p01060: UX Changes During Trials
@@ -204,7 +204,7 @@ D. UX change requests during active trials SHALL require Sponsor approval before
 E. The system SHALL require a documented change impact assessment before implementing any patient UX modifications during the trial period.
 F. The system SHALL capture all approved UX changes during active trials in the audit trail.
 
-*End* *UX Changes During Trials* | **Hash**: a93a58d7
+*End* *UX Changes During Trials* | **Hash**: fadb4f60
 ---
 
 ## Customization
@@ -231,7 +231,7 @@ I. The system SHALL store sponsor configurations separately from each other.
 J. The system SHALL require both customer and operator approval for changes to sponsor configurations.
 K. The system SHALL document custom features in the sponsor repository.
 
-*End* *Customization Policy* | **Hash**: 1b9d5965
+*End* *Customization Policy* | **Hash**: bf7c7b8e
 ---
 
 ## Sponsor Confidentiality
@@ -259,7 +259,7 @@ J. The system SHALL load sponsor content ONLY after successful linking.
 K. The system SHALL NOT include sponsor identifiers in app metadata or store listings.
 L. The system SHALL require valid enrollment credentials for configuration download.
 
-*End* *Sponsor Confidentiality* | **Hash**: 76b4de61
+*End* *Sponsor Confidentiality* | **Hash**: 364675e2
 ---
 
 # REQ-p01056: Confidentiality Sufficiency
@@ -278,7 +278,7 @@ C. The contract SHALL include a confidentiality sufficiency clause.
 D. The contract SHALL reference REQ-p01055 protections explicitly.
 E. The contract SHALL include Sponsor acknowledgment of the limitations of technical protections.
 
-*End* *Confidentiality Sufficiency* | **Hash**: f340c7b7
+*End* *Confidentiality Sufficiency* | **Hash**: f29524ee
 ---
 
 ## References

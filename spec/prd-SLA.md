@@ -63,7 +63,7 @@ M. The system SHALL perform automated uptime monitoring with 60-second check int
 N. Uptime reports SHALL be available to sponsors on request.
 O. Historical uptime data SHALL be retained for 2 years.
 
-*End* *Service Availability Commitment* | **Hash**: fc65d10f
+*End* *Service Availability Commitment* | **Hash**: d39861a9
 ---
 
 # REQ-p01022: Incident Severity Classification
@@ -92,7 +92,7 @@ M. The system SHALL notify customers of the severity level for incidents impacti
 N. The system SHALL allow severity levels to be upgraded with documented justification.
 O. The system SHALL allow severity levels to be downgraded with documented justification.
 
-*End* *Incident Severity Classification* | **Hash**: b38ac116
+*End* *Incident Severity Classification* | **Hash**: d1734735
 ---
 
 # REQ-p01023: Incident Response Times
@@ -126,7 +126,7 @@ R. The system SHALL track resolution time from incident detection to service res
 S. The platform SHALL report SLA compliance monthly.
 T. The system SHALL trigger escalation when approaching response or resolution deadlines.
 
-*End* *Incident Response Times* | **Hash**: dcee0291
+*End* *Incident Response Times* | **Hash**: 40fb577e
 ---
 
 # REQ-p01024: Disaster Recovery Objectives
@@ -152,7 +152,7 @@ J. Recovery procedures SHALL be validated.
 K. Recovery procedures SHALL be documented.
 L. The platform SHALL notify sponsors within 1 hour of disaster declaration.
 
-*End* *Disaster Recovery Objectives* | **Hash**: 5db46324
+*End* *Disaster Recovery Objectives* | **Hash**: 6b076a50
 ---
 
 # REQ-p01033: Customer Incident Notification
@@ -185,7 +185,7 @@ Q. The system SHALL track notification timing for all customer notifications.
 R. The system SHALL report on notification timing metrics.
 S. The system SHALL provide subscriber management functionality for status update notifications.
 
-*End* *Customer Incident Notification* | **Hash**: a8193b60
+*End* *Customer Incident Notification* | **Hash**: 3ca3df0f
 ---
 
 # REQ-p01034: Root Cause Analysis
@@ -214,7 +214,7 @@ M. RCAs SHALL be reviewed by a technical lead before delivery.
 N. The system SHALL track RCA delivery against defined timelines.
 O. The system SHALL archive RCAs for 7 years.
 
-*End* *Root Cause Analysis* | **Hash**: 69a5318a
+*End* *Root Cause Analysis* | **Hash**: 0778e3bb
 ---
 
 # REQ-p01035: Corrective and Preventive Action
@@ -244,7 +244,7 @@ N. The system SHALL maintain a CAPA tracking system.
 O. CAPA status SHALL be visible to the sponsor upon request.
 P. The system SHALL perform an annual CAPA effectiveness review.
 
-*End* *Corrective and Preventive Action* | **Hash**: 23046f23
+*End* *Corrective and Preventive Action* | **Hash**: f2c78d76
 ---
 
 # REQ-p01036: Data Recovery Guarantee
@@ -271,7 +271,7 @@ K. Recovery procedures SHALL be tested.
 L. The platform SHALL use a recovery verification checklist post-recovery.
 M. Recovery documentation SHALL be suitable for regulatory submission.
 
-*End* *Data Recovery Guarantee* | **Hash**: 0224912a
+*End* *Data Recovery Guarantee* | **Hash**: 5909fb2b
 ---
 
 # REQ-p01037: Chronic Failure Escalation
@@ -296,7 +296,7 @@ I. The platform SHALL maintain a remediation plan template for chronic failure s
 J. The system SHALL document escalation contacts per sponsor.
 K. The platform SHALL provide service remedies when uptime commitments are not met, as defined in operational specifications.
 
-*End* *Chronic Failure Escalation* | **Hash**: 3a07854b
+*End* *Chronic Failure Escalation* | **Hash**: 63205737
 ---
 
 # REQ-p01038: Regulatory Event Support
@@ -323,7 +323,7 @@ K. Technical staff SHALL be available for regulatory calls.
 L. Corrective action timelines SHALL be negotiated in good faith.
 M. The system SHALL NOT impose additional charges for regulatory support services.
 
-*End* *Regulatory Event Support* | **Hash**: 64f84d80
+*End* *Regulatory Event Support* | **Hash**: f62f5e4d
 ---
 
 ## SLA Exclusions

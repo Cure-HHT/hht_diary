@@ -19,5 +19,5 @@ H. The plugin install script SHALL invoke the permission addition utility during
 I. The plugin uninstall script SHALL invoke the permission removal utility during uninstallation.
 J. The plugin-expert plugin permissions manifest SHALL include at minimum: git status, git diff, git show, git rev-parse, git ls-files, and gh commands.
 
-*End* *Plugin-Specific Permission Management* | **Hash**: 356621f9
+*End* *Plugin-Specific Permission Management* | **Hash**: 03045719
 ---

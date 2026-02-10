@@ -158,7 +158,7 @@ I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study 
 
 J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-*End* *Clinical Questionnaire System* | **Hash**: c602e22d
+*End* *Clinical Questionnaire System* | **Hash**: 0a439bc2
 ---
 
 ## Child Requirements

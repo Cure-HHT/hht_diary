@@ -47,7 +47,7 @@ I. The system SHALL apply sponsor-specific configuration after successful authen
 J. The system SHALL create a complete audit trail of all patient actions.
 K. The system SHALL function as a companion to the mobile app, not as a replacement.
 
-*End* *Web Diary Application* | **Hash**: 3a7e056b
+*End* *Web Diary Application* | **Hash**: a19f716f
 
 ---
 
@@ -80,7 +80,7 @@ P. Session JWTs SHALL be scoped to the authenticated sponsor.
 Q. The system SHALL NOT store or process email addresses.
 R. The authentication system SHALL function correctly across all supported browsers.
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: f9efb798
+*End* *Web Diary Authentication via Linking Code* | **Hash**: 8c7d6240
 ---
 
 # REQ-p01044: Web Diary Session Management
@@ -111,7 +111,7 @@ O. The system SHALL synchronize session timeout across multiple tabs for the sam
 P. The system SHALL NOT provide a 'remember me' option.
 Q. The system SHALL NOT provide a persistent login option.
 
-*End* *Web Diary Session Management* | **Hash**: e1565e20
+*End* *Web Diary Session Management* | **Hash**: 8264ceb9
 
 ---
 
@@ -142,7 +142,7 @@ N. The system SHALL store only username, hashed password, and app UUID in the au
 O. The system SHALL NOT use analytics cookies beyond essential session management.
 P. The system SHALL NOT use tracking cookies beyond essential session management.
 
-*End* *Web Diary Privacy Protection* | **Hash**: 3f9fee14
+*End* *Web Diary Privacy Protection* | **Hash**: 58e010cd
 
 ---
 
@@ -170,7 +170,7 @@ K. The system SHALL provide clear feedback on validation errors during account c
 L. The system SHALL redirect users to the diary home screen upon successful account creation.
 M. The system SHALL log account creation events to the audit trail for compliance.
 
-*End* *Web Diary Account Creation* | **Hash**: 6f862e69
+*End* *Web Diary Account Creation* | **Hash**: 8d39c8e6
 
 ---
 
@@ -199,7 +199,7 @@ L. The system SHALL log all profile view interactions to the audit trail.
 M. The system SHALL log all password visibility toggle actions to the audit trail.
 N. The system SHALL log all password change attempts and outcomes to the audit trail.
 
-*End* *Web Diary User Profile* | **Hash**: 2d343eab
+*End* *Web Diary User Profile* | **Hash**: c132adc2
 
 ---
 
@@ -229,7 +229,7 @@ M. The logout confirmation SHALL display the message: "Did you save your usernam
 N. The logout confirmation SHALL provide a cancel option that returns the user to the diary without logging out.
 O. The logout confirmation SHALL provide a confirm option that completes the logout action.
 
-*End* *Web Diary Login Interface* | **Hash**: 9727c6a8
+*End* *Web Diary Login Interface* | **Hash**: d643690a
 
 ---
 
@@ -256,7 +256,7 @@ J. The system SHALL invalidate old linking codes when new codes are issued by th
 K. The system SHALL record credential recovery events in the audit trail.
 L. The system SHALL provide user-facing help content documenting the recovery process.
 
-*End* *Web Diary Lost Credential Recovery* | **Hash**: 09aa8fab
+*End* *Web Diary Lost Credential Recovery* | **Hash**: 0af0c79c
 
 ---
 

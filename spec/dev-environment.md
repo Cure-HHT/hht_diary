@@ -54,7 +54,7 @@ N. Container images SHALL be buildable on Linux operating systems.
 O. Container images SHALL be buildable on macOS operating systems.
 P. Containers SHALL include health checks that verify tool availability.
 
-*End* *Containerized Development Environments* | **Hash**: 12d637c5
+*End* *Containerized Development Environments* | **Hash**: 380e7b8c
 ---
 
 # REQ-d00055: Role-Based Environment Separation
@@ -88,7 +88,7 @@ R. File permissions SHALL enforce role boundaries between environments.
 S. Documentation SHALL explain what each role can do within its environment.
 T. Documentation SHALL explain what each role cannot do outside its designated permissions.
 
-*End* *Role-Based Environment Separation* | **Hash**: 03138c47
+*End* *Role-Based Environment Separation* | **Hash**: 9d8e2081
 ---
 
 # REQ-d00056: Cross-Platform Development Support
@@ -128,7 +128,7 @@ X. File mounts SHALL work correctly on Linux.
 Y. File mounts SHALL work correctly on macOS.
 Z. Setup documentation SHALL include platform-specific prerequisites when required.
 
-*End* *Cross-Platform Development Support* | **Hash**: 6e05c815
+*End* *Cross-Platform Development Support* | **Hash**: 7ca59703
 ---
 
 # REQ-d00057: CI/CD Environment Parity
@@ -155,7 +155,7 @@ K. Secrets SHALL be accessed via Doppler in both local development and CI enviro
 L. CI logs SHALL include tool version verification output.
 M. Local development documentation SHALL include commands to verify environment parity.
 
-*End* *CI/CD Environment Parity* | **Hash**: 1b1aaea0
+*End* *CI/CD Environment Parity* | **Hash**: 608781a5
 ---
 
 # REQ-d00058: Secrets Management via Doppler
@@ -189,7 +189,7 @@ R. Doppler audit log SHALL capture all secret access events.
 S. Documentation SHALL cover Doppler setup procedures for each role.
 T. Documentation SHALL include secret rotation procedures.
 
-*End* *Secrets Management via Doppler* | **Hash**: cd79209a
+*End* *Secrets Management via Doppler* | **Hash**: 18a5881a
 ---
 
 # REQ-d00059: Development Tool Specifications
@@ -228,7 +228,7 @@ W. Tool selection rationale SHALL be documented in ADR-006.
 X. Documentation SHALL include a tool update policy defining version upgrade procedures.
 Y. Documentation SHALL include testing procedures for tool version updates.
 
-*End* *Development Tool Specifications* | **Hash**: caee2790
+*End* *Development Tool Specifications* | **Hash**: 1ddd744c
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
@@ -254,7 +254,7 @@ J. Dev Containers SHALL integrate with Docker Compose for multi-container debugg
 K. Documentation SHALL include instructions for using the 'Reopen in Container' feature.
 L. First-time Dev Container setup SHALL complete in less than 5 minutes after Docker installation.
 
-*End* *VS Code Dev Containers Integration* | **Hash**: d8498586
+*End* *VS Code Dev Containers Integration* | **Hash**: 4b7e967b
 ---
 
 # REQ-d00061: Automated QA Workflow
@@ -284,7 +284,7 @@ N. Test artifacts for pull request testing SHALL be retained for 90 days.
 O. Test artifacts for commits tagged as releases SHALL be retained permanently.
 P. The qa-container environment used in CI SHALL be identical to the qa-container used for local QA role testing.
 
-*End* *Automated QA Workflow* | **Hash**: 50c6e242
+*End* *Automated QA Workflow* | **Hash**: 75dfd6e6
 ---
 
 # REQ-d00062: Environment Validation & Change Control
@@ -301,7 +301,7 @@ A. Development environments SHALL undergo formal validation using IQ/OQ/PQ proto
 B. Changes to development environments SHALL be managed through documented change control procedures.
 C. This requirement SHALL be implemented through REQ-d00090, REQ-d00091, REQ-d00092, and REQ-d00093.
 
-*End* *Environment Validation & Change Control* | **Hash**: 9a5588aa
+*End* *Environment Validation & Change Control* | **Hash**: edff16ee
 
 ---
 
@@ -324,7 +324,7 @@ F. Tool versions SHALL match specifications defined in environment documentation
 G. IQ protocol SHALL be documented in `docs/validation/dev-environment/IQ.md`.
 H. Test results templates SHALL be provided for IQ protocol execution.
 
-*End* *Development Environment Installation Qualification* | **Hash**: 554f4e07
+*End* *Development Environment Installation Qualification* | **Hash**: f170b97a
 
 ---
 
@@ -349,7 +349,7 @@ H. The gcloud CLI SHALL be able to authenticate with Google Cloud Platform.
 I. OQ protocol SHALL be documented in `docs/validation/dev-environment/OQ.md`.
 J. Test results templates SHALL be provided for OQ protocol execution.
 
-*End* *Development Environment Operational Qualification* | **Hash**: fe899a74
+*End* *Development Environment Operational Qualification* | **Hash**: 1c2e52c9
 
 ---
 
@@ -370,7 +370,7 @@ D. The development environment SHALL produce identical outputs across supported 
 E. PQ protocol SHALL be documented in `docs/validation/dev-environment/PQ.md`.
 F. Test results templates SHALL be provided for PQ protocol execution.
 
-*End* *Development Environment Performance Qualification* | **Hash**: 5185eb02
+*End* *Development Environment Performance Qualification* | **Hash**: fcb5c6ba
 
 ---
 
@@ -394,7 +394,7 @@ G. Container images SHALL be signed with Cosign for integrity verification.
 H. A Software Bill of Materials (SBOM) SHALL be generated and stored with each image version.
 I. Deprecation notices SHALL be provided at least 90 days before environment version retirement.
 
-*End* *Development Environment Change Control* | **Hash**: 25b6fc05
+*End* *Development Environment Change Control* | **Hash**: d0a9c48d
 ---
 
 # REQ-d00063: Shared Workspace and File Exchange
@@ -423,7 +423,7 @@ M. The docker-compose.yml configuration SHALL define all required named volumes.
 N. Documentation SHALL explain the purpose of each volume type.
 O. Documentation SHALL describe usage patterns for workspace volumes and exchange volumes.
 
-*End* *Shared Workspace and File Exchange* | **Hash**: c3be06e7
+*End* *Shared Workspace and File Exchange* | **Hash**: 8a68ffca
 ---
 
 ## Tool Version Rationale

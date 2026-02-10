@@ -44,7 +44,7 @@ X. The documentation SHALL list common errors detected by the validation tooling
 Y. The documentation SHALL describe the benefits and features of the validation tooling.
 Z. The validation script SHALL use the ${CLAUDE_PLUGIN_ROOT} environment variable for portable script paths.
 
-*End* *Plugin JSON Validation Tooling* | **Hash**: ea213114
+*End* *Plugin JSON Validation Tooling* | **Hash**: ade1a4f4
 ---
 
 
@@ -87,7 +87,7 @@ X. The validation tool SHALL correctly validate file paths referenced in plugin.
 Y. The validation tool SHALL correctly validate paths that reference non-existent files or directories.
 Z. The validation tool SHALL correctly validate the executability status of hook scripts.
 
-*End* *Plugin Path Validation* | **Hash**: 6a207563
+*End* *Plugin Path Validation* | **Hash**: 09911117
 ---
 
 # REQ-d00067: Streamlined Ticket Creation Agent
@@ -117,7 +117,7 @@ N. The agent SHALL check whether an active ticket is already claimed before crea
 O. The agent SHALL offer to claim a newly created ticket after successful creation.
 P. The agent SHALL integrate with the workflow plugin for ticket claiming and switching operations.
 
-*End* *Streamlined Ticket Creation Agent* | **Hash**: 4fe51e65
+*End* *Streamlined Ticket Creation Agent* | **Hash**: f6d9e288
 ---
 
 # REQ-d00068: Enhanced Workflow New Work Detection
@@ -144,7 +144,7 @@ K. The system SHALL maintain non-blocking behavior for all workflow detection wa
 L. Warning messages SHALL include explanations of ticket-creation-agent capabilities.
 M. The system SHALL NOT block user actions when providing workflow guidance or warnings.
 
-*End* *Enhanced Workflow New Work Detection* | **Hash**: 36d736e0
+*End* *Enhanced Workflow New Work Detection* | **Hash**: 951ecf65
 ---
 
 ## References

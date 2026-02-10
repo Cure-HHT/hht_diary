@@ -55,7 +55,7 @@ O. The build process SHALL validate all required fields are present before compi
 P. The application SHALL NOT contain hardcoded credentials in Dart source code.
 Q. Configuration fields SHALL be immutable after loading.
 
-*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5950765d
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: a2825584
 ---
 
 ### Implementation Example
@@ -234,7 +234,7 @@ I. Error messages SHALL indicate exactly which field is invalid.
 J. The validation process SHALL complete in less than 1 second.
 K. The build system SHALL return a non-zero exit code on validation failure.
 
-*End* *Pre-Build Configuration Validation* | **Hash**: c7f7afe9
+*End* *Pre-Build Configuration Validation* | **Hash**: 5dde0fc5
 ---
 
 ### Validation Script

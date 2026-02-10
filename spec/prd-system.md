@@ -38,7 +38,7 @@ C. The system SHALL enable patient data entry via mobile applications.
 D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
 E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
 
-*End* *Clinical Trial Diary Platform* | **Hash**: a72852cf
+*End* *Clinical Trial Diary Platform* | **Hash**: 0919ad00
 
 ---
 
@@ -57,4 +57,4 @@ A. The Veritite core codebase SHALL be licensed under the GNU Affero General Pub
 B. Sponsor-specific extensions and customizations SHALL be permitted to remain proprietary to each sponsor.
 C. Platform documentation SHALL be distributed under an open documentation license compatible with redistribution and modification.
 
-*End* *Open Source Licensing* | **Hash**: 85c600f4
+*End* *Open Source Licensing* | **Hash**: 7e6b1e00

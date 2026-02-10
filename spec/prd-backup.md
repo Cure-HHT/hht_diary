@@ -31,7 +31,7 @@ F. The system SHALL isolate each sponsor's backup storage from other sponsors' b
 G. The system SHALL maintain archived data in an accessible format for regulatory audits throughout the retention period.
 H. The system SHALL document and test recovery procedures on a quarterly basis.
 
-*End* *Data Backup and Archival* | **Hash**: cf938097
+*End* *Data Backup and Archival* | **Hash**: 4e9501e4
 
 ---
 

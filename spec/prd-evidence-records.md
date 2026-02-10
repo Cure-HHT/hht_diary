@@ -107,7 +107,7 @@ J. Timestamps SHALL be bound to specific data content such that any data modific
 K. Timestamp proof files SHALL be self-contained for regulatory review.
 L. Timestamp proof files SHALL be portable for regulatory review.
 
-*End* *Third-Party Timestamp Attestation Capability* | **Hash**: a926adf0
+*End* *Third-Party Timestamp Attestation Capability* | **Hash**: f2ab1f17
 ---
 
 ---
@@ -133,7 +133,7 @@ H. Timestamp proofs SHALL complete within 24 hours of submission.
 I. Timestamp proof verification SHALL succeed without external network access.
 J. Timestamp proof files SHALL be portable for independent regulatory verification.
 
-*End* *Bitcoin-Based Timestamp Implementation* | **Hash**: 4a1ce95c
+*End* *Bitcoin-Based Timestamp Implementation* | **Hash**: 94499ad5
 ---
 
 ---
@@ -160,7 +160,7 @@ I. The verification interface SHALL communicate results clearly to non-technical
 J. The system SHALL generate verification reports that are exportable for regulatory documentation.
 K. The system SHALL clearly indicate the reason for failure when verification fails.
 
-*End* *Timestamp Verification Interface* | **Hash**: a0a66254
+*End* *Timestamp Verification Interface* | **Hash**: 9956bd94
 ---
 
 ---
@@ -186,7 +186,7 @@ H. The system SHALL preserve timestamp proofs through system upgrades without co
 I. The system SHALL support retrieval of timestamp proofs independently of application availability.
 J. The system SHALL document the timestamp proof format to enable long-term interpretation.
 
-*End* *Timestamp Proof Archival* | **Hash**: 01f23d44
+*End* *Timestamp Proof Archival* | **Hash**: 69a49395
 ---
 
 ---
@@ -211,7 +211,7 @@ G. The system SHALL NOT store raw device identifiers.
 H. The system SHALL NOT transmit raw device identifiers.
 I. Auditors SHALL be able to verify fingerprint consistency across a patient's submissions.
 
-*End* *Device Fingerprinting* | **Hash**: 2cd57e40
+*End* *Device Fingerprinting* | **Hash**: 8e10b85a
 ---
 
 ---
@@ -238,7 +238,7 @@ I. The system SHALL NOT allow Site Coordinators to view patient PINs.
 J. The system SHALL record authentication status with each data submission.
 K. The system SHALL log failed authentication attempts for audit purposes.
 
-*End* *Patient Authentication for Data Attribution* | **Hash**: a3c9353f
+*End* *Patient Authentication for Data Attribution* | **Hash**: da907239
 ---
 
 ---
@@ -268,7 +268,7 @@ L. The system SHALL allow data entry to proceed successfully when location data 
 M. Geolocation collection settings SHALL be configurable at the trial level.
 N. Geolocation collection settings SHALL be configurable at the Sponsor level.
 
-*End* *Optional Geolocation Tagging* | **Hash**: b864499d
+*End* *Optional Geolocation Tagging* | **Hash**: f9a69607
 ---
 
 ---
@@ -292,7 +292,7 @@ F. The system SHALL allow auditors to independently hash a provided email and co
 G. The system SHALL support auditor contact with the patient via the verified email address.
 H. The hash algorithm SHALL be documented for long-term reproducibility.
 
-*End* *Hashed Email Identity Verification* | **Hash**: 8f227ca7
+*End* *Hashed Email Identity Verification* | **Hash**: 0ba2d208
 ---
 
 ---

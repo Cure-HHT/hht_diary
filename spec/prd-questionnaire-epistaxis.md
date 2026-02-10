@@ -156,7 +156,7 @@ L. The system SHALL store all timestamps as the patient's wall-clock time, with 
 
 M. This Questionnaire SHALL support Study Start gating.
 
-*End* *Daily Epistaxis Record Questionnaire* | **Hash**: 10695516
+*End* *Daily Epistaxis Record Questionnaire* | **Hash**: 29498f8f
 ---
 
 # REQ-p01069: Daily Epistaxis Record User Interface
@@ -185,7 +185,7 @@ F. The system SHALL support editing of records for any date within the allowed e
 
 G. The system SHALL display clear status indicators for sync state when the patient is enrolled in a trial.
 
-*End* *Daily Epistaxis Record User Interface* | **Hash**: 3cd9c967
+*End* *Daily Epistaxis Record User Interface* | **Hash**: 0efa31a6
 ---
 
 ## References

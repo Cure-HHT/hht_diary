@@ -220,11 +220,11 @@ H. The system SHALL validate that the linking code is valid before completing th
 
 I. The Mobile App SHALL provide input interface for Mobile Linking Codes during patient linking.
 
-J. The system SHALL display the Mobile Linking Code only once at generation time; subsequent views SHALL require generating a new code.
+J. The system SHALL keep the Mobile Linking Code visible to clinical staff in the portal at any time after generation.
 
 K. The system SHALL log all linking code generation, usage attempts, and validation results for audit purposes.
 
-*End* *Linking Code Lifecycle Management* | **Hash**: efbb0972
+*End* *Linking Code Lifecycle Management* | **Hash**: c0a77938
 ---
 
 # REQ-p70001: Sponsor Portal Application

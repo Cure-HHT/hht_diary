@@ -60,7 +60,7 @@ O. The Web Diary SHALL apply sponsor-specific theming after user authentication.
 P. The responsive layout SHALL adapt rendering based on viewport width.
 Q. Shared components SHALL render consistently between web and mobile applications.
 
-*End* *Web Diary Frontend Framework* | **Hash**: a84bf289
+*End* *Web Diary Frontend Framework* | **Hash**: 8e194f4d
 
 ---
 
@@ -91,7 +91,7 @@ N. The system SHALL clear all client-side storage on explicit user logout.
 O. The system SHALL display the login page when the user navigates back after logout.
 P. The system SHALL NOT display cached data when the user navigates back after logout.
 
-*End* *Web Session Management Implementation* | **Hash**: 1ed9928f
+*End* *Web Session Management Implementation* | **Hash**: 4b91624f
 
 ---
 
@@ -123,7 +123,7 @@ M. The system SHALL transmit the username, hash, salt, linkingCode, and appUuid 
 N. The system SHALL generate a new unique salt when a user changes their password.
 O. The system SHALL re-hash the password with the new salt when a user changes their password.
 
-*End* *Password Hashing Implementation* | **Hash**: 2f426f50
+*End* *Password Hashing Implementation* | **Hash**: 1174dead
 
 ---
 
@@ -156,7 +156,7 @@ P. The Web Diary SHALL navigate to the login page after clearing all storage mec
 Q. The browser back button SHALL display the login page after logout, not cached content.
 R. Patient data SHALL NOT be recoverable via browser developer tools after logout.
 
-*End* *Browser Storage Clearing* | **Hash**: 781a1594
+*End* *Browser Storage Clearing* | **Hash**: 3c9baff2
 
 ---
 TODO - remove or move to dev-app.md
@@ -185,7 +185,7 @@ L. The branding configuration SHALL include logoUrl, primaryColor, and secondary
 M. Primary and secondary colors SHALL be provided in hexadecimal color format.
 N. The system SHALL start the session timer using the sessionTimeoutMinutes value from the sponsor configuration.
 
-*End* *Sponsor Configuration Loading* | **Hash**: 654added
+*End* *Sponsor Configuration Loading* | **Hash**: b8eb0a19
 
 ---
 

@@ -50,7 +50,7 @@ H. Encryption keys SHALL NOT be shared between sponsors.
 I. Administrative access SHALL be limited to a single sponsor.
 J. The system architecture SHALL make cross-sponsor access technically impossible.
 
-*End* *Complete Multi-Sponsor Data Separation* | **Hash**: 081d1dc6
+*End* *Complete Multi-Sponsor Data Separation* | **Hash**: 57702900
 ---
 
 ## User Authentication
@@ -80,7 +80,7 @@ L. The system SHALL allow users to configure SMS as a backup MFA method.
 M. The system SHALL log all MFA authentication attempts including successes.
 N. The system SHALL log all MFA authentication attempts including failures.
 
-*End* *Multi-Factor Authentication for Staff* | **Hash**: 0c06ec29
+*End* *Multi-Factor Authentication for Staff* | **Hash**: b014564d
 ---
 
 ### How Users Log In
