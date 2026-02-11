@@ -39,7 +39,7 @@ D. The system SHALL enable sponsor and investigator access to trial data via web
 E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
 F. The system SHALL comply with all applicable regulatory requirements for electronic records and data integrity in clinical investigations.
 
-*End* *Clinical Trial Compliant Diary Platform* | **Hash**: 0919ad00
+*End* *Clinical Trial Compliant Diary Platform* | **Hash**: 7933530e
 ---
 
 # REQ-p01041: Open Source Licensing

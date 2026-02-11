@@ -38,7 +38,7 @@ I. The system SHALL make data available and accessible to authorized users when 
 J. The system SHALL maintain traceability of data from source through all transformations and uses.
    *Source: GCP Data - Requirements, ALCOA++ Traceable principle*
 
-*End* *ALCOA++ Data Integrity Implementation* | **Hash**: ed73fcd6
+*End* *ALCOA++ Data Integrity Implementation* | **Hash**: 9bbe74ec
 
 ---
 
@@ -79,13 +79,13 @@ H. The system SHALL log all signature events including successful signatures, fa
 I. For biometric-based electronic signatures, the system SHALL be designed to ensure they cannot be used by anyone other than the genuine owner.
    *Source: 21 CFR Part 11.200(b)*
 
-*End* *Electronic Signature Technical Controls* | **Hash**: 19c90839
+*End* *Electronic Signature Technical Controls* | **Hash**: dd16ae7a
 
 ---
 
 # REQ-d80031: Audit Trail Technical Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00030
+**Level**: Dev | **Status**: Draft | **Implements**: p80030
 
 ## Rationale
 
@@ -117,7 +117,7 @@ G. The system SHALL provide the capability to export audit trail data in human-r
 H. The system SHALL audit all access to audit trail data itself.
    *Source: GCP Data - Consolidated Requirements, Req 23*
 
-*End* *Audit Trail Technical Implementation* | **Hash**: 4730b51b
+*End* *Audit Trail Technical Implementation* | **Hash**: 5e69b0c1
 
 ---
 
@@ -152,7 +152,7 @@ F. The system SHALL prevent direct modification of data in the database; all cha
 G. The system SHALL differentiate between initial data entry and subsequent corrections in the audit trail.
    *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, ICH E6(R3) 4.9.3*
 
-*End* *Data Correction Technical Implementation* | **Hash**: 721f8960
+*End* *Data Correction Technical Implementation* | **Hash**: 78ef7572
 
 ---
 
@@ -208,7 +208,7 @@ M. The system SHALL terminate inactive sessions after a configurable timeout per
 N. The system SHALL verify the identity of an individual before establishing, assigning, certifying, or sanctioning their electronic signature.
    *Source: 21 CFR Part 11.100(b)*
 
-*End* *Authentication and Authorization Controls* | **Hash**: 383a79ce
+*End* *Authentication and Authorization Controls* | **Hash**: a72beb36
 
 ---
 
@@ -249,13 +249,13 @@ H. The system SHALL retain user account information and associated audit trails 
 I. The system SHALL enforce separation of duties between user account administration and clinical data access.
    *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, Req 21*
 
-*End* *User Account Management* | **Hash**: cec88333
+*End* *User Account Management* | **Hash**: 95f45277
 
 ---
 
 # REQ-d80061: System Validation Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00060
+**Level**: Dev | **Status**: Draft | **Implements**: p80060
 
 ## Rationale
 
@@ -284,13 +284,13 @@ F. The system SHALL be validated to demonstrate fitness for intended use in the 
 G. The system SHALL maintain validation documentation for the lifetime of the system plus the required record retention period.
    *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, 11.10(k)*
 
-*End* *System Validation Controls* | **Hash**: 7724d3f7
+*End* *System Validation Controls* | **Hash**: 08ae9589
 
 ---
 
 # REQ-d80062: IT Service Provider and Cloud System Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00060
+**Level**: Dev | **Status**: Draft | **Implements**: p80060
 
 ## Rationale
 
@@ -322,7 +322,7 @@ G. The system SHALL maintain data sovereignty and ensure data processing locatio
 H. The system SHALL implement data backup and disaster recovery procedures that ensure recovery point objectives (RPO) and recovery time objectives (RTO) meet regulatory retention and accessibility requirements.
    *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, Req 27*
 
-*End* *IT Service Provider and Cloud System Controls* | **Hash**: f6c0e0a9
+*End* *IT Service Provider and Cloud System Controls* | **Hash**: e5b6cafb
 
 ---
 
@@ -360,4 +360,4 @@ G. The system SHALL synchronize DHT timestamps with a reliable time source to en
 H. The system SHALL document the algorithm or method used to process or derive values from raw DHT data.
    *Source: 2024 10 FDA Guidance on electronic storaage 0 58358119fnl.pdf, Q&A Section IV.2*
 
-*End* *Digital Health Technology Data Capture* | **Hash**: 48f38e2c
+*End* *Digital Health Technology Data Capture* | **Hash**: 151b3a71

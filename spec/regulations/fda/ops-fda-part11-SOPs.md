@@ -29,7 +29,7 @@ F. The organization SHALL maintain training records for the duration of employme
 G. The organization SHALL require retraining when significant system changes are implemented.
    *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, Req 29*
 
-*End* *Training and Personnel Qualification* | **Hash**: c7cfdbd2
+*End* *Training and Personnel Qualification* | **Hash**: 53e1ba24
 
 ---
 
@@ -67,7 +67,7 @@ G. The organization SHALL document and test recovery procedures for archived ele
 H. The organization SHALL ensure audit trail data is retained for at least as long as the associated electronic records.
    *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, 11.10(e)*
 
-*End* *Record Retention and Archival* | **Hash**: 735f83e2
+*End* *Record Retention and Archival* | **Hash**: 9fcd1947
 
 ---
 
@@ -102,4 +102,4 @@ F. The organization SHALL document procedures for system change control and conf
 G. The organization SHALL maintain distribution, access, and use controls over systems documentation.
    *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, 11.10(k)*
 
-*End* *Standard Operating Procedures* | **Hash**: 55c9585d
+*End* *Standard Operating Procedures* | **Hash**: 50d11093

@@ -20,7 +20,7 @@ C. The system SHALL satisfy the detailed audit trail and data correction require
 D. The system SHALL conform to FDA guidance on use of electronic records, electronic signatures, and electronic systems in clinical investigations.
    *Source: 2024 10 FDA Guidance on electronic storage.pdf*
 
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 7bdc5305
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 54daf3d2
 ---
 
 # REQ-p80002: 21 CFR Part 11 Compliance
@@ -157,7 +157,7 @@ PC-G. The system SHALL be validated to ensure accuracy, reliability, consistent 
 
 *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf*
 
-*End* *21 CFR Part 11 Compliance* | **Hash**: ae595997
+*End* *21 CFR Part 11 Compliance* | **Hash**: a5d5da23
 
 ---
 
@@ -455,7 +455,7 @@ PC-W. Before or at the same time a person uses an electronic signature in an ele
 
 *Source: 2024 10 FDA Guidance on electronic storage.pdf*
 
-*End* *FDA Guidance on Electronic Records in Clinical Investigations* | **Hash**: 435fab0f
+*End* *FDA Guidance on Electronic Records in Clinical Investigations* | **Hash**: 7330eda3
 ---
 
 # REQ-p80004: GCP Data Requirements for Audit Trails and Data Corrections
@@ -675,7 +675,7 @@ PC-B. The system SHOULD retain the audit trail in a format that is searchable an
 
 *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
 
-*End* *GCP Data Requirements for Audit Trails and Data Corrections* | **Hash**: d4355493
+*End* *GCP Data Requirements for Audit Trails and Data Corrections* | **Hash**: 52eb4a31
 
 ---
 
@@ -827,4 +827,4 @@ PC-F. The system SHOULD support a working environment that encourages reporting 
 
 *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
 
-*End* *GCP Consolidated Requirements for Audit Trails and Data Corrections* | **Hash**: 5c21d8a8
+*End* *GCP Consolidated Requirements for Audit Trails and Data Corrections* | **Hash**: 70cb1b59

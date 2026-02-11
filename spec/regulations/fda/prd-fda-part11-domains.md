@@ -20,7 +20,7 @@ C. The system SHALL maintain electronic records in accordance with FDA guidance 
 D. The system SHALL generate accurate and complete copies of records in both human-readable and electronic form suitable for inspection.
    *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, 11.10(b)*
 
-*End* *Electronic Records Controls* | **Hash**: 7a58a6e2
+*End* *Electronic Records Controls* | **Hash**: 6d82267c
 
 ---
 
@@ -49,7 +49,7 @@ D. The system SHALL ensure electronic signatures are linked to their respective 
 E. The system SHALL employ electronic signatures based upon at least two distinct identification components such as an identification code and password.
    *Source: 21 CFR Part 11.200(a)(1)*
 
-*End* *Electronic Signatures* | **Hash**: 10e8af34
+*End* *Electronic Signatures* | **Hash**: 5eb03a00
 
 ---
 
@@ -84,7 +84,7 @@ F. The system SHALL not obscure previous entries when making corrections to sour
 G. The system SHALL ensure audit trails cannot be disabled, overwritten, or altered by users.
    *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, EMA Guideline Section 8.1*
 
-*End* *Audit Trail Requirements* | **Hash**: c83e29ff
+*End* *Audit Trail Requirements* | **Hash**: 2070327e
 
 ---
 
@@ -122,7 +122,7 @@ G. The system SHALL ensure documentation of any change or correction includes th
 H. The system SHALL preserve the ability to view both the original value and the corrected value.
    *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, EMA Guideline Section 7.1*
 
-*End* *Data Correction Controls* | **Hash**: 1a3e1a67
+*End* *Data Correction Controls* | **Hash**: a4ce844c
 
 ---
 
@@ -157,7 +157,7 @@ F. The system SHALL ensure identification codes and passwords are periodically c
 G. The system SHALL implement procedures for electronically deauthorizing lost, stolen, missing, or potentially compromised tokens, cards, or other devices that bear or generate identification codes or passwords.
    *Source: 21 CFR Part 11.300(c)*
 
-*End* *System Access and Security Controls* | **Hash**: d7956749
+*End* *System Access and Security Controls* | **Hash**: c9937e50
 
 ---
 
@@ -183,4 +183,4 @@ C. For open systems, the system SHALL employ additional measures such as documen
 D. The system SHALL use appropriate controls over systems documentation including distribution of, access to, and use of documentation for system operation and maintenance.
    *Source: 21 CFR Part 11.10(k)*
 
-*End* *Closed and Open System Controls* | **Hash**: 74d22c76
+*End* *Closed and Open System Controls* | **Hash**: 20d10fe8

@@ -59,7 +59,7 @@ B. The system SHALL satisfy EU General Data Protection Regulation (GDPR) require
 C. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
 D. The system SHALL support audit and inspection activities by regulatory authorities.
 
-*End* *Regulatory Compliance Framework* | **Hash**: d9364270
+*End* *Regulatory Compliance Framework* | **Hash**: c4fa27f7
 ---
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
@@ -78,7 +78,7 @@ A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic reco
 B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
 C. The system SHALL include a complete validation documentation package.
 
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 95110549
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 20c0e7bc
 ---
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
