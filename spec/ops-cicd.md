@@ -30,7 +30,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 # REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
 
 ## Rationale
 
@@ -54,7 +54,7 @@ J. The CI/CD validation workflow SHALL complete execution within 10 minutes.
 
 # REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p00010
+**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80060
 
 ## Rationale
 
@@ -75,7 +75,7 @@ G. The system SHALL create an audit trail entry when administrators override bra
 
 # REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p00010
+**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80030
 
 ## Rationale
 

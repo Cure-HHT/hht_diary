@@ -64,7 +64,7 @@ D. The system SHALL support audit and inspection activities by regulatory author
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00045
+**Level**: PRD | **Status**: Draft | **Implements**: p80001
 
 ## Rationale
 
@@ -74,25 +74,9 @@ The detailed FDA regulatory requirements are defined in the FDA regulations spec
 
 ## Assertions
 
-A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
+A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures as defined in REQ-p80001 and its child requirements.
 B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
-C. The system SHALL generate accurate and complete copies of records in human-readable form.
-D. The system SHALL protect records to enable accurate and ready retrieval throughout the record retention period.
-E. The system SHALL maintain audit trails for all record creation events.
-F. The system SHALL maintain audit trails for all record modification events.
-G. The system SHALL maintain audit trails for all record deletion events.
-H. Audit trails SHALL be tamper-proof.
-I. The system SHALL enforce operational checks to ensure permitted sequencing of steps and events.
-J. The system SHALL perform authority checks to ensure only authorized individuals can use the system.
-K. The system SHALL perform authority checks to ensure only authorized individuals can electronically sign records.
-L. The system SHALL perform authority checks to ensure only authorized individuals can access system functions.
-M. The system SHALL perform device checks to determine the validity of the source of data input.
-N. The system SHALL determine that persons using electronic signatures are who they claim to be.
-O. Electronic signatures SHALL meet FDA 21 CFR Part 11 requirements.
-P. The system SHALL maintain formal requirements with complete traceability.
-Q. The system SHALL provide access controls that prevent unauthorized use.
-R. Records SHALL be retrievable in human-readable form for FDA inspection.
-S. The system SHALL include a complete validation documentation package.
+C. The system SHALL include a complete validation documentation package.
 
 *End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 95110549
 ---
@@ -128,7 +112,7 @@ O. The system SHALL maintain a complete audit trail for the entire data lifecycl
 
 # REQ-p00012: Clinical Data Retention Requirements
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010
+**Level**: PRD | **Status**: Draft | **Implements**: p80030
 
 ## Rationale
 
@@ -156,7 +140,7 @@ P. The system SHALL maintain data integrity throughout the retention period.
 *End* *Clinical Data Retention Requirements* | **Hash**: 42ddd27b
 ---
 
-# REQ-p01061: GDPR Compliance
+# REQ-p01061: EU GDPR
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00045
 
@@ -347,14 +331,21 @@ The regulatory compliance hierarchy follows this structure:
 ```
 REQ-p00044 (Platform) - Top-level system definition
     └── REQ-p00045 (Regulatory Compliance Framework)
-            ├── REQ-p00010 (FDA 21 CFR Part 11 Compliance)
-            │       ├── REQ-p00011 (ALCOA+) → links to p80010
-            │       └── REQ-p00012 (Data Retention)
-            └── REQ-p01061 (GDPR Compliance)
+            ├── REQ-p80001 (US FDA 21 CFR Part 11)
+            │       ├── REQ-p00010 (FDA 21 CFR Part 11 Compliance) - platform commitment
+            │       ├── REQ-p80010 (Electronic Records Controls)
+            │       │       └── p00011 (ALCOA+), p00046, p01060
+            │       ├── REQ-p80030 (Audit Trail Requirements)
+            │       │       └── p00012, p01025, p01035, p01038, o00005, o00049, o00054, o00067
+            │       ├── REQ-p80050 (System Access and Security Controls)
+            │       │       └── p00014, p00016, p01020, o00066, o00075
+            │       └── REQ-p80060 (Closed and Open System Controls)
+            │               └── p00020, o00041, o00042, o00051, o00052, o00053, d00062
+            └── REQ-p01061 (EU GDPR)
                     └── REQ-p01062 (Data Portability)
 ```
 
-The FDA detailed requirements (p80xxx series) in `spec/regulations/fda/` provide the authoritative regulatory source material that REQ-p00010 ensures is implemented in the platform.
+REQ-p80001 provides the authoritative regulatory source documentation. Platform requirements implement specific FDA domains (p80010-p80060) rather than the umbrella REQ-p00010.
 
 ---
 

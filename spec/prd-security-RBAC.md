@@ -60,7 +60,7 @@ K. The system SHALL NOT allow role permissions to be bypassed.
 
 # REQ-p00014: Least Privilege Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00010
+**Level**: PRD | **Status**: Draft | **Implements**: p00005, p80050
 
 ## Rationale
 
