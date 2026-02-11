@@ -42,6 +42,23 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 echo "✅ ENVIRONMENT ${ENVIRONMENT} detected."
 
+# Check if SPONSOR_ID is set
+if [ -z "$SPONSOR_ID" ]; then
+    echo "❌ ERROR: SPONSOR_ID variable is not set!"
+    echo "Cloud Run service must have SPONSOR_ID configured (e.g., callisto)."
+    exit 9
+fi
+echo "✅ SPONSOR_ID ${SPONSOR_ID} detected."
+
+# Verify sponsor content exists in container
+if [ ! -f "/app/sponsor-content/${SPONSOR_ID}/sponsor-config.json" ]; then
+    echo "❌ ERROR: Sponsor content not found for '${SPONSOR_ID}'!"
+    echo "Expected: /app/sponsor-content/${SPONSOR_ID}/sponsor-config.json"
+    echo "Ensure collect-sponsor-content.sh was run before docker build."
+    exit 10
+fi
+echo "✅ Sponsor content verified for ${SPONSOR_ID}."
+
 # Check if DOPPLER_TOKEN is set
 if [ -z "$DOPPLER_TOKEN" ]; then
     echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"

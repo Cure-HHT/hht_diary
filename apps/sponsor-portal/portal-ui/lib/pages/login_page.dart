@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import '../flavors.dart';
 import '../services/auth_service.dart';
+import '../services/sponsor_branding_service.dart';
 import '../widgets/error_message.dart';
 import '../widgets/totp_input_dialog.dart';
 
@@ -117,6 +118,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
+    final branding = context.read<SponsorBrandingConfig>();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -136,15 +138,27 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Logo
-                      Icon(
-                        Icons.medication,
-                        size: 64,
-                        color: colorScheme.primary,
-                      ),
+                      // Logo - sponsor branded or fallback
+                      if (branding.hasLogo)
+                        Image.network(
+                          branding.appLogoUrl!,
+                          height: 64,
+                          width: 64,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.medication,
+                            size: 64,
+                            color: colorScheme.primary,
+                          ),
+                        )
+                      else
+                        Icon(
+                          Icons.medication,
+                          size: 64,
+                          color: colorScheme.primary,
+                        ),
                       const SizedBox(height: 16),
                       Text(
-                        'Clinical Trial Portal',
+                        branding.title,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,

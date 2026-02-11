@@ -70,6 +70,9 @@ RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 # Copy Dart server binary
 COPY --from=dart-build --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
 
+# Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
+COPY sponsor-content/ /app/sponsor-content/
+
 # Create nginx runtime directories with correct permissions
 RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx \
     && chown -R appuser:appuser /var/cache/nginx /var/run /var/log/nginx /var/lib/nginx /app
