@@ -34,57 +34,23 @@ locals {
 # Enable Required APIs
 # -----------------------------------------------------------------------------
 
-resource "google_project_service" "gmail_api" {
-  project = var.project_id
-  service = "gmail.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
+locals {
+  required_apis = toset([
+    "gmail.googleapis.com",
+    "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "networkservices.googleapis.com",
+    "sqladmin.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "compute.googleapis.com",
+  ])
 }
 
-resource "google_project_service" "iam_api" {
+resource "google_project_service" "apis" {
+  for_each = local.required_apis
+
   project = var.project_id
-  service = "iam.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
-}
-
-resource "google_project_service" "iamcredentials_api" {
-  project = var.project_id
-  service = "iamcredentials.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
-}
-
-resource "google_project_service" "networkservices_api" {
-  project = var.project_id
-  service = "networkservices.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
-}
-
-resource "google_project_service" "sqladmin_api" {
-  project = var.project_id
-  service = "sqladmin.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
-}
-
-resource "google_project_service" "cloudbuild_api" {
-  project = var.project_id
-  service = "cloudbuild.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = false
-}
-
-resource "google_project_service" "compute_api" {
-  project = var.project_id
-  service = "compute.googleapis.com"
+  service = each.value
 
   disable_on_destroy         = false
   disable_dependent_services = false
@@ -106,7 +72,7 @@ resource "google_project_service" "compute_api" {
 # 3. Add this service account's Client ID with scope:
 #    https://www.googleapis.com/auth/gmail.send
 # 4. Create the sender mailbox (e.g., support@anspar.org) in Google Workspace
-# 5. Add GMAIL_SERVICE_ACCOUNT_EMAIL to Doppler (the SA email, not a key)
+# 5. Add EMAIL_SVC_ACCT to Doppler (the SA email, not a key)
 
 resource "google_service_account" "gmail" {
   account_id   = "org-gmail-sender"
@@ -114,7 +80,7 @@ resource "google_service_account" "gmail" {
   description  = "Sends email OTP codes and activation emails via Gmail API with domain-wide delegation. Used by all sponsor projects."
   project      = var.project_id
 
-  depends_on = [google_project_service.iam_api]
+  depends_on = [google_project_service.apis["iam.googleapis.com"]]
 }
 
 # -----------------------------------------------------------------------------

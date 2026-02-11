@@ -169,7 +169,7 @@ if (!currentUser.role.isAdmin) {
 | `PORTAL_IDENTITY_AUTH_DOMAIN` | Identity Platform Auth Domain      | (required)              |
 | `PORTAL_IDENTITY_PROJECT_ID`  | Identity Platform Project ID       | (required)              |
 | `PORTAL_BASE_URL`             | Portal base URL                    | `http://localhost:8080` |
-| `GMAIL_SERVICE_ACCOUNT_EMAIL` | Gmail service account email        | (required for emails)   |
+| `EMAIL_SVC_ACCT`              | Gmail service account email        | (required for emails)   |
 | `EMAIL_SENDER`                | From address for emails            | `support@anspar.org`    |
 | `EMAIL_ENABLED`               | Enable email sending               | `true`                  |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Identity Platform emulator host    | (unset = production)    |
