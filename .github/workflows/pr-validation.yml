@@ -446,11 +446,18 @@ jobs:
           echo "elspais version: $(elspais --version)"
           echo "Python version: $(python3 --version)"
           echo "Platform: $(uname -a)"
-          elspais index validate --verbose 2>&1 || {
-            echo "INDEX.md validation failed. Generating diff..."
-            elspais index regenerate --dry-run 2>&1 || true
+          echo "pip show elspais:"
+          pip show elspais 2>&1 || true
+          echo "---"
+          cp spec/INDEX.md spec/INDEX.md.before
+          elspais index validate 2>&1 || {
+            echo "INDEX.md validation failed. Comparing against regenerated version..."
+            elspais index regenerate 2>&1 || true
+            diff spec/INDEX.md.before spec/INDEX.md || true
+            cp spec/INDEX.md.before spec/INDEX.md
             exit 1
           }
+          rm -f spec/INDEX.md.before
           echo "::endgroup::"
           echo "INDEX.md validation passed"
 
