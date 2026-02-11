@@ -240,3 +240,13 @@ terraform.rc
 /apps/tool/deploy_diary_server.sh
 /apps/tool/deploy_portal_server.sh
 tools/one-time-migrations/
+
+# =====================================
+# LOCAL DEV FILES
+# =====================================
+.mcp.json
+.venv/
+*.local.yml
+traceability.csv
+traceability_view.html
+qwert.sh

@@ -2,7 +2,7 @@ project = { name = "hht-diary", type = "core" }
 validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
 
 [directories]
-spec = "spec"
+spec = ["spec", "spec/regulations/fda"]
 docs = "docs"
 database = "database"
 code = ["apps", "packages", "server", "tools"]
@@ -49,13 +49,20 @@ index_file = "INDEX.md"
 readme_file = "README.md"
 format_guide = "requirements-format.md"
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap"]
+skip_dirs = ["roadmap", "regulations/fda/reference"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"
 "dev-*.md" = "dev"
+"**/prd-*.md" = "prd"
+"**/ops-*.md" = "ops"
+"**/dev-*.md" = "dev"
 
-[rules]
-hierarchy = { allowed_implements = ["dev -> dev, ops, prd", "ops -> ops, prd", "prd -> prd"], allow_circular = false, allow_orphans = true, max_depth = 5 }
+[rules.hierarchy]
+dev = ["dev", "ops", "prd"]
+ops = ["ops", "prd"]
+prd = ["prd"]
+allow_circular = false
+allow_orphans = true
 
 [rules.format]
 require_hash = true
@@ -79,11 +86,11 @@ scan_patterns = [
     "tools/**/*.py",
     ".github/workflows/**/*.yml",
 ]
-associated_patterns = []
+associated_patterns = ["sponsor/{name}/**/*.dart", "sponsor/{name}/**/*.sql", "sponsor/{name}/**/*.py"]
 
 [testing]
 enabled = true
-test_dirs = ["apps/**/test", "packages/**/test", "tools/**/tests"]
-patterns = ["*_test.dart", "test_*.py", "*_test.sql"]
+test_dirs = ["apps/**/test", "apps/**/integration_test", "packages/**/test", "packages/**/integration_test", "tools/**/tests", "database/tests"]
+patterns = ["*_test.dart", "test_*.dart", "test_*.py", "*_test.sql", "test_*.sql"]
 result_files = ["build-reports/**/TEST-*.xml", "build-reports/pytest-results.json"]
 default_mode = "core"

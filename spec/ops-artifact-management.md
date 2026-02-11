@@ -12,7 +12,7 @@
 
 # REQ-o00049: Artifact Retention and Archival
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010
+**Level**: Ops | **Status**: Draft | **Implements**: p80030, o80020
 
 ## Rationale
 
@@ -88,7 +88,7 @@ V. The system SHALL create Terraform workspaces for each environment.
 
 # REQ-o00051: Change Control and Audit Trail
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010
+**Level**: Ops | **Status**: Draft | **Implements**: p80060, o80030
 
 ## Rationale
 

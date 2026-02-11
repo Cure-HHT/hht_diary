@@ -189,7 +189,7 @@ I. The release process SHALL document approval status from all active Sponsors f
 
 # REQ-p01060: UX Changes During Trials
 
-**Level**: PRD | **Status**: Active | **Implements**: p00010
+**Level**: PRD | **Status**: Active | **Implements**: p80010
 
 ## Rationale
 

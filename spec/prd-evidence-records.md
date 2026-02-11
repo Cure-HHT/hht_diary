@@ -86,7 +86,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 # REQ-p01025: Third-Party Timestamp Attestation Capability
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010, p00011
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80030
 
 ## Rationale
 

@@ -33,7 +33,7 @@ Without formal requirements and traceability, a clinical trial system cannot be 
 
 # REQ-p00020: System Validation and Traceability
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010
+**Level**: PRD | **Status**: Draft | **Implements**: p80060
 
 ## Rationale
 
