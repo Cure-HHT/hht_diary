@@ -416,7 +416,7 @@ jobs:
         id: validate
         run: |
           echo "::group::Requirement Validation"
-          elspais validate
+          elspais validate --mode core
           RESULT=$?
           echo "::endgroup::"
 
@@ -443,7 +443,7 @@ jobs:
         if: success()
         run: |
           echo "::group::INDEX.md Validation"
-          elspais index validate
+          elspais index --mode core validate
           RESULT=$?
           echo "::endgroup::"
 

@@ -37,7 +37,7 @@ jobs:
       - name: Validate requirement format and IDs
         run: |
           echo "Testing requirement validation..."
-          elspais validate
+          elspais validate --mode core
           echo "Requirement validation passed"
 
       # Phase 4: Traceability matrix generation
