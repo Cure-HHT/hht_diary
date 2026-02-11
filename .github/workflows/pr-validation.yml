@@ -443,16 +443,16 @@ jobs:
         if: success()
         run: |
           echo "::group::INDEX.md Validation"
-          elspais index validate
-          RESULT=$?
-          echo "::endgroup::"
-
-          if [ $RESULT -ne 0 ]; then
-            echo "::error::INDEX.md validation failed. See details above."
+          echo "elspais version: $(elspais --version)"
+          echo "Python version: $(python3 --version)"
+          echo "Platform: $(uname -a)"
+          elspais index validate --verbose 2>&1 || {
+            echo "INDEX.md validation failed. Generating diff..."
+            elspais index regenerate --dry-run 2>&1 || true
             exit 1
-          fi
-
-          echo "✅ INDEX.md validation passed"
+          }
+          echo "::endgroup::"
+          echo "INDEX.md validation passed"
 
       - name: Upload build reports as artifacts
         if: success()  # Only upload if generation succeeded
