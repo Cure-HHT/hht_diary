@@ -256,7 +256,7 @@ Add these to **hht-diary-core** (all environments):
 
 ```bash
 # Gmail SA email to impersonate
-doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com" \
+doppler secrets set EMAIL_SVC_ACCT="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com" \
   --project hht-diary-core --config production
 
 # Sender email (must exist in Google Workspace)
@@ -324,7 +324,7 @@ After setting secrets, verify the service is configured:
 
 ```bash
 # Check WIF is configured
-doppler secrets get GMAIL_SERVICE_ACCOUNT_EMAIL --project hht-diary-core --config production
+doppler secrets get EMAIL_SVC_ACCT --project hht-diary-core --config production
 
 # Test locally (uses WIF via your gcloud ADC)
 cd apps/sponsor-portal/portal_server

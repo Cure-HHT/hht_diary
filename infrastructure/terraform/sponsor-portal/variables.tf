@@ -147,6 +147,28 @@ variable "enable_cloud_build_triggers" {
 }
 
 # -----------------------------------------------------------------------------
+# Optional: Cross-Project Gmail SA Impersonation
+# -----------------------------------------------------------------------------
+
+variable "admin_project_id" {
+  description = "GCP project ID of the admin project (for cross-project Gmail SA impersonation)"
+  type        = string
+  default     = "cure-hht-admin"
+}
+
+variable "gmail_service_account_email" {
+  description = "Email of the org-wide Gmail service account in the admin project"
+  type        = string
+  default     = "org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
+}
+
+variable "impersonating_service_account_email" {
+  description = "Email of this sponsor's service account that needs Gmail SA impersonation (empty = skip)"
+  type        = string
+  default     = ""
+}
+
+# -----------------------------------------------------------------------------
 # Optional: Container Images (via Artifact Registry GHCR proxy)
 # -----------------------------------------------------------------------------
 

@@ -33,7 +33,7 @@ void main(List<String> args) async {
     'DB_PORT',
     'DB_NAME',
     'DB_USER',
-    'GMAIL_SERVICE_ACCOUNT_EMAIL',
+    'EMAIL_SVC_ACCT',
     'EMAIL_SENDER',
     'EMAIL_SENDER_NAME',
     'EMAIL_CONSOLE_MODE',

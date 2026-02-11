@@ -73,7 +73,7 @@ doppler run -- terraform apply
 
 2. **Add to Doppler** (all environments):
    ```bash
-   doppler secrets set GMAIL_SERVICE_ACCOUNT_EMAIL="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
+   doppler secrets set EMAIL_SVC_ACCT="org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
    doppler secrets set EMAIL_SENDER="support@anspar.org"
    doppler secrets set EMAIL_ENABLED="true"
    ```

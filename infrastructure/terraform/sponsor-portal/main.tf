@@ -247,15 +247,18 @@ module "identity_platform" {
 # }
 
 # -----------------------------------------------------------------------------
-# Gmail Service Account (Org-Wide - in cure-hht-admin project)
+# Service Account IAM (Cross-Project Gmail SA Impersonation)
 # -----------------------------------------------------------------------------
 #
-# The Gmail service account for email OTP and activation codes is managed
-# centrally in the cure-hht-admin project (infrastructure/terraform/admin-project/).
-#
-# To enable email sending for this sponsor/environment:
-# 1. Add the Cloud Run service account to the admin project's
-#    sponsor_cloud_run_service_accounts variable
-# 2. Store the Gmail SA key in Doppler for this environment
-#
-# Cloud Run service account: ${module.cloud_run.portal_server_service_account_email}
+# Grants this sponsor's service account permission to impersonate the
+# org-wide Gmail service account in the admin project for email sending.
+# See: infrastructure/terraform/admin-project/ for the Gmail SA definition.
+
+module "svc_accts" {
+  source = "../modules/svc-accts"
+  count  = var.impersonating_service_account_email != "" ? 1 : 0
+
+  admin_project_id                    = var.admin_project_id
+  gmail_service_account_email         = var.gmail_service_account_email
+  impersonating_service_account_email = var.impersonating_service_account_email
+}

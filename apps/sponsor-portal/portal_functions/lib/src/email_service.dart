@@ -49,8 +49,7 @@ class EmailConfig {
   /// Create config from environment variables
   factory EmailConfig.fromEnvironment() {
     return EmailConfig(
-      gmailServiceAccountEmail:
-          Platform.environment['GMAIL_SERVICE_ACCOUNT_EMAIL'],
+      gmailServiceAccountEmail: Platform.environment['EMAIL_SVC_ACCT'],
       senderEmail: Platform.environment['EMAIL_SENDER'] ?? 'support@anspar.org',
       enabled: Platform.environment['EMAIL_ENABLED'] != 'false',
       consoleMode: Platform.environment['EMAIL_CONSOLE_MODE'] == 'true',

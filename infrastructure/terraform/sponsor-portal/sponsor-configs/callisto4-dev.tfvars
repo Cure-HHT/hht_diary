@@ -130,3 +130,8 @@ workforce_identity_enabled = false
 audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
+
+# -----------------------------------------------------------------------------
+# Optional: Email
+# -----------------------------------------------------------------------------
+impersonating_service_account_email = "1012274191696-compute@developer.gserviceaccount.com"
