@@ -11,7 +11,7 @@
 #
 # Requires:
 #   - jq (JSON parsing)
-#   - git or gh CLI (for cloning)
+#   - gh CLI (for GitHub clone in CI/CD mode)
 #   - GH_TOKEN env var (for private repos in CI/CD mode)
 
 set -euo pipefail
@@ -43,6 +43,11 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
+if [ "$LOCAL_MODE" = false ] && ! command -v gh &> /dev/null; then
+    echo "ERROR: gh CLI is required for GitHub mode. Install: https://cli.github.com/"
+    exit 1
+fi
+
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "ERROR: Config file not found: $CONFIG_FILE"
     exit 1
@@ -51,6 +56,11 @@ fi
 # Clean and create output directory
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+
+# Create a single work directory for all clones, clean up on exit
+WORK_DIR=$(mktemp -d)
+cleanup() { rm -rf "$WORK_DIR"; }
+trap cleanup EXIT
 
 echo "========================================"
 echo "Collecting sponsor content"
@@ -87,30 +97,24 @@ for i in $(seq 0 $((SPONSOR_COUNT - 1))); do
         echo "Copying from $LOCAL_DIR"
         cp -r "$LOCAL_DIR" "$SPONSOR_OUTPUT"
     else
-        # CI/CD mode: sparse clone from GitHub
-        CLONE_DIR=$(mktemp -d)
-        trap "rm -rf $CLONE_DIR" EXIT
+        # CI/CD mode: shallow clone from GitHub using gh CLI
+        # gh CLI uses GH_TOKEN env var for authentication automatically
+        CLONE_DIR="$WORK_DIR/$SPONSOR_ID"
 
-        echo "Cloning content/ from $REPO"
-        git clone --depth 1 --filter=blob:none --sparse \
-            "https://x-access-token:${GH_TOKEN:-}@github.com/$REPO.git" \
-            "$CLONE_DIR" 2>&1 || {
+        echo "Cloning $REPO (shallow)..."
+        if ! gh repo clone "$REPO" "$CLONE_DIR" -- --depth 1 2>&1; then
             echo "ERROR: Failed to clone $REPO. Check GH_TOKEN and repo access."
             ERRORS=$((ERRORS + 1))
             continue
-        }
-
-        (cd "$CLONE_DIR" && git sparse-checkout set content)
+        fi
 
         if [ ! -d "$CLONE_DIR/content" ]; then
             echo "ERROR: No content/ directory in $REPO"
             ERRORS=$((ERRORS + 1))
-            rm -rf "$CLONE_DIR"
             continue
         fi
 
         cp -r "$CLONE_DIR/content" "$SPONSOR_OUTPUT"
-        rm -rf "$CLONE_DIR"
     fi
 
     # Validate sponsor-config.json exists and has sponsorId
