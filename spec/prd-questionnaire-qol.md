@@ -89,7 +89,7 @@ Addresses: JNY-HHT-QoL-01
 
 ## Rationale
 
-The HHT Quality of Life questionnaire provides a brief, focused assessment of how HHT symptoms impact patients' daily activities and social life. The 4-question format minimizes patient burden while capturing key domains: work/school interruption, social interruption, social avoidance, and non-epistaxis HHT impact. The 4-week recall window aligns with typical clinical visit intervals. The platform implements this standard instrument faithfully while allowing the same flexibility patients would have with paper-based administration.
+The HHT Quality of Life questionnaire provides a brief, focused assessment of how HHT symptoms impact patients' daily activities and social life. The 4-question format minimizes patient burden while capturing key domains: work/school interruption, social interruption, social avoidance, and non-epistaxis HHT impact. The 4-week recall window aligns with typical clinical visit intervals. The platform implements this standard instrument faithfully. Patients must answer all questions before submission, consistent with paper-based administration where all fields must be completed.
 
 ## Assertions
 
@@ -99,7 +99,7 @@ B. The system SHALL display the instrument preamble text explaining the question
 
 C. The system SHALL use a 5-point frequency response scale: Never, Rarely, Sometimes, Often, Always.
 
-D. The system SHALL allow patients to skip individual questions, consistent with paper-based administration.
+D. The system SHALL NOT allow patients to skip individual questions, consistent with paper-based administration.
 
 E. The system SHALL present a review screen allowing patients to verify and modify answers before final submission.
 
@@ -111,7 +111,7 @@ H. The system SHALL record the exact response value (0-4) for each answered ques
 
 K. The system SHALL record the questionnaire version used for each record.
 
-*End* *HHT Quality of Life Questionnaire* | **Hash**: 12efcb9b
+*End* *HHT Quality of Life Questionnaire* | **Hash**: e4980a4b
 ---
 
 # REQ-p01071: HHT Quality of Life User Interface

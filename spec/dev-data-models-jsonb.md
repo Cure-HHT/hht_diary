@@ -247,8 +247,7 @@ type SurveyRecord = {
 type SurveyQuestion = {
   question_id: string;                // Unique question identifier
   question_text: string;              // Full question text (for auditability)
-  response?: string | number | boolean | string[];  // Response value(s)
-  skipped?: boolean;                  // true if user skipped this question
+  response: string | number | boolean | string[];   // Response value (required — all questions must be answered)
 }
 
 type SurveyScore = {
@@ -281,8 +280,7 @@ type SurveyScore = {
       {
         "question_id": "q3_medications",
         "question_text": "Which medications did you use?",
-        "response": ["nasal_spray", "over_counter_pain_relief"],
-        "skipped": false
+        "response": ["nasal_spray", "over_counter_pain_relief"]
       }
     ],
     "score": {
@@ -315,8 +313,7 @@ type SurveyScore = {
 | --- | --- | --- | --- |
 | `question_id` | string | Yes | Unique identifier for this question (e.g., "q1_frequency"). Stable across versions. |
 | `question_text` | string | Yes | Full text of question. Stored for auditability even if question changes later. |
-| `response` | any | No | Answer value. Type depends on question (number, string, boolean, array). Omit if skipped. |
-| `skipped` | boolean | No | Set to `true` if user explicitly skipped this question. |
+| `response` | any | Yes | Answer value. Type depends on question (number, string, boolean, array). Required — all questions must be answered before submission. |
 
 ### SurveyScore Fields
 
@@ -330,8 +327,7 @@ type SurveyScore = {
 
 - Each question must have unique `question_id` within survey
 - `question_text` must be non-empty
-- If `skipped: true`, `response` must be omitted
-- If `skipped: false` or omitted, `response` must be present
+- Every question must have a non-null `response` value (patients cannot skip questions)
 - `score.total` must be non-negative number
 - `score.rubric_version` must match pattern: `^v\d+\.\d+$`
 
