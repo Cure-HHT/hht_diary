@@ -24,12 +24,10 @@
 3. Maria begins answering questions, seeing one question at a time
 4. Maria notices the category header changes as she moves from Physical to Functional questions
 5. Maria sees the progress indicator showing how many questions remain
-6. Maria is unsure about one question and decides to skip it
-7. Maria continues through the Emotional category questions
-8. Maria reaches the review screen showing all her answers
-9. Maria goes back to answer the skipped question
-10. Maria reviews her final answers and taps to submit
-11. The app shows confirmation that the questionnaire is submitted for investigator review
+6. Maria continues through the Emotional category questions
+7. Maria reaches the review screen showing all her answers
+8. Maria reviews her final answers and taps to submit
+9. The app shows confirmation that the questionnaire is submitted for investigator review
 
 ## Expected Outcome
 
@@ -155,7 +153,7 @@ Addresses: JNY-NOSE-HHT-01
 
 ## Rationale
 
-NOSE HHT is a validated patient-reported outcome measure specifically designed for assessing the impact of epistaxis in HHT patients. The three-domain structure (physical, functional, emotional) provides comprehensive assessment of nosebleed burden. The platform implements this standard instrument faithfully while allowing the same flexibility patients would have with paper-based administration (e.g., ability to skip questions).
+NOSE HHT is a validated patient-reported outcome measure specifically designed for assessing the impact of epistaxis in HHT patients. The three-domain structure (physical, functional, emotional) provides comprehensive assessment of nosebleed burden. The platform implements this standard instrument faithfully. Patients must answer all questions before submission, consistent with paper-based administration where all fields must be completed.
 
 ## Assertions
 
@@ -165,7 +163,7 @@ B. The system SHALL display the instrument preamble text explaining the question
 
 C. The system SHALL use a 5-point response scale for all questions with category-specific labels as defined in the validated instrument.
 
-D. The system SHALL allow patients to skip individual questions, consistent with paper-based administration.
+D. The system SHALL NOT allow patients to skip individual questions, consistent with paper-based administration.
 
 E. The system SHALL present a review screen allowing patients to verify and modify answers before final submission.
 
@@ -176,7 +174,7 @@ H. The system SHALL prevent modification of answers after the questionnaire has 
 I. The system SHALL record the exact response value (0-4) for each answered question as well as the displayed and normalized (English) versions of the answers.
 
 
-*End* *NOSE HHT Questionnaire* | **Hash**: 1458c248
+*End* *NOSE HHT Questionnaire* | **Hash**: 23b411c6
 ---
 
 # REQ-p01070: NOSE HHT User Interface
