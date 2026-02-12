@@ -417,6 +417,54 @@ K. The system SHALL support sponsor configuration of additional disconnection-re
 *End* *Patient Disconnection Workflow* | **Hash**: 79bc39eb
 ---
 
+# REQ-p70012: Portal Data Acceptance and Rejection
+
+**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+
+## Rationale
+
+When a patient is disconnected from the portal, the mobile app is instructed to stop syncing (REQ-p70010-F). However, edge cases exist: data may be in transit during disconnection, the mobile app may have queued data collected offline, or network delays may deliver data after the disconnect event. Without explicit portal-side rejection behavior, these scenarios leave clinical data handling undefined.
+
+This requirement defines what the portal server does when it receives sync data from a patient who is not in a sync-eligible status. It complements REQ-p70010 (disconnection workflow) and REQ-p70011 (reconnection workflow) by closing the gap between mobile-side behavior and portal-side enforcement.
+
+**Note on Sponsor Configuration**: The core assertions below define baseline rejection behavior. Sponsors may configure which patient statuses are sync-eligible based on their study protocol.
+
+**Design Decisions**: The following edge cases were evaluated and resolved:
+
+- **Data in transit during disconnection**: The portal rejects at time of receipt when a token is revoked mid-session. Both sender and receiver must have an unambiguous, consistent view of whether data was accepted or rejected.
+- **Queued sync data after disconnect**: Rejected data is not lost — it remains on the mobile device. The portal communicates the token revocation timestamp in its rejection response so the mobile app knows the boundary between pre-disconnect and post-disconnect entries.
+- **Previously accepted data**: All data successfully synced before disconnection is retained unchanged, consistent with ALCOA+ and data immutability principles.
+- **Reconnection recovery**: Upon reconnection, all data from the disconnected period is re-synced. The patient was still enrolled; disconnection was accidental. Data collected during the disconnect period is identifiable by the token revocation and reissue timestamps, enabling review where sponsor-specific rules may not have been enforced.
+
+## Assertions
+
+A. The portal SHALL validate patient linking status before accepting any sync data.
+
+B. The portal SHALL reject sync data from patients not in a sync-eligible status.
+
+C. The portal SHALL NOT store or persist rejected sync data in the clinical database.
+
+D. The portal SHALL log all rejected sync attempts to the audit trail, including patient identifier, timestamp, rejection reason, and data volume.
+
+E. The portal SHALL return an error response that enables the mobile app to detect the rejection and distinguish it from other error types.
+
+F. When a token is revoked during an active sync session, the portal SHALL reject the data and return a clear rejection response so that both sender and receiver have a consistent view of the outcome.
+
+G. The portal rejection response SHALL include the token revocation timestamp to enable the mobile app to distinguish pre-disconnect from post-disconnect data entries.
+
+H. Previously synced data SHALL remain unchanged in the clinical database after patient disconnection.
+
+I. Upon reconnection with a new valid token, the portal SHALL accept all re-synced data from the disconnected period, including entries created while the patient was disconnected.
+
+J. Upon reconnection with a new valid token, the portal SHALL accept metadata from the mobile app regarding which settings which, at the time of reconnection, differed from those settings specified in the Sponsor rules.
+
+
+## Notes about Moble App behavior
+The version of the Questionnaire and Questionnaire GUI is included in the Questionnaire data, regardless of participation in a study. As such, when disconntected data was entered via a different form of a Questionnaire, that will be visible to the Sponsor. 
+
+*End* *Portal Data Acceptance and Rejection* | **Hash**: 2f615ddb
+---
+
 # REQ-p70011: Patient Reconnection Workflow
 
 **Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
