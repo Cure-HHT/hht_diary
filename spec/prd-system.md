@@ -10,15 +10,11 @@
 
 ## Executive Summary
 
-Veritite is a collection of applications and services that enables the deployment
-of a user-centric cross-platform health-related data collection application. Initially
-designed to implement a daily nosebleed diary for Cure HHT as a service to its pa
+Veritite is a collection of applications and services that enables the deployment of a user-centric cross-platform health-related data collection application. Initially designed to implement a daily nosebleed diary for Cure HHT as a service to its patients.
 
-Veritite also supports using this dat in regulated clinical trials and scientific
-studies by implementing best-in-class tamper-proofing for evidence records and
-traceability. Sponsors and investigators access trial data through secure web portals.
-The platform operates on compliant cloud infrastructure designed to ensure
-data integrity, security, auditability, and regulatory acceptance.
+Veritite also supports using this data in regulated clinical trials and scientific studies by implementing best-in-class tamper-proofing for evidence records and traceability. Sponsors and investigators access trial data through secure web portals.
+
+The platform operates on cloud infrastructure designed to ensure data integrity, security, auditability, and regulatory acceptance.
 
 ---
 
@@ -37,9 +33,9 @@ B. The system SHALL support multiple independent pharmaceutical sponsors within 
 C. The system SHALL enable patient data entry via mobile applications.
 D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
 E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
-F. The system SHALL comply with all applicable regulatory requirements for electronic records and data integrity in clinical investigations.
 
-*End* *Clinical Trial Compliant Diary Platform* | **Hash**: 7933530e
+*End* *Clinical Trial Diary Platform* | **Hash**: 0919ad00
+
 ---
 
 # REQ-p01041: Open Source Licensing

@@ -34,7 +34,7 @@
 | REQ-p00040 | Event Sourcing State Protection                                     | prd-security-RLS.md                       | 1694c31b |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                                 | prd-epistaxis-terminology.md              | 36dc9faf |
 | REQ-p00043 | Diary Mobile Application                                            | prd-diary-app.md                          | d5bc3ef8 |
-| REQ-p00044 | Clinical Trial Compliant Diary Platform                             | prd-system.md                             | 7933530e |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform                             | prd-system.md                             | 0919ad00 |
 | REQ-p00045 | Regulatory Compliance Framework                                     | prd-clinical-trials.md                    | c4fa27f7 |
 | REQ-p00046 | Clinical Data Storage System                                        | prd-database.md                           | 75ec9efe |
 | REQ-p00047 | Data Backup and Archival                                            | prd-backup.md                             | 4e9501e4 |
@@ -121,6 +121,7 @@
 | REQ-p70009 | Link New Patient Workflow                                           | prd-portal.md                             | 84d192e7 |
 | REQ-p70010 | Patient Disconnection Workflow                                      | prd-portal.md                             | 79bc39eb |
 | REQ-p70011 | Patient Reconnection Workflow                                       | prd-portal.md                             | c386824f |
+| REQ-p70012 | Portal Data Acceptance and Rejection                                | prd-portal.md                             | 2f615ddb |
 | REQ-p80001 | FDA 21 CFR Part 11 Compliance                                       | regulations/fda/prd-fda-21-cfr-11.md      | 54daf3d2 |
 | REQ-p80002 | 21 CFR Part 11 Compliance                                           | regulations/fda/prd-fda-21-cfr-11.md      | a5d5da23 |
 | REQ-p80003 | FDA Guidance on Electronic Records in Clinical Investigations       | regulations/fda/prd-fda-21-cfr-11.md      | 7330eda3 |
