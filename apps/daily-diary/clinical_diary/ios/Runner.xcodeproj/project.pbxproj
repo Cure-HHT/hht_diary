@@ -708,6 +708,7 @@
 			baseConfigurationReference = D66C33874582643CC4379501 /* uatDebug.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-uat";
@@ -883,6 +884,7 @@
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* qaProfile.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-qa";
@@ -892,6 +894,7 @@
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* qaDebug.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-qa";
@@ -1185,6 +1188,7 @@
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* qaRelease.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-qa";
@@ -1567,6 +1571,7 @@
 			baseConfigurationReference = B4BAC8D3299C8389F0CDE1DA /* uatProfile.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-uat";
@@ -1660,6 +1665,7 @@
 			baseConfigurationReference = 83C5E766033F75292A1E9EB1 /* uatRelease.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-uat";
