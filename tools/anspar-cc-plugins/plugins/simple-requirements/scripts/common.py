@@ -318,7 +318,7 @@ def get_requirements_via_cli() -> Dict[str, Dict[str, Any]]:
     """
     try:
         result = subprocess.run(
-            ['elspais', 'validate', '--json'],
+            ['elspais', 'validate', '--export'],
             capture_output=True,
             text=True,
             cwd=str(_get_repo_root_cached())
