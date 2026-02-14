@@ -94,6 +94,122 @@ G. The system SHALL make artifacts downloadable to authorized personnel.
 *End* *Audit Trail Generation for CI/CD* | **Hash**: c4d7f202
 ---
 
+# REQ-o00078: Change-Appropriate CI Validation
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
+
+## Rationale
+
+CI pipelines must balance thoroughness with efficiency. Running every check on every change wastes compute and developer time, while running too few checks risks letting defects through. Change-appropriate validation detects which areas of the codebase were modified and selectively runs only relevant validation jobs, with exceptions for security scanning (which must always run) and workflow changes (which require full validation). A consolidated summary ensures clear pass/fail determination before merge.
+
+## Assertions
+
+A. The CI pipeline SHALL detect which areas of the codebase changed (spec, code, database, tooling, workflows) before executing validation jobs.
+B. The CI pipeline SHALL only execute validation jobs relevant to the detected changes, to avoid unnecessary computation.
+C. The CI pipeline SHALL always execute security scanning regardless of which files changed.
+D. The CI pipeline SHALL execute all validation jobs when workflow definition files themselves change.
+E. The CI pipeline SHALL complete all validation jobs and produce a consolidated pass/fail summary before merge is permitted.
+
+*End* *Change-Appropriate CI Validation* | **Hash**: ab0977df
+---
+
+# REQ-o00079: Commit and PR Traceability Enforcement
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
+
+## Rationale
+
+Squash-merge workflows use the PR title as the final commit message on protected branches. Validating traceability references (Linear ticket and requirement IDs) on every push to a PR — not just at PR creation — ensures developers receive early feedback while references are still fixable. Post-merge detective controls catch anything that bypasses branch protection (e.g., admin overrides) by creating compliance tickets for remediation. Bot commit scope validation prevents automated processes from making unauthorized changes.
+
+## Assertions
+
+A. The CI pipeline SHALL validate that pull request titles contain a Linear ticket reference in the format `[CUR-XXX]`.
+B. The CI pipeline SHALL validate on every push to a pull request (including the initial push) that the required traceability references are present, providing feedback before merge.
+C. The CI pipeline SHALL create a compliance ticket when a commit to a protected branch is found to be missing required references, as a safety net for cases that bypass branch protection.
+D. Each automated process that commits directly to protected branches SHALL have a documented and limited scope of files it is authorized to modify, and the CI pipeline SHALL detect and alert when a bot commit modifies files outside its authorized scope.
+E. The CI pipeline SHALL block merge when PR title validation fails.
+F. The CI pipeline SHALL provide clear error messages indicating which references are missing and the required format.
+
+*End* *Commit and PR Traceability Enforcement* | **Hash**: cc298537
+---
+
+# REQ-o00080: Secret and Vulnerability Scanning
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060, p01018
+
+## Rationale
+
+Accidentally committed secrets (API keys, tokens, passwords) and vulnerable dependencies pose immediate security risks to an FDA-regulated platform handling clinical data. Defense-in-depth scanning at multiple layers — git history for secrets, dependency manifests for known vulnerabilities, and infrastructure-as-code for misconfigurations — reduces the risk of security incidents. Secret detection must block merge because exposed credentials require immediate remediation, while vulnerability scan results feed into the GitHub Security tab for ongoing tracking.
+
+## Assertions
+
+A. The CI pipeline SHALL scan for accidentally committed secrets on every push to a pull request (including the initial push), examining the repository at its current state.
+B. The CI pipeline SHALL scan project dependencies for known vulnerabilities.
+C. The CI pipeline SHALL scan infrastructure-as-code configurations (Dockerfiles, Terraform, Kubernetes) for misconfigurations.
+D. The CI pipeline SHALL upload vulnerability scan results to GitHub Security for tracking and remediation.
+E. Secret detection failures SHALL block merge to protected branches.
+
+*End* *Secret and Vulnerability Scanning* | **Hash**: 90e58ccc
+---
+
+# REQ-o00081: Code Quality and Static Analysis
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
+
+## Rationale
+
+Static analysis and formatting enforcement catch defects early — before code review and testing — reducing the cost of finding and fixing issues. Flutter/Dart analysis detects type errors, null safety violations, and deprecated API usage. Formatting enforcement ensures consistent code style across contributors. SQL migration linting prevents dangerous database operations (table locks, missing indexes, unsafe ALTER TABLE) that could cause production downtime. Blocking merge on analysis failures ensures that only code meeting quality standards reaches protected branches.
+
+## Assertions
+
+A. The CI pipeline SHALL run static analysis (`flutter analyze` / `dart analyze`) on all changed Dart and Flutter code.
+B. The CI pipeline SHALL validate code formatting compliance (`dart format`) on changed code.
+C. The CI pipeline SHALL lint changed SQL migration files for dangerous patterns (table locks, missing indexes, unsafe ALTER TABLE) using a SQL linter.
+D. Static analysis failures SHALL block merge to protected branches.
+E. Code formatting violations SHALL block merge to protected branches.
+
+*End* *Code Quality and Static Analysis* | **Hash**: 0b222d9e
+---
+
+# REQ-o00082: Automated Test Execution
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
+
+## Rationale
+
+Automated testing provides confidence that code changes do not introduce regressions. Unit tests scoped to changed packages provide fast feedback on isolated functionality. Integration tests must run more broadly because they depend on shared infrastructure (database schema, configuration, service contracts) where changes in one component can break another. Coverage measurement and threshold enforcement ensure that test quality keeps pace with codebase growth. Artifact retention of coverage reports supports audit trail requirements for test evidence.
+
+## Assertions
+
+A. The CI pipeline SHALL run unit tests for packages affected by the changes in the pull request.
+B. The CI pipeline SHALL run integration tests when any component they depend on has changed, including shared configuration and database schema.
+C. The CI pipeline SHALL measure and report test coverage for all executed test suites.
+D. The CI pipeline SHALL upload coverage reports as artifacts with a minimum retention of 30 days.
+E. The CI pipeline SHALL enforce a minimum test coverage threshold for components that define one.
+F. Unit and integration test failures SHALL block merge to protected branches.
+
+*End* *Automated Test Execution* | **Hash**: 63cc8fe6
+---
+
+# REQ-o00083: QA Promotion Gate
+
+**Level**: Ops | **Status**: Draft | **Implements**: p80060
+
+## Rationale
+
+The QA promotion gate provides a higher level of assurance than per-component CI by running the full test suite in an environment representative of the deployment target. Unlike per-PR tests that scope to changed packages, the QA gate runs all tests regardless of what changed, detecting cross-component side effects and integration failures that targeted testing might miss. Containerized infrastructure matching production configuration reduces environment-specific test failures. Manual triggering supports on-demand validation for release readiness checks outside the normal PR workflow.
+
+## Assertions
+
+A. The QA promotion gate SHALL execute the full test suite (unit, integration, and coverage) in an environment representative of the QA deployment target.
+B. The QA environment SHALL use containerized infrastructure matching production configuration.
+C. The QA promotion gate SHALL run all tests regardless of which files changed, to detect cross-component side effects.
+D. The QA promotion gate SHALL post a brief summary of test results on the associated pull request, including pass/fail status per component and coverage percentage.
+E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch` for on-demand validation outside the pull request lifecycle.
+
+*End* *QA Promotion Gate* | **Hash**: dd06f8de
+---
+
 ## CI/CD Pipeline Architecture
 
 ### Pipeline Stages

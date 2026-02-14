@@ -3,6 +3,9 @@
 #   REQ-d00031: Automated QA Testing
 #   REQ-d00033: FDA Validation Documentation
 #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
+#   REQ-o00083: QA Promotion Gate (qa-tests job)
+#   REQ-o00080: Secret and Vulnerability Scanning (security-scan job)
+#   REQ-o00081: Code Quality and Static Analysis (flutter-dart-security, sql-linting jobs)
 #
 # Clinical Diary QA Automation Workflow
 # Triggers on pull requests to run automated tests and security scans in the qa container

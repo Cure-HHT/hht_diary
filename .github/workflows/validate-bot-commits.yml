@@ -1,6 +1,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00013: Requirements Format Validation
 #   REQ-p00020: System Validation and Traceability
+#   REQ-o00079: Commit and PR Traceability Enforcement (assertion D: bot commit scope validation)
 
 name: Validate Bot Commits
 
