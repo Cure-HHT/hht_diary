@@ -154,23 +154,23 @@ if [ "$START_DB" = true ] || [ "$RUN_INTEGRATION" = true ]; then
 
     # Always apply schema to ensure it's up to date
     # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
+    # Use docker exec since psql may not be installed on the host
     echo ""
     echo "Applying database schema..."
-    DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
-    if [ -n "$DB_PASSWORD" ]; then
-        if (cd "$DATABASE_DIR" && PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal -f init.sql); then
+    if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+        if docker exec -w /database sponsor-portal-postgres psql -U postgres -d sponsor_portal -f init.sql; then
             echo "Schema applied successfully"
         else
             echo "Warning: Schema application had errors (may be OK if tables exist)"
         fi
         # Apply test fixtures
-        if (cd "$DATABASE_DIR" && PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal -f init_test.sql); then
+        if docker exec -w /database sponsor-portal-postgres psql -U postgres -d sponsor_portal -f init_test.sql; then
             echo "Test fixtures applied successfully"
         else
             echo "Warning: Test fixtures had errors"
         fi
     else
-        echo "Warning: Could not get DB password from Doppler, skipping schema update"
+        echo "Warning: PostgreSQL container not ready, skipping schema update"
     fi
 fi
 
@@ -269,14 +269,17 @@ if [ "$RUN_INTEGRATION" = true ]; then
         fi
     fi
 
-    # Set environment for integration tests
+    # Set environment for local integration tests
+    # Override Doppler's remote DB vars to point at the local container
+    export DB_HOST="localhost"
+    export DB_PORT="5432"
+    export DB_NAME="sponsor_portal"
+    export DB_USER="postgres"
     export DB_SSL="false"
 
-    # Export DB password for tests (may have been set earlier as shell var, need to export)
-    if [ -z "$DB_PASSWORD" ]; then
-        DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
-    fi
-    export DB_PASSWORD
+    # Always use local DB password (Doppler's DB_PASSWORD is for the remote DB)
+    LOCAL_PW=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+    export DB_PASSWORD="${LOCAL_PW:-${DB_PASSWORD}}"
 
     if [ "$USE_DEV_MODE" = true ]; then
         # Use GCP Identity Platform (--dev mode)
