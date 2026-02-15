@@ -623,7 +623,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -691,7 +691,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -883,9 +883,12 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* qaProfile.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Profile-qa";
 		};
@@ -893,9 +896,12 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* qaDebug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Debug-qa";
 		};
@@ -1037,6 +1043,7 @@
 			baseConfigurationReference = 07F36771C0779C4807FBC617 /* devProfile.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-dev";
@@ -1187,9 +1194,12 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* qaRelease.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Release-qa";
 		};
@@ -1325,7 +1335,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-qa";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1656,6 +1666,7 @@
 			baseConfigurationReference = 86C80EC5647B2B6F73CC2481 /* devRelease.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-dev";
@@ -1901,6 +1912,7 @@
 			baseConfigurationReference = 30A692948C99AE488B5FD04F /* devDebug.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T4DGX8FF8F;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-dev";

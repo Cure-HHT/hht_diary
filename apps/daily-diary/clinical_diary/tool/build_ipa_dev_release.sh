@@ -13,4 +13,4 @@ echo "Building Clinical Diary for iOS DEV release flavor..."
 flutter build ipa --flavor dev --dart-define=APP_FLAVOR=dev --release
 
 echo ""
-echo "Build complete! Open ios/Runner.xcworkspace in Xcode to run on device."
+echo "Build complete! Drop into Transporter to distribute."

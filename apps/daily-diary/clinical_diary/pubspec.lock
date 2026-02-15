@@ -312,6 +312,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.1"
+  eq:
+    dependency: "direct main"
+    description:
+      path: "../../common-flutter/eq"
+      relative: true
+    source: path
+    version: "0.0.1"
   equatable:
     dependency: transitive
     description:
@@ -1224,6 +1231,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
+  trial_data_types:
+    dependency: "direct main"
+    description:
+      path: "../../common-dart/trial_data_types"
+      relative: true
+    source: path
+    version: "0.0.1"
   tuple:
     dependency: transitive
     description:

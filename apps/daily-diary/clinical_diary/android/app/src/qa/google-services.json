@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:681337116402:android:bf70f4aaf5ebdddbf5626b",
         "android_client_info": {
-          "package_name": "org.anspar.curehht.app-qa"
+          "package_name": "org.anspar.curehht.app.qa"
         }
       },
       "oauth_client": [
