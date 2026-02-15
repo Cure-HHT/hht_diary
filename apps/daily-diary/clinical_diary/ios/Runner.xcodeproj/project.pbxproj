@@ -289,8 +289,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
+				40519090EFF7454C82811130 /* Firebase Setup */,
 				5AE8C2A4256860B3BC46AB2A /* [CP] Check Pods Manifest.lock */,
-				C92988B86DC7670C809DDFE5 /* Firebase Setup */,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
@@ -402,6 +402,25 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
+		40519090EFF7454C82811130 /* Firebase Setup */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Firebase Setup";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Runner/GoogleService-Info.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CONFIGURATION\" == \"Debug-dev\" ] || [ \"$CONFIGURATION\" == \"Release-dev\" ]; then\n  cp Runner/dev/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-qa\" ] || [ \"$CONFIGURATION\" == \"Release-qa\" ]; then\n  cp Runner/qa/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-uat\" ] || [ \"$CONFIGURATION\" == \"Release-uat\" ]; then\n  cp Runner/uat/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-prod\" ] || [ \"$CONFIGURATION\" == \"Release-prod\" ]; then\n  cp Runner/prod/GoogleService-Info.plist Runner/GoogleService-Info.plist\nfi\n\n";
+		};
 		54B6DA686376D224F92E8111 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -478,25 +497,6 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
-		C92988B86DC7670C809DDFE5 /* Firebase Setup */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Firebase Setup";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Runner/GoogleService-Info.plist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if [ \"$CONFIGURATION\" == \"Debug-dev\" ] || [ \"$CONFIGURATION\" == \"Release-dev\" ]; then\n  cp Runner/dev/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-qa\" ] || [ \"$CONFIGURATION\" == \"Release-qa\" ]; then\n  cp Runner/qa/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-uat\" ] || [ \"$CONFIGURATION\" == \"Release-uat\" ]; then\n  cp Runner/uat/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-prod\" ] || [ \"$CONFIGURATION\" == \"Release-prod\" ]; then\n  cp Runner/prod/GoogleService-Info.plist Runner/GoogleService-Info.plist\nfi\n\n";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -551,7 +551,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C6EB3D89D5147FC5DE1829C1 /* prodProfile.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-prod";
@@ -623,7 +622,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -691,7 +690,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -707,8 +706,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D66C33874582643CC4379501 /* uatDebug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-uat";
@@ -869,7 +866,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.dev;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -883,12 +880,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* qaProfile.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Profile-qa";
 		};
@@ -896,12 +888,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* qaDebug.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Debug-qa";
 		};
@@ -909,7 +896,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2FED7F1DE82C4546DEF83B74 /* prodRelease.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-prod";
@@ -980,7 +966,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1042,8 +1028,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 07F36771C0779C4807FBC617 /* devProfile.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-dev";
@@ -1108,7 +1092,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.dev;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -1194,12 +1178,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* qaRelease.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Release-qa";
 		};
@@ -1335,7 +1314,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.qa";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.qa;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1412,7 +1391,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.dev;
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1545,7 +1524,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1568,7 +1547,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app.dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -1580,8 +1559,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B4BAC8D3299C8389F0CDE1DA /* uatProfile.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-uat";
@@ -1665,8 +1642,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 86C80EC5647B2B6F73CC2481 /* devRelease.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-dev";
@@ -1675,8 +1650,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 83C5E766033F75292A1E9EB1 /* uatRelease.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = org.anspar.curehht.app.uat;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-uat";
@@ -1832,7 +1805,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 54AFEC22D932E96AE943438D /* prodDebug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-prod";
@@ -1911,8 +1883,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 30A692948C99AE488B5FD04F /* devDebug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = T4DGX8FF8F;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.anspar.curehht.app-dev";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-dev";
