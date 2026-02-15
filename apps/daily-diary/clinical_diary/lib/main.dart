@@ -4,6 +4,8 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00006: Mobile App Build and Release Process
 //   REQ-p00008: Single App Architecture
+//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 
 import 'dart:async';
 
@@ -19,7 +21,9 @@ import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
@@ -247,13 +251,48 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   final AuthService _authService = AuthService();
+  final TaskService _taskService = TaskService();
   late final NosebleedService _nosebleedService;
+  MobileNotificationService? _notificationService;
 
   @override
   void initState() {
     super.initState();
     _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
     _performAutoImport();
+    _initializeNotifications();
+  }
+
+  /// Initialize FCM notification service and task loading.
+  ///
+  /// REQ-CAL-p00081: Task system initialization
+  /// REQ-CAL-p00023-D: Push notification receiving
+  Future<void> _initializeNotifications() async {
+    // Load persisted tasks from storage
+    await _taskService.loadTasks();
+
+    // Initialize FCM
+    _notificationService = MobileNotificationService(
+      onDataMessage: _taskService.handleFcmMessage,
+      onTokenRefresh: (token) {
+        debugPrint('[Main] FCM token available for server registration');
+        // TODO: Send token to portal server for device targeting
+      },
+    );
+
+    try {
+      await _notificationService!.initialize();
+      debugPrint('[Main] Notification service initialized');
+    } catch (e) {
+      debugPrint('[Main] Notification service init failed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationService?.dispose();
+    _taskService.dispose();
+    super.dispose();
   }
 
   /// Auto-import data from file if IMPORT_FILE was specified via dart-define.
@@ -306,6 +345,7 @@ class _AppRootState extends State<AppRoot> {
         nosebleedService: _nosebleedService,
         enrollmentService: _enrollmentService,
         authService: _authService,
+        taskService: _taskService,
         onLocaleChanged: widget.onLocaleChanged,
         onThemeModeChanged: widget.onThemeModeChanged,
         onLargerTextChanged: widget.onLargerTextChanged,

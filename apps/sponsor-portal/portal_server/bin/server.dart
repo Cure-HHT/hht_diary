@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Main entry point for the portal server
 // Runs a shelf HTTP server on Cloud Run
@@ -37,6 +38,9 @@ void main(List<String> args) async {
     'EMAIL_SENDER',
     'EMAIL_SENDER_NAME',
     'EMAIL_CONSOLE_MODE',
+    'FCM_PROJECT_ID',
+    'FCM_ENABLED',
+    'FCM_CONSOLE_MODE',
     'IDENTITY_PLATFORM_PROJECT_ID',
     'GOOGLE_CLOUD_PROJECT',
     'K_SERVICE',
@@ -70,6 +74,20 @@ void main(List<String> args) async {
     log.info('Email service ready (sender: ${emailConfig.senderEmail})');
   } else {
     log.warning('Email service not configured - emails will not be sent');
+  }
+
+  // Initialize notification service (for FCM push notifications)
+  log.info('Initializing notification service...');
+  final notificationConfig = NotificationConfig.fromEnvironment();
+  await NotificationService.instance.initialize(notificationConfig);
+  if (NotificationService.instance.isReady) {
+    log.info(
+      'Notification service ready (project: ${notificationConfig.projectId})',
+    );
+  } else {
+    log.warning(
+      'Notification service not configured - push notifications will not be sent',
+    );
   }
 
   // Get port from environment (Cloud Run sets PORT)

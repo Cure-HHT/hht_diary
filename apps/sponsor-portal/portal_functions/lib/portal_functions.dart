@@ -33,3 +33,7 @@ export 'src/sites_sync.dart';
 
 // Patient Linking
 export 'src/patient_linking.dart';
+
+// Questionnaire Management & Notifications
+export 'src/notification_service.dart';
+export 'src/questionnaire.dart';
