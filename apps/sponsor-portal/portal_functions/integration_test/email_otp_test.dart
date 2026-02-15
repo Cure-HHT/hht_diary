@@ -17,11 +17,11 @@ import 'package:test/test.dart';
 
 void main() {
   // Test user data
-  const testUserId = '99992000-0000-0000-0000-000000000001';
+  const testUserId = '99995000-0000-0000-0000-000000000001';
   const testUserEmail = 'otp-test@email-otp-test.example.com';
   const testUserFirebaseUid = 'firebase-otp-test-uid-12345';
 
-  const testInactiveUserId = '99992000-0000-0000-0000-000000000002';
+  const testInactiveUserId = '99995000-0000-0000-0000-000000000002';
   const testInactiveEmail = 'inactive@email-otp-test.example.com';
   const testInactiveFirebaseUid = 'firebase-inactive-uid-12345';
 
