@@ -477,7 +477,7 @@ if [ -n "$TEST_DIRS" ]; then
         echo -e "${BLUE}Running tests for: $app_dir${NC}"
         echo ""
 
-        if ! "$TEST_SCRIPT"; then
+        if ! "$TEST_SCRIPT" -u; then
             VALIDATION_FAILED=true
             echo ""
             echo -e "${RED}Tests failed in $app_dir${NC}"
