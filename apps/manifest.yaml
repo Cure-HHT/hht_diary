@@ -1,0 +1,419 @@
+# App Manifest — hht_diary
+#
+# Describes every Dart/Flutter project under apps/ so that CI, pre-push hooks,
+# and dev tooling can discover and run a uniform set of checks without
+# hard-coding paths in each workflow.
+#
+# Usage:
+#   A generic CI workflow reads this file and, for each entry whose
+#   `ci.trigger_paths` overlap with the changed files, runs:
+#     1. pub get  (resolving local path deps first via `depends_on`)
+#     2. format   (dart format --set-exit-if-changed .)
+#     3. analyze  (dart analyze / flutter analyze, per `sdk_type`)
+#     4. test     (unit tests)
+#     5. integration_test (if enabled, with `services`)
+#     6. coverage (if enabled, with threshold enforcement)
+#
+# Schema version lets tooling evolve without breaking older consumers.
+schema_version: 1
+
+# ---------------------------------------------------------------------------
+# Pinned tool versions — single source of truth is .github/versions.env
+# CI should `source .github/versions.env` and use these as defaults.
+# ---------------------------------------------------------------------------
+defaults:
+  dart_sdk: "3.10.7"
+  flutter_sdk: "3.38.7"
+  flutter_channel: stable
+  versions_env: .github/versions.env
+
+# ---------------------------------------------------------------------------
+# apps — one entry per pubspec.yaml
+# ---------------------------------------------------------------------------
+apps:
+
+  # =========================================================================
+  # Common Dart Libraries
+  # =========================================================================
+
+  - name: trial_data_types
+    path: apps/common-dart/trial_data_types
+    sdk_type: dart                 # dart | flutter
+    dart_sdk: "^3.10.1"
+    version: 0.0.1
+
+    depends_on: []                 # no local path dependencies
+
+    ci:
+      trigger_paths:
+        - apps/common-dart/trial_data_types/**
+      format: true
+      analyze:
+        tool: dart                 # dart analyze --fatal-infos
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart               # dart test
+        test_script: tool/test.sh
+        concurrency: 10
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: append_only_datastore
+    path: apps/common-dart/append_only_datastore
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    flutter_sdk: ">=3.38.7"
+    version: 0.0.1
+
+    depends_on: []
+
+    ci:
+      trigger_paths:
+        - apps/common-dart/append_only_datastore/**
+      format: true
+      analyze:
+        tool: flutter              # flutter analyze --fatal-infos
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: flutter             # flutter test
+        test_script: tool/test.sh
+        concurrency: 10
+      coverage:
+        enabled: true
+        threshold: 75              # from tool/test.sh MIN_COVERAGE
+        codecov_flag: append-only-datastore
+      services: []
+      analysis_options: true
+
+  # =========================================================================
+  # EDC Integration
+  # =========================================================================
+
+  - name: rave_integration
+    path: apps/edc/rave-integration
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on: []
+
+    ci:
+      trigger_paths:
+        - apps/edc/rave-integration/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  # =========================================================================
+  # Daily Diary
+  # =========================================================================
+
+  - name: clinical_diary
+    path: apps/daily-diary/clinical_diary
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 0.8.11
+
+    depends_on:
+      - append_only_datastore      # path: ../../common-dart/append_only_datastore
+
+    platforms:
+      - android
+      - ios
+      - web
+      - linux
+      - macos
+      - windows
+
+    build_runner: true              # widgetbook code generation
+
+    ci:
+      trigger_paths:
+        - apps/daily-diary/clinical_diary/**
+        - apps/common-dart/append_only_datastore/**   # rebuild when dep changes
+      format: true
+      analyze:
+        tool: flutter
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: flutter
+        test_script: tool/test.sh
+        concurrency: 10
+        integration_device: linux   # desktop integration tests via xvfb
+      coverage:
+        enabled: true
+        threshold: 75
+        codecov_flag: clinical_diary
+        filter_generated:
+          - "**/*.g.dart"
+          - "**/*.freezed.dart"
+      services:
+        - type: firebase_auth_emulator
+          port: 9099
+          project: demo-clinical-diary
+        - type: linux_desktop_deps
+          packages:
+            - libgtk-3-dev
+            - libx11-dev
+            - pkg-config
+            - cmake
+            - ninja-build
+            - libblkid-dev
+            - liblzma-dev
+            - libsecret-1-dev
+            - gnome-keyring
+            - dbus-x11
+            - xvfb
+      analysis_options: true
+      auto_version_bump: true       # pre-push bumps patch on source changes
+
+  - name: diary_functions
+    path: apps/daily-diary/diary_functions
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on:
+      - trial_data_types            # path: ../../common-dart/trial_data_types
+
+    ci:
+      trigger_paths:
+        - apps/daily-diary/diary_functions/**
+        - apps/common-dart/trial_data_types/**
+        - database/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: true
+        threshold: null             # no enforced threshold yet
+        codecov_flag: diary-functions
+      services:
+        - type: postgres
+          image: postgres:17-alpine
+          port: 5432
+          db_name: sponsor_portal
+          schema_file: database/init.sql
+      env:
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: sponsor_portal
+        DB_USER: postgres
+        DB_SSL: "false"
+        JWT_SECRET: test-jwt-secret-for-ci
+      analysis_options: false
+
+  - name: diary_server
+    path: apps/daily-diary/diary_server
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on:
+      - diary_functions             # path: ../diary_functions
+      # transitive: trial_data_types
+
+    ci:
+      trigger_paths:
+        - apps/daily-diary/diary_server/**
+        - apps/daily-diary/diary_functions/**
+        - database/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: true
+        threshold: null
+        codecov_flag: diary-server
+      services:
+        - type: postgres
+          image: postgres:17-alpine
+          port: 5432
+          db_name: sponsor_portal
+          schema_file: database/init.sql
+      env:
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: sponsor_portal
+        DB_USER: postgres
+        DB_SSL: "false"
+        JWT_SECRET: test-jwt-secret-for-ci
+      analysis_options: false
+
+  # =========================================================================
+  # Sponsor Portal
+  # =========================================================================
+
+  - name: portal-ui
+    path: apps/sponsor-portal/portal-ui
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 1.0.0+1
+
+    depends_on: []
+
+    platforms:
+      - web
+
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal-ui/**
+        - database/**
+      format: true
+      analyze:
+        tool: flutter
+        fatal_infos: false          # uses `flutter analyze` without --fatal-infos in current CI
+      test:
+        unit: true
+        integration: false          # portal-ui integration tests run with services in portal CI
+        runner: flutter
+        test_script: tool/test.sh
+      coverage:
+        enabled: true
+        threshold: null
+        codecov_flag: sponsor-portal
+      services: []
+      analysis_options: true
+
+  - name: portal_functions
+    path: apps/sponsor-portal/portal_functions
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on:
+      - rave_integration            # path: ../../edc/rave-integration
+
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal_functions/**
+        - apps/edc/rave-integration/**
+        - database/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: true
+        threshold: 60               # from tool/test.sh MIN_COVERAGE
+        codecov_flag: sponsor-portal
+      services:
+        - type: postgres
+          image: postgres:17-alpine
+          port: 5432
+          db_name: sponsor_portal
+          schema_file: database/init.sql
+          test_fixtures: database/init_test.sql
+        - type: firebase_auth_emulator
+          port: 9099
+          project: demo-sponsor-portal
+      env:
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: sponsor_portal
+        DB_USER: postgres
+        DB_SSL: "false"
+        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
+        GCP_PROJECT_ID: demo-sponsor-portal
+      analysis_options: false
+
+  - name: portal_server
+    path: apps/sponsor-portal/portal_server
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on:
+      - portal_functions            # path: ../portal_functions
+      # transitive: rave_integration
+
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal_server/**
+        - apps/sponsor-portal/portal_functions/**
+        - database/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: true
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: true
+        threshold: null
+        codecov_flag: sponsor-portal
+      services:
+        - type: postgres
+          image: postgres:17-alpine
+          port: 5432
+          db_name: sponsor_portal
+          schema_file: database/init.sql
+          test_fixtures: database/init_test.sql
+        - type: firebase_auth_emulator
+          port: 9099
+          project: demo-sponsor-portal
+      env:
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: sponsor_portal
+        DB_USER: postgres
+        DB_SSL: "false"
+        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
+        GCP_PROJECT_ID: demo-sponsor-portal
+      analysis_options: false
+
+# ---------------------------------------------------------------------------
+# Dependency graph (for topological build order)
+# ---------------------------------------------------------------------------
+# Leaf packages (no local deps) — can build in parallel:
+#   trial_data_types, append_only_datastore, rave_integration, portal-ui
+#
+# Layer 1 (depends on leaves):
+#   diary_functions   -> trial_data_types
+#   clinical_diary    -> append_only_datastore
+#   portal_functions  -> rave_integration
+#
+# Layer 2 (depends on layer 1):
+#   diary_server      -> diary_functions
+#   portal_server     -> portal_functions
+#
+# A CI matrix job can topologically sort `depends_on` to produce this order.
+# ---------------------------------------------------------------------------
