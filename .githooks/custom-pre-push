@@ -20,7 +20,7 @@ echo -e "${BLUE}Running INDEX.md validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! elspais index validate 2>&1; then
+    if ! elspais index --mode core validate 2>&1; then
         VALIDATION_FAILED=true
         echo -e "${RED}INDEX.md validation failed!${NC}"
     else
