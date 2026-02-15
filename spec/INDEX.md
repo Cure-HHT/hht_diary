@@ -198,6 +198,12 @@
 | REQ-o00075 | Third-Party Security Assessment                   | ops-system.md                          | 345140ac |
 | REQ-o00076 | Sponsor Repository Provisioning                   | ops-sponsor-repos.md                   | 831fa654 |
 | REQ-o00077 | Sponsor CI/CD Integration                         | ops-sponsor-repos.md                   | 7104b083 |
+| REQ-o00078 | Change-Appropriate CI Validation                  | ops-cicd.md                            | ab0977df |
+| REQ-o00079 | Commit and PR Traceability Enforcement            | ops-cicd.md                            | cc298537 |
+| REQ-o00080 | Secret and Vulnerability Scanning                 | ops-cicd.md                            | 90e58ccc |
+| REQ-o00081 | Code Quality and Static Analysis                  | ops-cicd.md                            | 0b222d9e |
+| REQ-o00082 | Automated Test Execution                          | ops-cicd.md                            | 63cc8fe6 |
+| REQ-o00083 | QA Promotion Gate                                 | ops-cicd.md                            | dd06f8de |
 | REQ-o80010 | Training and Personnel Qualification              | regulations/fda/ops-fda-part11-SOPs.md | 53e1ba24 |
 | REQ-o80020 | Record Retention and Archival                     | regulations/fda/ops-fda-part11-SOPs.md | 9fcd1947 |
 | REQ-o80030 | Standard Operating Procedures                     | regulations/fda/ops-fda-part11-SOPs.md | 50d11093 |

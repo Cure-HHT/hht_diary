@@ -1,3 +1,7 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00081: Code Quality and Static Analysis (analyze job)
+#   REQ-o00082: Automated Test Execution (test-clinical-diary job)
+
 name: Clinical Diary CI
 
 on:

@@ -3,6 +3,10 @@
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
 #   REQ-o00017: Version Control Workflow (commit message validation)
+#   REQ-o00078: Change-Appropriate CI Validation (changes, summary jobs)
+#   REQ-o00079: Commit and PR Traceability Enforcement (validate-pr-metadata, validate-commit-messages, validate-merge-commit)
+#   REQ-o00080: Secret and Vulnerability Scanning (security-check)
+#   REQ-o00081: Code Quality and Static Analysis (validate-code-headers, validate-migrations)
 
 name: PR Validation - Requirements & Traceability
 
@@ -26,6 +30,7 @@ permissions:
 
 jobs:
   # Detect what changed to skip irrelevant tests
+  # Implements: REQ-o00078-A (detect changed areas)
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
@@ -55,6 +60,7 @@ jobs:
 
   # Validate PR title and description have required references
   # This ensures squash merge commits will have proper traceability
+  # Implements: REQ-o00079-A (PR title CUR-XXX), REQ-o00079-E (block merge on failure), REQ-o00079-F (clear error messages)
   validate-pr-metadata:
     name: Validate PR Title (CUR)
     runs-on: ubuntu-latest
@@ -128,6 +134,7 @@ jobs:
           fi
 
   # Validate commit messages have required CUR-XXX and REQ-XXX references
+  # Implements: REQ-o00079-B (push-level traceability check)
   validate-commit-messages:
     name: Validate Commit Messages (CUR + REQ)
     runs-on: ubuntu-latest
@@ -240,6 +247,7 @@ jobs:
 
   # Post-merge validation: Check squash merge commits on main/develop
   # Creates a Linear ticket if the merge commit is missing required references
+  # Implements: REQ-o00079-C (post-merge safety net)
   validate-merge-commit:
     name: Validate Merge Commit (Post-Merge)
     runs-on: ubuntu-latest
@@ -517,6 +525,7 @@ jobs:
               body: comment
             });
 
+  # Implements: REQ-o00081-A (static analysis headers)
   validate-code-headers:
     name: Validate Code Implementation Headers
     needs: changes
@@ -621,6 +630,7 @@ jobs:
             echo "✅ All implementation files have requirement headers"
           fi
 
+  # Implements: REQ-o00081-C (SQL migration linting)
   validate-migrations:
     name: Validate Database Migration Headers
     needs: changes
@@ -663,6 +673,7 @@ jobs:
             echo "✅ All migration files have proper headers"
           fi
 
+  # Implements: REQ-o00080-A (secret scanning on every push), REQ-o00080-E (block merge on detection)
   security-check:
     name: Security - Check for Secrets
     needs: changes
@@ -945,6 +956,7 @@ jobs:
               }
             }
 
+  # Implements: REQ-o00078-E (consolidated pass/fail summary)
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest

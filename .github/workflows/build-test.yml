@@ -1,3 +1,7 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00052: CI/CD Pipeline for Requirement Traceability (test-requirements-tools job)
+#   REQ-o00081: Code Quality and Static Analysis (validate-documentation job)
+
 name: Build and Test
 
 on:

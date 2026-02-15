@@ -1,6 +1,8 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00005: Sponsor Configuration Detection Implementation
 #   REQ-p00008: User Account Management
+#   REQ-o00081: Code Quality and Static Analysis (analyze job)
+#   REQ-o00082: Automated Test Execution (unit-tests, integration-tests, coverage jobs)
 #
 # CI workflow for diary_server and diary_functions
 # Runs unit tests, integration tests (with PostgreSQL), and static analysis
