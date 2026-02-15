@@ -1,0 +1,249 @@
+# Custom pre-push extensions for hht_diary
+#
+# This file is sourced by the anspar-wf generated pre-push hook.
+# It handles features that anspar-wf doesn't natively support yet:
+#   - Nested Dart project discovery (find all pubspec.yaml under apps/)
+#   - Per-app test runner (tool/test.sh discovery)
+#   - Clinical diary version bump
+#   - INDEX.md validation (elspais index validate)
+#
+# Variables available from the generated hook:
+#   $REPO_ROOT, $VALIDATION_FAILED, $SHOULD_BLOCK
+#   $RED, $YELLOW, $GREEN, $BLUE, $NC (color codes)
+#   $REMOTE_BRANCH (upstream tracking branch, may be empty)
+
+# =====================================================
+# INDEX.md Validation
+# =====================================================
+
+echo -e "${BLUE}Running INDEX.md validation...${NC}"
+echo ""
+
+if command -v elspais &> /dev/null; then
+    if ! elspais index validate 2>&1; then
+        VALIDATION_FAILED=true
+        echo -e "${RED}INDEX.md validation failed!${NC}"
+    else
+        echo -e "${GREEN}INDEX.md validation passed!${NC}"
+    fi
+else
+    echo -e "${YELLOW}WARNING: elspais not installed - skipping INDEX.md validation${NC}"
+fi
+echo ""
+
+# =====================================================
+# Dart: Unset GIT_DIR/GIT_WORK_TREE
+# =====================================================
+# Git hooks set these env vars, which causes Flutter to read version
+# info from the project repo instead of the Flutter SDK repo,
+# resulting in "0.0.0-unknown".
+
+unset GIT_DIR GIT_WORK_TREE
+
+# =====================================================
+# Dart: Dependency Resolution (pub get)
+# =====================================================
+
+echo -e "${BLUE}Resolving Dart dependencies...${NC}"
+echo ""
+
+if command -v dart &> /dev/null; then
+    while IFS= read -r pubspec; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+
+            echo "  Getting dependencies for $APP_NAME..."
+
+            if [ -f "$APP_DIR/lib/main.dart" ] || grep -q "flutter:" "$pubspec" 2>/dev/null; then
+                if command -v flutter &> /dev/null; then
+                    (cd "$APP_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+                else
+                    (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+                fi
+            else
+                (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+            fi
+        fi
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+
+    echo -e "${GREEN}Dependencies resolved${NC}"
+else
+    echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
+fi
+echo ""
+
+# =====================================================
+# Dart: Format Check (all apps)
+# =====================================================
+
+echo -e "${BLUE}Checking Dart formatting...${NC}"
+echo ""
+
+if command -v dart &> /dev/null; then
+    DART_FORMAT_FAILED=false
+
+    while IFS= read -r pubspec; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+
+            echo "  Checking $APP_NAME..."
+
+            if ! (cd "$APP_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
+                DART_FORMAT_FAILED=true
+                echo -e "${RED}  $APP_NAME has unformatted Dart files${NC}"
+            else
+                echo -e "${GREEN}  $APP_NAME formatting OK${NC}"
+            fi
+        fi
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+
+    if [ "$DART_FORMAT_FAILED" = true ]; then
+        VALIDATION_FAILED=true
+        echo -e "${RED}Dart format check failed!${NC}"
+        echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
+    else
+        echo -e "${GREEN}Dart format check passed!${NC}"
+    fi
+else
+    echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
+    VALIDATION_FAILED=true
+fi
+echo ""
+
+# =====================================================
+# Dart: Static Analysis (all apps)
+# =====================================================
+
+echo -e "${BLUE}Running Dart static analysis...${NC}"
+echo ""
+
+if command -v dart &> /dev/null; then
+    DART_ANALYZE_FAILED=false
+
+    while IFS= read -r pubspec; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+
+            echo "  Analyzing $APP_NAME..."
+
+            if ! (cd "$APP_DIR" && dart analyze --fatal-infos 2>&1); then
+                DART_ANALYZE_FAILED=true
+                echo -e "${RED}  $APP_NAME has analysis issues${NC}"
+            else
+                echo -e "${GREEN}  $APP_NAME analysis OK${NC}"
+            fi
+        fi
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+
+    if [ "$DART_ANALYZE_FAILED" = true ]; then
+        VALIDATION_FAILED=true
+        echo -e "${RED}Dart analyze check failed!${NC}"
+    else
+        echo -e "${GREEN}Dart analyze check passed!${NC}"
+    fi
+else
+    echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
+    VALIDATION_FAILED=true
+fi
+echo ""
+
+# =====================================================
+# Test Suites (per-app tool/test.sh)
+# =====================================================
+
+echo -e "${BLUE}Running test suites...${NC}"
+echo ""
+
+if [ -n "$REMOTE_BRANCH" ]; then
+    CHANGED_FILES=$(git diff --name-only "$REMOTE_BRANCH"...HEAD 2>/dev/null || true)
+else
+    CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+fi
+
+TEST_DIRS=""
+while IFS= read -r changed_file; do
+    if [[ "$changed_file" == apps/* ]]; then
+        DIR=$(dirname "$REPO_ROOT/$changed_file")
+        while [[ "$DIR" == "$REPO_ROOT/apps"* ]] && [ "$DIR" != "$REPO_ROOT/apps" ]; do
+            TEST_SCRIPT="$DIR/tool/test.sh"
+            if [ -f "$TEST_SCRIPT" ] && [ -x "$TEST_SCRIPT" ]; then
+                REL_DIR=${DIR#$REPO_ROOT/}
+                if ! echo "$TEST_DIRS" | grep -q "^$REL_DIR$"; then
+                    TEST_DIRS="$TEST_DIRS
+$REL_DIR"
+                fi
+                break
+            fi
+            DIR=$(dirname "$DIR")
+        done
+    fi
+done <<< "$CHANGED_FILES"
+
+TEST_DIRS=$(echo "$TEST_DIRS" | sed '/^$/d')
+
+if [ -n "$TEST_DIRS" ]; then
+    while IFS= read -r app_dir; do
+        TEST_SCRIPT="$REPO_ROOT/$app_dir/tool/test.sh"
+        echo -e "${BLUE}Running tests for: $app_dir${NC}"
+        echo ""
+
+        PUBSPEC_FILE="$REPO_ROOT/$app_dir/pubspec.yaml"
+        if [ -f "$PUBSPEC_FILE" ]; then
+            if grep -q "flutter:" "$PUBSPEC_FILE" 2>/dev/null && command -v flutter &> /dev/null; then
+                (cd "$REPO_ROOT/$app_dir" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+            elif command -v dart &> /dev/null; then
+                (cd "$REPO_ROOT/$app_dir" && dart pub get) > /dev/null 2>&1 || true
+            fi
+        fi
+
+        if ! "$TEST_SCRIPT" -u; then
+            VALIDATION_FAILED=true
+            echo -e "${RED}Tests failed in $app_dir${NC}"
+        else
+            echo -e "${GREEN}Tests passed in $app_dir${NC}"
+        fi
+        echo ""
+    done <<< "$TEST_DIRS"
+else
+    echo -e "${BLUE}No app directories with test.sh affected by changes${NC}"
+    echo ""
+fi
+
+# =====================================================
+# Auto-Bump Clinical Diary Version
+# =====================================================
+# If clinical_diary source files changed in the HEAD commit, bump patch version.
+# Only checks the HEAD commit to avoid spurious bumps after rebases.
+
+HEAD_CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+CLINICAL_DIARY_CHANGED=$(echo "$HEAD_CHANGED_FILES" | grep "^apps/daily-diary/clinical_diary/" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
+
+if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
+    echo -e "${BLUE}Bumping clinical_diary version...${NC}"
+    echo "  Changed files:"
+    echo "$CLINICAL_DIARY_CHANGED" | sed 's/^/    /'
+
+    PUBSPEC="$REPO_ROOT/apps/daily-diary/clinical_diary/pubspec.yaml"
+
+    if [ -f "$PUBSPEC" ]; then
+        CURRENT_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
+        echo "  Current version: $CURRENT_VERSION"
+
+        (cd "$REPO_ROOT/apps/daily-diary/clinical_diary" && dart pub bump patch)
+
+        NEW_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
+        echo "  New version: $NEW_VERSION"
+
+        git add "$PUBSPEC"
+        git commit --amend --no-edit --no-verify
+
+        echo -e "${GREEN}Version bumped and commit amended${NC}"
+    fi
+    echo ""
+else
+    echo -e "${BLUE}No clinical_diary source changes in HEAD commit - skipping version bump${NC}"
+    echo ""
+fi

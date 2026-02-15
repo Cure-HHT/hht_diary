@@ -43,14 +43,6 @@
       }
     ]
   },
-  "extraKnownMarketplaces": {
-    "anspar-cc-plugins": {
-      "source": {
-        "source": "directory",
-        "path": "/home/metagamer/anspar-wf/plugins"
-      }
-    }
-  },
   "enabledPlugins": {
     "workflow@anspar-cc-plugins": true,
     "spec-compliance@anspar-cc-plugins": true,
@@ -59,5 +51,14 @@
     "unit-testing@claude-code-workflows": true,
     "tdd-workflows@claude-code-workflows": true,
     "cicd-automation@claude-code-workflows": true
+  },
+  "extraKnownMarketplaces": {
+    "anspar-cc-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "/home/metagamer/anspar-wf/plugins"
+      },
+      "version": "2.0.0"
+    }
   }
 }
