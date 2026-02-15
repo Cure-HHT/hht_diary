@@ -6,9 +6,10 @@
 # Installs developer tools and configures the repository.
 #
 # Sections:
-#   1. Git hooks configuration
-#   2. Python tools (elspais, anspar-wf)
-#   3. ANSPAR_WF_PLUGINS environment variable
+#   1. Python tools (elspais, anspar-wf)
+#   2. Git hooks (via anspar-wf)
+#   3. Claude Code plugins (via anspar-wf)
+#   4. ANSPAR_WF_PLUGINS environment variable
 #
 # Usage:
 #   ./tools/setup-repo.sh           # Full setup
@@ -55,27 +56,7 @@ fail() { echo "  [!!]  $1"; }
 info() { echo "  ...   $1"; }
 
 # ============================================================
-# 1. Git Hooks
-# ============================================================
-
-setup_git_hooks() {
-    echo ""
-    echo "=== Git Hooks ==="
-
-    if git -C "$REPO_ROOT" config --local include.path ../.gitconfig 2>/dev/null; then
-        ok "core.hooksPath = .githooks (via .gitconfig include)"
-    else
-        if $check_only; then
-            fail "Git hooks not configured"
-        else
-            git -C "$REPO_ROOT" config --local include.path ../.gitconfig
-            ok "Git hooks configured"
-        fi
-    fi
-}
-
-# ============================================================
-# 2. Python Tools
+# 1. Python Tools
 # ============================================================
 
 install_pip_package() {
@@ -121,14 +102,100 @@ setup_python_tools() {
     fi
 
     # elspais - requirement validation and traceability
-    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.43.5}"
+    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.57.0}"
 
-    # anspar-wf - workflow plugins and MCP servers
+    # anspar-wf - hook generation, plugins, MCP servers
     install_pip_package "anspar-wf" "${ANSPAR_WF_VERSION:-0.1.0}"
 }
 
 # ============================================================
-# 3. ANSPAR_WF_PLUGINS Environment Variable
+# 2. Git Hooks (via anspar-wf)
+# ============================================================
+
+setup_git_hooks() {
+    echo ""
+    echo "=== Git Hooks ==="
+
+    if ! command -v anspar-wf &>/dev/null; then
+        fail "anspar-wf not installed - cannot configure hooks"
+        return 1
+    fi
+
+    # Check if .anspar-wf.toml exists
+    if [ ! -f "$REPO_ROOT/.anspar-wf.toml" ]; then
+        fail ".anspar-wf.toml not found - run: anspar-wf init --project-dir $REPO_ROOT"
+        return 1
+    fi
+
+    # Check hooks path configuration
+    local hooks_path
+    hooks_path=$(git -C "$REPO_ROOT" config --get core.hooksPath 2>/dev/null || echo "")
+
+    if [ "$hooks_path" = ".githooks" ] || [ "$hooks_path" = ".githooks/" ]; then
+        ok "core.hooksPath = .githooks"
+    else
+        if $check_only; then
+            fail "core.hooksPath not set to .githooks (got: '${hooks_path:-<unset>}')"
+        else
+            anspar-wf hooks setup --project-dir "$REPO_ROOT"
+            ok "core.hooksPath configured"
+        fi
+    fi
+
+    # Check if hooks are up to date
+    if [ -f "$REPO_ROOT/.githooks/.anspar-wf-meta" ]; then
+        if $check_only; then
+            # Use hooks update --force in check mode to see if regeneration needed
+            ok "Generated hooks present"
+        else
+            anspar-wf hooks update --project-dir "$REPO_ROOT" --force
+            ok "Hooks regenerated from .anspar-wf.toml"
+        fi
+    else
+        if $check_only; then
+            fail "Generated hooks not found - run: anspar-wf hooks generate"
+        else
+            anspar-wf hooks generate --project-dir "$REPO_ROOT"
+            ok "Hooks generated from .anspar-wf.toml"
+        fi
+    fi
+}
+
+# ============================================================
+# 3. Claude Code Plugins (via anspar-wf)
+# ============================================================
+
+setup_plugins() {
+    echo ""
+    echo "=== Claude Code Plugins ==="
+
+    if ! command -v anspar-wf &>/dev/null; then
+        fail "anspar-wf not installed - cannot register plugins"
+        return 1
+    fi
+
+    local settings_file="$REPO_ROOT/.claude/settings.json"
+
+    if [ ! -f "$settings_file" ]; then
+        skip "No .claude/settings.json - skipping plugin registration"
+        return 0
+    fi
+
+    if $check_only; then
+        # Check if marketplace is registered
+        if grep -q "anspar-cc-plugins" "$settings_file" 2>/dev/null; then
+            ok "Plugin marketplace registered"
+        else
+            fail "Plugin marketplace not registered"
+        fi
+    else
+        anspar-wf plugins register --project-dir "$REPO_ROOT"
+        ok "Plugin marketplace registered"
+    fi
+}
+
+# ============================================================
+# 4. ANSPAR_WF_PLUGINS Environment Variable
 # ============================================================
 
 detect_shell_profile() {
@@ -228,8 +295,9 @@ main() {
     echo "=== Repository Setup $([ "$check_only" = true ] && echo "(check only)" || echo "(install)") ==="
 
     load_versions
-    setup_git_hooks
     setup_python_tools
+    setup_git_hooks
+    setup_plugins
     setup_env_var
 
     echo ""
