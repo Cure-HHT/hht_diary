@@ -1,3 +1,5 @@
+# Force rebuild - regenerate image layers
+RUN echo "Rebuild trigger: $(date)"
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00028: Role-Based Environment Separation
