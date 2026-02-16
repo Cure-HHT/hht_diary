@@ -158,7 +158,11 @@ I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study 
 
 J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-*End* *Clinical Questionnaire System* | **Hash**: 0a439bc2
+K. The system SHALL preserve questionnaire state when the app is backgrounded, interrupted, or the device loses power, ensuring no data loss for in-progress questionnaires.
+
+L. The system SHALL restore questionnaire progress on app resume without data loss, returning the patient to their last answered question.
+
+*End* *Clinical Questionnaire System* | **Hash**: b80316f8
 ---
 
 ## Child Requirements

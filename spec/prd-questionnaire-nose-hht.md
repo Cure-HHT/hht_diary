@@ -173,8 +173,9 @@ H. The system SHALL prevent modification of answers after the questionnaire has 
 
 I. The system SHALL record the exact response value (0-4) for each answered question as well as the displayed and normalized (English) versions of the answers.
 
+K. The system SHALL record the questionnaire version used for each record.
 
-*End* *NOSE HHT Questionnaire* | **Hash**: 23b411c6
+*End* *NOSE HHT Questionnaire* | **Hash**: b930862a
 ---
 
 # REQ-p01070: NOSE HHT User Interface

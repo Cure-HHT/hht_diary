@@ -104,9 +104,9 @@
 | REQ-p01061 | EU GDPR                                                             | prd-clinical-trials.md                    | ebe9e2ad |
 | REQ-p01062 | GDPR Data Portability                                               | prd-clinical-trials.md                    | 30b27336 |
 | REQ-p01064 | Investigator Questionnaire Approval Workflow                        | prd-questionnaire-approval.md             | 8790cf5d |
-| REQ-p01065 | Clinical Questionnaire System                                       | prd-questionnaire-system.md               | 0a439bc2 |
+| REQ-p01065 | Clinical Questionnaire System                                       | prd-questionnaire-system.md               | b80316f8 |
 | REQ-p01066 | Daily Epistaxis Record Questionnaire                                | prd-questionnaire-epistaxis.md            | 29498f8f |
-| REQ-p01067 | NOSE HHT Questionnaire                                              | prd-questionnaire-nose-hht.md             | 23b411c6 |
+| REQ-p01067 | NOSE HHT Questionnaire                                              | prd-questionnaire-nose-hht.md             | b930862a |
 | REQ-p01068 | HHT Quality of Life Questionnaire                                   | prd-questionnaire-qol.md                  | e4980a4b |
 | REQ-p01069 | Daily Epistaxis Record User Interface                               | prd-questionnaire-epistaxis.md            | 0efa31a6 |
 | REQ-p01070 | NOSE HHT User Interface                                             | prd-questionnaire-nose-hht.md             | 84fa171d |
