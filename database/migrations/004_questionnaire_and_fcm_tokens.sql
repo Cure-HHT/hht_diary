@@ -1,6 +1,7 @@
 -- =====================================================
 -- Migration: Add questionnaire_instances and patient_fcm_tokens tables
 -- Number: 004
+-- Date: 2026-02-15
 -- Description: Creates questionnaire lifecycle tracking and FCM push
 --   notification token storage. Adds PostgreSQL enums for questionnaire
 --   type and status. Includes RLS policies, indexes, and triggers.
