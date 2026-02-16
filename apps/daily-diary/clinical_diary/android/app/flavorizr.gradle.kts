@@ -8,12 +8,12 @@ android.apply {
     productFlavors {
         create("dev") {
             dimension = "environment"
-            applicationId = "org.anspar.curehht.app-dev"
+            applicationId = "org.anspar.curehht.app.dev"
             resValue(type = "string", name = "app_name", value = "CureHHT Tracker DEV")
         }
         create("qa") {
             dimension = "environment"
-            applicationId = "org.anspar.curehht.app-qa"
+            applicationId = "org.anspar.curehht.app.qa"
             resValue(type = "string", name = "app_name", value = "Diary QA")
         }
         create("uat") {

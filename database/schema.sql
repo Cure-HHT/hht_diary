@@ -977,6 +977,100 @@ COMMENT ON COLUMN email_audit_log.gmail_message_id IS 'Gmail API message ID for 
 COMMENT ON COLUMN email_audit_log.metadata IS 'Additional context: masked email, request IP, etc.';
 
 -- =====================================================
+-- QUESTIONNAIRE INSTANCES (REQ-CAL-p00023)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+--   REQ-CAL-p00047: Hard-Coded Questionnaires
+--   REQ-CAL-p00066: Status Change Reason Field
+--   REQ-CAL-p00080: Questionnaire Study Event Association
+--   REQ-p01064: Investigator Approval Workflow
+--
+-- Tracks questionnaire lifecycle: Not Sent → Sent → In Progress →
+-- Ready to Review → Finalized.
+-- Written by portal server, read by both portal and diary servers.
+
+CREATE TYPE questionnaire_type AS ENUM ('nose_hht', 'qol', 'eq');
+CREATE TYPE questionnaire_status AS ENUM ('not_sent', 'sent', 'in_progress', 'ready_to_review', 'finalized');
+
+CREATE TABLE questionnaire_instances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id TEXT NOT NULL REFERENCES patients(patient_id),
+    questionnaire_type questionnaire_type NOT NULL,
+    status questionnaire_status NOT NULL DEFAULT 'not_sent',
+    study_event TEXT CHECK (char_length(study_event) <= 32),
+    version TEXT NOT NULL,
+    sent_by UUID REFERENCES portal_users(id),
+    sent_at TIMESTAMPTZ,
+    submitted_at TIMESTAMPTZ,
+    finalized_by UUID REFERENCES portal_users(id),
+    finalized_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
+    delete_reason TEXT CHECK (char_length(delete_reason) <= 25),
+    deleted_by UUID REFERENCES portal_users(id),
+    score INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_qi_patient_id ON questionnaire_instances(patient_id);
+CREATE INDEX idx_qi_patient_type ON questionnaire_instances(patient_id, questionnaire_type)
+    WHERE deleted_at IS NULL;
+CREATE INDEX idx_qi_status ON questionnaire_instances(status)
+    WHERE deleted_at IS NULL;
+
+ALTER TABLE questionnaire_instances ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE questionnaire_instances IS 'Questionnaire lifecycle tracking per REQ-CAL-p00023. Written by portal server, read by diary server via shared DB.';
+COMMENT ON COLUMN questionnaire_instances.patient_id IS 'FK to patients - uses TEXT patient_id (RAVE SubjectKey)';
+COMMENT ON COLUMN questionnaire_instances.questionnaire_type IS 'Type of questionnaire: nose_hht, qol, eq per REQ-CAL-p00047';
+COMMENT ON COLUMN questionnaire_instances.status IS 'Lifecycle status per REQ-CAL-p00023';
+COMMENT ON COLUMN questionnaire_instances.study_event IS 'Study event association per REQ-CAL-p00080 (e.g., "Cycle 1 Day 1")';
+COMMENT ON COLUMN questionnaire_instances.version IS 'Questionnaire content version per REQ-CAL-p00047-E';
+COMMENT ON COLUMN questionnaire_instances.delete_reason IS 'Reason for deletion, max 25 chars per REQ-CAL-p00066-B';
+COMMENT ON COLUMN questionnaire_instances.score IS 'Calculated score after finalization per REQ-CAL-p00009';
+
+-- =====================================================
+-- PATIENT FCM TOKENS (REQ-CAL-p00082)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00082: Patient Alert Delivery
+--   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+--   REQ-p00049: Ancillary Platform Services (push notifications)
+--
+-- FCM registration tokens for patient devices.
+-- Written by diary server (mobile app registers token).
+-- Read by portal server (to send notifications).
+
+CREATE TABLE patient_fcm_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id TEXT NOT NULL REFERENCES patients(patient_id),
+    fcm_token TEXT NOT NULL,
+    platform TEXT NOT NULL CHECK (platform IN ('android', 'ios')),
+    app_version TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- One active token per patient per platform (upsert pattern)
+CREATE UNIQUE INDEX idx_fcm_patient_platform_active
+    ON patient_fcm_tokens(patient_id, platform)
+    WHERE is_active = true;
+
+CREATE INDEX idx_fcm_patient_active ON patient_fcm_tokens(patient_id)
+    WHERE is_active = true;
+
+ALTER TABLE patient_fcm_tokens ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE patient_fcm_tokens IS 'FCM registration tokens for push notifications. Written by diary server, read by portal server.';
+COMMENT ON COLUMN patient_fcm_tokens.patient_id IS 'FK to patients - uses TEXT patient_id (RAVE SubjectKey)';
+COMMENT ON COLUMN patient_fcm_tokens.fcm_token IS 'Firebase Cloud Messaging registration token (~150 chars, rotates periodically)';
+COMMENT ON COLUMN patient_fcm_tokens.platform IS 'Device platform: android or ios';
+COMMENT ON COLUMN patient_fcm_tokens.app_version IS 'App version at time of token registration';
+COMMENT ON COLUMN patient_fcm_tokens.is_active IS 'False when token is invalidated (e.g., patient disconnected)';
+
+-- =====================================================
 -- HELPER FUNCTIONS
 -- =====================================================
 
@@ -1449,4 +1543,10 @@ CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON inves
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_questionnaire_instances_updated_at BEFORE UPDATE ON questionnaire_instances
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_patient_fcm_tokens_updated_at BEFORE UPDATE ON patient_fcm_tokens
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

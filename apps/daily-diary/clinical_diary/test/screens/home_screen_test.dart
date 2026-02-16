@@ -10,6 +10,7 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/task_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -82,6 +83,7 @@ void main() {
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
           authService: authService,
+          taskService: TaskService(),
           preferencesService: preferencesService,
           onLocaleChanged: (_) {},
           onThemeModeChanged: (_) {},

@@ -42,6 +42,7 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
@@ -134,6 +135,7 @@ void main() {
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
           authService: authService,
+          taskService: TaskService(),
           preferencesService: preferencesService,
           onLocaleChanged: (_) {},
           onThemeModeChanged: (_) {},

@@ -14,6 +14,8 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+//   REQ-CAL-p00081: Patient Task System
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -75,6 +77,21 @@ Router createRouter() {
   router.post(
     '/api/v1/portal/patients/<patientId>/start-trial',
     startTrialHandler,
+  );
+
+  // Questionnaire management endpoints (Investigator role)
+  // REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+  router.get(
+    '/api/v1/portal/patients/<patientId>/questionnaires',
+    getQuestionnaireStatusHandler,
+  );
+  router.post(
+    '/api/v1/portal/patients/<patientId>/questionnaires/<questionnaireType>/send',
+    sendQuestionnaireHandler,
+  );
+  router.delete(
+    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>',
+    deleteQuestionnaireHandler,
   );
 
   // Email change verification

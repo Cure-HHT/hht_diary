@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCbQRWQSsTqKwQM3X8daoqFQIUdHYS46Ns</string>
+	<string>AIzaSyDYf5IhfcOZyk53FAK969gWXckUm84t7Xg</string>
 	<key>GCM_SENDER_ID</key>
-	<string>681337116402</string>
+	<string>149504828360</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>org.anspar.curehht.app</string>
+	<string>org.anspar.curehht.app.qa</string>
 	<key>PROJECT_ID</key>
-	<string>hht-diary-mvp</string>
+	<string>cure-hht-admin</string>
 	<key>STORAGE_BUCKET</key>
-	<string>hht-diary-mvp.firebasestorage.app</string>
+	<string>cure-hht-admin.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:681337116402:ios:d5d97d26841d2b4ef5626b</string>
+	<string>1:149504828360:ios:49eee7fb7c956be34616fd</string>
 </dict>
 </plist>

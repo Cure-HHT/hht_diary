@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
 
-version: 0.8.14
+version: 0.9.2
 
 environment:
   sdk: ^3.10.7
@@ -16,11 +16,16 @@ dependencies:
   # Append-only datastore for FDA 21 CFR Part 11 compliant event sourcing
   append_only_datastore:
     path: ../../common-dart/append_only_datastore
+  trial_data_types:
+    path: ../../common-dart/trial_data_types
+  eq:
+    path: ../../common-flutter/eq
 
   collection: ^1.19.1
   crypto: ^3.0.7
   dart_jsonwebtoken: ^3.3.1
   firebase_core: ^4.2.1
+  firebase_messaging: ^16.1.1
   flutter_secure_storage: ^9.2.4
   flutter_timezone: ^5.0.1
   http: ^1.6.0

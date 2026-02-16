@@ -926,6 +926,52 @@ GRANT SELECT, INSERT ON email_audit_log TO service_role;
 -- Grant admin/auditor SELECT on email_audit_log
 GRANT SELECT ON email_audit_log TO authenticated;
 
+-- =====================================================
+-- QUESTIONNAIRE INSTANCES RLS (REQ-CAL-p00023)
+-- =====================================================
+-- Written by portal server (service_role), read by both servers.
+-- Investigators can view/manage questionnaires for patients at their sites.
+
+-- Service role: full access (both portal and diary servers use service_role)
+CREATE POLICY qi_service_all ON questionnaire_instances
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Investigators can view questionnaires for patients at their assigned sites
+CREATE POLICY qi_investigator_select ON questionnaire_instances
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'Investigator'
+        AND patient_id IN (
+            SELECT p.patient_id FROM patients p
+            WHERE p.site_id IN (
+                SELECT pusa.site_id FROM portal_user_site_access pusa
+                WHERE pusa.user_id = current_user_id()::uuid
+            )
+        )
+    );
+
+GRANT ALL ON questionnaire_instances TO service_role;
+GRANT SELECT ON questionnaire_instances TO authenticated;
+
+-- =====================================================
+-- PATIENT FCM TOKENS RLS (REQ-CAL-p00082)
+-- =====================================================
+-- Written by diary server, read by portal server.
+-- Both use service_role, so only service_role needs access.
+
+-- Service role: full access
+CREATE POLICY fcm_tokens_service_all ON patient_fcm_tokens
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+GRANT ALL ON patient_fcm_tokens TO service_role;
+
 -- Service role needs full access for triggers
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 

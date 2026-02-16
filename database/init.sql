@@ -100,7 +100,9 @@ DECLARE
         'user_profiles',
         'role_change_log',
         'user_sessions',
-        'auth_audit_log'
+        'auth_audit_log',
+        'questionnaire_instances',
+        'patient_fcm_tokens'
     ];
     missing_tables TEXT[];
 BEGIN

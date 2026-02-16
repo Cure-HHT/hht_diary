@@ -4,6 +4,8 @@
 //   REQ-p00008: User Account Management
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
+//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-p00049: Ancillary Platform Services (push notifications)
 //
 // Route definitions for diary server
 
@@ -31,6 +33,9 @@ Router createRouter() {
 
   // Sponsor routes
   router.get('/api/v1/sponsor/config', sponsorConfigHandler);
+
+  // FCM token registration (mobile app registers its push notification token)
+  router.post('/api/v1/user/fcm-token', registerFcmTokenHandler);
 
   return router;
 }
