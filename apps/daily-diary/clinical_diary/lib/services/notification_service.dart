@@ -41,7 +41,7 @@ class MobileNotificationService {
   /// Callback when the FCM token is refreshed
   final ValueChanged<String>? onTokenRefresh;
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  late final FirebaseMessaging _messaging;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<RemoteMessage>? _messageOpenedSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
@@ -55,6 +55,8 @@ class MobileNotificationService {
   ///
   /// Call this after Firebase.initializeApp() in main.dart.
   Future<void> initialize() async {
+    _messaging = FirebaseMessaging.instance;
+
     // Set up background handler (must be done before any other FCM calls)
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
