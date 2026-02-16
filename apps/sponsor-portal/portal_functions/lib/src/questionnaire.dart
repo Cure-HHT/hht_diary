@@ -61,7 +61,7 @@ Future<Response> getQuestionnaireStatusHandler(
   // Get latest non-deleted questionnaire instance for each type
   final questionnaires = await db.executeWithContext(
     '''
-    SELECT qi.id, qi.questionnaire_type, qi.status, qi.study_event,
+    SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.study_event,
            qi.version, qi.sent_at, qi.submitted_at, qi.finalized_at,
            qi.score, qi.sent_by
     FROM questionnaire_instances qi
@@ -198,9 +198,9 @@ Future<Response> sendQuestionnaireHandler(
   // Check for existing non-finalized, non-deleted instance of this type
   final existingResult = await db.executeWithContext(
     '''
-    SELECT id, status FROM questionnaire_instances
+    SELECT id, status::text FROM questionnaire_instances
     WHERE patient_id = @patientId
-      AND questionnaire_type = @questionnaireType
+      AND questionnaire_type = @questionnaireType::questionnaire_type
       AND deleted_at IS NULL
       AND status != 'finalized'
     ORDER BY created_at DESC
@@ -236,7 +236,7 @@ Future<Response> sendQuestionnaireHandler(
       version, sent_by, sent_at, created_at, updated_at
     )
     VALUES (
-      @patientId, @questionnaireType, 'sent', @studyEvent,
+      @patientId, @questionnaireType::questionnaire_type, 'sent', @studyEvent,
       @version, @sentBy, @sentAt, @sentAt, @sentAt
     )
     RETURNING id
@@ -406,10 +406,10 @@ Future<Response> deleteQuestionnaireHandler(
   // Fetch the questionnaire instance
   final instanceResult = await db.executeWithContext(
     '''
-    SELECT qi.id, qi.questionnaire_type, qi.status, qi.patient_id,
+    SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
            qi.deleted_at
     FROM questionnaire_instances qi
-    WHERE qi.id = @instanceId AND qi.patient_id = @patientId
+    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
     ''',
     parameters: {'instanceId': instanceId, 'patientId': patientId},
     context: serviceContext,
@@ -445,7 +445,7 @@ Future<Response> deleteQuestionnaireHandler(
         delete_reason = @deleteReason,
         deleted_by = @deletedBy,
         updated_at = @deletedAt
-    WHERE id = @instanceId
+    WHERE id = @instanceId::uuid
     ''',
     parameters: {
       'instanceId': instanceId,

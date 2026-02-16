@@ -8,6 +8,8 @@
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
@@ -32,6 +34,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 /// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
@@ -267,6 +270,7 @@ class _AppRootState extends State<AppRoot> {
   ///
   /// REQ-CAL-p00081: Task system initialization
   /// REQ-CAL-p00023-D: Push notification receiving
+  /// REQ-CAL-p00082: Patient Alert Delivery (FCM token registration)
   Future<void> _initializeNotifications() async {
     // Load persisted tasks from storage
     await _taskService.loadTasks();
@@ -274,10 +278,7 @@ class _AppRootState extends State<AppRoot> {
     // Initialize FCM
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
-      onTokenRefresh: (token) {
-        debugPrint('[Main] FCM token available for server registration');
-        // TODO: Send token to portal server for device targeting
-      },
+      onTokenRefresh: _registerFcmToken,
     );
 
     try {
@@ -285,6 +286,68 @@ class _AppRootState extends State<AppRoot> {
       debugPrint('[Main] Notification service initialized');
     } catch (e) {
       debugPrint('[Main] Notification service init failed: $e');
+    }
+  }
+
+  /// Register the FCM token with the diary server.
+  ///
+  /// Called on initial token retrieval and on token refresh.
+  /// The diary server stores the token in the shared database so the
+  /// portal server can send targeted notifications.
+  ///
+  /// Uses [EnrollmentService] for JWT and backend URL because the patient
+  /// authenticates via linking codes (not username/password login).
+  /// The backend URL is sponsor-specific, determined by the linking code prefix.
+  ///
+  /// REQ-CAL-p00082: Patient Alert Delivery
+  Future<void> _registerFcmToken(String token) async {
+    final jwt = await _enrollmentService.getJwtToken();
+    if (jwt == null) {
+      debugPrint('[FCM] No JWT — user not linked yet, skipping');
+      return;
+    }
+
+    final backendUrl = await _enrollmentService.getBackendUrl();
+    if (backendUrl == null) {
+      debugPrint('[FCM] No backend URL — user not linked yet, skipping');
+      return;
+    }
+
+    final platform = Platform.isIOS ? 'ios' : 'android';
+    final url = '$backendUrl/api/v1/user/fcm-token';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwt',
+        },
+        body: jsonEncode({'fcm_token': token, 'platform': platform}),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('[FCM] Token registered with diary server ($platform)');
+      } else {
+        debugPrint(
+          '[FCM] Token registration failed: ${response.statusCode} '
+          '${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[FCM] Token registration error: $e');
+    }
+  }
+
+  /// Called after the user successfully links to a study.
+  /// Registers the cached FCM token with the diary server now that
+  /// the JWT and backend URL are available.
+  ///
+  /// REQ-CAL-p00082: Patient Alert Delivery
+  void _onPostEnrollment() {
+    final token = _notificationService?.currentToken;
+    if (token != null) {
+      _registerFcmToken(token);
     }
   }
 
@@ -351,6 +414,7 @@ class _AppRootState extends State<AppRoot> {
         onLargerTextChanged: widget.onLargerTextChanged,
         onFontChanged: widget.onFontChanged,
         preferencesService: widget.preferencesService,
+        onEnrolled: _onPostEnrollment,
       ),
     );
   }

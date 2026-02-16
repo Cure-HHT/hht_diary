@@ -52,6 +52,7 @@ class HomeScreen extends StatefulWidget {
     required this.onLargerTextChanged,
     required this.preferencesService,
     this.onFontChanged,
+    this.onEnrolled,
     super.key,
   });
   final NosebleedService nosebleedService;
@@ -66,6 +67,8 @@ class HomeScreen extends StatefulWidget {
   // CUR-528: Callback for font selection changes
   final ValueChanged<String>? onFontChanged;
   final PreferencesService preferencesService;
+  // REQ-CAL-p00082: Called after successful enrollment to register FCM token
+  final VoidCallback? onEnrolled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -684,6 +687,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
             await _checkEnrollmentStatus();
+            if (_isEnrolled) {
+              widget.onEnrolled?.call();
+            }
             await _checkDisconnectionStatus();
           },
           onShowSettings: () async {

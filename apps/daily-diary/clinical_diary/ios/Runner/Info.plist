@@ -28,6 +28,10 @@
     <true/>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app may access your photo library to allow you to attach images to your health diary entries.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>remote-notification</string>
+    </array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UILaunchStoryboardName</key>
