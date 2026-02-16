@@ -169,7 +169,7 @@ jobs:
             --image="$GAR_PATH" \
             --ingress=all \
             --default-url \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --cpu=2 \
             --cpu-boost \
             --memory=4Gi \
