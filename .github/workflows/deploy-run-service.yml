@@ -36,7 +36,7 @@ on:
         required: true
         type: string
       version:
-        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        description: 'Version being deployed (e.g., 1.2.3)'
         required: false
         type: string
   workflow_call:
@@ -55,15 +55,12 @@ on:
         required: true
         type: string
       version:
-        description: 'Version being deployed (e.g., 1.2.3, abc1234 for main branch)'
+        description: 'Version being deployed (e.g., 1.2.3)'
         required: false
         type: string
-    secrets:
-      DOPPLER_TOKEN:
-        description: 'Doppler service token for the target environment'
-        required: true
-
 env:
+  DOPPLER_PROJECT: 'hht-diary'
+  DOPPLER_CONFIG: '${{ inputs.sponsor-env }}'
   CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/ghcr-remote'
 
 jobs:
@@ -180,7 +177,7 @@ jobs:
             --max-instances=2 \
             --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
             --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }} \
-            --set-env-vars="DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }},ENVIRONMENT=${{ inputs.sponsor-env }}"
+            --set-env-vars="DOPPLER_PROJECT_ID=${{ env.DOPPLER_PROJECT }},DOPPLER_CONFIG_NAME=${{ inputs.sponsor-env }}"
 
           echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
 
