@@ -400,6 +400,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   String? _code;
   String? _expiresAt;
   String? _error;
+  String? _generateError;
 
   @override
   void initState() {
@@ -433,7 +434,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   Future<void> _generateNewCode() async {
     setState(() {
       _isGenerating = true;
-      _error = null;
+      _generateError = null;
     });
 
     final response = await widget.apiClient.post(
@@ -450,11 +451,12 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
         _hasActiveCode = true;
         _code = data['code'] as String?;
         _expiresAt = data['expires_at'] as String?;
+        _generateError = null;
       });
     } else {
       setState(() {
         _isGenerating = false;
-        _error = response.error ?? 'Failed to generate linking code';
+        _generateError = response.error ?? 'Failed to generate linking code';
       });
     }
   }
@@ -559,6 +561,15 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
                 : const Icon(Icons.refresh, size: 18),
             label: Text(_isGenerating ? 'Generating...' : 'Generate New Code'),
           ),
+          if (_generateError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _generateError!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
         ],
       );
     }
