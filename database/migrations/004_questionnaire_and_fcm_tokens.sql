@@ -1,14 +1,15 @@
--- IMPLEMENTS REQUIREMENTS:
---   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
---   REQ-CAL-p00047: Hard-Coded Questionnaires
---   REQ-CAL-p00066: Status Change Reason Field
---   REQ-CAL-p00080: Questionnaire Study Event Association
---   REQ-CAL-p00082: Patient Alert Delivery
---   REQ-p00049: Ancillary Platform Services (push notifications)
---
+-- =====================================================
 -- Migration: Add questionnaire_instances and patient_fcm_tokens tables
--- Date: 2026-02-15
--- Ticket: CUR-825
+-- Number: 004
+-- Description: Creates questionnaire lifecycle tracking and FCM push
+--   notification token storage. Adds PostgreSQL enums for questionnaire
+--   type and status. Includes RLS policies, indexes, and triggers.
+--   (Linear: CUR-825)
+-- Dependencies: Requires base schema (001), patients table, portal_users
+--   table, update_updated_at_column() trigger function
+-- Reference: database/schema.sql, database/rls_policies.sql,
+--   spec/prd-questionnaires.md
+-- =====================================================
 
 -- =====================================================
 -- ENUMS
