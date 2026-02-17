@@ -31,7 +31,7 @@ on:
     inputs:
       version:
         description: 'Version to build and push (example: v1.2.3, v1.2, v1.2.3-rc.1)'
-        required: true
+        required: false
         default: ''
       sponsor-env:
         description: 'Callisto environment'
@@ -70,6 +70,7 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
       short_sha: ${{ steps.parse.outputs.short_sha }}
       version: ${{ steps.parse.outputs.version }}
+      sponsor_env: ${{ steps.parse.outputs.sponsor_env }}
 
     steps:
       - name: Free up disk space
@@ -88,6 +89,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -110,80 +114,93 @@ jobs:
 
           SHORT_SHA="${GITHUB_SHA::7}"
 
+          # Helper: find the latest semver tag and bump patch by 1
+          auto_version_from_latest_tag() {
+            # List tags matching vMAJOR.MINOR.PATCH, sort by semver, take the latest
+            LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+            if [ -z "$LATEST_TAG" ]; then
+              echo "0.0.1"
+              return
+            fi
+            # Strip leading v
+            LATEST_VER="${LATEST_TAG#v}"
+            # Extract core version (strip prerelease/build metadata)
+            LATEST_CORE="$(echo "$LATEST_VER" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+            L_MAJOR="$(echo "$LATEST_CORE" | awk -F. '{print $1}')"
+            L_MINOR="$(echo "$LATEST_CORE" | awk -F. '{print $2}')"
+            L_PATCH="$(echo "$LATEST_CORE" | awk -F. '{print $3}')"
+            NEW_PATCH=$((L_PATCH + 1))
+            echo "${L_MAJOR}.${L_MINOR}.${NEW_PATCH}"
+          }
+
           # Determine source of version based on trigger type
           IS_DISPATCH=false
+          IS_MAIN_PUSH=false
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual dispatch: use input version
             RAW_TAG="${{ github.event.inputs.version }}"
-            IS_MAIN_PUSH=false
             IS_DISPATCH=true
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # Tag push: use the tag
             RAW_TAG="${GITHUB_REF#refs/tags/}"
-            IS_MAIN_PUSH=false
           else
-            # Branch push (e.g., merge to main): use short SHA as version
-            RAW_TAG="${SHORT_SHA}"
+            # Branch push (e.g., merge to main)
+            RAW_TAG=""
             IS_MAIN_PUSH=true
-            echo "::notice::Main branch push detected, using commit SHA as version: ${SHORT_SHA}"
           fi
 
-          # For main branch pushes, skip semver validation and use SHA-based tagging
-          if [ "$IS_MAIN_PUSH" = "true" ]; then
-            VERSION="${SHORT_SHA}"
-            DOCKER_VER="${SHORT_SHA}"
-            CORE="${SHORT_SHA}"
-            MAJOR=""
-            MAJOR_MINOR=""
+          # If no version was provided, auto-increment from latest tag
+          if [ -z "$RAW_TAG" ]; then
+            AUTO_VER="$(auto_version_from_latest_tag)"
+            RAW_TAG="${AUTO_VER}"
+            echo "::notice::No version specified. Auto-incremented from latest tag to v${AUTO_VER}"
+          fi
+
+          # Normalize (strip optional leading v)
+          VERSION="${RAW_TAG#v}"
+
+          # semver regex that accepts prerelease and build metadata per semver.org
+          SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+
+          if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
+            echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
+            exit 1
+          fi
+
+          CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+          MAJOR="${CORE%%.*}"
+          MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+
+          # is there prerelease or build metadata?
+          if echo "$VERSION" | grep -Eq '[-+]'; then
             IS_RELEASE=false
-            TAG_FULL="${SHORT_SHA}"
-
-            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
-
-            echo "::notice::Main branch build: version='$VERSION', tags='$TAGS'"
           else
-            # Normalize (strip optional leading v)
-            VERSION="${RAW_TAG#v}"
+            IS_RELEASE=true
+          fi
 
-            # semver regex that accepts prerelease and build metadata per semver.org
-            SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+          # sanitize for docker tags: convert '+' to '-' and lowercase
+          DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
 
-            if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
-              echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
-              exit 1
-            fi
+          TAG_FULL="v${VERSION}"   # canonical tag with leading v
 
-            CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
-            MAJOR="${CORE%%.*}"
-            MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+          echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
 
-            # is there prerelease or build metadata?
-            if echo "$VERSION" | grep -Eq '[-+]'; then
-              IS_RELEASE=false
-            else
-              IS_RELEASE=true
-            fi
+          # Build the tags list for build-push-action
+          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+          if [ "$IS_RELEASE" = "true" ]; then
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+          fi
 
-            # sanitize for docker tags: convert '+' to '-' and lowercase
-            DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
+          # For main branch pushes, also tag with main-latest
+          if [ "$IS_MAIN_PUSH" = "true" ]; then
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
+          fi
 
-            TAG_FULL="v${VERSION}"   # canonical tag with leading v
-
-            echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
-
-            # Build the newline-separated tags list for build-push-action
-            # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-            TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
-            if [ "$IS_RELEASE" = "true" ]; then
-              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
-            fi
-
-            # For workflow_dispatch, also tag with the sanitized branch name
-            if [ "$IS_DISPATCH" = "true" ]; then
-              BRANCH_TAG="$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')"
-              TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${BRANCH_TAG}-latest"
-              echo "::notice::Workflow dispatch from branch '${GITHUB_REF_NAME}', added tag '${BRANCH_TAG}-latest'"
-            fi
+          # For workflow_dispatch, also tag with the sanitized branch name
+          if [ "$IS_DISPATCH" = "true" ]; then
+            BRANCH_TAG="$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')"
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${BRANCH_TAG}-latest"
+            echo "::notice::Workflow dispatch from branch '${GITHUB_REF_NAME}', added tag '${BRANCH_TAG}-latest'"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -196,6 +213,16 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
           echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
+
+          # Determine sponsor-env: use input for dispatch, default to dev for push events
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SPONSOR_ENV="${{ github.event.inputs.sponsor-env }}"
+          else
+            SPONSOR_ENV="dev"
+          fi
+          echo "sponsor_env=${SPONSOR_ENV}" >> "$GITHUB_OUTPUT"
+          echo "sponsor_env=${SPONSOR_ENV}"
+
           # tags is multiline output
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
@@ -333,7 +360,7 @@ jobs:
             --repo ${{ github.repository }} \
             --ref ${{ github.ref_name }} \
             -f service-name="diary-server" \
-            -f sponsor-env="${{ github.event.inputs.sponsor-env || 'dev' }}" \
+            -f sponsor-env="${{ needs.build-diary-server.outputs.sponsor_env }}" \
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-diary-server.outputs.image_digest }}" \
             -f version="${{ needs.build-diary-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
