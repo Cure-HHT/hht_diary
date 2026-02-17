@@ -104,7 +104,7 @@ echo "Starting Flutter..."
 echo ""
 
 # Extract version from pubspec.yaml
-APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//')
+APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
 
 # Run Flutter with local flavor
 # APP_FLAVOR=local enables Firebase emulator connection
