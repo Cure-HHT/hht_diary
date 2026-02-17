@@ -20,11 +20,6 @@ output "budget_alert_topic" {
   value       = var.enable_cost_controls ? google_pubsub_topic.budget_alerts[0].id : null
 }
 
-output "cost_control_service_account" {
-  description = "Service account for cost control function (non-prod only)"
-  value       = var.enable_cost_controls && var.environment != "prod" ? google_service_account.cost_control[0].email : null
-}
-
 output "cost_controls_enabled" {
   description = "Whether automated cost controls are enabled"
   value       = var.enable_cost_controls && var.environment != "prod"

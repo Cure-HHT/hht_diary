@@ -16,13 +16,15 @@ environment = "qa"
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id = "callisto4-qa"  # From bootstrap output
+project_id     = "callisto4-qa"  # From bootstrap output
+project_number = "421945483876"  # From bootstrap output (gcloud projects describe callisto4-qa --format='value(projectNumber)')
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
 # - TF_VAR_BILLING_ACCOUNT_PROD
 # - TF_VAR_BILLING_ACCOUNT_DEV
 # - TF_VAR_DB_PASSWORD
+# - TF_VAR_SLACK_INCIDENT_WEBHOOK_URL
 #
 # Find your GCP Organization ID: gcloud organizations list
 # Find your Billing Account IDs: gcloud billing accounts list
@@ -68,8 +70,8 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = false
 
 # Container Images (via Artifact Registry GHCR proxy in admin project)
-# diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/diary-server:latest"
-# portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/portal-server:latest"
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # Disable public access due to organization policy restrictions
 allow_public_access = true
@@ -92,8 +94,8 @@ identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
 identity_platform_password_min_length = 12        # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets, from Doppler
-identity_platform_email_sender_name = "{var.id_platform_name}"
-identity_platform_email_reply_to  = "{var.email_support}"
+identity_platform_email_sender_name = "Diary Platform"
+identity_platform_email_reply_to  = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
@@ -138,3 +140,5 @@ audit_retention_years = 25
 # Optional: Email
 # -----------------------------------------------------------------------------
 impersonating_service_account_email = "421945483876-compute@callisto-4-qa.iam.gserviceaccount.com"
+
+enable_cost_controls = false

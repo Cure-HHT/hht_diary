@@ -17,6 +17,7 @@ environment = "dev"
 # -----------------------------------------------------------------------------
 
 project_id = "callisto4-dev"  # From bootstrap output
+project_number = "1012274191696"  # From bootstrap output (gcloud projects describe callisto4-qa --format='value(projectNumber)')
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
@@ -93,8 +94,8 @@ identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
 identity_platform_password_min_length = 12        # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets
-identity_platform_email_sender_name = ID_PLATFORM_NAME
-identity_platform_email_reply_to  = EMAIL_SUPPORT
+identity_platform_email_sender_name = "Diary Platform"
+identity_platform_email_reply_to  = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
@@ -135,3 +136,6 @@ audit_retention_years = 25
 # Optional: Email
 # -----------------------------------------------------------------------------
 impersonating_service_account_email = "1012274191696-compute@developer.gserviceaccount.com"
+
+enable_cost_controls = false
+
