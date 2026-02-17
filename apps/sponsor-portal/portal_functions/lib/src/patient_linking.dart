@@ -12,6 +12,7 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
 // Patient linking code handlers - generate and manage linking codes
@@ -25,6 +26,7 @@ import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
+import 'notification_service.dart';
 import 'portal_auth.dart';
 
 /// Expiration duration for linking codes (72 hours per REQ-p70007)
@@ -1095,6 +1097,66 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
     context: serviceContext,
   );
 
+  // REQ-CAL-p00023: Send initial EQ questionnaire when trial starts
+  const eqVersion = '1.0.0';
+  final eqInsertResult = await db.executeWithContext(
+    '''
+    INSERT INTO questionnaire_instances (
+      patient_id, questionnaire_type, status, study_event,
+      version, sent_by, sent_at, created_at, updated_at
+    )
+    VALUES (
+      @patientId, 'eq'::questionnaire_type, 'sent', 'Baseline',
+      @version, @sentBy, @sentAt, @sentAt, @sentAt
+    )
+    RETURNING id
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'version': eqVersion,
+      'sentBy': user.id,
+      'sentAt': now.toIso8601String(),
+    },
+    context: serviceContext,
+  );
+
+  final eqInstanceId = eqInsertResult.first[0] as String;
+  print('[PATIENT_LINKING] Created EQ questionnaire instance: $eqInstanceId');
+
+  // Send FCM notification to patient's device
+  String? fcmMessageId;
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendQuestionnaireNotification(
+          fcmToken: fcmToken,
+          questionnaireType: 'eq',
+          questionnaireInstanceId: eqInstanceId,
+          patientId: patientId,
+        );
+    fcmMessageId = notificationResult.messageId;
+
+    if (!notificationResult.success) {
+      print('[PATIENT_LINKING] FCM send failed: ${notificationResult.error}');
+    }
+  } else {
+    print(
+      '[PATIENT_LINKING] No FCM token found for patient $patientId. '
+      'Patient will discover questionnaire via sync.',
+    );
+  }
+
   // Log to admin_action_log for audit trail
   await db.executeWithContext(
     '''
@@ -1117,6 +1179,9 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
         'trial_started_at': now.toIso8601String(),
         'started_by_email': user.email,
         'started_by_name': user.name,
+        'eq_instance_id': eqInstanceId,
+        'eq_version': eqVersion,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Trial started for patient - EQ questionnaire sent',
       'ipAddress': clientIp,
@@ -1133,6 +1198,7 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
     'site_name': siteName,
     'trial_started': true,
     'trial_started_at': now.toIso8601String(),
+    'eq_instance_id': eqInstanceId,
   });
 }
 

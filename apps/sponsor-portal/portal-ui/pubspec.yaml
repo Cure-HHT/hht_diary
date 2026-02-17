@@ -5,7 +5,7 @@
 
 name: sponsor_portal_ui
 description: Clinical Trial Sponsor Web Portal
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.10.7

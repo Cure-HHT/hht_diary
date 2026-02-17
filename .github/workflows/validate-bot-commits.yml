@@ -44,12 +44,10 @@ jobs:
             echo "::notice::This commit was not made by a bot - skipping validation"
           fi
 
-      - name: Validate bot modified only allowed files
+      - name: Validate bot only modified INDEX.md
         if: steps.check_bot.outputs.is_bot == 'true'
         run: |
           echo "::group::Validating Bot Commit"
-
-          COMMIT_MESSAGE=$(git log -1 --format='%s')
 
           # Get list of changed files in the last commit
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
@@ -58,53 +56,32 @@ jobs:
           echo "$CHANGED_FILES"
           echo ""
 
-          # Check if any files were changed
+          # Check if any files other than spec/INDEX.md were changed
           if [ -z "$CHANGED_FILES" ]; then
             echo "::error::Bot commit changed no files. This is unexpected."
             exit 1
           fi
 
-          # Determine allowed file patterns based on bot type
-          VALID=true
-
-          if [[ "$COMMIT_MESSAGE" == *"bump build numbers"* ]]; then
-            # Version bump bot: only pubspec.yaml files allowed
-            echo "Bot type: version-bump (allowed: */pubspec.yaml)"
-            while IFS= read -r file; do
-              if [[ "$file" != */pubspec.yaml ]]; then
-                echo "::error::  ❌ Not allowed: $file"
-                VALID=false
-              fi
-            done <<< "$CHANGED_FILES"
-          elif [[ "$COMMIT_MESSAGE" == *"Claim"* ]] || [[ "$COMMIT_MESSAGE" == *"INDEX"* ]]; then
-            # Requirement claim bot: only spec/INDEX.md allowed
-            echo "Bot type: requirement-claim (allowed: spec/INDEX.md)"
-            if [ "$CHANGED_FILES" != "spec/INDEX.md" ]; then
-              VALID=false
-              echo "$CHANGED_FILES" | while read -r file; do
-                echo "::error::  ❌ Not allowed: $file"
-              done
-            fi
-          else
-            # Unknown bot type: only spec/INDEX.md allowed (default)
-            echo "Bot type: unknown (default allowed: spec/INDEX.md)"
-            if [ "$CHANGED_FILES" != "spec/INDEX.md" ]; then
-              VALID=false
-              echo "$CHANGED_FILES" | while read -r file; do
-                echo "::error::  ❌ Not allowed: $file"
-              done
-            fi
-          fi
-
-          if [ "$VALID" = false ]; then
-            echo "::error::❌ SECURITY VIOLATION: Bot commit modified files outside its allowed scope"
+          # Check if only spec/INDEX.md was changed
+          if [ "$CHANGED_FILES" != "spec/INDEX.md" ]; then
+            echo "::error::❌ SECURITY VIOLATION: Bot commit modified files other than spec/INDEX.md"
             echo "::error::"
-            echo "::error::Each bot type has a specific set of files it may modify."
+            echo "::error::Bot commits are only allowed to modify spec/INDEX.md"
+            echo "::error::This commit modified:"
+            echo "$CHANGED_FILES" | while read -r file; do
+              echo "::error::  - $file"
+            done
+            echo "::error::"
+            echo "::error::If you need a bot that modifies other files, you must:"
+            echo "::error::  1. Create a dedicated workflow with specific validation"
+            echo "::error::  2. Update this validation workflow to allow the new bot"
+            echo "::error::  3. Document the security implications"
+            echo "::error::"
             echo "::error::This prevents accidental or malicious use of bypass tokens to circumvent branch protection."
             exit 1
           fi
 
-          echo "✅ Bot commit validation passed"
+          echo "✅ Bot commit validation passed - only spec/INDEX.md was modified"
           echo "::endgroup::"
 
       - name: Summary

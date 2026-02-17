@@ -494,11 +494,120 @@ else
 fi
 
 # =====================================================
-# 8. Auto-Bump Version (moved to CI/CD)
+# 8. Auto-Bump Build Numbers (+N in pubspec.yaml)
 # =====================================================
-# Build number bumping (+N in pubspec.yaml) is now handled by
-# .github/workflows/version-bump.yml on PR merge to main.
-# This covers all Dart/Flutter projects, not just clinical_diary.
+#
+# Detects which Dart/Flutter projects have source changes
+# (including dependencies) and increments the +N build number.
+# Creates a commit with the bumped versions so the push
+# includes the updated build numbers.
+#
+# Project trigger paths include transitive dependencies:
+# e.g., a change in trial_data_types bumps clinical_diary.
+
+echo -e "${BLUE}Checking build number bumps...${NC}"
+echo ""
+
+# Determine changed files vs main
+BUMP_BASE_BRANCH="origin/main"
+if ! git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+    BUMP_BASE_BRANCH="main"
+fi
+
+BUMP_CHANGED_FILES=""
+if git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+    BUMP_CHANGED_FILES=$(git diff --name-only "$BUMP_BASE_BRANCH"...HEAD 2>/dev/null || true)
+fi
+
+if [ -n "$BUMP_CHANGED_FILES" ]; then
+    # Project definitions: name|pubspec_path|trigger_paths (space-separated)
+    # If ANY changed file starts with a trigger path, the project's
+    # build number is bumped. Dependencies included as trigger paths.
+    BUMP_PROJECTS=(
+        # Deployable apps
+        "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/ apps/common-dart/trial_data_types/ apps/common-dart/append_only_datastore/ apps/daily-diary/diary_functions/ apps/common-flutter/eq/"
+        "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/ apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/"
+        "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/ apps/daily-diary/diary_functions/ apps/common-dart/trial_data_types/ database/"
+        "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/ apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/ database/"
+        # Libraries
+        "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/"
+        "append_only_datastore|apps/common-dart/append_only_datastore/pubspec.yaml|apps/common-dart/append_only_datastore/"
+        "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/ apps/common-dart/trial_data_types/"
+        "portal_functions|apps/sponsor-portal/portal_functions/pubspec.yaml|apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/"
+        "eq|apps/common-flutter/eq/pubspec.yaml|apps/common-flutter/eq/ apps/common-dart/trial_data_types/"
+        "rave-integration|apps/edc/rave-integration/pubspec.yaml|apps/edc/rave-integration/"
+    )
+
+    BUMPED_LIST=""
+
+    for project_def in "${BUMP_PROJECTS[@]}"; do
+        IFS='|' read -r name pubspec triggers <<< "$project_def"
+
+        FULL_PUBSPEC="$REPO_ROOT/$pubspec"
+
+        # Skip if pubspec doesn't exist
+        if [ ! -f "$FULL_PUBSPEC" ]; then
+            continue
+        fi
+
+        # Check if any trigger path matches a changed file
+        should_bump=false
+        for trigger in $triggers; do
+            if echo "$BUMP_CHANGED_FILES" | grep -q "^${trigger}"; then
+                # Exclude pubspec.yaml and pubspec.lock from triggering (avoid circular bumps)
+                non_pubspec=$(echo "$BUMP_CHANGED_FILES" | grep "^${trigger}" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
+                if [ -n "$non_pubspec" ]; then
+                    should_bump=true
+                    break
+                fi
+            fi
+        done
+
+        if [ "$should_bump" = true ]; then
+            current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
+
+            # Parse base version (before +) and build number (after +)
+            base_version="${current%%+*}"
+            if [[ "$current" == *"+"* ]]; then
+                build_num="${current##*+}"
+            else
+                build_num=0
+            fi
+
+            new_build=$((build_num + 1))
+            new_version="${base_version}+${new_build}"
+
+            # Update pubspec.yaml (macOS sed requires -i '')
+            sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+
+            echo -e "  ${GREEN}$name: $current -> $new_version${NC}"
+            BUMPED_LIST="${BUMPED_LIST} ${name}"
+        fi
+    done
+
+    if [ -n "$BUMPED_LIST" ]; then
+        echo ""
+        echo -e "${BLUE}Committing build number bumps...${NC}"
+
+        # Stage only the pubspec.yaml files we modified
+        for project_def in "${BUMP_PROJECTS[@]}"; do
+            IFS='|' read -r name pubspec triggers <<< "$project_def"
+            if echo "$BUMPED_LIST" | grep -q "$name"; then
+                git add "$REPO_ROOT/$pubspec"
+            fi
+        done
+
+        git commit -m "Bump build numbers for${BUMPED_LIST}" --no-verify
+
+        echo -e "${GREEN}Build numbers bumped for:${BUMPED_LIST}${NC}"
+    else
+        echo -e "${BLUE}No projects need build number bumps${NC}"
+    fi
+else
+    echo -e "${BLUE}No changed files detected - skipping build number bumps${NC}"
+fi
+
+echo ""
 
 # =====================================================
 # 9. Handle Validation Results
