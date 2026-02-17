@@ -564,21 +564,13 @@ if [ -n "$BUMP_CHANGED_FILES" ]; then
         done
 
         if [ "$should_bump" = true ]; then
-            # Read current version
+            APP_DIR=$(dirname "$FULL_PUBSPEC")
             current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
 
-            # Parse base version and build number
-            base_version=$(echo "$current" | sed 's/+.*//')
-            build_num=$(echo "$current" | grep -oE '\+[0-9]+' | tr -d '+' || echo "0")
-            if [ -z "$build_num" ]; then build_num=0; fi
+            # Use dart pub bump build to increment the +N build number
+            (cd "$APP_DIR" && dart pub bump build) > /dev/null 2>&1
 
-            # Increment build number
-            new_build=$((build_num + 1))
-            new_version="${base_version}+${new_build}"
-
-            # Update pubspec.yaml
-            sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
-
+            new_version=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
             echo -e "  ${GREEN}$name: $current -> $new_version${NC}"
             BUMPED_LIST="${BUMPED_LIST} ${name}"
         fi
