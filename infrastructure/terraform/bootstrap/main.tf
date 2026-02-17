@@ -121,6 +121,25 @@ module "budgets" {
 }
 
 # -----------------------------------------------------------------------------
+# Billing Alert Functions - Moved to sponsor-portal for per-environment deployment
+# -----------------------------------------------------------------------------
+# module "billing_alerts" {
+#   source   = "../modules/billing-alert-funk"
+#   for_each = var.enable_cost_controls ? toset(local.environments) : toset([])
+#
+#   project_id            = module.projects[each.key].project_id
+#   project_number        = module.projects[each.key].project_number
+#   region                = var.default_region
+#   sponsor               = var.sponsor
+#   environment           = each.key
+#   budget_alert_topic_id = module.budgets[each.key].budget_alert_topic
+#   function_source_dir   = "${path.module}/../modules/billing-alert-funk/src"
+#   slack_webhook_url     = var.slack_incident_webhook_url
+#
+#   depends_on = [module.budgets]
+# }
+
+# -----------------------------------------------------------------------------
 # Audit Logs - FDA 21 CFR Part 11 Compliant
 # -----------------------------------------------------------------------------
 
@@ -149,6 +168,7 @@ module "cicd" {
 
   sponsor                  = var.sponsor
   host_project_id          = module.projects["dev"].project_id
+  host_project_number      = module.projects["dev"].project_number
   target_project_ids       = [for env in local.environments : module.projects[env].project_id]
   dev_qa_project_ids       = [module.projects["dev"].project_id, module.projects["qa"].project_id]
   uat_prod_project_ids     = [module.projects["uat"].project_id, module.projects["prod"].project_id]
@@ -159,6 +179,12 @@ module "cicd" {
 
   depends_on = [module.projects]
 }
+
+# Import existing WorkloadIdentityPool (created in a prior apply, not in state)
+# import {
+#   to = module.cicd.google_iam_workload_identity_pool.github[0]
+#   id = "projects/callisto4-dev/locations/global/workloadIdentityPools/callisto4-github-pool"
+# }
 
 # -----------------------------------------------------------------------------
 # Cloud SQL Database - One per Environment

@@ -34,6 +34,25 @@ locals {
 # Enable Required APIs
 # -----------------------------------------------------------------------------
 
+<<<<<<< HEAD
+locals {
+  required_apis = toset([
+    "gmail.googleapis.com",
+    "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "networkservices.googleapis.com",
+    "sqladmin.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "compute.googleapis.com",
+  ])
+}
+
+resource "google_project_service" "apis" {
+  for_each = local.required_apis
+
+  project = var.project_id
+  service = each.value
+=======
 resource "google_project_service" "required_apis" {
   for_each = toset([
     "billingbudgets.googleapis.com",   # Cloud Billing Budgets
@@ -42,10 +61,10 @@ resource "google_project_service" "required_apis" {
     "gmail.googleapis.com",            # Gmail API (email OTP/notifications)
     "iam.googleapis.com",              # Identity & Access Management
     "iamcredentials.googleapis.com",   # Service account credentials
-    "identitytoolkit.googleapis.com",  # Identity Platform (required as caller's project)
     "networkservices.googleapis.com",  # Network Services
     "sqladmin.googleapis.com",         # Cloud SQL Admin
   ])
+>>>>>>> 89e55b8 ([CUR-651] BLOCKED without privies to unravel. Implements: REQ-o00001.)
 
   project                    = var.project_id
   service                    = each.value
@@ -77,7 +96,11 @@ resource "google_service_account" "gmail" {
   description  = "Sends email OTP codes and activation emails via Gmail API with domain-wide delegation. Used by all sponsor projects."
   project      = var.project_id
 
+<<<<<<< HEAD
+  depends_on = [google_project_service.apis["iam.googleapis.com"]]
+=======
   depends_on = [google_project_service.required_apis]
+>>>>>>> 89e55b8 ([CUR-651] BLOCKED without privies to unravel. Implements: REQ-o00001.)
 }
 
 # -----------------------------------------------------------------------------
