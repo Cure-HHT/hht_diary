@@ -1,142 +1,203 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
-// Tests for StartTrialDialog widget
+// Widget tests for StartTrialDialog confirm/success/error/retry states.
 
+import 'dart:convert';
+
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:sponsor_portal_ui/services/api_client.dart';
+import 'package:sponsor_portal_ui/services/auth_service.dart';
 import 'package:sponsor_portal_ui/widgets/start_trial_dialog.dart';
+
+MockClient _createMockHttpClient({bool shouldFail = false}) {
+  return MockClient((request) async {
+    final path = request.url.path;
+
+    // GET /api/v1/portal/me
+    if (path == '/api/v1/portal/me' && request.method == 'GET') {
+      return http.Response(
+        jsonEncode({
+          'id': 'user-001',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'status': 'active',
+          'roles': ['Investigator'],
+          'active_role': 'Investigator',
+          'mfa_type': 'email_otp',
+          'email_otp_required': true,
+          'sites': [],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    // POST /start-trial
+    if (path.contains('/start-trial') && request.method == 'POST') {
+      if (shouldFail) {
+        return http.Response(
+          jsonEncode({'error': 'Patient not linked'}),
+          400,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'trial_started_at': '2026-01-15T10:30:00Z',
+          'status': 'active',
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    return http.Response('Not found', 404);
+  });
+}
+
+Future<ApiClient> _createMockApiClient({bool shouldFail = false}) async {
+  final mockUser = MockUser(
+    uid: 'test-uid',
+    email: 'test@example.com',
+    displayName: 'Test User',
+  );
+  final mockFirebaseAuth = MockFirebaseAuth(mockUser: mockUser, signedIn: true);
+  final mockHttpClient = _createMockHttpClient(shouldFail: shouldFail);
+  final authService = AuthService(
+    firebaseAuth: mockFirebaseAuth,
+    httpClient: mockHttpClient,
+  );
+  await authService.signIn('test@example.com', 'password');
+  return ApiClient(authService, httpClient: mockHttpClient);
+}
+
+Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => StartTrialDialog(
+                  patientId: 'PAT-TEST-001',
+                  patientDisplayId: '999-002-320',
+                  apiClient: apiClient,
+                ),
+              );
+            });
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump();
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group('StartTrialDialog', () {
-    group('widget structure', () {
-      test(
-        'StartTrialDialog class exists and has required constructor parameters',
-        () {
-          // Verify the class exists and can be instantiated (will fail without context)
-          expect(
-            () => StartTrialDialog(
-              patientId: 'test-patient-id',
-              patientDisplayId: 'TEST-001',
-              apiClient: throw UnimplementedError(), // Can't test without mock
-            ),
-            throwsA(isA<UnimplementedError>()),
-          );
-        },
-      );
+    testWidgets('confirm state shows patient ID and Send EQ button', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
 
-      test('show static method signature is correct', () {
-        // This test verifies the method signature by checking it exists
-        // The actual method requires BuildContext, so we can't call it directly
-        expect(StartTrialDialog.show, isA<Function>());
-      });
+      await _pumpDialog(tester, apiClient);
+
+      expect(find.textContaining('999-002-320'), findsWidgets);
+      expect(find.text('Send EQ'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      expect(find.textContaining('EQ questionnaire'), findsWidgets);
     });
 
-    group('UI elements requirements', () {
-      test('dialog should contain patient ID display per spec', () {
-        // Per plan: Patient ID display should be shown
-        // This is a documentation test - actual UI test requires widget testing
-        const expectedPatientId = 'TEST-001';
-        expect(expectedPatientId, isNotEmpty);
-      });
+    testWidgets('confirm state shows Sync Enabled notice', (tester) async {
+      final apiClient = await _createMockApiClient();
 
-      test('dialog should show EQ message per spec', () {
-        // Per plan: Message about sending EQ questionnaire
-        const expectedMessage =
-            'This will send the EQ questionnaire to the patient\'s mobile app.';
-        expect(expectedMessage, contains('EQ questionnaire'));
-      });
+      await _pumpDialog(tester, apiClient);
 
-      test('dialog should include sync notice per spec', () {
-        // Per plan: "Sync Enabled" notice
-        const expectedNotice =
-            'From now on, Epistaxis questionnaire will be recorded and answers will be synced to the portal.';
-        expect(expectedNotice, contains('synced'));
-      });
-
-      test('confirm button should be labeled "Send EQ" per spec', () {
-        // Per plan: "Send EQ" button to confirm
-        const expectedButtonLabel = 'Send EQ';
-        expect(expectedButtonLabel, equals('Send EQ'));
-      });
+      expect(find.text('Sync Enabled'), findsOneWidget);
+      expect(find.byIcon(Icons.sync), findsOneWidget);
+      expect(find.textContaining('Epistaxis questionnaire'), findsOneWidget);
     });
 
-    group('API endpoint', () {
-      test('API endpoint path matches routes.dart', () {
-        // The endpoint should be: /api/v1/portal/patients/:patientId/start-trial
-        const endpoint = '/api/v1/portal/patients/{patientId}/start-trial';
-        expect(endpoint, contains('start-trial'));
-        expect(endpoint, contains('patients'));
-      });
+    testWidgets('tapping Send EQ shows success state', (tester) async {
+      final apiClient = await _createMockApiClient();
 
-      test('API method should be POST', () {
-        // Start trial uses POST method
-        const method = 'POST';
-        expect(method, equals('POST'));
-      });
+      await _pumpDialog(tester, apiClient);
 
-      test('request body should be empty per spec', () {
-        // Per plan: Body: {} (empty body)
-        final requestBody = <String, dynamic>{};
-        expect(requestBody, isEmpty);
-      });
+      await tester.tap(find.text('Send EQ'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Trial Started'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(find.text('Trial Active'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
 
-    group('dialog state transitions', () {
-      test('dialog should have 4 states per pattern', () {
-        // Per existing pattern: confirm, loading, success, error
-        const states = ['confirm', 'loading', 'success', 'error'];
-        expect(states.length, 4);
-      });
+    testWidgets('success state shows started-at info', (tester) async {
+      final apiClient = await _createMockApiClient();
 
-      test('initial state should be confirm', () {
-        // Dialog starts in confirm state
-        const initialState = 'confirm';
-        expect(initialState, equals('confirm'));
-      });
+      await _pumpDialog(tester, apiClient);
 
-      test(
-        'success state should show "Trial started successfully" message',
-        () {
-          // Per plan: Success state shows confirmation
-          const successMessage = 'Trial has been started';
-          expect(successMessage, contains('started'));
-        },
-      );
+      await tester.tap(find.text('Send EQ'));
+      await tester.pumpAndSettle();
 
-      test('error state should allow retry', () {
-        // Per pattern: Error state has "Try Again" button
-        const retryButton = 'Try Again';
-        expect(retryButton, equals('Try Again'));
-      });
+      expect(find.text('Started at'), findsOneWidget);
+      expect(find.textContaining('Data sync is now enabled'), findsOneWidget);
     });
 
-    group('response handling', () {
-      test('success response contains expected fields', () {
-        // Expected success response structure from backend
-        final successResponse = {
-          'success': true,
-          'patient_id': 'test-patient-id',
-          'site_id': 'test-site-id',
-          'site_name': 'Test Site',
-          'trial_started': true,
-          'trial_started_at': '2026-02-04T14:00:00.000Z',
-        };
+    testWidgets('error state shows error message and Try Again', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient(shouldFail: true);
 
-        expect(successResponse['success'], isTrue);
-        expect(successResponse['trial_started'], isTrue);
-        expect(successResponse['trial_started_at'], isA<String>());
-      });
+      await _pumpDialog(tester, apiClient);
 
-      test('error response contains error field', () {
-        // Expected error response structure
-        final errorResponse = {
-          'error': 'Patient must be in "connected" status to start trial',
-        };
+      await tester.tap(find.text('Send EQ'));
+      await tester.pumpAndSettle();
 
-        expect(errorResponse['error'], isA<String>());
-      });
+      expect(find.text('Error'), findsOneWidget);
+      expect(find.byIcon(Icons.error), findsOneWidget);
+      expect(find.text('Patient not linked'), findsOneWidget);
+      expect(find.text('Try Again'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+    });
+
+    testWidgets('Try Again returns to confirm state', (tester) async {
+      final apiClient = await _createMockApiClient(shouldFail: true);
+
+      await _pumpDialog(tester, apiClient);
+
+      await tester.tap(find.text('Send EQ'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Try Again'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Start Trial'), findsOneWidget);
+      expect(find.text('Send EQ'), findsOneWidget);
+    });
+
+    testWidgets('Cancel button closes dialog', (tester) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Start Trial'), findsNothing);
     });
   });
 }

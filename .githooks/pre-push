@@ -494,49 +494,11 @@ else
 fi
 
 # =====================================================
-# 8. Auto-Bump Clinical Diary Version
+# 8. Auto-Bump Version (moved to CI/CD)
 # =====================================================
-# If clinical_diary source files changed in the HEAD commit, bump patch version
-# Only checks the HEAD commit to avoid spurious bumps after rebases
-
-# Get files changed in HEAD commit only (not the full push range)
-HEAD_CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
-
-# Check if clinical_diary source files changed (excluding pubspec.yaml to avoid circular bumps)
-CLINICAL_DIARY_CHANGED=$(echo "$HEAD_CHANGED_FILES" | grep "^apps/daily-diary/clinical_diary/" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
-
-if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
-    echo -e "${BLUE}Bumping clinical_diary version...${NC}"
-    echo "  Changed files:"
-    echo "$CLINICAL_DIARY_CHANGED" | sed 's/^/    /'
-
-    PUBSPEC="$REPO_ROOT/apps/daily-diary/clinical_diary/pubspec.yaml"
-
-    if [ -f "$PUBSPEC" ]; then
-        # Get current version
-        CURRENT_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
-        echo "  Current version: $CURRENT_VERSION"
-
-        # Bump patch version
-        (cd "$REPO_ROOT/apps/daily-diary/clinical_diary" && dart pub bump patch)
-
-        # Get new version
-        NEW_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
-        echo "  New version: $NEW_VERSION"
-
-        # Stage the updated pubspec.yaml
-        git add "$PUBSPEC"
-
-        # Amend the last commit to include the version bump
-        git commit --amend --no-edit --no-verify
-
-        echo -e "${GREEN}Version bumped and commit amended${NC}"
-    fi
-    echo ""
-else
-    echo -e "${BLUE}No clinical_diary source changes in HEAD commit - skipping version bump${NC}"
-    echo ""
-fi
+# Build number bumping (+N in pubspec.yaml) is now handled by
+# .github/workflows/version-bump.yml on PR merge to main.
+# This covers all Dart/Flutter projects, not just clinical_diary.
 
 # =====================================================
 # 9. Handle Validation Results
