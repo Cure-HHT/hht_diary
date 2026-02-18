@@ -1,0 +1,77 @@
+name: Android DEV → Play Internal
+
+on:
+  push:
+    branches:
+      - dev
+
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+
+permissions:
+  contents: read
+  id-token: write   # REQUIRED for Workload Identity Federation
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PACKAGE_NAME: org.anspar.curehht.app.dev   # 🔁 Replace with your real package name
+      BUILD_SCRIPT: ./apps/daily-diary/clinical_diary/tool/build_android_dev.sh
+      APK_PATH: apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-dev-release.apk
+      TRACK: ${{ github.event.inputs.track || 'internal' }}
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup Java (required for Android build)
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # 3️⃣ Setup Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: stable
+
+      # 4️⃣ Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 5️⃣ Run your custom DEV build script
+      - name: Build Android DEV APK
+        run: |
+          chmod +x $BUILD_SCRIPT
+          bash $BUILD_SCRIPT
+
+      # 6️⃣ Authenticate to Google Cloud (WIF)
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # 7️⃣ Upload APK to Google Play Internal Track
+      - name: Upload APK to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: ${{ env.APK_PATH }}
+          track: ${{ env.TRACK }}
+          status: completed
+
+      # 8️⃣ Success message
+      - name: Done
+        run: echo "Successfully deployed APK to Play Internal track 🚀"
