@@ -3,8 +3,7 @@ stateDiagram-v2
     Sent --> InProgress: Patient opens questionnaire
     InProgress --> ReadyToReview: Patient completes and submits
     ReadyToReview --> InProgress: Patient edits after submission
-    ReadyToReview --> Finalized: Investigator approves (scored)
-    ReadyToReview --> Finalized: Auto-finalize (unscored)
+    ReadyToReview --> Finalized: Investigator finalizes
     Sent --> Deleted: Study coordinator deletes
     InProgress --> Deleted: Study coordinator deletes
     ReadyToReview --> Deleted: Study coordinator deletes
