@@ -1,26 +1,25 @@
 %%{init: {'flowchart': {'htmlLabels': true, 'arrowMarkerAbsolute': true}, 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 50}}}%%
     flowchart TD
-    subgraph Portal ["<b style='font-size:18pt; color:white'>Sponsor Portal (Investigator)</b>"]
+    subgraph Portal ["<b style='font-size:18pt; color:white'>Sponsor Portal (Study Coordinator / Investigator)</b>"]
         A["<b style='font-size:18pt; color:white'>Investigator triggers<br/>push notification</b>"]
         P_S2(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Ready to Review</b>"])
         G{"<b style='font-size:18pt; color:white'>Review questionnaire</b>"}
         H["<b style='font-size:18pt; color:white'>Select: Finalize and Score</b>"]
-        I["<b style='font-size:18pt; color:white'>Select: Unlock for Editing</b>"]
         J["<b style='font-size:18pt; color:white'>Score calculated and stored</b>"]
         P_S3(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Finalized</b>"])
+        DEL["<b style='font-size:18pt; color:white'>Study coordinator<br/>deletes questionnaire</b>"]
+        P_DEL(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Deleted</b>"])
     end
 
     subgraph Diary ["<b style='font-size:18pt; color:white'>Diary App (Patient)</b>"]
         B["<b style='font-size:18pt; color:white'>Patient receives<br/>push notification</b>"]
-        D_S1(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Active</b>"])
+        D_S1(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Sent</b>"])
         C["<b style='font-size:18pt; color:white'>Patient completes<br/>questionnaire</b>"]
         D{"<b style='font-size:18pt; color:white'>Scored<br/>questionnaire?</b>"}
         E["<b style='font-size:18pt; color:white'>Review answers<br/>before scoring</b>"]
         F["<b style='font-size:18pt; color:white'>Select: Complete and Submit</b>"]
-        D_S2(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Read-only</b>"])
-        D_S4(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Review</b>"])
-        K["<b style='font-size:18pt; color:white'>Questionnaire unlocked<br/>for editing</b>"]
-        L["<b style='font-size:18pt; color:white'>Patient reviews and<br/>updates answers</b>"]
+        D_S2(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Ready to Review</b>"])
+        EDIT["<b style='font-size:18pt; color:white'>Patient edits answers<br/>(any time before finalization)</b>"]
         D_S3(["<b style='font-size:18pt; color:white'>Questionnaire Status:<br/>Read-only permanent</b>"])
     end
 
@@ -35,21 +34,26 @@
     D_S2 -.->|<b style='font-size:18pt; color:white; background:none'>sync</b>| P_S2
     P_S2 ==> G
     G ==> H
-    G ==> I
     H ==> J
     J ==> P_S3
     P_S3 -.->|<b style='font-size:18pt; color:white; background:none'>sync</b>| D_S3
-    I ==> D_S4
-    D_S4 ==> K
-    K ==> L
-    L ==> F
+
+    %% Patient can edit at any time before finalization
+    D_S2 -.->|<b style='font-size:18pt; color:white; background:none'>patient edits</b>| EDIT
+    EDIT ==>|<b style='font-size:18pt; color:white; background:none'>returns to In Progress</b>| C
+
+    %% Delete available from Sent, In Progress, Ready to Review
+    D_S1 -.->|<b style='font-size:18pt; color:white; background:none'>delete</b>| DEL
+    C -.->|<b style='font-size:18pt; color:white; background:none'>delete</b>| DEL
+    D_S2 -.->|<b style='font-size:18pt; color:white; background:none'>delete</b>| DEL
+    DEL ==> P_DEL
 
     %% Portal nodes - blue theme
     style A fill:#1565c0,color:#ffffff,stroke:#0d47a1,stroke-width:4px
     style G fill:#1976d2,color:#ffffff,stroke:#0d47a1,stroke-width:4px
     style H fill:#1565c0,color:#ffffff,stroke:#0d47a1,stroke-width:4px
-    style I fill:#1565c0,color:#ffffff,stroke:#0d47a1,stroke-width:4px
     style J fill:#0d47a1,color:#ffffff,stroke:#0d47a1,stroke-width:4px
+    style DEL fill:#b71c1c,color:#ffffff,stroke:#880e4f,stroke-width:4px
 
     %% Diary nodes - orange theme
     style B fill:#ef6c00,color:#ffffff,stroke:#e65100,stroke-width:4px
@@ -57,18 +61,17 @@
     style D fill:#ff9800,color:#000000,stroke:#e65100,stroke-width:4px
     style E fill:#f57c00,color:#ffffff,stroke:#e65100,stroke-width:4px
     style F fill:#ef6c00,color:#ffffff,stroke:#e65100,stroke-width:4px
-    style K fill:#f57c00,color:#ffffff,stroke:#e65100,stroke-width:4px
-    style L fill:#f57c00,color:#ffffff,stroke:#e65100,stroke-width:4px
+    style EDIT fill:#f57c00,color:#ffffff,stroke:#e65100,stroke-width:4px
 
     %% Status nodes - Diary side
     style D_S1 fill:#2e7d32,color:#ffffff,stroke:#1b5e20,stroke-width:4px
     style D_S2 fill:#f9a825,color:#000000,stroke:#f57f17,stroke-width:4px
     style D_S3 fill:#c62828,color:#ffffff,stroke:#b71c1c,stroke-width:4px
-    style D_S4 fill:#0277bd,color:#ffffff,stroke:#01579b,stroke-width:4px
 
     %% Status nodes - Portal side
     style P_S2 fill:#f9a825,color:#000000,stroke:#f57f17,stroke-width:4px
     style P_S3 fill:#c62828,color:#ffffff,stroke:#b71c1c,stroke-width:4px
+    style P_DEL fill:#616161,color:#ffffff,stroke:#424242,stroke-width:4px
 
     %% Make all arrow heads bigger by increasing stroke width
     linkStyle default stroke:#ffffff,stroke-width:4px

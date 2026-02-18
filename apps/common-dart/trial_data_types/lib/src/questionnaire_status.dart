@@ -4,10 +4,12 @@
 
 /// Status of a questionnaire instance in its lifecycle.
 ///
-/// Lifecycle per REQ-CAL-p00023:
-///   Not Sent -> Sent -> In Progress -> Ready to Review -> Finalized -> Not Sent
+/// Lifecycle per REQ-p01064:
+///   Not Sent -> Sent -> In Progress -> Ready to Review -> Finalized
+///   Ready to Review -> In Progress (patient edits after submission)
 ///
-/// Delete is allowed at any status before finalization (REQ-CAL-p00023-F/I).
+/// Patient can edit at any status before finalization (REQ-p01064-H).
+/// Delete is allowed at any status after sending and before finalization (REQ-p01064-M/N).
 enum QuestionnaireStatus {
   /// Questionnaire has not been sent to the patient yet
   notSent('not_sent', 'Not Sent'),
@@ -41,11 +43,13 @@ enum QuestionnaireStatus {
   }
 
   /// Whether the questionnaire can be deleted at this status.
-  /// Per REQ-CAL-p00023-I: deletion is NOT allowed after finalization.
-  bool get canDelete => this != QuestionnaireStatus.finalized;
+  /// Per REQ-p01064-M/N: deletion is allowed after sending, NOT after finalization.
+  bool get canDelete =>
+      this != QuestionnaireStatus.notSent &&
+      this != QuestionnaireStatus.finalized;
 
   /// Whether the patient can edit responses at this status.
-  /// Per REQ-CAL-p00023-M: editable until finalized.
+  /// Per REQ-p01064-H: patient can edit any time before finalization.
   bool get canEdit =>
       this == QuestionnaireStatus.sent ||
       this == QuestionnaireStatus.inProgress ||
