@@ -122,6 +122,13 @@ variable "enable_cost_controls" {
   default     = true
 }
 
+variable "slack_incident_webhook_url" {
+  description = "Slack webhook URL for billing alert notifications (from Doppler)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # -----------------------------------------------------------------------------
 # Audit Log Configuration
 # -----------------------------------------------------------------------------

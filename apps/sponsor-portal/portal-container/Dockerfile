@@ -35,7 +35,7 @@ WORKDIR /app/apps/sponsor-portal/portal-ui
 # APP_VERSION is extracted from pubspec.yaml so it's always in sync
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN flutter pub get && \
-    APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //;s/+.*//') && \
+    APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
     flutter build web --release \
       --dart-define=APP_FLAVOR=prod \
       --dart-define=APP_VERSION="$APP_VERSION" \

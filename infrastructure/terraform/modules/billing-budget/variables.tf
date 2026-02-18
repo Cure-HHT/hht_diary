@@ -74,8 +74,3 @@ variable "enable_cost_controls" {
   default     = true
 }
 
-variable "cost_control_threshold" {
-  description = "Threshold (0.0-2.0) at which to trigger cost control actions (e.g., 1.0 = 100%)"
-  type        = number
-  default     = 1.0
-}

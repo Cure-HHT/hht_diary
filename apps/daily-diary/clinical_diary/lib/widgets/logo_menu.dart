@@ -55,7 +55,9 @@ class _LogoMenuState extends State<LogoMenu> {
       final packageInfo = await PackageInfo.fromPlatform();
       if (mounted) {
         setState(() {
-          _version = packageInfo.version;
+          _version = packageInfo.buildNumber.isNotEmpty
+              ? '${packageInfo.version}+${packageInfo.buildNumber}'
+              : packageInfo.version;
         });
       }
     } catch (e) {

@@ -26,6 +26,22 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
+# Enable Required APIs
+# -----------------------------------------------------------------------------
+
+resource "google_project_service" "required_apis" {
+  for_each = toset([
+    "billingbudgets.googleapis.com",
+    "pubsub.googleapis.com",
+    "iam.googleapis.com",
+  ])
+
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
+# -----------------------------------------------------------------------------
 # Pub/Sub Topic for Cost Control Actions
 # -----------------------------------------------------------------------------
 
@@ -39,6 +55,9 @@ resource "google_pubsub_topic" "budget_alerts" {
     environment = var.environment
     purpose     = "budget-alerts"
   }
+  depends_on = [
+    google_project_service.required_apis
+  ]
 }
 
 # -----------------------------------------------------------------------------
@@ -95,57 +114,7 @@ resource "google_billing_budget" "main" {
       disable_default_iam_recipients   = var.disable_default_notifications
     }
   }
-}
-
-# -----------------------------------------------------------------------------
-# Cloud Function to Stop Services (Non-Production Only)
-# -----------------------------------------------------------------------------
-#
-# When budget threshold is exceeded, this function stops Cloud Run services
-# to prevent further costs. Production environments should NOT auto-stop
-# (use alerts and manual intervention instead).
-#
-# Note: This creates the infrastructure. The actual function code should be
-# deployed via CI/CD. See tools/cost-control/ for the function source.
-
-resource "google_service_account" "cost_control" {
-  count        = var.enable_cost_controls && !local.is_production ? 1 : 0
-  account_id   = "${var.sponsor}-${var.environment}-cost-ctrl"
-  display_name = "Cost Control Function - ${var.sponsor} ${var.environment}"
-  project      = var.project_id
-}
-
-# Allow the function to stop Cloud Run services
-resource "google_project_iam_member" "cost_control_run_admin" {
-  count   = var.enable_cost_controls && !local.is_production ? 1 : 0
-  project = var.project_id
-  role    = "roles/run.admin"
-  member  = "serviceAccount:${google_service_account.cost_control[0].email}"
-}
-
-# Allow the function to be invoked by Pub/Sub
-resource "google_project_iam_member" "cost_control_invoker" {
-  count   = var.enable_cost_controls && !local.is_production ? 1 : 0
-  project = var.project_id
-  role    = "roles/cloudfunctions.invoker"
-  member  = "serviceAccount:${google_service_account.cost_control[0].email}"
-}
-
-# Pub/Sub subscription for the cost control function
-resource "google_pubsub_subscription" "cost_control" {
-  count   = var.enable_cost_controls && !local.is_production ? 1 : 0
-  name    = "${var.sponsor}-${var.environment}-cost-control-sub"
-  topic   = google_pubsub_topic.budget_alerts[0].name
-  project = var.project_id
-
-  # Filter to only trigger on actual overspend, not forecasts
-  filter = "attributes.costIntervalStart != \"\""
-
-  ack_deadline_seconds = 60
-
-  labels = {
-    sponsor     = var.sponsor
-    environment = var.environment
-    purpose     = "cost-control"
-  }
+  depends_on = [
+    google_project_service.required_apis
+  ]
 }
