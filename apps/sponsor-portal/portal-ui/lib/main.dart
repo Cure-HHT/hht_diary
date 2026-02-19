@@ -19,6 +19,7 @@ import 'flavors.dart';
 import 'router/app_router.dart';
 import 'services/auth_service.dart';
 import 'services/identity_config_service.dart';
+import 'services/sponsor_branding_service.dart';
 import 'theme/portal_theme.dart';
 
 void main() async {
@@ -80,6 +81,15 @@ void main() async {
 
   debugPrint('Running with flavor: ${F.name} (${F.title})');
 
+  // Fetch sponsor branding (non-fatal: use fallback if unavailable)
+  var sponsorBranding = SponsorBrandingConfig.fallback;
+  try {
+    sponsorBranding = await SponsorBrandingService().fetchBranding();
+    debugPrint('Sponsor branding loaded: ${sponsorBranding.title}');
+  } catch (e) {
+    debugPrint('Sponsor branding unavailable, using fallback: $e');
+  }
+
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
@@ -107,18 +117,23 @@ void main() async {
     }
   }
 
-  runApp(const CarinaPortalApp());
+  runApp(CarinaPortalApp(branding: sponsorBranding));
 }
 
 class CarinaPortalApp extends StatelessWidget {
-  const CarinaPortalApp({super.key});
+  final SponsorBrandingConfig branding;
+
+  const CarinaPortalApp({super.key, required this.branding});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthService())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        Provider<SponsorBrandingConfig>.value(value: branding),
+      ],
       child: MaterialApp.router(
-        title: F.title,
+        title: branding.title,
         theme: portalTheme,
         routerConfig: appRouter,
         debugShowCheckedModeBanner: F.showBanner,

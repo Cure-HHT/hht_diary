@@ -242,6 +242,12 @@ terraform.rc
 tools/one-time-migrations/
 
 # =====================================
+# SPONSOR CONTENT (build-time staging)
+# =====================================
+# Collected by tools/build/collect-sponsor-content.sh from sponsor repos
+sponsor-content/
+
+# =====================================
 # LOCAL DEV FILES
 # =====================================
 .mcp.json
