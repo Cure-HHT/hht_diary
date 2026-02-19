@@ -4,8 +4,14 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00035: User Management API
 
+import 'dart:convert';
+
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
+import 'package:sponsor_portal_ui/services/auth_service.dart';
 
 void main() {
   group('ApiResponse', () {
@@ -62,6 +68,81 @@ void main() {
       expect(response.data, isNull);
       expect(response.error, isNull);
       expect(response.isSuccess, isTrue);
+    });
+  });
+
+  group('ApiClient.delete', () {
+    test('sends DELETE request with body and returns success', () async {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+
+      String? capturedMethod;
+      String? capturedBody;
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        capturedMethod = request.method;
+        capturedBody = request.body;
+        return http.Response(
+          jsonEncode({'success': true}),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('test@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final response = await apiClient.delete(
+        '/api/v1/portal/patients/p1/questionnaires/q1',
+        body: {'reason': 'Test reason'},
+      );
+
+      expect(response.isSuccess, isTrue);
+      expect(capturedMethod, 'DELETE');
+      expect(capturedBody, contains('Test reason'));
+    });
+
+    test('returns 401 when not authenticated', () async {
+      final mockFirebaseAuth = MockFirebaseAuth(signedIn: false);
+      final mockHttpClient = MockClient((_) async => http.Response('', 500));
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final response = await apiClient.delete('/api/v1/test');
+
+      expect(response.isSuccess, isFalse);
+      expect(response.statusCode, 401);
+      expect(response.error, 'Not authenticated');
     });
   });
 }
