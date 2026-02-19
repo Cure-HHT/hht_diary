@@ -1,6 +1,6 @@
 {
-    "name": "Carina Clinical Trial Portal",
-    "short_name": "Carina Portal",
+    "name": "Clinical Trial Portal",
+    "short_name": "Portal",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

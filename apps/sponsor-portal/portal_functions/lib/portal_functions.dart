@@ -26,6 +26,7 @@ export 'src/database.dart';
 export 'src/health.dart';
 export 'src/identity_config.dart';
 export 'src/sponsor.dart';
+export 'src/sponsor_branding.dart';
 
 // EDC Integration
 export 'src/patients_sync.dart';

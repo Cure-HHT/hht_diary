@@ -35,6 +35,9 @@ Router createRouter() {
   router.get('/api/v1/sponsor/config', sponsorConfigHandler);
   router.get('/api/v1/sponsor/roles', sponsorRoleMappingsHandler);
 
+  // Sponsor branding (public, needed before auth for login page)
+  router.get('/api/v1/sponsor/branding', sponsorBrandingHandler);
+
   // Portal API routes (Identity Platform authenticated)
   // All portal routes require valid Firebase Auth ID token
   router.get('/api/v1/portal/me', portalMeHandler);

@@ -131,6 +131,9 @@ COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/se
 # Copy Flutter web build
 COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
 
+# Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
+COPY sponsor-content/ /app/sponsor-content/
+
 # Copy nginx configuration
 COPY apps/sponsor-portal/portal-container/nginx.conf /etc/nginx/nginx.conf
 
