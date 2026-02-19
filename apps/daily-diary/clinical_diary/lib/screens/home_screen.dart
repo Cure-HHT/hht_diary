@@ -18,6 +18,7 @@ import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
+import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
@@ -1150,8 +1151,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 taskService: widget.taskService,
                 onTaskTap: (task) {
                   // REQ-CAL-p00081-D: Navigate to relevant screen
-                  // TODO: Navigate to questionnaire screen when implemented
-                  debugPrint('[HomeScreen] Task tapped: ${task.title}');
+                  Navigator.of(context).push(
+                    AppPageRoute<void>(
+                      builder: (context) =>
+                          QuestionnairePlaceholderScreen(task: task),
+                    ),
+                  );
                 },
               ),
 

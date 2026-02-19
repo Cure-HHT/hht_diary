@@ -84,6 +84,7 @@ class _EnvironmentRibbon extends StatelessWidget {
 
   Color _getColor() {
     return switch (flavor) {
+      Flavor.local => Colors.green,
       Flavor.dev => Colors.orange,
       Flavor.qa => Colors.purple,
       Flavor.uat => Colors.blue,
@@ -93,6 +94,7 @@ class _EnvironmentRibbon extends StatelessWidget {
 
   String _getLabel() {
     return switch (flavor) {
+      Flavor.local => 'LOCAL',
       Flavor.dev => 'DEV',
       Flavor.qa => 'QA',
       Flavor.uat => 'UAT',

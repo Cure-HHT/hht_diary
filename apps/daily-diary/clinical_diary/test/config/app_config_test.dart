@@ -10,9 +10,15 @@ void main() {
     test('has all expected values', () {
       expect(
         Flavor.values,
-        containsAll([Flavor.dev, Flavor.qa, Flavor.uat, Flavor.prod]),
+        containsAll([
+          Flavor.local,
+          Flavor.dev,
+          Flavor.qa,
+          Flavor.uat,
+          Flavor.prod,
+        ]),
       );
-      expect(Flavor.values.length, 4);
+      expect(Flavor.values.length, 5);
     });
 
     test('name property returns correct strings', () {
@@ -187,7 +193,8 @@ void main() {
 
     group('all', () {
       test('contains all flavors', () {
-        expect(FlavorConfig.all.length, 4);
+        expect(FlavorConfig.all.length, 5);
+        expect(FlavorConfig.all, contains(FlavorConfig.local));
         expect(FlavorConfig.all, contains(FlavorConfig.dev));
         expect(FlavorConfig.all, contains(FlavorConfig.qa));
         expect(FlavorConfig.all, contains(FlavorConfig.uat));

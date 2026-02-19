@@ -90,8 +90,14 @@ class SponsorRegistry {
     return normalized.substring(0, 2);
   }
 
+  /// Compile-time override for backend URL.
+  /// When set (via --dart-define=BACKEND_URL=...), all sponsors
+  /// route to this server (local dev: one server serves all sponsors).
+  static const _backendUrlOverride = String.fromEnvironment('BACKEND_URL');
+
   /// Get the backend URL for a linking code in the given flavor.
   /// Extracts the prefix and looks up the URL from FlavorConfig.
+  /// Respects BACKEND_URL override for local development.
   static String getBackendUrlForCode(String code, Flavor flavor) {
     final prefix = extractPrefix(code);
 
@@ -104,7 +110,12 @@ class SponsorRegistry {
       );
     }
 
-    // Get URL from flavor config
+    // Local dev: all sponsors share one diary server
+    if (_backendUrlOverride.isNotEmpty) {
+      return _backendUrlOverride;
+    }
+
+    // Production: per-sponsor backend from flavor config
     final flavorConfig = FlavorConfig.byName(flavor.name);
     final url = flavorConfig.sponsorBackends[prefix];
     if (url == null) {

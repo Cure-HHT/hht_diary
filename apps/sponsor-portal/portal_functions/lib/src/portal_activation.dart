@@ -400,9 +400,8 @@ Future<Response> generateActivationCodeHandler(Request request) async {
       ? callerIdResult.first[0] as String
       : null;
 
-  // Build activation URL from environment
-  final portalUrl =
-      Platform.environment['PORTAL_URL'] ?? 'https://portal.example.com';
+  // Build activation URL from the portal origin the caller used
+  final portalUrl = _getPortalBaseUrl(request);
   final activationUrl = '$portalUrl/activate?code=$activationCode';
 
   // Send activation email if feature is enabled
@@ -452,6 +451,24 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     'email_sent': emailSent,
     'email_error': emailError,
   });
+}
+
+/// Extract portal base URL from request headers.
+/// Prefers Origin header (set by browser on CORS requests),
+/// falls back to Referer, then PORTAL_URL env var.
+String _getPortalBaseUrl(Request request) {
+  final origin = request.headers['origin'];
+  if (origin != null && origin.isNotEmpty) {
+    return origin;
+  }
+  final referer = request.headers['referer'];
+  if (referer != null && referer.isNotEmpty) {
+    final uri = Uri.tryParse(referer);
+    if (uri != null && uri.hasScheme && uri.hasAuthority) {
+      return '${uri.scheme}://${uri.authority}';
+    }
+  }
+  return Platform.environment['PORTAL_URL'] ?? 'http://localhost:8081';
 }
 
 /// Generate a random code in XXXXX-XXXXX format
