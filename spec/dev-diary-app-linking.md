@@ -16,6 +16,7 @@
 This specification defines the mobile app implementation details for linking to the Sponsor Portal. It covers linking code entry UI, token lifecycle management, error handling, enrollment state machine, and Study Start questionnaire integration.
 
 **Technology Stack**:
+
 - **Platform**: Flutter (iOS/Android)
 - **Secure Storage**: iOS Keychain / Android Keystore via flutter_secure_storage
 - **State Management**: Event sourcing with local-first architecture

@@ -10,6 +10,7 @@
 ## Executive Summary
 
 Rigorous clinical trials require proof of the validity of the data used. This includes:
+
 - **When** the data was collected
 - **Who** collected the data
 - **How** the data was collected
@@ -17,11 +18,13 @@ Rigorous clinical trials require proof of the validity of the data used. This in
 This specification defines the evidence collection mechanisms that establish data provenance for clinical trial diary entries. The system combines blockchain-based timestamp attestation with device fingerprinting, patient authentication, and identity verification to create a complete chain of evidence.
 
 **Business Value**:
+
 - **Regulatory Defense**: Evidence records provide proof that cannot be forged or backdated, strengthening the defensibility of clinical trial data in FDA audits
 - **Long-Term Archival**: Clinical trial data must be retained for 15-25 years; evidence must remain verifiable throughout this period
 - **Trust Amplification**: Self-asserted claims can be questioned; independent attestation removes doubt about data authenticity
 
 **Key Capabilities**:
+
 - Independent proof of data existence at time of recording (WHEN)
 - Device fingerprinting to establish collection method (HOW)
 - Patient authentication and identity verification (WHO)
@@ -33,11 +36,13 @@ This specification defines the evidence collection mechanisms that establish dat
 ## Regulatory Context
 
 FDA 21 CFR Part 11 requires audit trails that are:
+
 - Secure and computer-generated
 - Time-stamped in chronological order
 - Available for agency review and copying
 
 Third-party timestamps strengthen compliance by providing evidence that:
+
 - Timestamps cannot be forged even by system administrators
 - Data existence proofs are independently verifiable by regulators
 - Historical records remain authentic throughout retention periods
@@ -95,16 +100,27 @@ Self-asserted timestamps can be questioned during regulatory audits. Independent
 ## Assertions
 
 A. The system SHALL provide third-party timestamp attestation for clinical trial diary data.
+
 B. Timestamp attestation SHALL create independently verifiable proof that data existed at the time of recording.
+
 C. Timestamps SHALL be issued by entities independent of the clinical trial system.
+
 D. Timestamp proofs SHALL be cryptographically verifiable.
+
 E. Timestamp verification SHALL NOT require trust in any single party.
+
 F. Timestamps SHALL NOT be forgeable or backdatable.
+
 G. Timestamp proofs SHALL remain valid throughout the data retention period of 15-25 years.
+
 H. The system SHALL enable any timestamp to be independently verified by third parties.
+
 I. Timestamp verification SHALL produce cryptographic proof of minimum timestamp age.
+
 J. Timestamps SHALL be bound to specific data content such that any data modification invalidates the proof.
+
 K. Timestamp proof files SHALL be self-contained for regulatory review.
+
 L. Timestamp proof files SHALL be portable for regulatory review.
 
 *End* *Third-Party Timestamp Attestation Capability* | **Hash**: f2ab1f17
@@ -123,14 +139,23 @@ This requirement establishes Bitcoin blockchain as the cryptographic timestamp m
 ## Assertions
 
 A. The system SHALL use Bitcoin blockchain via OpenTimestamps protocol as the primary third-party timestamp mechanism.
+
 B. The system SHALL aggregate daily diary entries into single timestamp proofs.
+
 C. The system SHALL submit timestamp proofs to multiple independent calendar servers for redundancy.
+
 D. The system SHALL automatically complete timestamp proofs after Bitcoin confirmation.
+
 E. The system SHALL store timestamp proof files locally associated with timestamped data.
+
 F. The system SHALL support offline verification of timestamp proofs without network access.
+
 G. The system SHALL create daily aggregated proofs for all diary entries.
+
 H. Timestamp proofs SHALL complete within 24 hours of submission.
+
 I. Timestamp proof verification SHALL succeed without external network access.
+
 J. Timestamp proof files SHALL be portable for independent regulatory verification.
 
 *End* *Bitcoin-Based Timestamp Implementation* | **Hash**: 94499ad5
@@ -149,15 +174,25 @@ Timestamp proofs provide cryptographic evidence of when data existed, but this e
 ## Assertions
 
 A. The system SHALL provide verification capability for all timestamp proofs.
+
 B. The system SHALL enable users to verify timestamp proofs on-demand for any timestamped data.
+
 C. The system SHALL enable regulators to verify timestamp proofs on-demand for any timestamped data.
+
 D. The verification interface SHALL clearly indicate verification results as valid, invalid, or pending.
+
 E. The verification interface SHALL display the attested timestamp using Bitcoin block time.
+
 F. The verification interface SHALL enable verification without requiring specialized technical knowledge.
+
 G. The system SHALL provide export capability for verification evidence suitable for regulatory submissions.
+
 H. The system SHALL make verification available for any diary entry with timestamp proof.
+
 I. The verification interface SHALL communicate results clearly to non-technical users.
+
 J. The system SHALL generate verification reports that are exportable for regulatory documentation.
+
 K. The system SHALL clearly indicate the reason for failure when verification fails.
 
 *End* *Timestamp Verification Interface* | **Hash**: 9956bd94
@@ -176,14 +211,23 @@ Clinical trial data must be retained for 15-25 years per regulatory requirements
 ## Assertions
 
 A. The system SHALL archive all timestamp proofs alongside clinical trial data for the required retention period.
+
 B. The system SHALL store timestamp proofs durably with their associated diary data.
+
 C. The system SHALL include all timestamp proofs in data exports.
+
 D. The system SHALL include all timestamp proofs in data backups.
+
 E. Timestamp proofs SHALL remain valid independent of system availability.
+
 F. The system SHALL ensure timestamp proofs are retrievable for regulatory review at any time.
+
 G. The system SHALL preserve timestamp proofs through system migrations without corruption.
+
 H. The system SHALL preserve timestamp proofs through system upgrades without corruption.
+
 I. The system SHALL support retrieval of timestamp proofs independently of application availability.
+
 J. The system SHALL document the timestamp proof format to enable long-term interpretation.
 
 *End* *Timestamp Proof Archival* | **Hash**: 69a49395
@@ -202,13 +246,21 @@ Device fingerprinting establishes how data was collected by binding each submiss
 ## Assertions
 
 A. The system SHALL record a device fingerprint with each data submission.
+
 B. The system SHALL derive device fingerprints from device hardware attributes as unique, non-reversible identifiers.
+
 C. The system SHALL use one-way hash functions to generate device fingerprints.
+
 D. The system SHALL include the device fingerprint in the timestamped evidence record for each submission.
+
 E. The system SHALL generate consistent fingerprints across multiple sessions on the same device.
+
 F. The system SHALL enable independent verification that data originated from a specific device.
+
 G. The system SHALL NOT store raw device identifiers.
+
 H. The system SHALL NOT transmit raw device identifiers.
+
 I. Auditors SHALL be able to verify fingerprint consistency across a patient's submissions.
 
 *End* *Device Fingerprinting* | **Hash**: 8e10b85a
@@ -227,15 +279,25 @@ This requirement establishes the authentication framework for attributing clinic
 ## Assertions
 
 A. The system SHALL authenticate patients before data entry to establish privileged access to the enrolled device.
+
 B. The system SHALL use the device's native lock screen as the primary authentication mechanism.
+
 C. The system SHALL require an in-app PIN as a fallback authentication mechanism when the device lock screen is not enabled.
+
 D. The system SHALL detect whether the device has a lock screen enabled.
+
 E. The system SHALL detect device lock screen status at patient enrollment.
+
 F. The system SHALL periodically detect device lock screen status after enrollment.
+
 G. The system SHALL prompt patients to set an in-app PIN when the device lock screen is not enabled.
+
 H. The system SHALL allow Site Coordinators to send PIN reset notifications to patients.
+
 I. The system SHALL NOT allow Site Coordinators to view patient PINs.
+
 J. The system SHALL record authentication status with each data submission.
+
 K. The system SHALL log failed authentication attempts for audit purposes.
 
 *End* *Patient Authentication for Data Attribution* | **Hash**: da907239
@@ -254,18 +316,31 @@ Geolocation provides additional evidence of data collection context, strengtheni
 ## Assertions
 
 A. The system SHALL support optional geolocation tagging of data submissions.
+
 B. Geolocation tagging SHALL be disabled by default for all trials.
+
 C. Geolocation tagging SHALL require explicit Sponsor enablement on a per-trial basis.
+
 D. The system SHALL only collect geolocation data when device location services are available.
+
 E. The system SHALL only collect geolocation data when the patient has granted location permissions to the app.
+
 F. The system SHALL record location coordinates with each data submission when geolocation is enabled and permitted.
+
 G. Geolocation data SHALL be included in the timestamped evidence record when collected.
+
 H. The app SHALL request location permission from the patient with a clear explanation when geolocation is enabled for a trial.
+
 I. The system SHALL clearly inform patients when geolocation is being collected.
+
 J. The app SHALL display the geolocation collection status in the settings interface.
+
 K. The system SHALL allow data entry to proceed successfully when location data is unavailable due to denied permissions.
+
 L. The system SHALL allow data entry to proceed successfully when location data is unavailable due to disabled location services.
+
 M. Geolocation collection settings SHALL be configurable at the trial level.
+
 N. Geolocation collection settings SHALL be configurable at the Sponsor level.
 
 *End* *Optional Geolocation Tagging* | **Hash**: f9a69607
@@ -284,12 +359,19 @@ This requirement establishes a privacy-preserving identity verification mechanis
 ## Assertions
 
 A. The system SHALL record a hashed patient email address as an identity fingerprint with enrollment data.
+
 B. The system SHALL include the hashed email in the evidence record for each data submission.
+
 C. The system SHALL hash patient email using a standard, documented algorithm.
+
 D. The hashed email SHALL be recorded at enrollment and verifiable against submissions.
+
 E. The system SHALL enable Sponsors to retrieve the original email for auditor disclosure separate from the evidence record.
+
 F. The system SHALL allow auditors to independently hash a provided email and confirm it matches the stored hash value.
+
 G. The system SHALL support auditor contact with the patient via the verified email address.
+
 H. The hash algorithm SHALL be documented for long-term reproducibility.
 
 *End* *Hashed Email Identity Verification* | **Hash**: 0ba2d208

@@ -16,6 +16,7 @@
 This document specifies operational procedures and tooling for achieving, measuring, and maintaining SLA commitments defined in prd-SLA.md. Focus is on maximum automation suitable for a small development team.
 
 **Automation Philosophy**:
+
 - Automated measurement and alerting (no manual uptime tracking)
 - Automated customer communication (status page updates)
 - Automated escalation (on-call rotation and paging)
@@ -96,21 +97,37 @@ Service Level Objectives (SLOs) provide quantifiable targets for system reliabil
 ## Assertions
 
 A. The system SHALL define and track Service Level Objectives (SLOs) using GCP Cloud Monitoring.
+
 B. The system SHALL define a Portal Availability SLO with an SLI based on uptime check success rate.
+
 C. The Portal Availability SLO SHALL have a target of 99.9% over a rolling 30-day period.
+
 D. The Portal Availability SLO SHALL have an error budget of 43 minutes per month.
+
 E. The system SHALL define an API Availability SLO with an SLI based on Cloud Run request success rate (non-5xx responses).
+
 F. The API Availability SLO SHALL have a target of 99.9% over a rolling 30-day period.
+
 G. The API Availability SLO SHALL have an error budget of 43 minutes per month.
+
 H. The system SHALL define an API Latency SLO with an SLI based on Cloud Run response latency at the 95th percentile.
+
 I. The API Latency SLO SHALL have a target of 95% of requests completing in less than 500ms.
+
 J. The API Latency SLO SHALL be measured over a rolling 7-day period.
+
 K. The system SHALL define a Sync Success SLO with an SLI based on mobile sync API success rate.
+
 L. The Sync Success SLO SHALL have a target of 99.5% success rate.
+
 M. The Sync Success SLO SHALL be measured over a rolling 7-day period.
+
 N. SLOs SHALL be defined for all production services.
+
 O. Error budget dashboards SHALL be visible in the GCP Cloud Console.
+
 P. Burn rate alerts SHALL be configured for all defined SLOs.
+
 Q. Monthly SLO compliance data SHALL be exportable.
 
 *End* *SLO Definition and Tracking* | **Hash**: 819feadc
@@ -127,15 +144,25 @@ Multi-region uptime monitoring is essential for detecting both service outages a
 ## Assertions
 
 A. The system SHALL monitor the Portal service endpoint /health for availability.
+
 B. The system SHALL monitor the API service endpoint /api/health for availability.
+
 C. The system SHALL monitor the Auth service endpoint /auth/health for availability.
+
 D. Uptime checks SHALL execute at 60-second intervals for all monitored services.
+
 E. Uptime checks SHALL have a timeout of 10 seconds for all monitored services.
+
 F. Uptime checks SHALL be performed from three geographic regions: us-central1 (primary), us-east4 (secondary), and europe-west1 (EU compliance).
+
 G. The system SHALL trigger an immediate P0 alert when 2 consecutive failures occur from 2 or more regions.
+
 H. The system SHALL trigger a warning alert when a single failure occurs from any region.
+
 I. The system SHALL trigger a warning alert when endpoint latency exceeds 5 seconds.
+
 J. Alerts SHALL trigger within 2 minutes of an outage occurrence.
+
 K. The monitoring system SHALL maintain a false positive rate below 1%.
 
 *End* *Automated Uptime Monitoring* | **Hash**: d09940b2
@@ -152,25 +179,45 @@ On-call management automation is essential for ensuring rapid incident response 
 ## Assertions
 
 A. The on-call system SHALL maintain 24/7 coverage through automated schedule management.
+
 B. The on-call system SHALL support weekly rotation schedules with configurable handoff times.
+
 C. The on-call system SHALL maintain both primary and secondary on-call assignments.
+
 D. The on-call system SHALL support holiday and vacation override configurations.
+
 E. The on-call system SHALL implement a four-level escalation policy for incident response.
+
 F. The on-call system SHALL immediately notify the primary on-call responder for Level 1 escalation.
+
 G. The on-call system SHALL escalate to the secondary on-call responder after 10 minutes if unacknowledged.
+
 H. The on-call system SHALL escalate to the engineering lead after 20 minutes if unacknowledged.
+
 I. The on-call system SHALL escalate P0 incidents to the CTO after 30 minutes if unacknowledged.
+
 J. The on-call system SHALL support push notifications via mobile app as a notification channel.
+
 K. The on-call system SHALL support SMS as a notification channel.
+
 L. The on-call system SHALL support phone calls as a notification channel.
+
 M. The on-call system SHALL initiate phone calls for P0 incidents after 5 minutes if unacknowledged.
+
 N. The on-call system SHALL support email as a backup notification channel.
+
 O. The on-call system SHALL track alert acknowledgment times against response SLA targets.
+
 P. The on-call system SHALL automatically escalate alerts if not acknowledged within SLA timeframes.
+
 Q. The on-call system SHALL log all acknowledgment events for compliance reporting.
+
 R. The on-call system SHALL track response time per incident.
+
 S. The on-call system SHALL generate monthly on-call reports.
+
 T. The on-call system SHALL integrate with GCP Cloud Monitoring via events API.
+
 U. The on-call system SHALL create both alerts and incidents based on incoming events.
 
 *End* *On-Call Automation* | **Hash**: ceb37b43
@@ -187,20 +234,35 @@ This requirement ensures transparent communication with customers during service
 ## Assertions
 
 A. The system SHALL provide a customer-facing status page that displays real-time service status.
+
 B. The status page SHALL include monitoring components for Portal Application, Mobile Sync API, Authentication Service, and Database Services.
+
 C. The status page SHALL integrate with GCP Cloud Monitoring via webhook to receive automated updates.
+
 D. The status page SHALL automatically change component status to degraded or down when uptime check failures are detected.
+
 E. The status page SHALL automatically resolve component status when uptime checks pass.
+
 F. The status page SHALL provide email notifications to subscribers for all P0 and P1 incidents.
+
 G. The status page SHALL provide SMS notification capability for critical subscribers.
+
 H. The status page SHALL support webhook integrations for Slack and Teams to notify sponsor channels.
+
 I. The status page SHALL provide an RSS feed for automated consumption of status updates.
+
 J. The status page SHALL support incident templates including Investigating, Identified, Monitoring, and Resolved states.
+
 K. The status page SHALL create an incident timeline automatically when incidents are posted.
+
 L. The status page SHALL update within 5 minutes of outage detection.
+
 M. The status page SHALL automatically post all P0 incidents.
+
 N. The status page SHALL automatically post all P1 incidents.
+
 O. The status page SHALL achieve subscriber notification delivery rate greater than 99%.
+
 P. The status page SHALL retain incident history for at least 1 year.
 
 *End* *Automated Status Page* | **Hash**: b29ff754
@@ -217,26 +279,47 @@ This requirement establishes automated SLA compliance reporting to support regul
 ## Assertions
 
 A. The system SHALL generate monthly SLA compliance reports automatically.
+
 B. The system SHALL implement report generation using Cloud Scheduler and Cloud Functions.
+
 C. Reports SHALL include a monthly uptime percentage per service.
+
 D. Reports SHALL include total downtime minutes for the reporting period.
+
 E. Reports SHALL include incident count by severity.
+
 F. Reports SHALL include SLA compliance status indicating met or missed targets.
+
 G. Reports SHALL include a list of all incidents with severity, duration, and impact.
+
 H. Reports SHALL include response time compliance expressed as percentage within SLA.
+
 I. Reports SHALL include resolution time compliance expressed as percentage within SLA.
+
 J. Reports SHALL include month-over-month uptime comparison trend analysis.
+
 K. Reports SHALL include error budget consumption trend analysis.
+
 L. Reports SHALL include identification of recurring issues.
+
 M. Reports SHALL be generated in PDF format.
+
 N. Reports SHALL be generated on the 1st day of each month.
+
 O. Reports SHALL be generated by 6am on the 1st day of each month.
+
 P. The system SHALL email reports to sponsor contacts.
+
 Q. The system SHALL archive reports in Cloud Storage.
+
 R. Archived reports SHALL be retained for 7 years.
+
 S. Cloud Scheduler SHALL execute the SLA report job using the schedule `0 6 1 * *`.
+
 T. Cloud Scheduler SHALL invoke the URI endpoint '/admin/reports/sla-monthly' using HTTP POST method.
+
 U. Cloud Scheduler SHALL use OIDC authentication with the designated service account.
+
 V. The report format SHALL be approved by compliance before initial deployment.
 
 *End* *SLA Reporting Automation* | **Hash**: 6e4844d5
@@ -253,23 +336,41 @@ This requirement establishes automated incident severity classification to ensur
 ## Assertions
 
 A. The system SHALL automatically classify incident severity based on alert characteristics.
+
 B. The system SHALL classify uptime check failures affecting 2 or more regions as P0 Critical severity.
+
 C. The system SHALL classify API error rates exceeding 10% as P0 Critical severity.
+
 D. The system SHALL classify API error rates exceeding 5% but not exceeding 10% as P1 High severity.
+
 E. The system SHALL classify latency p95 exceeding 2 seconds as P1 High severity.
+
 F. The system SHALL classify single region failures as P2 Medium severity.
+
 G. The system SHALL classify non-critical service downtime as P2 Medium severity.
+
 H. The system SHALL classify performance degradation as P3 Low severity.
+
 I. The system SHALL allow on-call engineers to downgrade P0 Critical incidents classified from uptime check failures affecting 2 or more regions.
+
 J. The system SHALL allow on-call engineers to downgrade P0 Critical incidents classified from API error rates exceeding 10%.
+
 K. The system SHALL allow on-call engineers to override P1 High, P2 Medium, and P3 Low severity classifications in any direction.
+
 L. The system SHALL NOT allow on-call engineers to upgrade P0 Critical incidents beyond P0.
+
 M. The system SHALL require justification when an on-call engineer adjusts incident severity.
+
 N. The system SHALL log all severity adjustments in the incident ticket.
+
 O. The system SHALL require confirmation of limited impact when downgrading incident severity.
+
 P. All monitored alerts SHALL have a default severity classification.
+
 Q. The system SHALL apply severity classification within 1 minute of alert generation.
+
 R. The system SHALL track the complete history of severity overrides for each incident.
+
 S. Classification accuracy SHALL be reviewed monthly.
 
 *End* *Incident Classification Automation* | **Hash**: 0f46ea2d
@@ -286,27 +387,49 @@ Root Cause Analysis (RCA) and Corrective and Preventive Action (CAPA) processes 
 ## Assertions
 
 A. The system SHALL track Root Cause Analysis and CAPA processes through automated workflows implemented in Linear.
+
 B. The system SHALL automatically create incident tickets from alerts.
+
 C. The system SHALL automatically apply severity labels to incident tickets upon creation.
+
 D. The system SHALL automatically assign on-call personnel to incident tickets upon creation.
+
 E. The system SHALL automatically start a timer when incident tickets are created.
+
 F. The system SHALL allow engineers to manually update incident status to Investigating.
+
 G. The system SHALL allow investigation notes to be added to incident tickets.
+
 H. The system SHALL allow timeline documentation to be added to incident tickets.
+
 I. The system SHALL allow engineers to manually update incident status to Resolved.
+
 J. The system SHALL require resolution documentation when incidents are marked Resolved.
+
 K. The system SHALL require downtime to be recorded when incidents are marked Resolved.
+
 L. The system SHALL automatically create an RCA ticket when P0 or P1 incidents are marked Resolved.
+
 M. RCA tickets SHALL have the RCA template automatically applied.
+
 N. RCA tickets SHALL have a due date automatically set to 5 business days for P0 incidents or 10 business days for P1 incidents.
+
 O. The system SHALL send reminder notifications at 50% of the RCA deadline.
+
 P. The system SHALL send reminder notifications at 90% of the RCA deadline.
+
 Q. The system SHALL create a CAPA ticket linked to the incident when data integrity is affected.
+
 R. CAPA tickets SHALL have a 72-hour initiation deadline from the time data integrity impact is identified.
+
 S. CAPA tickets SHALL have a 30-day effectiveness tracking deadline.
+
 T. The system SHALL automate CAPA effectiveness tracking through the workflow.
+
 U. The system SHALL maintain a complete audit trail of all workflow state transitions.
+
 V. RCA tickets SHALL include the title format 'RCA: [incident.title]'.
+
 W. RCA tickets SHALL inherit the severity label from the parent incident ticket.
 
 *End* *RCA and CAPA Workflow* | **Hash**: 8d5d697b
@@ -323,22 +446,39 @@ Proactive error budget monitoring provides early warning before SLA breach, allo
 ## Assertions
 
 A. The system SHALL monitor error budget consumption in real-time and provide proactive alerts before SLA breach.
+
 B. The system SHALL trigger a Warning-level alert when 50% of error budget is consumed.
+
 C. The system SHALL send a Slack notification to the engineering team when a Warning-level alert is triggered.
+
 D. The system SHALL trigger an Elevated-level alert when 75% of error budget is consumed.
+
 E. The system SHALL notify the engineering lead when an Elevated-level alert is triggered.
+
 F. The system SHALL trigger a Critical-level alert when 90% of error budget is consumed.
+
 G. The system SHALL freeze non-critical deployments when a Critical-level alert is triggered.
+
 H. The system SHALL trigger an SLA Breach alert when 100% of error budget is consumed.
+
 I. The system SHALL notify executives when an SLA Breach alert is triggered.
+
 J. The system SHALL require a remediation plan when an SLA Breach alert is triggered.
+
 K. The system SHALL trigger a fast burn alert immediately when error budget consumption rate exceeds 3x the normal rate.
+
 L. The system SHALL trigger a slow burn alert when error budget consumption rate exceeds 1.5x the normal rate sustained for 1 hour.
+
 M. The system SHALL track monthly uptime metrics over a rolling 3-month window for chronic failure detection.
+
 N. The system SHALL trigger a chronic failure alert if any month within the 3-month window has uptime below 99.0%.
+
 O. The system SHALL trigger a chronic failure alert if 2 consecutive months within the 3-month window have uptime below 99.5%.
+
 P. The system SHALL trigger the escalation process per REQ-p01029 when chronic failure is detected.
+
 Q. The system SHALL display error budget consumption on a real-time dashboard.
+
 R. The system SHALL enforce deployment freeze as a CI/CD gate when triggered by Critical-level alerts.
 
 *End* *Error Budget Alerting* | **Hash**: 0cce1138
@@ -355,20 +495,35 @@ Maintenance window management is essential for balancing operational needs with 
 ## Assertions
 
 A. The system SHALL announce all scheduled maintenance at least 48 hours in advance.
+
 B. The system SHALL create maintenance windows in the monitoring system prior to maintenance start.
+
 C. The system SHALL publish scheduled maintenance to the status page automatically upon creation.
+
 D. The system SHALL notify subscribers automatically when maintenance is scheduled.
+
 E. The system SHALL update SLA tracking to exclude the maintenance window from availability calculations.
+
 F. The system SHALL display 'Under Maintenance' status on the status page during the maintenance window.
+
 G. The system SHALL suppress alerts for affected services during the maintenance window.
+
 H. The system SHALL track the actual duration of the maintenance window.
+
 I. The system SHALL update the status page to operational upon maintenance completion.
+
 J. The system SHALL log actual versus planned maintenance duration.
+
 K. The system SHALL run post-maintenance verification after maintenance completion.
+
 L. The system SHALL automatically publish maintenance to the status page upon maintenance window creation.
+
 M. The system SHALL send a reminder notification 24 hours before the maintenance window begins.
+
 N. The system SHALL automatically resolve the maintenance status when the maintenance window ends.
+
 O. The system SHALL trigger immediate notification if maintenance overruns the planned window.
+
 P. The system SHALL exclude downtime during maintenance windows from SLA calculation.
 
 *End* *Maintenance Window Management* | **Hash**: f400a1ed
@@ -377,30 +532,35 @@ P. The system SHALL exclude downtime during maintenance windows from SLA calcula
 ## Implementation Checklist
 
 ### Phase 1: Core Monitoring (Week 1-2)
+
 - [ ] Configure GCP SLOs for all production services
 - [ ] Set up multi-region uptime checks
 - [ ] Create error budget dashboards
 - [ ] Configure burn rate alerts
 
 ### Phase 2: On-Call Setup (Week 2-3)
+
 - [ ] Set up PagerDuty or Grafana OnCall
 - [ ] Configure escalation policies
 - [ ] Integrate with GCP Cloud Monitoring
 - [ ] Test alert flow end-to-end
 
 ### Phase 3: Status Page (Week 3-4)
+
 - [ ] Set up Instatus or Better Stack
 - [ ] Configure webhook automation
 - [ ] Create incident templates
 - [ ] Test subscriber notifications
 
 ### Phase 4: Automation (Week 4-5)
+
 - [ ] Deploy Cloud Function for SLA reports
 - [ ] Configure Linear workflow automation
 - [ ] Set up maintenance window process
 - [ ] Document runbooks
 
 ### Phase 5: Validation (Week 5-6)
+
 - [ ] Run chaos engineering tests
 - [ ] Verify SLA measurement accuracy
 - [ ] Train team on procedures
@@ -417,21 +577,25 @@ P. The system SHALL exclude downtime during maintenance windows from SLA calcula
 **Steps**:
 
 1. **Document** (within 1 hour):
+
    - Calculate exact uptime percentage
    - List all contributing incidents
    - Prepare preliminary impact assessment
 
 2. **Notify** (within 24 hours):
+
    - Inform sponsor via email
    - Update status page with monthly summary
    - Schedule remediation review
 
 3. **Remediate** (within 5 business days):
+
    - Complete RCA for contributing incidents
    - Identify systemic improvements
    - Present remediation plan to sponsor
 
 4. **Report** (within 10 business days):
+
    - Deliver formal incident report
    - Document credit if applicable
    - Update CAPA tracking
@@ -443,19 +607,23 @@ P. The system SHALL exclude downtime during maintenance windows from SLA calcula
 **Steps**:
 
 1. **Escalate** (immediate):
+
    - Notify CTO and sponsor executive contact
    - Prepare executive briefing
 
 2. **Schedule** (within 5 business days):
+
    - Mandatory meeting with sponsor
    - Prepare root cause presentation
 
 3. **Remediation Plan** (within 15 business days):
+
    - Written plan with milestones
    - Resource commitment
    - Timeline for improvement
 
 4. **Track** (ongoing):
+
    - Weekly progress updates
    - Monthly review meetings
    - Document improvement trajectory

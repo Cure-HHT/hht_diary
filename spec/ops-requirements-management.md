@@ -28,20 +28,35 @@ Standardized requirement formats enable automated validation and traceability ma
 ## Assertions
 
 A. Requirements SHALL follow the standardized format defined in spec/requirements-format.md.
+
 B. The system SHALL perform automatic format validation before commits via pre-commit hooks.
+
 C. The system SHALL auto-generate traceability matrices whenever spec/ files change.
+
 D. The system SHALL ensure all requirements have unique IDs following pattern [pod]NNNNN.
+
 E. The system SHALL ensure all requirements include the required fields: Level, Implements, and Status.
+
 F. The system SHALL validate that all 'Implements' references point to existing requirements.
+
 G. The system SHALL validate that the Level prefix matches the stated level (p=PRD, o=Ops, d=Dev).
+
 H. The system SHALL validate that requirements use prescriptive language (SHALL/MUST for mandatory obligations).
+
 I. The system SHALL regenerate traceability matrices automatically on spec/ changes.
+
 J. The system SHALL generate matrices in both markdown and HTML formats.
+
 K. The pre-commit hook SHALL reject commits with format errors, duplicate IDs, or broken links.
+
 L. The system SHALL automatically stage generated matrices for commit.
+
 M. The system SHALL provide clear error messages with file and line numbers when validation fails.
+
 N. The system SHALL provide manual validation via the command: python3 tools/requirements/validate_requirements.py.
+
 O. Generated matrices SHALL be viewable in markdown format for documentation purposes.
+
 P. Generated matrices SHALL be viewable in HTML format for interactive browsing.
 
 *End* *Requirements Format Validation* | **Hash**: 73eb4415
@@ -58,21 +73,37 @@ Top-down requirement cascade ensures that business needs drive implementation de
 ## Assertions
 
 A. Requirements SHALL be created following top-down cascade from PRD to OPS to DEV levels.
+
 B. The system SHALL NOT derive product requirements from existing code.
+
 C. New features SHALL start with a PRD requirement defining the business need.
+
 D. OPS requirements SHALL be added after PRD requirements to define deployment and operational procedures.
+
 E. DEV requirements SHALL be added after OPS requirements to define implementation approach.
+
 F. Requirements SHALL use prescriptive language (SHALL/MUST), not descriptive language.
+
 G. Code implementation SHALL follow requirements.
+
 H. Post-hoc requirements for existing code SHALL be written top-down.
+
 I. Post-hoc requirements SHALL be written prescriptively as if code does not exist yet.
+
 J. PRD requirements SHALL NOT contain code examples.
+
 K. PRD requirements SHALL NOT contain technical implementation details.
+
 L. OPS requirements SHALL reference PRD parents in the 'Implements' field.
+
 M. DEV requirements SHALL reference OPS or PRD parents in the 'Implements' field.
+
 N. Validation tooling SHALL warn about unusual requirement hierarchies.
+
 O. Validation tooling SHALL warn when PRD requirements implement other PRD requirements.
+
 P. New features SHALL follow the sequence: ticket → PRD requirement → OPS requirement → DEV requirement → code.
+
 Q. Code header comments SHALL reference requirements.
 
 *End* *Top-Down Requirement Cascade* | **Hash**: 68a8deeb
@@ -89,21 +120,37 @@ Clear separation between requirements (spec/) and decisions (docs/) ensures regu
 ## Assertions
 
 A. The system SHALL organize documentation with spec/ containing formal requirements and docs/ containing decisions, ADRs, and explanatory documentation.
+
 B. Requirements documents SHALL be located only in the spec/ directory.
+
 C. Requirements documents SHALL NOT be located in the docs/ directory.
+
 D. Architecture Decision Records SHALL be located only in the docs/ directory.
+
 E. Decision rationale SHALL be located only in the docs/ directory.
+
 F. Architecture Decision Records SHALL NOT be located in the spec/ directory.
+
 G. All files in spec/ SHALL follow the naming pattern {audience}-{topic}(-{subtopic}).md.
+
 H. Product requirements files SHALL use the prd- prefix.
+
 I. Operations requirements files SHALL use the ops- prefix.
+
 J. Development requirements files SHALL use the dev- prefix.
+
 K. Files with the prd- prefix SHALL NOT contain code examples.
+
 L. Files with the prd- prefix SHALL NOT contain CLI commands.
+
 M. Files with the ops- prefix SHALL contain deployment procedures, monitoring procedures, or configuration details.
+
 N. Files with the dev- prefix SHALL contain code examples or implementation details.
+
 O. The spec/README.md file SHALL document topic scopes to prevent content duplication.
+
 P. Documentation files SHALL use cross-references to related content instead of duplicating content.
+
 Q. Each topic in spec/ SHALL have a narrow, focused scope as defined in spec/README.md.
 
 *End* *Documentation Structure Enforcement* | **Hash**: bafe78ff
@@ -120,24 +167,43 @@ Clinical trial systems have 25+ year operational lifetimes, and architectural de
 ## Assertions
 
 A. The system SHALL trigger Architecture Decision Record (ADR) creation for significant architectural and design decisions.
+
 B. ADRs SHALL be created for decisions involving architectural patterns.
+
 C. ADRs SHALL be created for decisions involving technology choices.
+
 D. ADRs SHALL be created for decisions involving security models.
+
 E. ADRs SHALL be created for decisions involving compliance approaches.
+
 F. ADRs SHALL document the context of the decision.
+
 G. ADRs SHALL document the decision itself.
+
 H. ADRs SHALL document the consequences of the decision.
+
 I. ADRs SHALL document alternatives that were considered.
+
 J. ADRs SHALL follow a lifecycle from Proposed to Accepted to Deprecated or Superseded.
+
 K. ADRs SHALL include a clearly marked status of Proposed, Accepted, Deprecated, or Superseded.
+
 L. ADRs SHALL reference the originating ticket number in the Context section.
+
 M. ADRs SHALL reference implementing requirements when applicable.
+
 N. ADRs SHALL be indexed in docs/adr/README.md.
+
 O. The docs/adr/README.md index SHALL be maintained to include all ADRs.
+
 P. Superseded ADRs SHALL reference the replacement ADR number.
+
 Q. ADRs SHALL be committed with implementing code when applicable.
+
 R. ADRs SHALL NOT be created for routine implementation choices.
+
 S. ADRs SHALL NOT be created for trivial decisions.
+
 T. ADRs SHALL NOT be created for easily reversible choices.
 
 *End* *Architecture Decision Process* | **Hash**: d2bf6cb2
@@ -154,16 +220,27 @@ Feature branches isolate changes and enable parallel development without affecti
 ## Assertions
 
 A. Developers SHALL create feature branches before making file changes.
+
 B. Feature branches SHALL use the naming pattern: feature/descriptive-name.
+
 C. Commit messages SHALL include ticket references in the format: [TICKET-XXX] Brief description, when a ticket is applicable.
+
 D. Commit messages SHALL include implemented requirements in the format: Implements: REQ-p00xxx, REQ-o00yyy, REQ-d00zzz.
+
 E. Commit messages SHALL reference relevant ADRs in the format: ADR: ADR-NNN-title when implementing architectural decisions.
+
 F. The system SHALL run pre-commit hooks automatically before accepting commits.
+
 G. Pre-commit hooks SHALL validate requirements before accepting commits.
+
 H. Pre-commit hooks SHALL block invalid commits by returning exit code 1.
+
 I. Pre-commit hooks SHALL automatically regenerate traceability matrices when spec/ directory files change.
+
 J. Developers SHALL configure git hooks by running: git config core.hooksPath .githooks once per developer environment.
+
 K. The repository SHALL document hook configuration in .githooks/README.md.
+
 L. Feature branches SHALL be used for all non-trivial changes.
 
 *End* *Version Control Workflow* | **Hash**: c5c6c55e

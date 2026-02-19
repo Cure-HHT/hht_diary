@@ -22,6 +22,7 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 **Sponsor Isolation**: Each sponsor has a dedicated GCP project (separate Cloud SQL database + Identity Platform authentication). Users, roles, and permissions are completely isolated per sponsor.
 
 **Implications**:
+
 - User accounts exist in only one sponsor's system
 - Roles are scoped to single sponsor
 - No cross-sponsor user access or data sharing
@@ -44,15 +45,25 @@ Clinical trial data access must be tightly controlled to protect patient privacy
 ## Assertions
 
 A. The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
+
 B. The system SHALL support assignment of one or more roles to each user from the following set: Patient, Investigator, Sponsor, Auditor, Analyst, Administrator.
+
 C. Each role SHALL have specific, limited permissions.
+
 D. The system SHALL base access decisions on the user's active role.
+
 E. The system SHALL log all role changes in the audit trail.
+
 F. The system SHALL enforce the principle of least privilege.
+
 G. The system SHALL NOT allow users to access data outside their role permissions.
+
 H. The system SHALL require a privileged account to make role assignment changes.
+
 I. The system SHALL include role context in the audit log for all data access events.
+
 J. The system SHALL deny unauthorized access attempts.
+
 K. The system SHALL NOT allow role permissions to be bypassed.
 
 *End* *Role-Based Access Control* | **Hash**: 83e3e545
@@ -69,16 +80,27 @@ Least privilege access is a fundamental security principle that minimizes the ri
 ## Assertions
 
 A. The system SHALL grant users the minimum permissions necessary to perform their assigned job functions.
+
 B. The system SHALL NOT grant users access beyond their role requirements.
+
 C. The system SHALL assign permissions based on specific job function rather than user preference.
+
 D. The system SHALL prevent users from accessing data outside their assigned scope.
+
 E. The system SHALL restrict administrative functions to administrator roles.
+
 F. The system SHALL limit patient data access to assigned clinical sites for staff roles.
+
 G. The system SHALL require explicit justification and approval for elevated permissions.
+
 H. The system SHALL prevent users from elevating their own permissions.
+
 I. The system SHALL require approval workflow for access requests outside normal permissions.
+
 J. The system SHALL remove unnecessary permissions promptly when job function changes.
+
 K. The system SHALL capture all permission grant events in the audit log.
+
 L. The system SHALL capture all permission revoke events in the audit log.
 
 *End* *Least Privilege Access* | **Hash**: 6b0df135
@@ -100,36 +122,43 @@ L. The system SHALL capture all permission revoke events in the audit log.
 ## Roles & Permissions
 
 ### Patient
+
 - **Permissions**: read/write self only
 - **Scope**: Own data
 - **Access Pattern**: Can only see and modify their own records
 
 ### Investigator
+
 - **Permissions**: site-scoped read/write; must select one site at a time; enroll/de-enroll patients
 - **Scope**: Assigned sites (one active at a time)
 - **Access Pattern**: Read-only access to patient data, can add annotations
   
 ### Sponsor
+
 - **Permissions**: de-identified only; can create/assign Investigators, Analysts and Auditors; read-only across all auth and elevation tickets
 - **Scope**: Global (all sites)
 - **Access Pattern**: Aggregate data, user management, oversight
 
 ### Auditor
+
 - **Permissions**: read-only across study; export requires justification
 - **Scope**: Global (all sites)
 - **Access Pattern**: Compliance monitoring, audit trail review
 
 ### Analyst
+
 - **Permissions**: site-scoped read/write; de-identified datasets only
 - **Scope**: Assigned sites
 - **Access Pattern**: Read-only data access for analysis
 
 ### Administrator
+
 - **Permissions**: user/role/config; no PHI by default (use break-glass)
 - **Scope**: Global system administration
 - **Access Pattern**: System configuration, no routine PHI access
 
 ### Developer Admin
+
 - **Permissions**: infrastructure ops; no routine PHI; can assign break-glass access with TTL to any user
 - **Scope**: System infrastructure
 - **Access Pattern**: DevOps, emergency access management
@@ -231,5 +260,6 @@ TODO - what's 25 year and what's 7 year?
 ---
 
 **Source Files**:
+
 - `prd-role-based-access-spec.md` (merged)
 - `prd-role-based-user-stories.md` (merged)

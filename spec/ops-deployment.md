@@ -79,6 +79,7 @@ doppler run -- pulumi up
 ```
 
 **Infrastructure Components Deployed**:
+
 - GCP Project with required APIs enabled
 - VPC networking with private service access
 - Cloud SQL PostgreSQL instance
@@ -340,6 +341,7 @@ See .github/workflows/clinical_diary-ci.yml
 ```
 
 **Output**:
+
 - iOS: `build/ios/ipa/ClinicalDiary.ipa`
 - Android: `build/android/app/release/app-release.aab` (or `.apk`)
 - Web `build/web/` (static site ready for Firebase hosting TOOD - or CureHHT Docker container?)
@@ -390,11 +392,13 @@ jobs:
 
     steps:
       # 1. Checkout sponsor repository
+
       - uses: actions/checkout@v4
         with:
           path: sponsor
 
       # 2. Clone public core repository
+
       - uses: actions/checkout@v4
         with:
           repository: yourorg/clinical-diary
@@ -402,23 +406,27 @@ jobs:
           path: core
 
       # 3. Setup Dart/Flutter
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
 
       # 4. Authenticate to GCP
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOY_SA }}
 
       # 5. Setup gcloud CLI
+
       - uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.PROJECT_ID }}
 
       # 6. Validate sponsor repository
+
       - name: Validate Sponsor Repo
         run: |
           cd core
@@ -426,12 +434,14 @@ jobs:
             --sponsor-repo ../sponsor
 
       # 7. Run contract tests
+
       - name: Contract Tests
         run: |
           cd sponsor
           flutter test test/contracts/
 
       # 8. Build and push Docker image
+
       - name: Build Server Container
         run: |
           cd core
@@ -444,10 +454,12 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }}
 
       # 9. Setup Pulumi
+
       - name: Setup Pulumi
         uses: pulumi/actions@v5
 
       # 10. Deploy via Pulumi
+
       - name: Deploy Infrastructure and Application
         run: |
           cd infrastructure/pulumi/sponsors/${{ vars.SPONSOR }}/prod
@@ -459,6 +471,7 @@ jobs:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
       # 11. Build portal
+
       - name: Build Portal
         run: |
           cd core
@@ -467,6 +480,7 @@ jobs:
             --environment production
 
       # 12. Deploy portal (handled by Pulumi above, or separately)
+
       - name: Deploy Portal
         run: |
           cd core/build/web
@@ -476,6 +490,7 @@ jobs:
             --allow-unauthenticated
 
       # 14. Run database migrations
+
       - name: Run Database Migrations
         run: |
           # Start Cloud SQL Proxy
@@ -489,6 +504,7 @@ jobs:
           doppler run --config production -- dbmate up
 
       # 16. Build mobile apps
+
       - name: Build iOS
         run: |
           cd core
@@ -506,6 +522,7 @@ jobs:
             --environment production
 
       # 17. Upload mobile artifacts
+
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -519,6 +536,7 @@ jobs:
           path: core/build/android/app/release/app-release.aab
 
       # 18. Verify deployment
+
       - name: Verify Deployment
         run: |
           API_URL=$(gcloud run services describe clinical-diary-api --region=${{ env.REGION }} --format='value(status.url)')
@@ -541,18 +559,31 @@ This requirement establishes infrastructure-level data isolation for the multi-s
 ## Assertions
 
 A. The platform SHALL provision each sponsor with a dedicated GCP project for staging environments.
+
 B. The platform SHALL provision each sponsor with a dedicated GCP project for production environments.
+
 C. Each sponsor's GCP project SHALL include an isolated Cloud SQL PostgreSQL database instance.
+
 D. Each sponsor's GCP project SHALL include unique Cloud Run services with sponsor-specific URLs.
+
 E. Each sponsor's GCP project SHALL include independent Identity Platform configuration.
+
 F. Each sponsor's GCP project SHALL include isolated user pools that cannot be accessed by other sponsors.
+
 G. Each sponsor's GCP project SHALL include separate Cloud Storage buckets for file uploads.
+
 H. Each sponsor's GCP project SHALL include dedicated service accounts that are project-specific.
+
 I. Each sponsor's GCP project SHALL include dedicated IAM roles that are project-specific.
+
 J. Database connections SHALL NOT span across different sponsor GCP projects.
+
 K. Service accounts SHALL be scoped exclusively to their respective sponsor's GCP project.
+
 L. Configuration settings SHALL NOT be shared between different sponsor GCP projects.
+
 M. The platform SHALL provide documented runbook procedures for provisioning new sponsor GCP projects.
+
 N. Each sponsor's staging and production GCP projects SHALL maintain complete resource isolation from all other sponsors.
 
 *End* *Separate GCP Projects Per Sponsor* | **Hash**: 5e07b75b
@@ -569,16 +600,27 @@ This requirement addresses secure configuration management for multi-sponsor cli
 ## Assertions
 
 A. The system SHALL store all environment-specific credentials via Doppler.
+
 B. The system SHALL store all environment-specific credentials via GCP Secret Manager.
+
 C. Environment-specific credentials SHALL NOT be committed to version control.
+
 D. Each sponsor environment SHALL maintain a dedicated Doppler project/config for secrets management.
+
 E. Each sponsor environment SHALL maintain a dedicated GCP Secret Manager configuration for Cloud Run secrets.
+
 F. GCP Secret Manager secrets SHALL be synchronized from Doppler.
+
 G. Each sponsor environment SHALL maintain GitHub Secrets for CI/CD pipelines.
+
 H. The system SHALL NOT include hardcoded credentials in source code.
+
 I. The `.gitignore` file SHALL include `*.env` files.
+
 J. CI/CD pipelines SHALL use Workload Identity Federation for authentication.
+
 K. Cloud Run deployments SHALL access secrets via GCP Secret Manager.
+
 L. Git history SHALL NOT contain any credentials.
 
 *End* *Environment-Specific Configuration Management* | **Hash**: 0d39cea7
@@ -781,6 +823,7 @@ final router = Router()
 ### Schema Deployment to Cloud SQL
 
 **Prerequisites**:
+
 - Cloud SQL Proxy for local access
 - Database migration tool (dbmate recommended)
 - Doppler for credentials
@@ -905,6 +948,7 @@ gcloud run deploy clinical-diary-api \
 #### Step 3: User Acceptance Testing (UAT)
 
 **Validation Protocol**:
+
 - [ ] All contract tests pass
 - [ ] Integration tests pass against staging database
 - [ ] Portal loads without errors
@@ -935,6 +979,7 @@ git push origin v1.2.3
 #### Step 5: Deploy to Production
 
 **Automatic deployment via GitHub Actions**:
+
 - Triggered by tag push
 - Builds from tagged commit
 - Deploys to production GCP project
@@ -969,10 +1014,15 @@ This requirement defines the operational release process for the multi-sponsor m
 ## Assertions
 
 A. The system SHALL release the mobile application as a single app package containing all sponsor configurations.
+
 B. The system SHALL coordinate releases across both iOS App Store and Google Play Store.
+
 C. The system SHALL increment version numbers consistently across iOS and Android platforms.
+
 D. Release notes SHALL cover all sponsor-relevant changes included in the release.
+
 E. The system SHALL complete testing across all active sponsor configurations before releasing to production.
+
 F. The system SHALL deploy updates via automated CI/CD pipelines.
 
 *End* *Mobile App Release Process* | **Hash**: c3b108f5
@@ -1016,14 +1066,23 @@ This requirement ensures that each clinical trial sponsor operates a completely 
 ## Assertions
 
 A. The system SHALL deploy a unique web portal URL for each sponsor.
+
 B. Each sponsor portal SHALL be built from the combination of core platform code and that sponsor's specific customizations.
+
 C. Each sponsor portal SHALL be deployed to either Cloud Run or Firebase Hosting as a dedicated instance.
+
 D. Each sponsor portal configuration SHALL include only that sponsor's API endpoint.
+
 E. The system SHALL provision a separate GCP project for each sponsor portal.
+
 F. The system SHALL provide an independent deployment pipeline for each sponsor portal.
+
 G. The deployment process for each sponsor portal SHALL be automated via CI/CD.
+
 H. Each sponsor portal SHALL NOT be capable of accessing other sponsors' API endpoints.
+
 I. The system SHALL provide rollback capability for each sponsor portal independently.
+
 J. Each sponsor portal SHALL operate with complete isolation from other sponsor portals.
 
 *End* *Portal Deployment Per Sponsor* | **Hash**: 79fba7ec
@@ -1070,6 +1129,7 @@ gcloud run domain-mappings describe \
 **Before each production deployment**:
 
 #### Code Quality
+
 - [ ] All unit tests pass
 - [ ] All integration tests pass
 - [ ] Contract tests pass (sponsor implements all interfaces)
@@ -1077,30 +1137,35 @@ gcloud run domain-mappings describe \
 - [ ] Code coverage >80%
 
 #### Security
+
 - [ ] `dart pub audit` shows no critical vulnerabilities
 - [ ] Container vulnerability scan passes
 - [ ] Secrets not committed to repository
 - [ ] All dependencies up to date
 
 #### Database
+
 - [ ] Migration scripts tested on staging
 - [ ] Backup created before deployment
 - [ ] RLS policies enforced
 - [ ] Audit trail functional
 
 #### Compliance
+
 - [ ] 21 CFR Part 11 checklist complete
 - [ ] Audit trail captures all changes
 - [ ] ALCOA+ validation passes
 - [ ] Change control documentation complete
 
 #### Functionality
+
 - [ ] UAT sign-off received
 - [ ] Performance benchmarks met
 - [ ] Mobile app syncs correctly
 - [ ] Portal accessible and functional
 
 #### Release
+
 - [ ] Release notes prepared
 - [ ] Version number incremented
 - [ ] Git tag created and pushed
@@ -1211,6 +1276,7 @@ gcloud run services logs read clinical-diary-api --region=${REGION}
 ```
 
 **Common Issues**:
+
 - Container fails to start: Check Dockerfile and health endpoint
 - Permission denied: Verify service account roles
 - Cannot connect to Cloud SQL: Check VPC connector and Cloud SQL instance
@@ -1227,6 +1293,7 @@ dbmate drop && dbmate up
 ```
 
 **Connection Errors**:
+
 - Verify Cloud SQL Proxy is running
 - Check VPC connector configuration
 - Confirm service account has Cloud SQL Client role

@@ -26,13 +26,21 @@ Infrastructure as code provides reproducibility, validation capability, and audi
 ## Assertions
 
 A. The system SHALL use Pulumi for all GCP infrastructure and cloud resources.
+
 B. All GCP projects SHALL be defined in Pulumi code.
+
 C. All Cloud SQL instances SHALL be defined in Pulumi code.
+
 D. All Cloud Run services SHALL be defined in Pulumi code.
+
 E. Pulumi state SHALL be stored in a version-controlled backend (GCS or Pulumi Cloud).
+
 F. Infrastructure changes SHALL be validated with `pulumi preview` before applying updates.
+
 G. The system SHALL maintain separate Pulumi stacks for dev, staging, and production environments.
+
 H. Per-sponsor infrastructure SHALL be isolated in separate GCP projects.
+
 I. Infrastructure provisioning SHALL complete in less than 1 hour during performance qualification testing.
 
 *End* *Infrastructure as Code for Cloud Resources* | **Hash**: 0f754a8a
@@ -49,14 +57,23 @@ Infrastructure change control ensures FDA 21 CFR Part 11 compliance by establish
 ## Assertions
 
 A. The system SHALL require all Pulumi infrastructure changes to be submitted via pull request.
+
 B. The system SHALL require at least one reviewer approval for non-production pull requests containing infrastructure changes.
+
 C. The system SHALL require at least two reviewer approvals for production pull requests containing infrastructure changes.
+
 D. The system SHALL require all infrastructure changes to reference a ticket or requirement identifier.
+
 E. The system SHALL prevent direct commits to infrastructure code without pull request review.
+
 F. The system SHALL automatically run 'pulumi preview' on all pull requests containing infrastructure changes.
+
 G. The system SHALL execute drift detection against deployed infrastructure daily.
+
 H. Infrastructure change control processes SHALL be documented in Installation Qualification (IQ) protocols.
+
 I. The pull request workflow SHALL be verified to prevent direct commits during Operational Qualification (OQ).
+
 J. Performance Qualification (PQ) SHALL verify that 100% of infrastructure changes were processed through the pull request workflow.
 
 *End* *Infrastructure Change Control* | **Hash**: ee749ae7
@@ -135,6 +152,7 @@ infrastructure/
 ### Technology Stack
 
 **Core Tools**:
+
 - **Pulumi** v3.x: Infrastructure as code (TypeScript)
 - **Google Cloud Storage** or **Pulumi Cloud**: State backend
 - **@pulumi/gcp**: Manage GCP resources
@@ -752,6 +770,7 @@ pulumi login gs://clinical-diary-pulumi-state
 ### State Security
 
 **MUST**:
+
 - Encrypt state at rest (GCS default / Pulumi Cloud encrypts by default)
 - Use stack-level encryption with secrets provider
 - Restrict access via IAM (bucket-level permissions) or Pulumi Cloud RBAC
@@ -788,12 +807,14 @@ pulumi login gs://clinical-diary-pulumi-state
    ```
 
 4. **Automated CI Checks**:
+
    - `npm run lint` (ESLint/TypeScript checks)
    - `tsc --noEmit` (type checking)
    - `pulumi preview` (preview changes)
    - Security scanning
 
 5. **Review & Approval**:
+
    - Reviewer examines `pulumi preview` output
    - Reviewer verifies ticket reference
    - Reviewer approves PR
@@ -807,6 +828,7 @@ pulumi login gs://clinical-diary-pulumi-state
 ### Production Deployment
 
 **Additional Requirements**:
+
 - 2 reviewer approvals (not 1)
 - Change control ticket
 - Scheduled maintenance window (if applicable)
@@ -826,6 +848,7 @@ name: Pulumi Drift Detection
 
 on:
   schedule:
+
     - cron: '0 9 * * *'  # 9 AM daily
   workflow_dispatch:
 
@@ -838,6 +861,7 @@ jobs:
         environment: [staging, production]
 
     steps:
+
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -898,6 +922,7 @@ doppler run -- pulumi preview --expect-no-changes
 ### Installation Qualification (IQ)
 
 **Verify**:
+
 - [ ] Pulumi v3.x installed
 - [ ] Node.js v20+ installed
 - [ ] @pulumi/gcp provider available
@@ -916,6 +941,7 @@ pulumi preview
 ### Operational Qualification (OQ)
 
 **Verify**:
+
 - [ ] `pulumi preview` works for all stacks
 - [ ] `pulumi up` provisions resources correctly
 - [ ] State locking prevents concurrent modifications
@@ -941,6 +967,7 @@ pulumi up
 ### Performance Qualification (PQ)
 
 **Metrics**:
+
 - [ ] Infrastructure provisioning time < 1 hour
 - [ ] `pulumi preview` completes in < 5 minutes
 - [ ] Drift detection runs daily without failures
@@ -953,6 +980,7 @@ pulumi up
 ### Secrets Management
 
 **NEVER** store in Pulumi code:
+
 - Database passwords
 - API keys
 - Service tokens
@@ -1081,17 +1109,20 @@ pulumi stack import < previous-state.json
 ### Audit Trail
 
 **Git History**:
+
 - All infrastructure changes in Git
 - Commit messages reference tickets
 - Timestamps and authors tracked
 
 **Pulumi Logs**:
+
 - `pulumi preview` output saved in CI/CD
 - `pulumi up` output saved
 - Stack history tracks all state changes
 - Pulumi Cloud provides audit logs (if using managed backend)
 
 **Change Control**:
+
 - Pull requests document changes
 - Approvals documented in PR
 - Merge commits provide audit trail
@@ -1146,6 +1177,7 @@ pulumi stack import < previous-state.json
 ### Sponsor Isolation
 
 Each sponsor's infrastructure is completely isolated:
+
 - Separate GCP project
 - Separate Cloud SQL instance
 - Separate Identity Platform tenant
@@ -1210,19 +1242,23 @@ pulumi up
 ### Regular Tasks
 
 **Daily**:
+
 - Automated drift detection runs
 - Review drift reports
 
 **Weekly**:
+
 - Review GCP billing
 - Review stack state size
 
 **Monthly**:
+
 - Update Pulumi version (`npm update @pulumi/pulumi`)
 - Update provider versions (`npm update @pulumi/gcp`)
 - Review and archive old stacks
 
 **Quarterly**:
+
 - Review access permissions
 - Audit infrastructure changes
 - Update validation documentation
@@ -1232,10 +1268,12 @@ pulumi up
 ## References
 
 **Internal**:
+
 - `infrastructure/README.md` - Getting started
 - `docs/pulumi-setup.md` - Detailed setup guide
 
 **External**:
+
 - [Pulumi Documentation](https://www.pulumi.com/docs/)
 - [Pulumi GCP Provider](https://www.pulumi.com/registry/packages/gcp/)
 - [GCP Cloud SQL Pulumi](https://www.pulumi.com/registry/packages/gcp/api-docs/sql/databaseinstance/)

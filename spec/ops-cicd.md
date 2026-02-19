@@ -39,14 +39,23 @@ This requirement ensures automated enforcement of requirement traceability throu
 ## Assertions
 
 A. The system SHALL provide automated CI/CD validation of requirement traceability on every pull request to protected branches.
+
 B. The system SHALL provide automated CI/CD validation of requirement traceability on every commit to protected branches.
+
 C. The CI/CD workflow SHALL validate requirement format for all referenced requirement IDs.
+
 D. The CI/CD workflow SHALL validate that all referenced requirement IDs exist.
+
 E. The CI/CD workflow SHALL automatically generate a traceability matrix during validation.
+
 F. The system SHALL NOT allow pull requests to merge without passing requirement traceability validation.
+
 G. The system SHALL post validation results as comments on the associated pull request.
+
 H. The system SHALL retain validation artifacts for a minimum of 2 years.
+
 I. The system SHALL trigger notifications when requirement traceability validation fails.
+
 J. The CI/CD validation workflow SHALL complete execution within 10 minutes.
 
 *End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 4bfaefe3
@@ -63,11 +72,17 @@ This requirement enforces code quality gates and prevents unauthorized changes t
 ## Assertions
 
 A. The system SHALL block direct commits to the main branch.
+
 B. The system SHALL block direct commits to the develop branch.
+
 C. The system SHALL require pull request approval before merging to protected branches.
+
 D. The system SHALL require all status checks to pass before allowing merge to protected branches.
+
 E. Status checks SHALL include requirement validation before merge is permitted.
+
 F. The system SHALL allow administrators to override branch protection rules in emergency situations.
+
 G. The system SHALL create an audit trail entry when administrators override branch protection rules.
 
 *End* *Branch Protection Enforcement* | **Hash**: 52dc7376
@@ -84,11 +99,17 @@ This requirement ensures FDA 21 CFR Part 11 compliance by maintaining comprehens
 ## Assertions
 
 A. The system SHALL generate a traceability matrix in HTML format for every CI/CD run.
+
 B. The system SHALL generate a traceability matrix in Markdown format for every CI/CD run.
+
 C. The system SHALL upload generated traceability matrices as artifacts to GitHub Actions.
+
 D. The system SHALL retain uploaded artifacts for a minimum of 90 days.
+
 E. Artifact metadata SHALL include the commit SHA associated with the CI/CD run.
+
 F. Artifact metadata SHALL include the timestamp of the CI/CD run.
+
 G. The system SHALL make artifacts downloadable to authorized personnel.
 
 *End* *Audit Trail Generation for CI/CD* | **Hash**: c4d7f202
@@ -105,9 +126,13 @@ CI pipelines must balance thoroughness with efficiency. Running every check on e
 ## Assertions
 
 A. The CI pipeline SHALL detect which areas of the codebase changed (spec, code, database, tooling, workflows) before executing validation jobs.
+
 B. The CI pipeline SHALL only execute validation jobs relevant to the detected changes, to avoid unnecessary computation.
+
 C. The CI pipeline SHALL always execute security scanning regardless of which files changed.
+
 D. The CI pipeline SHALL execute all validation jobs when workflow definition files themselves change.
+
 E. The CI pipeline SHALL complete all validation jobs and produce a consolidated pass/fail summary before merge is permitted.
 
 *End* *Change-Appropriate CI Validation* | **Hash**: ab0977df
@@ -124,10 +149,15 @@ Squash-merge workflows use the PR title as the final commit message on protected
 ## Assertions
 
 A. The CI pipeline SHALL validate that pull request titles contain a Linear ticket reference in the format `[CUR-XXX]`.
+
 B. The CI pipeline SHALL validate on every push to a pull request (including the initial push) that the required traceability references are present, providing feedback before merge.
+
 C. The CI pipeline SHALL create a compliance ticket when a commit to a protected branch is found to be missing required references, as a safety net for cases that bypass branch protection.
+
 D. Each automated process that commits directly to protected branches SHALL have a documented and limited scope of files it is authorized to modify, and the CI pipeline SHALL detect and alert when a bot commit modifies files outside its authorized scope.
+
 E. The CI pipeline SHALL block merge when PR title validation fails.
+
 F. The CI pipeline SHALL provide clear error messages indicating which references are missing and the required format.
 
 *End* *Commit and PR Traceability Enforcement* | **Hash**: cc298537
@@ -144,9 +174,13 @@ Accidentally committed secrets (API keys, tokens, passwords) and vulnerable depe
 ## Assertions
 
 A. The CI pipeline SHALL scan for accidentally committed secrets on every push to a pull request (including the initial push), examining the repository at its current state.
+
 B. The CI pipeline SHALL scan project dependencies for known vulnerabilities.
+
 C. The CI pipeline SHALL scan infrastructure-as-code configurations (Dockerfiles, Terraform, Kubernetes) for misconfigurations.
+
 D. The CI pipeline SHALL upload vulnerability scan results to GitHub Security for tracking and remediation.
+
 E. Secret detection failures SHALL block merge to protected branches.
 
 *End* *Secret and Vulnerability Scanning* | **Hash**: 90e58ccc
@@ -163,9 +197,13 @@ Static analysis and formatting enforcement catch defects early — before code r
 ## Assertions
 
 A. The CI pipeline SHALL run static analysis (`flutter analyze` / `dart analyze`) on all changed Dart and Flutter code.
+
 B. The CI pipeline SHALL validate code formatting compliance (`dart format`) on changed code.
+
 C. The CI pipeline SHALL lint changed SQL migration files for dangerous patterns (table locks, missing indexes, unsafe ALTER TABLE) using a SQL linter.
+
 D. Static analysis failures SHALL block merge to protected branches.
+
 E. Code formatting violations SHALL block merge to protected branches.
 
 *End* *Code Quality and Static Analysis* | **Hash**: 0b222d9e
@@ -182,10 +220,15 @@ Automated testing provides confidence that code changes do not introduce regress
 ## Assertions
 
 A. The CI pipeline SHALL run unit tests for packages affected by the changes in the pull request.
+
 B. The CI pipeline SHALL run integration tests when any component they depend on has changed, including shared configuration and database schema.
+
 C. The CI pipeline SHALL measure and report test coverage for all executed test suites.
+
 D. The CI pipeline SHALL upload coverage reports as artifacts with a minimum retention of 30 days.
+
 E. The CI pipeline SHALL enforce a minimum test coverage threshold for components that define one.
+
 F. Unit and integration test failures SHALL block merge to protected branches.
 
 *End* *Automated Test Execution* | **Hash**: 63cc8fe6
@@ -202,9 +245,13 @@ The QA promotion gate provides a higher level of assurance than per-component CI
 ## Assertions
 
 A. The QA promotion gate SHALL execute the full test suite (unit, integration, and coverage) in an environment representative of the QA deployment target.
+
 B. The QA environment SHALL use containerized infrastructure matching production configuration.
+
 C. The QA promotion gate SHALL run all tests regardless of which files changed, to detect cross-component side effects.
+
 D. The QA promotion gate SHALL post a brief summary of test results on the associated pull request, including pass/fail status per component and coverage percentage.
+
 E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch` for on-demand validation outside the pull request lifecycle.
 
 *End* *QA Promotion Gate* | **Hash**: dd06f8de
@@ -314,6 +361,7 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 #### Jobs
 
 **1. validate-requirements**
+
 - Validates requirement format using `validate_requirements.py`
 - Generates traceability matrices (HTML + Markdown)
 - Uploads artifacts
@@ -321,11 +369,13 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 - **Blocking**: YES
 
 **2. validate-code-headers**
+
 - Checks SQL and Dart files for requirement headers
 - Validates header format per `spec/requirements-format.md`
 - **Blocking**: NO (warning only)
 
 **3. validate-migrations**
+
 - Checks migration files for proper headers
 - Validates per `database/migrations/README.md`
 - **Blocking**: YES
@@ -334,17 +384,20 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 - **Audit Note**: Job always runs but exits early with success when no migrations modified
 
 **4. security-check**
+
 - Scans for API keys, passwords, secrets
 - Checks for committed .env files
 - **Blocking**: YES
 
 **5. fda-compliance-check**
+
 - Verifies audit trail requirements exist
 - Checks for RLS policies
 - Validates event sourcing implementation
 - **Blocking**: YES
 
 **6. validate-infrastructure**
+
 - Checks if Pulumi code was modified in the PR
 - Validates TypeScript compilation (`tsc --noEmit`)
 - Runs `pulumi preview` to verify infrastructure changes
@@ -354,6 +407,7 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 - **Audit Note**: Job always runs but exits early with success when no infrastructure modified
 
 **7. summary**
+
 - Aggregates results from all jobs
 - Posts to GitHub Step Summary
 - Determines overall pass/fail
@@ -389,11 +443,13 @@ None required. All validation uses tools checked into the repository.
    **Branch name pattern**: `main`
 
    ✅ **Require a pull request before merging**
+
    - ✅ Require approvals: 1 minimum
    - ✅ Dismiss stale pull request approvals when new commits are pushed
    - ✅ Require review from Code Owners (optional)
 
    ✅ **Require status checks to pass before merging**
+
    - ✅ Require branches to be up to date before merging
    - ✅ Status checks required:
      - `Validate Requirements Format & Traceability`
@@ -409,9 +465,11 @@ None required. All validation uses tools checked into the repository.
    ✅ **Require signed commits** (recommended for FDA compliance)
 
    ✅ **Include administrators** (administrators must follow rules)
+
    - NOTE: Can be disabled for emergency hotfixes (creates audit trail)
 
    ✅ **Restrict who can push to matching branches**
+
    - Add: CI/CD service account (if needed)
    - Add: Release managers
 
@@ -493,6 +551,7 @@ Expected output:
    ```
 
 4. Observe GitHub Actions tab:
+
    - All jobs should pass (green checkmarks)
    - Traceability matrix artifact should be available
    - PR comment should appear with validation results
@@ -534,6 +593,7 @@ EOF
    ```
 
 4. Observe GitHub Actions tab:
+
    - `validate-migrations` job should fail
    - Error message should indicate missing migration headers
    - PR should be blocked from merging
@@ -579,6 +639,7 @@ EOF
    ```
 
 4. Observe GitHub Actions tab:
+
    - `security-check` job should fail
    - Error message should indicate secrets detected
    - PR should be blocked from merging
@@ -622,6 +683,7 @@ EOF
    ```
 
 4. Observe GitHub Actions tab:
+
    - `validate-infrastructure` job should fail
    - Error message should indicate TypeScript compilation error
    - PR should be blocked from merging
@@ -838,6 +900,7 @@ When migrations were changed:
 **For Auditors**:
 
 The PASSED status always means one of:
+
 - ✅ All migrations have valid headers (when migrations exist)
 - ✅ No migrations to validate (when none were modified)
 
@@ -859,6 +922,7 @@ The infrastructure validation job uses an **early-pass pattern**:
 2. **First step**: Check if PR modified any files in `infrastructure/pulumi/`
 3. **If no infrastructure changed**: Exit immediately with success and notice: "No infrastructure files were modified"
 4. **If infrastructure changed**: Proceed with full validation:
+
    - TypeScript compilation (`tsc --noEmit`)
    - Pulumi preview for affected stacks
 

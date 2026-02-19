@@ -21,30 +21,55 @@ This requirement establishes the operational framework for artifact retention an
 ## Assertions
 
 A. The system SHALL retain production artifacts for a minimum of 7 years.
+
 B. The system SHALL retain staging artifacts for a minimum of 30 days.
+
 C. The system SHALL retain development artifacts for a minimum of 7 days.
+
 D. The system SHALL retain audit trail records for a minimum of 7 years.
+
 E. The system SHALL retain deployment logs for a minimum of 7 years.
+
 F. The system SHALL retain incident records for a minimum of 7 years.
+
 G. The system SHALL archive source code artifacts including all Git repository commits.
+
 H. The system SHALL archive build artifacts including compiled binaries and container images.
+
 I. The system SHALL archive deployment records including deployment logs, approvals, and timestamps.
+
 J. The system SHALL archive test results including validation reports (IQ/OQ/PQ) and test logs.
+
 K. The system SHALL archive audit trail artifacts including database audit records and access logs.
+
 L. The system SHALL archive incident records including incident tickets, post-mortems, and resolutions.
+
 M. The system SHALL archive database backups including full backups and migration scripts.
+
 N. The system SHALL store production artifacts from the last 90 days in hot storage with immediate retrieval capability.
+
 O. The system SHALL store production artifacts from 91 days to 7 years in cold storage.
+
 P. The system SHALL transition production artifacts from hot storage to cold storage automatically after 90 days.
+
 Q. The system SHALL delete production artifacts automatically after 7 years unless subject to manual retention extension.
+
 R. The system SHALL enable object retention policy (immutable) for production artifacts.
+
 S. The system SHALL transition staging artifacts to Nearline storage after 7 days.
+
 T. The system SHALL delete staging artifacts automatically after 30 days.
+
 U. The system SHALL delete development artifacts automatically after 7 days.
+
 V. The system SHALL verify archival integrity through monthly checksum validation for all storage tiers.
+
 W. The system SHALL support manual retention extension for production artifacts subject to regulatory holds.
+
 X. Cloud Storage buckets SHALL be created with encryption enabled.
+
 Y. Lifecycle policies SHALL be configured for all storage buckets.
+
 Z. Retrieval procedures SHALL be documented for all storage classes.
 
 *End* *Artifact Retention and Archival* | **Hash**: 9bbb7f6e
@@ -61,26 +86,47 @@ This requirement ensures proper isolation and separation between development, st
 ## Assertions
 
 A. The system SHALL maintain three isolated environments: development, staging, and production.
+
 B. The development environment SHALL use a separate GCP project from staging and production.
+
 C. The development environment SHALL use a separate Cloud SQL instance from staging and production.
+
 D. The staging environment SHALL use a separate GCP project from development and production.
+
 E. The staging environment SHALL use production-like configuration.
+
 F. The production environment SHALL use a GCP project isolated from development and staging.
+
 G. The production environment SHALL NOT allow cross-environment access from development or staging.
+
 H. The system SHALL store environment-specific secrets in Doppler.
+
 I. The system SHALL use environment-specific infrastructure managed through Terraform workspaces.
+
 J. The system SHALL support environment-specific feature flags.
+
 K. The system SHALL NOT use hardcoded environment values in configuration.
+
 L. Development environments SHALL NOT contain production data.
+
 M. Staging environments SHALL NOT contain production data.
+
 N. Development environments SHALL use synthetic test data.
+
 O. Staging environments SHALL use synthetic test data.
+
 P. The system SHALL restrict production data access with audit logging.
+
 Q. Deployments to one environment SHALL NOT affect other environments.
+
 R. The system SHALL provide separate CI/CD workflows per environment.
+
 S. The system SHALL support independent rollback capabilities for each environment.
+
 T. The system SHALL provision three separate GCP projects per sponsor.
+
 U. The system SHALL provide environment-specific Doppler configurations for each environment.
+
 V. The system SHALL create Terraform workspaces for each environment.
 
 *End* *Environment Parity and Separation* | **Hash**: cc66f548
@@ -97,25 +143,45 @@ This requirement ensures comprehensive change control and audit trails across al
 ## Assertions
 
 A. The system SHALL maintain a change control audit trail for all infrastructure, code, configuration, and deployment changes.
+
 B. The system SHALL log all Terraform changes with author identity, timestamp, and reason for change.
+
 C. The system SHALL retain Terraform state versions for a minimum of 7 years using GCS backend storage.
+
 D. The system SHALL implement infrastructure drift detection and generate alerts when drift is detected.
+
 E. The system SHALL require approval before applying Terraform changes to production environments.
+
 F. The system SHALL link all code commits to requirements via pre-commit hook enforcement.
+
 G. The system SHALL require all code commits to be signed with GPG keys.
+
 H. The system SHALL require pull request approvals from 2 reviewers before merging to production branches.
+
 I. The system SHALL retain merge commit history indefinitely in Git repositories.
+
 J. The system SHALL log all Doppler secrets changes with audit trail information.
+
 K. The system SHALL log all feature flag changes.
+
 L. The system SHALL require approval for environment configuration changes.
+
 M. The system SHALL log every deployment with deployer identity, timestamp in UTC, version deployed, approval records, and deployment outcome.
+
 N. Deployment outcome records SHALL indicate success, failure, or rollback status.
+
 O. The system SHALL archive deployment logs for a minimum of 7 years.
+
 P. Audit logging SHALL be configured and verified during Installation Qualification (IQ).
+
 Q. Audit record capture SHALL be verified during Operational Qualification (OQ).
+
 R. Seven-year retention of audit records SHALL be verified during Performance Qualification (PQ).
+
 S. Terraform state versioning SHALL be enabled on GCS backend.
+
 T. Git commit signing SHALL be enforced for all commits.
+
 U. Doppler audit trail SHALL be enabled for all secret management operations.
 
 *End* *Change Control and Audit Trail* | **Hash**: e9a92b1f
@@ -466,6 +532,7 @@ jobs:
       id-token: write
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -528,8 +595,10 @@ File: `cloudbuild.yaml`
 ```yaml
 steps:
   # Build container
+
   - name: 'gcr.io/cloud-builders/docker'
     args:
+
       - 'build'
       - '-t'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
@@ -538,15 +607,19 @@ steps:
       - '.'
 
   # Push to Artifact Registry
+
   - name: 'gcr.io/cloud-builders/docker'
     args:
+
       - 'push'
       - '--all-tags'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api'
 
   # Scan for vulnerabilities
+
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
+
       - 'artifacts'
       - 'docker'
       - 'images'
@@ -554,6 +627,7 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
 
 images:
+
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:latest'
 
@@ -575,6 +649,7 @@ name: Archive Audit Trail (Nightly)
 
 on:
   schedule:
+
     - cron: '0 2 * * *'  # 2 AM UTC daily
   workflow_dispatch:
 
@@ -587,6 +662,7 @@ jobs:
       id-token: write
 
     steps:
+
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
@@ -700,6 +776,7 @@ name: Verify Archive Integrity (Monthly)
 
 on:
   schedule:
+
     - cron: '0 3 1 * *'  # 3 AM UTC on 1st of each month
   workflow_dispatch:
 
@@ -712,6 +789,7 @@ jobs:
       id-token: write
 
     steps:
+
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
@@ -771,6 +849,7 @@ jobs:
 ### Monthly Storage Costs
 
 **Assumptions**:
+
 - 500 MB artifacts per deployment
 - 8 production deployments per month
 - 7-year retention

@@ -29,9 +29,13 @@ This requirement defines the existence, scope, and regulatory nature of the plat
 ## Assertions
 
 A. The system SHALL provide a platform for collecting patient-reported clinical diary data for regulated clinical trials.
+
 B. The system SHALL support multiple independent pharmaceutical sponsors within a single platform.
+
 C. The system SHALL enable patient data entry via mobile applications.
+
 D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
+
 E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
 
 *End* *Clinical Trial Diary Platform* | **Hash**: 0919ad00
@@ -50,7 +54,9 @@ closed proprietary forks of the core platform while preserving sponsor IP bounda
 ## Assertions
 
 A. The Veritite core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
 B. Sponsor-specific extensions and customizations SHALL be permitted to remain proprietary to each sponsor.
+
 C. Platform documentation SHALL be distributed under an open documentation license compatible with redistribution and modification.
 
 *End* *Open Source Licensing* | **Hash**: 7e6b1e00

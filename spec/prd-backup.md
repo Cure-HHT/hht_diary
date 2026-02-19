@@ -23,12 +23,19 @@ Clinical trial data must be protected and retained for extended periods per FDA 
 ## Assertions
 
 A. The system SHALL perform automated database backups at defined frequencies without requiring manual intervention.
+
 B. The system SHALL store backups in geographically separate locations to enable disaster recovery.
+
 C. The system SHALL provide point-in-time recovery capability for database restoration.
+
 D. The system SHALL retain archived data for a minimum of 7 years to meet regulatory compliance requirements.
+
 E. The system SHALL verify backup integrity using cryptographic checksums or equivalent mechanisms.
+
 F. The system SHALL isolate each sponsor's backup storage from other sponsors' backups.
+
 G. The system SHALL maintain archived data in an accessible format for regulatory audits throughout the retention period.
+
 H. The system SHALL document and test recovery procedures on a quarterly basis.
 
 *End* *Data Backup and Archival* | **Hash**: 4e9501e4
@@ -38,11 +45,13 @@ H. The system SHALL document and test recovery procedures on a quarterly basis.
 ## Backup Strategy
 
 **Frequency**:
+
 - Continuous: Transaction log backup
 - Daily: Full database snapshot
 - Weekly: Verified full backup with integrity check
 
 **Retention**:
+
 - Daily backups: 30 days
 - Weekly backups: 1 year
 - Monthly backups: 7 years (regulatory minimum)

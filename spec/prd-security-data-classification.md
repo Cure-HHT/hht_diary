@@ -24,6 +24,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 ### Clinical Trial Data (What We DO Store)
 
 **Patient Diary Entries**:
+
 - Symptom reports
 - Activity logs
 - Questionnaire responses
@@ -31,17 +32,20 @@ The system is designed with privacy as a core principle. Patient identity inform
 - Timestamps of entries
 
 **Study Information**:
+
 - Clinical site names and locations (business addresses)
 - Study protocols
 - Configuration settings
 
 **Random Identifiers**:
+
 - Study participant IDs (random numbers)
 - No connection to real identity within database
 
 ### Personal Information (What We DON'T Store in Database)
 
 **Patient Identity** - Stored separately in authentication system:
+
 - Real names
 - Email addresses
 - Phone numbers
@@ -65,18 +69,31 @@ Privacy by design protects patient confidentiality by ensuring that clinical tri
 ## Assertions
 
 A. The system SHALL store patient identity information separately from clinical trial data.
+
 B. The clinical database SHALL contain only de-identified participant records.
+
 C. The authentication system SHALL store patient names, email addresses, and contact information.
+
 D. The clinical database SHALL store only random participant IDs with observations.
+
 E. The clinical database SHALL NOT contain any direct linkage between participant ID and real identity.
+
 F. The mapping between identity and participant ID SHALL be accessible only through the secure authentication system.
+
 G. The system SHALL enable review of clinical data without exposing patient identities.
+
 H. The clinical database SHALL NOT contain patient names, email addresses, or direct identifiers.
+
 I. Participant IDs SHALL be randomly generated.
+
 J. Participant IDs SHALL NOT be derivable from personal information.
+
 K. The identity-to-participant mapping SHALL be isolated in the authentication system.
+
 L. Clinical data exports SHALL contain participant IDs only.
+
 M. Clinical data exports SHALL NOT contain real patient identities.
+
 N. A data breach of the clinical database SHALL NOT expose patient identities.
 
 *End* *Separation of Identity and Clinical Data* | **Hash**: 4a8b2335
@@ -93,15 +110,25 @@ This requirement protects patient privacy (p00016) and clinical trial confidenti
 ## Assertions
 
 A. The system SHALL encrypt sensitive data at rest in database storage.
+
 B. The system SHALL encrypt sensitive data in transit during transmission.
+
 C. The mobile app SHALL encrypt data on patient devices before transmission.
+
 D. The system SHALL transmit data over encrypted channels only.
+
 E. The system SHALL use TLS 1.2 or higher for all network communication.
+
 F. The system SHALL use HTTPS protocol for all network communication.
+
 G. The system SHALL encrypt database storage with sponsor-specific encryption keys.
+
 H. Encryption keys SHALL be unique per sponsor.
+
 I. The system SHALL manage encryption keys following industry best practices.
+
 J. The system SHALL rotate encryption keys according to security policy.
+
 K. The system SHALL NOT allow encryption to be disabled.
 
 *End* *Data Encryption* | **Hash**: 55d8aea3
@@ -112,11 +139,13 @@ K. The system SHALL NOT allow encryption to be disabled.
 **Two Separate Systems**:
 
 1. **Authentication System**: Knows who patients are
+
    - Real names and contact info
    - Login credentials
    - Account information
 
 2. **Clinical Database**: Knows what data exists
+
    - Study participant IDs (random)
    - Clinical observations
    - No personal identifiers
@@ -134,12 +163,14 @@ K. The system SHALL NOT allow encryption to be disabled.
 Each sponsor's environment is completely separate:
 
 **Sponsor A**:
+
 - Own authentication system
 - Own database
 - Own encryption keys
 - Own patient identities
 
 **Sponsor B**:
+
 - Different authentication system
 - Different database
 - Different encryption keys
@@ -164,6 +195,7 @@ Each sponsor's environment is completely separate:
 **What**: Diary entries linked to random participant IDs
 
 **Protection**:
+
 - Encrypted during transmission
 - Encrypted at rest in database
 - Access controls limit who can view
@@ -176,6 +208,7 @@ Each sponsor's environment is completely separate:
 **What**: Patient names, contact information, authentication credentials
 
 **Protection**:
+
 - Stored in separate authentication system
 - Multiple layers of encryption
 - Strict access controls
@@ -190,11 +223,13 @@ Each sponsor's environment is completely separate:
 ### What Gets Encrypted
 
 **All Data**:
+
 - Encrypted during transmission (between app and server)
 - Encrypted at rest (in database storage)
 - Encryption keys secured separately
 
 **Multiple Layers**:
+
 - Transport layer (HTTPS/TLS)
 - Database encryption
 - Application-level encryption for sensitive fields
@@ -202,6 +237,7 @@ Each sponsor's environment is completely separate:
 ### What This Means
 
 **For Patients**: Their data is protected even if:
+
 - Someone intercepts network traffic
 - Database backup stolen
 - Server physically compromised
@@ -221,6 +257,7 @@ Each sponsor's environment is completely separate:
 4. Real identity stays in authentication system
 
 **Example**:
+
 - Patient: Jane Smith (real identity - in auth system)
 - Study ID: P-7492-XK (random - in clinical database)
 - Link between them: Only in authentication system
@@ -244,6 +281,7 @@ Each sponsor's environment is completely separate:
 ### HIPAA (United States)
 
 When applicable:
+
 - Protected Health Information (PHI) encrypted
 - Access controls limit exposure
 - Audit trails track all access
@@ -254,6 +292,7 @@ When applicable:
 ### GDPR (European Union)
 
 For EU participants:
+
 - Data minimization (collect only what's needed)
 - Privacy by design (built into system architecture)
 - Right to access (patients can download their data)
@@ -281,21 +320,25 @@ For EU participants:
 ## Privacy Benefits
 
 **For Patients**:
+
 - Identity protected even if database accessed
 - Control over their own data
 - Transparency of who accessed records
 
 **For Investigators**:
+
 - Can analyze data without unnecessary identity exposure
 - Reduced privacy violation risk
 - Clear guidelines on data handling
 
 **For Sponsors**:
+
 - Regulatory compliance (HIPAA, GDPR)
 - Reduced breach liability
 - Protection of confidential trial data
 
 **For Society**:
+
 - Enables clinical research while protecting privacy
 - Maintains trust in clinical trial system
 - Balances transparency and confidentiality

@@ -22,18 +22,31 @@ Core platform functionality requires supporting services for communication, repo
 ## Assertions
 
 A. The platform SHALL provide push notification services to mobile devices.
+
 B. Push notifications SHALL be delivered reliably to mobile devices.
+
 C. The platform SHALL provide email notification services for staff and patients.
+
 D. Email delivery SHALL include an audit trail.
+
 E. The platform SHALL provide report generation capabilities.
+
 F. Reports SHALL be generated on demand.
+
 G. Reports SHALL be generated on scheduled basis.
+
 H. The platform SHALL provide report distribution capabilities.
+
 I. The platform SHALL provide data export capabilities for analysis.
+
 J. Data exports SHALL be provided in standard formats.
+
 K. Data exports SHALL include access controls.
+
 L. The platform SHALL provide integration APIs for sponsor systems.
+
 M. Integration APIs SHALL be secured.
+
 N. Integration APIs SHALL be documented.
 
 *End* *Ancillary Platform Services* | **Hash**: ff326529
@@ -43,12 +56,14 @@ N. Integration APIs SHALL be documented.
 ## Push Notification Service
 
 **Capabilities**:
+
 - Questionnaire reminders to patients
 - Diary entry reminders
 - Study announcements
 - App update notifications
 
 **Requirements**:
+
 - iOS and Android support
 - Delivery confirmation tracking
 - Sponsor-specific notification content
@@ -59,12 +74,14 @@ N. Integration APIs SHALL be documented.
 ## Email Service
 
 **Use Cases**:
+
 - Investigator enrollment notifications
 - Password reset communications
 - Report delivery to staff TODO - better as a notification for a report in the portal, email reports are a pain.
 - Audit event notifications
 
 **Requirements**:
+
 - Secure email delivery
 - Delivery status tracking
 - Template management per sponsor
@@ -75,12 +92,14 @@ N. Integration APIs SHALL be documented.
 ## Reporting Service
 
 **Report Types**:
+
 - Patient engagement summaries
 - Data quality reports
 - Compliance audit reports
 - Study progress dashboards
 
 **Requirements**:
+
 - Scheduled report generation
 - On-demand report requests
 - Multiple format support (PDF, CSV, Excel)
@@ -91,12 +110,14 @@ N. Integration APIs SHALL be documented.
 ## Integration Capabilities
 
 **APIs**:
+
 - Data export for analysis systems
 - IRT system integration
 - EDC system connectivity
 - Custom sponsor integrations
 
 **Requirements**:
+
 - Secure API authentication
 - Rate limiting and quotas
 - Comprehensive API documentation
