@@ -22,8 +22,21 @@ import 'email_service.dart';
 /// Google Identity Platform REST API base URL
 const _identityApiUrl = 'https://identitytoolkit.googleapis.com/v1';
 
-/// Get the portal URL for constructing reset links
-String get _portalUrl {
+/// Extract portal base URL from request headers.
+/// Prefers Origin header (set by browser on CORS requests),
+/// falls back to Referer, then PORTAL_URL env var.
+String _getPortalBaseUrl(Request request) {
+  final origin = request.headers['origin'];
+  if (origin != null && origin.isNotEmpty) {
+    return origin;
+  }
+  final referer = request.headers['referer'];
+  if (referer != null && referer.isNotEmpty) {
+    final uri = Uri.tryParse(referer);
+    if (uri != null && uri.hasScheme && uri.hasAuthority) {
+      return '${uri.scheme}://${uri.authority}';
+    }
+  }
   return Platform.environment['PORTAL_URL'] ??
       Platform.environment['PORTAL_BASE_URL'] ??
       'http://localhost:8080';
@@ -213,7 +226,11 @@ Future<Response> requestPasswordResetHandler(Request request) async {
 
     // Generate password reset link using Identity Platform's native oobCode
     print('[PASSWORD_RESET] Generating reset link for: $normalizedEmail');
-    final resetLink = await _generatePasswordResetLink(normalizedEmail);
+    final portalUrl = _getPortalBaseUrl(request);
+    final resetLink = await _generatePasswordResetLink(
+      normalizedEmail,
+      portalUrl,
+    );
 
     if (resetLink == null) {
       print('[PASSWORD_RESET] Failed to generate reset link');
@@ -281,7 +298,10 @@ Future<Response> requestPasswordResetHandler(Request request) async {
 /// Firebase's verifyPasswordResetCode and confirmPasswordReset methods.
 ///
 /// Returns the full reset URL with oobCode parameter, or null on error.
-Future<String?> _generatePasswordResetLink(String email) async {
+Future<String?> _generatePasswordResetLink(
+  String email,
+  String portalUrl,
+) async {
   try {
     print('[PASSWORD_RESET] Getting access token via WIF...');
     final accessToken = await _getIdentityPlatformAccessToken();
@@ -294,7 +314,7 @@ Future<String?> _generatePasswordResetLink(String email) async {
 
     // Construct the continue URL that Firebase will redirect to
     final continueUrl = Uri.parse(
-      _portalUrl,
+      portalUrl,
     ).replace(path: '/reset-password').toString();
 
     final response = await http.post(
@@ -343,7 +363,7 @@ Future<String?> _generatePasswordResetLink(String email) async {
 
     // Construct our portal reset URL with the oobCode
     final resetUrl = Uri.parse(
-      _portalUrl,
+      portalUrl,
     ).replace(path: '/reset-password', queryParameters: {'oobCode': oobCode});
 
     return resetUrl.toString();

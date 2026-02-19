@@ -251,7 +251,7 @@ class AppRoot extends StatefulWidget {
   State<AppRoot> createState() => _AppRootState();
 }
 
-class _AppRootState extends State<AppRoot> {
+class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   final EnrollmentService _enrollmentService = EnrollmentService();
   final AuthService _authService = AuthService();
   final TaskService _taskService = TaskService();
@@ -261,9 +261,18 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
     _performAutoImport();
     _initializeNotifications();
+  }
+
+  /// REQ-CAL-p00081: Sync tasks when app resumes from background
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_taskService.syncTasks(_enrollmentService));
+    }
   }
 
   /// Initialize FCM notification service and task loading.
@@ -275,6 +284,9 @@ class _AppRootState extends State<AppRoot> {
     // Load persisted tasks from storage
     await _taskService.loadTasks();
 
+    // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
+    unawaited(_taskService.syncTasks(_enrollmentService));
+
     // Initialize FCM
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
@@ -284,8 +296,10 @@ class _AppRootState extends State<AppRoot> {
     try {
       await _notificationService!.initialize();
       debugPrint('[Main] Notification service initialized');
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[Main] Notification service init failed: $e');
+      debugPrint('[Main] Stack:\n$stack');
+      if (kDebugMode) rethrow;
     }
   }
 
@@ -349,10 +363,13 @@ class _AppRootState extends State<AppRoot> {
     if (token != null) {
       _registerFcmToken(token);
     }
+    // REQ-CAL-p00081: Discover tasks immediately after linking
+    unawaited(_taskService.syncTasks(_enrollmentService));
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _notificationService?.dispose();
     _taskService.dispose();
     super.dispose();

@@ -8,7 +8,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
@@ -22,8 +24,12 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// - E: Tasks auto-removed when removal condition met
 /// - F: Task list updates in real-time
 class TaskService extends ChangeNotifier {
+  TaskService({http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
+
   static const _storageKey = 'patient_tasks';
 
+  final http.Client _httpClient;
   final List<Task> _tasks = [];
 
   /// Current list of active tasks, sorted by priority (REQ-CAL-p00081-C)
@@ -146,6 +152,96 @@ class TaskService extends ChangeNotifier {
     _tasks.add(task);
     notifyListeners();
     unawaited(_saveTasks());
+  }
+
+  /// Sync tasks from the diary server.
+  ///
+  /// Polls GET /api/v1/user/tasks to discover pending questionnaire tasks.
+  /// Uses a replace-and-merge strategy: questionnaire tasks are replaced
+  /// with the server's list, while non-questionnaire tasks are untouched.
+  ///
+  /// REQ-CAL-p00081: Patient Task System
+  /// REQ-CAL-p00023: Questionnaire discovery via polling
+  Future<void> syncTasks(EnrollmentService enrollmentService) async {
+    try {
+      final jwt = await enrollmentService.getJwtToken();
+      if (jwt == null) {
+        debugPrint('[TaskService] No JWT — skipping task sync');
+        return;
+      }
+
+      final backendUrl = await enrollmentService.getBackendUrl();
+      if (backendUrl == null) {
+        debugPrint('[TaskService] No backend URL — skipping task sync');
+        return;
+      }
+
+      final url = '$backendUrl/api/v1/user/tasks';
+      final response = await _httpClient.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('[TaskService] Task sync failed: ${response.statusCode}');
+        return;
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      // Process disconnection status (same pattern as nosebleed_service)
+      enrollmentService.processDisconnectionStatus(body);
+
+      final serverTasks = body['tasks'] as List<dynamic>? ?? [];
+
+      // Build set of server task IDs for efficient lookup
+      final serverTaskIds = <String>{};
+      final newTasks = <Task>[];
+
+      for (final taskJson in serverTasks) {
+        final data = taskJson as Map<String, dynamic>;
+        final instanceId = data['questionnaire_instance_id'] as String?;
+        if (instanceId == null) continue;
+
+        serverTaskIds.add(instanceId);
+
+        // Only add if not already present locally
+        if (!_tasks.any((t) => t.id == instanceId)) {
+          try {
+            final task = Task.fromFcmData(data);
+            newTasks.add(task);
+          } catch (e) {
+            debugPrint('[TaskService] Failed to create task from sync: $e');
+          }
+        }
+      }
+
+      // Remove local questionnaire tasks that are no longer on the server
+      final removedCount = _tasks.length;
+      _tasks.removeWhere(
+        (t) =>
+            t.taskType == TaskType.questionnaire &&
+            !serverTaskIds.contains(t.id),
+      );
+      final afterRemove = _tasks.length;
+
+      // Add new tasks from server
+      _tasks.addAll(newTasks);
+
+      final removed = removedCount - afterRemove;
+      if (newTasks.isNotEmpty || removed > 0) {
+        debugPrint(
+          '[TaskService] Sync: +${newTasks.length} added, '
+          '-$removed removed, ${_tasks.length} total',
+        );
+        notifyListeners();
+        unawaited(_saveTasks());
+      } else {
+        debugPrint('[TaskService] Sync: no changes');
+      }
+    } catch (e) {
+      debugPrint('[TaskService] Task sync error: $e');
+    }
   }
 
   /// Persist tasks to local storage

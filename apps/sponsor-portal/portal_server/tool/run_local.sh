@@ -44,6 +44,8 @@ export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_AUTH_EMULATOR_HOST:-localhost:909
 export GCP_PROJECT_ID="${GCP_PROJECT_ID:-demo-sponsor-portal}"
 export DB_SSL="${DB_SSL:-false}"
 export PORT="${PORT:-8080}"
+# Portal frontend URL for activation email links (fallback when Origin header absent)
+export PORTAL_URL="${PORTAL_URL:-http://localhost:8081}"
 
 # Database config - use postgres superuser for local dev
 # Doppler provides LOCAL_DB_ROOT_PASSWORD for the postgres user

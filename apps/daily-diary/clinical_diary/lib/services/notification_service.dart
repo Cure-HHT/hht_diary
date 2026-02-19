@@ -115,8 +115,9 @@ class MobileNotificationService {
       } else {
         debugPrint('[FCM] No token available');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[FCM] Error getting token: $e');
+      debugPrint('[FCM] Stack: $stack');
     }
   }
 

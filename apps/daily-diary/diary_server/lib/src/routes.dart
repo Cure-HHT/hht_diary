@@ -5,6 +5,7 @@
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
 //   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00081: Patient Task System
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //
 // Route definitions for diary server
@@ -30,6 +31,7 @@ Router createRouter() {
   router.post('/api/v1/user/link', linkHandler); // Patient linking via codes
   router.post('/api/v1/user/sync', syncHandler);
   router.post('/api/v1/user/records', getRecordsHandler);
+  router.get('/api/v1/user/tasks', getTasksHandler); // Task discovery (polling)
 
   // Sponsor routes
   router.get('/api/v1/sponsor/config', sponsorConfigHandler);

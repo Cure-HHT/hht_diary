@@ -51,6 +51,13 @@ class AppConfig {
   /// QA API key - returns empty string if not configured
   static String get qaApiKey => _qaApiKeyRaw;
 
+  /// Compile-time override for API base URL.
+  /// Pass via: --dart-define=BACKEND_URL=http://10.0.2.2:8080
+  /// Used by run_local.sh to point the app at a local diary server.
+  static const String _backendUrlOverride = String.fromEnvironment(
+    'BACKEND_URL',
+  );
+
   /// Test-only override for API base URL.
   /// Set this in test setUp() to override the flavor-based apiBase.
   @visibleForTesting
@@ -58,10 +65,16 @@ class AppConfig {
 
   /// API base URL - derived from the current flavor.
   /// Points to the diary-server Cloud Run service.
+  /// Can be overridden at compile time via BACKEND_URL dart-define,
+  /// or at test time via testApiBaseOverride.
   static String get apiBase {
     // Allow test override
     if (testApiBaseOverride != null) {
       return testApiBaseOverride!;
+    }
+    // Allow compile-time override for local development
+    if (_backendUrlOverride.isNotEmpty) {
+      return _backendUrlOverride;
     }
     return FlavorConfig.byName(F.name).apiBase;
   }

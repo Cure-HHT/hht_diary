@@ -427,11 +427,8 @@ Future<Response> createPortalUserHandler(Request request) async {
   String? emailError;
 
   if (FeatureFlags.emailActivation) {
-    // Construct activation URL from environment or request
-    final portalBaseUrl =
-        Platform.environment['PORTAL_URL'] ??
-        Platform.environment['PORTAL_BASE_URL'] ??
-        'http://localhost:8081';
+    // Construct activation URL from the portal origin the caller used
+    final portalBaseUrl = _getPortalBaseUrl(request);
     final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
 
     final emailResult = await EmailService.instance.sendActivationCode(
@@ -631,10 +628,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       String? emailError;
 
       if (FeatureFlags.emailActivation) {
-        final portalBaseUrl =
-            Platform.environment['PORTAL_URL'] ??
-            Platform.environment['PORTAL_BASE_URL'] ??
-            'http://localhost:8081';
+        final portalBaseUrl = _getPortalBaseUrl(request);
         final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
 
         final emailResult = await EmailService.instance.sendActivationCode(
@@ -1134,6 +1128,26 @@ String generateVerificationToken() {
 /// Hash a verification token using SHA-256
 String hashVerificationToken(String token) {
   return sha256.convert(utf8.encode(token)).toString();
+}
+
+/// Extract portal base URL from request headers.
+/// Prefers Origin header (set by browser on CORS requests),
+/// falls back to Referer, then PORTAL_URL env var.
+String _getPortalBaseUrl(Request request) {
+  final origin = request.headers['origin'];
+  if (origin != null && origin.isNotEmpty) {
+    return origin;
+  }
+  final referer = request.headers['referer'];
+  if (referer != null && referer.isNotEmpty) {
+    final uri = Uri.tryParse(referer);
+    if (uri != null && uri.hasScheme && uri.hasAuthority) {
+      return '${uri.scheme}://${uri.authority}';
+    }
+  }
+  return Platform.environment['PORTAL_URL'] ??
+      Platform.environment['PORTAL_BASE_URL'] ??
+      'http://localhost:8081';
 }
 
 /// Generate a random code in XXXXX-XXXXX format
