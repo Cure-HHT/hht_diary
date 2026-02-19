@@ -1,0 +1,160 @@
+name: Android DEV → Play Internal
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+      status:
+        description: "Release status for Google Play"
+        required: true
+        default: "completed"
+
+permissions:
+  contents: write
+  id-token: write   # REQUIRED for Workload Identity Federation
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PACKAGE_NAME: org.anspar.curehht.app.dev   # 🔁 Replace with your real package name
+      BUILD_SCRIPT: ./tool/build_android_dev.sh
+      APK_PATH: apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-dev-release.apk
+      TRACK: ${{ github.event.inputs.track || 'internal' }}
+      RELEASE_STATUS: ${{ github.event.inputs.status || 'completed' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: '${{ vars.GCP_SA_EMAIL }}'
+          create_credentials_file: true
+
+      - name: Print GCP Project Details
+        run: |
+          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+          echo "===== GCP Authentication Check ====="
+          gcloud auth list
+          gcloud config list project
+          gcloud projects describe $(gcloud config get-value project) --format="json(projectId,name,number)"
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 33
+          build-tools: 33.0.2
+          ndk: 25.2.9519653
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+        working-directory: apps/daily-diary/clinical_diary/
+
+      - name: Fetch secrets from Doppler
+        uses: dopplerhq/cli-action@v3
+        with:
+          token: ${{ secrets.DOPPLER_TOKEN }}
+          project: ${{ secrets.DOPPLER_PROJECT }}
+          config: dev
+
+      - name: Create keystore file
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          doppler run -- bash -c 'printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/daily-diary/clinical_diary/android/app/key.jks'
+
+      - name: Generate key.properties dynamically
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          doppler run -- bash -c '
+            cat <<EOF > ./apps/daily-diary/clinical_diary/android/key.properties
+            storePassword=$ANDROID_KEYSTORE_PASSWORD
+            keyPassword=$ANDROID_KEY_PASSWORD
+            keyAlias=$ANDROID_KEY_ALIAS
+            storeFile=key.jks
+            EOF
+          '
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Bump versionCode in pubspec.yaml and commit
+        run: |
+          PUBSPEC_PATH="apps/daily-diary/clinical_diary/pubspec.yaml"
+          
+          # Extract current version line
+          CURRENT_VERSION=$(grep '^version:' $PUBSPEC_PATH | awk '{print $2}')
+          VERSION_NAME=$(echo $CURRENT_VERSION | cut -d'+' -f1)
+          VERSION_CODE=$(echo $CURRENT_VERSION | cut -d'+' -f2)
+          
+          if [ "${{ env.RELEASE_STATUS }}" = "completed" ]; then
+            # Split VERSION_NAME into major.minor.patch
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
+            PATCH=1
+            NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
+            # Increment versionCode
+            NEW_VERSION_CODE=$((VERSION_CODE + 1))
+          else
+            # Keep version name the same
+            NEW_VERSION_NAME=$VERSION_NAME
+            NEW_VERSION_CODE=$VERSION_CODE
+          fi
+
+          NEW_VERSION="$NEW_VERSION_NAME+$NEW_VERSION_CODE"
+
+          echo "Current version: $CURRENT_VERSION"
+          echo "New version: $NEW_VERSION"
+
+          # Replace in pubspec.yaml
+          sed -i "s/^version:.*/version: $NEW_VERSION/" $PUBSPEC_PATH
+
+          git add $PUBSPEC_PATH
+          git commit -m "Bot: bump versionCode to $NEW_VERSION"
+          git push
+
+
+      - name: Build Android DEV APK
+        run: |
+          chmod +x $BUILD_SCRIPT
+          bash $BUILD_SCRIPT
+        working-directory: apps/daily-diary/clinical_diary/
+
+      - name: Upload APK to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: ${{ env.APK_PATH }}
+          track: ${{ env.TRACK }}
+          status: ${{ env.RELEASE_STATUS }}
+
+      - name: Done
+        run: echo "Successfully deployed APK to Play Internal track 🚀"
