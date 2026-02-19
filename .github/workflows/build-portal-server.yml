@@ -92,7 +92,7 @@ jobs:
 
       - name: Collect sponsor content
         env:
-          GH_TOKEN: ${{ secrets.SPONSOR_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.SPONSOR_REPO_PAT }}
         run: tools/build/collect-sponsor-content.sh
 
       - name: Set up Docker Buildx
