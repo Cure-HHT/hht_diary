@@ -477,7 +477,7 @@ if [ -n "$TEST_DIRS" ]; then
         echo -e "${BLUE}Running tests for: $app_dir${NC}"
         echo ""
 
-        if ! "$TEST_SCRIPT" -u; then
+        if ! "$TEST_SCRIPT"; then
             VALIDATION_FAILED=true
             echo ""
             echo -e "${RED}Tests failed in $app_dir${NC}"
@@ -577,8 +577,14 @@ if [ -n "$BUMP_CHANGED_FILES" ]; then
             new_build=$((build_num + 1))
             new_version="${base_version}+${new_build}"
 
-            # Update pubspec.yaml (macOS sed requires -i '')
-            sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+            # Update pubspec.yaml (portable: works on both BSD and GNU sed)
+            if sed --version >/dev/null 2>&1; then
+                # GNU sed
+                sed -i "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+            else
+                # BSD sed (macOS)
+                sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+            fi
 
             echo -e "  ${GREEN}$name: $current -> $new_version${NC}"
             BUMPED_LIST="${BUMPED_LIST} ${name}"
