@@ -16,7 +16,7 @@
 #   - Flutter installed
 #
 # Usage:
-#   ./tool/run_local.sh          # Android emulator (uses 10.0.2.2)
+#   ./tool/run_local.sh          # Android (physical or emulator, uses adb reverse)
 #   ./tool/run_local.sh --web    # Chrome/web (uses localhost)
 #   ./tool/run_local.sh --ios    # iOS simulator (uses localhost)
 #
@@ -36,15 +36,16 @@ DIARY_SERVER="$REPO_ROOT/apps/daily-diary/diary_server"
 CLINICAL_DIARY="$REPO_ROOT/apps/daily-diary/clinical_diary"
 DEV_ENV="$REPO_ROOT/tools/dev-env"
 DEVICE=""
-# Android emulator maps 10.0.2.2 to host machine's localhost.
-# iOS simulator and web can use localhost directly.
-BACKEND_URL="http://10.0.2.2:8080"
+# All platforms use localhost. For Android (physical device or emulator),
+# adb reverse forwards the device's localhost:8080 to the host machine.
+BACKEND_URL="http://localhost:8080"
+USE_ADB_REVERSE=true
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --web) DEVICE="chrome"; BACKEND_URL="http://localhost:8080"; shift ;;
-    --ios) BACKEND_URL="http://localhost:8080"; shift ;;
+    --web) DEVICE="chrome"; USE_ADB_REVERSE=false; shift ;;
+    --ios) USE_ADB_REVERSE=false; shift ;;
     --device) DEVICE="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -65,17 +66,28 @@ fi
 
 # 2. Start diary server in background
 echo "[SERVER] Starting diary server on :8080..."
-(cd "$DIARY_SERVER" && ./tool/run_local.sh) &
+(cd "$DIARY_SERVER" && doppler run -- ./tool/run_local.sh) &
 DIARY_PID=$!
 echo "[SERVER] Diary server PID: $DIARY_PID"
 
 # Wait for server to be ready
 sleep 3
 
-# 3. Launch mobile app pointing to local server
+# 3. Set up adb reverse for Android (physical device or emulator)
+#    Applies to ALL connected Android devices so both physical and emulator work.
+if $USE_ADB_REVERSE; then
+  echo "[ADB] Setting up port forwarding (localhost:8080 → host:8080)..."
+  for serial in $(adb devices | awk 'NR>1 && $2=="device" {print $1}'); do
+    adb -s "$serial" reverse tcp:8080 tcp:8080 2>/dev/null \
+      && echo "[ADB]   ✓ $serial" \
+      || echo "[ADB]   ✗ $serial (failed)"
+  done
+fi
+
+# 4. Launch mobile app pointing to local server
 echo "[APP] Launching mobile app with local backend..."
 
-CMD="flutter run --dart-define=APP_FLAVOR=dev --dart-define=BACKEND_URL=$BACKEND_URL"
+CMD="flutter run --dart-define=APP_FLAVOR=local --dart-define=BACKEND_URL=$BACKEND_URL"
 
 if [[ -n "$DEVICE" ]]; then
   CMD="$CMD -d $DEVICE"

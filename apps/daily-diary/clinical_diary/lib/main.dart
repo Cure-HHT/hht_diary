@@ -37,12 +37,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
-/// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
-/// For iOS/Android, Flutter sets FLUTTER_APP_FLAVOR when using --flavor flag.
-/// For web builds (where --flavor isn't supported), use APP_FLAVOR instead.
-const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR') != ''
-    ? String.fromEnvironment('FLUTTER_APP_FLAVOR')
-    : String.fromEnvironment('APP_FLAVOR');
+/// Flavor name from build configuration.
+/// APP_FLAVOR (--dart-define) takes priority over FLUTTER_APP_FLAVOR (--flavor).
+/// This allows local dev to use --dart-define=APP_FLAVOR=local while keeping
+/// --flavor dev for the Android build (which has no 'local' product flavor).
+const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
+    ? String.fromEnvironment('APP_FLAVOR')
+    : String.fromEnvironment('FLUTTER_APP_FLAVOR');
 
 void main() async {
   // Initialize flavor from native platform configuration
