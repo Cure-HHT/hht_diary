@@ -1,3 +1,6 @@
+# Tip: Create .elspais.local.toml alongside this file for developer-local
+# overrides (e.g. associate paths). It is deep-merged and gitignored.
+
 project = { name = "hht-diary", type = "core" }
 validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
 
