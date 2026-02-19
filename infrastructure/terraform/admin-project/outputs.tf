@@ -78,7 +78,7 @@ output "gmail_setup_instructions" {
        Create user: ${var.gmail_sender_email}
 
     4. Add to Doppler (all environments):
-       GMAIL_SERVICE_ACCOUNT_EMAIL = ${google_service_account.gmail.email}
+       EMAIL_SVC_ACCT = ${google_service_account.gmail.email}
        EMAIL_SENDER = ${var.gmail_sender_email}
        EMAIL_ENABLED = true
 

@@ -69,7 +69,9 @@ class DataExportService {
     String appVersion;
     try {
       final packageInfo = await PackageInfo.fromPlatform();
-      appVersion = packageInfo.version;
+      appVersion = packageInfo.buildNumber.isNotEmpty
+          ? '${packageInfo.version}+${packageInfo.buildNumber}'
+          : packageInfo.version;
     } catch (e) {
       appVersion = '0.0.0';
     }

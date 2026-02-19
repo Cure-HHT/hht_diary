@@ -26,6 +26,12 @@
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app may access your photo library to allow you to attach images to your health diary entries.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>remote-notification</string>
+    </array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UILaunchStoryboardName</key>
@@ -47,7 +53,5 @@
       <string>UIInterfaceOrientationLandscapeLeft</string>
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>This app may access your photo library to allow you to attach images to your health diary entries.</string>
   </dict>
 </plist>

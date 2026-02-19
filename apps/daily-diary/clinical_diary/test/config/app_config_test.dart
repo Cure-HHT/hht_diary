@@ -133,7 +133,7 @@ void main() {
       expect(FlavorConfig.qa.name, 'qa');
       expect(
         FlavorConfig.qa.apiBase,
-        'https://diary-server-qa.europe-west9.run.app',
+        'https://diary-server-421945483876.europe-west9.run.app',
       );
       expect(FlavorConfig.qa.environment, 'qa');
       expect(FlavorConfig.qa.showDevTools, true);
@@ -145,7 +145,7 @@ void main() {
       expect(FlavorConfig.uat.name, 'uat');
       expect(
         FlavorConfig.uat.apiBase,
-        'https://diary-server-uat.europe-west9.run.app',
+        'https://diary-server-421945483876.europe-west9.run.app',
       );
       expect(FlavorConfig.uat.environment, 'uat');
       expect(FlavorConfig.uat.showDevTools, false);

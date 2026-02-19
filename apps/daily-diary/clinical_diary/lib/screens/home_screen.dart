@@ -3,6 +3,7 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00076: Participation Status Badge
+//   REQ-CAL-p00081: Patient Task System
 
 import 'dart:async';
 import 'dart:convert';
@@ -26,11 +27,13 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
+import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -43,16 +46,20 @@ class HomeScreen extends StatefulWidget {
     required this.nosebleedService,
     required this.enrollmentService,
     required this.authService,
+    required this.taskService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
     required this.onLargerTextChanged,
     required this.preferencesService,
     this.onFontChanged,
+    this.onEnrolled,
     super.key,
   });
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
   final AuthService authService;
+  // REQ-CAL-p00081: Task service for questionnaire task management
+  final TaskService taskService;
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
@@ -60,6 +67,8 @@ class HomeScreen extends StatefulWidget {
   // CUR-528: Callback for font selection changes
   final ValueChanged<String>? onFontChanged;
   final PreferencesService preferencesService;
+  // REQ-CAL-p00082: Called after successful enrollment to register FCM token
+  final VoidCallback? onEnrolled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -678,6 +687,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
             await _checkEnrollmentStatus();
+            if (_isEnrolled) {
+              widget.onEnrolled?.call();
+            }
             await _checkDisconnectionStatus();
           },
           onShowSettings: () async {
@@ -1133,8 +1145,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
 
-              // Active questionnaire banner (blue) - placeholder
-              // TODO: Add questionnaire functionality
+              // REQ-CAL-p00081: Task list (questionnaires, etc.)
+              TaskListWidget(
+                taskService: widget.taskService,
+                onTaskTap: (task) {
+                  // REQ-CAL-p00081-D: Navigate to relevant screen
+                  // TODO: Navigate to questionnaire screen when implemented
+                  debugPrint('[HomeScreen] Task tapped: ${task.title}');
+                },
+              ),
 
               // Yesterday confirmation banner (yellow)
               if (!_hasYesterdayRecords)

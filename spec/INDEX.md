@@ -34,7 +34,7 @@
 | REQ-p00040 | Event Sourcing State Protection                                     | prd-security-RLS.md                       | 1694c31b |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                                 | prd-epistaxis-terminology.md              | 36dc9faf |
 | REQ-p00043 | Diary Mobile Application                                            | prd-diary-app.md                          | d5bc3ef8 |
-| REQ-p00044 | Clinical Trial Compliant Diary Platform                             | prd-system.md                             | 7933530e |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform                             | prd-system.md                             | 0919ad00 |
 | REQ-p00045 | Regulatory Compliance Framework                                     | prd-clinical-trials.md                    | c4fa27f7 |
 | REQ-p00046 | Clinical Data Storage System                                        | prd-database.md                           | 75ec9efe |
 | REQ-p00047 | Data Backup and Archival                                            | prd-backup.md                             | 4e9501e4 |
@@ -121,6 +121,7 @@
 | REQ-p70009 | Link New Patient Workflow                                           | prd-portal.md                             | 84d192e7 |
 | REQ-p70010 | Patient Disconnection Workflow                                      | prd-portal.md                             | 79bc39eb |
 | REQ-p70011 | Patient Reconnection Workflow                                       | prd-portal.md                             | c386824f |
+| REQ-p70012 | Portal Data Acceptance and Rejection                                | prd-portal.md                             | 2f615ddb |
 | REQ-p80001 | FDA 21 CFR Part 11 Compliance                                       | regulations/fda/prd-fda-21-cfr-11.md      | 54daf3d2 |
 | REQ-p80002 | 21 CFR Part 11 Compliance                                           | regulations/fda/prd-fda-21-cfr-11.md      | a5d5da23 |
 | REQ-p80003 | FDA Guidance on Electronic Records in Clinical Investigations       | regulations/fda/prd-fda-21-cfr-11.md      | 7330eda3 |
@@ -197,6 +198,12 @@
 | REQ-o00075 | Third-Party Security Assessment                   | ops-system.md                          | 345140ac |
 | REQ-o00076 | Sponsor Repository Provisioning                   | ops-sponsor-repos.md                   | 831fa654 |
 | REQ-o00077 | Sponsor CI/CD Integration                         | ops-sponsor-repos.md                   | 7104b083 |
+| REQ-o00078 | Change-Appropriate CI Validation                  | ops-cicd.md                            | ab0977df |
+| REQ-o00079 | Commit and PR Traceability Enforcement            | ops-cicd.md                            | cc298537 |
+| REQ-o00080 | Secret and Vulnerability Scanning                 | ops-cicd.md                            | 90e58ccc |
+| REQ-o00081 | Code Quality and Static Analysis                  | ops-cicd.md                            | 0b222d9e |
+| REQ-o00082 | Automated Test Execution                          | ops-cicd.md                            | 63cc8fe6 |
+| REQ-o00083 | QA Promotion Gate                                 | ops-cicd.md                            | dd06f8de |
 | REQ-o80010 | Training and Personnel Qualification              | regulations/fda/ops-fda-part11-SOPs.md | 53e1ba24 |
 | REQ-o80020 | Record Retention and Archival                     | regulations/fda/ops-fda-part11-SOPs.md | 9fcd1947 |
 | REQ-o80030 | Standard Operating Procedures                     | regulations/fda/ops-fda-part11-SOPs.md | 50d11093 |

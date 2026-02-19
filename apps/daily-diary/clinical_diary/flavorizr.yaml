@@ -28,34 +28,34 @@ flavors:
     app:
       name: "CureHHT Tracker DEV"
     android:
-      applicationId: "org.anspar.curehht.app-dev"
+      applicationId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
       firebase:
         config: "android/app/src/dev/google-services.json"
     ios:
-      bundleId: "org.anspar.curehht.app-dev"
+      bundleId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
       firebase:
         config: "ios/Runner/dev/GoogleService-Info.plist"
     macos:
-      bundleId: "org.anspar.curehht.app-dev"
+      bundleId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
 
   qa:
     app:
       name: "Diary QA"
     android:
-      applicationId: "org.anspar.curehht.app-qa"
+      applicationId: "org.anspar.curehht.app.qa"
       icon: "assets/icons/qa/app_icon.png"
       firebase:
         config: "android/app/src/qa/google-services.json"
     ios:
-      bundleId: "org.anspar.curehht.app-qa"
+      bundleId: "org.anspar.curehht.app.qa"
       icon: "assets/icons/qa/app_icon.png"
       firebase:
         config: "ios/Runner/qa/GoogleService-Info.plist"
     macos:
-      bundleId: "org.anspar.curehht.app-qa"
+      bundleId: "org.anspar.curehht.app.qa"
       icon: "assets/icons/qa/app_icon.png"
 
   uat:

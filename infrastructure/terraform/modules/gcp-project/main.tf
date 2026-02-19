@@ -65,6 +65,7 @@ locals {
     "vpcaccess.googleapis.com",            # Serverless VPC Access
     "servicenetworking.googleapis.com",    # Private service connection
     "sts.googleapis.com",                  # Security Token Service (WIF)
+    "billingbudgets.googleapis.com",       # Cloud Billing Budgets
   ]
 }
 

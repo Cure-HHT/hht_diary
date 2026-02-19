@@ -1,17 +1,24 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: Container infrastructure for Cloud Run
+#   REQ-d00058: Secrets Management via Doppler
+#   REQ-o00002: Environment-Specific Configuration Management
 #
 # Startup script for Sponsor Portal container
+# Fetches DOPPLER_TOKEN from Google Cloud Secret Manager, then
 # Runs Dart API server and nginx together
 
 set -eo pipefail
 
+# Re-exec with line-buffered stdout/stderr so Cloud Run captures all log output
+if [ -z "$_UNBUFFERED" ]; then
+    export _UNBUFFERED=1
+    exec stdbuf -oL -eL "$0" "$@"
+fi
+
 # Dart server listens on internal port 8081
 # nginx listens on external port 8080 and proxies to Dart
 export PORT=8081
-
-echo "Starting Sponsor Portal..."
 
 # Function to handle shutdown signals
 cleanup() {
@@ -31,16 +38,17 @@ trap cleanup SIGTERM SIGINT SIGQUIT
 echo "=========================================="
 echo "Sponsor Portal Startup"
 echo "=========================================="
-echo "Environment: ${ENVIRONMENT:-not-set}"
-echo "Port: $PORT"
 
-# Check if ENVIRONMENT is set
-if [ -z "$ENVIRONMENT" ]; then
-    echo "❌ ERROR: ENVIRONMENT variable is not set!"
-    echo "Cloud Run service must have ENVIRONMENT configured (e.g., dev, staging, prod)."
+# Show identity for debugging
+echo "Fetching active service account..."
+IDENTITY=$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || echo "unknown")
+echo "Running as: ${IDENTITY}"
+
+# Validate required environment variables
+if [ -z "$DOPPLER_PROJECT_ID" ]; then
+    echo "ERROR: DOPPLER_PROJECT_ID is not set!"
     exit 1
 fi
-echo "✅ ENVIRONMENT ${ENVIRONMENT} detected."
 
 # Check if SPONSOR_ID is set
 if [ -z "$SPONSOR_ID" ]; then
@@ -63,57 +71,47 @@ echo "✅ Sponsor content verified for ${SPONSOR_ID}."
 if [ -z "$DOPPLER_TOKEN" ]; then
     echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
     echo "Cloud Run service must have DOPPLER_TOKEN configured for this environment."
+if [ -z "$DOPPLER_CONFIG_NAME" ]; then
+    echo "ERROR: DOPPLER_CONFIG_NAME is not set!"
     exit 2
 fi
 
-echo "✅ DOPPLER_TOKEN detected (length: ${#DOPPLER_TOKEN} chars)"
+echo "Doppler Project: ${DOPPLER_PROJECT_ID}"
+echo "Doppler Config:  ${DOPPLER_CONFIG_NAME}"
 
-# Verify Doppler CLI is available
-if ! command -v doppler &> /dev/null; then
-    echo "❌ ERROR: Doppler CLI not found in PATH!"
+# Fetch DOPPLER_TOKEN from Google Cloud Secret Manager
+echo "Fetching DOPPLER_TOKEN from Secret Manager..."
+export DOPPLER_TOKEN
+DOPPLER_TOKEN="$(gcloud secrets versions access latest --secret=DOPPLER_TOKEN 2>&1)"
+if [ $? -ne 0 ] || [ -z "$DOPPLER_TOKEN" ]; then
+    echo "ERROR $?: Failed to fetch DOPPLER_TOKEN from Secret Manager!"
+    echo "stderr: ${DOPPLER_TOKEN}"
+    echo "Ensure the Cloud Run service account has secretmanager.versions.access permission."
     exit 3
 fi
+echo "DOPPLER_TOKEN fetched (length: ${#DOPPLER_TOKEN} chars)"
 
-echo "✅ Doppler CLI version: $(doppler --version)"
-
-# Fetch and display Doppler configuration info (without exposing secrets)
-echo "Fetching Doppler configuration info..."
-export DOPPLER_PROJECT="hht-diary"
-export DOPPLER_CONFIG="${ENVIRONMENT}"
-echo "  Project: ${DOPPLER_PROJECT}"
-echo "  Config: ${DOPPLER_CONFIG}"
-
-# Test Doppler connection by listing secret names (not values)
-echo "Testing Doppler connection..."
-if ! doppler secrets --only-names 2>&1 | head -5; then
-    echo "❌ ERROR: Failed to connect to Doppler!"
-    echo "Check that DOPPLER_TOKEN is valid for the target environment."
+# Validate GCP_PROJECT_ID matches expected environment
+GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" 2>/dev/null)
+if [ -z "$GCP_PROJECT_ID" ]; then
+    echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
     exit 4
 fi
 
-echo "✅ Doppler connection successful"
-
-# Validate GCP_PROJECT_ID matches expected environment
-GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain 2>/dev/null)
-if [ -z "$GCP_PROJECT_ID" ]; then
-    echo "❌ ERROR: GCP_PROJECT_ID secret not found in Doppler!"
+if [[ "$GCP_PROJECT_ID" != *"$DOPPLER_CONFIG_NAME" ]]; then
+    echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
+    echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with DOPPLER_CONFIG_NAME '$DOPPLER_CONFIG_NAME'"
+    echo "  This may indicate a misconfigured Doppler token for the wrong environment."
     exit 5
 fi
-
-if [[ "$GCP_PROJECT_ID" != *"$ENVIRONMENT" ]]; then
-    echo "❌ ERROR: GCP_PROJECT_ID mismatch!"
-    echo "  GCP_PROJECT_ID '$GCP_PROJECT_ID' does not end with ENVIRONMENT '$ENVIRONMENT'"
-    echo "  This may indicate a misconfigured Doppler token for the wrong environment."
-    exit 6
-fi
-echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$ENVIRONMENT'"
+echo "✅ GCP_PROJECT_ID '$GCP_PROJECT_ID' matches environment '$DOPPLER_CONFIG_NAME'"
 
 echo "=========================================="
 echo "Starting Dart API server with Doppler-injected secrets..."
 echo "=========================================="
 
 # Start server with Doppler injecting secrets
-doppler run -- /app/server &
+doppler run --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" -- /app/server &
 DART_PID=$!
 
 # Wait for Dart server to be ready

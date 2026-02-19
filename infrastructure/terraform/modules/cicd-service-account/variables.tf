@@ -10,6 +10,11 @@ variable "host_project_id" {
   type        = string
 }
 
+variable "host_project_number" {
+  description = "Project number where the service account is created (usually dev project)"
+  type        = string
+}
+
 variable "target_project_ids" {
   description = "List of project IDs where CI/CD roles should be granted"
   type        = list(string)

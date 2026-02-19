@@ -106,11 +106,11 @@ flutter run --flavor prod --dart-define=APP_FLAVOR=prod
 The app reads `APP_FLAVOR` (or `FLUTTER_APP_FLAVOR` on mobile) in `main.dart` and derives all
 other settings from `FlavorConfig` in `lib/flavors.dart`:
 
-| Setting | Derived From |
-| ------- | ------------ |
-| `apiBase` | `FlavorConfig.byName(flavor).apiBase` |
-| `showDevTools` | `F.showDevTools` (true for dev/qa) |
-| `showBanner` | `F.showBanner` (true for dev/qa) |
+| Setting        | Derived From                          |
+|----------------|---------------------------------------|
+| `apiBase`      | `FlavorConfig.byName(flavor).apiBase` |
+| `showDevTools` | `F.showDevTools` (true for dev/qa)    |
+| `showBanner`   | `F.showBanner` (true for dev/qa)      |
 
 > **Note**: The `--flavor` flag only affects native platform builds (iOS/Android bundle IDs,
 > app names, icons). For web builds, `--dart-define=APP_FLAVOR` is required.
@@ -206,17 +206,143 @@ In GitHub Actions workflows:
 
 Each flavor uses its own Firebase project:
 
-| Flavor | Firebase Project | Hosting URL |
-| ------ | ---------------- | ----------- |
-| dev | hht-diary-mvp | https://hht-diary-mvp.web.app |
-| qa | hht-diary-qa | https://hht-diary-qa.web.app |
-| uat | hht-diary-uat | https://hht-diary-uat.web.app |
-| prod | hht-diary | https://hht-diary.web.app |
+| Flavor | Firebase Project | Hosting URL                   |
+|--------|------------------|-------------------------------|
+| dev    | hht-diary-mvp    | https://hht-diary-mvp.web.app |
+| qa     | hht-diary-qa     | https://hht-diary-qa.web.app  |
+| uat    | hht-diary-uat    | https://hht-diary-uat.web.app |
+| prod   | hht-diary        | https://hht-diary.web.app     |
 
 Firebase configuration is managed via:
 - `firebase.json` - Hosting, functions, and Firestore config
 - `.firebaserc` - Project aliases
 - `lib/firebase_options.dart` - Generated Flutter Firebase config
+
+## Push Notifications (FCM)
+
+The app uses Firebase Cloud Messaging (FCM) to receive push notifications from the portal server. This is used for the questionnaire task system (REQ-CAL-p00023, REQ-CAL-p00081).
+
+### Architecture
+
+The mobile app talks to the **diary server** (not the portal server). The portal server sends
+FCM notifications. Both servers share the same database.
+
+```
+Portal Server (per-sponsor GCP project)          Diary Server (per-sponsor GCP project)
+  │                                                 ▲
+  │  Coordinator clicks "Send Questionnaire"        │  Mobile app registers FCM token
+  │  → Creates questionnaire_instances row           │  POST /api/v1/user/fcm-token
+  │  → Looks up FCM token from shared DB             │  → Stores in patient_fcm_tokens table
+  │  → Sends FCM via HTTP v1 API                     │
+  │                                                 │
+  │  FCM HTTP v1 API                              Patient's Mobile App
+  │  (WIF/ADC auth, no key files)                   │
+  │                                                 ├── MobileNotificationService
+  ▼                                                 │   - Requests permission (iOS/Android 13+)
+Firebase (cure-hht-admin GCP project)               │   - Gets FCM registration token
+  │                                                 │   - Sends token to diary server
+  │  Routes by FCM token                            │   - Listens for foreground/background msgs
+  │                                                 │
+  └──────────────────────────────────────────────►  └── TaskService
+                                                        - Routes FCM data by 'type' field
+              ┌──────────────────┐                      - Manages task list (ChangeNotifier)
+              │  Shared Database │                      - Persists to SharedPreferences
+              │  (PostgreSQL)    │
+              │                  │
+              │  patient_fcm_    │  ◄── Written by diary server
+              │    tokens        │  ◄── Read by portal server
+              │  questionnaire_  │  ◄── Written by portal server
+              │    instances     │  ◄── (future: read by diary server for sync)
+              └──────────────────┘
+```
+
+### How Device Targeting Works
+
+1. **App startup**: `MobileNotificationService` requests an FCM registration token from Firebase. This is a unique ~150-char string identifying this app installation on this device.
+2. **Token registration** (TODO): The app sends this token to the **diary server** via `POST /api/v1/user/fcm-token` (JWT auth). The diary server stores it in the `patient_fcm_tokens` database table linked to the patient's ID.
+3. **Token refresh**: Firebase may rotate the token at any time. The app listens for `onTokenRefresh` and re-registers with the diary server.
+4. **Sending**: When a coordinator clicks "Send Questionnaire", the **portal server** looks up the patient's active FCM token from the **shared database** and calls the FCM HTTP v1 API to deliver a data-only message to that specific device.
+5. **No token?**: If no token is registered (e.g., app not installed), the questionnaire is still created server-side. The patient discovers it via data sync.
+
+**Why two servers?** The mobile app only talks to the diary server (JWT auth via linking codes). The portal UI only talks to the portal server (Firebase Auth). They share the same PostgreSQL database, so the portal server can read tokens that the diary server wrote.
+
+### FCM Message Format
+
+Messages are **data-only** (no PHI in the notification payload):
+
+```json
+{
+  "message": {
+    "token": "<patient_fcm_token>",
+    "data": {
+      "type": "questionnaire_sent",
+      "questionnaire_type": "nose_hht",
+      "questionnaire_instance_id": "<uuid>",
+      "action": "new_task"
+    },
+    "notification": {
+      "title": "New Questionnaire Available",
+      "body": "You have a new questionnaire to complete."
+    }
+  }
+}
+```
+
+For deletion (`type: "questionnaire_deleted"`), only the `data` payload is sent (no notification banner).
+
+### Key Files
+
+| File                                     | Purpose                                                  |
+|------------------------------------------|----------------------------------------------------------|
+| `lib/services/notification_service.dart` | FCM initialization, permission, token, message handling  |
+| `lib/services/task_service.dart`         | Task list management, FCM data message routing           |
+| `lib/widgets/task_list_widget.dart`      | Task cards on home screen (priority-sorted, color-coded) |
+| `lib/main.dart` (`_AppRootState`)        | Wires TaskService + MobileNotificationService on init    |
+| `lib/screens/home_screen.dart`           | Hosts TaskListWidget in banner section                   |
+
+### Testing Locally
+
+**Without a real device** (console mode):
+
+The portal server supports `FCM_CONSOLE_MODE=true` which logs notification payloads to stdout instead of sending them. This is the default in `run_local.sh`.
+
+To simulate a notification arriving on the mobile app:
+```bash
+# From the sponsor-portal directory:
+./tool/testNotification.sh
+```
+
+This script calls the portal server's questionnaire API, which will log the FCM payload to the server console in console mode.
+
+**On a real device** (dev/qa environments):
+
+1. Run the app on a physical device with `--flavor dev`
+2. The app will request notification permissions and obtain an FCM token
+3. Check the debug console for `[FCM] Token: ...`
+4. Send a test notification via Firebase Console:
+   - Go to Firebase Console > cure-hht-admin > Messaging
+   - Click "Send your first message"
+   - Enter title/body, click "Send test message"
+   - Paste the FCM token from the debug console
+5. Or use the portal server's API endpoint (once token registration is built)
+
+### Environment Variables (Portal Server)
+
+| Variable           | Default          | Description                                           |
+|--------------------|------------------|-------------------------------------------------------|
+| `FCM_PROJECT_ID`   | `cure-hht-admin` | Firebase project for FCM API endpoint                 |
+| `FCM_ENABLED`      | `true`           | Set to `false` to disable push notifications          |
+| `FCM_CONSOLE_MODE` | `false`          | Set to `true` for local dev (logs instead of sending) |
+
+### Remaining Work
+
+- [ ] Database migration: `patient_fcm_tokens` and `questionnaire_instances` tables
+- [ ] Token registration endpoint: `POST /api/v1/user/fcm-token` on diary server (mobile app talks to diary server, not portal)
+- [ ] Mobile app: send FCM token to diary server on startup and refresh
+- [ ] Task tap navigation: route to questionnaire screen
+- [ ] iOS: Enable Push Notifications capability in Xcode, upload APNs key to Firebase
+
+---
 
 ## 🔄 Version Checking & Updates
 
@@ -230,11 +356,11 @@ The app includes an automatic version checking system that notifies users when u
 
 ### Update Notifications
 
-| Condition | UI Behavior |
-| --------- | ----------- |
-| Local version < remote version | Dismissible blue banner at top of screen |
-| Local version < minVersion | Blocking dialog (cannot dismiss) |
-| Local version >= remote version | No notification |
+| Condition                       | UI Behavior                              |
+|---------------------------------|------------------------------------------|
+| Local version < remote version  | Dismissible blue banner at top of screen |
+| Local version < minVersion      | Blocking dialog (cannot dismiss)         |
+| Local version >= remote version | No notification                          |
 
 The banner/dialog includes:
 - Current and new version numbers
@@ -256,10 +382,10 @@ Edit `version-info.json` in the app root to control update behavior:
 }
 ```
 
-| Field | Description |
-| ----- | ----------- |
-| `minVersion` | Minimum supported version. Users below this see a blocking update dialog. |
-| `releaseNotes` | Text shown in update banner/dialog. Keep it brief. |
+| Field          | Description                                                               |
+|----------------|---------------------------------------------------------------------------|
+| `minVersion`   | Minimum supported version. Users below this see a blocking update dialog. |
+| `releaseNotes` | Text shown in update banner/dialog. Keep it brief.                        |
 
 ### Check Frequency
 
@@ -283,14 +409,14 @@ Cache-busting headers are configured in `firebase.json`:
 
 ### Related Files
 
-| File | Purpose |
-| ---- | ------- |
-| `version-info.json` | Maintainable minVersion and releaseNotes |
-| `lib/utils/app_version.dart` | Embedded version constant |
-| `lib/services/version_check_service.dart` | Version comparison and fetch logic |
-| `lib/widgets/update_banner.dart` | Dismissible update banner |
-| `lib/widgets/update_dialog.dart` | Blocking update dialog |
-| `lib/widgets/update_banner_wrapper.dart` | Wrapper that orchestrates update UI |
+| File                                      | Purpose                                  |
+|-------------------------------------------|------------------------------------------|
+| `version-info.json`                       | Maintainable minVersion and releaseNotes |
+| `lib/utils/app_version.dart`              | Embedded version constant                |
+| `lib/services/version_check_service.dart` | Version comparison and fetch logic       |
+| `lib/widgets/update_banner.dart`          | Dismissible update banner                |
+| `lib/widgets/update_dialog.dart`          | Blocking update dialog                   |
+| `lib/widgets/update_banner_wrapper.dart`  | Wrapper that orchestrates update UI      |
 
 ## 🔐 Configuration with Doppler
 
@@ -383,8 +509,8 @@ doppler secrets get CUREHHT_QA_API_KEY
 
 ### Required Secrets
 
-| Secret | Description | Environments | Used By |
-| ------ | ----------- | ------------ | ------- |
+| Secret               | Description                         | Environments | Used By                         |
+|----------------------|-------------------------------------|--------------|---------------------------------|
 | `CUREHHT_QA_API_KEY` | API key for sponsor config endpoint | dev, qa only | Flutter app, Firebase Functions |
 
 > **Note**: Configuration like `apiBase` is no longer passed via dart-define. It's derived from
@@ -441,7 +567,7 @@ firebase functions:secrets:set CUREHHT_QA_API_KEY
 ### Environment-Specific Configs
 
 | Environment | Doppler Config | Has QA API Key |
-| ----------- | -------------- | -------------- |
+|-------------|----------------|----------------|
 | Development | `dev`          | Yes            |
 | QA          | `qa`           | Yes            |
 | UAT         | `uat`          | No             |
@@ -526,11 +652,11 @@ flutter run --flavor dev --dart-define=APP_FLAVOR=dev \
 
 Convenience scripts in `tool/` for running the app with different flavors:
 
-| Script | Flavor | Dev Tools |
-| ------ | ------ | --------- |
-| `./tool/run_dev.sh` | dev | Yes |
-| `./tool/run_qa.sh` | qa | Yes |
-| `./tool/run_uat.sh` | uat | No |
+| Script              | Flavor | Dev Tools |
+|---------------------|--------|-----------|
+| `./tool/run_dev.sh` | dev    | Yes       |
+| `./tool/run_qa.sh`  | qa     | Yes       |
+| `./tool/run_uat.sh` | uat    | No        |
 
 All scripts support these options:
 - `--import-file <path>` - Auto-import JSON export file on startup
@@ -746,13 +872,13 @@ flutter run -t widgetbook/main.dart -d iPhone
 
 **Features:**
 
-| Feature | Description |
-| ------- | ----------- |
-| **Viewports** | Test on iPhone 13, iPhone SE, Samsung Galaxy S20, Galaxy Note 20 |
-| **Themes** | Switch between Light and Dark modes |
-| **Locales** | Test all supported languages (EN, ES, FR, DE) |
-| **Text Scale** | Accessibility testing with text scaling (1.0x - 2.0x) |
-| **Knobs** | Interactive controls to modify widget properties |
+| Feature        | Description                                                      |
+|----------------|------------------------------------------------------------------|
+| **Viewports**  | Test on iPhone 13, iPhone SE, Samsung Galaxy S20, Galaxy Note 20 |
+| **Themes**     | Switch between Light and Dark modes                              |
+| **Locales**    | Test all supported languages (EN, ES, FR, DE)                    |
+| **Text Scale** | Accessibility testing with text scaling (1.0x - 2.0x)            |
+| **Knobs**      | Interactive controls to modify widget properties                 |
 
 **Available Use Cases:**
 
@@ -872,13 +998,13 @@ The app uses the `append_only_datastore` package for offline-first event sourcin
 
 **Benefits of Integration:**
 
-| Benefit | Description |
-| ------- | ----------- |
-| **Tamper Detection** | SHA-256 hash chain links each event to its predecessor. Any modification breaks the chain and is immediately detectable. |
-| **FDA Compliance** | Immutable audit trail with sequence numbers, timestamps, and user/device attribution. Events cannot be updated or deleted—only new events can be appended. |
-| **Cross-Platform** | Uses Sembast database with platform-specific storage: `sembast_io` for iOS/Android/macOS/Windows/Linux, `sembast_web` for browser (IndexedDB). |
-| **Offline-First** | All data is stored locally first. Cloud sync is tracked per-event with `syncedAt` timestamps. |
-| **Testable** | Repository injection allows easy mocking. Tests use in-memory Sembast databases for fast, isolated execution. |
+| Benefit              | Description                                                                                                                                                |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Tamper Detection** | SHA-256 hash chain links each event to its predecessor. Any modification breaks the chain and is immediately detectable.                                   |
+| **FDA Compliance**   | Immutable audit trail with sequence numbers, timestamps, and user/device attribution. Events cannot be updated or deleted—only new events can be appended. |
+| **Cross-Platform**   | Uses Sembast database with platform-specific storage: `sembast_io` for iOS/Android/macOS/Windows/Linux, `sembast_web` for browser (IndexedDB).             |
+| **Offline-First**    | All data is stored locally first. Cloud sync is tracked per-event with `syncedAt` timestamps.                                                              |
+| **Testable**         | Repository injection allows easy mocking. Tests use in-memory Sembast databases for fast, isolated execution.                                              |
 
 **How It Works:**
 

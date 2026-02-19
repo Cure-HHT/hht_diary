@@ -34,6 +34,7 @@ locals {
   default_domains = [
     "${var.project_id}.firebaseapp.com",
     "${var.project_id}.web.app",
+    "portal-${var.project_id}.${var.sponsor}.anspar.org",
   ]
 
   all_authorized_domains = distinct(concat(

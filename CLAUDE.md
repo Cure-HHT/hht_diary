@@ -67,7 +67,7 @@ they should report to the orchestrator any messages they want to pass to another
 │   └── README.md             # Naming conventions & scope definitions
 ├── docs/                      # ADRs and implementation guides
 │   └── adr/                  # Architecture Decision Records
-├── database/                  # PostgreSQL schema (Supabase)
+├── database/                  # PostgreSQL schema
 │   ├── schema.sql            # Core table definitions
 │   ├── triggers.sql          # Event store & audit triggers
 │   ├── rls_policies.sql      # Row-level security
@@ -129,7 +129,7 @@ The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugi
 - Use environment variables for all secrets
 - Do not use .env files for secrets
 - All secrets managed via Doppler (e.g. you were run with `doppler run -- claude`)
-- Supabase credentials managed via Doppler (see `spec/ops-security.md`)
+- Database credentials managed via Doppler (see `spec/ops-security.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 
 ## Security Scanning (IMPLEMENTS REQ-p01018)
@@ -199,8 +199,8 @@ When implementing code:
 
 # External Resources
 
-- Supabase Docs: https://supabase.com/docs
 - PostgreSQL Docs: https://www.postgresql.org/docs/
+- GCP Identity Platform: https://cloud.google.com/security/products/identity-platform
 - FDA 21 CFR Part 11: https://www.fda.gov/regulatory-information
 - Linear API: https://developers.linear.app/
 - Flutter Docs: https://docs.flutter.dev/

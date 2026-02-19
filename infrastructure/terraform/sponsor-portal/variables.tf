@@ -40,6 +40,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "GCP Project number (numeric, for service agent IAM bindings)"
+  type        = string
+}
+
 variable "GCP_ORG_ID" {
   description = "GCP Organization ID (for Workforce Identity)"
   type        = string
@@ -47,6 +52,12 @@ variable "GCP_ORG_ID" {
 
 variable "DB_PASSWORD" {
   description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "DOPPLER_TOKEN" {
+  description = "Doppler service token for runtime secret access"
   type        = string
   sensitive   = true
 }
@@ -144,6 +155,28 @@ variable "enable_cloud_build_triggers" {
   description = "[DEPRECATED] Create Cloud Build triggers for CI/CD. Use GitHub Actions instead."
   type        = bool
   default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Cross-Project Gmail SA Impersonation
+# -----------------------------------------------------------------------------
+
+variable "admin_project_id" {
+  description = "GCP project ID of the admin project (for cross-project Gmail SA impersonation)"
+  type        = string
+  default     = "cure-hht-admin"
+}
+
+variable "gmail_service_account_email" {
+  description = "Email of the org-wide Gmail service account in the admin project"
+  type        = string
+  default     = "org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
+}
+
+variable "impersonating_service_account_email" {
+  description = "Email of this sponsor's service account that needs Gmail SA impersonation (empty = skip)"
+  type        = string
+  default     = ""
 }
 
 # -----------------------------------------------------------------------------
@@ -305,4 +338,33 @@ variable "notification_channels" {
   description = "Notification channel IDs for alerts"
   type        = list(string)
   default     = []
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Cloud Functions (Budget Alert)
+# -----------------------------------------------------------------------------
+
+variable "slack_webhook_devops_url" {
+  description = "Slack webhook URL for budget alert notifications (use Doppler: TF_VAR_slack_webhook_devops_url)"
+  type        = string
+  default     = "https://anspar.slack.com/archives/C0A494UM1C2"
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Billing Alert Function (automated cost control)
+# -----------------------------------------------------------------------------
+
+variable "enable_cost_controls" {
+  description = "Enable automated cost controls (Cloud Function to stop services when budget exceeded). Only affects non-prod - prod will alert but not auto-stop."
+  type        = bool
+  default     = false
+}
+
+
+variable "SLACK_INCIDENT_WEBHOOK_URL" {
+  description = "Slack webhook URL for billing alert notifications (from Doppler: TF_VAR_SLACK_INCIDENT_WEBHOOK_URL)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

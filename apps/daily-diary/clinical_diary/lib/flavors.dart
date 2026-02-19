@@ -105,23 +105,25 @@ class FlavorConfig {
   /// QA flavor configuration
   static const qa = FlavorValues(
     name: 'qa',
-    // TODO: Update when QA environment deployed
-    apiBase: 'https://diary-server-qa.europe-west9.run.app',
+    apiBase: 'https://diary-server-421945483876.europe-west9.run.app',
     environment: 'qa',
     showDevTools: true,
     showBanner: true,
-    sponsorBackends: {'CA': 'https://diary-server-qa.europe-west9.run.app'},
+    sponsorBackends: {
+      'CA': 'https://diary-server-421945483876.europe-west9.run.app',
+    },
   );
 
   /// UAT flavor configuration
   static const uat = FlavorValues(
     name: 'uat',
-    // TODO: Update when UAT environment deployed
-    apiBase: 'https://diary-server-uat.europe-west9.run.app',
+    apiBase: 'https://diary-server-421945483876.europe-west9.run.app',
     environment: 'uat',
     showDevTools: false,
     showBanner: false,
-    sponsorBackends: {'CA': 'https://diary-server-uat.europe-west9.run.app'},
+    sponsorBackends: {
+      'CA': 'https://diary-server-744676176322.europe-west9.run.app',
+    },
   );
 
   /// Production flavor configuration

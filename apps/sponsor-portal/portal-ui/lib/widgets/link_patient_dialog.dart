@@ -395,10 +395,12 @@ class ShowLinkingCodeDialog extends StatefulWidget {
 
 class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   bool _isLoading = true;
+  bool _isGenerating = false;
   bool _hasActiveCode = false;
   String? _code;
   String? _expiresAt;
   String? _error;
+  String? _generateError;
 
   @override
   void initState() {
@@ -425,6 +427,36 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       setState(() {
         _isLoading = false;
         _error = response.error ?? 'Failed to fetch linking code';
+      });
+    }
+  }
+
+  Future<void> _generateNewCode() async {
+    setState(() {
+      _isGenerating = true;
+      _generateError = null;
+    });
+
+    final response = await widget.apiClient.post(
+      '/api/v1/portal/patients/${widget.patientId}/link-code',
+      {},
+    );
+
+    if (!mounted) return;
+
+    if (response.isSuccess && response.data != null) {
+      final data = response.data as Map<String, dynamic>;
+      setState(() {
+        _isGenerating = false;
+        _hasActiveCode = true;
+        _code = data['code'] as String?;
+        _expiresAt = data['expires_at'] as String?;
+        _generateError = null;
+      });
+    } else {
+      setState(() {
+        _isGenerating = false;
+        _generateError = response.error ?? 'Failed to generate linking code';
       });
     }
   }
@@ -517,6 +549,27 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _isGenerating ? null : _generateNewCode,
+            icon: _isGenerating
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh, size: 18),
+            label: Text(_isGenerating ? 'Generating...' : 'Generate New Code'),
+          ),
+          if (_generateError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _generateError!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
         ],
       );
     }
