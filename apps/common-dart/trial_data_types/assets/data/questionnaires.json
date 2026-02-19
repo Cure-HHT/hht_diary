@@ -1,0 +1,198 @@
+{
+  "questionnaires": [
+    {
+      "id": "nose_hht",
+      "name": "NOSE HHT",
+      "version": "1.0",
+      "requirementId": "REQ-p01067",
+      "source": "JAMA Otolaryngol Head Neck Surg. 2020;146(11):999-1005",
+      "scored": true,
+      "recallPeriod": "2 weeks",
+      "totalQuestions": 29,
+      "sessionConfig": {
+        "readinessCheck": true,
+        "readinessMessage": "This questionnaire takes about 10-12 minutes. Please ensure you have enough uninterrupted time to complete it.",
+        "estimatedMinutes": "10-12",
+        "sessionTimeoutMinutes": 30,
+        "timeoutWarningMinutes": 5
+      },
+      "preamble": [
+        {
+          "id": "nose_preamble_1",
+          "content": "Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia\n\nBelow you will find a list of physical, functional, and emotional consequences of your nosebleeds. We would like to know more about these problems and would appreciate you answering the following questions to the best of your ability."
+        },
+        {
+          "id": "nose_preamble_2",
+          "content": "There are no right or wrong answers, as your responses are unique to you."
+        },
+        {
+          "id": "nose_preamble_3",
+          "content": "Please rate your problems as they have been over the past two weeks."
+        }
+      ],
+      "categories": [
+        {
+          "id": "physical",
+          "name": "Physical",
+          "stem": "Please rate how severe the following problems are due to your nosebleeds:",
+          "responseScale": [
+            {"value": 0, "label": "No problem"},
+            {"value": 1, "label": "Mild problem"},
+            {"value": 2, "label": "Moderate problem"},
+            {"value": 3, "label": "Severe problem"},
+            {"value": 4, "label": "As bad as possible"}
+          ],
+          "questions": [
+            {"id": "nose_physical_1", "number": 1, "text": "Blood running down the back of your throat", "required": true},
+            {"id": "nose_physical_2", "number": 2, "text": "Blocked up, stuffy nose", "required": true},
+            {"id": "nose_physical_3", "number": 3, "text": "Nasal crusting", "required": true},
+            {"id": "nose_physical_4", "number": 4, "text": "Fatigue", "required": true},
+            {"id": "nose_physical_5", "number": 5, "text": "Shortness of breath", "required": true},
+            {"id": "nose_physical_6", "number": 6, "text": "Decreased sense of smell or taste", "required": true}
+          ]
+        },
+        {
+          "id": "functional",
+          "name": "Functional",
+          "stem": "How difficult is it to perform the following tasks due to your nosebleeds?",
+          "responseScale": [
+            {"value": 0, "label": "No difficulty"},
+            {"value": 1, "label": "Mild difficulty"},
+            {"value": 2, "label": "Moderate difficulty"},
+            {"value": 3, "label": "Severe difficulty"},
+            {"value": 4, "label": "Complete difficulty"}
+          ],
+          "questions": [
+            {"id": "nose_functional_1",  "number": 7,  "text": "Blow your nose", "required": true},
+            {"id": "nose_functional_2",  "number": 8,  "text": "Bend over/pick something up off the ground", "required": true},
+            {"id": "nose_functional_3",  "number": 9,  "text": "Breathe through your nose", "required": true},
+            {"id": "nose_functional_4",  "number": 10, "text": "Exercise", "required": true},
+            {"id": "nose_functional_5",  "number": 11, "text": "Work at your job (or school)", "required": true},
+            {"id": "nose_functional_6",  "number": 12, "text": "Stay asleep", "required": true},
+            {"id": "nose_functional_7",  "number": 13, "text": "Enjoy time with friends or family", "required": true},
+            {"id": "nose_functional_8",  "number": 14, "text": "Eat certain foods (e.g. spicy)", "required": true},
+            {"id": "nose_functional_9",  "number": 15, "text": "Have intimacy with spouse or significant other", "required": true},
+            {"id": "nose_functional_10", "number": 16, "text": "Travel (e.g. by plane)", "required": true},
+            {"id": "nose_functional_11", "number": 17, "text": "Fall asleep", "required": true},
+            {"id": "nose_functional_12", "number": 18, "text": "Clean your house/apartment", "required": true},
+            {"id": "nose_functional_13", "number": 19, "text": "Go outdoors regardless of the weather or season", "required": true},
+            {"id": "nose_functional_14", "number": 20, "text": "Cook or prepare meals", "required": true}
+          ]
+        },
+        {
+          "id": "emotional",
+          "name": "Emotional",
+          "stem": "How bothered are you by the following due to your nosebleeds?",
+          "responseScale": [
+            {"value": 0, "label": "Not bothered"},
+            {"value": 1, "label": "Very rarely bothered"},
+            {"value": 2, "label": "Rarely bothered"},
+            {"value": 3, "label": "Frequently bothered"},
+            {"value": 4, "label": "Very frequently bothered"}
+          ],
+          "questions": [
+            {"id": "nose_emotional_1", "number": 21, "text": "Fear of nosebleeds in public", "required": true},
+            {"id": "nose_emotional_2", "number": 22, "text": "Fear of not knowing when next nosebleed", "required": true},
+            {"id": "nose_emotional_3", "number": 23, "text": "Getting blood on your clothes", "required": true},
+            {"id": "nose_emotional_4", "number": 24, "text": "Fear of not being able to stop a nosebleed", "required": true},
+            {"id": "nose_emotional_5", "number": 25, "text": "Embarrassment", "required": true},
+            {"id": "nose_emotional_6", "number": 26, "text": "Frustration, restlessness, irritability", "required": true},
+            {"id": "nose_emotional_7", "number": 27, "text": "Reduced concentration", "required": true},
+            {"id": "nose_emotional_8", "number": 28, "text": "Sadness", "required": true},
+            {"id": "nose_emotional_9", "number": 29, "text": "The need to buy new clothes", "required": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hht_qol",
+      "name": "Quality of Life Survey",
+      "version": "1.0",
+      "requirementId": "REQ-p01068",
+      "source": "Blood Advances. 2022;6(14):4301-4309",
+      "scored": true,
+      "recallPeriod": "4 weeks",
+      "totalQuestions": 4,
+      "preamble": [
+        {
+          "id": "qol_preamble_1",
+          "content": "This questionnaire helps us understand how your nosebleeds affect your daily life and wellbeing."
+        },
+        {
+          "id": "qol_preamble_2",
+          "content": "Please think about your experiences over the past 4 weeks when answering these questions. There are no right or wrong answers."
+        },
+        {
+          "id": "qol_preamble_3",
+          "content": "Your honest responses will help healthcare providers develop better treatment plans and support strategies."
+        },
+        {
+          "id": "qol_preamble_4",
+          "content": "You must answer all questions to submit the survey."
+        }
+      ],
+      "categories": [
+        {
+          "id": "frequency",
+          "name": "HHT Quality of Life",
+          "stem": null,
+          "responseScale": [
+            {"value": 0, "label": "Never"},
+            {"value": 1, "label": "Rarely"},
+            {"value": 2, "label": "Sometimes"},
+            {"value": 3, "label": "Often"},
+            {"value": 4, "label": "Always"}
+          ],
+          "questions": [
+            {
+              "id": "qol_q1",
+              "number": 1,
+              "text": "How often in the past 4 weeks has an activity for your work, school, or regularly scheduled commitments been interrupted by a nose bleed?",
+              "segments": [
+                {"text": "How often in the past 4 weeks has an activity for your work, school, or regularly scheduled commitments "},
+                {"text": "been interrupted by a nose bleed?", "emphasis": "bold_italic"}
+              ],
+              "required": true
+            },
+            {
+              "id": "qol_q2",
+              "number": 2,
+              "text": "How often in the past 4 weeks has an activity with your partner, family, or friends been interrupted by a nose bleed?",
+              "segments": [
+                {"text": "How often in the past 4 weeks has an activity with your partner, family, or friends "},
+                {"text": "been interrupted by a nose bleed?", "emphasis": "bold_italic"}
+              ],
+              "required": true
+            },
+            {
+              "id": "qol_q3",
+              "number": 3,
+              "text": "How often in the past 4 weeks have you avoided social activities because you were worried about having a nose bleed?",
+              "segments": [
+                {"text": "How often in the past 4 weeks have you "},
+                {"text": "avoided social activities", "emphasis": "bold_italic"},
+                {"text": " because you were "},
+                {"text": "worried about having a nose bleed?", "emphasis": "bold_italic"}
+              ],
+              "required": true
+            },
+            {
+              "id": "qol_q4",
+              "number": 4,
+              "text": "How often in the past 4 weeks have you had to miss your work, school, or regularly scheduled commitments because of HHT-related problems other than nosebleeds?",
+              "segments": [
+                {"text": "How often in the past 4 weeks have you "},
+                {"text": "had to miss", "emphasis": "bold_italic"},
+                {"text": " your work, school, or regularly scheduled commitments because of "},
+                {"text": "HHT-related problems ", "emphasis": "bold_italic"},
+                {"text": "other than nosebleeds", "emphasis": "bold_italic_underline"},
+                {"text": "?", "emphasis": "bold_italic"}
+              ],
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

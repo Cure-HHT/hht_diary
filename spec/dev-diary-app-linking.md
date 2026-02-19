@@ -533,9 +533,9 @@ E. The system SHALL display questionnaire progress indicator showing current sec
 
 F. The system SHALL support scrolling for questionnaires that exceed viewport height.
 
-G. The system SHALL preserve questionnaire state when app is backgrounded or interrupted.
+G. The system SHALL preserve questionnaire state when app is backgrounded or interrupted, subject to session timeout constraints defined in REQ-p01073.
 
-H. The system SHALL restore questionnaire progress on app resume without data loss.
+H. Unless the session has expired per REQ-p01073, the system SHALL restore questionnaire progress on app resume.
 
 I. The system SHALL render validation errors inline with the corresponding question.
 
@@ -547,7 +547,7 @@ L. The system SHALL support the Daily Epistaxis Record questionnaire type as the
 
 M. The system SHALL allow sponsors to configure alternative Study Start questionnaire types.
 
-*End* *Study Start Questionnaire Rendering* | **Hash**: d7b89124
+*End* *Study Start Questionnaire Rendering* | **Hash**: cbb2b7e7
 
 ---
 
