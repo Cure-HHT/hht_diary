@@ -7,7 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('Flavor enum', () {
     test('has all expected values', () {
-      expect(Flavor.values, hasLength(4));
+      expect(Flavor.values, hasLength(5));
+      expect(Flavor.values, contains(Flavor.local));
       expect(Flavor.values, contains(Flavor.dev));
       expect(Flavor.values, contains(Flavor.qa));
       expect(Flavor.values, contains(Flavor.uat));
@@ -232,7 +233,8 @@ void main() {
 
     group('all', () {
       test('contains all flavors', () {
-        expect(FlavorConfig.all, hasLength(4));
+        expect(FlavorConfig.all, hasLength(5));
+        expect(FlavorConfig.all, contains(FlavorConfig.local));
         expect(FlavorConfig.all, contains(FlavorConfig.dev));
         expect(FlavorConfig.all, contains(FlavorConfig.qa));
         expect(FlavorConfig.all, contains(FlavorConfig.uat));

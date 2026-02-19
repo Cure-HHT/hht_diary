@@ -300,7 +300,6 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
     } catch (e, stack) {
       debugPrint('[Main] Notification service init failed: $e');
       debugPrint('[Main] Stack:\n$stack');
-      if (kDebugMode) rethrow;
     }
   }
 
