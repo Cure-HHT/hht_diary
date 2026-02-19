@@ -112,6 +112,7 @@
 | REQ-p01070 | NOSE HHT User Interface                                             | prd-questionnaire-nose-hht.md             | 84fa171d |
 | REQ-p01071 | HHT Quality of Life User Interface                                  | prd-questionnaire-qol.md                  | a231a942 |
 | REQ-p01072 | Mobile App Linking Status and History                               | prd-diary-app.md                          | cf32de6c |
+| REQ-p01073 | Questionnaire Session Management                                    | prd-questionnaire-session.md              | a101e60e |
 | REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | ab1e5121 |
 | REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 493e8af0 |
 | REQ-p70005 | Customizable Role-Based Access Control                              | prd-portal.md                             | d0617ddb |
@@ -282,7 +283,7 @@
 | REQ-d00103 | Disconnection Detection                            | dev-diary-app-linking.md                             | 0ef54680 |
 | REQ-d00104 | Contact Study Coordinator Screen                   | dev-diary-app-linking.md                             | 9e53fe8a |
 | REQ-d00105 | Reconnection Recovery Path                         | dev-diary-app-linking.md                             | 01389d10 |
-| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md                             | d7b89124 |
+| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md                             | cbb2b7e7 |
 | REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md                             | d5097084 |
 | REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md                             | 50d5db71 |
 | REQ-d00109 | Portal Linking Code Validation Endpoint            | dev-portal-api.md                                    | bac91a72 |
@@ -301,14 +302,16 @@
 
 ## User Journeys (JNY)
 
-| ID                     | Title                                     | Actor                             | File | Addresses |
-| ---------------------- | ----------------------------------------- | --------------------------------- | ---- | --------- |
-| JNY-Epistaxis-Diary-01 | Recording a Nosebleed Event               | James (Patient)                   |      |           |
-| JNY-Epistaxis-Diary-02 | Recording a Day Without Nosebleeds        | James (Patient)                   |      |           |
-| JNY-Epistaxis-Diary-03 | Recording When Memory Is Uncertain        | Sarah (Patient)                   |      |           |
-| JNY-Epistaxis-Diary-04 | Editing a Previous Record                 | James (Patient)                   |      |           |
-| JNY-HHT-QoL-01         | Completing the Quality of Life Assessment | Sarah (Patient)                   |      |           |
-| JNY-NOSE-HHT-01        | Completing the NOSE HHT Assessment        | Maria (Patient)                   |      |           |
-| JNY-Portal-Linking-01  | Link New Patient                          | Dr. Sarah Mitchell (Investigator) |      |           |
-| JNY-Portal-Linking-02  | Lost Mobile Phone Recovery                | Dr. Sarah Mitchell (Investigator) |      |           |
-| JNY-Study-Start-01     | Enrolling in a Clinical Trial             | Maria (Patient)                   |      |           |
+| ID                           | Title                                     | Actor                             | File | Addresses |
+| ---------------------------- | ----------------------------------------- | --------------------------------- | ---- | --------- |
+| JNY-Epistaxis-Diary-01       | Recording a Nosebleed Event               | James (Patient)                   |      |           |
+| JNY-Epistaxis-Diary-02       | Recording a Day Without Nosebleeds        | James (Patient)                   |      |           |
+| JNY-Epistaxis-Diary-03       | Recording When Memory Is Uncertain        | Sarah (Patient)                   |      |           |
+| JNY-Epistaxis-Diary-04       | Editing a Previous Record                 | James (Patient)                   |      |           |
+| JNY-HHT-QoL-01               | Completing the Quality of Life Assessment | Sarah (Patient)                   |      |           |
+| JNY-NOSE-HHT-01              | Completing the NOSE HHT Assessment        | Maria (Patient)                   |      |           |
+| JNY-Portal-Linking-01        | Link New Patient                          | Dr. Sarah Mitchell (Investigator) |      |           |
+| JNY-Portal-Linking-02        | Lost Mobile Phone Recovery                | Dr. Sarah Mitchell (Investigator) |      |           |
+| JNY-Questionnaire-Session-01 | Deferring a Questionnaire                 | Maria (Patient)                   |      |           |
+| JNY-Questionnaire-Session-02 | Session Expiry After Interruption         | Maria (Patient)                   |      |           |
+| JNY-Study-Start-01           | Enrolling in a Clinical Trial             | Maria (Patient)                   |      |           |
