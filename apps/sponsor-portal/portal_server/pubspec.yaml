@@ -6,7 +6,7 @@
 
 name: portal_server
 description: Shelf HTTP server hosting portal functions for Cloud Run
-version: 0.1.0+3
+version: 0.1.0+7
 publish_to: none
 
 environment:

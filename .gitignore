@@ -111,6 +111,9 @@ Pods/
 **/ios/.symlinks/
 **/ios/Podfile.lock
 
+# macOS Flutter ephemeral (generated, contains machine-specific paths)
+**/macos/Flutter/ephemeral/
+
 # Android
 *.apk
 *.aab
@@ -250,6 +253,7 @@ sponsor-content/
 # =====================================
 # LOCAL DEV FILES
 # =====================================
+.elspais.local.toml
 .mcp.json
 .venv/
 *.local.yml

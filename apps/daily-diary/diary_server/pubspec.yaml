@@ -6,7 +6,7 @@
 
 name: diary_server
 description: Shelf HTTP server hosting diary functions for Cloud Run
-version: 0.1.0+1
+version: 0.1.0+5
 publish_to: none
 
 environment:
