@@ -16,6 +16,7 @@
 This document specifies the implementation details for PostgreSQL Row-Level Security (RLS) policies that enforce access control at the database layer. Each policy is implemented as SQL functions and RLS policy definitions that validate user identity and permissions using JWT claims.
 
 **Technology Stack**:
+
 - PostgreSQL 15+ Row-Level Security
 - Identity Platform (Identity Platform) with JWT-based authentication
 - Application-set session variables for RLS context
@@ -37,19 +38,33 @@ This requirement implements patient data isolation at the database layer through
 ## Assertions
 
 A. The system SHALL implement PostgreSQL RLS policies to enforce patient data isolation by filtering queries based on the authenticated user's patient ID from JWT claims.
+
 B. The system SHALL provide a helper function current_user_id() that extracts the 'sub' claim from the JWT and returns it as a UUID.
+
 C. The current_user_id() function SHALL return NULL when the JWT claim is not available.
+
 D. The system SHALL provide a helper function current_user_role() that extracts the 'role' claim from the JWT and returns it as TEXT.
+
 E. The current_user_role() function SHALL return 'anon' as the default value when the JWT role claim is not available.
+
 F. The system SHALL enable Row-Level Security on the record_state table.
+
 G. The system SHALL enable Row-Level Security on the record_audit table.
+
 H. The system SHALL create an RLS policy on record_state that allows SELECT operations only when current_user_role() equals 'USER' and patient_id matches current_user_id().
+
 I. The system SHALL create an RLS policy on record_audit that allows SELECT operations only when current_user_role() equals 'USER' and patient_id matches current_user_id().
+
 J. The system SHALL create an RLS policy on record_audit that allows INSERT operations only when current_user_role() equals 'USER' and patient_id matches current_user_id().
+
 K. The system SHALL NOT create UPDATE policies on record_state or record_audit tables.
+
 L. The system SHALL NOT create DELETE policies on record_state or record_audit tables.
+
 M. Patients SHALL be able to SELECT only records where patient_id matches their authenticated user ID.
+
 N. Patients SHALL NOT be able to INSERT records with a patient_id different from their authenticated user ID.
+
 O. RLS policy execution SHALL complete with less than 50ms overhead per query.
 
 *End* *Patient Data Isolation RLS Implementation* | **Hash**: f3cbf5fe
@@ -66,19 +81,33 @@ This requirement implements site-scoped access control for investigators as spec
 ## Assertions
 
 A. The system SHALL implement PostgreSQL RLS policies to restrict investigator access to data at their assigned sites through subquery validation against the site assignment table.
+
 B. The system SHALL provide an investigator_site_assignments table with columns for investigator_id, site_id, and active status.
+
 C. The investigator_site_assignments table SHALL reference auth.users(id) for investigator_id.
+
 D. The investigator_site_assignments table SHALL reference sites(id) for site_id.
+
 E. The investigator_site_assignments table SHALL enforce a unique constraint on the combination of investigator_id and site_id.
+
 F. The system SHALL create a composite index on investigator_site_assignments for (investigator_id, active) where active is true.
+
 G. The system SHALL implement RLS policies on clinical data tables using subqueries to the investigator_site_assignments table.
+
 H. RLS policies SHALL apply to SELECT operations for the INVESTIGATOR role.
+
 I. RLS policies SHALL restrict investigators to SELECT only records where site_id matches an active site assignment.
+
 J. The system SHALL verify that site_id is IN the set of site_id values from investigator_site_assignments where investigator_id matches current_user_id() and active is true.
+
 K. Setting active to false for a site assignment SHALL immediately revoke investigator access to that site's data.
+
 L. The system SHALL apply RLS policies to the record_state table for investigators.
+
 M. The system SHALL apply RLS policies to the record_audit table for investigators.
+
 N. RLS policy subqueries SHALL execute in less than 100 milliseconds.
+
 O. Database migrations implementing these policies SHALL include rollback scripts.
 
 *End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 2b982234
@@ -95,24 +124,43 @@ This requirement implements the technical infrastructure for investigator annota
 ## Assertions
 
 A. The system SHALL implement an investigator_annotations table containing id, record_id, site_id, investigator_id, annotation_text, and created_at columns.
+
 B. The investigator_annotations table SHALL enable Row-Level Security (RLS).
+
 C. The investigator_annotations.record_id column SHALL reference record_state(id) via foreign key constraint.
+
 D. The investigator_annotations.site_id column SHALL reference sites(id) via foreign key constraint.
+
 E. The investigator_annotations.investigator_id column SHALL reference auth.users(id) via foreign key constraint.
+
 F. The system SHALL create an index on investigator_annotations(record_id).
+
 G. The system SHALL create an index on investigator_annotations(investigator_id).
+
 H. The system SHALL implement an INSERT policy on investigator_annotations that restricts access to users with INVESTIGATOR role.
+
 I. The INSERT policy on investigator_annotations SHALL restrict inserts to sites where the investigator has active assignments in investigator_site_assignments.
+
 J. The INSERT policy on investigator_annotations SHALL enforce that investigator_id matches current_user_id().
+
 K. The system SHALL implement a SELECT policy on investigator_annotations that restricts access to users with INVESTIGATOR role.
+
 L. The SELECT policy on investigator_annotations SHALL restrict reads to sites where the investigator has active assignments in investigator_site_assignments.
+
 M. The system SHALL NOT implement UPDATE policies on investigator_annotations for the INVESTIGATOR role.
+
 N. The system SHALL NOT implement DELETE policies on investigator_annotations for the INVESTIGATOR role.
+
 O. The system SHALL NOT implement UPDATE policies on record_audit for the INVESTIGATOR role.
+
 P. The system SHALL NOT implement DELETE policies on record_audit for the INVESTIGATOR role.
+
 Q. The system SHALL NOT implement UPDATE policies on record_state for the INVESTIGATOR role.
+
 R. The system SHALL NOT implement DELETE policies on record_state for the INVESTIGATOR role.
+
 S. The system SHALL implement a trigger that automatically populates investigator_id with current_user_id() before INSERT on investigator_annotations.
+
 T. The system SHALL implement a trigger that automatically populates created_at with now() before INSERT on investigator_annotations.
 
 *End* *Investigator Annotation RLS Implementation* | **Hash**: 01b5e939
@@ -129,24 +177,43 @@ This requirement implements read-only data access for analysts reviewing de-iden
 ## Assertions
 
 A. The system SHALL implement PostgreSQL RLS policies to provide analysts read-only access to de-identified clinical data at assigned sites.
+
 B. The system SHALL create an analyst_site_assignments table that mirrors the investigator assignment structure.
+
 C. The analyst_site_assignments table SHALL include columns for analyst_id, site_id, active status, assigned_at timestamp, and assigned_by user ID.
+
 D. The analyst_site_assignments table SHALL enforce a UNIQUE constraint on the combination of analyst_id and site_id.
+
 E. The system SHALL create an index on analyst_site_assignments(analyst_id, active) filtered to active assignments only.
+
 F. The system SHALL implement SELECT-only RLS policies on clinical data tables for users with ANALYST role.
+
 G. SELECT policies for ANALYST role SHALL scope data visibility to sites where the analyst has active assignments in analyst_site_assignments.
+
 H. The system SHALL NOT implement INSERT policies for ANALYST role on clinical data tables.
+
 I. The system SHALL NOT implement UPDATE policies for ANALYST role on clinical data tables.
+
 J. The system SHALL NOT implement DELETE policies for ANALYST role on clinical data tables.
+
 K. RLS policies for analysts SHALL use subqueries to analyst_site_assignments table for site-scoping enforcement.
+
 L. The system SHALL enable PostgreSQL pgaudit extension for logging analyst queries.
+
 M. The system SHALL configure pgaudit to log all SELECT operations performed by ANALYST role.
+
 N. RLS policies SHALL enforce de-identification by preventing analyst access to patient identity columns.
+
 O. Analysts SHALL be able to SELECT from clinical data tables at their assigned sites when policies are active.
+
 P. Analysts SHALL NOT be able to INSERT any records into clinical data tables.
+
 Q. Analysts SHALL NOT be able to UPDATE any records in clinical data tables.
+
 R. Analysts SHALL NOT be able to DELETE any records from clinical data tables.
+
 S. The system SHALL log all analyst SELECT queries via pgaudit for compliance auditing.
+
 T. RLS policy query execution SHALL complete in less than 100ms when proper indexes are present.
 
 *End* *Analyst Read-Only RLS Implementation* | **Hash**: 0a4be6ec
@@ -163,18 +230,31 @@ This requirement implements sponsor-level access control for FDA 21 CFR Part 11 
 ## Assertions
 
 A. The system SHALL implement PostgreSQL RLS policies providing SELECT access to all clinical data tables for users with SPONSOR role without site-based filtering.
+
 B. The system SHALL NOT provide INSERT, UPDATE, or DELETE policies on clinical data tables for users with SPONSOR role.
+
 C. The system SHALL implement RLS policies providing full CRUD (CREATE, READ, UPDATE, DELETE) access to the users table for users with SPONSOR role.
+
 D. The system SHALL implement RLS policies providing full CRUD access to the sites table for users with SPONSOR role.
+
 E. The system SHALL implement RLS policies providing full CRUD access to configuration tables for users with SPONSOR role.
+
 F. The system SHALL implement RLS policies providing full CRUD access to the investigator_site_assignments table for users with SPONSOR role.
+
 G. The system SHALL enforce sponsor isolation through separate database instances rather than through RLS policies.
+
 H. The system SHALL enforce de-identification of data in SELECT policies for SPONSOR role access to clinical data.
+
 I. The system SHALL log all administrative actions performed by users with SPONSOR role.
+
 J. Administrative action logs SHALL include user_id, action_type, table_name, record_id, and timestamp for each logged action.
+
 K. The system SHALL create audit log entries for INSERT operations on administrative tables performed by SPONSOR role users.
+
 L. The system SHALL create audit log entries for UPDATE operations on administrative tables performed by SPONSOR role users.
+
 M. The system SHALL create audit log entries for DELETE operations on administrative tables performed by SPONSOR role users.
+
 N. The system SHALL prevent SPONSOR role users from accessing data belonging to other sponsors through database instance separation.
 
 *End* *Sponsor Global Access RLS Implementation* | **Hash**: 3cad1719
@@ -191,26 +271,47 @@ This requirement implements auditor compliance access controls mandated by REQ-o
 ## Assertions
 
 A. The system SHALL implement SELECT policies on all tables that grant unrestricted read access to users with AUDITOR role.
+
 B. The system SHALL implement SELECT policies on the record_state table for users with AUDITOR role.
+
 C. The system SHALL implement SELECT policies on the record_audit table for users with AUDITOR role.
+
 D. The system SHALL implement SELECT policies on the auth.users table for users with AUDITOR role.
+
 E. The system SHALL NOT implement write policies (INSERT, UPDATE, DELETE) for users with AUDITOR role on any table.
+
 F. The system SHALL provide an auditor_export_log table that records auditor_id, export_timestamp, justification, case_id, table_name, record_count, and export_format.
+
 G. The system SHALL provide an export_clinical_data function that accepts p_table_name, p_justification, p_case_id, and p_format parameters.
+
 H. The export_clinical_data function SHALL validate that the current user has AUDITOR role before proceeding.
+
 I. The export_clinical_data function SHALL reject export requests if the current user does not have AUDITOR role.
+
 J. The export_clinical_data function SHALL require justification text with a minimum length of 10 characters.
+
 K. The export_clinical_data function SHALL reject export requests if justification is NULL or less than 10 characters.
+
 L. The export_clinical_data function SHALL require case ID text with a minimum length of 5 characters.
+
 M. The export_clinical_data function SHALL reject export requests if case_id is NULL or less than 5 characters.
+
 N. The export_clinical_data function SHALL log each export action to the auditor_export_log table before performing the export.
+
 O. Each export log entry SHALL include the auditor's user ID, justification text, case ID, table name, record count, and export format.
+
 P. The export_clinical_data function SHALL return the export_id and record_count for each successful export.
+
 Q. The system SHALL provide a generate_access_review_report function that accepts p_start_date and p_end_date parameters.
+
 R. The generate_access_review_report function SHALL return user_id, user_email, role, access_count, and last_access for each user.
+
 S. The generate_access_review_report function SHALL include users with AUDITOR or ADMIN roles in the access review report.
+
 T. The generate_access_review_report function SHALL count audit log entries within the specified date range for each user.
+
 U. The generate_access_review_report function SHALL identify the most recent access timestamp for each user within the specified date range.
+
 V. The generate_access_review_report function SHALL order results by access_count in descending order.
 
 *End* *Auditor Compliance RLS Implementation* | **Hash**: 434eca80
@@ -227,21 +328,37 @@ This requirement implements administrator access controls with break-glass autho
 ## Assertions
 
 A. The system SHALL implement PostgreSQL RLS policies for administrator access with break-glass authorization for protected health information access.
+
 B. The system SHALL validate break-glass authorizations by ticket ID and TTL.
+
 C. The system SHALL provide full access policies for the ADMIN role on configuration tables.
+
 D. The system SHALL maintain a break_glass_authorizations table storing admin_id, ticket_id, justification, granted_at, expires_at, granted_by, revoked_at, and revoked_by.
+
 E. The system SHALL enforce that break-glass expiry timestamps are after grant timestamps.
+
 F. The system SHALL enforce a maximum TTL of 24 hours for break-glass authorizations.
+
 G. The system SHALL provide a break-glass validation function that checks ticket validity and TTL.
+
 H. The system SHALL implement separate RLS policies for routine admin access versus break-glass PHI access.
+
 I. The system SHALL allow administrators to modify configuration tables without break-glass authorization.
+
 J. The system SHALL require valid break-glass authorization for administrator PHI access.
+
 K. The system SHALL verify break-glass authorizations are not revoked before granting access.
+
 L. The system SHALL verify break-glass authorizations have not expired before granting access.
+
 M. The system SHALL log all break-glass access to PHI tables.
+
 N. Break-glass access logs SHALL include admin_id, table_name, action, and timestamp.
+
 O. The system SHALL automatically clean up expired break-glass sessions.
+
 P. The system SHALL revoke expired break-glass authorizations by setting revoked_at to the current timestamp.
+
 Q. The system SHALL NOT allow reuse of expired break-glass sessions.
 
 *End* *Administrator Break-Glass RLS Implementation* | **Hash**: ca7b4eac
@@ -258,24 +375,43 @@ This requirement implements event sourcing state protection by ensuring the reco
 ## Assertions
 
 A. The system SHALL enable Row Level Security on the record_state table.
+
 B. The system SHALL NOT define INSERT policies on the record_state table.
+
 C. The system SHALL NOT define UPDATE policies on the record_state table.
+
 D. The system SHALL NOT define DELETE policies on the record_state table.
+
 E. The system SHALL force Row Level Security enforcement on the record_state table even for the table owner.
+
 F. The system SHALL provide a trigger function that updates record_state from record_audit events.
+
 G. The trigger function SHALL execute with SECURITY DEFINER privilege.
+
 H. The trigger function SHALL create initial state when a record_id is first encountered in record_audit.
+
 I. The trigger function SHALL update existing state by merging event_data from new record_audit events.
+
 J. The trigger function SHALL increment the version number in record_state with each event.
+
 K. The trigger function SHALL update the updated_at timestamp in record_state to match the event_timestamp.
+
 L. The system SHALL create an AFTER INSERT trigger on record_audit that invokes the state update function for each row.
+
 M. The system SHALL provide a validation function that verifies state integrity by replaying events.
+
 N. The validation function SHALL derive state by aggregating event_data in event_timestamp order.
+
 O. The validation function SHALL compare derived state against actual record_state data.
+
 P. The validation function SHALL return a boolean indicating whether derived state matches actual state.
+
 Q. Direct INSERT attempts on record_state SHALL return permission denied.
+
 R. Direct UPDATE attempts on record_state SHALL return permission denied.
+
 S. Direct DELETE attempts on record_state SHALL return permission denied.
+
 T. State updates SHALL occur exclusively through the record_audit trigger mechanism.
 
 *End* *Event Sourcing State Protection RLS Implementation* | **Hash**: f670b1e5

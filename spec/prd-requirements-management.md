@@ -22,6 +22,7 @@ This document defines the business and regulatory requirements for formal requir
 ### Why Requirements Matter
 
 Clinical trial systems must be validated to ensure data integrity and regulatory compliance. System validation requires:
+
 - Formal requirements defining what the system does
 - Complete traceability from requirements through implementation
 - Evidence that the system was built to specification
@@ -42,21 +43,37 @@ FDA 21 CFR Part 11 requires validated systems for electronic records in clinical
 ## Assertions
 
 A. The system development process SHALL maintain formal requirements with complete traceability from product requirements through operational procedures to implementation code.
+
 B. Every system capability SHALL be defined in a written requirement.
+
 C. Every requirement SHALL be traceable to a business need or regulatory mandate.
+
 D. Every implementation file SHALL be linked to the requirements it implements.
+
 E. The system SHALL maintain a complete audit trail of requirement changes via version control.
+
 F. The system SHALL provide traceability matrices demonstrating requirement relationships.
+
 G. Requirements SHALL follow top-down cascade from PRD to OPS to DEV.
+
 H. All requirements SHALL follow a standardized format with unique IDs.
+
 I. All implementation files SHALL include header comments referencing requirements.
+
 J. Traceability matrices SHALL demonstrate complete requirement relationships.
+
 K. All requirement changes SHALL be captured in version control history.
+
 L. Requirements SHALL validate successfully before commits are accepted.
+
 M. Validation tooling SHALL prevent commits with invalid requirements.
+
 N. Validation tooling SHALL prevent commits with orphaned requirements.
+
 O. Top-down cascade SHALL be enforced such that PRD requirements drive OPS and DEV requirements.
+
 P. DEV requirements SHALL NOT drive PRD requirements.
+
 Q. OPS requirements SHALL NOT drive PRD requirements.
 
 *End* *System Validation and Traceability* | **Hash**: 7d81caf7
@@ -73,19 +90,33 @@ Clinical trial systems have long operational lifetimes (25+ years per FDA retent
 ## Assertions
 
 A. The system SHALL formally document significant architectural and design decisions.
+
 B. Decision documentation SHALL include context and driving factors for each decision.
+
 C. Decision documentation SHALL include alternatives that were considered.
+
 D. Decision documentation SHALL include explicit trade-offs and consequences.
+
 E. Decision documentation SHALL include the rationale for the decision.
+
 F. Decision documentation SHALL be reviewable by future maintainers and auditors.
+
 G. Decision documentation SHALL support decisions being revisible when context changes.
+
 H. The system SHALL document decisions with long-term impact.
+
 I. The system SHALL make decision rationale available for audits.
+
 J. Architectural decisions SHALL be documented in Architecture Decision Records (ADRs).
+
 K. ADRs SHALL capture context, decision, consequences, and alternatives.
+
 L. ADRs SHALL be linked to implementing requirements when applicable.
+
 M. ADRs SHALL follow a defined lifecycle of Proposed, Accepted, Deprecated, or Superseded.
+
 N. ADRs SHALL be maintained in version control with system evolution.
+
 O. The system SHALL maintain an ADR index showing all decisions and their status.
 
 *End* *Architecture Decision Documentation* | **Hash**: 76c82ce6

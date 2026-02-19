@@ -16,6 +16,7 @@
 Clinical trial systems must comply with strict regulations to ensure data integrity and patient safety. This system meets all requirements for electronic clinical trial data collection in the United States and European Union.
 
 **Primary Regulations**:
+
 - FDA 21 CFR Part 11 (United States)
 - ALCOA+ Data Integrity Principles
 - HIPAA (when applicable)
@@ -26,16 +27,19 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 ## Why Compliance Matters
 
 **For Regulators**:
+
 - Ensures clinical trial data is trustworthy
 - Protects patients participating in trials
 - Maintains integrity of drug approval process
 
 **For Sponsors**:
+
 - Required for regulatory submission
 - Reduces risk of study rejection
 - Protects company reputation
 
 **For Patients**:
+
 - Guarantees their data is handled properly
 - Ensures privacy protection
 - Maintains trust in clinical research
@@ -55,8 +59,11 @@ Clinical trial systems must comply with multiple regulatory frameworks depending
 ## Assertions
 
 A. The system SHALL satisfy FDA 21 CFR Part 11 requirements for electronic records and electronic signatures.
+
 B. The system SHALL satisfy EU General Data Protection Regulation (GDPR) requirements for personal data protection.
+
 C. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
+
 D. The system SHALL support audit and inspection activities by regulatory authorities.
 
 *End* *Regulatory Compliance Framework* | **Hash**: c4fa27f7
@@ -75,7 +82,9 @@ The detailed FDA regulatory requirements are defined in the FDA regulations spec
 ## Assertions
 
 A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures as defined in REQ-p80001 and its child requirements.
+
 B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
+
 C. The system SHALL include a complete validation documentation package.
 
 *End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 20c0e7bc
@@ -92,19 +101,33 @@ ALCOA+ principles are internationally recognized data integrity standards requir
 ## Assertions
 
 A. All clinical trial data SHALL adhere to ALCOA+ principles throughout the data lifecycle.
+
 B. Data SHALL be attributable by being clearly linked to the person who created it.
+
 C. Every data entry SHALL include creator identification.
+
 D. Every data entry SHALL include a timestamp.
+
 E. Data SHALL be legible by being readable and understandable without obscuration.
+
 F. Data SHALL be readable without requiring special tools or decoding.
+
 G. Data SHALL be contemporaneous by being recorded at or near the time of observation.
+
 H. Data SHALL be original by representing the first recording or a certified true copy.
+
 I. Original values SHALL be preserved when data is modified.
+
 J. Data SHALL be accurate by being free from errors, complete, and correct.
+
 K. Data SHALL be complete with all data captured and nothing missing.
+
 L. Data SHALL be consistent by being performed in the same manner over time.
+
 M. Data SHALL be enduring by being preserved for the entire retention period.
+
 N. Data SHALL be available by being accessible for review and audit when needed.
+
 O. The system SHALL maintain a complete audit trail for the entire data lifecycle.
 
 *End* *ALCOA+ Data Integrity Principles* | **Hash**: 54818734
@@ -121,20 +144,35 @@ Regulatory agencies require long-term retention of clinical trial data to suppor
 ## Assertions
 
 A. The system SHALL retain clinical trial data for the minimum period required by applicable regulations.
+
 B. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
+
 C. The system SHALL preserve all clinical trial records for the required retention period.
+
 D. The system SHALL retain audit trails with their associated clinical data for the entire retention period.
+
 E. The system SHALL ensure data remains readable throughout the retention period.
+
 F. The system SHALL ensure data remains accessible throughout the retention period.
+
 G. The system SHALL provide export capability for regulatory submission.
+
 H. The system SHALL provide export capability for archival purposes.
+
 I. The system SHALL track the retention period per study.
+
 J. The system SHALL enforce the retention period per study.
+
 K. The retention period SHALL be configurable per study.
+
 L. The retention period SHALL be configurable per jurisdiction.
+
 M. Data export SHALL include the complete audit trail.
+
 N. Exported data SHALL be readable without proprietary systems.
+
 O. The system SHALL prevent premature deletion by enforcing retention period requirements.
+
 P. The system SHALL maintain data integrity throughout the retention period.
 
 *End* *Clinical Data Retention Requirements* | **Hash**: 42ddd27b
@@ -151,21 +189,37 @@ Clinical trials conducted in the EU or involving EU residents must comply with t
 ## Assertions
 
 A. The system SHALL comply with the EU General Data Protection Regulation (GDPR) for processing personal data of EU clinical trial participants.
+
 B. The system SHALL establish and document a lawful basis for processing personal data, either explicit consent or legitimate interest for clinical trials.
+
 C. The system SHALL implement a workflow to fulfill data subject access requests.
+
 D. The system SHALL implement a workflow to fulfill data subject rectification requests.
+
 E. The system SHALL implement a workflow to fulfill data subject erasure requests where applicable under GDPR.
+
 F. The system SHALL implement a workflow to fulfill data subject portability requests.
+
 G. The system SHALL collect only personal data that is necessary for trial purposes.
+
 H. The system SHALL incorporate privacy protections into its architecture by design.
+
 I. The platform SHALL maintain Data Processing Agreements with all third-party data processors.
+
 J. The system SHALL support breach notification to the supervisory authority within 72 hours of breach detection.
+
 K. The privacy policy SHALL document the GDPR lawful basis for processing personal data.
+
 L. Data subject request workflows SHALL be documented.
+
 M. Data Processing Agreements SHALL be in place with all third-party processors before processing begins.
+
 N. The breach notification procedure SHALL be documented.
+
 O. The breach notification procedure SHALL be tested.
+
 P. A Data Protection Impact Assessment SHALL be completed for clinical trial data processing activities.
+
 Q. The system SHALL implement exceptions to these rules as applicable to GCP and FDA data retention requirements.
 
 *End* *GDPR Compliance* | **Hash**: ebe9e2ad
@@ -182,18 +236,31 @@ GDPR Article 20 grants EU data subjects the right to receive their personal data
 ## Assertions
 
 A. The system SHALL enable patients to export their personal clinical diary data in a machine-readable format.
+
 B. The system SHALL provide patient-initiated export of all diary entries and health records belonging to that patient.
+
 C. Exported data SHALL be formatted as JSON.
+
 D. The export SHALL include complete data comprising timestamps, values, and metadata.
+
 E. The export functionality SHALL be accessible through the mobile app.
+
 F. The export functionality SHALL NOT require sponsor assistance.
+
 G. The system SHALL provide import capability to restore previously exported data.
+
 H. The import functionality SHALL support restoration on the same device from which data was exported.
+
 I. The import functionality SHALL support restoration on a different device than the one from which data was exported.
+
 J. The export SHALL include all user-generated content.
+
 K. The export SHALL include all timestamps associated with diary entries.
+
 L. The export and import functionality SHALL operate without requiring network connectivity.
+
 M. The export SHALL NOT include system internals such as sync state.
+
 N. The export SHALL NOT include system internals such as device IDs.
 
 *End* *GDPR Data Portability* | **Hash**: 30b27336
@@ -204,6 +271,7 @@ N. The export SHALL NOT include system internals such as device IDs.
 **What It Means**: The system must be tested and proven to work correctly before use in clinical trials.
 
 **Requirements**:
+
 - Documented test plans and results
 - Proof that system does what it claims
 - Regular revalidation after changes
@@ -218,6 +286,7 @@ N. The export SHALL NOT include system internals such as device IDs.
 **What It Means**: Only authorized people can access the system, and each person can only see data they're permitted to view.
 
 **Requirements**:
+
 - Unique user accounts for each person
 - Strong password requirements
 - Multi-factor authentication for staff
@@ -233,6 +302,7 @@ N. The export SHALL NOT include system internals such as device IDs.
 **What It Means**: Every action in the system is electronically "signed" by the person performing it.
 
 **Requirements**:
+
 - Records who performed the action
 - Records when the action occurred
 - Records what the action meant (created, updated, etc.)
@@ -247,12 +317,14 @@ N. The export SHALL NOT include system internals such as device IDs.
 When sponsors submit clinical trial data to regulators:
 
 **What Regulators Review**:
+
 - Complete audit trail showing all data changes
 - System validation documentation
 - Evidence of proper access controls
 - Proof that data integrity was maintained
 
 **What This System Provides**:
+
 - Exportable audit logs in standard formats
 - Validation documentation package
 - Access control reports
@@ -263,6 +335,7 @@ When sponsors submit clinical trial data to regulators:
 ## Data Retention
 
 **Requirements**:
+
 - Clinical trial data must be retained for minimum period (typically 7+ years)
 - Audit trails must be retained with the data
 - System must ensure data remains accessible and readable
@@ -276,6 +349,7 @@ When sponsors submit clinical trial data to regulators:
 ### HIPAA (United States)
 
 When applicable, the system protects health information:
+
 - Encryption of data at rest and in transit
 - Access controls limit who can see data
 - Audit logs track all access to patient records
@@ -284,6 +358,7 @@ When applicable, the system protects health information:
 ### GDPR (European Union)
 
 For EU participants:
+
 - Data minimization (collect only what's needed)
 - Right to access personal data
 - Right to data portability
@@ -295,16 +370,19 @@ For EU participants:
 ## Compliance Benefits
 
 **Risk Reduction**:
+
 - Lower chance of study rejection by regulators
 - Protection against data integrity challenges
 - Defense against compliance violations
 
 **Efficiency**:
+
 - Automated compliance reduces manual oversight
 - Built-in audit trails eliminate separate documentation
 - Faster regulatory review process
 
 **Trust**:
+
 - Patients confident their data is protected
 - Sponsors confident in data quality
 - Regulators confident in data integrity

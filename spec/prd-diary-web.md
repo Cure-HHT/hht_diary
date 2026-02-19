@@ -17,6 +17,7 @@
 The Web Diary is a browser-based companion to the Diary mobile application. It allows patients to access their diary from any computer when the mobile app is unavailable. Due to the inherently less secure nature of web access (shared computers, public terminals), the Web Diary implements strict session management and stores no data locally after logout.
 
 **Key Differences from Mobile App**:
+
 - No offline capability (requires constant internet connection)
 - Automatic logout after inactivity
 - No local data persistence
@@ -36,15 +37,25 @@ This requirement provides an alternative access method for patients who cannot u
 ## Assertions
 
 A. The system SHALL provide browser-based access to diary entry functionality.
+
 B. The system SHALL support standard web browsers including Chrome, Firefox, Safari, and Edge.
+
 C. The system SHALL automatically terminate sessions after a configurable period of inactivity.
+
 D. The system SHALL completely terminate sessions when the browser or tab is closed.
+
 E. The system SHALL NOT retain any patient data in the browser after logout.
+
 F. The system SHALL NOT persist any local data after session termination.
+
 G. The system SHALL integrate with the Sponsor Portal for authentication via linking codes.
+
 H. The system SHALL apply sponsor-specific branding after successful authentication.
+
 I. The system SHALL apply sponsor-specific configuration after successful authentication.
+
 J. The system SHALL create a complete audit trail of all patient actions.
+
 K. The system SHALL function as a companion to the mobile app, not as a replacement.
 
 *End* *Web Diary Application* | **Hash**: a19f716f
@@ -62,22 +73,39 @@ GDPR restrictions prevent use of Identity Platform and similar services that pro
 ## Assertions
 
 A. The system SHALL authenticate patients to the Web Diary using a unique linking code obtained from the Sponsor Portal.
+
 B. The system SHALL require username and password credentials created specifically for web access during authentication.
+
 C. The system SHALL NOT use email addresses for authentication.
+
 D. The system SHALL NOT use third-party authentication providers.
+
 E. Linking codes SHALL contain embedded patterns identifying the sponsor.
+
 F. The Diary Auth service SHALL maintain a mapping table of linking code patterns to Sponsor Portal URLs.
+
 G. The mapping table SHALL be updated when sponsors deploy or decommission portals.
+
 H. The system SHALL NOT collect personally identifiable information during authentication.
+
 I. The system SHALL hash passwords before network transmission.
+
 J. The authentication service SHALL validate credentials and return a session JWT upon successful authentication.
+
 K. The system SHALL identify the sponsor based on linking code pattern matching without requiring user input.
+
 L. The system SHALL route authenticated users to the correct Sponsor Portal URL based on pattern matching.
+
 M. The system SHALL reject invalid linking codes with a clear error message.
+
 N. The system SHALL reject unrecognized linking code patterns with guidance to contact the Sponsor.
+
 O. Linking codes SHALL expire after a sponsor-configurable period.
+
 P. Session JWTs SHALL be scoped to the authenticated sponsor.
+
 Q. The system SHALL NOT store or process email addresses.
+
 R. The authentication system SHALL function correctly across all supported browsers.
 
 *End* *Web Diary Authentication via Linking Code* | **Hash**: 8c7d6240
@@ -94,21 +122,37 @@ Web access to clinical trial diaries may occur on shared or public computers whe
 ## Assertions
 
 A. The system SHALL automatically terminate user sessions after a configured period of inactivity.
+
 B. The default inactivity timeout SHALL be 2 minutes.
+
 C. Sponsors SHALL be able to configure the inactivity timeout to any value between 1 and 30 minutes.
+
 D. The system SHALL terminate the session when the browser window or tab is closed.
+
 E. The system SHALL provide an explicit logout option that is always available to the user.
+
 F. The inactivity timer SHALL reset on any user interaction including mouse movement, keystrokes, and touch events.
+
 G. The system SHALL display a warning modal 30 seconds before automatic timeout occurs.
+
 H. The warning modal SHALL display a countdown timer showing remaining seconds.
+
 I. The system SHALL allow the user to extend the session from the warning modal.
+
 J. The system SHALL clear all sessionStorage data on logout.
+
 K. The system SHALL clear all localStorage data on logout.
+
 L. The system SHALL clear all cookies on logout.
+
 M. The system SHALL ensure no patient data is recoverable from the browser after logout.
+
 N. The system SHALL prevent the browser back button from restoring the session after logout.
+
 O. The system SHALL synchronize session timeout across multiple tabs for the same user.
+
 P. The system SHALL NOT provide a 'remember me' option.
+
 Q. The system SHALL NOT provide a persistent login option.
 
 *End* *Web Diary Session Management* | **Hash**: 8264ceb9
@@ -126,20 +170,35 @@ Clinical trial participants have heightened privacy concerns. By explicitly avoi
 ## Assertions
 
 A. The system SHALL NOT collect email addresses during account creation or login.
+
 B. The system SHALL NOT store email addresses in the authentication system.
+
 C. The system SHALL reject usernames containing the @ symbol.
+
 D. The system SHALL display an error message when a username contains the @ symbol.
+
 E. The system SHALL display the message 'For your privacy we do not use email addresses for accounts' during account creation.
+
 F. The system SHALL display the message '@ signs are not allowed for username' during account creation.
+
 G. The system SHALL display the message 'Store your username and password securely' during account creation.
+
 H. The system SHALL display the message 'If you lose your username and password then the app cannot send you a link to reset it' during account creation.
+
 I. The system SHALL display the message 'For a lost username and password, contact your Sponsor to obtain a new Linking Code' during account creation.
+
 J. The system SHALL NOT collect biometric data.
+
 K. The system SHALL NOT collect device identifiers beyond what is required for essential session management.
+
 L. The system SHALL make the privacy policy accessible from the login screen.
+
 M. The system SHALL make the privacy policy accessible from the account creation screen.
+
 N. The system SHALL store only username, hashed password, and app UUID in the authentication system.
+
 O. The system SHALL NOT use analytics cookies beyond essential session management.
+
 P. The system SHALL NOT use tracking cookies beyond essential session management.
 
 *End* *Web Diary Privacy Protection* | **Hash**: 58e010cd
@@ -157,17 +216,29 @@ Separate credentials for web access (versus mobile app) allow for different secu
 ## Assertions
 
 A. The system SHALL require patients to create a web-specific account with username and password.
+
 B. The system SHALL enforce a minimum username length of 6 characters.
+
 C. The system SHALL enforce a minimum password length of 8 characters.
+
 D. The system SHALL ensure username uniqueness within the sponsor context.
+
 E. The system SHALL reject duplicate usernames within the same sponsor with a clear error message.
+
 F. The system SHALL hash passwords using an industry-standard algorithm before network transmission.
+
 G. The system SHALL store passwords securely on the device using platform secure storage.
+
 H. The system SHALL create a user document in the authentication database containing username, password hash, and app UUID.
+
 I. The system SHALL link the account to the sponsor via linking code during creation.
+
 J. The system SHALL provide real-time validation feedback during username and password input.
+
 K. The system SHALL provide clear feedback on validation errors during account creation.
+
 L. The system SHALL redirect users to the diary home screen upon successful account creation.
+
 M. The system SHALL log account creation events to the audit trail for compliance.
 
 *End* *Web Diary Account Creation* | **Hash**: 8d39c8e6
@@ -185,18 +256,31 @@ Users need to view and manage their account credentials in a self-service manner
 ## Assertions
 
 A. The system SHALL provide a user profile view accessible from all diary screens.
+
 B. The system SHALL display the username in the profile view as read-only after account creation.
+
 C. The system SHALL display the password masked as asterisks or dots by default.
+
 D. The system SHALL provide an eye icon toggle control to reveal the masked password.
+
 E. The system SHALL provide a change password functionality accessible from the profile view.
+
 F. The system SHALL require verification of the current password before allowing password changes.
+
 G. The system SHALL confirm successful password changes to the user.
+
 H. The system SHALL display the account creation timestamp in the profile view.
+
 I. The system SHALL provide a logout button in the profile view.
+
 J. The system SHALL display current session information in the profile view.
+
 K. The system SHALL make the profile accessible via a menu icon displaying a head or person symbol.
+
 L. The system SHALL log all profile view interactions to the audit trail.
+
 M. The system SHALL log all password visibility toggle actions to the audit trail.
+
 N. The system SHALL log all password change attempts and outcomes to the audit trail.
 
 *End* *Web Diary User Profile* | **Hash**: c132adc2
@@ -214,19 +298,33 @@ This requirement defines the web diary's authentication interface to provide cle
 ## Assertions
 
 A. The system SHALL provide a login interface accessible from the profile menu.
+
 B. The system SHALL display a Login button in the profile menu when the user is not authenticated.
+
 C. The system SHALL display a Logout button in the profile menu when the user is authenticated.
+
 D. The system SHALL NOT display both Login and Logout buttons simultaneously.
+
 E. The login form SHALL accept username and password inputs.
+
 F. The login form SHALL validate input before submission.
+
 G. The system SHALL display specific error messages when authentication fails.
+
 H. Error messages SHALL distinguish between invalid username and incorrect password.
+
 I. The system SHALL display session indicators when the user is logged in.
+
 J. Session indicators SHALL include the username.
+
 K. Session indicators SHALL include a session timer.
+
 L. The system SHALL prompt for confirmation when the user initiates logout.
+
 M. The logout confirmation SHALL display the message: "Did you save your username and password?"
+
 N. The logout confirmation SHALL provide a cancel option that returns the user to the diary without logging out.
+
 O. The logout confirmation SHALL provide a confirm option that completes the logout action.
 
 *End* *Web Diary Login Interface* | **Hash**: d643690a
@@ -244,16 +342,27 @@ Without email addresses, traditional password reset flows are not possible for t
 ## Assertions
 
 A. The system SHALL NOT provide automated password reset functionality.
+
 B. The system SHALL NOT provide email-based credential recovery.
+
 C. The system SHALL require patients to contact their Sponsor to request a new linking code for credential recovery.
+
 D. The Sponsor SHALL invalidate the current linking code before issuing a new linking code.
+
 E. The system SHALL allow patients to create a new username and password using a new linking code.
+
 F. The system SHALL preserve all previous account data when new credentials are created via linking code recovery.
+
 G. The system SHALL link recovered account data to the patient via their enrollment record.
+
 H. The login screen SHALL display a link to credential recovery instructions.
+
 I. The recovery instructions SHALL explain that patients must contact their Sponsor for a new linking code.
+
 J. The system SHALL invalidate old linking codes when new codes are issued by the Sponsor.
+
 K. The system SHALL record credential recovery events in the audit trail.
+
 L. The system SHALL provide user-facing help content documenting the recovery process.
 
 *End* *Web Diary Lost Credential Recovery* | **Hash**: 0af0c79c
@@ -265,16 +374,19 @@ L. The system SHALL provide user-facing help content documenting the recovery pr
 This section documents constraints that affect product decisions (not implementation details).
 
 **Authentication Provider Restriction**:
+
 - Identity Platform MUST NOT be used (GDPR data processing concerns)
 - Google Identity Platform MUST NOT be used (same GDPR concerns)
 - Custom authentication service required using GCP infrastructure
 
 **Data Storage**:
+
 - Patient diary data stored in Firestore (existing mobile app infrastructure)
 - Authentication credentials stored separately in dedicated auth service
 - Web Diary connects to same Firestore collections as mobile app
 
 **Single Device Policy**:
+
 - Web access counts as a separate "device" from mobile app
 - Same patient may have mobile app AND web access simultaneously
 - Conflict resolution follows existing multi-device patterns (see prd-diary-app.md)

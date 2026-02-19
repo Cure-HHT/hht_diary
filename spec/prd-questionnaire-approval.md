@@ -27,49 +27,58 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 ### Investigator Journey
 
 1. **Initiate Questionnaire Request**
+
    - Investigator logs into Sponsor Portal
    - Navigates to patient record
    - Selects questionnaire type to send (e.g., EQ, Nose HHT, Quality of Life)
    - Triggers push notification to patient's device
 
 2. **Monitor Completion**
+
    - Portal updates status when patient completes and submits questionnaire
    - Diary no longer allows edits to the questionnaire
    - Questionnaire status changes to "Ready for Review"
 
 3. **Review and Finalize**
+
    - Investigator verifies with patient that the questinnaire is complete
    - **Option A - Finalize**: Select "Finalize and Score" to calculate score, store permanently, and lock questionnaire
    - **Option B - Return for Edits**: Select "Unlock for Editing" to return questionnaire to patient for modifications
 
 4. **Handle Edits (if applicable)**
+
    - If unlocked, wait for patient to resubmit
    - Repeat review process until finalized
 
 ### Patient Journey
 
 1. **Receive Notification**
+
    - Patient receives push notification on mobile device
    - Notification indicates specific questionnaire to complete
    - Patient opens Diary app
 
 2. **Complete Questionnaire**
+
    - Patient answers all questions in the questionnaire
    - Progress is saved locally during completion
    - All questions must be answered before submission
 
 3. **Review Before Submission (Scored Questionnaires)**
+
    - For questionnaires with calculated scores, patient sees review screen
    - Patient can navigate back to modify any answers
    - Score is NOT calculated until after investigator approval
 
 4. **Submit Questionnaire**
+
    - Patient selects "Complete and Submit"
    - Questionnaire becomes read-only in Diary
    - Answers sync to study database
    - Status visible as "Submitted - Awaiting Review"
 
 5. **Handle Unlock Request (if applicable)**
+
    - If investigator unlocks for editing, patient receives notification
    - Questionnaire status changes to "Review"
    - Patient can modify answers

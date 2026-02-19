@@ -17,6 +17,7 @@
 Technical implementation guide for sponsor-specific configuration management in the clinical diary system. Covers configuration file structure, environment variable loading, and build-time composition of sponsor-specific settings.
 
 **Key Components**:
+
 - Dart-based configuration classes
 - Environment-specific credential loading via Doppler
 - GCP service configuration (Cloud SQL, Identity Platform, Cloud Run)
@@ -38,21 +39,37 @@ This requirement ensures that sponsor-specific applications load configuration s
 ## Assertions
 
 A. The application SHALL load sponsor-specific configuration from environment variables.
+
 B. The application SHALL load configuration via Doppler for development environments.
+
 C. The application SHALL load configuration via Doppler for CI/CD environments.
+
 D. The application SHALL require the DATABASE_URL environment variable containing a Cloud SQL connection string in the format postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance.
+
 E. The application SHALL require the DATABASE_INSTANCE environment variable containing a Cloud SQL instance connection name in the format project:region:instance.
+
 F. The application SHALL require the FIREBASE_PROJECT_ID environment variable containing the GCP project ID for Identity Platform.
+
 G. The application SHALL require the FIREBASE_API_KEY environment variable containing the Firebase/Identity Platform API key for client SDK.
+
 H. The application SHALL require the SPONSOR_ID environment variable containing a unique sponsor identifier in the format {vendor_code}.
+
 I. The application SHALL require the GCP_PROJECT_ID environment variable containing the GCP project ID for the sponsor/environment.
+
 J. The application SHALL require the CLOUD_RUN_SERVICE_URL environment variable for server-only deployments.
+
 K. The application SHALL require the PORT environment variable for server-only deployments.
+
 L. The application SHALL validate that all required configuration fields are present at application startup.
+
 M. The application SHALL fail fast with a clear error message if any required configuration field is invalid.
+
 N. The application SHALL fail fast with a clear error message if any required configuration field is missing.
+
 O. The build process SHALL validate all required fields are present before compilation.
+
 P. The application SHALL NOT contain hardcoded credentials in Dart source code.
+
 Q. Configuration fields SHALL be immutable after loading.
 
 *End* *Sponsor-Specific Configuration Loading* | **Hash**: a2825584
@@ -223,15 +240,25 @@ This requirement prevents deployment of misconfigured applications by implementi
 ## Assertions
 
 A. The build system SHALL validate sponsor configuration before compilation begins.
+
 B. The build system SHALL validate that all required environment variables are defined via Doppler.
+
 C. The build system SHALL validate that GCP project ID format is valid.
+
 D. The build system SHALL validate that Cloud SQL instance connection name format is valid.
+
 E. The build system SHALL validate that no credential files are tracked in git.
+
 F. The build system SHALL validate that .gitignore properly excludes *.env files.
+
 G. The build system SHALL fail immediately if any validation check fails.
+
 H. The build system SHALL provide clear error messages indicating which configuration is missing or invalid.
+
 I. Error messages SHALL indicate exactly which field is invalid.
+
 J. The validation process SHALL complete in less than 1 second.
+
 K. The build system SHALL return a non-zero exit code on validation failure.
 
 *End* *Pre-Build Configuration Validation* | **Hash**: 5dde0fc5
@@ -442,6 +469,7 @@ void main() {
 
 ```
 ❌ Missing required environment variables:
+
    - DATABASE_URL
 ```
 

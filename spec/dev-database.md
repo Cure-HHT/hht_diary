@@ -20,6 +20,7 @@
 This guide covers **how to implement and deploy** the database using Google Cloud SQL for PostgreSQL. Each sponsor has a dedicated GCP project with Cloud SQL instance + Identity Platform + Cloud Run backend.
 
 **Technology Stack**:
+
 - **Platform**: Google Cloud Platform (Cloud SQL + Identity Platform + Cloud Run)
 - **Database**: PostgreSQL 15+ (Cloud SQL managed)
 - **Backend**: Dart server on Cloud Run
@@ -45,6 +46,7 @@ cd tools/dev-env
 ```
 
 **Tools included in dev containers:**
+
 - `gcloud` - Google Cloud CLI for GCP authentication and management
 - `cloud-sql-proxy` - Secure proxy for Cloud SQL connections
 - `psql` - PostgreSQL client for database access
@@ -146,21 +148,37 @@ This requirement defines the technical implementation approach for deploying dat
 ## Assertions
 
 A. The system SHALL implement database schema as versioned SQL scripts organized by functional area.
+
 B. Schema files SHALL be separated into distinct files for schema definitions, triggers, functions, RLS policies, and indexes.
+
 C. Schema versions SHALL follow semantic versioning conventions.
+
 D. Deployment scripts SHALL validate schema integrity after execution.
+
 E. The system SHALL integrate gcloud CLI for automated deployment to Cloud SQL instances.
+
 F. The system SHALL provide migration scripts for schema evolution.
+
 G. Migration scripts SHALL include rollback capability.
+
 H. The system SHALL document schema dependencies and deployment order.
+
 I. All schema files SHALL execute without errors on PostgreSQL version 15 or higher.
+
 J. Deployment scripts SHALL validate successful table creation.
+
 K. Deployment scripts SHALL validate successful trigger installation.
+
 L. The deployment process SHALL successfully deploy schema to Cloud SQL test instances.
+
 M. Migration scripts SHALL include forward migration operations.
+
 N. Migration scripts SHALL include rollback operations for each forward migration.
+
 O. The system SHALL provide step-by-step deployment process documentation.
+
 P. Schema version information SHALL be tracked in a database metadata table.
+
 Q. The system SHALL maintain schema consistency across all sponsor-specific database instances.
 
 *End* *Database Schema Implementation and Deployment* | **Hash**: 94170736
@@ -177,16 +195,27 @@ This requirement implements the database-level infrastructure for multi-site cli
 ## Assertions
 
 A. The system SHALL implement a sites table containing site_id, site_name, site_number, location, and contact fields.
+
 B. The system SHALL implement an investigator_site_assignments table mapping investigators to sites.
+
 C. The system SHALL implement an analyst_site_assignments table mapping analysts to sites.
+
 D. The system SHALL implement a user_site_assignments table mapping patients to enrollment sites.
+
 E. The system SHALL implement RLS policies that filter queries by the user's assigned sites.
+
 F. The system SHALL capture site context in all audit trail records.
+
 G. The sites table SHALL support unlimited sites per sponsor.
+
 H. The assignment tables SHALL support many-to-many site relationships.
+
 I. RLS policies SHALL correctly filter data by assigned sites for all user types.
+
 J. The system SHALL preserve site context in record_audit entries for compliance purposes.
+
 K. Site-based queries SHALL perform efficiently through proper indexes.
+
 L. Site assignments SHALL be modifiable by administrators only.
 
 *End* *Multi-Site Schema Implementation* | **Hash**: 982caeb9
@@ -879,9 +908,11 @@ COMMIT;
 ### Core Schema (from packages/database/)
 
 **Tables**:
+
 - `record_audit` - Immutable event log
 - `record_state` - Current state (auto-updated by triggers)
 TODO - record_materialized_view might be a more apt name
+
 - `sites` - Clinical trial sites
 - `user_profiles` - User metadata
 - `investigator_site_assignments` - Site access control
@@ -1384,10 +1415,12 @@ doppler run -- dart run bin/server.dart
 ### Service Account Usage
 
 **ONLY use service accounts with minimal permissions**:
+
 - Cloud Run service account: `roles/cloudsql.client`
 - CI/CD service account: `roles/cloudsql.admin` (for migrations only)
 
 **NEVER**:
+
 - Store service account keys in git
 - Use admin credentials in application code
 - Share credentials between environments

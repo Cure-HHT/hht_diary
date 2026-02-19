@@ -20,6 +20,7 @@ The system supports an extensible set of questionnaire types, each implemented t
 ## Questionnaire Model
 
 A questionnaire in this system is:
+
 - A **structured data collection instrument** with defined questions, response options, and scoring algorithms
 - **Individually implemented** as custom Flutter components with optimized GUI/UX
 - **Version-controlled** per the questionnaire versioning model (REQ-p01051)
@@ -27,6 +28,7 @@ A questionnaire in this system is:
 - **Sponsor-configurable** for trial eligibility (REQ-p01053)
 
 Questionnaires are NOT:
+
 - Dynamically definable by end users or third parties
 - Generic forms rendered from configuration data
 - Extensible without platform development
@@ -102,11 +104,13 @@ The "Study Start" workflow gates patient enrollment in a clinical trial:
 5. **Data sync enabled** - patient data begins syncing to Sponsor Portal
 
 Before Study Start approval:
+
 - Patient data stored locally only
 - No data synced to Portal
 - Patient can continue using app but data remains local
 
 After Study Start approval:
+
 - Daily self-reported data syncs automatically
 - No per-entry investigator approval required for ongoing records
 

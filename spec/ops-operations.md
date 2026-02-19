@@ -20,6 +20,7 @@ Daily operational procedures, monitoring, incident response, and routine mainten
 **Monitoring Approach**: Cloud Monitoring per project + aggregated multi-sponsor view
 **On-Call Model**: 24/7 coverage for production incidents
 **SLA Targets**:
+
 - Portal uptime: 99.9% (43 minutes downtime/month)
 - Mobile sync success rate: 99.5%
 - API response time: <500ms (p95)
@@ -49,6 +50,7 @@ gcloud projects list --filter="labels.app=clinical-diary"
 ```
 
 **Metrics to Review**:
+
 - [ ] Cloud Run requests (last 24h): Check for anomalies
 - [ ] Cloud SQL CPU usage: <80% average
 - [ ] Cloud SQL memory usage: <90%
@@ -69,6 +71,7 @@ curl -I https://andromeda-portal.clinicaldiary.com
 ```
 
 **Manual Spot Check**:
+
 - [ ] Portal loads without errors
 - [ ] Login functional
 - [ ] Dashboard displays data
@@ -91,6 +94,7 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 ```
 
 **Alerts**:
+
 - If `active_users` drops >20% from previous day → investigate
 - If `avg_sync_delay_seconds` >10 → check database performance
 
@@ -105,16 +109,27 @@ This requirement establishes operational monitoring practices to ensure the inte
 ## Assertions
 
 A. The operations team SHALL continuously monitor audit trail integrity.
+
 B. The system SHALL perform automated checks for audit trail completeness.
+
 C. The system SHALL verify event chain integrity to detect orphaned events.
+
 D. The system SHALL detect missing audit records.
+
 E. The system SHALL detect corrupted audit records.
+
 F. The system SHALL generate alerts for audit trail anomalies.
+
 G. The operations team SHALL perform regular audit log review and analysis.
+
 H. The system SHALL execute automated audit trail integrity checks at least daily.
+
 I. The system SHALL trigger alerts for any integrity violations.
+
 J. The system SHALL ensure all data changes have corresponding audit events.
+
 K. The system SHALL validate event chain links through parent_audit_id relationships.
+
 L. The system SHALL provide monitoring dashboards that display audit trail health status.
 
 *End* *Audit Trail Monitoring* | **Hash**: d5d52f2f
@@ -170,17 +185,20 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 **Key Dashboards**:
 
 1. **Overview**:
+
    - Cloud Run request count and latency
    - Cloud SQL CPU/memory
    - Cloud SQL connections
    - Error rates
 
 2. **Logs**:
+
    - Cloud Logging (API logs, app logs)
    - Cloud SQL logs (slow queries, errors)
    - Cloud Run logs
 
 3. **Uptime**:
+
    - Portal health checks
    - API endpoint checks
 
@@ -189,24 +207,28 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 **Dashboards**:
 
 1. **Multi-Sponsor Overview**:
+
    - All sponsors on single dashboard
    - Cloud Run uptime per sponsor
    - Error rates per sponsor
    - User activity per sponsor
 
 2. **Per-Sponsor Deep Dive**:
+
    - Detailed metrics for single sponsor
    - Slow query analysis (Cloud SQL Insights)
    - User session duration
    - Sync conflict rate
 
 3. **Mobile App Metrics**:
+
    - App crashes (via Firebase Crashlytics)
    - Sync success/failure rate
    - Offline duration
    - Device types
 
 4. **Compliance Metrics**:
+
    - Audit trail completeness
    - RLS policy enforcement
    - Failed authorization attempts
@@ -221,46 +243,56 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 **Cloud Monitoring Alerts** (configure per project):
 
 1. **Database Down**:
+
    - Trigger: Cloud SQL instance unreachable for >1 minute
    - Action: Page on-call, follow incident response runbook
 
 2. **Cloud Run Error Rate Spike**:
+
    - Trigger: Error rate >5% over 5 minutes
    - Action: Page on-call, check logs
 
 3. **Disk Usage Critical**:
+
    - Trigger: Cloud SQL disk >90% full
    - Action: Page on-call, expand storage immediately
 
 4. **Backup Failure**:
+
    - Trigger: Backup failed or missing >12 hours
    - Action: Page on-call, investigate and run manual backup
 
 ### Warning Alerts (Review During Business Hours)
 
 5. **High Database CPU**:
+
    - Trigger: CPU >80% for >30 minutes
    - Action: Investigate slow queries, consider scaling
 
 6. **High Connection Count**:
+
    - Trigger: Connections >80% of max for >15 minutes
    - Action: Review connection usage, check for leaks
 
 7. **Cloud Run Service Errors**:
+
    - Trigger: Error rate >2% over 15 minutes
    - Action: Check Cloud Run logs, investigate EDC connectivity (proxy mode)
 
 8. **Sync Conflicts Increasing**:
+
    - Trigger: Conflict rate >5% of syncs
    - Action: Investigate multi-device usage patterns, check sync logic
 
 ### Informational Alerts (Email/Slack)
 
 9. **Low User Activity**:
+
    - Trigger: Daily active users <50% of average
    - Action: Verify no outage, inform sponsor of low engagement
 
 10. **Unusual Access Patterns**:
+
     - Trigger: Login from new country, unusual hours
     - Action: Security review, verify legitimate access
 
@@ -316,6 +348,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    ```
 
 5. **Escalate if Unresolved** (10 minutes):
+
    - Contact GCP support (if on support plan)
    - Post in team Slack channel
    - Update status page
@@ -364,6 +397,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    ```
 
 4. **Review Recent Changes** (5 minutes):
+
    - Check recent deployments
    - Review migration history
    - Check for missing indexes
@@ -420,11 +454,13 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    ```
 
 4. **Review Recent Schema Changes** (3 minutes):
+
    - Check migration history
    - Verify triggers still functional
    - Check for breaking changes
 
 5. **Mobile App Version Check** (2 minutes):
+
    - Verify users on latest version
    - Check for known bugs in current version
    - Consider hotfix release if widespread
@@ -494,6 +530,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    **Note**: Worker automatically retries failed events with exponential backoff. No manual retry needed unless worker is stuck.
 
 5. **Contact EDC Support** (if API down) (10 minutes):
+
    - Check EDC system status page
    - Contact sponsor's EDC administrator
    - Document outage for audit trail
@@ -507,6 +544,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 **Response Steps**:
 
 1. **Immediate Actions** (5 minutes):
+
    - Document initial observations (timestamps, user IDs, IP addresses)
    - DO NOT delete or modify audit logs
    - Notify security team immediately
@@ -537,16 +575,19 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    ```
 
 4. **Check for Data Exfiltration** (10 minutes):
+
    - Review Cloud Logging for bulk data access
    - Check for export operations
    - Verify RLS policies were enforced
 
 5. **Escalate to Security Team** (immediate):
+
    - Provide audit trail export
    - Document timeline of events
    - Preserve all logs (do not truncate)
 
 6. **Notify Sponsor** (per incident response plan):
+
    - Inform sponsor security contact
    - Provide initial incident summary
    - Coordinate further investigation
@@ -562,11 +603,13 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 ### Daily Tasks
 
 **Automated** (no manual intervention):
+
 - [ ] Cloud SQL automatic backups (configurable frequency)
 - [ ] Log rotation (Cloud Logging)
 - [ ] SSL certificate renewal (Cloud Run managed)
 
 **Manual Review**:
+
 - [ ] Review overnight alerts
 - [ ] Check daily health dashboard
 - [ ] Verify backup completion
@@ -574,6 +617,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 ### Weekly Tasks
 
 **Mondays** (30 minutes):
+
 - [ ] Review error logs for patterns
 - [ ] Check database performance trends (Cloud SQL Insights)
 - [ ] Review sync conflict rate
@@ -608,6 +652,7 @@ echo "=== Weekly Maintenance Complete ==="
 ### Monthly Tasks
 
 **First Monday of Month** (2 hours):
+
 - [ ] Review and update monitoring dashboards
 - [ ] Security audit (review access logs)
 - [ ] Performance tuning (analyze slow queries via Cloud SQL Insights)
@@ -620,6 +665,7 @@ echo "=== Weekly Maintenance Complete ==="
 ### Quarterly Tasks
 
 **End of Quarter** (4 hours):
+
 - [ ] GCP resource usage review (optimize costs)
 - [ ] Disaster recovery test (full restore)
 - [ ] Review and update incident runbooks
@@ -791,6 +837,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 **Handoff**: Monday morning standup
 
 **On-Call Responsibilities**:
+
 - Respond to critical alerts within 15 minutes
 - Resolve incidents or escalate within 1 hour
 - Document all incidents in incident log
@@ -805,6 +852,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 **Level 4**: CTO (for business-critical decisions)
 
 **External Escalation**:
+
 - GCP Support: Via GCP Console (depends on support plan)
 - Sponsor Contact: (per sponsor contact list)
 
@@ -865,6 +913,7 @@ Increased Cloud SQL max connections, added monitoring for connection usage.
 **Tool**: Cloud Monitoring uptime dashboard or external status page service
 
 **Update Policy**:
+
 - Critical incidents: Update immediately
 - Degraded performance: Update within 15 minutes
 - Scheduled maintenance: Announce 48 hours in advance
@@ -885,11 +934,13 @@ The issue has been resolved. All services are operating normally.
 ### Sponsor Communication
 
 **Contact Channels**:
+
 - Email: sponsor-ops@clinicaldiary.com
 - Slack: #sponsor-orion-ops (private channel per sponsor)
 - Phone: Emergency contact list (for critical incidents)
 
 **Communication Policy**:
+
 - Notify sponsor of incidents affecting their users within 30 minutes
 - Provide hourly updates during major incidents
 - Send postmortem within 48 hours of resolution
@@ -909,14 +960,23 @@ This requirement establishes operational backup and retention policies to suppor
 ## Assertions
 
 A. The system SHALL perform automated database backups using Cloud SQL automated backup functionality.
+
 B. The system SHALL maintain point-in-time recovery capability for a minimum of 30 days using Cloud SQL PITR.
+
 C. Clinical trial data and audit trails SHALL be retained for a minimum of 7 years to meet regulatory requirements.
+
 D. The system SHALL implement long-term archive retention that meets or exceeds study-specific requirements.
+
 E. Automated backups SHALL run without failure.
+
 F. Backup retention periods SHALL meet or exceed study-specific requirements.
+
 G. The system SHALL perform weekly backup restore tests to a staging environment.
+
 H. The system SHALL conduct quarterly disaster recovery drills.
+
 I. Disaster recovery drill results SHALL be documented.
+
 J. The system SHALL perform automated backup integrity verification.
 
 *End* *Backup and Retention Policy* | **Hash**: 9178fe2d
@@ -925,6 +985,7 @@ J. The system SHALL perform automated backup integrity verification.
 ### Automated Backups
 
 **Cloud SQL Automatic Backups**:
+
 - Frequency: Configurable (recommended: every 4-6 hours)
 - Retention: 30 days (point-in-time recovery)
 - Storage: Encrypted, regional (optionally cross-regional)

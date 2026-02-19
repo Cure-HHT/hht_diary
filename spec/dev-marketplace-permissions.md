@@ -9,14 +9,23 @@ This requirement establishes an automated permission management system for Claud
 ## Assertions
 
 A. The system SHALL support a permissions.json manifest file in each plugin's .claude-plugin directory that declares required commands.
+
 B. The system SHALL provide a manage-permissions.sh utility that supports add, remove, and list operations for plugin permissions.
+
 C. The system SHALL automatically add all permissions declared in permissions.json when a plugin is installed.
+
 D. The system SHALL automatically remove permissions when a plugin is uninstalled.
+
 E. The system SHALL maintain a registry that tracks which plugin added each permission.
+
 F. The system SHALL NOT remove a permission during uninstallation if another installed plugin still requires that permission.
+
 G. Permission management operations SHALL be idempotent such that running the same operation multiple times produces the same result.
+
 H. The plugin install script SHALL invoke the permission addition utility during installation.
+
 I. The plugin uninstall script SHALL invoke the permission removal utility during uninstallation.
+
 J. The plugin-expert plugin permissions manifest SHALL include at minimum: git status, git diff, git show, git rev-parse, git ls-files, and gh commands.
 
 *End* *Plugin-Specific Permission Management* | **Hash**: 03045719

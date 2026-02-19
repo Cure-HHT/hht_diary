@@ -17,6 +17,7 @@
 Authentication configuration and operations guide for the Clinical Trial Diary Platform using Google Identity Platform (Identity Platform). Each sponsor has an isolated Identity Platform tenant within their GCP project.
 
 **Technology Stack**:
+
 - **Provider**: Google Identity Platform (Identity Platform)
 - **Authentication Methods**: Email/password, Google OAuth, Apple Sign In, Magic Link
 - **Token Format**: Identity Platform ID tokens (JWT)
@@ -72,18 +73,31 @@ This requirement ensures that all privileged accounts (clinical staff, administr
 ## Assertions
 
 A. The system SHALL enforce multi-factor authentication for all clinical staff accounts.
+
 B. The system SHALL enforce multi-factor authentication for all administrator accounts.
+
 C. The system SHALL enforce multi-factor authentication for all sponsor personnel accounts.
+
 D. The system SHALL require MFA enrollment before allowing first system access.
+
 E. The system SHALL support TOTP (Time-based One-Time Password) for authenticator apps.
+
 F. The system SHALL provide SMS backup codes as a fallback MFA option.
+
 G. MFA enforcement SHALL be configured at the Identity Platform level.
+
 H. The system SHALL allow a grace period for MFA enrollment of maximum 7 days.
+
 I. The system SHALL provide MFA reset procedures for lost devices.
+
 J. MFA SHALL be enabled in Identity Platform settings for each sponsor.
+
 K. Staff accounts SHALL NOT access the system without completing MFA enrollment.
+
 L. The system SHALL require MFA verification at each login.
+
 M. The system SHALL NOT allow MFA bypass through configuration settings.
+
 N. The system SHALL log all MFA events in the audit trail.
 
 *End* *MFA Configuration for Staff Accounts* | **Hash**: 5bb3d071
@@ -106,21 +120,25 @@ gcloud services enable identitytoolkit.googleapis.com
 **Via GCP Console** (Identity Platform → Providers):
 
 1. **Email/Password**
+
    - Enable email/password sign-in
    - Enable email link sign-in (magic link)
    - Configure password policy
 
 2. **Google OAuth**
+
    - Create OAuth client credentials
    - Configure authorized domains
    - Enable Google sign-in
 
 3. **Apple Sign In**
+
    - Register app with Apple Developer
    - Configure Services ID
    - Upload AuthKey file
 
 4. **Microsoft OAuth** (optional)
+
    - Register app in Azure AD
    - Configure redirect URIs
 
@@ -474,6 +492,7 @@ gcloud run deploy api-server \
 ### Session Configuration
 
 **Token Expiration**:
+
 - ID tokens expire after 1 hour (Identity Platform default)
 - Refresh tokens remain valid until revoked
 - Custom session cookies: configurable duration (5 minutes to 2 weeks)
@@ -601,6 +620,7 @@ Future<void> logAuthEvent({
 ### Lockout Policy
 
 **Configuration**:
+
 - Lock after 5 failed attempts in 15 minutes
 - Lockout duration: 30 minutes (automatic unlock)
 - Admin can manually unlock

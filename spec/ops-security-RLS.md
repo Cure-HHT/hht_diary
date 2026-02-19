@@ -30,19 +30,33 @@ This requirement establishes operational procedures for deploying and maintainin
 ## Assertions
 
 A. The system SHALL deploy PostgreSQL Row-Level Security policies to enforce patient data isolation.
+
 B. RLS SHALL be enabled on the record_state table.
+
 C. RLS SHALL be enabled on the record_audit table.
+
 D. The system SHALL deploy a SELECT policy that filters records by patient_id matching current_user_id().
+
 E. The system SHALL deploy an INSERT policy that validates patient_id matches the authenticated user.
+
 F. RLS policies SHALL NOT be bypassable by the service role.
+
 G. Policies SHALL be deployed via migration scripts.
+
 H. Migration scripts SHALL include rollback capability.
+
 I. Policy testing SHALL be executed before production deployment.
+
 J. RLS SHALL be enabled on patient data tables in all sponsor databases.
+
 K. The system SHALL ensure patients can query only their own records.
+
 L. Cross-patient access attempts SHALL return empty results.
+
 M. Policies SHALL survive database restores.
+
 N. Policies SHALL survive database migrations.
+
 O. Policy deployment SHALL be logged in the change management system.
 
 *End* *Patient Data Isolation Policy Deployment* | **Hash**: 21abbb15
@@ -59,14 +73,23 @@ This requirement implements site-scoped access control (p00036) at the database 
 ## Assertions
 
 A. The system SHALL deploy PostgreSQL Row-Level Security policies that restrict investigator access to clinical data at their assigned sites only.
+
 B. RLS policies on clinical data tables SHALL filter rows by site assignment.
+
 C. The system SHALL create and maintain an investigator_site_assignments table.
+
 D. The investigator_site_assignments table SHALL have proper indexes to support RLS policy queries.
+
 E. RLS policies SHALL validate investigator site access using subqueries against the investigator_site_assignments table.
+
 F. Site de-assignment SHALL immediately revoke investigator access to that site's data.
+
 G. The application SHALL enforce a single active site context through session management.
+
 H. Migration scripts SHALL create both the assignment tables and RLS policies.
+
 I. The assignment table and RLS policies SHALL be deployed atomically via migration scripts.
+
 J. Investigators SHALL NOT be able to access data from sites they are not assigned to.
 
 *End* *Investigator Site-Scoped Access Policy Deployment* | **Hash**: 06f5f0f4
@@ -83,19 +106,33 @@ This requirement ensures that investigators can add clinical annotations to pati
 ## Assertions
 
 A. The system SHALL deploy an investigator_annotations table with Row-Level Security policies enabled.
+
 B. The system SHALL implement an INSERT policy on the investigator_annotations table that allows site-scoped creation.
+
 C. The system SHALL NOT provide UPDATE policies on the record_audit table for investigator roles.
+
 D. The system SHALL NOT provide DELETE policies on the record_audit table for investigator roles.
+
 E. The system SHALL NOT provide modification policies on the record_state table for investigator roles.
+
 F. The investigator_annotations table schema SHALL include investigator identity columns.
+
 G. The investigator_annotations table schema SHALL include timestamp columns.
+
 H. The investigator_annotations table SHALL include foreign key constraints linking annotations to clinical records.
+
 I. The system SHALL allow investigators to create annotations only at their assigned sites.
+
 J. The system SHALL prevent investigators from modifying the record_state table.
+
 K. The system SHALL prevent investigators from modifying the record_audit table.
+
 L. The system SHALL reject annotation creation attempts on unassigned sites.
+
 M. All annotation records SHALL include investigator ID.
+
 N. All annotation records SHALL include timestamp.
+
 O. The system SHALL prevent modification of patient diary entries by investigators.
 
 *End* *Investigator Annotation Access Policy Deployment* | **Hash**: c758cd88
@@ -112,20 +149,35 @@ This requirement operationalizes the analyst read-only access control model by d
 ## Assertions
 
 A. The system SHALL deploy PostgreSQL Row-Level Security policies to provide analysts read-only access to de-identified clinical data at their assigned sites.
+
 B. The deployment SHALL include SELECT policies on clinical data tables for the analyst role.
+
 C. The deployment SHALL include site-scoping via the analyst_site_assignments table.
+
 D. The deployment SHALL NOT include INSERT policies for the analyst role.
+
 E. The deployment SHALL NOT include UPDATE policies for the analyst role.
+
 F. The deployment SHALL NOT include DELETE policies for the analyst role.
+
 G. The system SHALL enable query audit logging for analyst access.
+
 H. The analyst_site_assignments table SHALL contain mappings between sites and analysts.
+
 I. The policies SHALL enforce de-identified data access only.
+
 J. Analysts SHALL be able to SELECT from clinical data tables at their assigned sites.
+
 K. Analysts SHALL NOT be able to INSERT any records.
+
 L. Analysts SHALL NOT be able to UPDATE any records.
+
 M. Analysts SHALL NOT be able to DELETE any records.
+
 N. Site assignments SHALL restrict data visibility to assigned sites only.
+
 O. All analyst queries SHALL be logged in the audit trail.
+
 P. Patient identity SHALL NOT be accessible to the analyst role.
 
 *End* *Analyst Read-Only Access Policy Deployment* | **Hash**: 98aa758b
@@ -142,13 +194,21 @@ This requirement defines the operational deployment of sponsor-level access cont
 ## Assertions
 
 A. The deployment SHALL include PostgreSQL Row-Level Security policies that provide the sponsor role with SELECT access to all clinical data tables across all sites within their isolated database instance.
+
 B. The SELECT policies for clinical data tables SHALL NOT include site-based filtering for the sponsor role.
+
 C. The deployment SHALL include RLS policies that prohibit INSERT, UPDATE, and DELETE operations on clinical data tables for the sponsor role.
+
 D. The deployment SHALL include RLS policies that grant the sponsor role full access (SELECT, INSERT, UPDATE, DELETE) to user management tables.
+
 E. The deployment SHALL include RLS policies that grant the sponsor role full access (SELECT, INSERT, UPDATE, DELETE) to configuration tables.
+
 F. Sponsor isolation SHALL be enforced through separate GCP projects, with each sponsor database deployed on a dedicated Cloud SQL instance.
+
 G. The RLS policies SHALL provide sponsor access to de-identified clinical data only.
+
 H. The sponsor role SHALL NOT have INSERT, UPDATE, or DELETE policies defined on clinical data tables.
+
 I. Cross-sponsor data access SHALL be prevented through physical database separation in distinct GCP projects.
 
 *End* *Sponsor Global Access Policy Deployment* | **Hash**: a3f24a6b
@@ -165,16 +225,27 @@ This requirement ensures proper deployment of database-level access controls for
 ## Assertions
 
 A. The system SHALL deploy PostgreSQL Row-Level Security policies that provide auditors read-only access to all data including audit logs.
+
 B. The system SHALL deploy SELECT policies on all tables for the auditor role without access restrictions.
+
 C. The system SHALL NOT deploy INSERT, UPDATE, or DELETE policies for the auditor role.
+
 D. The system SHALL deploy an export logging function that captures justification and case ID for all data exports.
+
 E. The system SHALL provide quarterly access review procedures documented for auditor accounts.
+
 F. RLS policies SHALL cover clinical data, audit logs, and system tables.
+
 G. Export activity SHALL be tracked in a separate audit table.
+
 H. Auditors SHALL be able to SELECT from all tables across all sites.
+
 I. Auditors SHALL NOT be able to modify any records.
+
 J. Data export functions SHALL require a justification parameter.
+
 K. Export actions SHALL be logged with auditor identity and case ID.
+
 L. Data export actions SHALL be logged with justification provided by the auditor.
 
 *End* *Auditor Compliance Access Policy Deployment* | **Hash**: de3aa240
@@ -191,21 +262,37 @@ This requirement operationalizes administrator access controls defined in p00039
 ## Assertions
 
 A. PostgreSQL Row-Level Security policies SHALL be deployed for administrator access with comprehensive logging.
+
 B. PostgreSQL Row-Level Security policies SHALL be deployed with break-glass access controls for protected health information.
+
 C. The system SHALL deploy full access policies for the administrator role on all tables.
+
 D. The system SHALL deploy a break-glass access logging function for PHI access.
+
 E. The break-glass mechanism SHALL validate ticket ID for each break-glass session.
+
 F. The break-glass mechanism SHALL validate time-to-live (TTL) for each break-glass session.
+
 G. The system SHALL maintain separate policies for routine admin access and break-glass access.
+
 H. Quarterly access review procedures SHALL be established for administrator access.
+
 I. The system SHALL log justification for all administrative actions.
+
 J. Administrators SHALL be able to modify configuration tables.
+
 K. Administrators SHALL be able to modify user tables.
+
 L. PHI access SHALL require explicit break-glass authorization.
+
 M. Break-glass sessions SHALL include a ticket ID.
+
 N. Break-glass sessions SHALL include a time-to-live (TTL).
+
 O. All admin actions SHALL be logged with administrator identity.
+
 P. All admin actions SHALL be logged with justification.
+
 Q. Access reviews SHALL be conducted quarterly.
 
 *End* *Administrator Access Policy Deployment* | **Hash**: bd4a9530
@@ -222,15 +309,25 @@ This requirement ensures the deployment of PostgreSQL Row-Level Security (RLS) p
 ## Assertions
 
 A. The system SHALL deploy PostgreSQL Row-Level Security policies that prevent direct modification of the record_state table.
+
 B. The system SHALL NOT create INSERT policies on the record_state table.
+
 C. The system SHALL NOT create UPDATE policies on the record_state table.
+
 D. The system SHALL NOT create DELETE policies on the record_state table.
+
 E. The system SHALL direct all write operations to the record_audit table.
+
 F. The system SHALL deploy database triggers that update record_state from events in the record_audit table.
+
 G. Trigger functions SHALL be secured with SECURITY DEFINER.
+
 H. The system SHALL enforce event log immutability through append-only policies.
+
 I. State derivation logic SHALL be tested for correctness prior to deployment.
+
 J. Direct modification attempts on record_state SHALL return permission denied errors.
+
 K. The system SHALL maintain event sourcing integrity at the database level.
 
 *End* *Event Sourcing State Protection Policy Deployment* | **Hash**: bd5a22c4
@@ -243,18 +340,21 @@ K. The system SHALL maintain event sourcing integrity at the database level.
 Before deploying RLS policies to production:
 
 1. **Migration Script Review**:
+
    - SQL syntax validated by PostgreSQL parser
    - Rollback script tested in staging environment
    - Migration includes atomic transaction wrapping
    - Version control commit references requirement ID
 
 2. **Policy Testing**:
+
    - Test suite covering all roles and scenarios
    - Positive tests: authorized access succeeds
    - Negative tests: unauthorized access blocked
    - Performance testing for policy overhead
 
 3. **Documentation**:
+
    - Migration documented in change log
    - Requirement traceability verified
    - Rollback procedures documented
@@ -263,12 +363,14 @@ Before deploying RLS policies to production:
 ### Deployment Process
 
 1. **Staging Deployment**:
+
    - Deploy to staging database first
    - Execute full test suite
    - Validate policy behavior
    - Monitor for performance impact
 
 2. **Production Deployment**:
+
    - Schedule during maintenance window
    - Execute migration within transaction
    - Verify policy activation
@@ -276,6 +378,7 @@ Before deploying RLS policies to production:
    - Monitor for 24 hours
 
 3. **Post-Deployment**:
+
    - Verify all policies active via `pg_policies` view
    - Execute automated test suite
    - Review audit logs for policy violations
@@ -286,11 +389,13 @@ Before deploying RLS policies to production:
 If policy deployment fails or causes issues:
 
 1. **Execute Rollback Migration**:
+
    - Rollback script drops policies
    - Transaction ensures atomic rollback
    - Database restored to pre-deployment state
 
 2. **Root Cause Analysis**:
+
    - Review failed deployment logs
    - Identify policy configuration errors
    - Test fixes in staging environment
@@ -317,6 +422,7 @@ WHERE schemaname = 'public';
 ```
 
 Alerts triggered if:
+
 - RLS disabled on any table
 - Policy count changes unexpectedly
 - New table created without RLS
@@ -324,12 +430,14 @@ Alerts triggered if:
 ### Access Violation Monitoring
 
 Monitor PostgreSQL logs for:
+
 - Permission denied errors (policy violations)
 - Unusual access patterns
 - Failed authentication attempts
 - Break-glass access events
 
 Alert thresholds:
+
 - >10 permission denied errors per user per hour
 - Break-glass access outside business hours
 - Cross-site access attempts
@@ -337,6 +445,7 @@ Alert thresholds:
 ### Quarterly Access Reviews
 
 Every 90 days:
+
 - Review all user role assignments
 - Verify site assignments current
 - Audit break-glass access logs

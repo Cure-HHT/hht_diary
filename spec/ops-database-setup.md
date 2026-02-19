@@ -18,6 +18,7 @@
 Complete guide for deploying the Clinical Trial Diary Database to Google Cloud SQL in a multi-sponsor architecture using **Pulumi** for infrastructure as code. Each sponsor operates an independent GCP project with isolated Cloud SQL instances for complete data isolation.
 
 **Key Principles**:
+
 - **One GCP project per sponsor** - Complete infrastructure isolation
 - **Infrastructure as Code** - All resources defined in Pulumi TypeScript
 - **Identical core schema** - All sponsors use same base schema from core repository
@@ -46,11 +47,13 @@ Sponsor A                    Sponsor B                    Sponsor C
 ## Prerequisites
 
 1. **GCP Account**
+
    - Organization or standalone GCP account
    - Billing enabled
    - Appropriate IAM permissions (Cloud SQL Admin, IAM Admin)
 
 2. **Local Tools**
+
    - **Pulumi** v3.x installed (`brew install pulumi` or npm)
    - **Node.js** v20+ installed
    - `gcloud` CLI installed and configured (for authentication and ad-hoc operations)
@@ -87,16 +90,27 @@ This requirement ensures complete infrastructure isolation for each clinical tri
 ## Assertions
 
 A. The system SHALL provision a dedicated GCP project for each sponsor for each environment (staging, production).
+
 B. GCP project names SHALL follow the convention: clinical-diary-{sponsor}-{env}.
+
 C. The geographic region for each project SHALL be selected based on the sponsor's user base and data residency requirements.
+
 D. The Cloud SQL tier for each project SHALL be selected based on workload requirements.
+
 E. Project credentials SHALL be stored securely in Doppler.
+
 F. Each sponsor SHALL have a dedicated GCP project that provides isolated Cloud SQL database, Identity Platform authentication, and Cloud Run services.
+
 G. GCP projects SHALL NOT share databases across sponsors.
+
 H. GCP projects SHALL NOT share authentication systems across sponsors.
+
 I. Project credentials SHALL be unique per project.
+
 J. Project credentials SHALL NOT be reused across projects.
+
 K. Staging and production environments SHALL use separate GCP projects.
+
 L. Project provisioning procedures SHALL be documented in a runbook.
 
 *End* *GCP Project Provisioning Per Sponsor* | **Hash**: f7f7d3bc
@@ -115,6 +129,7 @@ L. Project provisioning procedures SHALL be documented in a runbook.
 **Format**: `clinical-diary-{sponsor}-{environment}`
 
 **Examples**:
+
 - `clinical-diary-orion-prod` - Orion production
 - `clinical-diary-orion-staging` - Orion staging/UAT
 - `clinical-diary-andromeda-prod` - Andromeda production
@@ -122,11 +137,13 @@ L. Project provisioning procedures SHALL be documented in a runbook.
 ### Schema Consistency
 
 **All sponsors deploy**:
+
 - Same core schema from `clinical-diary/packages/database/`
 - Version-pinned to ensure consistency
 - Core schema published as GitHub package
 
 **Sponsor-specific extensions** (optional):
+
 - Additional tables in sponsor repo `database/extensions.sql`
 - Custom stored procedures
 - Extra indexes for sponsor-specific queries
@@ -136,6 +153,7 @@ L. Project provisioning procedures SHALL be documented in a runbook.
 ### Credential Management
 
 **Each sponsor has separate**:
+
 - GCP project ID
 - Cloud SQL instance connection name
 - Database user credentials
@@ -158,16 +176,27 @@ This requirement ensures that each sponsor's database is properly configured to 
 ## Assertions
 
 A. The system SHALL configure each sponsor's database with site data structures to support multi-site clinical trials.
+
 B. The system SHALL populate site records with site metadata including site_id, site_name, site_number, location, and contact information.
+
 C. The system SHALL configure investigator-to-site assignments per trial setup.
+
 D. The system SHALL configure analyst-to-site assignments per sponsor requirements.
+
 E. The system SHALL establish patient-to-site enrollment mappings during enrollment.
+
 F. The system SHALL verify RLS policy configurations for site-based data isolation.
+
 G. Site records SHALL be created for all participating trial sites.
+
 H. Site assignments SHALL be configured for all investigators and analysts.
+
 I. RLS policies SHALL correctly filter data by site.
+
 J. The system SHALL correctly capture site context in audit trail entries.
+
 K. Documentation SHALL exist for adding sites post-deployment.
+
 L. Documentation SHALL exist for removing sites post-deployment.
 
 *End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 529b59ce
@@ -265,16 +294,27 @@ This requirement ensures consistent database infrastructure across all sponsor d
 ## Assertions
 
 A. The system SHALL deploy each sponsor's database with the core schema from the central repository.
+
 B. The deployed schema SHALL include event sourcing tables (record_audit, record_state).
+
 C. The deployed schema SHALL include row-level security policies.
+
 D. The deployed schema SHALL include database triggers for audit trail enforcement.
+
 E. The deployed schema SHALL include indexes for query performance.
+
 F. The system SHALL support optional sponsor-specific schema extensions.
+
 G. Schema deployment SHALL be executed via an automated migration process.
+
 H. The system SHALL track the core schema version for each deployment.
+
 I. Sponsor-specific extensions SHALL be isolated from the core schema.
+
 J. The system SHALL execute schema validation checks before deployment.
+
 K. Schema validation checks SHALL pass before deployment completes.
+
 L. The system SHALL provide rollback capability for failed deployments.
 
 *End* *Database Schema Deployment* | **Hash**: 26cf428c
@@ -1211,6 +1251,7 @@ WHERE patient_id = 'test_patient';
 Before going live:
 
 **Infrastructure (via Pulumi)**:
+
 - [ ] Pulumi stack created for sponsor/environment
 - [ ] GCP project provisioned via Pulumi
 - [ ] Cloud SQL instance created with appropriate tier
@@ -1222,17 +1263,20 @@ Before going live:
 - [ ] Monitoring alerts configured
 
 **Database**:
+
 - [ ] Database and user created
 - [ ] Schema deployed via migrations
 - [ ] RLS policies verified
 - [ ] Connection pooling configured
 
 **Security**:
+
 - [ ] SSL/TLS enforced (automatic for Cloud SQL)
 - [ ] Credentials stored in Doppler
 - [ ] Pulumi secrets configured for sensitive values
 
 **Validation**:
+
 - [ ] `pulumi preview` shows no unexpected changes
 - [ ] Load testing completed
 - [ ] Documentation reviewed
@@ -1270,6 +1314,7 @@ SET app.current_user_role = 'USER';
 ### Issue: Too many connections
 
 **Solution**:
+
 - Use connection pooling in application
 - Increase Cloud SQL tier
 - Check for connection leaks
@@ -1277,6 +1322,7 @@ SET app.current_user_role = 'USER';
 ### Issue: Slow queries
 
 **Solution**:
+
 - Enable Cloud SQL Insights
 - Check indexes: `EXPLAIN ANALYZE your_query`
 - Run `ANALYZE` on tables
@@ -1295,6 +1341,7 @@ SET app.current_user_role = 'USER';
 5. **Migration Strategy**: Review ops-database-migration.md for schema update procedures
 
 **For Additional Sponsors**:
+
 - Repeat this entire guide with new GCP project
 - Use same core schema version for consistency
 - Maintain separate credentials and configurations
@@ -1315,11 +1362,13 @@ SET app.current_user_role = 'USER';
 ## Support
 
 **GCP Platform**:
+
 - Cloud SQL Docs: https://cloud.google.com/sql/docs
 - Identity Platform: https://cloud.google.com/identity-platform/docs
 - Cloud Run: https://cloud.google.com/run/docs
 
 **Diary Platform**:
+
 - Review spec/ directory for architecture and implementation details
 - Contact platform team for architecture questions
 - Refer to ops-operations.md for incident response procedures

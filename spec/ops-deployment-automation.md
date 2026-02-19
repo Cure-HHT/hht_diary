@@ -21,24 +21,43 @@ This requirement establishes the automated deployment pipeline infrastructure fo
 ## Assertions
 
 A. The system SHALL automatically trigger deployment to the development environment on merge to the main branch.
+
 B. The system SHALL require manual approval before deploying to the staging environment.
+
 C. The system SHALL require manual approval before deploying to the production environment.
+
 D. The system SHALL require smoke tests to pass before deploying to the production environment.
+
 E. The system SHALL execute build validation including lint, type check, and tests before deployment.
+
 F. The system SHALL execute database migrations with a rollback plan during deployment.
+
 G. The system SHALL deploy the application to Cloud Run as part of the deployment process.
+
 H. The system SHALL execute smoke tests after deployment.
+
 I. The system SHALL perform automated rollback on deployment failure.
+
 J. The system SHALL restrict production deployments to business hours only.
+
 K. The system SHALL enforce a rate limit of maximum 1 production deployment per 4 hours.
+
 L. The system SHALL execute automated health checks post-deployment.
+
 M. The system SHALL log all deployments with timestamp, deployer identity, and commit SHA.
+
 N. The system SHALL record all approvals with approver identity.
+
 O. The system SHALL record deployment duration and outcome for each deployment.
+
 P. The system SHALL maintain deployment audit trails in compliance with FDA 21 CFR Part 11.
+
 Q. The system SHALL maintain deployment audit trails for a minimum of 7 years.
+
 R. The system SHALL complete development environment deployments within 10 minutes.
+
 S. The system SHALL complete staging environment deployments within 15 minutes.
+
 T. The system SHALL complete production environment deployments within 20 minutes.
 
 *End* *Automated Deployment Pipeline* | **Hash**: e74d24c7
@@ -55,24 +74,43 @@ This requirement establishes automated database migration processes to ensure sa
 ## Assertions
 
 A. The system SHALL apply migrations in sequential numbered order.
+
 B. The system SHALL execute migrations transactionally as all-or-nothing operations.
+
 C. The system SHALL automatically verify migration execution after completion.
+
 D. The system SHALL validate database schema after migration execution.
+
 E. Every migration SHALL have a corresponding rollback script.
+
 F. The system SHALL test rollback scripts before production deployment.
+
 G. The system SHALL automatically execute rollback on migration failure.
+
 H. The system SHALL provide a manual rollback command.
+
 I. The system SHALL provide dry-run mode for migration validation.
+
 J. The system SHALL create database backup before production migrations.
+
 K. The system SHALL implement lock timeout to prevent hanging migrations.
+
 L. The system SHALL alert when migration duration exceeds 5 minutes.
+
 M. The system SHALL log migration execution with timestamp, user, and duration.
+
 N. The system SHALL capture pre-migration schema snapshots.
+
 O. The system SHALL capture post-migration schema snapshots.
+
 P. The system SHALL log rollback events.
+
 Q. Migration audit records SHALL comply with FDA 21 CFR Part 11.
+
 R. The migration framework SHALL integrate Cloud SQL migrations via pgmigrate.
+
 S. The system SHALL require rollback scripts for all migrations.
+
 T. Typical migrations SHALL complete within 5 minutes.
 
 *End* *Database Migration Automation* | **Hash**: 52d9a6a1
@@ -240,6 +278,7 @@ T. Typical migrations SHALL complete within 5 minutes.
 **File**: `.github/workflows/deploy-development.yml`
 
 **Triggers**:
+
 - Push to `main` branch (automatic)
 
 **Steps**:
@@ -266,6 +305,7 @@ T. Typical migrations SHALL complete within 5 minutes.
 **File**: `.github/workflows/deploy-staging.yml`
 
 **Triggers**:
+
 - Manual workflow dispatch (requires QA Lead approval)
 
 **Steps**:
@@ -294,9 +334,11 @@ T. Typical migrations SHALL complete within 5 minutes.
 **File**: `.github/workflows/deploy-production.yml`
 
 **Triggers**:
+
 - Manual workflow dispatch (requires Tech Lead + QA Lead approval)
 
 **Pre-deployment Checks**:
+
 - Deployment window: Monday-Thursday, 9 AM - 3 PM EST
 - Rate limit: Maximum 1 deployment per 4 hours
 - Staging smoke tests: Must have passed within last 24 hours
@@ -332,21 +374,25 @@ T. Typical migrations SHALL complete within 5 minutes.
 All deployments SHALL execute the following smoke tests:
 
 1. **Database Connectivity**:
+
    - Connect to database
    - Execute simple query
    - Verify response time <2 seconds
 
 2. **API Availability**:
+
    - Health check endpoint returns 200
    - Authentication endpoint accepts valid credentials
    - Sample CRUD operation succeeds
 
 3. **Critical Features**:
+
    - User can log in
    - User can create a new diary entry
    - Audit trail records are created
 
 4. **Data Integrity**:
+
    - Database schema matches expected version
    - Required tables exist
    - Required functions/triggers exist
@@ -362,6 +408,7 @@ All deployments SHALL execute the following smoke tests:
 ### Automatic Rollback
 
 Triggered automatically on:
+
 - Smoke test failure
 - Migration failure
 - Pulumi deployment failure
@@ -371,6 +418,7 @@ Triggered automatically on:
 1. Identify last known good state (previous Pulumi stack version)
 2. Execute database rollback script
 3. Revert infrastructure via Pulumi:
+
    - `pulumi stack history` to find previous version
    - `git revert <commit>` to revert infrastructure code
    - `pulumi up` to apply rollback
@@ -389,6 +437,7 @@ gh workflow run rollback.yml \
 ```
 
 **Requirements**:
+
 - Tech Lead approval (production only)
 - Reason documented in incident ticket
 
@@ -397,16 +446,19 @@ gh workflow run rollback.yml \
 ## Deployment Windows
 
 ### Development
+
 - **Window**: 24/7 (no restrictions)
 - **Approval**: None required
 - **Rate Limit**: None
 
 ### Staging
+
 - **Window**: 24/7
 - **Approval**: QA Lead
 - **Rate Limit**: None
 
 ### Production
+
 - **Window**: Monday-Thursday, 9 AM - 3 PM EST (avoid Fridays)
 - **Approval**: Tech Lead + QA Lead
 - **Rate Limit**: Maximum 1 deployment per 4 hours
@@ -424,6 +476,7 @@ gh workflow run rollback.yml \
 Every deployment SHALL log:
 
 1. **Deployment Metadata**:
+
    - Timestamp (UTC)
    - Deployer identity (GitHub username)
    - Environment (dev/staging/production)
@@ -431,22 +484,26 @@ Every deployment SHALL log:
    - Version number
 
 2. **Approval Records** (staging/production):
+
    - Approver identity
    - Approval timestamp
    - Comments/notes
 
 3. **Execution Details**:
+
    - Deployment start time
    - Deployment end time
    - Duration
    - Outcome (success/failure/rollback)
 
 4. **Migration Details**:
+
    - Migrations executed (list)
    - Migration duration
    - Pre/post-migration schema versions
 
 5. **Test Results**:
+
    - Smoke test outcomes
    - Health check results
    - Any failures or warnings
@@ -485,6 +542,7 @@ To activate deployment automation:
    ```
 
 3. **Enable Workflows**:
+
    - Workflows are ready but not triggered until environments are configured
    - Development: Activates on next push to `main`
    - Staging: Activate via manual dispatch
@@ -543,6 +601,7 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 **Procedure**:
 1. Measure deployment duration (10 deployments per environment)
 2. Verify SLAs met:
+
    - Development: <10 minutes
    - Staging: <15 minutes
    - Production: <20 minutes

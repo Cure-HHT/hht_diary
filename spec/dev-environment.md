@@ -16,6 +16,7 @@
 The Clinical Diary development environment provides role-based containerized workspaces that enforce separation of concerns, enable cross-platform development, and maintain parity between local development and CI/CD environments. The environment supports FDA 21 CFR Part 11 compliance through validated tool chains, reproducible builds, and comprehensive audit trails.
 
 **Key Features**:
+
 - Docker-based containerization for reproducibility
 - Role-specific environments (Developer, QA, DevOps, Management)
 - Cross-platform support (Windows, Linux, macOS)
@@ -38,20 +39,35 @@ Docker containers provide reproducible environments required for FDA validation 
 ## Assertions
 
 A. Development environments SHALL be containerized using Docker.
+
 B. Containerized environments SHALL ensure reproducible builds across Windows, Linux, and macOS platforms.
+
 C. All tool chain versions SHALL be explicitly pinned in container specifications.
+
 D. Pinned tool versions SHALL include SHA256 verification.
+
 E. Containers SHALL provide isolated environments that prevent dependency conflicts between projects.
+
 F. Container launch time SHALL be less than 30 seconds.
+
 G. Containers SHALL enforce resource limits to prevent system resource exhaustion.
+
 H. Containers SHALL support volume mounts for source code sharing.
+
 I. Volume mounts SHALL preserve file permissions and ownership.
+
 J. The system SHALL provide Dockerfile specifications for each role-based environment.
+
 K. The system SHALL provide Docker Compose orchestration for multi-container workflows.
+
 L. All pinned tool versions SHALL have documented rationale for version selection.
+
 M. Container images SHALL be buildable on Windows operating systems.
+
 N. Container images SHALL be buildable on Linux operating systems.
+
 O. Container images SHALL be buildable on macOS operating systems.
+
 P. Containers SHALL include health checks that verify tool availability.
 
 *End* *Containerized Development Environments* | **Hash**: 380e7b8c
@@ -68,24 +84,43 @@ Role-based separation enforces security boundaries and trains developers to thin
 ## Assertions
 
 A. The development infrastructure SHALL provide separate containerized environments for each role: Developer, QA, DevOps, and Management.
+
 B. The development infrastructure SHALL enforce the principle of least privilege through role-based environment separation.
+
 C. The Developer environment SHALL include full development tools including Flutter, Android SDK, hot reload, and debugging capabilities.
+
 D. The QA environment SHALL include testing frameworks including Playwright, Flutter integration tests, and report generation tools.
+
 E. The DevOps environment SHALL include infrastructure tools including Terraform, gcloud CLI, Cloud SQL Proxy, and deployment automation.
+
 F. The Management environment SHALL include read-only tools including repository viewer, report access, and audit log queries.
+
 G. Each role environment SHALL have distinct Git identities including unique name and email configurations.
+
 H. Each role environment SHALL use role-specific GPG signing for Git commits.
+
 I. Each role environment SHALL use role-specific GitHub Personal Access Tokens with minimal required scopes.
+
 J. Each role environment SHALL use separate SSH keys for repository access.
+
 K. Role environments SHALL have isolated file systems that prevent cross-role data leakage.
+
 L. The system SHALL provide four distinct Docker services: dev, qa, ops, and mgmt.
+
 M. Each role environment SHALL have a unique Git user.name configuration.
+
 N. Each role environment SHALL have a unique Git user.email configuration.
+
 O. The GitHub CLI SHALL be authenticated with role-appropriate Personal Access Token scopes for each role.
+
 P. SSH keys SHALL be mounted per role from the host filesystem.
+
 Q. Credentials SHALL NOT be shared between different role environments.
+
 R. File permissions SHALL enforce role boundaries between environments.
+
 S. Documentation SHALL explain what each role can do within its environment.
+
 T. Documentation SHALL explain what each role cannot do outside its designated permissions.
 
 *End* *Role-Based Environment Separation* | **Hash**: 9d8e2081
@@ -102,30 +137,55 @@ Teams using mixed operating systems waste time on platform-specific issues. Dock
 ## Assertions
 
 A. Development environments SHALL function identically on Windows, Linux, and macOS.
+
 B. The system SHALL NOT require platform-specific code paths in core workflows.
+
 C. The system SHALL NOT require manual configuration based on platform.
+
 D. Docker Compose files SHALL use platform-agnostic volume paths.
+
 E. Setup scripts SHALL detect the host OS and adjust automatically.
+
 F. Documentation SHALL cover Windows with WSL2 installation and usage.
+
 G. Documentation SHALL cover Linux native installation and usage.
+
 H. Documentation SHALL cover macOS native installation and usage.
+
 I. File permission handling SHALL respect host OS differences automatically.
+
 J. Core workflows SHALL NOT contain platform-specific workarounds.
+
 K. Core workflows SHALL NOT contain conditional logic based on platform.
+
 L. Terminal prompts SHALL be compatible with bash shell.
+
 M. Terminal prompts SHALL be compatible with zsh shell.
+
 N. Scripts SHALL be compatible with bash shell.
+
 O. Scripts SHALL be compatible with zsh shell.
+
 P. The development environment SHALL be tested on Windows 11 with WSL2 and Docker Desktop.
+
 Q. The development environment SHALL be tested on Ubuntu 24.04 with Docker Engine.
+
 R. The development environment SHALL be tested on macOS Intel with Docker Desktop.
+
 S. The development environment SHALL be tested on macOS Apple Silicon with Docker Desktop.
+
 T. Documentation SHALL NOT contain Windows-only instructions except for platform-specific prerequisites.
+
 U. Documentation SHALL NOT contain macOS-only instructions except for platform-specific prerequisites.
+
 V. Documentation SHALL NOT contain Linux-only instructions except for platform-specific prerequisites.
+
 W. File mounts SHALL work correctly on Windows with WSL2.
+
 X. File mounts SHALL work correctly on Linux.
+
 Y. File mounts SHALL work correctly on macOS.
+
 Z. Setup documentation SHALL include platform-specific prerequisites when required.
 
 *End* *Cross-Platform Development Support* | **Hash**: 7ca59703
@@ -142,17 +202,29 @@ This requirement establishes environment parity between local development and CI
 ## Assertions
 
 A. Local development environments SHALL use identical Docker images as CI/CD pipelines.
+
 B. The system SHALL use shared Dockerfiles for both local development and GitHub Actions.
+
 C. Tool versions SHALL be identical in local development containers and CI runners.
+
 D. The system SHALL use the same secrets management approach (Doppler) in both local and CI environments.
+
 E. Build commands SHALL be reproducible and identical across local and CI environments.
+
 F. Artifact generation processes SHALL be identical in local development and CI pipelines.
+
 G. Environment variables SHALL be managed consistently across local and CI environments.
+
 H. GitHub Actions workflows SHALL use the same Dockerfiles as local development.
+
 I. The system SHALL include automated checks to detect tool version mismatches between environments.
+
 J. Build commands SHALL be documented and executable in both local and CI environments.
+
 K. Secrets SHALL be accessed via Doppler in both local development and CI environments.
+
 L. CI logs SHALL include tool version verification output.
+
 M. Local development documentation SHALL include commands to verify environment parity.
 
 *End* *CI/CD Environment Parity* | **Hash**: 608781a5
@@ -169,24 +241,43 @@ Hardcoded secrets in scripts or environment variables violate security best prac
 ## Assertions
 
 A. Development environments SHALL integrate Doppler secrets management for all credential access.
+
 B. The system SHALL eliminate hardcoded credentials from all code and configuration files.
+
 C. Doppler integration SHALL provide audit trails of all secret access events.
+
 D. The system SHALL enable secret rotation without requiring code changes.
+
 E. Doppler integration SHALL provide environment-specific secret projects for dev, staging, and prod environments.
+
 F. Doppler integration SHALL provide role-specific service tokens for automated access.
+
 G. Doppler integration SHALL provide personal tokens for individual developer access.
+
 H. Doppler SHALL maintain audit logs showing who accessed secrets and when.
+
 I. The system SHALL support secret rotation without redeploying containers.
+
 J. The system SHALL implement zero-knowledge architecture where secrets are never stored in Git.
+
 K. The system SHALL implement zero-knowledge architecture where secrets are never stored in environment variables.
+
 L. The Doppler CLI SHALL be installed in all role containers.
+
 M. GitHub tokens SHALL be accessed via doppler run -- gh auth login command.
+
 N. GCP credentials SHALL be accessed via doppler run -- gcloud auth login command.
+
 O. Git history SHALL NOT contain any secrets.
+
 P. Dockerfiles SHALL NOT contain any secrets.
+
 Q. Compose files SHALL NOT contain any secrets.
+
 R. Doppler audit log SHALL capture all secret access events.
+
 S. Documentation SHALL cover Doppler setup procedures for each role.
+
 T. Documentation SHALL include secret rotation procedures.
 
 *End* *Secrets Management via Doppler* | **Hash**: 18a5881a
@@ -203,29 +294,53 @@ FDA 21 CFR Part 11 validation requires reproducible software builds with documen
 ## Assertions
 
 A. The development environment SHALL include Flutter 3.38.7 from the stable channel.
+
 B. The development environment SHALL include Android SDK cmdline-tools version 11076708.
+
 C. The development environment SHALL include Android build-tools version 34.0.0.
+
 D. The development environment SHALL include Android platform API 34.
+
 E. The development environment SHALL include OpenJDK 17 for Android builds.
+
 F. The development environment SHALL include Node.js 20.x LTS series.
+
 G. The development environment SHALL include Python 3.11 or higher, with 3.12 preferred.
+
 H. The development environment SHALL include Git version 2.40 or higher.
+
 I. The development environment SHALL include GitHub CLI version 2.40 or higher.
+
 J. The QA environment SHALL include Playwright latest version for headless browser testing.
+
 K. The QA environment SHALL include Flutter integration test framework.
+
 L. The operations environment SHALL include Terraform version 1.9 or higher.
+
 M. The operations environment SHALL include gcloud CLI latest version.
+
 N. The operations environment SHALL include Cloud SQL Proxy latest version.
+
 O. The management environment SHALL include Pandoc for document conversion.
+
 P. The management environment SHALL include jq for JSON processing.
+
 Q. All tool versions SHALL be pinned in Dockerfiles with explicit version numbers.
+
 R. The system SHALL NOT use 'latest' tags in Dockerfiles except where explicitly justified in documentation.
+
 S. The system SHALL verify SHA256 checksums for all downloaded tool installers.
+
 T. The system SHALL generate a Software Bill of Materials (SBOM) for each container image.
+
 U. The system SHALL execute a tool version verification script on container startup.
+
 V. Each tool version selection SHALL include documented rationale for stability, security, or compatibility requirements.
+
 W. Tool selection rationale SHALL be documented in ADR-006.
+
 X. Documentation SHALL include a tool update policy defining version upgrade procedures.
+
 Y. Documentation SHALL include testing procedures for tool version updates.
 
 *End* *Development Tool Specifications* | **Hash**: 1ddd744c
@@ -242,16 +357,27 @@ VS Code Dev Containers eliminate manual environment setup and ensure every devel
 ## Assertions
 
 A. The system SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments.
+
 B. The system SHALL provide four distinct `.devcontainer/` configurations corresponding to dev, qa, ops, and mgmt roles.
+
 C. Each devcontainer.json SHALL specify the appropriate base image for its role.
+
 D. Each devcontainer.json SHALL list role-specific VS Code extensions for automatic installation.
+
 E. Dev Containers SHALL persist Git configuration from the host system or specify configuration per role.
+
 F. Dev Containers SHALL mount SSH keys securely and read-only from the host `~/.ssh/` directory.
+
 G. Dev Containers SHALL map workspace folders correctly for each role.
+
 H. Dev Containers SHALL provide port forwarding for development servers.
+
 I. Dev Containers SHALL provide an integrated terminal with role-specific prompt configuration.
+
 J. Dev Containers SHALL integrate with Docker Compose for multi-container debugging scenarios.
+
 K. Documentation SHALL include instructions for using the 'Reopen in Container' feature.
+
 L. First-time Dev Container setup SHALL complete in less than 5 minutes after Docker installation.
 
 *End* *VS Code Dev Containers Integration* | **Hash**: 4b7e967b
@@ -268,20 +394,35 @@ Automated QA workflows provide fast feedback on code changes and ensure every pu
 ## Assertions
 
 A. The system SHALL provide a GitHub Actions workflow file at `.github/workflows/qa-automation.yml`.
+
 B. The workflow SHALL trigger automatically when a pull request is opened or updated.
+
 C. The workflow SHALL execute all tests within the qa-container Docker image.
+
 D. The system SHALL execute Flutter integration tests using the command `flutter test integration_test`.
+
 E. Flutter tests SHALL produce JUnit XML output format.
+
 F. The system SHALL execute Playwright end-to-end tests using the command `npx playwright test`.
+
 G. Playwright tests SHALL produce HTML reports.
+
 H. The system SHALL generate a consolidated PDF summary report of all test results.
+
 I. The PDF report SHALL be generated using Playwright's built-in PDF export functionality.
+
 J. The system SHALL post test result status to the pull request using the GitHub Checks API.
+
 K. The system SHALL post a comment on the pull request containing test pass/fail status and links to test artifacts.
+
 L. The system SHALL upload all test artifacts to GitHub Actions artifact storage.
+
 M. The system SHALL NOT upload test artifacts to external storage systems.
+
 N. Test artifacts for pull request testing SHALL be retained for 90 days.
+
 O. Test artifacts for commits tagged as releases SHALL be retained permanently.
+
 P. The qa-container environment used in CI SHALL be identical to the qa-container used for local QA role testing.
 
 *End* *Automated QA Workflow* | **Hash**: 75dfd6e6
@@ -298,7 +439,9 @@ FDA 21 CFR Part 11 requires validated computer systems. Development environments
 ## Assertions
 
 A. Development environments SHALL undergo formal validation using IQ/OQ/PQ protocols to ensure FDA compliance.
+
 B. Changes to development environments SHALL be managed through documented change control procedures.
+
 C. This requirement SHALL be implemented through REQ-d00090, REQ-d00091, REQ-d00092, and REQ-d00093.
 
 *End* *Environment Validation & Change Control* | **Hash**: edff16ee
@@ -316,12 +459,19 @@ Installation Qualification (IQ) verifies that development environment components
 ## Assertions
 
 A. Docker installation SHALL be verified on all target platforms.
+
 B. Container images SHALL build successfully on all target platforms.
+
 C. Health checks SHALL pass for all services in the development environment.
+
 D. Required Docker volumes SHALL be created as specified.
+
 E. Required Docker networks SHALL be created as specified.
+
 F. Tool versions SHALL match specifications defined in environment documentation.
+
 G. IQ protocol SHALL be documented in `docs/validation/dev-environment/IQ.md`.
+
 H. Test results templates SHALL be provided for IQ protocol execution.
 
 *End* *Development Environment Installation Qualification* | **Hash**: f170b97a
@@ -339,14 +489,23 @@ Operational Qualification (OQ) demonstrates that development environment tools f
 ## Assertions
 
 A. Each development tool SHALL execute basic operations correctly.
+
 B. Git SHALL be able to clone repositories from remote sources.
+
 C. Flutter SHALL be able to create new projects.
+
 D. Flutter SHALL be able to build projects for target platforms.
+
 E. Playwright SHALL be able to run sample browser automation tests.
+
 F. Terraform SHALL be able to validate infrastructure configurations.
+
 G. Doppler SHALL be able to retrieve secrets from the secrets manager.
+
 H. The gcloud CLI SHALL be able to authenticate with Google Cloud Platform.
+
 I. OQ protocol SHALL be documented in `docs/validation/dev-environment/OQ.md`.
+
 J. Test results templates SHALL be provided for OQ protocol execution.
 
 *End* *Development Environment Operational Qualification* | **Hash**: 1c2e52c9
@@ -364,10 +523,15 @@ Performance Qualification (PQ) establishes baseline performance metrics and veri
 ## Assertions
 
 A. Build times SHALL be measured and verified to be within acceptable ranges.
+
 B. Test execution times SHALL be baselined and monitored.
+
 C. Container resource usage SHALL be monitored during development operations.
+
 D. The development environment SHALL produce identical outputs across supported platforms.
+
 E. PQ protocol SHALL be documented in `docs/validation/dev-environment/PQ.md`.
+
 F. Test results templates SHALL be provided for PQ protocol execution.
 
 *End* *Development Environment Performance Qualification* | **Hash**: fcb5c6ba
@@ -385,13 +549,21 @@ Change control procedures ensure that modifications to the development environme
 ## Assertions
 
 A. Dockerfile changes SHALL require pull request review before merge.
+
 B. Tool version changes SHALL be documented in an Architecture Decision Record (ADR).
+
 C. Major environment changes SHALL require re-execution of applicable IQ/OQ/PQ protocols.
+
 D. Docker images SHALL be tagged with semantic versions.
+
 E. Old environment versions SHALL be subject to a documented deprecation policy.
+
 F. Dockerfile changes SHALL trigger a validation review checklist.
+
 G. Container images SHALL be signed with Cosign for integrity verification.
+
 H. A Software Bill of Materials (SBOM) SHALL be generated and stored with each image version.
+
 I. Deprecation notices SHALL be provided at least 90 days before environment version retirement.
 
 *End* *Development Environment Change Control* | **Hash**: d0a9c48d
@@ -408,19 +580,33 @@ Development environments require isolated yet accessible workspaces that functio
 ## Assertions
 
 A. The system SHALL provide a named Docker volume 'clinical-diary-repos' for repository storage.
+
 B. The system SHALL provide a named Docker volume 'clinical-diary-exchange' for inter-role file transfer.
+
 C. All development containers SHALL mount the 'clinical-diary-repos' volume to '/workspace/repos'.
+
 D. All development containers SHALL mount the 'clinical-diary-exchange' volume to '/workspace/exchange'.
+
 E. The exchange volume SHALL be configured with world-readable permissions within containers.
+
 F. The system SHALL support bind mounts for source code to enable host IDE editing.
+
 G. The system SHALL preserve file permissions correctly across container boundaries on all supported platforms.
+
 H. Workspace paths SHALL be consistent across all container instances.
+
 I. The system SHALL NOT expose host file system internals to containers running on opposite operating systems.
+
 J. The system SHALL NOT allow direct access to Linux filesystems from Windows host systems.
+
 K. The system SHALL NOT allow direct access to Windows filesystems from Linux containers in ways that create platform-specific path issues.
+
 L. The system SHALL NOT use symlinks or hard links that break cross-platform compatibility.
+
 M. The docker-compose.yml configuration SHALL define all required named volumes.
+
 N. Documentation SHALL explain the purpose of each volume type.
+
 O. Documentation SHALL describe usage patterns for workspace volumes and exchange volumes.
 
 *End* *Shared Workspace and File Exchange* | **Hash**: 8a68ffca
@@ -429,6 +615,7 @@ O. Documentation SHALL describe usage patterns for workspace volumes and exchang
 ## Tool Version Rationale
 
 ### Flutter 3.38.7
+
 - **Status**: Stable release
 - **Release Date**: 2024-08-07
 - **Support**: Active stable channel
@@ -437,21 +624,25 @@ O. Documentation SHALL describe usage patterns for workspace volumes and exchang
 - **Update Policy**: Update to newer stable releases after 30-day observation period
 
 ### Node.js 20.x LTS
+
 - **Status**: Active LTS (Long-Term Support)
 - **Support Until**: 2026-04-30
 - **Reason**: LTS guarantees security updates without breaking changes
 - **Update Policy**: Follow LTS schedule, update minor versions quarterly
 
 ### Python 3.11+
+
 - **Status**: Stable, security support until 2027-10
 - **Reason**: Performance improvements over 3.10, wide library compatibility
 - **Update Policy**: Minimum 3.11, prefer latest 3.12.x for new installations
 
 ### Android API 34 (Android 14)
+
 - **Reason**: Latest stable Android release, required for Play Store submissions
 - **Update Policy**: Update to new API levels within 90 days of stable release
 
 ### Terraform 1.9+
+
 - **Reason**: Stable infrastructure-as-code, wide provider support
 - **Update Policy**: Update minor versions after validation testing
 
@@ -460,12 +651,14 @@ O. Documentation SHALL describe usage patterns for workspace volumes and exchang
 ## Cross-References
 
 **Related Requirements**:
+
 - REQ-p00005: Multi-Sponsor Data Isolation (implements via role-based separation)
 - REQ-p00014: Role-Based Access Control (implements via Docker service separation)
 - REQ-p00010: FDA 21 CFR Part 11 Compliance (implements via validation protocols)
 - REQ-o00002: Environment Configuration (same principles for dev/prod parity)
 
 **Related Documentation**:
+
 - docs/adr/ADR-006-docker-dev-environments.md: Architecture decisions
 - tools/dev-env/README.md: Setup instructions
 - docs/validation/dev-environment/: Validation protocols

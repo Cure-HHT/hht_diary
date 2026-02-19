@@ -50,6 +50,7 @@ Sponsor A Environment           Sponsor B Environment
 ```
 
 **Access Isolation Guarantees**:
+
 - No shared GCP projects
 - No shared database instances
 - No shared authentication systems
@@ -60,11 +61,13 @@ Sponsor A Environment           Sponsor B Environment
 ### Code Repository Access Control
 
 **Public Core Repository** (`clinical-diary`):
+
 - Contains no authentication credentials
 - Contains no sponsor-specific access policies
 - Abstract interfaces only (SponsorConfig, EdcSync, etc.)
 
 **Private Sponsor Repositories** (`clinical-diary-{sponsor}`):
+
 - Access restricted via GitHub private repos
 - Contains sponsor-specific:
   - Firebase configuration
@@ -88,20 +91,35 @@ This requirement ensures secure user authentication while maintaining complete i
 ## Assertions
 
 A. The application SHALL integrate with Google Identity Platform for user authentication.
+
 B. The application SHALL initialize the Identity Platform client using sponsor-specific project configuration.
+
 C. The application SHALL configure JWT verification using Google's public keys.
+
 D. The application SHALL implement MFA enrollment flows.
+
 E. The application SHALL implement MFA verification flows.
+
 F. The application SHALL enable MFA based on user role configuration.
+
 G. The application SHALL require MFA based on user role configuration.
+
 H. The application SHALL handle login authentication state changes.
+
 I. The application SHALL handle logout authentication state changes.
+
 J. The application SHALL handle session refresh authentication state changes.
+
 K. The application SHALL store authentication tokens securely on the device.
+
 L. Authentication tokens SHALL be scoped to a single sponsor project.
+
 M. The application SHALL automatically handle session refresh.
+
 N. The application SHALL clear all authentication state on logout.
+
 O. The application SHALL provide user feedback for authentication errors.
+
 P. Each sponsor SHALL use a dedicated Identity Platform instance in their GCP project.
 
 *End* *Identity Platform Configuration Per Sponsor* | **Hash**: f4493561
@@ -110,6 +128,7 @@ P. Each sponsor SHALL use a dedicated Identity Platform instance in their GCP pr
 ### Identity Platform (Per Sponsor)
 
 **Each sponsor** has dedicated Identity Platform instance providing:
+
 - User registration and login
 - Identity Platform ID token generation
 - Session management
@@ -117,6 +136,7 @@ P. Each sponsor SHALL use a dedicated Identity Platform instance in their GCP pr
 - Multi-factor authentication (2FA)
 
 **Supported Authentication Methods**:
+
 - Email + password
 - Magic link (passwordless email)
 - OAuth providers (Google, Apple, Microsoft)
@@ -196,6 +216,7 @@ class FirebaseConfig {
 ```
 
 **JWT Usage**:
+
 - Generated on login
 - Included in all API requests (Authorization header)
 - Validated by Dart server middleware
@@ -399,10 +420,12 @@ Middleware firebaseAuthMiddleware(FirebaseTokenVerifier verifier) {
 ### Password Requirements
 
 **Standard Users** (Patients):
+
 - Minimum 8 characters
 - Mix of letters and numbers recommended
 
 **Privileged Users** (Investigators, Admins):
+
 - Minimum 12 characters
 - Uppercase, lowercase, number, special character required
 - Cannot be common password (dictionary check)
@@ -421,21 +444,37 @@ Implements MFA configuration (o00006) at the application code level. Identity Pl
 ## Assertions
 
 A. The application SHALL implement multi-factor authentication enrollment flows using Identity Platform's MFA capabilities.
+
 B. The application SHALL implement multi-factor authentication verification flows using Identity Platform's MFA capabilities.
+
 C. The system SHALL enforce additional authentication factor for clinical staff accounts.
+
 D. The system SHALL enforce additional authentication factor for administrator accounts.
+
 E. The system SHALL enforce additional authentication factor for sponsor personnel accounts.
+
 F. The MFA enrollment UI SHALL display a QR code for TOTP authenticator app registration.
+
 G. The system SHALL provide TOTP verification code input and validation.
+
 H. The system SHALL track MFA status in user profile.
+
 I. The system SHALL handle a grace period of maximum 7 days for initial MFA enrollment.
+
 J. The system SHALL require MFA verification at each login for enrolled users.
+
 K. The system SHALL implement error handling for invalid codes with rate limiting.
+
 L. The system MAY implement backup code generation and secure storage for lost device recovery.
+
 M. The MFA enrollment flow SHALL display a QR code and verify the first code entered.
+
 N. The system SHALL NOT allow staff accounts to bypass MFA after the grace period expires.
+
 O. The system SHALL generate and securely store backup codes when backup code feature is enabled.
+
 P. The system SHALL rate limit invalid code attempts to maximum 5 per minute.
+
 Q. The system SHALL log MFA events in the authentication audit trail.
 
 *End* *MFA Enrollment and Verification Implementation* | **Hash**: c60371f2
@@ -543,12 +582,14 @@ class TotpEnrollment {
 ### Session Management
 
 **Session Properties**:
+
 - Identity Platform ID token based (stateless)
 - Token expiry: 1 hour (auto-refreshed)
 - Refresh token: Long-lived (managed by Identity Platform SDK)
 - Explicit logout clears all tokens
 
 **Session Security**:
+
 - Secure storage on mobile (flutter_secure_storage)
 - Token refresh handled by Identity Platform SDK
 - Session invalidation on password change
@@ -603,13 +644,21 @@ This requirement implements role-based permission configuration (REQ-o00007) at 
 ## Assertions
 
 A. The application SHALL extract user roles from Identity Platform ID token JWT claims after authentication.
+
 B. The application SHALL provide permission check functions that evaluate the user's role against required permissions.
+
 C. The application SHALL control UI component visibility based on user role by hiding features the user is not authorized to access.
+
 D. The application SHALL include role information in API request authorization headers.
+
 E. The application SHALL provide active role and site context selection functionality for users with multiple roles.
+
 F. The application SHALL handle permission-denied errors with user-friendly error messages.
+
 G. The application SHALL implement role-based navigation routing that directs users to role-appropriate home screens.
+
 H. The application SHALL reflect role changes immediately in the UI when a multi-role user switches their active role context.
+
 I. The application SHALL redirect unauthorized navigation routes to the user's role-appropriate screen.
 
 *End* *Role-Based Permission Enforcement Implementation* | **Hash**: c713723f
@@ -768,6 +817,7 @@ class DiaryScreen extends StatelessWidget {
 **PostgreSQL RLS** policies enforce access control **at the database level**, ensuring application code cannot bypass restrictions.
 
 **Key Features**:
+
 - Automatic query filtering based on session variables
 - Cannot be disabled by application
 - Policies evaluated on every database operation
@@ -936,12 +986,19 @@ This requirement implements the application-level encryption obligations from pr
 ## Assertions
 
 A. The application SHALL enforce HTTPS for all HTTP connections.
+
 B. The application SHALL use TLS 1.2 or higher for all API requests.
+
 C. The application SHALL encrypt the SQLite database on mobile devices using platform-provided encryption capabilities.
+
 D. The application SHALL store authentication tokens in platform-native secure storage (iOS Keychain or Android Keystore).
+
 E. The application SHALL enable and enforce TLS certificate validation to prevent man-in-the-middle attacks.
+
 F. The application SHALL encrypt local backup files using the device encryption key.
+
 G. The application SHALL NOT store sensitive configuration values in plaintext.
+
 H. The application SHALL NOT log sensitive data in plaintext.
 
 *End* *Data Encryption Implementation* | **Hash**: be1c205f
@@ -1180,6 +1237,7 @@ END $$;
 ### Secure Implementation Checklist
 
 **Required**:
+
 - ✅ Always use Identity Platform / Identity Platform for authentication
 - ✅ Never bypass RLS policies
 - ✅ Validate Identity Platform ID token on every API request
@@ -1189,6 +1247,7 @@ END $$;
 - ✅ Store tokens in secure storage only
 
 **Forbidden**:
+
 - ❌ Storing passwords in plain text
 - ❌ Custom authentication schemes
 - ❌ Client-side only authorization checks

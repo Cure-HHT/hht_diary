@@ -44,16 +44,27 @@ This requirement establishes a unified mobile application architecture that simp
 ## Assertions
 
 A. The platform SHALL publish exactly one mobile application listing in the iOS App Store.
+
 B. The platform SHALL publish exactly one mobile application listing in the Google Play Store.
+
 C. The mobile application listings SHALL use sponsor branding.
+
 D. The mobile application package SHALL contain configurations for all pharmaceutical sponsors.
+
 E. The system SHALL determine sponsor context based on the patient's enrollment link.
+
 F. The system SHALL NOT present manual sponsor selection to patients.
+
 G. The system SHALL isolate each sponsor's data such that no cross-sponsor access is possible.
+
 H. The system SHALL isolate each sponsor's configuration such that no cross-sponsor access is possible.
+
 I. The system SHALL route patient data to the correct sponsor backend based on enrollment context.
+
 J. The platform SHALL deploy application updates to all sponsors simultaneously.
+
 K. The mobile application package size SHALL remain within reasonable limits for app store distribution when containing multiple sponsor configurations.
+
 L. The system SHALL NOT allow configuration or data from one sponsor to be accessible to patients enrolled with a different sponsor.
 
 *End* *Single Mobile App for All Sponsors* | **Hash**: 3fe1fad0
@@ -70,12 +81,19 @@ Web portals serve clinical staff and require strong isolation guarantees beyond 
 ## Assertions
 
 A. The platform SHALL provide a dedicated web portal for each sponsor at a unique URL.
+
 B. Each sponsor's portal URL SHALL use a different domain or subdomain from all other sponsor portals.
+
 C. The portal SHALL display only the data belonging to its associated sponsor.
+
 D. The portal authentication system SHALL scope access to a single sponsor only.
+
 E. The portal SHALL NOT provide navigation links or interface elements that could access other sponsors' portals.
+
 F. Staff authenticated to one sponsor's portal SHALL NOT be able to access any other sponsor's portal.
+
 G. Each sponsor portal SHALL support independent customization without affecting other sponsors' portals.
+
 H. The portal SHALL NOT be capable of querying database records belonging to other sponsors.
 
 *End* *Sponsor-Specific Portals* | **Hash**: e26dfd95
@@ -92,18 +110,31 @@ Clinical trials typically involve multiple sites (hospitals, clinics, research c
 ## Assertions
 
 A. The system SHALL support multiple clinical trial sites within each sponsor's isolated environment.
+
 B. The system SHALL store multiple site records in each sponsor's database.
+
 C. The system SHALL identify each site using a unique site identifier within the sponsor's environment.
+
 D. The system SHALL assign users (investigators and analysts) to specific sites.
+
 E. The system SHALL enforce access control such that users can only access data from their assigned sites.
+
 F. The system SHALL capture site context in the audit trail for all data changes.
+
 G. The system SHALL enable reports to be filtered by site.
+
 H. The system SHALL enable reports to aggregate data across multiple sites.
+
 I. The system SHALL enable sponsors to create new sites.
+
 J. The system SHALL enable sponsors to manage existing sites.
+
 K. The system SHALL store unique identifier metadata for each site.
+
 L. The system SHALL restrict investigators to viewing only data from their assigned site.
+
 M. The system SHALL track site assignments in the audit trail.
+
 N. The system SHALL include site information in data exports for regulatory submission.
 
 *End* *Multi-Site Support Per Sponsor* | **Hash**: c4d7df6f
@@ -122,14 +153,23 @@ Complete infrastructure isolation ensures data security, regulatory compliance, 
 ## Assertions
 
 A. The platform SHALL provide completely isolated cloud infrastructure for each sponsor.
+
 B. Each sponsor SHALL have a dedicated cloud project.
+
 C. Each sponsor SHALL have an isolated database instance.
+
 D. Each sponsor SHALL have a separate serverless functions deployment.
+
 E. Each sponsor SHALL have an independent web portal instance.
+
 F. The platform SHALL NOT share compute resources between sponsors.
+
 G. The platform SHALL NOT share storage resources between sponsors.
+
 H. Serverless functions SHALL NOT access resources belonging to other sponsors.
+
 I. Database connections SHALL be scoped to a single sponsor.
+
 J. The platform SHALL implement network isolation to prevent cross-sponsor traffic.
 
 *End* *Complete Infrastructure Isolation Per Sponsor* | **Hash**: 5f9f93ed
@@ -148,17 +188,29 @@ This requirement establishes a mono repository architecture that balances centra
 ## Assertions
 
 A. The platform SHALL use a mono repository architecture for core platform code.
+
 B. The platform SHALL provide separate sponsor-specific repositories for customization.
+
 C. The platform SHALL maintain core platform code in a single mono repository.
+
 D. The system SHALL create a dedicated repository for each sponsor.
+
 E. Sponsor repositories SHALL contain configuration files specific to that sponsor.
+
 F. Sponsor repositories SHALL contain branding assets specific to that sponsor.
+
 G. Sponsor repositories SHALL contain customizations specific to that sponsor.
+
 H. The system SHALL restrict each sponsor's access to their own repository only.
+
 I. The system SHALL NOT grant sponsors access to the core platform repository.
+
 J. The system SHALL NOT grant sponsors access to other sponsors' repositories.
+
 K. The system SHALL require approval from authorized Sponsor personnel for all changes to sponsor repositories.
+
 L. The system SHALL require approval from authorized Developer personnel for all changes to sponsor repositories.
+
 M. Access control mechanisms SHALL enforce sponsor repository isolation.
 
 *End* *Mono Repository with Sponsor Repositories* | **Hash**: a54d5ad6
@@ -175,13 +227,21 @@ The unified deployment model requires that all sponsors share the same productio
 ## Assertions
 
 A. The system SHALL require approval from all Sponsors currently collecting data before releasing any version of the shared Diary App.
+
 B. The Operator SHALL establish with each Sponsor a maximum review time after which approval will be presumed unless the Sponsor has communicated otherwise.
+
 C. The Operator SHALL have authority to waive Sponsor approval requirements when releasing a targeted patch to address a Critical system issue.
+
 D. The Operator SHALL send a notice to all Sponsors after an emergency release, as soon as practical.
+
 E. Sponsors SHALL conduct User Acceptance Testing (UAT) after emergency releases.
+
 F. Sponsors SHALL report any issues discovered during post-emergency UAT in a timely manner.
+
 G. Each Sponsor SHALL maintain an agreement with the Operator defining UAT parameters including: allowed frequency of UAT requests, review duration, and failure criteria.
+
 H. Each Sponsor SHALL maintain an agreement with the Operator regarding waiver conditions for the normal UAT process.
+
 I. The release process SHALL document approval status from all active Sponsors for each release.
 
 *End* *Unified App Deployment* | **Hash**: c22435c6
@@ -198,10 +258,15 @@ Changes to the patient user experience during active trials can affect the data 
 ## Assertions
 
 A. The system SHALL NOT permit changes to patient application logic during the active trial period for users enrolled in that trial without documented justification and approval.
+
 B. The system SHALL NOT permit changes to patient graphical presentation during the active trial period for users enrolled in that trial without documented justification and approval.
+
 C. UX change requests during active trials SHALL require documented justification by the Operator.
+
 D. UX change requests during active trials SHALL require Sponsor approval before implementation.
+
 E. The system SHALL require a documented change impact assessment before implementing any patient UX modifications during the trial period.
+
 F. The system SHALL capture all approved UX changes during active trials in the audit trail.
 
 *End* *UX Changes During Trials* | **Hash**: fadb4f60
@@ -220,15 +285,25 @@ Minimizing customization reduces maintenance burden and code divergence as spons
 ## Assertions
 
 A. The system SHALL allow sponsors to request modifications ("Customizations") to the standard UX to support their trial protocol.
+
 B. The system SHALL keep customizations minimal and add them only when sponsors explicitly request and justify need for specific features.
+
 C. The system SHALL maintain customizations separately for each sponsor.
+
 D. The operator SHALL have the option to designate customization requests as Core feature requests.
+
 E. The system SHALL NOT consider Core features as customizations or proprietary to any sponsor.
+
 F. The system SHALL treat sponsor customizations and configurations as confidential information.
+
 G. The system SHALL control all sponsor-specific behavior at runtime through the sponsor's configuration.
+
 H. The operator SHALL maintain a defined customization request, review, and approval process for pre-trial and in-trial periods.
+
 I. The system SHALL store sponsor configurations separately from each other.
+
 J. The system SHALL require both customer and operator approval for changes to sponsor configurations.
+
 K. The system SHALL document custom features in the sponsor repository.
 
 *End* *Customization Policy* | **Hash**: bf7c7b8e
@@ -247,16 +322,27 @@ Clinical trial activity is proprietary business information. Using a shared mult
 ## Assertions
 
 A. The operator SHALL NOT divulge the participation of any sponsor publicly or privately without written agreement from that sponsor.
+
 B. The system SHALL NOT expose sponsor identities in the base installation of the shared Diary App.
+
 C. The system SHALL download sponsor-identifying content to a Diary App instance ONLY after the user has been linked to that sponsor's portal through the agreed-upon linking process.
+
 D. Sponsor-identifying content SHALL include sponsor name in text or graphical format.
+
 E. Sponsor-identifying content SHALL include sponsor logos and other branding materials.
+
 F. Sponsor-identifying content SHALL include URLs associated with the sponsor.
+
 G. Sponsor-identifying content SHALL include any other content located in the sponsor's configuration.
+
 H. Confidentiality requirements SHALL be waived, amended, or modified ONLY by written agreement with the affected sponsor.
+
 I. The base app installation SHALL reveal no sponsor identities.
+
 J. The system SHALL load sponsor content ONLY after successful linking.
+
 K. The system SHALL NOT include sponsor identifiers in app metadata or store listings.
+
 L. The system SHALL require valid enrollment credentials for configuration download.
 
 *End* *Sponsor Confidentiality* | **Hash**: 364675e2
@@ -273,9 +359,13 @@ This requirement establishes contractual acknowledgment of the inherent limitati
 ## Assertions
 
 A. The Operator and Sponsor contract SHALL state that REQ-p01055 constitutes sufficient protection against unwanted exposure of the Sponsor's trial.
+
 B. The Operator and Sponsor contract SHALL state that REQ-p01055 constitutes sufficient protection against unwanted exposure of the Sponsor's use of the System.
+
 C. The contract SHALL include a confidentiality sufficiency clause.
+
 D. The contract SHALL reference REQ-p01055 protections explicitly.
+
 E. The contract SHALL include Sponsor acknowledgment of the limitations of technical protections.
 
 *End* *Confidentiality Sufficiency* | **Hash**: f29524ee

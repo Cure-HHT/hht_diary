@@ -29,6 +29,7 @@ This database implements a **defense-in-depth** security architecture with multi
 **Key Management**: Cloud KMS with automatic rotation (configurable)
 
 **What is encrypted**:
+
 - All database tables and indexes
 - Backups and snapshots
 - Write-ahead logs (WAL)
@@ -70,6 +71,7 @@ gcloud sql instances create ${INSTANCE_NAME} \
 **Certificate**: Managed by GCP with automatic renewal
 
 **Requirements**:
+
 - ✅ All client connections MUST use TLS (enforced by Cloud SQL)
 - ✅ Certificate validation MUST be enabled
 - ✅ Minimum TLS version: 1.2
@@ -175,19 +177,33 @@ This requirement ensures role-based access control (RBAC) is consistently enforc
 ## Assertions
 
 A. The system SHALL store role definitions in the database for USER, INVESTIGATOR, ANALYST, and ADMIN roles.
+
 B. The system SHALL store role definitions in the authentication system for USER, INVESTIGATOR, ANALYST, and ADMIN roles.
+
 C. The system SHALL track all role assignments with an audit trail.
+
 D. The system SHALL include user role information in JWT claims.
+
 E. The application SHALL extract the user role from JWT claims.
+
 F. The application SHALL set session variables for the extracted user role.
+
 G. Database Row-Level Security policies SHALL reference session variables to enforce permissions.
+
 H. The system SHALL enforce role-based access control at the application layer.
+
 I. The system SHALL enforce role-based access control at the database layer.
+
 J. The system SHALL maintain a documented permission matrix.
+
 K. The system SHALL enforce permissions according to the documented permission matrix.
+
 L. Role assignment changes SHALL require administrator approval.
+
 M. The system SHALL log all role assignment changes in the audit trail.
+
 N. Role definitions in the Identity Platform custom claims SHALL match role definitions in database tables.
+
 O. Database RLS policies SHALL enforce permissions based on session variables set by the application.
 
 *End* *Role-Based Permission Configuration* | **Hash**: d07993e9
@@ -196,12 +212,14 @@ O. Database RLS policies SHALL enforce permissions based on session variables se
 ### Role-Based Access Control (RBAC)
 
 **Roles**:
+
 - `USER` - Study participants (create/edit own diary entries)
 - `INVESTIGATOR` - Clinical staff (view/annotate data at assigned sites)
 - `ANALYST` - Data analysts (read-only access to assigned sites)
 - `ADMIN` - System administrators (full access, logged)
 
 **Role Assignment**:
+
 - Stored in `user_profiles.role`
 - Included in JWT custom claims via Identity Platform
 - Changes logged in `role_change_log` (audit trail)
@@ -228,6 +246,7 @@ O. Database RLS policies SHALL enforce permissions based on session variables se
 **Provider**: Google Identity Platform (Identity Platform)
 
 **Features**:
+
 - Email/password authentication
 - OAuth providers (Google, Apple, Microsoft)
 - Magic link (passwordless)
@@ -235,6 +254,7 @@ O. Database RLS policies SHALL enforce permissions based on session variables se
 - Multi-factor authentication (2FA)
 
 **Required for Investigators and Admins**:
+
 - ✅ Multi-factor authentication (2FA)
 - ✅ Strong password policy (12+ characters, complexity)
 - ✅ Session timeout (configurable, default 1 hour)
@@ -268,6 +288,7 @@ AND expires_at > now();
 ### Password Policy
 
 **Requirements**:
+
 - Minimum 12 characters
 - At least one uppercase letter
 - At least one lowercase letter
@@ -338,6 +359,7 @@ CREATE RULE audit_no_delete AS ON DELETE TO record_audit DO INSTEAD NOTHING;
 ```
 
 **What is logged**:
+
 - All data modifications (create, update, delete)
 - User identification (user_id, role)
 - Timestamps (client and server)
@@ -370,6 +392,7 @@ SELECT * FROM detect_tampered_records();
 ### VPC Configuration
 
 **Database Access**:
+
 - Cloud SQL uses Private IP within VPC
 - No public IP exposed
 - VPC Connector for Cloud Run access
@@ -406,6 +429,7 @@ gcloud sql instances patch ${INSTANCE_NAME} \
 ### API Security
 
 **Cloud Run**:
+
 - All requests authenticated via Identity Platform JWT
 - Row-level security enforced at database layer
 - Rate limiting via Cloud Armor (optional)
@@ -482,6 +506,7 @@ SELECT * FROM check_audit_sequence_gaps();
 ### Alerting
 
 **Critical Alerts** (immediate notification):
+
 - Failed login attempts > 5 in 15 minutes
 - Hash verification failure (tampering detected)
 - Audit sequence gap detected
@@ -489,6 +514,7 @@ SELECT * FROM check_audit_sequence_gaps();
 - Role change without approval
 
 **Warning Alerts** (daily summary):
+
 - Permission denied attempts
 - Session timeout spikes
 - Unusual access patterns
@@ -531,6 +557,7 @@ ORDER BY timestamp DESC;
 ```
 
 **Reporting**:
+
 - Security incidents logged in `admin_action_log`
 - Regulatory reporting if required (HIPAA breach notification)
 - Documentation for post-mortem analysis
@@ -542,6 +569,7 @@ ORDER BY timestamp DESC;
 ### Backup Strategy
 
 **Cloud SQL Automated Backups**:
+
 - Daily automated backups
 - Point-in-time recovery (PITR) enabled
 - Configurable retention (7-365 days)
@@ -556,6 +584,7 @@ gcloud sql instances patch ${INSTANCE_NAME} \
 ```
 
 **Retention**:
+
 - Daily backups: 30 days
 - Weekly exports: 1 year (Cloud Storage)
 - Annual exports: Permanent (Cloud Storage Coldline)
@@ -592,6 +621,7 @@ gcloud sql instances patch ${INSTANCE_NAME} \
 ### Audit Preparation
 
 **Documentation Required**:
+
 - [ ] This security architecture document
 - [ ] Data classification document (`DATA_CLASSIFICATION.md`)
 - [ ] Access control policies
