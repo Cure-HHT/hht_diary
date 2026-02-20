@@ -4,6 +4,9 @@
 
 set -e  # Exit on any error
 
+# Change to the package root directory (parent of tool/)
+cd "$(dirname "$0")/.."
+
 # Parse command line arguments
 CONCURRENCY="10"
 
