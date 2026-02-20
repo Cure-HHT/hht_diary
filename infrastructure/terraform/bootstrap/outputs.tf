@@ -1,6 +1,6 @@
 # bootstrap/outputs.tf
 #
-# Outputs from bootstrap for use in sponsor-portal deployments
+# Outputs from bootstrap for use in sponsor-envs deployments
 
 # -----------------------------------------------------------------------------
 # Sponsor Information
@@ -83,6 +83,26 @@ output "workload_identity_provider" {
 output "github_actions_config" {
   description = "Configuration for GitHub Actions workflow"
   value       = module.cicd.github_actions_config
+}
+
+# -----------------------------------------------------------------------------
+# Per-Environment Terraform Service Accounts
+# -----------------------------------------------------------------------------
+
+output "tf_env_service_account_emails" {
+  description = "Map of environment to per-environment Terraform SA email"
+  value = {
+    for env in local.environments :
+    env => google_service_account.tf_env[env].email
+  }
+}
+
+output "tf_env_service_account_ids" {
+  description = "Map of environment to per-environment Terraform SA unique ID"
+  value = {
+    for env in local.environments :
+    env => google_service_account.tf_env[env].id
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -187,6 +207,50 @@ output "database_names" {
 }
 
 # -----------------------------------------------------------------------------
+# VPC Network Information
+# -----------------------------------------------------------------------------
+
+output "network_ids" {
+  description = "Map of environment to VPC network ID"
+  value = {
+    for env in local.environments :
+    env => module.network[env].network_id
+  }
+}
+
+output "network_names" {
+  description = "Map of environment to VPC network name"
+  value = {
+    for env in local.environments :
+    env => module.network[env].network_name
+  }
+}
+
+output "network_self_links" {
+  description = "Map of environment to VPC network self link"
+  value = {
+    for env in local.environments :
+    env => module.network[env].network_self_link
+  }
+}
+
+output "proxy_only_subnet_ids" {
+  description = "Map of environment to proxy-only subnet ID (null if not enabled)"
+  value = {
+    for env in local.environments :
+    env => module.network[env].proxy_only_subnet_id
+  }
+}
+
+output "proxy_only_subnet_cidrs" {
+  description = "Map of environment to proxy-only subnet CIDR (null if not enabled)"
+  value = {
+    for env in local.environments :
+    env => module.network[env].proxy_only_subnet_cidr
+  }
+}
+
+# -----------------------------------------------------------------------------
 # VPC CIDR Information
 # -----------------------------------------------------------------------------
 
@@ -239,8 +303,8 @@ output "next_steps" {
     Cost Controls: ${var.enable_cost_controls ? "Enabled (non-prod will auto-stop on budget exceed)" : "Disabled (alerts only)"}
 
     Next Steps:
-    1. Create sponsor-portal tfvars for each environment:
-       cd ../sponsor-portal
+    1. Create sponsor-envs tfvars for each environment:
+       cd ../sponsor-envs
        cp sponsor-configs/example-dev.tfvars sponsor-configs/${var.sponsor}-dev.tfvars
        # Edit and repeat for qa, uat, prod
 

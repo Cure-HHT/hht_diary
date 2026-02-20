@@ -1,4 +1,4 @@
-# sponsor-portal/main.tf
+# sponsor-envs/main.tf
 #
 # Deploys sponsor portal infrastructure for a single environment
 #
@@ -81,24 +81,15 @@ resource "google_secret_manager_secret_version" "doppler_token" {
   secret_data = var.DOPPLER_TOKEN
 }
 
-# -----------------------------------------------------------------------------
-# VPC Network
-# -----------------------------------------------------------------------------
-# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
-# module "vpc" {
-#   source = "../modules/vpc-network"
-
-#   project_id      = var.project_id
-#   sponsor         = var.sponsor
-#   environment     = var.environment
-#   region          = var.region
-#   app_subnet_cidr = local.app_subnet_cidr
-#   db_subnet_cidr  = local.db_subnet_cidr
-#   connector_cidr  = local.connector_cidr
-
-#   connector_min_instances = local.connector_min
-#   connector_max_instances = local.connector_max
-# }
+# Grant Compute Engine default service account read access to Doppler token
+# Required for Cloud Run services to fetch secrets at runtime
+resource "google_secret_manager_secret_iam_member" "doppler_token_compute_accessor" {
+  count     = var.compute_service_account != "" ? 1 : 0
+  secret_id = google_secret_manager_secret.doppler_token.secret_id
+  project   = var.project_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.compute_service_account}"
+}
 
 # -----------------------------------------------------------------------------
 # Audit Logs (FDA Compliant)
@@ -228,8 +219,8 @@ module "billing_alerts" {
   environment           = var.environment
   budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
   # "${var.sponsor}-${var.environment}-budget-alerts"
-  function_source_dir   = "${path.module}/../modules/billing-alert-funk/src"
-  slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
+  function_source_dir = "${path.module}/../modules/billing-alert-funk/src"
+  slack_webhook_url   = var.SLACK_INCIDENT_WEBHOOK_URL
 }
 
 # -----------------------------------------------------------------------------
@@ -256,8 +247,8 @@ module "identity_platform" {
   enable_phone_auth     = var.identity_platform_phone_auth
 
   # Security settings
-  mfa_enforcement           = var.identity_platform_mfa_enforcement
-  password_min_length       = var.identity_platform_password_min_length
+  mfa_enforcement            = var.identity_platform_mfa_enforcement
+  password_min_length        = var.identity_platform_password_min_length
   password_require_uppercase = true
   password_require_lowercase = true
   password_require_numeric   = true
@@ -311,3 +302,147 @@ module "identity_platform" {
 # 2. Store the Gmail SA key in Doppler for this environment
 #
 # Cloud Run service account: ${module.cloud_run.portal_server_service_account_email}
+
+# -----------------------------------------------------------------------------
+# Gmail API for Email Sending (OTP, activation codes, notifications)
+# -----------------------------------------------------------------------------
+#
+# Enable the Gmail API and create a dedicated service account for Cloud Run
+# services to send email via Gmail.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: IaC for portal deployment
+#   REQ-p00008: Multi-sponsor deployment model
+
+# Enable Gmail API
+resource "google_project_service" "gmail_api" {
+  count   = var.enable_gmail_api ? 1 : 0
+  project = var.project_id
+  service = "gmail.googleapis.com"
+
+  disable_on_destroy = false
+}
+
+# Service account for Cloud Run email sending
+resource "google_service_account" "cloud_run_mailer" {
+  count        = var.enable_gmail_api ? 1 : 0
+  account_id   = "cloud-run-mailer"
+  display_name = "Cloud Run Mailer Service Account"
+  description  = "Service account for sending emails via Gmail API from Cloud Run services"
+  project      = var.project_id
+}
+
+# Allow the default Compute service account to impersonate the mailer SA
+# This enables Cloud Run services (which run as the compute SA) to use the mailer identity
+resource "google_service_account_iam_member" "cloud_run_mailer_user" {
+  count              = var.enable_gmail_api && var.compute_service_account != "" ? 1 : 0
+  service_account_id = google_service_account.cloud_run_mailer[0].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.compute_service_account}"
+}
+
+# -----------------------------------------------------------------------------
+# GitHub Actions Service Account IAM (Cross-Project Cloud Run Deployment)
+# -----------------------------------------------------------------------------
+#
+# The GitHub Actions service account lives in the admin project but needs
+# permissions to deploy Cloud Run services to this sponsor/environment project.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00044: GCP Authentication via Workload Identity Federation
+#   REQ-o00043: Automated Deployment Pipeline
+
+# Cloud Run Admin - deploy and manage Cloud Run services
+resource "google_project_iam_member" "github_actions_run_admin" {
+  count   = var.github_actions_sa != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${var.github_actions_sa}"
+}
+
+# Service Account User - deploy with a service identity
+resource "google_project_iam_member" "github_actions_sa_user" {
+  count   = var.github_actions_sa != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${var.github_actions_sa}"
+}
+
+# Cloud SQL Client - for --set-cloudsql-instances flag
+resource "google_project_iam_member" "github_actions_cloudsql_client" {
+  count   = var.github_actions_sa != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${var.github_actions_sa}"
+}
+
+# VPC Access User - for --vpc-connector flag
+resource "google_project_iam_member" "github_actions_vpcaccess_user" {
+  count   = var.github_actions_sa != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/vpcaccess.user"
+  member  = "serviceAccount:${var.github_actions_sa}"
+}
+
+# -----------------------------------------------------------------------------
+# Regional Load Balancer (europe-west9)
+# -----------------------------------------------------------------------------
+#
+# Creates a Regional External HTTPS Load Balancer with:
+# - Regional static IP (Standard network tier)
+# - Proxy-only subnet for Envoy-based load balancers
+# - DNS authorization for domain validation at Gandi.net
+# - Google-managed regional SSL certificate
+# - Regional backend service, URL map, HTTPS proxy, and forwarding rule
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: IaC for portal deployment
+#   REQ-p00008: Multi-sponsor deployment model
+
+# Enable Certificate Manager API (required for Regional Load Balancer)
+resource "google_project_service" "certificate_manager_api" {
+  count   = var.enable_regional_lb ? 1 : 0
+  project = var.project_id
+  service = "certificatemanager.googleapis.com"
+
+  disable_on_destroy = false
+}
+
+module "regional_load_balancer" {
+  source = "../modules/regional-load-balancer"
+  count  = var.enable_regional_lb ? 1 : 0
+
+  project_id             = var.project_id
+  sponsor                = var.sponsor
+  environment            = var.environment
+  region                 = var.region
+  domain                 = var.lb_domain
+  proxy_only_subnet_id   = data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_ids[var.environment]
+  proxy_only_subnet_cidr = data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_cidrs[var.environment] != null ? data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_cidrs[var.environment] : ""
+  vpc_network_self_link  = data.terraform_remote_state.bootstrap.outputs.network_self_links[var.environment]
+
+  # Optional configuration
+  backend_timeout_sec  = var.lb_backend_timeout_sec
+  enable_logging       = var.lb_enable_logging
+  log_sample_rate      = var.lb_log_sample_rate
+  enable_http_redirect = var.lb_enable_http_redirect
+
+  # Cloud Run backend
+  cloud_run_service_name = var.lb_cloud_run_service_name
+
+  depends_on = [google_project_service.certificate_manager_api]
+}
+
+# -----------------------------------------------------------------------------
+# Cloud Run Service Agent IAM (Cross-Project Artifact Registry Access)
+# -----------------------------------------------------------------------------
+#
+# The Cloud Run Service Agent needs permission to pull container images from
+# the admin project's Artifact Registry (ghcr-remote repository).
+#
+# NOTE: This binding is managed in infrastructure/terraform/admin-project/main.tf
+# via the sponsor_cloud_run_service_agents variable.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00001: Separate GCP Projects Per Sponsor

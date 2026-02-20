@@ -82,7 +82,7 @@ infrastructure/terraform/
 │       ├── callisto.tfvars
 │       └── cure-hht.tfvars
 │
-├── sponsor-portal/               # Per-environment deployment
+├── sponsor-envs/               # Per-environment deployment
 │   ├── main.tf                   # Module orchestration
 │   ├── variables.tf              # Input variables
 │   ├── outputs.tf                # Output values
@@ -235,7 +235,7 @@ The user running Terraform needs these GCP roles at the organization level:
 - `roles/logging.admin` - Configure log sinks
 - `roles/storage.admin` - Create audit buckets
 
-For sponsor-portal deployments, you need project-level Owner or equivalent roles.
+For sponsor-envs deployments, you need project-level Owner or equivalent roles.
 
 ### Quota Project Configuration
 
@@ -265,7 +265,7 @@ gs://cure-hht-terraform-state/
 ├── bootstrap/
 │   ├── callisto/terraform.tfstate
 │   └── cure-hht/terraform.tfstate
-└── sponsor-portal/
+└── sponsor-envs/
     ├── callisto-dev/terraform.tfstate
     ├── callisto-qa/terraform.tfstate
     ├── callisto-uat/terraform.tfstate
@@ -364,12 +364,12 @@ This creates:
 
 ### Step 3: Create Environment Configurations
 
-Create `sponsor-portal/sponsor-configs/{sponsor}-{env}.tfvars` for each environment.
+Create `sponsor-envs/sponsor-configs/{sponsor}-{env}.tfvars` for each environment.
 
 Start from the example:
 ```bash
-cp sponsor-portal/sponsor-configs/example-dev.tfvars \
-   sponsor-portal/sponsor-configs/new-sponsor-dev.tfvars
+cp sponsor-envs/sponsor-configs/example-dev.tfvars \
+   sponsor-envs/sponsor-configs/new-sponsor-dev.tfvars
 ```
 
 Edit to match sponsor needs:
@@ -563,7 +563,7 @@ Trigger branches:
 Enable sponsor employees to authenticate via their corporate IdP:
 
 ```hcl
-# In sponsor-portal tfvars
+# In sponsor-envs tfvars
 workforce_identity_enabled        = true
 workforce_identity_provider_type  = "oidc"  # or "saml"
 workforce_identity_issuer_uri     = "https://login.microsoftonline.com/{tenant}/v2.0"
@@ -752,7 +752,7 @@ doppler run -- ./deploy-environment.sh <sponsor> <env> [--apply] [--destroy]
 
 **Prerequisites:**
 - Bootstrap must be completed for this sponsor
-- Config file: `sponsor-portal/sponsor-configs/{sponsor}-{env}.tfvars`
+- Config file: `sponsor-envs/sponsor-configs/{sponsor}-{env}.tfvars`
 - Database password in Doppler: `DB_PASSWORD_{SPONSOR}_{ENV}`
 
 **What It Creates:**
@@ -800,11 +800,11 @@ doppler run -- ./deploy-environment.sh callisto dev --apply
 doppler run -- ./deploy-environment.sh callisto prod --apply
 
 # Get outputs after deployment
-cd sponsor-portal
+cd sponsor-envs
 terraform output -json
 ```
 
-**State Location:** `gs://cure-hht-terraform-state/sponsor-portal/{sponsor}-{env}/`
+**State Location:** `gs://cure-hht-terraform-state/sponsor-envs/{sponsor}-{env}/`
 
 ---
 

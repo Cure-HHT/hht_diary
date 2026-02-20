@@ -122,7 +122,7 @@ variable "enable_cost_controls" {
   default     = true
 }
 
-variable "slack_incident_webhook_url" {
+variable "SLACK_INCIDENT_WEBHOOK_URL" {
   description = "Slack webhook URL for billing alert notifications (from Doppler)"
   type        = string
   default     = ""
@@ -181,6 +181,23 @@ variable "connector_cidr" {
   }
 }
 
+variable "enable_proxy_only_subnet" {
+  description = "Enable proxy-only subnet for Regional Load Balancer"
+  type        = bool
+  default     = false
+}
+
+variable "proxy_only_subnet_cidr" {
+  description = "Proxy-only subnet CIDR per environment (for Regional Load Balancer). Must not overlap with app/db/connector subnets."
+  type        = map(string)
+  default = {
+    dev  = "10.0.16.0/23"
+    qa   = "10.0.18.0/23"
+    uat  = "10.0.20.0/23"
+    prod = "10.0.22.0/23"
+  }
+}
+
 # -----------------------------------------------------------------------------
 # Database Configuration
 # -----------------------------------------------------------------------------
@@ -201,4 +218,20 @@ variable "db_username" {
   description = "Database username"
   type        = string
   default     = "app_user"
+}
+
+# -----------------------------------------------------------------------------
+# Terraform State Configuration
+# -----------------------------------------------------------------------------
+
+variable "terraform_state_bucket" {
+  description = "GCS bucket for Terraform state (used for per-environment SA access)"
+  type        = string
+  default     = "cure-hht-terraform-state"
+}
+
+variable "tf_env_token_creators" {
+  description = "Email addresses granted roles/iam.serviceAccountTokenCreator on per-environment Terraform SAs"
+  type        = list(string)
+  default     = []
 }

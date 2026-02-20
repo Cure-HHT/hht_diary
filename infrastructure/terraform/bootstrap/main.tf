@@ -52,7 +52,7 @@ locals {
     dev  = false
     qa   = false
     uat  = false
-    prod = false  # TODO Set true when ready to lock audit logs.
+    prod = false # TODO Set true when ready to lock audit logs.
   }
 
   # Audit retention: only prod gets FDA-required retention, non-prod = 0 (no retention)
@@ -93,12 +93,14 @@ module "network" {
   source   = "../modules/vpc-network"
   for_each = toset(local.environments)
 
-  project_id        = local.project_ids[each.key]
-  environment       = each.key
-  app_subnet_cidr   = var.app_subnet_cidr[each.key]
-  connector_cidr    = var.connector_cidr[each.key]
-  db_subnet_cidr    = var.db_subnet_cidr[each.key]
-  sponsor           = var.sponsor
+  project_id               = local.project_ids[each.key]
+  environment              = each.key
+  app_subnet_cidr          = var.app_subnet_cidr[each.key]
+  connector_cidr           = var.connector_cidr[each.key]
+  db_subnet_cidr           = var.db_subnet_cidr[each.key]
+  sponsor                  = var.sponsor
+  enable_proxy_only_subnet = var.enable_proxy_only_subnet
+  proxy_only_subnet_cidr   = var.proxy_only_subnet_cidr[each.key]
 }
 
 # -----------------------------------------------------------------------------
@@ -119,25 +121,6 @@ module "budgets" {
 
   depends_on = [module.projects]
 }
-
-# -----------------------------------------------------------------------------
-# Billing Alert Functions - Moved to sponsor-portal for per-environment deployment
-# -----------------------------------------------------------------------------
-# module "billing_alerts" {
-#   source   = "../modules/billing-alert-funk"
-#   for_each = var.enable_cost_controls ? toset(local.environments) : toset([])
-#
-#   project_id            = module.projects[each.key].project_id
-#   project_number        = module.projects[each.key].project_number
-#   region                = var.default_region
-#   sponsor               = var.sponsor
-#   environment           = each.key
-#   budget_alert_topic_id = module.budgets[each.key].budget_alert_topic
-#   function_source_dir   = "${path.module}/../modules/billing-alert-funk/src"
-#   slack_webhook_url     = var.slack_incident_webhook_url
-#
-#   depends_on = [module.budgets]
-# }
 
 # -----------------------------------------------------------------------------
 # Audit Logs - FDA 21 CFR Part 11 Compliant
@@ -187,6 +170,102 @@ module "cicd" {
 # }
 
 # -----------------------------------------------------------------------------
+# Per-Environment Terraform Service Accounts
+# Each environment gets its own SA for running deploy-environment.sh and
+# terraform apply on the sponsor-envs root module.
+# -----------------------------------------------------------------------------
+
+resource "google_service_account" "tf_env" {
+  for_each = toset(local.environments)
+
+  account_id   = "terraform-sa"
+  display_name = "Terraform SA - ${var.sponsor} ${upper(each.key)}"
+  description  = "Service account for Terraform deployments to ${var.sponsor} ${each.key}"
+  project      = module.projects[each.key].project_id
+
+  depends_on = [module.projects]
+}
+
+# IAM roles the per-environment SA needs on its target project to manage all
+# resources declared in sponsor-envs/main.tf (active + commented-out future).
+locals {
+  tf_env_roles = [
+    "roles/secretmanager.admin",             # Manage Doppler token secret
+    "roles/cloudfunctions.admin",            # Deploy billing-alert Cloud Functions
+    "roles/run.admin",                       # Cloud Run (function backing service + future)
+    "roles/pubsub.admin",                    # Pub/Sub subscriptions for billing alerts
+    "roles/storage.admin",                   # GCS buckets (function source + future storage)
+    "roles/cloudsql.admin",                  # Future Cloud SQL management
+    "roles/iam.serviceAccountAdmin",         # Create/manage function service accounts
+    "roles/iam.serviceAccountUser",          # Impersonate SAs (Cloud Build, functions)
+    "roles/serviceusage.serviceUsageAdmin",  # Enable/disable GCP APIs
+    "roles/identitytoolkit.admin",           # Identity Platform API access
+    "roles/firebaseauth.admin",              # Firebase Auth management
+    "roles/firebase.admin",                  # Identity Platform config (google_identity_platform_config)
+    "roles/logging.admin",                   # Log-based metrics for function errors
+    "roles/monitoring.admin",                # Future monitoring alerts
+    "roles/artifactregistry.admin",          # Artifact Registry for function builds
+    "roles/compute.networkAdmin",            # VPC/subnet management
+    "roles/compute.loadBalancerAdmin",       # Regional LB, NEGs, backend services
+    "roles/cloudbuild.builds.editor",        # Cloud Build for function deployment
+    "roles/resourcemanager.projectIamAdmin", # Manage IAM bindings within the project
+    "roles/certificatemanager.owner",        # Certificate Manager for Regional LB SSL certs
+  ]
+}
+
+resource "google_project_iam_member" "tf_env_roles" {
+  for_each = {
+    for pair in setproduct(local.environments, local.tf_env_roles) :
+    "${pair[0]}-${pair[1]}" => {
+      env  = pair[0]
+      role = pair[1]
+    }
+  }
+
+  project = module.projects[each.value.env].project_id
+  role    = each.value.role
+  member  = "serviceAccount:${google_service_account.tf_env[each.value.env].email}"
+}
+
+# Allow specified users to impersonate each per-environment Terraform SA
+# (required for `gcloud --impersonate-service-account` and provider impersonation).
+resource "google_service_account_iam_member" "tf_env_token_creator" {
+  for_each = {
+    for pair in setproduct(local.environments, var.tf_env_token_creators) :
+    "${pair[0]}-${pair[1]}" => {
+      env   = pair[0]
+      email = pair[1]
+    }
+  }
+
+  service_account_id = google_service_account.tf_env[each.value.env].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "user:${each.value.email}"
+}
+
+# Grant each per-environment SA access to the Terraform state bucket so it can
+# run terraform init/plan/apply with the GCS backend.
+resource "google_storage_bucket_iam_member" "tf_env_state_access" {
+  for_each = toset(local.environments)
+
+  bucket = var.terraform_state_bucket
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.tf_env[each.key].email}"
+}
+
+# Grant token creators direct access to the Terraform state bucket.
+# The GCS backend and terraform_remote_state data sources authenticate via ADC
+# (the caller's identity), not the impersonated SA, so the caller needs direct
+# bucket access.
+resource "google_storage_bucket_iam_member" "tf_env_token_creator_state_access" {
+  for_each = toset(var.tf_env_token_creators)
+
+  bucket = var.terraform_state_bucket
+  role   = "roles/storage.objectAdmin"
+  member = "user:${each.key}"
+}
+
+# -----------------------------------------------------------------------------
 # Cloud SQL Database - One per Environment
 # -----------------------------------------------------------------------------
 
@@ -221,7 +300,7 @@ resource "google_project_service" "gmail_api" {
 resource "google_project_service" "idtk_api" {
   for_each = toset(local.environments)
   project  = local.project_ids[each.key]
-  service = "identitytoolkit.googleapis.com"
+  service  = "identitytoolkit.googleapis.com"
 
   disable_on_destroy         = false
   disable_dependent_services = false

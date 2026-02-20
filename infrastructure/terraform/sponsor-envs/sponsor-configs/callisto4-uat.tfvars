@@ -1,6 +1,6 @@
 # example-dev.tfvars
 #
-# Example sponsor-portal configuration for dev environment
+# Example sponsor-envs configuration for dev environment
 # Copy and customize for each sponsor/environment:
 #   cp example-dev.tfvars {sponsor}-{env}.tfvars
 
@@ -9,20 +9,22 @@
 # -----------------------------------------------------------------------------
 
 sponsor     = "callisto4"
-sponsor_id  = 4  # Must match bootstrap sponsor_id
+sponsor_id  = 4 # Must match bootstrap sponsor_id
 environment = "uat"
 
 # -----------------------------------------------------------------------------
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id = "callisto4-uat"  # From bootstrap output
+project_id     = "callisto4-uat" # From bootstrap output
+project_number = "768644809588"  # From bootstrap output (gcloud projects describe callisto4-uat --format='value(projectNumber)')
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
 # - TF_VAR_BILLING_ACCOUNT_PROD
 # - TF_VAR_BILLING_ACCOUNT_DEV
 # - TF_VAR_DB_PASSWORD
+# - TF_VAR_SLACK_INCIDENT_WEBHOOK_URL
 #
 # Find your GCP Organization ID: gcloud organizations list
 # Find your Billing Account IDs: gcloud billing accounts list
@@ -50,10 +52,10 @@ project_prefix = "cure-hht"
 # Optional: Cloud Run Sizing
 # -----------------------------------------------------------------------------
 
-min_instances    = 1
-max_instances    = 5
-container_memory = "512Mi"
-container_cpu    = "1"
+min_instances    = 0
+max_instances    = 2
+container_memory = "2Gi"
+container_cpu    = "2"
 
 # -----------------------------------------------------------------------------
 # Optional: CI/CD Configuration
@@ -69,11 +71,11 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = false
 
 # Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+diary_server_image  = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # Disable public access due to organization policy restrictions
-allow_public_access = false
+allow_public_access = true
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -83,24 +85,24 @@ allow_public_access = false
 enable_identity_platform = true
 
 # Authentication methods
-identity_platform_email_password = true   # Email/password login
-identity_platform_email_link     = false  # Passwordless email links
-identity_platform_phone_auth     = false  # Phone number authentication
+identity_platform_email_password = true  # Email/password login
+identity_platform_email_link     = false # Passwordless email links
+identity_platform_phone_auth     = false # Phone number authentication
 
 # Security settings
 # MFA: DISABLED, ENABLED, MANDATORY (prod always forces MANDATORY)
-identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
-identity_platform_password_min_length = 12        # HIPAA recommends 12+
+identity_platform_mfa_enforcement     = "DISABLED" # Non-prod can be relaxed
+identity_platform_password_min_length = 12         # HIPAA recommends 12+
 
-# Email configuration for invitations/password resets
-identity_platform_email_sender_name = ID_PLATFORM_NAME
-identity_platform_email_reply_to  = EMAIL_SUPPORT
+# Email configuration for invitations/password resets, from Doppler
+identity_platform_email_sender_name = "Diary Platform"
+identity_platform_email_reply_to    = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
-# identity_platform_authorized_domains = ["portal.example.com"]
+identity_platform_authorized_domains = ["portal-uat.callisto.anspar.org"]
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
@@ -132,3 +134,22 @@ audit_retention_years = 25
 # (true for prod, false for dev/qa/uat)
 
 enable_cost_controls = false
+
+# -----------------------------------------------------------------------------
+# GitHub Actions Service Account (Cross-Project Deployment)
+# -----------------------------------------------------------------------------
+
+github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
+
+# -----------------------------------------------------------------------------
+# Compute Service Account (Secret Manager Access)
+# -----------------------------------------------------------------------------
+
+compute_service_account = "768644809588-compute@developer.gserviceaccount.com"
+
+enable_gmail_api = true
+
+enable_regional_lb            = true
+lb_domain                     = "portal-uat.callisto.anspar.org"
+lb_cloud_run_service_name     = "portal-server"
+lb_enable_http_redirect       = true
