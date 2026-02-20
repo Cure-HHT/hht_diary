@@ -68,10 +68,6 @@ if [ ! -f "/app/sponsor-content/${SPONSOR_ID}/sponsor-config.json" ]; then
 fi
 echo "✅ Sponsor content verified for ${SPONSOR_ID}."
 
-# Check if DOPPLER_TOKEN is set
-if [ -z "$DOPPLER_TOKEN" ]; then
-    echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
-    echo "Cloud Run service must have DOPPLER_TOKEN configured for this environment."
 if [ -z "$DOPPLER_CONFIG_NAME" ]; then
     echo "ERROR: DOPPLER_CONFIG_NAME is not set!"
     exit 2
