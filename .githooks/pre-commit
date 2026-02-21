@@ -141,23 +141,25 @@ if [ -n "$ELSPAIS_VERSION" ]; then
         INSTALLED_ELSPAIS=$(elspais --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ -n "$INSTALLED_ELSPAIS" ]; then
             if [ "$(printf '%s\n%s\n' "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION" | sort -V | head -n1)" != "$ELSPAIS_VERSION" ]; then
-                echo "⚠️  elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION"
+                echo "❌ ERROR: elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION"
                 echo ""
                 echo "   Update with one of:"
                 echo "     pip install --upgrade elspais"
                 echo "     pipx upgrade elspais"
                 echo "     brew upgrade elspais"
                 echo ""
+                exit 1
             fi
         fi
     else
-        echo "⚠️  elspais is not installed (required: >= $ELSPAIS_VERSION)"
+        echo "❌ ERROR: elspais is not installed (required: >= $ELSPAIS_VERSION)"
         echo ""
         echo "   Install with one of:"
         echo "     pip install elspais"
         echo "     pipx install elspais"
         echo "     brew install elspais"
         echo ""
+        exit 1
     fi
 fi
 

@@ -452,7 +452,7 @@ jobs:
         if: success()
         run: |
           echo "::group::INDEX.md Validation"
-          elspais index --mode core validate
+          elspais index validate --mode core
           RESULT=$?
           echo "::endgroup::"
 
