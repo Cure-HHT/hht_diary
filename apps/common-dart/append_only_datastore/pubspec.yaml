@@ -1,6 +1,6 @@
 name: append_only_datastore
 description: "A Dart module for append-only offline data storage - REQ-p00006: Offline-First Data Entry"
-version: 0.0.1
+version: 0.0.1+1
 homepage:
 
 environment:
