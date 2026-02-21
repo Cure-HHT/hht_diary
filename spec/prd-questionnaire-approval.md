@@ -36,14 +36,17 @@ Patients may edit their answers at any time before finalization. Study coordinat
    - Triggers push notification to patient's device
 
 2. **Monitor Completion**
+
    - Portal updates status as patient progresses through the questionnaire
    - Questionnaire status changes to "Ready for Review" when patient submits
 
 3. **Review and Finalize**
+
    - Investigator verifies with patient that the questionnaire is complete
    - Select "Finalize and Score" to calculate score, store permanently, and lock questionnaire
 
 4. **Delete (if applicable)**
+
    - Study coordinator may delete the questionnaire at any step after it was sent (Sent, In Progress, or Ready to Review)
    - A deletion reason is recorded in the audit trail
    - Deletion is NOT permitted after finalization
@@ -75,6 +78,7 @@ Patients may edit their answers at any time before finalization. Study coordinat
    - Status visible as "Submitted - Awaiting Review"
 
 5. **Edit Before Finalization (if applicable)**
+
    - Patient may edit their answers at any time before the investigator finalizes the questionnaire
    - Edits are permitted during Sent, In Progress, and Ready to Review statuses
    - If the patient edits after submission, the questionnaire returns to "In Progress" status
@@ -155,7 +159,7 @@ S. The system SHALL record the investigator who finalized the questionnaire in t
 
 T. The system SHALL record the study coordinator who deleted the questionnaire and the deletion reason in the audit trail.
 
-*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 8790cf5d
+*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 735ee5a6
 ---
 
 ## Audit Trail Events
