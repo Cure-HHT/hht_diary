@@ -84,6 +84,30 @@ class ApiClient {
     }
   }
 
+  /// Make an authenticated DELETE request
+  Future<ApiResponse> delete(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final token = await _authService.getIdToken();
+      if (token == null) {
+        return ApiResponse(statusCode: 401, error: 'Not authenticated');
+      }
+
+      final response = await _httpClient.delete(
+        Uri.parse('$_apiBaseUrl$path'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      return _parseResponse(response);
+    } catch (e) {
+      debugPrint('API DELETE error: $e');
+      return ApiResponse(statusCode: 500, error: 'Network error: $e');
+    }
+  }
+
   /// Make an authenticated PATCH request
   Future<ApiResponse> patch(String path, Map<String, dynamic> body) async {
     try {

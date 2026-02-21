@@ -529,6 +529,299 @@ Future<Response> deleteQuestionnaireHandler(
   });
 }
 
+/// POST /api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/unlock
+///
+/// Unlocks a questionnaire so the patient can re-edit their answers.
+/// Changes status from 'ready_to_review' back to 'sent'.
+///
+/// Per REQ-CAL-p00023: Investigator can unlock a submitted questionnaire.
+Future<Response> unlockQuestionnaireHandler(
+  Request request,
+  String patientId,
+  String instanceId,
+) async {
+  print(
+    '[QUESTIONNAIRE] unlockQuestionnaireHandler: $instanceId for $patientId',
+  );
+
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Only Investigators can unlock questionnaires
+  if (user.activeRole != 'Investigator') {
+    return _jsonResponse({
+      'error': 'Only Investigators can unlock questionnaires',
+    }, 403);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch the questionnaire instance
+  final instanceResult = await db.executeWithContext(
+    '''
+    SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
+           qi.deleted_at
+    FROM questionnaire_instances qi
+    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
+    ''',
+    parameters: {'instanceId': instanceId, 'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (instanceResult.isEmpty) {
+    return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
+  }
+
+  final currentStatus = instanceResult.first[2] as String;
+  final alreadyDeleted = instanceResult.first[4] != null;
+
+  if (alreadyDeleted) {
+    return _jsonResponse({'error': 'Questionnaire has been deleted'}, 409);
+  }
+
+  // Only allowed when status is 'ready_to_review'
+  if (currentStatus != 'ready_to_review') {
+    return _jsonResponse({
+      'error':
+          'Can only unlock questionnaires with status ready_to_review '
+          '(current: $currentStatus)',
+    }, 409);
+  }
+
+  final now = DateTime.now().toUtc();
+
+  // Change status back to 'sent'
+  await db.executeWithContext(
+    '''
+    UPDATE questionnaire_instances
+    SET status = 'sent',
+        submitted_at = NULL,
+        updated_at = @updatedAt
+    WHERE id = @instanceId::uuid
+    ''',
+    parameters: {'instanceId': instanceId, 'updatedAt': now.toIso8601String()},
+    context: serviceContext,
+  );
+
+  // Send FCM notification to patient
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendQuestionnaireUnlockedNotification(
+          fcmToken: fcmToken,
+          questionnaireInstanceId: instanceId,
+          patientId: patientId,
+        );
+
+    if (!notificationResult.success) {
+      print(
+        '[QUESTIONNAIRE] FCM unlock notification failed: '
+        '${notificationResult.error}',
+      );
+    }
+  }
+
+  // REQ-CAL-p00023-U: Log to audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'QUESTIONNAIRE_UNLOCKED', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'questionnaire:$instanceId',
+      'actionDetails': jsonEncode({
+        'instance_id': instanceId,
+        'patient_id': patientId,
+        'questionnaire_type': instanceResult.first[1] as String,
+        'previous_status': currentStatus,
+        'new_status': 'sent',
+        'unlocked_at': now.toIso8601String(),
+        'unlocked_by_email': user.email,
+        'unlocked_by_name': user.name,
+      }),
+      'justification': 'Questionnaire unlocked for patient re-edit',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print(
+    '[QUESTIONNAIRE] Unlocked questionnaire $instanceId for patient $patientId',
+  );
+
+  return _jsonResponse({
+    'success': true,
+    'instance_id': instanceId,
+    'patient_id': patientId,
+    'status': 'sent',
+    'unlocked_at': now.toIso8601String(),
+  });
+}
+
+/// POST /api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/finalize
+///
+/// Finalizes a questionnaire. Sets status to 'finalized', records score,
+/// and logs the action.
+///
+/// Per REQ-CAL-p00023: Investigator finalizes a submitted questionnaire.
+/// Score calculation is placeholder (deferred to questionnaire content sprint).
+Future<Response> finalizeQuestionnaireHandler(
+  Request request,
+  String patientId,
+  String instanceId,
+) async {
+  print(
+    '[QUESTIONNAIRE] finalizeQuestionnaireHandler: $instanceId for $patientId',
+  );
+
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // Only Investigators can finalize questionnaires
+  if (user.activeRole != 'Investigator') {
+    return _jsonResponse({
+      'error': 'Only Investigators can finalize questionnaires',
+    }, 403);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  // Get client IP for audit
+  final clientIp =
+      request.headers['x-forwarded-for']?.split(',').first.trim() ??
+      request.headers['x-real-ip'];
+
+  // Fetch the questionnaire instance
+  final instanceResult = await db.executeWithContext(
+    '''
+    SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
+           qi.deleted_at
+    FROM questionnaire_instances qi
+    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
+    ''',
+    parameters: {'instanceId': instanceId, 'patientId': patientId},
+    context: serviceContext,
+  );
+
+  if (instanceResult.isEmpty) {
+    return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
+  }
+
+  final currentStatus = instanceResult.first[2] as String;
+  final alreadyDeleted = instanceResult.first[4] != null;
+
+  if (alreadyDeleted) {
+    return _jsonResponse({'error': 'Questionnaire has been deleted'}, 409);
+  }
+
+  // Only allowed when status is 'ready_to_review'
+  if (currentStatus != 'ready_to_review') {
+    return _jsonResponse({
+      'error':
+          'Can only finalize questionnaires with status ready_to_review '
+          '(current: $currentStatus)',
+    }, 409);
+  }
+
+  final now = DateTime.now().toUtc();
+
+  // Placeholder score calculation (real scoring deferred to questionnaire content sprint)
+  const score = 0;
+
+  // Set status to finalized
+  await db.executeWithContext(
+    '''
+    UPDATE questionnaire_instances
+    SET status = 'finalized',
+        finalized_at = @finalizedAt,
+        score = @score,
+        updated_at = @finalizedAt
+    WHERE id = @instanceId::uuid
+    ''',
+    parameters: {
+      'instanceId': instanceId,
+      'finalizedAt': now.toIso8601String(),
+      'score': score,
+    },
+    context: serviceContext,
+  );
+
+  // REQ-CAL-p00023-U: Log to audit trail
+  await db.executeWithContext(
+    '''
+    INSERT INTO admin_action_log (
+      admin_id, action_type, target_resource, action_details,
+      justification, requires_review, ip_address
+    )
+    VALUES (
+      @adminId, 'QUESTIONNAIRE_FINALIZED', @targetResource,
+      @actionDetails::jsonb, @justification, false, @ipAddress::inet
+    )
+    ''',
+    parameters: {
+      'adminId': user.id,
+      'targetResource': 'questionnaire:$instanceId',
+      'actionDetails': jsonEncode({
+        'instance_id': instanceId,
+        'patient_id': patientId,
+        'questionnaire_type': instanceResult.first[1] as String,
+        'previous_status': currentStatus,
+        'new_status': 'finalized',
+        'score': score,
+        'finalized_at': now.toIso8601String(),
+        'finalized_by_email': user.email,
+        'finalized_by_name': user.name,
+      }),
+      'justification': 'Questionnaire finalized with score $score',
+      'ipAddress': clientIp,
+    },
+    context: serviceContext,
+  );
+
+  print(
+    '[QUESTIONNAIRE] Finalized questionnaire $instanceId for patient $patientId '
+    '(score: $score)',
+  );
+
+  return _jsonResponse({
+    'success': true,
+    'instance_id': instanceId,
+    'patient_id': patientId,
+    'status': 'finalized',
+    'score': score,
+    'finalized_at': now.toIso8601String(),
+  });
+}
+
 Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {
   return Response(
     statusCode,

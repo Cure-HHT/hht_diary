@@ -96,6 +96,14 @@ Router createRouter() {
     '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>',
     deleteQuestionnaireHandler,
   );
+  router.post(
+    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/unlock',
+    unlockQuestionnaireHandler,
+  );
+  router.post(
+    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/finalize',
+    finalizeQuestionnaireHandler,
+  );
 
   // Email change verification
   router.post(

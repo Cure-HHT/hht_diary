@@ -10,6 +10,7 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Study Coordinator Patients Tab - site-scoped patient dashboard with
 // search, status filtering, and contextual actions
@@ -19,10 +20,10 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/disconnect_patient_dialog.dart';
 import '../../widgets/link_patient_dialog.dart';
 import '../../widgets/patient_actions_dialog.dart';
 import '../../widgets/reactivate_patient_dialog.dart';
+import '../../widgets/manage_questionnaires_dialog.dart';
 import '../../widgets/start_trial_dialog.dart';
 
 /// Status filter for the patients tab
@@ -556,14 +557,11 @@ class _StudyCoordinatorPatientsTabState
             style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
           );
         }
-        // Trial already started - allow disconnect
+        // Trial already started - manage questionnaires
         return TextButton.icon(
-          onPressed: () => _disconnectPatient(patient, apiClient),
-          icon: Icon(Icons.link_off, size: 16, color: theme.colorScheme.error),
-          label: Text(
-            'Disconnect',
-            style: TextStyle(color: theme.colorScheme.error),
-          ),
+          onPressed: () => _manageQuestionnaires(patient, apiClient),
+          icon: const Icon(Icons.assignment, size: 16),
+          label: const Text('Manage Questionnaires'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'disconnected':
@@ -613,24 +611,6 @@ class _StudyCoordinatorPatientsTabState
     );
   }
 
-  /// Opens the DisconnectPatientDialog to disconnect a patient
-  Future<void> _disconnectPatient(
-    _PatientData patient,
-    ApiClient apiClient,
-  ) async {
-    final success = await DisconnectPatientDialog.show(
-      context: context,
-      patientId: patient.patientId,
-      patientDisplayId: patient.edcSubjectKey,
-      apiClient: apiClient,
-    );
-
-    // Refresh the patient list if disconnection was successful
-    if (success && mounted) {
-      await _loadPatients();
-    }
-  }
-
   /// Opens the StartTrialDialog to start trial for a patient
   Future<void> _startTrial(_PatientData patient, ApiClient apiClient) async {
     final success = await StartTrialDialog.show(
@@ -663,6 +643,19 @@ class _StudyCoordinatorPatientsTabState
     if (result == PatientActionResult.actionTaken && mounted) {
       await _loadPatients();
     }
+  }
+
+  /// Opens the ManageQuestionnairesDialog for trial-active patients
+  Future<void> _manageQuestionnaires(
+    _PatientData patient,
+    ApiClient apiClient,
+  ) async {
+    await ManageQuestionnairesDialog.show(
+      context: context,
+      patientId: patient.patientId,
+      patientDisplayId: patient.edcSubjectKey,
+      apiClient: apiClient,
+    );
   }
 
   /// Opens the ReactivatePatientDialog to reactivate a not_participating patient
