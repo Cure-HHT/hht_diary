@@ -4,7 +4,6 @@
 # ./tools/claim-ticket.sh CUR-123
 # Can be called from any directory within the repo.
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
 
-"${SCRIPT_DIR}/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh" "$1"
+"${ANSPAR_PLUGINS}/workflow/scripts/claim-ticket.sh" "$1"
