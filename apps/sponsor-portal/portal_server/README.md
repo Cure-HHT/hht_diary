@@ -223,10 +223,10 @@ gcloud run deploy portal-server \
 
 ### Terraform Deployment
 
-The recommended approach is using Terraform (see `infrastructure/terraform/sponsor-portal/`):
+The recommended approach is using Terraform (see `infrastructure/terraform/sponsor-envs/`):
 
 ```bash
-cd infrastructure/terraform/sponsor-portal
+cd infrastructure/terraform/sponsor-envs
 
 # Initialize
 terraform init
@@ -308,4 +308,4 @@ The server includes CORS middleware that:
 - [Portal Functions README](../portal_functions/README.md) - Handler implementations
 - [Portal UI README](../portal-ui/README.md) - Frontend application
 - [Database README](../../../database/README.md) - Schema and setup
-- [Terraform README](../../../infrastructure/terraform/sponsor-portal/README.md) - Infrastructure
+- [Terraform README](../../../infrastructure/terraform/sponsor-envs/README.md) - Infrastructure

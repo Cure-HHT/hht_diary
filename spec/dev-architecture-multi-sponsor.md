@@ -106,7 +106,7 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 │
 ├── infrastucture/               (IaC for creating and managing infrastructure)
 │   ├── boostrap/                (Creates GCP projects, setup IAM roles, for all envs & sponsors)
-│   ├── sponsor-portal/          (Sets up GCP products - Cloud Run, CloudSQL (not schema), VPC, etc.)
+│   ├── sponsor-envs/            (Sets up GCP products - Cloud Run, CloudSQL (not schema), VPC, etc.)
 │
 ├── sponsor-server/              (Dart server for Cloud Run)
 │   ├── bin/server.dart          (Entry point)

@@ -283,9 +283,9 @@ GoRoute(
 | **Terraform (per sponsor, per env)** | | |
 | `infrastructure/terraform/modules/gcp-project/main.tf` | MODIFY | Add gmail.googleapis.com API |
 | `infrastructure/terraform/modules/gmail-service-account/` | NEW | Gmail SA module |
-| `infrastructure/terraform/sponsor-portal/main.tf` | MODIFY | Wire Gmail SA module |
-| `infrastructure/terraform/sponsor-portal/variables.tf` | MODIFY | Add gmail_* variables |
-| `infrastructure/terraform/sponsor-portal/sponsor-configs/*.tfvars` | MODIFY | Add gmail config per env |
+| `infrastructure/terraform/sponsor-envs/main.tf` | MODIFY | Wire Gmail SA module |
+| `infrastructure/terraform/sponsor-envs/variables.tf` | MODIFY | Add gmail_* variables |
+| `infrastructure/terraform/sponsor-envs/sponsor-configs/*.tfvars` | MODIFY | Add gmail config per env |
 
 ---
 
@@ -362,7 +362,7 @@ output "gmail_service_account_key_base64" {
 
 ### Phase 13: Wire Module into Sponsor Portal
 
-**Modify:** `infrastructure/terraform/sponsor-portal/main.tf`
+**Modify:** `infrastructure/terraform/sponsor-envs/main.tf`
 
 Add Gmail service account module call:
 ```hcl
@@ -376,7 +376,7 @@ module "gmail_service_account" {
 
 ### Phase 14: Update Sponsor Config Variables
 
-**Modify:** `infrastructure/terraform/sponsor-portal/variables.tf`
+**Modify:** `infrastructure/terraform/sponsor-envs/variables.tf`
 
 Add Gmail-related variables:
 ```hcl
@@ -393,7 +393,7 @@ variable "gmail_enabled" {
 }
 ```
 
-**Update:** Each `sponsor-portal/sponsor-configs/{sponsor}-{env}.tfvars`:
+**Update:** Each `sponsor-envs/sponsor-configs/{sponsor}-{env}.tfvars`:
 ```hcl
 gmail_sender_email = "noreply@{sponsor-domain}.com"
 gmail_enabled      = true

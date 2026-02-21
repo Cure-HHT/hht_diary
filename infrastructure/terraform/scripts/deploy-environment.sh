@@ -127,7 +127,7 @@ if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$APPLY" == "true" ]] && [[ "$AUTO_APPRO
 fi
 
 # Set paths
-PORTAL_DIR="${SCRIPT_DIR}/../sponsor-portal"
+PORTAL_DIR="${SCRIPT_DIR}/../sponsor-envs"
 TFVARS_FILE="${CONFIG_FILE:-${PORTAL_DIR}/sponsor-configs/${SPONSOR}-${ENVIRONMENT}.tfvars}"
 
 # Check tfvars exists
@@ -160,6 +160,7 @@ fi
 
 # Initialize Terraform
 
+# State prefix kept as "sponsor-portal/" for backwards compatibility with existing deployments
 terraform_init "sponsor-portal/${SPONSOR}-${ENVIRONMENT}" "$PORTAL_DIR"
 
 # Handle destroy

@@ -157,6 +157,47 @@ resource "google_compute_firewall" "allow_health_checks" {
   description   = "Allow Google health checks"
 }
 
+# -----------------------------------------------------------------------------
+# Proxy-only Subnet (Required for Regional Envoy-based Load Balancers)
+# -----------------------------------------------------------------------------
+# This subnet is used by GCP's managed proxy infrastructure for Regional
+# External HTTPS Load Balancers. The CIDR is automatically calculated to
+# avoid conflicts with the app_subnet_cidr.
+#
+# CIDR calculation: Uses a /23 block offset from the app subnet base.
+# Example for sponsor_id=4, env=dev (app_subnet=10.4.0.0/20):
+#   proxy_only_subnet = 10.4.16.0/23 (first /23 after the /20 block)
+
+resource "google_compute_subnetwork" "proxy_only" {
+  count = var.enable_proxy_only_subnet ? 1 : 0
+
+  name          = "${var.sponsor}-${var.environment}-proxy-only-subnet"
+  project       = var.project_id
+  region        = var.region
+  network       = google_compute_network.vpc.id
+  ip_cidr_range = var.proxy_only_subnet_cidr
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  description   = "Proxy-only subnet for ${var.sponsor} ${var.environment} regional load balancer"
+}
+
+# Allow traffic from Regional Load Balancer proxy-only subnet to backends
+resource "google_compute_firewall" "allow_proxy_only_subnet" {
+  count = var.enable_proxy_only_subnet ? 1 : 0
+
+  name    = "${local.network_name}-allow-proxy-only"
+  project = var.project_id
+  network = google_compute_network.vpc.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443", "8080"]
+  }
+
+  source_ranges = [var.proxy_only_subnet_cidr]
+  description   = "Allow traffic from proxy-only subnet (Regional Load Balancer) to backends"
+}
+
 # Deny all egress by default (except for Cloud Run which has its own config)
 resource "google_compute_firewall" "deny_all_egress" {
   count = var.restrict_egress ? 1 : 0
