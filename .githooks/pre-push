@@ -502,6 +502,11 @@ fi
 # Creates a commit with the bumped versions so the push
 # includes the updated build numbers.
 #
+# IMPORTANT: Only bumps ONCE per PR. If the pubspec.yaml
+# already has a higher build number than origin/main, we
+# skip re-bumping. This prevents infinite increments on
+# repeated push attempts.
+#
 # Project trigger paths include transitive dependencies:
 # e.g., a change in trial_data_types bumps clinical_diary.
 
@@ -566,15 +571,29 @@ if [ -n "$BUMP_CHANGED_FILES" ]; then
         if [ "$should_bump" = true ]; then
             current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
 
-            # Parse base version (before +) and build number (after +)
-            base_version="${current%%+*}"
+            # Parse current build number
             if [[ "$current" == *"+"* ]]; then
-                build_num="${current##*+}"
+                current_build="${current##*+}"
             else
-                build_num=0
+                current_build=0
             fi
 
-            new_build=$((build_num + 1))
+            # Get the build number from origin/main for comparison
+            main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+            if [ -n "$main_version" ] && [[ "$main_version" == *"+"* ]]; then
+                main_build="${main_version##*+}"
+            else
+                main_build=0
+            fi
+
+            # Only bump if we haven't already bumped above main's build number
+            if [ "$current_build" -gt "$main_build" ]; then
+                echo -e "  ${BLUE}$name: already bumped ($current, main has $main_version) - skipping${NC}"
+                continue
+            fi
+
+            base_version="${current%%+*}"
+            new_build=$((main_build + 1))
             new_version="${base_version}+${new_build}"
 
             # Update pubspec.yaml (portable: works on both BSD and GNU sed)
