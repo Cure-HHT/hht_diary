@@ -19,7 +19,7 @@ sponsors:
     - name: callisto
       code: CAL
       enabled: true
-      path: /home/metagamer/cure-hht/callisto
+      path: ../hht_diary_callisto
       type: production
       spec_path: spec
 
