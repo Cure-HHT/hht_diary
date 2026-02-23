@@ -318,7 +318,7 @@ packages:
       path: "../../common-flutter/eq"
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.0.1+4"
   equatable:
     dependency: transitive
     description:
@@ -1261,7 +1261,7 @@ packages:
       path: "../../common-dart/trial_data_types"
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.0.1+4"
   tuple:
     dependency: transitive
     description:
