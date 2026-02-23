@@ -253,12 +253,12 @@ void main() {
       );
 
       testWidgets(
-        'should show "Disconnect" button for connected+trialStarted patients',
+        'should show "Manage Questionnaires" button for connected+trialStarted patients',
         (WidgetTester tester) async {
           await _pumpPatientsTab(tester);
 
-          // PAT-002 is connected with trial_started=true - should show Disconnect
-          expect(find.text('Disconnect'), findsOneWidget);
+          // PAT-002 is connected with trial_started=true - show Manage Questionnaires
+          expect(find.text('Manage Questionnaires'), findsOneWidget);
         },
       );
 

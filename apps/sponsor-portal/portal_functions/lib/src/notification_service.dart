@@ -223,6 +223,29 @@ class NotificationService {
     );
   }
 
+  /// Send a questionnaire unlocked notification to a patient's device.
+  ///
+  /// Per REQ-CAL-p00023: When a questionnaire is unlocked, the patient
+  /// receives a notification so they can re-edit their answers.
+  Future<NotificationResult> sendQuestionnaireUnlockedNotification({
+    required String fcmToken,
+    required String questionnaireInstanceId,
+    required String patientId,
+  }) async {
+    return _sendFcmMessage(
+      fcmToken: fcmToken,
+      data: {
+        'type': 'questionnaire_unlocked',
+        'questionnaire_instance_id': questionnaireInstanceId,
+        'action': 'unlock_task',
+      },
+      notificationTitle: 'Questionnaire Unlocked',
+      notificationBody: 'A questionnaire has been unlocked for editing.',
+      messageType: 'questionnaire_unlocked',
+      patientId: patientId,
+    );
+  }
+
   /// Internal method to send an FCM message via HTTP v1 API.
   Future<NotificationResult> _sendFcmMessage({
     required String fcmToken,
