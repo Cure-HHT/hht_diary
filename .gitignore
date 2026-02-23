@@ -260,3 +260,8 @@ sponsor-content/
 traceability.csv
 traceability_view.html
 qwert.sh
+
+# Worktree-local workflow and plan files
+WORKFLOW_STATE.md
+MASTER_PLAN*.md
+TODO.md
