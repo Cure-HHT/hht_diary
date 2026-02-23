@@ -25,10 +25,11 @@ class SponsorRegistryException implements Exception {
 /// Sponsor metadata for display purposes.
 /// Backend URLs are in FlavorConfig.sponsorBackends.
 class SponsorInfo {
-  const SponsorInfo({required this.id, required this.name});
+  const SponsorInfo({required this.id, required this.name,this.logo});
 
   final String id;
   final String name;
+  final String? logo;
 }
 
 /// Registry of sponsors and their linking code prefixes.

@@ -12,6 +12,7 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -81,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  UserEnrollment? _userEnrollment;
   // ignore: unused_field
   bool _isLoggedIn = false;
   bool _useAnimation = true; // User preference for animations
@@ -142,8 +144,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
+    final enrollment=await widget.enrollmentService.getEnrollment();
     if (mounted) {
-      setState(() => _isEnrolled = isEnrolled);
+      setState(() {
+        _userEnrollment=enrollment;
+        _isEnrolled = isEnrolled;
+      });
+
     }
   }
 
@@ -230,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
   GlobalKey _getKeyForRecord(String recordId) {
     return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
   }
-
   /// Scroll to a specific record in the list and ensure it's visible.
   /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
   void _scrollToRecord(String recordId) {
@@ -718,6 +724,7 @@ class _HomeScreenState extends State<HomeScreen> {
           isDisconnected: _isDisconnected,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
+          sponsorLogo: enrollment?.sponsorDetail?.logo,
           userName: 'User',
           onUpdateUserName: (name) {
             // TODO: Implement username update
@@ -950,8 +957,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   LogoMenu(
                     onExportData: _handleExportData,
                     onImportData: _handleImportData,
+                    sponsorLogo: _userEnrollment?.sponsorDetail?.logo,
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
+                    isEnrolled:_isEnrolled,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
@@ -1018,6 +1027,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         );
+                        await _checkEnrollmentStatus();
+                        await _checkDisconnectionStatus();
                       }
                     },
                     itemBuilder: (context) {
@@ -1147,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               // REQ-CAL-p00081: Task list (questionnaires, etc.)
-              TaskListWidget(
+               TaskListWidget(
                 taskService: widget.taskService,
                 onTaskTap: (task) {
                   // REQ-CAL-p00081-D: Navigate to relevant screen

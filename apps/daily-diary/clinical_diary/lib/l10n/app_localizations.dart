@@ -340,7 +340,7 @@ class AppLocalizations {
       'linkingCode': 'Linking Code: {0}',
       'enterNewLinkingCode': 'Enter New Linking Code',
       'participationStatusActiveMessage':
-          'You are actively participating in a clinical trial. Your data is being synced.',
+          'You\'ve joined the study',
       'participationStatusDisconnectedMessage':
           'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
       'participationStatusNotParticipatingMessage':
