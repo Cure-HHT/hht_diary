@@ -482,6 +482,138 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
+# 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
+# =====================================================
+#
+# On PR-intended branches, detects which Dart/Flutter projects
+# have source changes (including via dependencies) and increments
+# the +N build number. Bumped files are staged so they become
+# part of the developer's commit — no separate bump commit needed.
+#
+# IMPORTANT: Only bumps ONCE per PR. If the pubspec.yaml
+# already has a higher build number than origin/main, we
+# skip re-bumping. This prevents infinite increments on
+# repeated commits.
+
+# Skip bumps on main/master (already checked above, but be safe)
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+
+    # Load shared project definitions
+    HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    source "$HOOK_DIR/project-defs.sh"
+
+    # Get repo root
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+
+    # Combine staged files + branch history for trigger matching
+    BUMP_BASE_BRANCH="origin/main"
+    if ! git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+        BUMP_BASE_BRANCH="main"
+    fi
+
+    BUMP_CHANGED_FILES=""
+    if git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+        # Staged files (current commit) + branch history (previous commits)
+        BUMP_CHANGED_FILES=$({ git diff --cached --name-only; git diff --name-only "$BUMP_BASE_BRANCH"...HEAD 2>/dev/null; } | sort -u)
+    else
+        BUMP_CHANGED_FILES=$(git diff --cached --name-only)
+    fi
+
+    if [ -n "$BUMP_CHANGED_FILES" ]; then
+        BUMPED_LIST=""
+
+        for project_def in "${PROJECT_DEFS[@]}"; do
+            IFS='|' read -r name pubspec triggers <<< "$project_def"
+
+            FULL_PUBSPEC="$REPO_ROOT/$pubspec"
+
+            # Skip if pubspec doesn't exist
+            if [ ! -f "$FULL_PUBSPEC" ]; then
+                continue
+            fi
+
+            # Check if any trigger path matches a changed file
+            should_bump=false
+            own_dir=$(dirname "$pubspec")/
+            for trigger in $triggers; do
+                if echo "$BUMP_CHANGED_FILES" | grep -q "^${trigger}"; then
+                    if [ "$trigger" = "$own_dir" ]; then
+                        # Own directory: exclude pubspec changes (avoid self-trigger)
+                        relevant=$(echo "$BUMP_CHANGED_FILES" | grep "^${trigger}" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
+                    else
+                        # Dependency directory: allow all changes including pubspec bumps (cascade)
+                        relevant=$(echo "$BUMP_CHANGED_FILES" | grep "^${trigger}" || true)
+                    fi
+                    if [ -n "$relevant" ]; then
+                        should_bump=true
+                        break
+                    fi
+                fi
+            done
+
+            if [ "$should_bump" = true ]; then
+                current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
+
+                # Parse current build number
+                if [[ "$current" == *"+"* ]]; then
+                    current_build="${current##*+}"
+                else
+                    current_build=0
+                fi
+
+                # Get the build number from origin/main for comparison
+                main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+                if [ -n "$main_version" ] && [[ "$main_version" == *"+"* ]]; then
+                    main_build="${main_version##*+}"
+                else
+                    main_build=0
+                fi
+
+                # Only bump if we haven't already bumped above main's build number
+                if [ "$current_build" -gt "$main_build" ]; then
+                    continue
+                fi
+
+                base_version="${current%%+*}"
+                new_build=$((main_build + 1))
+                new_version="${base_version}+${new_build}"
+
+                # Update pubspec.yaml (portable: works on both BSD and GNU sed)
+                if sed --version >/dev/null 2>&1; then
+                    sed -i "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+                else
+                    sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+                fi
+
+                # Stage the bumped pubspec.yaml
+                git add "$FULL_PUBSPEC"
+
+                # Update pubspec.lock if it's tracked by git
+                PROJECT_DIR="$REPO_ROOT/$(dirname "$pubspec")"
+                LOCK_FILE="$PROJECT_DIR/pubspec.lock"
+                if git ls-files --error-unmatch "$LOCK_FILE" &>/dev/null 2>&1; then
+                    if grep -q "flutter:" "$PROJECT_DIR/pubspec.yaml" 2>/dev/null && command -v flutter &>/dev/null; then
+                        (cd "$PROJECT_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+                    elif command -v dart &>/dev/null; then
+                        (cd "$PROJECT_DIR" && dart pub get) > /dev/null 2>&1 || true
+                    fi
+                    git add "$LOCK_FILE"
+                fi
+
+                echo "  📦 $name: $current -> $new_version"
+                BUMPED_LIST="${BUMPED_LIST} ${name}"
+            fi
+        done
+
+        if [ -n "$BUMPED_LIST" ]; then
+            echo ""
+            echo "✅ Build numbers bumped for:${BUMPED_LIST}"
+            echo ""
+        fi
+    fi
+fi
+
+# =====================================================
 # All Validations Passed
 # =====================================================
 

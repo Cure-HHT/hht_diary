@@ -63,7 +63,7 @@ packages:
       path: "../../common-dart/append_only_datastore"
       relative: true
     source: path
-    version: "0.0.1+1"
+    version: "0.0.1"
   archive:
     dependency: transitive
     description:
@@ -318,7 +318,7 @@ packages:
       path: "../../common-flutter/eq"
       relative: true
     source: path
-    version: "0.0.1+5"
+    version: "0.0.1"
   equatable:
     dependency: transitive
     description:
@@ -1261,7 +1261,7 @@ packages:
       path: "../../common-dart/trial_data_types"
       relative: true
     source: path
-    version: "0.0.1+5"
+    version: "0.0.1"
   tuple:
     dependency: transitive
     description:
