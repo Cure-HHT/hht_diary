@@ -685,11 +685,23 @@ if [ -n "$BUMP_CHANGED_FILES" ]; then
         echo ""
         echo -e "${BLUE}Committing build number bumps...${NC}"
 
-        # Stage only the pubspec.yaml files we modified
+        # Stage pubspec.yaml files and update tracked pubspec.lock files
         for project_def in "${PROJECT_DEFS[@]}"; do
             IFS='|' read -r name pubspec triggers <<< "$project_def"
             if echo "$BUMPED_LIST" | grep -q "$name"; then
                 git add "$REPO_ROOT/$pubspec"
+
+                # Update pubspec.lock if it's tracked by git
+                PROJECT_DIR="$REPO_ROOT/$(dirname "$pubspec")"
+                LOCK_FILE="$PROJECT_DIR/pubspec.lock"
+                if git ls-files --error-unmatch "$LOCK_FILE" &>/dev/null 2>&1; then
+                    if grep -q "flutter:" "$PROJECT_DIR/pubspec.yaml" 2>/dev/null && command -v flutter &>/dev/null; then
+                        (cd "$PROJECT_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+                    elif command -v dart &>/dev/null; then
+                        (cd "$PROJECT_DIR" && dart pub get) > /dev/null 2>&1 || true
+                    fi
+                    git add "$LOCK_FILE"
+                fi
             fi
         done
 
