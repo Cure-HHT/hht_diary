@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00081: Patient Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+//   REQ-d00113: Deleted Questionnaire Submission Handling
 //
 // Task service manages the list of actionable tasks displayed at the
 // top of the patient's mobile app screen per REQ-CAL-p00081.
@@ -162,6 +163,7 @@ class TaskService extends ChangeNotifier {
   ///
   /// REQ-CAL-p00081: Patient Task System
   /// REQ-CAL-p00023: Questionnaire discovery via polling
+  /// REQ-d00113-E: Deleted questionnaires no longer appear as actionable items
   Future<void> syncTasks(EnrollmentService enrollmentService) async {
     try {
       final jwt = await enrollmentService.getJwtToken();
