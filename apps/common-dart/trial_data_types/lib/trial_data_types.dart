@@ -5,6 +5,7 @@
 //   REQ-p01065: Clinical Questionnaire System
 
 /// Common data types for trial data shared between client and server.
+// TEST: validate pubspec.lock included in bump commits - remove this line
 library;
 
 export 'src/questionnaire_instance.dart';
