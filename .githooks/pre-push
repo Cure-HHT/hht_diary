@@ -112,6 +112,45 @@ VALIDATION_OUTPUT=""
 # Get repo root
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# Load central version pinning (used by multiple validation steps)
+if [ -f "$REPO_ROOT/.github/versions.env" ]; then
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        export "${key}=${value}"
+    done < "$REPO_ROOT/.github/versions.env"
+fi
+
+# Check elspais version against minimum required
+if [ -n "$ELSPAIS_VERSION" ]; then
+    if command -v elspais &> /dev/null; then
+        INSTALLED_ELSPAIS=$(elspais --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ -n "$INSTALLED_ELSPAIS" ]; then
+            if [ "$(printf '%s\n%s\n' "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION" | sort -V | head -n1)" != "$ELSPAIS_VERSION" ]; then
+                echo -e "${RED}ERROR: elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION${NC}"
+                echo ""
+                echo "   Update with one of:"
+                echo "     pip install --upgrade elspais"
+                echo "     pipx upgrade elspais"
+                echo "     brew tap anspar-org/anspar && brew upgrade elspais"
+                echo ""
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${RED}ERROR: elspais is not installed (required: >= $ELSPAIS_VERSION)${NC}"
+        echo ""
+        echo "   Install with one of:"
+        echo "     pip install elspais"
+        echo "     pipx install elspais"
+        echo "     brew tap anspar-org/anspar && brew install elspais"
+        echo ""
+        exit 1
+    fi
+fi
+
 # Run elspais validate (REQ format and links)
 echo -e "${BLUE}Running requirement validation...${NC}"
 echo ""
@@ -136,7 +175,7 @@ echo -e "${BLUE}Running INDEX.md validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais index --mode core validate 2>&1); then
+    if ! OUTPUT=$(elspais index validate --mode core 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
@@ -154,22 +193,16 @@ echo ""
 # 3. Markdown Linting
 # =====================================================
 
-# Load central version pinning
-if [ -f "$REPO_ROOT/.github/versions.env" ]; then
-    while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        [[ "$key" =~ ^#.*$ ]] && continue
-        [[ -z "$key" ]] && continue
-        # Remove whitespace and export
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
-        export "${key}=${value}"
-    done < "$REPO_ROOT/.github/versions.env"
-fi
-
 # Get list of markdown files that will be pushed
 # Compare local branch to remote tracking branch
 REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "")
+
+# Determine all changed files (used by multiple validation steps)
+if [ -n "$REMOTE_BRANCH" ]; then
+    CHANGED_FILES=$(git diff --name-only "$REMOTE_BRANCH"...HEAD 2>/dev/null || true)
+else
+    CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+fi
 
 if [ -n "$REMOTE_BRANCH" ]; then
     MARKDOWN_FILES_CHANGED=$(git diff --name-only "$REMOTE_BRANCH"...HEAD 2>/dev/null | grep '\.md$' | grep -v 'untracked-notes/' || true)
@@ -260,66 +293,80 @@ fi
 echo ""
 
 # =====================================================
-# 5. Dart Pub Get (dependency resolution)
+# 5. Find app directories affected by changes
 # =====================================================
-# Ensure all dependencies are resolved before format/analyze checks
+# Only run pub get, format, and analyze on apps with changed files.
+# Walk up from each changed Dart file to find the nearest pubspec.yaml.
 
-echo -e "${BLUE}Resolving Dart dependencies...${NC}"
-echo ""
+AFFECTED_APP_DIRS=""
+while IFS= read -r changed_file; do
+    if [[ "$changed_file" == apps/* ]] && [[ "$changed_file" == *.dart ]]; then
+        DIR="$REPO_ROOT/$(dirname "$changed_file")"
+        while [[ "$DIR" == "$REPO_ROOT/apps"* ]] && [ "$DIR" != "$REPO_ROOT/apps" ]; do
+            if [ -f "$DIR/pubspec.yaml" ]; then
+                REL_DIR=${DIR#$REPO_ROOT/}
+                if ! echo "$AFFECTED_APP_DIRS" | grep -q "^$REL_DIR$"; then
+                    AFFECTED_APP_DIRS="$AFFECTED_APP_DIRS
+$REL_DIR"
+                fi
+                break
+            fi
+            DIR=$(dirname "$DIR")
+        done
+    fi
+done <<< "$CHANGED_FILES"
+AFFECTED_APP_DIRS=$(echo "$AFFECTED_APP_DIRS" | sed '/^$/d')
 
-if command -v dart &> /dev/null; then
-    # Find all pubspec.yaml files in apps/ (including nested packages)
-    while IFS= read -r pubspec; do
-        if [ -f "$pubspec" ]; then
-            APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+if [ -z "$AFFECTED_APP_DIRS" ]; then
+    echo -e "${BLUE}No Dart files changed - skipping pub get, format, and analyze${NC}"
+    echo ""
+else
+    # -------------------------------------------------
+    # 5.1. Dart Pub Get (dependency resolution)
+    # -------------------------------------------------
+    echo -e "${BLUE}Resolving Dart dependencies for affected apps...${NC}"
+    echo ""
+
+    if command -v dart &> /dev/null; then
+        while IFS= read -r app_dir; do
+            FULL_DIR="$REPO_ROOT/$app_dir"
+            PUBSPEC="$FULL_DIR/pubspec.yaml"
+            APP_NAME=${app_dir#apps/}
 
             echo "  Getting dependencies for $APP_NAME..."
 
-            # Run dart pub get (or flutter pub get if it's a Flutter project)
-            if [ -f "$APP_DIR/lib/main.dart" ] || grep -q "flutter:" "$pubspec" 2>/dev/null; then
-                # Flutter project
+            if [ -f "$FULL_DIR/lib/main.dart" ] || grep -q "flutter:" "$PUBSPEC" 2>/dev/null; then
                 if command -v flutter &> /dev/null; then
-                    (cd "$APP_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+                    (cd "$FULL_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
                 else
-                    (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+                    (cd "$FULL_DIR" && dart pub get) > /dev/null 2>&1 || true
                 fi
             else
-                # Pure Dart project
-                (cd "$APP_DIR" && dart pub get) > /dev/null 2>&1 || true
+                (cd "$FULL_DIR" && dart pub get) > /dev/null 2>&1 || true
             fi
-        fi
-    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+        done <<< "$AFFECTED_APP_DIRS"
+        echo -e "${GREEN}Dependencies resolved${NC}"
+    else
+        echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
+    fi
+    echo ""
 
-    echo -e "${GREEN}Dependencies resolved${NC}"
-else
-    echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
-fi
+    # -------------------------------------------------
+    # 5.2. Dart Format Check
+    # -------------------------------------------------
+    echo -e "${BLUE}Checking Dart formatting...${NC}"
+    echo ""
 
-echo ""
+    if command -v dart &> /dev/null; then
+        DART_FORMAT_FAILED=false
 
-# =====================================================
-# 5.1. Dart Format Check
-# =====================================================
-# Verify ALL dart files in apps/ are properly formatted
-
-echo -e "${BLUE}Checking Dart formatting...${NC}"
-echo ""
-
-# Check if dart is available
-if command -v dart &> /dev/null; then
-    DART_FORMAT_FAILED=false
-
-    # Find all pubspec.yaml files in apps/ (including nested packages)
-    while IFS= read -r pubspec; do
-        if [ -f "$pubspec" ]; then
-            APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+        while IFS= read -r app_dir; do
+            FULL_DIR="$REPO_ROOT/$app_dir"
+            APP_NAME=${app_dir#apps/}
 
             echo "  Checking $APP_NAME..."
 
-            # Run dart format check on the entire app
-            if ! (cd "$APP_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
+            if ! (cd "$FULL_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
                 DART_FORMAT_FAILED=true
                 echo ""
                 echo -e "${RED}  ❌ $APP_NAME has unformatted Dart files${NC}"
@@ -327,50 +374,42 @@ if command -v dart &> /dev/null; then
             else
                 echo -e "${GREEN}  ✅ $APP_NAME formatting OK${NC}"
             fi
+        done <<< "$AFFECTED_APP_DIRS"
+
+        if [ "$DART_FORMAT_FAILED" = true ]; then
+            VALIDATION_FAILED=true
+            echo ""
+            echo -e "${RED}Dart format check failed!${NC}"
+            echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
+            echo ""
+        else
+            echo ""
+            echo -e "${GREEN}Dart format check passed!${NC}"
         fi
-    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
-
-    if [ "$DART_FORMAT_FAILED" = true ]; then
-        VALIDATION_FAILED=true
-        echo ""
-        echo -e "${RED}Dart format check failed!${NC}"
-        echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
-        echo ""
     else
+        echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
+        echo -e "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
         echo ""
-        echo -e "${GREEN}Dart format check passed!${NC}"
+        VALIDATION_FAILED=true
     fi
-else
-    echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
-    echo -e "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
     echo ""
-    VALIDATION_FAILED=true
-fi
 
-echo ""
+    # -------------------------------------------------
+    # 5.3. Dart Analyze Check
+    # -------------------------------------------------
+    echo -e "${BLUE}Running Dart static analysis...${NC}"
+    echo ""
 
-# =====================================================
-# 5.2. Dart Analyze Check
-# =====================================================
-# Verify ALL dart code in apps/ passes dart analyze --fatal-infos
+    if command -v dart &> /dev/null; then
+        DART_ANALYZE_FAILED=false
 
-echo -e "${BLUE}Running Dart static analysis...${NC}"
-echo ""
-
-# Check if dart is available
-if command -v dart &> /dev/null; then
-    DART_ANALYZE_FAILED=false
-
-    # Find all pubspec.yaml files in apps/ (including nested packages)
-    while IFS= read -r pubspec; do
-        if [ -f "$pubspec" ]; then
-            APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+        while IFS= read -r app_dir; do
+            FULL_DIR="$REPO_ROOT/$app_dir"
+            APP_NAME=${app_dir#apps/}
 
             echo "  Analyzing $APP_NAME..."
 
-            # Run dart analyze with fatal-infos (even info-level issues fail)
-            if ! (cd "$APP_DIR" && dart analyze --fatal-infos 2>&1); then
+            if ! (cd "$FULL_DIR" && dart analyze --fatal-infos 2>&1); then
                 DART_ANALYZE_FAILED=true
                 echo ""
                 echo -e "${RED}  ❌ $APP_NAME has analysis issues${NC}"
@@ -378,26 +417,25 @@ if command -v dart &> /dev/null; then
             else
                 echo -e "${GREEN}  ✅ $APP_NAME analysis OK${NC}"
             fi
+        done <<< "$AFFECTED_APP_DIRS"
+
+        if [ "$DART_ANALYZE_FAILED" = true ]; then
+            VALIDATION_FAILED=true
+            echo ""
+            echo -e "${RED}Dart analyze check failed!${NC}"
+            echo -e "${RED}Fix all analysis issues (including infos) before pushing.${NC}"
+            echo ""
+        else
+            echo ""
+            echo -e "${GREEN}Dart analyze check passed!${NC}"
         fi
-    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
-
-    if [ "$DART_ANALYZE_FAILED" = true ]; then
-        VALIDATION_FAILED=true
-        echo ""
-        echo -e "${RED}Dart analyze check failed!${NC}"
-        echo -e "${RED}Fix all analysis issues (including infos) before pushing.${NC}"
-        echo ""
     else
+        echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
         echo ""
-        echo -e "${GREEN}Dart analyze check passed!${NC}"
+        VALIDATION_FAILED=true
     fi
-else
-    echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
     echo ""
-    VALIDATION_FAILED=true
 fi
-
-echo ""
 
 # =====================================================
 # 6. Auto-Discover and Execute Plugin Pre-Push Hooks
@@ -435,13 +473,6 @@ fi
 
 echo -e "${BLUE}Running test suites...${NC}"
 echo ""
-
-# Find changed files and determine which app directories are affected
-if [ -n "$REMOTE_BRANCH" ]; then
-    CHANGED_FILES=$(git diff --name-only "$REMOTE_BRANCH"...HEAD 2>/dev/null || true)
-else
-    CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
-fi
 
 # Find unique app directories with test.sh scripts
 # Walk up from each changed file to find the nearest tool/test.sh
