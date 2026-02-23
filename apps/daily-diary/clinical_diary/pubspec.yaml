@@ -33,6 +33,7 @@ dependencies:
   package_info_plus: ^9.0.0
   pdfx: ^2.9.2
   shared_preferences: ^2.5.3
+  flutter_svg: ^2.2.3
   sugar: ^4.0.0
   table_calendar: ^3.2.0
   url_launcher: ^6.3.2
@@ -64,6 +65,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/svgs/
     - assets/licenses/
 
   fonts:

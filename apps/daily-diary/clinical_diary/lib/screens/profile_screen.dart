@@ -4,6 +4,7 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
 /// User profile screen with enrollment status, data sharing, and settings
@@ -25,6 +26,7 @@ class ProfileScreen extends StatefulWidget {
     this.enrollmentEndDateTime,
     this.siteName,
     this.sitePhoneNumber,
+    this.sponsorLogo,
     super.key,
   });
 
@@ -44,6 +46,7 @@ class ProfileScreen extends StatefulWidget {
   final ValueChanged<String> onUpdateUserName;
   final String? siteName;
   final String? sitePhoneNumber;
+  final String? sponsorLogo;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -242,9 +245,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
 
                       // 3. REQ-CAL-p00076: Participation Status Badge or Enroll Button
-                      if (widget.isEnrolledInTrial || widget.isDisconnected)
-                        _buildParticipationStatusBadge(theme, l10n)
-                      else
+                      if (!(widget.isEnrolledInTrial ||
+                          widget.isDisconnected)) ...[
                         OutlinedButton.icon(
                           onPressed: widget.onStartClinicalTrialEnrollment,
                           icon: const Icon(Icons.description, size: 20),
@@ -254,7 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
+                      ],
 
                       // 4. Data Sharing Section
                       if (widget.isSharingWithCureHHT)
@@ -273,6 +276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
+                      const SizedBox(height: 24),
+                      if (widget.isEnrolledInTrial || widget.isDisconnected)
+                        _buildParticipationStatusBadge(theme, l10n),
                     ],
                   ),
                 ),
@@ -322,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       iconColor = Colors.green.shade700;
       textColor = Colors.green.shade900;
       subtextColor = Colors.green.shade700;
-      statusIcon = Icons.check_circle;
+      statusIcon = Icons.check;
       statusText = l10n.participationStatusActive;
       statusMessage = l10n.participationStatusActiveMessage;
     } else {
@@ -338,108 +344,140 @@ class _ProfileScreenState extends State<ProfileScreen> {
       statusMessage = l10n.participationStatusNotParticipatingMessage;
     }
 
-    return Card(
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderColor, width: isDisconnected ? 2 : 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            // Sponsor logo placeholder
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                shape: BoxShape.circle,
+            SvgPicture.asset('assets/svgs/users.svg'),
+
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.clinicalTrialLabel,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(Icons.science, size: 28, color: iconColor),
             ),
-            const SizedBox(height: 12),
-
-            // Status header row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(statusIcon, size: 20, color: iconColor),
-                const SizedBox(width: 8),
-                Text(
-                  statusText,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Status message
-            Text(
-              statusMessage,
-              style: theme.textTheme.bodySmall?.copyWith(color: subtextColor),
-              textAlign: TextAlign.center,
-            ),
-
-            // Enrollment details (if enrolled)
-            if (widget.isEnrolledInTrial) ...[
-              const SizedBox(height: 12),
-              if (widget.enrollmentCode != null)
-                Text(
-                  l10n.linkingCode(
-                    _formatEnrollmentCode(widget.enrollmentCode!),
-                  ),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: subtextColor,
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                  ),
-                ),
-              if (widget.enrollmentDateTime != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  l10n.joinedDate(
-                    _formatEnrollmentDateTime(widget.enrollmentDateTime!),
-                  ),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: subtextColor,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ],
-
-            // Reconnect button for disconnected state
-            if (isDisconnected) ...[
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: widget.onStartClinicalTrialEnrollment,
-                icon: const Icon(Icons.link, size: 18),
-                label: Text(l10n.enterNewLinkingCode),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade600,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 44),
-                ),
-              ),
-              if (widget.siteName != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  l10n.contactYourSiteWithName(widget.siteName!),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: subtextColor,
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ],
           ],
         ),
-      ),
+        const SizedBox(height: 10),
+        Card(
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: borderColor, width: isDisconnected ? 2 : 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Sponsor logo placeholder
+                if (widget.sponsorLogo != null)
+                  Image.network(widget.sponsorLogo!, height: 40, width: 120)
+                else
+                  Image.asset(
+                    'assets/images/generic_company_logo.png',
+                    height: 40,
+                    width: 120,
+                  ),
+                const SizedBox(height: 12),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  children: [
+                    Container(
+                      height: 40,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: borderColor,
+                      ),
+                      child: Icon(statusIcon, color: iconColor),
+                    ),
+                    const SizedBox(width: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          statusMessage,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: subtextColor,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        // Enrollment details (if enrolled)
+                        if (widget.isEnrolledInTrial) ...[
+                          const SizedBox(height: 5),
+                          if (widget.enrollmentCode != null)
+                            Text(
+                              l10n.linkingCode(
+                                _formatEnrollmentCode(widget.enrollmentCode!),
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: subtextColor,
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
+                            ),
+                          if (widget.enrollmentDateTime != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.joinedDate(
+                                _formatEnrollmentDateTime(
+                                  widget.enrollmentDateTime!,
+                                ),
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: subtextColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ],
+
+                        // Reconnect button for disconnected state
+                        if (isDisconnected) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: widget.onStartClinicalTrialEnrollment,
+                            icon: const Icon(Icons.link, size: 18),
+                            label: Text(l10n.enterNewLinkingCode),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade600,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 44),
+                            ),
+                          ),
+                          if (widget.siteName != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.contactYourSiteWithName(widget.siteName!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: subtextColor,
+                                fontSize: 11,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+                // Status message
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
