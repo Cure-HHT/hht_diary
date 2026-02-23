@@ -47,7 +47,7 @@
     "anspar-cc-plugins": {
       "source": {
         "source": "directory",
-        "path": "/home/metagamer/anspar-wf/plugins"
+        "path": "~/.local/share/anspar-wf/plugins"
       },
       "version": "2.0.0"
     }

@@ -32,6 +32,18 @@ set -e
 # =====================================================
 ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
 
+# Portable version comparison: returns 0 (true) if $1 < $2
+_ver_lt() {
+    local IFS=.
+    local i a=($1) b=($2)
+    for ((i=0; i<${#b[@]}; i++)); do
+        [[ -z "${a[i]}" ]] && a[i]=0
+        if ((10#${a[i]} < 10#${b[i]})); then return 0; fi
+        if ((10#${a[i]} > 10#${b[i]})); then return 1; fi
+    done
+    return 1
+}
+
 # Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -44,7 +56,7 @@ CURRENT_BRANCH=$(git branch --show-current)
 
 # Skip validation for main/master branches (they should only receive validated PRs)
 if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
-    echo -e "${BLUE}Skipping pre-push validation for protected branch '$CURRENT_BRANCH'${NC}"
+    printf '%b\n' "${BLUE}Skipping pre-push validation for protected branch '$CURRENT_BRANCH'${NC}"
     exit 0
 fi
 
@@ -75,8 +87,8 @@ if command -v gh &> /dev/null; then
         fi
     fi
 else
-    echo -e "${YELLOW}WARNING: gh CLI not installed - cannot detect PR status${NC}"
-    echo -e "${YELLOW}         Install: https://cli.github.com/${NC}"
+    printf '%b\n' "${YELLOW}WARNING: gh CLI not installed - cannot detect PR status${NC}"
+    printf '%b\n' "${YELLOW}         Install: https://cli.github.com/${NC}"
     echo ""
 fi
 
@@ -92,22 +104,22 @@ fi
 # =====================================================
 
 echo ""
-echo -e "${BLUE}======================================${NC}"
-echo -e "${BLUE}  Pre-Push Validation${NC}"
-echo -e "${BLUE}======================================${NC}"
+printf '%b\n' "${BLUE}======================================${NC}"
+printf '%b\n' "${BLUE}  Pre-Push Validation${NC}"
+printf '%b\n' "${BLUE}======================================${NC}"
 echo ""
 
 if [ "$SHOULD_BLOCK" = true ]; then
     if [ "$HAS_PR" = true ]; then
-        echo -e "${BLUE}Branch '$CURRENT_BRANCH' has open PR:${NC}"
-        echo -e "${BLUE}  $PR_URL${NC}"
+        printf '%b\n' "${BLUE}Branch '$CURRENT_BRANCH' has open PR:${NC}"
+        printf '%b\n' "${BLUE}  $PR_URL${NC}"
     elif [ "$IS_PR_INTENDED_BRANCH" = true ]; then
-        echo -e "${BLUE}Branch '$CURRENT_BRANCH' is a PR-intended branch (feature/fix/release).${NC}"
+        printf '%b\n' "${BLUE}Branch '$CURRENT_BRANCH' is a PR-intended branch (feature/fix/release).${NC}"
     fi
-    echo -e "${RED}Validation failures will BLOCK this push.${NC}"
+    printf '%b\n' "${RED}Validation failures will BLOCK this push.${NC}"
 else
-    echo -e "${YELLOW}Branch '$CURRENT_BRANCH' has no open PR.${NC}"
-    echo -e "${YELLOW}Validation failures will show warnings only.${NC}"
+    printf '%b\n' "${YELLOW}Branch '$CURRENT_BRANCH' has no open PR.${NC}"
+    printf '%b\n' "${YELLOW}Validation failures will show warnings only.${NC}"
 fi
 echo ""
 
@@ -133,8 +145,8 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     if command -v elspais &> /dev/null; then
         INSTALLED_ELSPAIS=$(elspais --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ -n "$INSTALLED_ELSPAIS" ]; then
-            if [ "$(printf '%s\n%s\n' "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION" | sort -V | head -n1)" != "$ELSPAIS_VERSION" ]; then
-                echo -e "${RED}ERROR: elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION${NC}"
+            if _ver_lt "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION"; then
+                printf '%b\n' "${RED}ERROR: elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION${NC}"
                 echo ""
                 echo "   Update with one of:"
                 echo "     pip install --upgrade elspais"
@@ -145,7 +157,7 @@ if [ -n "$ELSPAIS_VERSION" ]; then
             fi
         fi
     else
-        echo -e "${RED}ERROR: elspais is not installed (required: >= $ELSPAIS_VERSION)${NC}"
+        printf '%b\n' "${RED}ERROR: elspais is not installed (required: >= $ELSPAIS_VERSION)${NC}"
         echo ""
         echo "   Install with one of:"
         echo "     pip install elspais"
@@ -157,7 +169,7 @@ if [ -n "$ELSPAIS_VERSION" ]; then
 fi
 
 # Run elspais validate (REQ format and links)
-echo -e "${BLUE}Running requirement validation...${NC}"
+printf '%b\n' "${BLUE}Running requirement validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
@@ -169,14 +181,14 @@ if command -v elspais &> /dev/null; then
         echo "$OUTPUT"
     fi
 else
-    echo -e "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
+    printf '%b\n' "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
     VALIDATION_FAILED=true
 fi
 
 echo ""
 
 # Run elspais index validate (INDEX.md accuracy)
-echo -e "${BLUE}Running INDEX.md validation...${NC}"
+printf '%b\n' "${BLUE}Running INDEX.md validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
@@ -188,7 +200,7 @@ if command -v elspais &> /dev/null; then
         echo "$OUTPUT"
     fi
 else
-    echo -e "${RED}ERROR: elspais not installed - INDEX.md validation is required${NC}"
+    printf '%b\n' "${RED}ERROR: elspais not installed - INDEX.md validation is required${NC}"
     VALIDATION_FAILED=true
 fi
 
@@ -217,7 +229,7 @@ else
 fi
 
 if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
-    echo -e "${BLUE}Running markdown linting...${NC}"
+    printf '%b\n' "${BLUE}Running markdown linting...${NC}"
     echo ""
 
     # Check if markdownlint-cli is installed
@@ -241,19 +253,19 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
             if [ $MARKDOWNLINT_FAILED -eq 1 ]; then
                 VALIDATION_FAILED=true
                 echo ""
-                echo -e "${RED}Markdown linting failed!${NC}"
+                printf '%b\n' "${RED}Markdown linting failed!${NC}"
                 echo ""
             else
-                echo -e "${GREEN}Markdown linting passed!${NC}"
+                printf '%b\n' "${GREEN}Markdown linting passed!${NC}"
             fi
         fi
     else
-        echo -e "${YELLOW}WARNING: markdownlint not installed - skipping markdown linting${NC}"
-        echo -e "${YELLOW}         Install: npm install -g markdownlint-cli@${MARKDOWNLINT_CLI_VERSION:-latest}${NC}"
+        printf '%b\n' "${YELLOW}WARNING: markdownlint not installed - skipping markdown linting${NC}"
+        printf '%b\n' "${YELLOW}         Install: npm install -g markdownlint-cli@${MARKDOWNLINT_CLI_VERSION:-latest}${NC}"
     fi
     echo ""
 else
-    echo -e "${BLUE}No markdown files changed - skipping markdown linting${NC}"
+    printf '%b\n' "${BLUE}No markdown files changed - skipping markdown linting${NC}"
     echo ""
 fi
 
@@ -261,7 +273,7 @@ fi
 # 4. Secret Detection (Gitleaks)
 # =====================================================
 
-echo -e "${BLUE}Running secret detection...${NC}"
+printf '%b\n' "${BLUE}Running secret detection...${NC}"
 echo ""
 
 if command -v gitleaks &> /dev/null; then
@@ -271,26 +283,26 @@ if command -v gitleaks &> /dev/null; then
         if ! gitleaks detect --source="$REPO_ROOT" --log-opts="$REMOTE_BRANCH..HEAD" --no-banner --redact 2>&1; then
             VALIDATION_FAILED=true
             echo ""
-            echo -e "${RED}Gitleaks detected secrets!${NC}"
-            echo -e "${RED}Remove secrets before pushing.${NC}"
+            printf '%b\n' "${RED}Gitleaks detected secrets!${NC}"
+            printf '%b\n' "${RED}Remove secrets before pushing.${NC}"
             echo ""
         else
-            echo -e "${GREEN}No secrets detected!${NC}"
+            printf '%b\n' "${GREEN}No secrets detected!${NC}"
         fi
     else
         # No remote - scan the whole repo
         if ! gitleaks detect --source="$REPO_ROOT" --no-banner --redact 2>&1; then
             VALIDATION_FAILED=true
             echo ""
-            echo -e "${RED}Gitleaks detected secrets!${NC}"
+            printf '%b\n' "${RED}Gitleaks detected secrets!${NC}"
             echo ""
         else
-            echo -e "${GREEN}No secrets detected!${NC}"
+            printf '%b\n' "${GREEN}No secrets detected!${NC}"
         fi
     fi
 else
-    echo -e "${RED}ERROR: gitleaks not installed - secret detection is required${NC}"
-    echo -e "${RED}       Install: https://github.com/gitleaks/gitleaks#installing${NC}"
+    printf '%b\n' "${RED}ERROR: gitleaks not installed - secret detection is required${NC}"
+    printf '%b\n' "${RED}       Install: https://github.com/gitleaks/gitleaks#installing${NC}"
     echo ""
     VALIDATION_FAILED=true
 fi
@@ -314,7 +326,7 @@ while IFS= read -r changed_file; do
         DIR="$REPO_ROOT/$(dirname "$changed_file")"
         while [[ "$DIR" == "$REPO_ROOT/apps"* ]] && [ "$DIR" != "$REPO_ROOT/apps" ]; do
             if [ -f "$DIR/pubspec.yaml" ]; then
-                REL_DIR=${DIR#$REPO_ROOT/}
+                REL_DIR=${DIR#"$REPO_ROOT"/}
                 if ! echo "$AFFECTED_APP_DIRS" | grep -q "^$REL_DIR$"; then
                     AFFECTED_APP_DIRS="$AFFECTED_APP_DIRS
 $REL_DIR"
@@ -328,13 +340,13 @@ done <<< "$CHANGED_FILES"
 AFFECTED_APP_DIRS=$(echo "$AFFECTED_APP_DIRS" | sed '/^$/d')
 
 if [ -z "$AFFECTED_APP_DIRS" ]; then
-    echo -e "${BLUE}No Dart files changed - skipping pub get, format, and analyze${NC}"
+    printf '%b\n' "${BLUE}No Dart files changed - skipping pub get, format, and analyze${NC}"
     echo ""
 else
     # -------------------------------------------------
     # 5.1. Dart Pub Get (dependency resolution)
     # -------------------------------------------------
-    echo -e "${BLUE}Resolving Dart dependencies for affected apps...${NC}"
+    printf '%b\n' "${BLUE}Resolving Dart dependencies for affected apps...${NC}"
     echo ""
 
     if command -v dart &> /dev/null; then
@@ -355,16 +367,16 @@ else
                 (cd "$FULL_DIR" && dart pub get) > /dev/null 2>&1 || true
             fi
         done <<< "$AFFECTED_APP_DIRS"
-        echo -e "${GREEN}Dependencies resolved${NC}"
+        printf '%b\n' "${GREEN}Dependencies resolved${NC}"
     else
-        echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
+        printf '%b\n' "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
     fi
     echo ""
 
     # -------------------------------------------------
     # 5.2. Dart Format Check
     # -------------------------------------------------
-    echo -e "${BLUE}Checking Dart formatting...${NC}"
+    printf '%b\n' "${BLUE}Checking Dart formatting...${NC}"
     echo ""
 
     if command -v dart &> /dev/null; then
@@ -379,26 +391,26 @@ else
             if ! (cd "$FULL_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
                 DART_FORMAT_FAILED=true
                 echo ""
-                echo -e "${RED}  ❌ $APP_NAME has unformatted Dart files${NC}"
+                printf '%b\n' "${RED}  ❌ $APP_NAME has unformatted Dart files${NC}"
                 echo ""
             else
-                echo -e "${GREEN}  ✅ $APP_NAME formatting OK${NC}"
+                printf '%b\n' "${GREEN}  ✅ $APP_NAME formatting OK${NC}"
             fi
         done <<< "$AFFECTED_APP_DIRS"
 
         if [ "$DART_FORMAT_FAILED" = true ]; then
             VALIDATION_FAILED=true
             echo ""
-            echo -e "${RED}Dart format check failed!${NC}"
-            echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
+            printf '%b\n' "${RED}Dart format check failed!${NC}"
+            printf '%b\n' "${RED}Run 'dart format .' in the affected app directories.${NC}"
             echo ""
         else
             echo ""
-            echo -e "${GREEN}Dart format check passed!${NC}"
+            printf '%b\n' "${GREEN}Dart format check passed!${NC}"
         fi
     else
-        echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
-        echo -e "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
+        printf '%b\n' "${RED}ERROR: dart not installed - Dart format check is required${NC}"
+        printf '%b\n' "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
         echo ""
         VALIDATION_FAILED=true
     fi
@@ -407,7 +419,7 @@ else
     # -------------------------------------------------
     # 5.3. Dart Analyze Check
     # -------------------------------------------------
-    echo -e "${BLUE}Running Dart static analysis...${NC}"
+    printf '%b\n' "${BLUE}Running Dart static analysis...${NC}"
     echo ""
 
     if command -v dart &> /dev/null; then
@@ -422,25 +434,25 @@ else
             if ! (cd "$FULL_DIR" && dart analyze --fatal-infos 2>&1); then
                 DART_ANALYZE_FAILED=true
                 echo ""
-                echo -e "${RED}  ❌ $APP_NAME has analysis issues${NC}"
+                printf '%b\n' "${RED}  ❌ $APP_NAME has analysis issues${NC}"
                 echo ""
             else
-                echo -e "${GREEN}  ✅ $APP_NAME analysis OK${NC}"
+                printf '%b\n' "${GREEN}  ✅ $APP_NAME analysis OK${NC}"
             fi
         done <<< "$AFFECTED_APP_DIRS"
 
         if [ "$DART_ANALYZE_FAILED" = true ]; then
             VALIDATION_FAILED=true
             echo ""
-            echo -e "${RED}Dart analyze check failed!${NC}"
-            echo -e "${RED}Fix all analysis issues (including infos) before pushing.${NC}"
+            printf '%b\n' "${RED}Dart analyze check failed!${NC}"
+            printf '%b\n' "${RED}Fix all analysis issues (including infos) before pushing.${NC}"
             echo ""
         else
             echo ""
-            echo -e "${GREEN}Dart analyze check passed!${NC}"
+            printf '%b\n' "${GREEN}Dart analyze check passed!${NC}"
         fi
     else
-        echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
+        printf '%b\n' "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
         echo ""
         VALIDATION_FAILED=true
     fi
@@ -463,10 +475,10 @@ if [ -d "$PLUGIN_DIR" ]; then
 
             # Execute the hook if it's executable
             if [ -x "$hook" ]; then
-                echo -e "${BLUE}Running plugin hook: $PLUGIN_NAME${NC}"
+                printf '%b\n' "${BLUE}Running plugin hook: $PLUGIN_NAME${NC}"
                 if ! "$hook"; then
                     VALIDATION_FAILED=true
-                    echo -e "${RED}Plugin hook failed: $PLUGIN_NAME${NC}"
+                    printf '%b\n' "${RED}Plugin hook failed: $PLUGIN_NAME${NC}"
                 fi
             fi
         done <<< "$PLUGIN_HOOKS"
@@ -487,7 +499,7 @@ source "$HOOK_DIR/project-defs.sh"
 # a source change in a dependency also triggers tests in dependents.
 # e.g., a .dart change in trial_data_types runs clinical_diary tests.
 
-echo -e "${BLUE}Running test suites...${NC}"
+printf '%b\n' "${BLUE}Running test suites...${NC}"
 echo ""
 
 # Find projects whose trigger paths have source file changes
@@ -527,7 +539,7 @@ TEST_DIRS=$(echo "$TEST_DIRS" | sed '/^$/d')
 if [ -n "$TEST_DIRS" ]; then
     while IFS= read -r app_dir; do
         TEST_SCRIPT="$REPO_ROOT/$app_dir/tool/test.sh"
-        echo -e "${BLUE}Running tests for: $app_dir${NC}"
+        printf '%b\n' "${BLUE}Running tests for: $app_dir${NC}"
         echo ""
 
         # Resolve dependencies before running tests
@@ -544,16 +556,16 @@ if [ -n "$TEST_DIRS" ]; then
         if ! "$TEST_SCRIPT" -u; then
             VALIDATION_FAILED=true
             echo ""
-            echo -e "${RED}Tests failed in $app_dir${NC}"
+            printf '%b\n' "${RED}Tests failed in $app_dir${NC}"
             echo ""
         else
             echo ""
-            echo -e "${GREEN}Tests passed in $app_dir${NC}"
+            printf '%b\n' "${GREEN}Tests passed in $app_dir${NC}"
             echo ""
         fi
     done <<< "$TEST_DIRS"
 else
-    echo -e "${BLUE}No app directories with test.sh affected by changes${NC}"
+    printf '%b\n' "${BLUE}No app directories with test.sh affected by changes${NC}"
     echo ""
 fi
 
@@ -562,22 +574,22 @@ fi
 # =====================================================
 
 echo ""
-echo -e "${BLUE}======================================${NC}"
-echo -e "${BLUE}  Validation Summary${NC}"
-echo -e "${BLUE}======================================${NC}"
+printf '%b\n' "${BLUE}======================================${NC}"
+printf '%b\n' "${BLUE}  Validation Summary${NC}"
+printf '%b\n' "${BLUE}======================================${NC}"
 echo ""
 
 if [ "$VALIDATION_FAILED" = true ]; then
     if [ "$SHOULD_BLOCK" = true ]; then
         # PR exists or PR-intended branch - BLOCK the push
-        echo -e "${RED}VALIDATION FAILED${NC}"
+        printf '%b\n' "${RED}VALIDATION FAILED${NC}"
         echo ""
         if [ "$HAS_PR" = true ]; then
-            echo -e "${RED}Push BLOCKED because branch has an open PR.${NC}"
+            printf '%b\n' "${RED}Push BLOCKED because branch has an open PR.${NC}"
         elif [ "$IS_PR_INTENDED_BRANCH" = true ]; then
-            echo -e "${RED}Push BLOCKED because this is a PR-intended branch (feature/fix/release).${NC}"
+            printf '%b\n' "${RED}Push BLOCKED because this is a PR-intended branch (feature/fix/release).${NC}"
         fi
-        echo -e "${RED}PR branches must pass all validations.${NC}"
+        printf '%b\n' "${RED}PR branches must pass all validations.${NC}"
         echo ""
         echo "To fix:"
         echo "  1. Review the validation errors above"
@@ -585,21 +597,21 @@ if [ "$VALIDATION_FAILED" = true ]; then
         echo "  3. Commit the fixes"
         echo "  4. Push again"
         echo ""
-        echo -e "${YELLOW}To bypass (NOT RECOMMENDED):${NC}"
+        printf '%b\n' "${YELLOW}To bypass (NOT RECOMMENDED):${NC}"
         echo "  git push --no-verify"
         echo ""
         exit 1
     else
         # No PR and not a PR-intended branch - warn but allow push
-        echo -e "${YELLOW}VALIDATION FAILED (warnings only)${NC}"
+        printf '%b\n' "${YELLOW}VALIDATION FAILED (warnings only)${NC}"
         echo ""
-        echo -e "${YELLOW}Push ALLOWED because branch has no open PR.${NC}"
-        echo -e "${YELLOW}Fix these issues before creating a PR.${NC}"
+        printf '%b\n' "${YELLOW}Push ALLOWED because branch has no open PR.${NC}"
+        printf '%b\n' "${YELLOW}Fix these issues before creating a PR.${NC}"
         echo ""
         exit 0
     fi
 else
-    echo -e "${GREEN}ALL VALIDATIONS PASSED${NC}"
+    printf '%b\n' "${GREEN}ALL VALIDATIONS PASSED${NC}"
     echo ""
     exit 0
 fi

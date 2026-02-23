@@ -16,18 +16,18 @@
 # INDEX.md Validation
 # =====================================================
 
-echo -e "${BLUE}Running INDEX.md validation...${NC}"
+printf '%b\n' "${BLUE}Running INDEX.md validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
     if ! elspais index --mode core validate 2>&1; then
         VALIDATION_FAILED=true
-        echo -e "${RED}INDEX.md validation failed!${NC}"
+        printf '%b\n' "${RED}INDEX.md validation failed!${NC}"
     else
-        echo -e "${GREEN}INDEX.md validation passed!${NC}"
+        printf '%b\n' "${GREEN}INDEX.md validation passed!${NC}"
     fi
 else
-    echo -e "${YELLOW}WARNING: elspais not installed - skipping INDEX.md validation${NC}"
+    printf '%b\n' "${YELLOW}WARNING: elspais not installed - skipping INDEX.md validation${NC}"
 fi
 echo ""
 
@@ -44,14 +44,14 @@ unset GIT_DIR GIT_WORK_TREE
 # Dart: Dependency Resolution (pub get)
 # =====================================================
 
-echo -e "${BLUE}Resolving Dart dependencies...${NC}"
+printf '%b\n' "${BLUE}Resolving Dart dependencies...${NC}"
 echo ""
 
 if command -v dart &> /dev/null; then
     while IFS= read -r pubspec; do
         if [ -f "$pubspec" ]; then
             APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+            APP_NAME=${APP_DIR#"$REPO_ROOT"/apps/}
 
             echo "  Getting dependencies for $APP_NAME..."
 
@@ -67,9 +67,9 @@ if command -v dart &> /dev/null; then
         fi
     done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
 
-    echo -e "${GREEN}Dependencies resolved${NC}"
+    printf '%b\n' "${GREEN}Dependencies resolved${NC}"
 else
-    echo -e "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
+    printf '%b\n' "${YELLOW}WARNING: dart not available - skipping dependency resolution${NC}"
 fi
 echo ""
 
@@ -77,7 +77,7 @@ echo ""
 # Dart: Format Check (all apps)
 # =====================================================
 
-echo -e "${BLUE}Checking Dart formatting...${NC}"
+printf '%b\n' "${BLUE}Checking Dart formatting...${NC}"
 echo ""
 
 if command -v dart &> /dev/null; then
@@ -86,28 +86,28 @@ if command -v dart &> /dev/null; then
     while IFS= read -r pubspec; do
         if [ -f "$pubspec" ]; then
             APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+            APP_NAME=${APP_DIR#"$REPO_ROOT"/apps/}
 
             echo "  Checking $APP_NAME..."
 
             if ! (cd "$APP_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
                 DART_FORMAT_FAILED=true
-                echo -e "${RED}  $APP_NAME has unformatted Dart files${NC}"
+                printf '%b\n' "${RED}  $APP_NAME has unformatted Dart files${NC}"
             else
-                echo -e "${GREEN}  $APP_NAME formatting OK${NC}"
+                printf '%b\n' "${GREEN}  $APP_NAME formatting OK${NC}"
             fi
         fi
     done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
 
     if [ "$DART_FORMAT_FAILED" = true ]; then
         VALIDATION_FAILED=true
-        echo -e "${RED}Dart format check failed!${NC}"
-        echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
+        printf '%b\n' "${RED}Dart format check failed!${NC}"
+        printf '%b\n' "${RED}Run 'dart format .' in the affected app directories.${NC}"
     else
-        echo -e "${GREEN}Dart format check passed!${NC}"
+        printf '%b\n' "${GREEN}Dart format check passed!${NC}"
     fi
 else
-    echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
+    printf '%b\n' "${RED}ERROR: dart not installed - Dart format check is required${NC}"
     VALIDATION_FAILED=true
 fi
 echo ""
@@ -116,7 +116,7 @@ echo ""
 # Dart: Static Analysis (all apps)
 # =====================================================
 
-echo -e "${BLUE}Running Dart static analysis...${NC}"
+printf '%b\n' "${BLUE}Running Dart static analysis...${NC}"
 echo ""
 
 if command -v dart &> /dev/null; then
@@ -125,27 +125,27 @@ if command -v dart &> /dev/null; then
     while IFS= read -r pubspec; do
         if [ -f "$pubspec" ]; then
             APP_DIR=$(dirname "$pubspec")
-            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+            APP_NAME=${APP_DIR#"$REPO_ROOT"/apps/}
 
             echo "  Analyzing $APP_NAME..."
 
             if ! (cd "$APP_DIR" && dart analyze --fatal-infos 2>&1); then
                 DART_ANALYZE_FAILED=true
-                echo -e "${RED}  $APP_NAME has analysis issues${NC}"
+                printf '%b\n' "${RED}  $APP_NAME has analysis issues${NC}"
             else
-                echo -e "${GREEN}  $APP_NAME analysis OK${NC}"
+                printf '%b\n' "${GREEN}  $APP_NAME analysis OK${NC}"
             fi
         fi
     done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
 
     if [ "$DART_ANALYZE_FAILED" = true ]; then
         VALIDATION_FAILED=true
-        echo -e "${RED}Dart analyze check failed!${NC}"
+        printf '%b\n' "${RED}Dart analyze check failed!${NC}"
     else
-        echo -e "${GREEN}Dart analyze check passed!${NC}"
+        printf '%b\n' "${GREEN}Dart analyze check passed!${NC}"
     fi
 else
-    echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
+    printf '%b\n' "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
     VALIDATION_FAILED=true
 fi
 echo ""
@@ -154,7 +154,7 @@ echo ""
 # Test Suites (per-app tool/test.sh)
 # =====================================================
 
-echo -e "${BLUE}Running test suites...${NC}"
+printf '%b\n' "${BLUE}Running test suites...${NC}"
 echo ""
 
 if [ -n "$REMOTE_BRANCH" ]; then
@@ -170,7 +170,7 @@ while IFS= read -r changed_file; do
         while [[ "$DIR" == "$REPO_ROOT/apps"* ]] && [ "$DIR" != "$REPO_ROOT/apps" ]; do
             TEST_SCRIPT="$DIR/tool/test.sh"
             if [ -f "$TEST_SCRIPT" ] && [ -x "$TEST_SCRIPT" ]; then
-                REL_DIR=${DIR#$REPO_ROOT/}
+                REL_DIR=${DIR#"$REPO_ROOT"/}
                 if ! echo "$TEST_DIRS" | grep -q "^$REL_DIR$"; then
                     TEST_DIRS="$TEST_DIRS
 $REL_DIR"
@@ -187,7 +187,7 @@ TEST_DIRS=$(echo "$TEST_DIRS" | sed '/^$/d')
 if [ -n "$TEST_DIRS" ]; then
     while IFS= read -r app_dir; do
         TEST_SCRIPT="$REPO_ROOT/$app_dir/tool/test.sh"
-        echo -e "${BLUE}Running tests for: $app_dir${NC}"
+        printf '%b\n' "${BLUE}Running tests for: $app_dir${NC}"
         echo ""
 
         PUBSPEC_FILE="$REPO_ROOT/$app_dir/pubspec.yaml"
@@ -201,14 +201,14 @@ if [ -n "$TEST_DIRS" ]; then
 
         if ! "$TEST_SCRIPT" -u; then
             VALIDATION_FAILED=true
-            echo -e "${RED}Tests failed in $app_dir${NC}"
+            printf '%b\n' "${RED}Tests failed in $app_dir${NC}"
         else
-            echo -e "${GREEN}Tests passed in $app_dir${NC}"
+            printf '%b\n' "${GREEN}Tests passed in $app_dir${NC}"
         fi
         echo ""
     done <<< "$TEST_DIRS"
 else
-    echo -e "${BLUE}No app directories with test.sh affected by changes${NC}"
+    printf '%b\n' "${BLUE}No app directories with test.sh affected by changes${NC}"
     echo ""
 fi
 
@@ -222,7 +222,7 @@ HEAD_CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
 CLINICAL_DIARY_CHANGED=$(echo "$HEAD_CHANGED_FILES" | grep "^apps/daily-diary/clinical_diary/" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
 
 if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
-    echo -e "${BLUE}Bumping clinical_diary version...${NC}"
+    printf '%b\n' "${BLUE}Bumping clinical_diary version...${NC}"
     echo "  Changed files:"
     echo "$CLINICAL_DIARY_CHANGED" | sed 's/^/    /'
 
@@ -232,18 +232,33 @@ if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
         CURRENT_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
         echo "  Current version: $CURRENT_VERSION"
 
-        (cd "$REPO_ROOT/apps/daily-diary/clinical_diary" && dart pub bump patch)
+        # Extract semver parts (handle both X.Y.Z and X.Y.Z+B formats)
+        SEMVER="${CURRENT_VERSION%%+*}"
+        BUILD_SUFFIX=""
+        if [[ "$CURRENT_VERSION" == *"+"* ]]; then
+            BUILD_SUFFIX="+${CURRENT_VERSION#*+}"
+        fi
+        MAJOR=$(echo "$SEMVER" | cut -d. -f1)
+        MINOR=$(echo "$SEMVER" | cut -d. -f2)
+        PATCH=$(echo "$SEMVER" | cut -d. -f3)
+        NEW_PATCH=$((PATCH + 1))
+        NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}${BUILD_SUFFIX}"
+        # Use portable sed (BSD vs GNU)
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s/^version: .*/version: ${NEW_VERSION}/" "$PUBSPEC"
+        else
+            sed -i '' "s/^version: .*/version: ${NEW_VERSION}/" "$PUBSPEC"
+        fi
 
-        NEW_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
         echo "  New version: $NEW_VERSION"
 
         git add "$PUBSPEC"
         git commit --amend --no-edit --no-verify
 
-        echo -e "${GREEN}Version bumped and commit amended${NC}"
+        printf '%b\n' "${GREEN}Version bumped and commit amended${NC}"
     fi
     echo ""
 else
-    echo -e "${BLUE}No clinical_diary source changes in HEAD commit - skipping version bump${NC}"
+    printf '%b\n' "${BLUE}No clinical_diary source changes in HEAD commit - skipping version bump${NC}"
     echo ""
 fi
