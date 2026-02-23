@@ -49,5 +49,5 @@ Middleware _corsMiddleware() {
 const _corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization, x-active-role',
 };

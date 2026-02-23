@@ -50,6 +50,7 @@ class ApiClient {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'x-active-role': _authService.currentUser?.activeRole.displayName??'',
         },
       );
 
@@ -73,6 +74,7 @@ class ApiClient {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+           'x-active-role': _authService.currentUser?.activeRole.displayName??'',
         },
         body: jsonEncode(body),
       );
