@@ -54,12 +54,18 @@ export DB_PORT="${DB_PORT:-5432}"
 export DB_NAME="${DB_NAME:-sponsor_portal}"
 export DB_USER="${DB_USER:-postgres}"
 
+# Extract component versions for local dev
+PORTAL_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+PORTAL_FUNCTIONS_VERSION=$(grep '^version:' ../portal_functions/pubspec.yaml | sed 's/version: //')
+TRIAL_DATA_TYPES_VERSION=$(grep '^version:' ../../common-dart/trial_data_types/pubspec.yaml | sed 's/version: //')
+VERSION_DEFINES="-DPORTAL_SERVER_VERSION=$PORTAL_SERVER_VERSION -DPORTAL_FUNCTIONS_VERSION=$PORTAL_FUNCTIONS_VERSION -DTRIAL_DATA_TYPES_VERSION=$TRIAL_DATA_TYPES_VERSION"
+
 if [[ "$1" == "--no-doppler" ]]; then
   # Standalone mode - hardcoded dev values (for quick testing)
   echo "Running without Doppler (using hardcoded dev values)..."
   export DB_PASSWORD="${DB_PASSWORD:-devpassword}"
 
-  dart run bin/server.dart
+  dart run $VERSION_DEFINES bin/server.dart
 else
   # Normal mode - use Doppler for DB password
   echo "Running with Doppler..."
@@ -67,5 +73,5 @@ else
   echo "Database: $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME"
 
   # Map Doppler's LOCAL_DB_ROOT_PASSWORD to DB_PASSWORD
-  doppler run --command 'DB_PASSWORD=$LOCAL_DB_ROOT_PASSWORD dart run bin/server.dart'
+  doppler run --command "DB_PASSWORD=\$LOCAL_DB_ROOT_PASSWORD dart run $VERSION_DEFINES bin/server.dart"
 fi

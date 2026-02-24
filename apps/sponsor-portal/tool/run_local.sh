@@ -609,8 +609,18 @@ start_server() {
         log_info "Server using Firebase Emulator: $FIREBASE_AUTH_EMULATOR_HOST"
     fi
 
-    # Start in background
-    dart run bin/server.dart &
+    # Extract component versions for local dev logging
+    local portal_server_ver portal_functions_ver trial_data_types_ver
+    portal_server_ver=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+    portal_functions_ver=$(grep '^version:' ../portal_functions/pubspec.yaml | sed 's/version: //')
+    trial_data_types_ver=$(grep '^version:' ../../common-dart/trial_data_types/pubspec.yaml | sed 's/version: //')
+
+    # Start in background with version defines
+    dart run \
+      -DPORTAL_SERVER_VERSION="$portal_server_ver" \
+      -DPORTAL_FUNCTIONS_VERSION="$portal_functions_ver" \
+      -DTRIAL_DATA_TYPES_VERSION="$trial_data_types_ver" \
+      bin/server.dart &
     SERVER_PID=$!
 
     wait_for_port "localhost" "8080" "Portal Server"

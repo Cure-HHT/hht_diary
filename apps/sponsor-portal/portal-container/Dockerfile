@@ -36,6 +36,7 @@ WORKDIR /app/apps/sponsor-portal/portal-ui
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN flutter pub get && \
     APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
+    echo "$APP_VERSION" > /app/UI_VERSION && \
     flutter build web --release \
       --dart-define=APP_FLAVOR=prod \
       --dart-define=APP_VERSION="$APP_VERSION" \
@@ -59,10 +60,20 @@ COPY --chown=appuser:appuser apps/sponsor-portal/portal_functions /app/apps/spon
 # Copy portal_server package
 COPY --chown=appuser:appuser apps/sponsor-portal/portal_server /app/apps/sponsor-portal/portal_server
 
-# Get dependencies and compile
+# Get dependencies and compile with version info
 WORKDIR /app/apps/sponsor-portal/portal_server
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN dart pub get && \
-    dart compile exe bin/server.dart -o bin/server
+    PORTAL_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
+    PORTAL_FUNCTIONS_VERSION=$(grep '^version:' /app/apps/sponsor-portal/portal_functions/pubspec.yaml | sed 's/version: //') && \
+    TRIAL_DATA_TYPES_VERSION=$(grep '^version:' /app/apps/common-dart/trial_data_types/pubspec.yaml | sed 's/version: //') && \
+    dart compile exe bin/server.dart -o bin/server \
+      -DPORTAL_SERVER_VERSION="$PORTAL_SERVER_VERSION" \
+      -DPORTAL_FUNCTIONS_VERSION="$PORTAL_FUNCTIONS_VERSION" \
+      -DTRIAL_DATA_TYPES_VERSION="$TRIAL_DATA_TYPES_VERSION" && \
+    printf 'portal_server=%s\nportal_functions=%s\ntrial_data_types=%s\n' \
+      "$PORTAL_SERVER_VERSION" "$PORTAL_FUNCTIONS_VERSION" "$TRIAL_DATA_TYPES_VERSION" \
+      > /app/SERVER_VERSIONS
 
 # =============================================================================
 # Stage 3a: Download Doppler CLI
@@ -125,8 +136,10 @@ ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 # Create non-root user with home directory for Doppler config
 RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 
-# Copy Dart server binary
+# Copy Dart server binary and version files
 COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/server
+COPY --from=dart-build /app/SERVER_VERSIONS /app/SERVER_VERSIONS
+COPY --from=flutter-build /app/UI_VERSION /app/UI_VERSION
 
 # Copy Flutter web build
 COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
