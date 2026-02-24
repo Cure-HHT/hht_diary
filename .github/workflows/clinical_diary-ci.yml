@@ -1,8 +1,17 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-o00081: Code Quality and Static Analysis (analyze job)
-#   REQ-o00082: Automated Test Execution (test-clinical-diary job)
+#   REQ-o00081: Code Quality and Static Analysis (analyze step)
+#   REQ-o00082: Automated Test Execution (test-clinical-diary step)
+#   REQ-d00030: CI/CD Environment Parity
+#
+# CI workflow for clinical_diary Flutter desktop app.
+# Uses CI container with pre-installed Flutter, Firebase CLI, lcov,
+# xvfb, dbus, and gnome-keyring for secure storage tests.
 
 name: Clinical Diary CI
+
+permissions:
+  contents: read
+  packages: read
 
 on:
   pull_request:
@@ -10,14 +19,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  changes:
-    name: Detect Changes
+  test:
+    name: Clinical Diary CI
     runs-on: ubuntu-latest
-    outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+    timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v4
-      - name: Check for relevant changes
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant changes
         id: filter
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -31,129 +43,83 @@ jobs:
             echo "relevant=false" >> $GITHUB_OUTPUT
           fi
 
-  analyze:
-    name: Analyze Flutter (Clinical Diary)
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.relevant == 'true'
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/daily-diary/clinical_diary
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Start CI container
+        if: steps.filter.outputs.relevant == 'true'
+        uses: ./.github/actions/start-ci-container
         with:
-          fetch-depth: 0
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Load version pinning
-        id: versions
+      # ---------------------------------------------------------------
+      # Static analysis + formatting
+      # ---------------------------------------------------------------
+      - name: Run Flutter format check
+        if: steps.filter.outputs.relevant == 'true'
+        working-directory: tools/dev-env
         run: |
-          source .github/versions.env
-          echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
-          echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
-        working-directory: ${{ github.workspace }}
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary
+            flutter pub get
+            dart format --output=none --set-exit-if-changed .
+          "
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '${{ steps.versions.outputs.flutter_version }}'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Analyze project source
-        run: flutter analyze --fatal-infos
-
-  test-clinical-diary:
-    name: Test Clinical Diary
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.relevant == 'true'
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/daily-diary/clinical_diary
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Load version pinning
-        id: versions
+      - name: Run Flutter analyze
+        if: steps.filter.outputs.relevant == 'true'
+        working-directory: tools/dev-env
         run: |
-          source .github/versions.env
-          echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
-          echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
-          echo "java_version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
-        working-directory: ${{ github.workspace }}
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary
+            flutter analyze --fatal-infos
+          "
 
-      - name: Install Linux desktop dependencies
+      # ---------------------------------------------------------------
+      # Tests with coverage
+      # ---------------------------------------------------------------
+      - name: Run tests with coverage
+        if: steps.filter.outputs.relevant == 'true'
+        working-directory: tools/dev-env
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libx11-dev \
-            pkg-config \
-            cmake \
-            ninja-build \
-            libblkid-dev \
-            liblzma-dev \
-            libsecret-1-dev \
-            gnome-keyring \
-            dbus-x11 \
-            xvfb
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary
+            # Start dbus session and unlock gnome-keyring for flutter_secure_storage
+            # test.sh handles xvfb-run internally on Linux
+            dbus-run-session -- bash -c '
+              echo \"test\" | gnome-keyring-daemon --unlock
+              ./tool/test.sh -c
+            '
+          "
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '${{ steps.versions.outputs.flutter_version }}'
-          channel: 'stable'
-          cache: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '${{ steps.versions.outputs.node_version }}'
-
-      - name: Setup Java (required for Firebase emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '${{ steps.versions.outputs.java_version }}'
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Install Flutter dependencies
-        run: flutter pub get
-
-      - name: Install lcov
-        run: sudo apt-get update && sudo apt-get install -y lcov
-
-      - name: Run coverage tests (includes integration tests with emulator)
+      # ---------------------------------------------------------------
+      # Extract coverage from container for codecov upload
+      # ---------------------------------------------------------------
+      - name: Copy coverage from container
+        if: steps.filter.outputs.relevant == 'true'
+        working-directory: tools/dev-env
         run: |
-          chmod +x tool/test.sh
-          # Start dbus session and unlock gnome-keyring for flutter_secure_storage
-          # The keyring needs to be initialized with a password for libsecret to work
-          dbus-run-session -- bash -c '
-            echo "test" | gnome-keyring-daemon --unlock
-            ./tool/test.sh -c
-          '
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/daily-diary/clinical_diary/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/clinical-diary-lcov.info || true
+
       - name: Upload coverage to Codecov
+        if: steps.filter.outputs.relevant == 'true'
         uses: codecov/codecov-action@v4
         with:
-          file: apps/daily-diary/clinical_diary/coverage/lcov.info
+          files: clinical-diary-lcov.info
           flags: clinical_diary
           name: clinical-diary-coverage
           fail_ci_if_error: false
+
+      - name: Upload coverage report as artifact
+        if: steps.filter.outputs.relevant == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-diary-coverage
+          path: clinical-diary-lcov.info
+          retention-days: 30
+
+      # ---------------------------------------------------------------
+      # Cleanup
+      # ---------------------------------------------------------------
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
