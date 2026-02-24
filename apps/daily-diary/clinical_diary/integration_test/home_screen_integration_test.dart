@@ -36,6 +36,7 @@ import 'package:clinical_diary/main.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
@@ -424,6 +425,43 @@ void main() {
 
         // Both records should show warning icons
         expect(find.byIcon(Icons.warning_amber_rounded), findsNWidgets(2));
+      });
+    });
+    group('License Navigation', () {
+      testWidgets('opens license page when tapping logo then Licenses', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        // 1️⃣ Tap the logo image by asset name
+        final logoFinder = find.byWidgetPredicate(
+              (widget) =>
+          widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName ==
+                  'assets/images/cure-hht-grey.png',
+        );
+
+        expect(logoFinder, findsOneWidget);
+
+        await tester.tap(logoFinder);
+        await tester.pumpAndSettle();
+
+        // 2️⃣ Tap the "Licenses" option
+        final licensesFinder = find.text('Licenses');
+
+        expect(licensesFinder, findsOneWidget);
+
+        await tester.tap(licensesFinder);
+        await tester.pumpAndSettle();
+
+        // 3️⃣ Verify LicensePage is displayed
+        expect(find.byType(LicensesPage), findsOneWidget);
+
+        // Optional: verify Flutter license text exists
+        expect(find.textContaining('GNU AGPL v3 License'), findsOneWidget);
       });
     });
   });
@@ -2155,6 +2193,7 @@ void main() {
       },
     );
   });
+
 }
 
 /// Helper to wrap widget with MaterialApp and localization support

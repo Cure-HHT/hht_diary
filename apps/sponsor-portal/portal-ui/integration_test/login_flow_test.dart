@@ -185,5 +185,37 @@ void main() {
       skip: !IntegrationTestConfig.useDevIdentity,
       // Skip if using Firebase emulator without seeded users
     );
+    group('License Navigation', () {
+      testWidgets(
+        'opens license dialog when tapping info icon then Licenses',
+            (tester) async {
+          await tester.pumpWidget(buildTestApp());
+          await tester.pumpAndSettle();
+
+          /// 1️⃣ Tap the info icon
+          final infoFinder = find.byIcon(Icons.info_outline);
+          expect(infoFinder, findsOneWidget);
+
+          await tester.tap(infoFinder);
+          await tester.pumpAndSettle();
+
+          /// 2️⃣ Verify first dialog opened
+          expect(find.byType(AlertDialog), findsOneWidget);
+
+          /// 3️⃣ Tap "Licenses" inside dialog
+          final licensesFinder = find.text('Licenses');
+          expect(licensesFinder, findsOneWidget);
+
+          await tester.tap(licensesFinder);
+          await tester.pumpAndSettle();
+
+          /// 4️⃣ Verify licenses dialog/page is shown
+          expect(find.byType(LicensePage), findsOneWidget);
+
+          /// 5️⃣ Optional: Verify your custom license text exists
+          expect(find.textContaining('GNU AGPL v3 License'), findsOneWidget);
+        },
+      );
+    });
   });
 }
