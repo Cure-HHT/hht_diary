@@ -71,6 +71,251 @@ void main() {
     });
   });
 
+  group('ApiClient X-Active-Role header', () {
+    /// Helper: sign in a multi-role user (Developer Admin + Investigator)
+    /// and return the AuthService + a map of captured headers per request path.
+    Future<
+      ({AuthService authService, Map<String, Map<String, String>> captured})
+    >
+    _setupMultiRoleUser({
+      required String activeRole,
+      required MockClient mockHttpClient,
+      required Map<String, Map<String, String>> capturedHeaders,
+    }) async {
+      final mockUser = MockUser(
+        uid: 'multi-role-uid',
+        email: 'multi@example.com',
+        displayName: 'Multi Role User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('multi@example.com', 'password');
+
+      // If we need Investigator, switch role (signIn defaults to first/active)
+      if (activeRole == 'Investigator') {
+        await authService.switchRole(UserRole.investigator);
+      }
+
+      return (authService: authService, captured: capturedHeaders);
+    }
+
+    /// Creates a MockClient that returns a multi-role /me response and
+    /// captures headers from all other requests.
+    MockClient _createMockClient(
+      Map<String, Map<String, String>> capturedHeaders, {
+      required String activeRole,
+    }) {
+      return MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-multi',
+              'email': 'multi@example.com',
+              'name': 'Multi Role User',
+              'status': 'active',
+              'roles': ['Developer Admin', 'Investigator'],
+              'active_role': activeRole,
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        // Capture headers (lowercase keys for case-insensitive lookup)
+        capturedHeaders[request.url.path] = {
+          for (final e in request.headers.entries) e.key.toLowerCase(): e.value,
+        };
+        return http.Response(
+          jsonEncode({'ok': true}),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+    }
+
+    test('sends X-Active-Role header with GET requests', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+      final mockHttpClient = _createMockClient(
+        capturedHeaders,
+        activeRole: 'Investigator',
+      );
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Investigator',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      await apiClient.get('/api/v1/portal/patients');
+
+      final headers = capturedHeaders['/api/v1/portal/patients']!;
+      expect(headers['x-active-role'], 'Investigator');
+    });
+
+    test('sends X-Active-Role header with POST requests', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+      final mockHttpClient = _createMockClient(
+        capturedHeaders,
+        activeRole: 'Investigator',
+      );
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Investigator',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      await apiClient.post('/api/v1/portal/patients/p1/link-code', {});
+
+      final headers = capturedHeaders['/api/v1/portal/patients/p1/link-code']!;
+      expect(headers['x-active-role'], 'Investigator');
+    });
+
+    test('sends X-Active-Role header with DELETE requests', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+      final mockHttpClient = _createMockClient(
+        capturedHeaders,
+        activeRole: 'Investigator',
+      );
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Investigator',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      await apiClient.delete('/api/v1/portal/patients/p1/questionnaires/q1');
+
+      final headers =
+          capturedHeaders['/api/v1/portal/patients/p1/questionnaires/q1']!;
+      expect(headers['x-active-role'], 'Investigator');
+    });
+
+    test('sends X-Active-Role header with PATCH requests', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+      final mockHttpClient = _createMockClient(
+        capturedHeaders,
+        activeRole: 'Investigator',
+      );
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Investigator',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      await apiClient.patch('/api/v1/portal/users/u1', {'name': 'New Name'});
+
+      final headers = capturedHeaders['/api/v1/portal/users/u1']!;
+      expect(headers['x-active-role'], 'Investigator');
+    });
+
+    test('sends Developer Admin role when that is active', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+      final mockHttpClient = _createMockClient(
+        capturedHeaders,
+        activeRole: 'Developer Admin',
+      );
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Developer Admin',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      await apiClient.get('/api/v1/portal/users');
+
+      final headers = capturedHeaders['/api/v1/portal/users']!;
+      expect(headers['x-active-role'], 'Developer Admin');
+    });
+
+    test('role changes after switchRole are reflected in header', () async {
+      final capturedHeaders = <String, Map<String, String>>{};
+
+      // Dynamic mock: /me returns active_role based on ?role= query param
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          final roleParam =
+              request.url.queryParameters['role'] ?? 'Developer Admin';
+          return http.Response(
+            jsonEncode({
+              'id': 'user-multi',
+              'email': 'multi@example.com',
+              'name': 'Multi Role User',
+              'status': 'active',
+              'roles': ['Developer Admin', 'Investigator'],
+              'active_role': roleParam,
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        capturedHeaders[request.url.path] = {
+          for (final e in request.headers.entries) e.key.toLowerCase(): e.value,
+        };
+        return http.Response(
+          jsonEncode({'ok': true}),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final setup = await _setupMultiRoleUser(
+        activeRole: 'Developer Admin',
+        mockHttpClient: mockHttpClient,
+        capturedHeaders: capturedHeaders,
+      );
+      final apiClient = ApiClient(
+        setup.authService,
+        httpClient: mockHttpClient,
+      );
+
+      // First request as Developer Admin
+      await apiClient.get('/api/v1/portal/users');
+      expect(
+        capturedHeaders['/api/v1/portal/users']!['x-active-role'],
+        'Developer Admin',
+      );
+
+      // Switch to Investigator (re-fetches /me with ?role=Investigator)
+      await setup.authService.switchRole(UserRole.investigator);
+
+      // Next request should use Investigator
+      await apiClient.get('/api/v1/portal/patients');
+      expect(
+        capturedHeaders['/api/v1/portal/patients']!['x-active-role'],
+        'Investigator',
+      );
+    });
+  });
+
   group('ApiClient.delete', () {
     test('sends DELETE request with body and returns success', () async {
       final mockUser = MockUser(

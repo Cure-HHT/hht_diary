@@ -21,6 +21,14 @@ echo "=========================================="
 echo "Diary Server Startup"
 echo "=========================================="
 
+# Output component versions (generated during Docker build)
+if [ -f /app/VERSIONS ]; then
+    while IFS='=' read -r key value; do
+        printf '  %-18s%s\n' "$key:" "$value"
+    done < /app/VERSIONS
+fi
+echo "=========================================="
+
 # Show identity for debugging
 echo "Fetching active service account..."
 IDENTITY=$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || echo "unknown")

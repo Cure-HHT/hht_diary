@@ -26,10 +26,20 @@ COPY --chown=appuser:appuser apps/daily-diary/diary_functions /app/apps/daily-di
 # Copy diary_server package
 COPY --chown=appuser:appuser apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
 
-# Get dependencies and compile to native executable
+# Get dependencies and compile to native executable with version info
 WORKDIR /app/apps/daily-diary/diary_server
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN dart pub get && \
-    dart compile exe bin/server.dart -o bin/server
+    DIARY_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
+    DIARY_FUNCTIONS_VERSION=$(grep '^version:' /app/apps/daily-diary/diary_functions/pubspec.yaml | sed 's/version: //') && \
+    TRIAL_DATA_TYPES_VERSION=$(grep '^version:' /app/apps/common-dart/trial_data_types/pubspec.yaml | sed 's/version: //') && \
+    dart compile exe bin/server.dart -o bin/server \
+      -DDIARY_SERVER_VERSION="$DIARY_SERVER_VERSION" \
+      -DDIARY_FUNCTIONS_VERSION="$DIARY_FUNCTIONS_VERSION" \
+      -DTRIAL_DATA_TYPES_VERSION="$TRIAL_DATA_TYPES_VERSION" && \
+    printf 'diary_server=%s\ndiary_functions=%s\ntrial_data_types=%s\n' \
+      "$DIARY_SERVER_VERSION" "$DIARY_FUNCTIONS_VERSION" "$TRIAL_DATA_TYPES_VERSION" \
+      > /app/VERSIONS
 
 # =============================================================================
 # Stage 2: Install Doppler CLI
@@ -92,8 +102,9 @@ ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 # Create non-root user with home directory for Doppler config
 RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 
-# Copy Dart server binary and startup script
+# Copy Dart server binary, version file, and startup script
 COPY --from=dart-build --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
+COPY --from=dart-build /app/VERSIONS /app/VERSIONS
 COPY --chmod=755 apps/daily-diary/diary-server-container/start.sh /app/start.sh
 
 # Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
