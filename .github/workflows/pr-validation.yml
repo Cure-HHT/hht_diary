@@ -81,6 +81,17 @@ jobs:
           echo "PR #$PR_NUMBER: $PR_TITLE"
           echo ""
 
+          # DEBUG: Show exactly what we're working with
+          echo "=== DEBUG: PR Title Analysis ==="
+          echo "Raw PR_TITLE: '$PR_TITLE'"
+          echo "Length: ${#PR_TITLE}"
+          echo "Hex dump:"
+          echo -n "$PR_TITLE" | xxd | head -5
+          echo "Grep test (literal):"
+          echo "$PR_TITLE" | grep -oE '\[CUR-[0-9]+\]' || echo "  (no match found)"
+          echo "=== END DEBUG ==="
+          echo ""
+
           ERRORS=()
 
           # Check PR title for [CUR-XXX] reference
