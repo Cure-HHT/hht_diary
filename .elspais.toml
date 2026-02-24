@@ -1,5 +1,9 @@
 # Tip: Create .elspais.local.toml alongside this file for developer-local
-# overrides (e.g. associate paths). It is deep-merged and gitignored.
+# overrides (e.g. custom paths). It is deep-merged and gitignored.
+#
+# Default layout assumes core (hht_diary) and sponsor repos (e.g. hht_diary_callisto)
+# are siblings under the same parent directory. Override paths in
+# .elspais.local.toml if your layout differs.
 
 project = { name = "hht-diary", type = "core" }
 validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }

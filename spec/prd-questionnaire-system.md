@@ -69,10 +69,9 @@ Maria successfully enrolls in the clinical trial. Her Study Start questionnaire 
 
 | Status | Description |
 | ------ | ----------- |
-| Triggered | Questionnaire requested, awaiting patient action |
+| Sent | Questionnaire requested, awaiting patient action |
 | In Progress | Patient is actively completing the questionnaire |
-| Submitted | Patient has submitted, awaiting investigator review (if scored) |
-| Review | Investigator has unlocked for patient edits |
+| Ready to Review | Patient has submitted, awaiting investigator review; patient may still edit |
 | Finalized | Permanently locked, score calculated (if applicable) |
 
 ---

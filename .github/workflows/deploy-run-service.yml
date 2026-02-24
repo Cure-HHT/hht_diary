@@ -30,6 +30,7 @@ on:
         options:
           - dev
           - qa
+          - uat
         default: dev
       image_path:
         description: 'Full ghcr.io image path (e.g., ghcr.io/cure-hht/portal-server:v1.2.3)'

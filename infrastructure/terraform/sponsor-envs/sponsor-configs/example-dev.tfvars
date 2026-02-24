@@ -1,6 +1,6 @@
 # example-dev.tfvars
 #
-# Example sponsor-portal configuration for dev environment
+# Example sponsor-envs configuration for dev environment
 # Copy and customize for each sponsor/environment:
 #   cp example-dev.tfvars {sponsor}-{env}.tfvars
 
@@ -9,14 +9,14 @@
 # -----------------------------------------------------------------------------
 
 sponsor     = "example"
-sponsor_id  = 99  # Must match bootstrap sponsor_id
+sponsor_id  = 99 # Must match bootstrap sponsor_id
 environment = "dev"
 
 # -----------------------------------------------------------------------------
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id = "cure-hht-example-dev"  # From bootstrap output
+project_id = "cure-hht-example-dev" # From bootstrap output
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
@@ -70,14 +70,14 @@ enable_cloud_build_triggers = true
 enable_identity_platform = true
 
 # Authentication methods
-identity_platform_email_password = true   # Email/password login
-identity_platform_email_link     = false  # Passwordless email links
-identity_platform_phone_auth     = false  # Phone number authentication
+identity_platform_email_password = true  # Email/password login
+identity_platform_email_link     = false # Passwordless email links
+identity_platform_phone_auth     = false # Phone number authentication
 
 # Security settings
 # MFA: OFF, OPTIONAL, MANDATORY (prod always forces MANDATORY)
-identity_platform_mfa_enforcement   = "OPTIONAL"  # Non-prod can be relaxed
-identity_platform_password_min_length = 12        # HIPAA recommends 12+
+identity_platform_mfa_enforcement     = "OPTIONAL" # Non-prod can be relaxed
+identity_platform_password_min_length = 12         # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets
 identity_platform_email_sender_name = "Clinical Diary Portal"
@@ -117,3 +117,34 @@ workforce_identity_enabled = false
 audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
+
+# -----------------------------------------------------------------------------
+# Optional: Regional Load Balancer (europe-west9)
+# -----------------------------------------------------------------------------
+# Creates a Regional External HTTPS Load Balancer with:
+# - Regional static IP (Standard network tier)
+# - Proxy-only subnet for Envoy-based load balancers (managed by bootstrap)
+# - Google-managed regional SSL certificate with DNS authorization
+# - HTTP to HTTPS redirect
+#
+# NOTE: The proxy-only subnet is created by the bootstrap vpc-network module.
+# To enable it, set enable_proxy_only_subnet=true in your bootstrap tfvars.
+
+# Enable the Regional Load Balancer
+# enable_regional_lb = true
+
+# Domain for SSL certificate (DNS authorization via Gandi.net)
+# lb_domain = "portal.example.com"
+
+# Backend timeout in seconds
+# lb_backend_timeout_sec = 30
+
+# Logging configuration
+# lb_enable_logging   = true
+# lb_log_sample_rate  = 1.0
+
+# HTTP to HTTPS redirect
+# lb_enable_http_redirect = true
+
+# Cloud Run service to route traffic to
+# lb_cloud_run_service_name = "portal-server"

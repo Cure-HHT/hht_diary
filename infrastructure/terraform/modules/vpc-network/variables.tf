@@ -79,3 +79,20 @@ variable "restrict_egress" {
   type        = bool
   default     = false
 }
+
+variable "enable_proxy_only_subnet" {
+  description = "Enable proxy-only subnet for Regional Load Balancer"
+  type        = bool
+  default     = false
+}
+
+variable "proxy_only_subnet_cidr" {
+  description = "CIDR range for the proxy-only subnet (Regional Load Balancer). Required if enable_proxy_only_subnet is true. Must not overlap with app_subnet_cidr or db_subnet_cidr."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.proxy_only_subnet_cidr == "" || can(cidrhost(var.proxy_only_subnet_cidr, 0))
+    error_message = "proxy_only_subnet_cidr must be empty or a valid CIDR notation."
+  }
+}

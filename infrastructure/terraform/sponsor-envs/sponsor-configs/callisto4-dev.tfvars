@@ -1,6 +1,6 @@
 # example-dev.tfvars
 #
-# Example sponsor-portal configuration for dev environment
+# Example sponsor-envs configuration for dev environment
 # Copy and customize for each sponsor/environment:
 #   cp example-dev.tfvars {sponsor}-{env}.tfvars
 
@@ -9,14 +9,15 @@
 # -----------------------------------------------------------------------------
 
 sponsor     = "callisto4"
-sponsor_id  = 4  # Must match bootstrap sponsor_id
-environment = "prod"
+sponsor_id  = 4 # Must match bootstrap sponsor_id
+environment = "dev"
 
 # -----------------------------------------------------------------------------
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id = "callisto4-prod"  # From bootstrap output
+project_id     = "callisto4-dev" # From bootstrap output
+project_number = "1012274191696" # From bootstrap output (gcloud projects describe callisto4-qa --format='value(projectNumber)')
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
@@ -83,18 +84,18 @@ allow_public_access = false
 enable_identity_platform = true
 
 # Authentication methods
-identity_platform_email_password = true   # Email/password login
-identity_platform_email_link     = false  # Passwordless email links
-identity_platform_phone_auth     = false  # Phone number authentication
+identity_platform_email_password = true  # Email/password login
+identity_platform_email_link     = false # Passwordless email links
+identity_platform_phone_auth     = false # Phone number authentication
 
 # Security settings
 # MFA: DISABLED, ENABLED, MANDATORY (prod always forces MANDATORY)
-identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
-identity_platform_password_min_length = 12        # HIPAA recommends 12+
+identity_platform_mfa_enforcement     = "DISABLED" # Non-prod can be relaxed
+identity_platform_password_min_length = 12         # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets
-identity_platform_email_sender_name = ID_PLATFORM_NAME
-identity_platform_email_reply_to  = EMAIL_SUPPORT
+identity_platform_email_sender_name = "Diary Platform"
+identity_platform_email_reply_to    = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
@@ -131,4 +132,16 @@ audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
 
+# -----------------------------------------------------------------------------
+# Optional: Email
+# -----------------------------------------------------------------------------
+impersonating_service_account_email = "1012274191696-compute@developer.gserviceaccount.com"
+
 enable_cost_controls = false
+
+# -----------------------------------------------------------------------------
+# GitHub Actions Service Account (Cross-Project Deployment)
+# -----------------------------------------------------------------------------
+
+github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
+
