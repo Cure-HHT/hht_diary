@@ -80,8 +80,7 @@ void main() {
 
       // Create a real EnrollmentService with mock HTTP client
       authService = AuthService(httpClient: mockHttpClient);
-      preferencesService = PreferencesService(
-      );
+      preferencesService = PreferencesService();
       nosebleedService = NosebleedService(
         enrollmentService: enrollmentService,
         httpClient: mockHttpClient,
