@@ -144,13 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
-    final enrollment=await widget.enrollmentService.getEnrollment();
+    final enrollment = await widget.enrollmentService.getEnrollment();
     if (mounted) {
       setState(() {
-        _userEnrollment=enrollment;
+        _userEnrollment = enrollment;
         _isEnrolled = isEnrolled;
       });
-
     }
   }
 
@@ -237,6 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
   GlobalKey _getKeyForRecord(String recordId) {
     return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
   }
+
   /// Scroll to a specific record in the list and ensure it's visible.
   /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
   void _scrollToRecord(String recordId) {
@@ -960,7 +960,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     sponsorLogo: _userEnrollment?.sponsorDetail?.logo,
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
-                    isEnrolled:_isEnrolled,
+                    isEnrolled: _isEnrolled,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
@@ -1158,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               // REQ-CAL-p00081: Task list (questionnaires, etc.)
-               TaskListWidget(
+              TaskListWidget(
                 taskService: widget.taskService,
                 onTaskTap: (task) {
                   // REQ-CAL-p00081-D: Navigate to relevant screen

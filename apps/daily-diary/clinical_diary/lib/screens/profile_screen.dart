@@ -245,8 +245,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
 
                       // 3. REQ-CAL-p00076: Participation Status Badge or Enroll Button
-                      if (!(widget.isEnrolledInTrial ||
-                          widget.isDisconnected)) ...[
+                      if (!widget.isEnrolledInTrial ||
+                          widget.isDisconnected) ...[
                         OutlinedButton.icon(
                           onPressed: widget.onStartClinicalTrialEnrollment,
                           icon: const Icon(Icons.description, size: 20),
@@ -402,73 +402,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Icon(statusIcon, color: iconColor),
                     ),
                     const SizedBox(width: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          statusMessage,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: subtextColor,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        // Enrollment details (if enrolled)
-                        if (widget.isEnrolledInTrial) ...[
-                          const SizedBox(height: 5),
-                          if (widget.enrollmentCode != null)
-                            Text(
-                              l10n.linkingCode(
-                                _formatEnrollmentCode(widget.enrollmentCode!),
-                              ),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                              ),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            statusMessage,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: subtextColor,
                             ),
-                          if (widget.enrollmentDateTime != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.joinedDate(
-                                _formatEnrollmentDateTime(
-                                  widget.enrollmentDateTime!,
+                            textAlign: TextAlign.start,
+                          ),
+
+                          // Enrollment details (if enrolled)
+                          if (widget.isEnrolledInTrial) ...[
+                            const SizedBox(height: 5),
+                            if (widget.enrollmentCode != null)
+                              Text(
+                                l10n.linkingCode(
+                                  _formatEnrollmentCode(widget.enrollmentCode!),
+                                ),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: subtextColor,
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
                                 ),
                               ),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 12,
+                            if (widget.enrollmentDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.joinedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: subtextColor,
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
 
-                        // Reconnect button for disconnected state
-                        if (isDisconnected) ...[
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: widget.onStartClinicalTrialEnrollment,
-                            icon: const Icon(Icons.link, size: 18),
-                            label: Text(l10n.enterNewLinkingCode),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade600,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 44),
-                            ),
-                          ),
-                          if (widget.siteName != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.contactYourSiteWithName(widget.siteName!),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: subtextColor,
-                                fontSize: 11,
+                          // Reconnect button for disconnected state
+                          if (isDisconnected) ...[
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: widget.onStartClinicalTrialEnrollment,
+                              icon: const Icon(Icons.link, size: 18),
+                              label: Text(l10n.enterNewLinkingCode),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade600,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(double.infinity, 44),
                               ),
-                              textAlign: TextAlign.center,
                             ),
+                            if (widget.siteName != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.contactYourSiteWithName(widget.siteName!),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: subtextColor,
+                                  fontSize: 11,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ],
                         ],
-                      ],
+                      ),
                     ),
                   ],
                 ),

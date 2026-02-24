@@ -339,8 +339,7 @@ class AppLocalizations {
       'joinedDate': 'Joined: {0}',
       'linkingCode': 'Linking Code: {0}',
       'enterNewLinkingCode': 'Enter New Linking Code',
-      'participationStatusActiveMessage':
-          'You\'ve joined the study',
+      'participationStatusActiveMessage': 'You\'ve joined the study',
       'participationStatusDisconnectedMessage':
           'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
       'participationStatusNotParticipatingMessage':

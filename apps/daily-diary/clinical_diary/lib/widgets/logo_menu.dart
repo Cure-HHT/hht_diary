@@ -163,28 +163,27 @@ class _LogoMenuState extends State<LogoMenu> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            if (widget.isEnrolled ?? false) (widget.sponsorLogo != null)
-                ? Image.network(
-              widget.sponsorLogo!,
-              height: 40,
-              width: 120,
-            )
-                : Image.asset(
-              'assets/images/generic_company_logo.png',
-              height: 40,
-              width: 120,
-            ) else ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Colors.grey.withValues(alpha: 0.5),
-                BlendMode.srcATop,
-              ),
-              child:Image.asset(
-                      'assets/images/cure-hht-grey.png',
-                      width: 100,
+            if (widget.isEnrolled ?? false)
+              (widget.sponsorLogo != null)
+                  ? Image.network(widget.sponsorLogo!, height: 40, width: 120)
+                  : Image.asset(
+                      'assets/images/generic_company_logo.png',
                       height: 40,
-                      fit: BoxFit.contain,
-                    ),
-            ),
+                      width: 120,
+                    )
+            else
+              ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  Colors.grey.withValues(alpha: 0.5),
+                  BlendMode.srcATop,
+                ),
+                child: Image.asset(
+                  'assets/images/cure-hht-grey.png',
+                  width: 100,
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
+              ),
             // Update indicator dot
             if (_hasUpdate)
               Positioned(

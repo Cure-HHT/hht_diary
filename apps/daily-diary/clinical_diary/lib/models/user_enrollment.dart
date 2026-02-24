@@ -68,8 +68,7 @@ class UserEnrollment {
 
   /// Whether this enrollment includes clinical trial linking
   bool get isLinkedToClinicalTrial => patientId != null && siteId != null;
-  SponsorInfo? get sponsorDetail=>SponsorRegistry.getById(sponsorId??'');
-
+  SponsorInfo? get sponsorDetail => SponsorRegistry.getById(sponsorId ?? '');
 
   /// Convert to JSON for secure storage
   Map<String, dynamic> toJson() {
