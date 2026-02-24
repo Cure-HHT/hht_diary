@@ -147,7 +147,7 @@ Implements: REQ-d00001'" \
 
 test_commitmsg_blocks_without_req_reference() {
     echo ""
-    echo "=== Commit-Msg: REQ Reference Validation Tests ==="
+    echo "=== Commit-Msg: REQ Reference Validation Tests (enforced) ==="
     echo ""
 
     setup_test_repo "no-req"
@@ -155,10 +155,10 @@ test_commitmsg_blocks_without_req_reference() {
     create_workflow_state "CUR-123"
     create_test_file "feature.txt" "New feature"
 
-    # Commit message with CUR but without REQ reference
+    # Commit message with CUR but without REQ reference (with enforcement ON)
     assert_failure \
-        "git commit -m '[CUR-123] Add feature without REQ'" \
-        "Should block commit without REQ reference" \
+        "ENFORCE_REQ_IN_COMMITS=true git commit -m '[CUR-123] Add feature without REQ'" \
+        "Should block commit without REQ reference when enforced" \
         "Missing requirement reference\|REQ-"
 
     cleanup_test_repo
@@ -166,7 +166,7 @@ test_commitmsg_blocks_without_req_reference() {
 
 test_commitmsg_blocks_invalid_req_format() {
     echo ""
-    echo "=== Commit-Msg: Invalid REQ Format Tests ==="
+    echo "=== Commit-Msg: Invalid REQ Format Tests (enforced) ==="
     echo ""
 
     setup_test_repo "invalid-req"
@@ -174,13 +174,31 @@ test_commitmsg_blocks_invalid_req_format() {
     create_workflow_state "CUR-123"
     create_test_file "feature.txt" "New feature"
 
-    # Invalid REQ format (wrong format)
+    # Invalid REQ format (wrong format) - with enforcement ON, still missing valid REQ
     assert_failure \
-        "git commit -m 'Add feature
+        "ENFORCE_REQ_IN_COMMITS=true git commit -m '[CUR-123] Add feature
 
 Implements: REQ-123'" \
-        "Should block commit with invalid REQ format (missing type)" \
-        "Invalid REQ format\|REQ-[pdo][0-9]"
+        "Should block commit with invalid REQ format when enforced (missing type)" \
+        "Missing requirement reference\|REQ-"
+
+    cleanup_test_repo
+}
+
+test_commitmsg_allows_without_req_when_disabled() {
+    echo ""
+    echo "=== Commit-Msg: REQ Not Required When Disabled (default) ==="
+    echo ""
+
+    setup_test_repo "no-req-ok"
+
+    create_workflow_state "CUR-123"
+    create_test_file "feature.txt" "New feature"
+
+    # Commit message with CUR but without REQ reference (enforcement OFF = default)
+    assert_success \
+        "git commit -m '[CUR-123] Add feature without REQ reference'" \
+        "Should allow commit without REQ reference when enforcement is disabled"
 
     cleanup_test_repo
 }
@@ -381,6 +399,7 @@ main() {
     test_commitmsg_blocks_without_cur_reference
     test_commitmsg_blocks_without_req_reference
     test_commitmsg_blocks_invalid_req_format
+    test_commitmsg_allows_without_req_when_disabled
     test_commitmsg_allows_valid_cur_and_req
     test_commitmsg_allows_valid_fixes_with_cur
     test_commitmsg_allows_multiple_req_with_cur

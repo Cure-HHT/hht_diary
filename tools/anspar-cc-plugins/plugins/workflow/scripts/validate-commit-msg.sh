@@ -4,9 +4,10 @@
 # =====================================================
 #
 # Validates that a commit message contains:
-#   1. At least one REQ-xxx reference (requirement traceability)
-#   2. A Linear ticket reference [CUR-XXX] (work item traceability)
-#   3. The ticket reference matches the claimed active ticket
+#   1. A Linear ticket reference [CUR-XXX] (work item traceability)
+#   2. The ticket reference matches the claimed active ticket
+#   3. (Optional) At least one REQ-xxx reference (requirement traceability)
+#      Controlled by ENFORCE_REQ_IN_COMMITS env var (default: false)
 #
 # Usage:
 #   ./validate-commit-msg.sh <COMMIT-MSG-FILE>
@@ -18,8 +19,8 @@
 #   - commit-msg git hook
 #
 # Exit codes:
-#   0  Valid (both REQ and CUR references found, ticket matches)
-#   1  Invalid (missing REQ/CUR reference or ticket mismatch)
+#   0  Valid (CUR reference found, ticket matches, REQ present if enforced)
+#   1  Invalid (missing CUR reference, ticket mismatch, or missing REQ when enforced)
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00018: Git Hook Implementation
@@ -92,6 +93,12 @@ fi
 # =====================================================
 # Validate REQ Reference
 # =====================================================
+# TODO: Re-enable REQ enforcement by setting ENFORCE_REQ_IN_COMMITS=true
+# This was disabled to reduce friction during development.
+# When re-enabling, also update:
+#   - .github/workflows/pr-validation.yml (ENFORCE_REQ_IN_COMMITS env var)
+#   - tests/test-hooks.sh (test expectations)
+ENFORCE_REQ_IN_COMMITS="${ENFORCE_REQ_IN_COMMITS:-false}"
 
 # Pattern: REQ-{type}{number} or EQ-CAL-{type}{number}
 # Type: p (PRD), o (Ops), d (Dev)
@@ -113,7 +120,7 @@ if [ "$HAS_CUR" = "false" ]; then
     ERRORS+=("Missing Linear ticket reference (CUR-XXX)")
 fi
 
-if [ "$HAS_REQ" = "false" ]; then
+if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ] && [ "$HAS_REQ" = "false" ]; then
     ERRORS+=("Missing requirement reference (REQ-XXX)")
 fi
 
@@ -138,13 +145,17 @@ else
     echo "  [CUR-XXX] Subject line describing the change" >&2
     echo "  " >&2
     echo "  Optional body with more details." >&2
-    echo "  " >&2
-    echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}" >&2
+    if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+        echo "  " >&2
+        echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}" >&2
+    fi
     echo "" >&2
     echo "Where:" >&2
     echo "  CUR-XXX: Linear ticket number (must match claimed ticket: $ACTIVE_TICKET)" >&2
-    echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)" >&2
-    echo "  REQ/EQ-CAL number: 5 digits (e.g., 00042)" >&2
+    if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+        echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)" >&2
+        echo "  REQ/EQ-CAL number: 5 digits (e.g., 00042)" >&2
+    fi
     echo "" >&2
 
     if [ "$TICKET_MISMATCH" = "true" ]; then
@@ -156,8 +167,10 @@ else
 
     echo "Example:" >&2
     echo "  [${ACTIVE_TICKET:-CUR-XXX}] Add Linear ticket enforcement to hooks" >&2
-    echo "  " >&2
-    echo "  Implements: REQ-d00018" >&2
+    if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+        echo "  " >&2
+        echo "  Implements: REQ-d00018" >&2
+    fi
     echo "" >&2
     echo "Your commit message:" >&2
     echo "---" >&2
