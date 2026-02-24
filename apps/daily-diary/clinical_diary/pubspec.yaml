@@ -57,6 +57,7 @@ dev_dependencies:
   widgetbook_annotation: ^3.2.0
   widgetbook_generator: ^3.9.0
   build_runner: ^2.4.13
+  mocktail_image_network: ^1.2.0
 
 flutter:
   uses-material-design: true
