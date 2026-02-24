@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
+import 'package:mocktail_image_network/mocktail_image_network.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +22,14 @@ void main() {
       DateTime? enrollmentDateTime,
       String? siteName,
       String? sitePhoneNumber,
+      String? sponsorLogo,
     }) {
       return wrapWithMaterialApp(
         ProfileScreen(
           onBack: () {},
           onStartClinicalTrialEnrollment: () {},
           onShowSettings: () {},
+          sponsorLogo: sponsorLogo,
           onShareWithCureHHT: () {},
           onStopSharingWithCureHHT: () {},
           isEnrolledInTrial: isEnrolledInTrial,
@@ -109,8 +112,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Active'), findsOneWidget);
-        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+        expect(find.byIcon(Icons.check), findsOneWidget);
       });
 
       testWidgets('shows active status message when enrolled', (tester) async {
@@ -123,7 +125,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('actively participating'), findsOneWidget);
+        expect(find.textContaining("You've joined the study"), findsOneWidget);
       });
 
       testWidgets('shows linking code when enrolled', (tester) async {
@@ -188,7 +190,6 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Disconnected'), findsOneWidget);
         expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       });
 
@@ -250,7 +251,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-
+        await tester.scrollUntilVisible(
+          find.text('Enter New Linking Code'),
+          300,
+        );
         await tester.tap(find.text('Enter New Linking Code'));
         await tester.pumpAndSettle();
 
@@ -335,7 +339,7 @@ void main() {
 
         // Find the Card widget that contains the status badge
         final cardFinder = find.ancestor(
-          of: find.text('Active'),
+          of: find.text("You've joined the study"),
           matching: find.byType(Card),
         );
         expect(cardFinder, findsOneWidget);
@@ -352,7 +356,9 @@ void main() {
         await tester.pumpAndSettle();
 
         final cardFinder = find.ancestor(
-          of: find.text('Disconnected'),
+          of: find.text(
+            'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
+          ),
           matching: find.byType(Card),
         );
         expect(cardFinder, findsOneWidget);
@@ -363,33 +369,103 @@ void main() {
     });
 
     group('Sponsor Icon', () {
-      testWidgets('shows sponsor icon placeholder in active state', (
-        tester,
-      ) async {
-        await tester.pumpWidget(
-          buildProfileScreen(
-            isEnrolledInTrial: true,
-            isDisconnected: false,
-            enrollmentStatus: 'active',
-          ),
-        );
-        await tester.pumpAndSettle();
+      testWidgets(
+        'shows network sponsor logo when sponsorLogo is provided in active state',
+        (tester) async {
+          await mockNetworkImages(() async {
+            await tester.pumpWidget(
+              buildProfileScreen(
+                isEnrolledInTrial: true,
+                isDisconnected: false,
+                sponsorLogo: 'https://picsum.photos/200/300',
+              ),
+            );
 
-        // Science icon is shown in the status badge (may appear multiple times in the tree)
-        expect(find.byIcon(Icons.science), findsWidgets);
-      });
+            await tester.pumpAndSettle();
 
-      testWidgets('shows sponsor icon placeholder in disconnected state', (
-        tester,
-      ) async {
-        await tester.pumpWidget(
-          buildProfileScreen(isEnrolledInTrial: true, isDisconnected: true),
-        );
-        await tester.pumpAndSettle();
+            expect(find.byType(Image), findsWidgets);
 
-        // Science icon is shown in the status badge (may appear multiple times in the tree)
-        expect(find.byIcon(Icons.science), findsWidgets);
-      });
+            final image = tester.widget<Image>(find.byType(Image).first);
+            expect(image.image, isA<NetworkImage>());
+          });
+        },
+      );
+
+      testWidgets(
+        'shows generic sponsor logo when sponsorLogo is null in active state',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              sponsorLogo: null,
+            ),
+          );
+
+          await tester.pumpAndSettle();
+
+          final imageFinder = find.byType(Image);
+          expect(imageFinder, findsWidgets);
+
+          final image = tester.widget<Image>(imageFinder.first);
+          expect(image.image, isA<AssetImage>());
+
+          final assetImage = image.image as AssetImage;
+          expect(
+            assetImage.assetName,
+            'assets/images/generic_company_logo.png',
+          );
+        },
+      );
+
+      testWidgets(
+        'shows network sponsor logo when sponsorLogo is provided in disconnected state',
+        (tester) async {
+          await mockNetworkImages(() async {
+            await tester.pumpWidget(
+              buildProfileScreen(
+                isEnrolledInTrial: true,
+                isDisconnected: true,
+                sponsorLogo: 'https://picsum.photos/200/300',
+              ),
+            );
+
+            await tester.pumpAndSettle();
+
+            expect(find.byType(Image), findsWidgets);
+
+            final image = tester.widget<Image>(find.byType(Image).first);
+            expect(image.image, isA<NetworkImage>());
+          });
+        },
+      );
+
+      testWidgets(
+        'shows generic sponsor logo when sponsorLogo is null in disconnected state',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: true,
+              sponsorLogo: null,
+            ),
+          );
+
+          await tester.pumpAndSettle();
+
+          final imageFinder = find.byType(Image);
+          expect(imageFinder, findsWidgets);
+
+          final image = tester.widget<Image>(imageFinder.first);
+          expect(image.image, isA<AssetImage>());
+
+          final assetImage = image.image as AssetImage;
+          expect(
+            assetImage.assetName,
+            'assets/images/generic_company_logo.png',
+          );
+        },
+      );
     });
   });
 }
