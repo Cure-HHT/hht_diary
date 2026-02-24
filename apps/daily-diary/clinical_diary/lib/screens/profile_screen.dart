@@ -301,46 +301,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     Color bgColor;
     Color borderColor;
-    Color iconBgColor;
     Color iconColor;
-    Color textColor;
     Color subtextColor;
     IconData statusIcon;
-    String statusText;
     String statusMessage;
 
     if (isDisconnected) {
       // Disconnected state - warning styling
       bgColor = Colors.orange.shade50;
       borderColor = Colors.orange.shade300;
-      iconBgColor = Colors.orange.shade100;
       iconColor = Colors.orange.shade800;
-      textColor = Colors.orange.shade900;
       subtextColor = Colors.orange.shade700;
       statusIcon = Icons.warning_amber_rounded;
-      statusText = l10n.participationStatusDisconnected;
       statusMessage = l10n.participationStatusDisconnectedMessage;
     } else if (isActive) {
       // Active state - green styling
       bgColor = Colors.green.shade50;
       borderColor = Colors.green.shade200;
-      iconBgColor = Colors.green.shade100;
       iconColor = Colors.green.shade700;
-      textColor = Colors.green.shade900;
       subtextColor = Colors.green.shade700;
       statusIcon = Icons.check;
-      statusText = l10n.participationStatusActive;
       statusMessage = l10n.participationStatusActiveMessage;
     } else {
       // Not participating state - grey styling
       bgColor = Colors.grey.shade100;
       borderColor = Colors.grey.shade300;
-      iconBgColor = Colors.grey.shade200;
       iconColor = Colors.grey.shade600;
-      textColor = Colors.grey.shade800;
       subtextColor = Colors.grey.shade600;
       statusIcon = Icons.person_off;
-      statusText = l10n.participationStatusNotParticipating;
       statusMessage = l10n.participationStatusNotParticipatingMessage;
     }
 
