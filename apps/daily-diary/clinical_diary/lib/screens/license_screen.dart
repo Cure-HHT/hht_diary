@@ -18,18 +18,15 @@ class LicensesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Licenses'),
-      ),
+      appBar: AppBar(title: const Text('Licenses')),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.open_in_new),
             title: const Text('GNU AGPL v3 License'),
             subtitle: const Text('gnu.org official license text'),
-            onTap: () => _openUrl(
-              'https://www.gnu.org/licenses/agpl-3.0.en.html',
-            ),
+            onTap: () =>
+                _openUrl('https://www.gnu.org/licenses/agpl-3.0.en.html'),
           ),
           const Divider(),
           ListTile(

@@ -213,10 +213,10 @@ class _LogoMenuState extends State<LogoMenu> {
           case 'check_for_updates':
             _manualCheckForUpdates(context);
           case 'licenses':
-          // CUR-543: Must pass onDelete callback when existingRecord is non-null.
-          Navigator.push<dynamic>(
+            // CUR-543: Must pass onDelete callback when existingRecord is non-null.
+            Navigator.push<dynamic>(
               context,
-             MaterialPageRoute(builder: (context)=> const LicensesPage())
+              MaterialPageRoute(builder: (context) => const LicensesPage()),
             );
         }
       },
