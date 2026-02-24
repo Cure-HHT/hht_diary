@@ -1,6 +1,6 @@
 # example-dev.tfvars
 #
-# Example sponsor-portal configuration for dev environment
+# Example sponsor-envs configuration for dev environment
 # Copy and customize for each sponsor/environment:
 #   cp example-dev.tfvars {sponsor}-{env}.tfvars
 
@@ -9,15 +9,15 @@
 # -----------------------------------------------------------------------------
 
 sponsor     = "callisto4"
-sponsor_id  = 4  # Must match bootstrap sponsor_id
+sponsor_id  = 4 # Must match bootstrap sponsor_id
 environment = "qa"
 
 # -----------------------------------------------------------------------------
 # Required: GCP Configuration
 # -----------------------------------------------------------------------------
 
-project_id     = "callisto4-qa"  # From bootstrap output
-project_number = "421945483876"  # From bootstrap output (gcloud projects describe callisto4-qa --format='value(projectNumber)')
+project_id     = "callisto4-qa" # From bootstrap output
+project_number = "421945483876" # From bootstrap output (gcloud projects describe callisto4-qa --format='value(projectNumber)')
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
@@ -84,28 +84,28 @@ allow_public_access = true
 enable_identity_platform = true
 
 # Authentication methods
-identity_platform_email_password = true   # Email/password login
-identity_platform_email_link     = false  # Passwordless email links
-identity_platform_phone_auth     = false  # Phone number authentication
+identity_platform_email_password = true  # Email/password login
+identity_platform_email_link     = false # Passwordless email links
+identity_platform_phone_auth     = false # Phone number authentication
 
 # Security settings
 # MFA: DISABLED, ENABLED, MANDATORY (prod always forces MANDATORY)
-identity_platform_mfa_enforcement   = "DISABLED"  # Non-prod can be relaxed
-identity_platform_password_min_length = 12        # HIPAA recommends 12+
+identity_platform_mfa_enforcement     = "DISABLED" # Non-prod can be relaxed
+identity_platform_password_min_length = 12         # HIPAA recommends 12+
 
 # Email configuration for invitations/password resets, from Doppler
 identity_platform_email_sender_name = "Diary Platform"
-identity_platform_email_reply_to  = "support@anspar.org"
+identity_platform_email_reply_to    = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
 identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
-    # "diary-qa.callisto.anspar.org", 
+# "diary-qa.callisto.anspar.org", 
 
 portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
-diary_server_url = "https://diary-server-421945483876.europe-west9.run.app"
+diary_server_url  = "https://diary-server-421945483876.europe-west9.run.app"
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
@@ -142,3 +142,9 @@ audit_retention_years = 25
 impersonating_service_account_email = "421945483876-compute@callisto-4-qa.iam.gserviceaccount.com"
 
 enable_cost_controls = false
+
+# -----------------------------------------------------------------------------
+# GitHub Actions Service Account (Cross-Project Deployment)
+# -----------------------------------------------------------------------------
+
+github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"

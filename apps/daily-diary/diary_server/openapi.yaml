@@ -1,0 +1,925 @@
+openapi: 3.0.3
+info:
+  title: HHT Diary Server API
+  description: |
+    REST API for the HHT (Hereditary Hemorrhagic Telangiectasia) Clinical Diary application.
+
+    This API provides endpoints for:
+    - User authentication (registration, login, password management)
+    - Patient linking via sponsor-issued codes
+    - Event sourcing-based data synchronization
+    - Push notification token management
+    - Sponsor configuration retrieval
+
+    ## Authentication
+    Most endpoints require JWT authentication via the `Authorization: Bearer <token>` header.
+    JWTs are obtained through registration, login, or patient linking.
+
+    ## FDA 21 CFR Part 11 Compliance
+    This API implements immutable audit trails via event sourcing patterns.
+    All data modifications are recorded in an append-only event store.
+
+    ## Requirements Implemented
+    - REQ-p00008: User Account Management
+    - REQ-p00004: Immutable Audit Trail
+    - REQ-p00010: FDA 21 CFR Part 11 Compliance
+    - REQ-d00005: Sponsor Configuration Detection
+    - REQ-p70007: Linking Code Lifecycle Management
+  version: 1.0.0
+  contact:
+    name: Anspar Consulting
+  license:
+    name: Proprietary
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://diary-server-{region}-run.app
+    description: Google Cloud Run (Production)
+    variables:
+      region:
+        default: europe-west1
+        enum:
+          - europe-west1
+          - europe-west4
+
+tags:
+  - name: Health
+    description: Service health monitoring
+  - name: Authentication
+    description: User registration, login, and password management
+  - name: User
+    description: Patient linking and data synchronization
+  - name: Sponsor
+    description: Sponsor-specific configuration
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns service health status. Used by Cloud Run for liveness probes.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                timestamp: '2025-02-19T10:30:00.000Z'
+                region: europe-west1
+                service: diary-server
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user account
+      description: |
+        Creates a new user account with username and password.
+        Returns a JWT for subsequent authenticated requests.
+
+        **Implements**: REQ-p00008 (User Account Management)
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: johndoe123
+              passwordHash: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+              appUuid: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                usernameTooShort:
+                  summary: Username too short
+                  value:
+                    error: Username must be at least 6 characters
+                usernameInvalid:
+                  summary: Invalid username characters
+                  value:
+                    error: Username can only contain letters, numbers, and underscores
+                usernameContainsAt:
+                  summary: Username contains @ symbol
+                  value:
+                    error: Username cannot contain @ symbol
+                invalidPasswordHash:
+                  summary: Invalid password hash format
+                  value:
+                    error: Invalid password hash format
+                missingAppUuid:
+                  summary: Missing app UUID
+                  value:
+                    error: Missing appUuid
+        '409':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Username already taken
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with existing credentials
+      description: |
+        Authenticates a user with username and password hash.
+        Returns a JWT for subsequent authenticated requests.
+        Updates the user's last_active_at timestamp.
+
+        **Implements**: REQ-p00008 (User Account Management)
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: johndoe123
+              passwordHash: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Missing username or password
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid username or password
+
+  /api/v1/auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change user password
+      description: |
+        Changes the authenticated user's password.
+        Requires the current password hash for verification.
+
+        **Implements**: REQ-p00008 (User Account Management)
+      operationId: changePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              currentPasswordHash: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+              newPasswordHash: b3a8e0e1f9ab1bfe3a36f231f676f78bb30a519d2b21e6c530c0eee8ebb4a5d0
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid password hash format
+        '401':
+          description: Unauthorized or incorrect current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidAuth:
+                  summary: Invalid authorization
+                  value:
+                    error: Invalid authorization header
+                incorrectPassword:
+                  summary: Current password incorrect
+                  value:
+                    error: Current password is incorrect
+
+  /api/v1/user/link:
+    post:
+      tags:
+        - User
+      summary: Link patient account via sponsor code
+      description: |
+        Links a mobile app user to a clinical trial patient using a one-time linking code.
+        The code serves as authentication - no prior JWT required.
+        Returns a JWT and patient details upon successful linking.
+
+        **Code Format**: 10 characters (2-char sponsor prefix + 8 alphanumeric)
+        Example: `CA12345678` or `CA-1234-5678` (dashes are removed)
+
+        **Implements**: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078 (Linking Code Validation)
+      operationId: linkPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkRequest'
+            example:
+              code: CA-1234-5678
+              appUuid: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Patient linked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '400':
+          description: Invalid or missing code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingCode:
+                  summary: Missing code
+                  value:
+                    error: Missing code
+                invalidFormat:
+                  summary: Invalid code format
+                  value:
+                    error: Invalid code format
+                codeNotFound:
+                  summary: Code not found
+                  value:
+                    error: Invalid linking code
+        '409':
+          description: Code already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Linking code has already been used
+        '410':
+          description: Code expired or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: Code expired
+                  value:
+                    error: Linking code has expired
+                revoked:
+                  summary: Code revoked
+                  value:
+                    error: Linking code has been revoked
+
+  /api/v1/user/enroll:
+    post:
+      tags:
+        - User
+      summary: Legacy enrollment endpoint (deprecated)
+      description: |
+        **DEPRECATED**: This endpoint has been replaced by `/api/v1/user/link`.
+        Returns 410 Gone with instructions to use the new endpoint.
+      operationId: enrollUser
+      deprecated: true
+      responses:
+        '410':
+          description: Endpoint deprecated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Legacy enrollment deprecated. Use /api/v1/user/link with sponsor portal linking codes.
+
+  /api/v1/user/sync:
+    post:
+      tags:
+        - User
+      summary: Sync events to server
+      description: |
+        Synchronizes client-side events to the server's event store.
+        Uses event sourcing pattern - events are appended to an immutable audit trail.
+        Duplicate events (by event_id) are ignored for idempotency.
+
+        **Implements**: REQ-p00004 (Immutable Audit Trail)
+      operationId: syncEvents
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+            example:
+              events:
+                - event_id: 123e4567-e89b-12d3-a456-426614174000
+                  event_type: NOSEBLEEDRECORDED
+                  data:
+                    timestamp: '2025-02-19T08:30:00.000Z'
+                    duration: 15
+                    severity: 3
+                  client_timestamp: '2025-02-19T08:31:00.000Z'
+      responses:
+        '200':
+          description: Events synced successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Events must be an array
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid authorization header
+
+  /api/v1/user/records:
+    post:
+      tags:
+        - User
+      summary: Get current records state
+      description: |
+        Retrieves the current state of all records for the authenticated user.
+        Returns the materialized view derived from the event store.
+        Includes patient linking status for disconnection detection.
+      operationId: getRecords
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid authorization header
+
+  /api/v1/user/fcm-token:
+    post:
+      tags:
+        - User
+      summary: Register FCM push notification token
+      description: |
+        Registers a Firebase Cloud Messaging token for push notifications.
+        Requires the user to be linked to a patient first.
+        Uses UPSERT pattern - deactivates old tokens and inserts new one.
+
+        **Implements**: REQ-CAL-p00082 (Patient Alert Delivery), REQ-p00049 (Ancillary Platform Services)
+      operationId: registerFcmToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FcmTokenRequest'
+            example:
+              fcm_token: dGhpc2lzYXRlc3R0b2tlbg...
+              platform: ios
+              app_version: '1.2.3'
+      responses:
+        '200':
+          description: Token registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingToken:
+                  summary: Missing FCM token
+                  value:
+                    error: Missing fcm_token
+                invalidPlatform:
+                  summary: Invalid platform
+                  value:
+                    error: Invalid platform. Must be 'android' or 'ios'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid authorization header
+        '409':
+          description: No linked patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: No linked patient. Please link your account first.
+
+  /api/v1/sponsor/config:
+    get:
+      tags:
+        - Sponsor
+      summary: Get sponsor configuration
+      description: |
+        Retrieves configuration flags for a specific sponsor.
+        Used by the mobile app to customize behavior per sponsor.
+        Returns default configuration if sponsor is not found.
+
+        **Implements**: REQ-d00005 (Sponsor Configuration Detection)
+      operationId: getSponsorConfig
+      parameters:
+        - name: sponsorId
+          in: query
+          required: true
+          description: Sponsor identifier (e.g., 'curehht', 'callisto')
+          schema:
+            type: string
+          example: callisto
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SponsorConfigResponse'
+              examples:
+                callisto:
+                  summary: Callisto sponsor config
+                  value:
+                    sponsorId: callisto
+                    flags:
+                      useReviewScreen: true
+                      useAnimations: true
+                      requireOldEntryJustification: true
+                      enableShortDurationConfirmation: true
+                      enableLongDurationConfirmation: true
+                      longDurationThresholdMinutes: 60
+                      availableFonts:
+                        - OpenDyslexic
+                        - Roboto
+                    isDefault: false
+                default:
+                  summary: Default config (unknown sponsor)
+                  value:
+                    sponsorId: unknown
+                    flags:
+                      useReviewScreen: true
+                      useAnimations: true
+                      requireOldEntryJustification: false
+                      enableShortDurationConfirmation: false
+                      enableLongDurationConfirmation: false
+                      longDurationThresholdMinutes: 60
+                      availableFonts:
+                        - OpenDyslexic
+                        - Roboto
+                    isDefault: true
+        '400':
+          description: Missing sponsorId parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Missing sponsorId parameter
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Method not allowed
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from registration, login, or patient linking.
+        Token is signed with HS256 and valid for 365 days.
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - service
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Service status
+        timestamp:
+          type: string
+          format: date-time
+          description: Current server timestamp
+        region:
+          type: string
+          description: Cloud Run region
+        service:
+          type: string
+          description: Service name
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - passwordHash
+        - appUuid
+      properties:
+        username:
+          type: string
+          minLength: 6
+          pattern: '^[a-zA-Z0-9_]+$'
+          description: |
+            Username (alphanumeric + underscore, min 6 chars).
+            Cannot contain @ symbol. Case-insensitive (normalized to lowercase).
+        passwordHash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 hash of the password (64 hex characters)
+        appUuid:
+          type: string
+          format: uuid
+          description: Device/app installation identifier
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - passwordHash
+      properties:
+        username:
+          type: string
+          description: Username (case-insensitive)
+        passwordHash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 hash of the password
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPasswordHash
+        - newPasswordHash
+      properties:
+        currentPasswordHash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 hash of current password
+        newPasswordHash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 hash of new password
+
+    AuthResponse:
+      type: object
+      required:
+        - jwt
+        - userId
+        - username
+      properties:
+        jwt:
+          type: string
+          description: JWT token for authentication
+        userId:
+          type: string
+          format: uuid
+          description: User's unique identifier
+        username:
+          type: string
+          description: Normalized username (lowercase)
+
+    LinkRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          minLength: 10
+          maxLength: 12
+          description: |
+            10-character linking code (2-char sponsor prefix + 8 alphanumeric).
+            Dashes are allowed and will be removed. Example: CA-1234-5678
+        appUuid:
+          type: string
+          format: uuid
+          description: Device/app installation identifier (optional)
+
+    LinkResponse:
+      type: object
+      required:
+        - success
+        - jwt
+        - userId
+        - patientId
+        - siteId
+        - siteName
+        - siteNumber
+        - studyPatientId
+      properties:
+        success:
+          type: boolean
+          description: Always true on success
+        jwt:
+          type: string
+          description: JWT token for authentication
+        userId:
+          type: string
+          format: uuid
+          description: App user's unique identifier
+        patientId:
+          type: string
+          format: uuid
+          description: Linked patient's unique identifier
+        siteId:
+          type: string
+          format: uuid
+          description: Clinical site identifier
+        siteName:
+          type: string
+          description: Clinical site name
+        siteNumber:
+          type: string
+          description: Clinical site number
+        studyPatientId:
+          type: string
+          description: EDC de-identified patient ID
+        sitePhoneNumber:
+          type: string
+          description: Site contact phone number (optional)
+
+    SyncRequest:
+      type: object
+      required:
+        - events
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+
+    Event:
+      type: object
+      required:
+        - event_id
+        - event_type
+        - data
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          description: Unique event identifier (used for deduplication)
+        event_type:
+          type: string
+          enum:
+            - NOSEBLEEDRECORDED
+            - NOSEBLEEDUPDATED
+            - NOSEBLEEDDELETED
+            - GIBLOODRECORDED
+            - GIBLOODUPDATED
+            - GIBLOODDELETED
+            - TRANSFUSIONRECORDED
+            - TRANSFUSIONUPDATED
+            - TRANSFUSIONDELETED
+          description: Type of event
+        data:
+          type: object
+          additionalProperties: true
+          description: Event payload data
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            duration:
+              type: integer
+              minimum: 0
+            severity:
+              type: integer
+              minimum: 1
+              maximum: 5
+        client_timestamp:
+          type: string
+          format: date-time
+          description: Client-side timestamp when event was created
+        metadata:
+          type: object
+          properties:
+            change_reason:
+              type: string
+              description: Reason for modification (FDA compliance)
+
+    SyncResponse:
+      type: object
+      required:
+        - success
+        - syncedCount
+        - syncedEventIds
+        - mobileLinkingStatus
+        - isDisconnected
+      properties:
+        success:
+          type: boolean
+        syncedCount:
+          type: integer
+          minimum: 0
+          description: Number of events successfully synced
+        syncedEventIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of successfully synced events
+        mobileLinkingStatus:
+          type: string
+          enum: [connected, disconnected]
+          description: Current patient linking status
+        isDisconnected:
+          type: boolean
+          description: True if patient has been disconnected
+
+    RecordsResponse:
+      type: object
+      required:
+        - records
+        - mobileLinkingStatus
+        - isDisconnected
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/Record'
+        mobileLinkingStatus:
+          type: string
+          enum: [connected, disconnected]
+        isDisconnected:
+          type: boolean
+
+    Record:
+      type: object
+      required:
+        - event_uuid
+        - data
+        - version
+        - updated_at
+      properties:
+        event_uuid:
+          type: string
+          format: uuid
+        data:
+          type: object
+          additionalProperties: true
+        version:
+          type: integer
+          minimum: 1
+          description: Event version/revision count
+        updated_at:
+          type: string
+          format: date-time
+
+    FcmTokenRequest:
+      type: object
+      required:
+        - fcm_token
+        - platform
+      properties:
+        fcm_token:
+          type: string
+          description: Firebase Cloud Messaging token
+        platform:
+          type: string
+          enum: [android, ios]
+          description: Mobile platform
+        app_version:
+          type: string
+          description: App version string (optional)
+
+    SponsorConfigResponse:
+      type: object
+      required:
+        - sponsorId
+        - flags
+        - isDefault
+      properties:
+        sponsorId:
+          type: string
+          description: Sponsor identifier
+        flags:
+          $ref: '#/components/schemas/SponsorFlags'
+        isDefault:
+          type: boolean
+          description: True if sponsor not found and defaults were returned
+
+    SponsorFlags:
+      type: object
+      properties:
+        useReviewScreen:
+          type: boolean
+          default: true
+        useAnimations:
+          type: boolean
+          default: true
+        requireOldEntryJustification:
+          type: boolean
+          default: false
+          description: Require reason when editing old entries (FDA compliance)
+        enableShortDurationConfirmation:
+          type: boolean
+          default: false
+        enableLongDurationConfirmation:
+          type: boolean
+          default: false
+        longDurationThresholdMinutes:
+          type: integer
+          default: 60
+        availableFonts:
+          type: array
+          items:
+            type: string
+          default: [OpenDyslexic, Roboto]
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message

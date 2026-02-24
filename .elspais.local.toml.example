@@ -1,0 +1,13 @@
+# Copy to .elspais.local.toml and adjust paths for your layout.
+# Then run: elspais associate --all
+#
+# Or manually configure:
+
+# Optional: set if your repos aren't direct siblings of hht_diary.
+# Tells 'elspais doctor' and 'elspais associate --all' where to scan.
+# [local]
+# base_dir = "~/dev/cure-hht"
+
+# Auto-populated by 'elspais associate'. You can also edit manually.
+# [associates]
+# paths = ["../callisto"]

@@ -28,9 +28,30 @@ RUN curl -sfL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google
     rm -rf /opt/google-cloud-sdk/.install/.backup
 
 # =============================================================================
-# Stage 2: Runtime
+# Stage 2: Download Doppler CLI
+# =============================================================================
+FROM ${DEBIAN_IMAGE} AS doppler-download
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget=1.21.3-1+deb12u1 \
+    ca-certificates=20230311+deb12u1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Doppler CLI
+# Pinned to specific version for reproducibility
+ARG DOPPLER_VERSION=3.75.1
+RUN wget -q https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    tar xzf doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz && \
+    chmod +x doppler && \
+    rm doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz
+
+# =============================================================================
+# Stage 3: Runtime
 # =============================================================================
 FROM ${DEBIAN_IMAGE} AS runtime
+
+# Copy Doppler CLI from download stage
+COPY --from=doppler-download /doppler /usr/local/bin/doppler
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates=20230311+deb12u1 \

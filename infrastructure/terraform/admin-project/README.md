@@ -88,9 +88,9 @@ doppler run -- terraform apply
    ```
 
 4. **Add Sponsor Cloud Run Service Accounts** for impersonation:
-   - After deploying each sponsor/environment with `sponsor-portal`, get the Cloud Run service account:
+   - After deploying each sponsor/environment with `sponsor-envs`, get the Cloud Run service account:
      ```bash
-     cd ../sponsor-portal
+     cd ../sponsor-envs
      terraform output -raw portal_server_service_account_email
      ```
    - Add to `terraform.tfvars` in `sponsor_cloud_run_service_accounts` list

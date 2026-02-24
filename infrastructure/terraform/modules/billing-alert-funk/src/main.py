@@ -66,7 +66,6 @@ def handle_budget_alert(request):
             message_id = envelope.get("message", {}).get("messageId", "unknown")
             publish_time = envelope.get("message", {}).get("publishTime", "unknown")
             print(f"SLACK_WEBHOOK_URL not set – skipping message_id={message_id}, publish_time={publish_time}")
-
         return ("OK", 200)
 
     except Exception as e:

@@ -60,3 +60,25 @@ B. Sponsor-specific extensions and customizations SHALL be permitted to remain p
 C. Platform documentation SHALL be distributed under an open documentation license compatible with redistribution and modification.
 
 *End* *Open Source Licensing* | **Hash**: 7e6b1e00
+
+---
+
+# REQ-p01074: User-Facing State Change Communication
+
+**Level**: PRD  **Status**: Draft  **Implements**: p00044
+
+## Rationale
+
+Multi-user clinical systems allow staff actions (deletion, reassignment, protocol changes) that may invalidate work a patient is actively performing. Without a platform-wide principle, each feature invents its own error handling, leading to inconsistent messaging, silent data loss, or error text that blames the patient. This requirement establishes a baseline contract: when the system cannot accept user work because of a state change initiated by another actor, the user is told clearly, respectfully, and without loss of navigational context.
+
+## Assertions
+
+A. When a user action is rejected because the target resource was modified or removed by another actor, the system SHALL display a clear, specific message explaining that the resource is no longer available.
+
+B. Error messages for server-side state changes SHALL NOT imply the user made an error or did anything wrong.
+
+C. When a user's in-progress work cannot be accepted due to a server-side state change, the system SHALL explicitly acknowledge that the user's work was not saved.
+
+D. After displaying a state-change error, the system SHALL return the user to a navigable screen where the invalidated resource no longer appears as actionable.
+
+*End* *User-Facing State Change Communication* | **Hash**: ec6b0b1d

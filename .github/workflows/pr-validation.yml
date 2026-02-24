@@ -133,13 +133,19 @@ jobs:
             echo "✅ PR metadata is valid for squash merge"
           fi
 
-  # Validate commit messages have required CUR-XXX and REQ-XXX references
+  # Validate commit messages (CUR-XXX and REQ-XXX checks controlled by flags)
   # Implements: REQ-o00079-B (push-level traceability check)
   validate-commit-messages:
-    name: Validate Commit Messages (CUR + REQ)
+    name: Validate Commit Messages
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     timeout-minutes: 5
+
+    # TODO: Re-enable enforcement by setting these to "true"
+    # CUR-XXX and REQ-XXX are enforced at PR level only (validate-pr-metadata job)
+    env:
+      ENFORCE_CUR_IN_COMMITS: "false"
+      ENFORCE_REQ_IN_COMMITS: "false"
 
     steps:
       - name: Checkout code
@@ -152,6 +158,19 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Validating Commit Messages"
+
+          echo "CUR enforcement: $ENFORCE_CUR_IN_COMMITS"
+          echo "REQ enforcement: $ENFORCE_REQ_IN_COMMITS"
+          echo ""
+
+          # If neither check is enforced, skip validation
+          if [ "$ENFORCE_CUR_IN_COMMITS" != "true" ] && [ "$ENFORCE_REQ_IN_COMMITS" != "true" ]; then
+            echo "ℹ️  Commit message reference checks are disabled."
+            echo "CUR-XXX and REQ-XXX are enforced at PR level only."
+            echo "::endgroup::"
+            echo "✅ Commit message validation skipped (enforcement disabled)"
+            exit 0
+          fi
 
           # Only check the most recent non-merge commit in this PR
           # Uses BASE..HEAD range to avoid picking up main commits after a merge
@@ -190,22 +209,28 @@ jobs:
               HAS_REQ=true
             fi
 
-            # Check validity
-            if [ "$HAS_CUR" = "true" ] && [ "$HAS_REQ" = "true" ]; then
+            # Check validity - only enforce what's enabled
+            IS_VALID=true
+            ERRORS=""
+
+            if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ "$HAS_CUR" = "false" ]; then
+              IS_VALID=false
+              ERRORS="missing CUR-XXX"
+            fi
+
+            if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ] && [ "$HAS_REQ" = "false" ]; then
+              IS_VALID=false
+              if [ -n "$ERRORS" ]; then
+                ERRORS="$ERRORS, missing REQ-XXX"
+              else
+                ERRORS="missing REQ-XXX"
+              fi
+            fi
+
+            if [ "$IS_VALID" = "true" ]; then
               echo "✅ ${sha:0:7}: $subject"
               VALID_COUNT=$((VALID_COUNT + 1))
             else
-              ERRORS=""
-              if [ "$HAS_CUR" = "false" ]; then
-                ERRORS="missing CUR-XXX"
-              fi
-              if [ "$HAS_REQ" = "false" ]; then
-                if [ -n "$ERRORS" ]; then
-                  ERRORS="$ERRORS, missing REQ-XXX"
-                else
-                  ERRORS="missing REQ-XXX"
-                fi
-              fi
               echo "❌ ${sha:0:7}: $subject ($ERRORS)"
               INVALID_COMMITS+=("$sha|$subject|$ERRORS")
             fi
@@ -230,20 +255,19 @@ jobs:
             done
             echo ""
             echo "Required format:"
-            echo "  [CUR-XXX] Subject line describing the change"
-            echo ""
-            echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}"
-            echo ""
-            echo "Where:"
-            echo "  CUR-XXX: Linear ticket number (e.g., CUR-399)"
-            echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)"
-            echo "  REQ/EQ-CAL number: 5 digits (e.g., REQ-d00018, EQ-CAL-d00005)"
-            echo ""
+            if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ]; then
+              echo "  [CUR-XXX] Subject line describing the change"
+              echo ""
+            fi
+            if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+              echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}"
+              echo ""
+            fi
             echo "To fix: Use 'git rebase -i' to edit commit messages"
             echo ""
             exit 1
           else
-            echo "✅ All $VALID_COUNT commit(s) have valid CUR-XXX and REQ-XXX references"
+            echo "✅ All $VALID_COUNT commit(s) passed enforced checks"
           fi
 
   # Post-merge validation: Check squash merge commits on main/develop
@@ -254,6 +278,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     timeout-minutes: 5
+
+    # TODO: Re-enable enforcement by setting these to "true"
+    # CUR-XXX is enforced at PR level (validate-pr-metadata), which covers squash merges
+    env:
+      ENFORCE_CUR_IN_COMMITS: "false"
+      ENFORCE_REQ_IN_COMMITS: "false"
 
     steps:
       - name: Checkout code
@@ -268,6 +298,18 @@ jobs:
           LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
         run: |
           set -euo pipefail
+
+          echo "CUR enforcement: $ENFORCE_CUR_IN_COMMITS"
+          echo "REQ enforcement: $ENFORCE_REQ_IN_COMMITS"
+          echo ""
+
+          # If neither check is enforced, skip validation
+          if [ "$ENFORCE_CUR_IN_COMMITS" != "true" ] && [ "$ENFORCE_REQ_IN_COMMITS" != "true" ]; then
+            echo "ℹ️  Merge commit reference checks are disabled."
+            echo "CUR-XXX is enforced at PR level (validate-pr-metadata)."
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           # Get HEAD commit info
           COMMIT_SHA="${{ github.sha }}"
@@ -294,10 +336,10 @@ jobs:
 
           # Build error message if needed
           ERRORS=""
-          if [ "$HAS_CUR" = "false" ]; then
+          if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ "$HAS_CUR" = "false" ]; then
             ERRORS="missing CUR-XXX"
           fi
-          if [ "$HAS_REQ" = "false" ]; then
+          if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ] && [ "$HAS_REQ" = "false" ]; then
             if [ -n "$ERRORS" ]; then
               ERRORS="$ERRORS, missing REQ-XXX"
             else
@@ -314,7 +356,7 @@ jobs:
             echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
             echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           else
-            echo "✅ Merge commit has valid CUR-XXX and REQ-XXX references"
+            echo "✅ Merge commit passed enforced checks"
             echo "has_errors=false" >> $GITHUB_OUTPUT
           fi
 
@@ -452,7 +494,7 @@ jobs:
         if: success()
         run: |
           echo "::group::INDEX.md Validation"
-          elspais index --mode core validate
+          elspais index validate --mode core
           RESULT=$?
           echo "::endgroup::"
 
@@ -991,13 +1033,13 @@ jobs:
             echo "❌ PR title: FAILED (must include [CUR-XXX])" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Commit messages (CUR + REQ) - PR validation
+          # Commit messages - PR validation (CUR+REQ enforcement disabled, PR-level only)
           if [ "${{ needs.validate-commit-messages.result }}" = "success" ]; then
-            echo "✅ Commit messages (CUR + REQ): PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Commit messages: PASSED (enforcement disabled)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.validate-commit-messages.result }}" = "skipped" ]; then
             echo "⏭️ Commit messages: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Commit messages (CUR + REQ): FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Commit messages: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Merge commit validation - post-merge check

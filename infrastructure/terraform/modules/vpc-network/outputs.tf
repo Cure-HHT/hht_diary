@@ -49,3 +49,22 @@ output "private_ip_range_name" {
   description = "The private IP range name for Cloud SQL"
   value       = google_compute_global_address.private_ip_range.name
 }
+
+# -----------------------------------------------------------------------------
+# Proxy-only Subnet (for Regional Load Balancer)
+# -----------------------------------------------------------------------------
+
+output "proxy_only_subnet_id" {
+  description = "The ID of the proxy-only subnet (null if not enabled)"
+  value       = var.enable_proxy_only_subnet ? google_compute_subnetwork.proxy_only[0].id : null
+}
+
+output "proxy_only_subnet_name" {
+  description = "The name of the proxy-only subnet (null if not enabled)"
+  value       = var.enable_proxy_only_subnet ? google_compute_subnetwork.proxy_only[0].name : null
+}
+
+output "proxy_only_subnet_cidr" {
+  description = "The CIDR range of the proxy-only subnet (null if not enabled)"
+  value       = var.enable_proxy_only_subnet ? google_compute_subnetwork.proxy_only[0].ip_cidr_range : null
+}
