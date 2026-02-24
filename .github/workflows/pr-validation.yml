@@ -45,10 +45,16 @@ jobs:
         with:
           fetch-depth: 0  # Full history for commit traversal and gitleaks
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "python_version=${PYTHON_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '${{ steps.versions.outputs.python_version }}'
 
       - name: Run validation
         run: .github/scripts/validate-pr.sh

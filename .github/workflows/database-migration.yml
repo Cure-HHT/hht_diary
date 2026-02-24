@@ -47,7 +47,7 @@ jobs:
       PGDATABASE: test_db
     services:
       postgres:
-        image: postgres:15
+        image: postgres:17-alpine  # version pinned in .github/versions.env
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db

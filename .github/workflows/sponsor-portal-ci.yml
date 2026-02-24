@@ -164,7 +164,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine  # version pinned in .github/versions.env
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -290,7 +290,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine  # version pinned in .github/versions.env
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

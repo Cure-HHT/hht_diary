@@ -95,6 +95,7 @@ jobs:
           source .github/versions.env
           echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
+          echo "java_version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
         working-directory: ${{ github.workspace }}
 
       - name: Install Linux desktop dependencies
@@ -129,7 +130,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '${{ steps.versions.outputs.java_version }}'
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
