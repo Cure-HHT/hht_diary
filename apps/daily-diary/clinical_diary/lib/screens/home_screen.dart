@@ -28,6 +28,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/questionnaire_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
@@ -36,9 +37,11 @@ import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:eq/eq.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Main home screen showing recent events and recording button
@@ -734,6 +737,47 @@ class _HomeScreenState extends State<HomeScreen> {
     await _checkDisconnectionStatus();
   }
 
+  // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire
+  Future<void> _navigateToQuestionnaire(Task task) async {
+    final qType = task.questionnaireType;
+
+    // Only NOSE HHT and QoL have full implementations
+    if (qType == null ||
+        (qType != QuestionnaireType.noseHht &&
+            qType != QuestionnaireType.qol)) {
+      // Fallback to placeholder for unsupported types (e.g., EQ)
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnairePlaceholderScreen(task: task),
+        ),
+      );
+      return;
+    }
+
+    final questionnaireService = QuestionnaireService(
+      enrollmentService: widget.enrollmentService,
+    );
+    final definition = await questionnaireService.getDefinition(qType);
+    if (definition == null || !mounted) return;
+
+    await Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (context) => QuestionnaireFlowScreen(
+          definition: definition,
+          instanceId: task.targetId ?? task.id,
+          onSubmit: questionnaireService.submitResponses,
+          onComplete: () {
+            // REQ-CAL-p00081-E: Remove task after completion
+            widget.taskService.removeTask(task.id);
+            Navigator.of(context).pop();
+          },
+          onDefer: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleIncompleteRecordsClick() async {
     if (_incompleteRecords.isEmpty) return;
 
@@ -1149,15 +1193,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // REQ-CAL-p00081: Task list (questionnaires, etc.)
               TaskListWidget(
                 taskService: widget.taskService,
-                onTaskTap: (task) {
-                  // REQ-CAL-p00081-D: Navigate to relevant screen
-                  Navigator.of(context).push(
-                    AppPageRoute<void>(
-                      builder: (context) =>
-                          QuestionnairePlaceholderScreen(task: task),
-                    ),
-                  );
-                },
+                // REQ-CAL-p00081-D: Navigate to relevant screen
+                onTaskTap: _navigateToQuestionnaire,
               ),
 
               // Yesterday confirmation banner (yellow)
