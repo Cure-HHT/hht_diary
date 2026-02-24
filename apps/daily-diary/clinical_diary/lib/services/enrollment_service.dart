@@ -103,7 +103,7 @@ class EnrollmentService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'code': normalizedCode,
-          if (appUuid case final value?) 'appUuid': value,
+          'appUuid': ?appUuid,
         }),
       );
 
