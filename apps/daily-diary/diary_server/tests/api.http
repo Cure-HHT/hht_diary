@@ -1,0 +1,1109 @@
+# HHT Diary Server API Test Suite
+# =================================
+# Compatible with VS Code REST Client, IntelliJ HTTP Client, and similar tools
+#
+# Usage:
+#   1. Start the server locally: doppler run -- dart run bin/server.dart
+#   2. Set the @baseUrl variable below to match your environment
+#   3. Run requests sequentially to build up authentication state
+#
+# Variables set by responses are marked with @name directives
+
+### Configuration
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+# Test data - update these for your testing needs
+@testUsername = testuser{{$timestamp}}
+@testPasswordHash = a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+@testAppUuid = 550e8400-e29b-41d4-a716-446655440000
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+### Health Check - Verify server is running
+# @name healthCheck
+GET {{baseUrl}}/health
+Accept: {{contentType}}
+
+> {%
+    client.test("Health check returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Status is ok", function() {
+        client.assert(response.body.status === "ok", "Expected status 'ok'");
+    });
+    client.test("Has timestamp", function() {
+        client.assert(response.body.timestamp !== undefined, "Expected timestamp");
+    });
+    client.test("Has service name", function() {
+        client.assert(response.body.service === "diary-server", "Expected service 'diary-server'");
+    });
+%}
+
+# ============================================================================
+# AUTHENTICATION - REGISTRATION
+# ============================================================================
+
+### Register New User - Success
+# @name registerSuccess
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "{{testUsername}}",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Registration returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Has JWT token", function() {
+        client.assert(response.body.jwt !== undefined, "Expected jwt field");
+        client.global.set("authToken", response.body.jwt);
+    });
+    client.test("Has userId", function() {
+        client.assert(response.body.userId !== undefined, "Expected userId");
+        client.global.set("userId", response.body.userId);
+    });
+    client.test("Username is normalized to lowercase", function() {
+        client.assert(response.body.username === response.body.username.toLowerCase(), "Username should be lowercase");
+    });
+%}
+
+###
+
+### Register User - Username Too Short (should fail)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "abc",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Short username returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions minimum length", function() {
+        client.assert(response.body.error.includes("6"), "Error should mention 6 characters");
+    });
+%}
+
+###
+
+### Register User - Invalid Username Characters (should fail)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "test-user-123",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Invalid chars returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions valid characters", function() {
+        client.assert(response.body.error.includes("letters") || response.body.error.includes("alphanumeric"),
+            "Error should mention valid characters");
+    });
+%}
+
+###
+
+### Register User - Username Contains @ (should fail)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "test@user",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Username with @ returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions @ symbol", function() {
+        client.assert(response.body.error.includes("@"), "Error should mention @ symbol");
+    });
+%}
+
+###
+
+### Register User - Invalid Password Hash Format (should fail)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "validuser123",
+    "passwordHash": "not-a-valid-hash",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Invalid hash returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions password hash", function() {
+        client.assert(response.body.error.toLowerCase().includes("password") ||
+                      response.body.error.toLowerCase().includes("hash"),
+            "Error should mention password hash");
+    });
+%}
+
+###
+
+### Register User - Missing appUuid (should fail)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "validuser456",
+    "passwordHash": "{{testPasswordHash}}"
+}
+
+> {%
+    client.test("Missing appUuid returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions appUuid", function() {
+        client.assert(response.body.error.toLowerCase().includes("appuuid"),
+            "Error should mention appUuid");
+    });
+%}
+
+###
+
+### Register User - Duplicate Username (should fail)
+# Note: Run after registerSuccess to test duplicate detection
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "{{testUsername}}",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "different-uuid-12345"
+}
+
+> {%
+    client.test("Duplicate username returns 409", function() {
+        client.assert(response.status === 409, "Expected 409 Conflict");
+    });
+    client.test("Error mentions username taken", function() {
+        client.assert(response.body.error.toLowerCase().includes("taken") ||
+                      response.body.error.toLowerCase().includes("exists"),
+            "Error should indicate username is taken");
+    });
+%}
+
+# ============================================================================
+# AUTHENTICATION - LOGIN
+# ============================================================================
+
+###
+
+### Login - Success
+# @name loginSuccess
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "username": "{{testUsername}}",
+    "passwordHash": "{{testPasswordHash}}"
+}
+
+> {%
+    client.test("Login returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Has JWT token", function() {
+        client.assert(response.body.jwt !== undefined, "Expected jwt field");
+        client.global.set("authToken", response.body.jwt);
+    });
+    client.test("Has userId", function() {
+        client.assert(response.body.userId !== undefined, "Expected userId");
+    });
+%}
+
+###
+
+### Login - Missing Username (should fail)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "passwordHash": "{{testPasswordHash}}"
+}
+
+> {%
+    client.test("Missing username returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+###
+
+### Login - Missing Password (should fail)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "username": "{{testUsername}}"
+}
+
+> {%
+    client.test("Missing password returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+###
+
+### Login - Invalid Credentials (should fail)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "username": "{{testUsername}}",
+    "passwordHash": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+
+> {%
+    client.test("Wrong password returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+    client.test("Error mentions invalid credentials", function() {
+        client.assert(response.body.error.toLowerCase().includes("invalid"),
+            "Error should indicate invalid credentials");
+    });
+%}
+
+###
+
+### Login - Non-existent User (should fail)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "username": "nonexistentuser999",
+    "passwordHash": "{{testPasswordHash}}"
+}
+
+> {%
+    client.test("Non-existent user returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+# ============================================================================
+# AUTHENTICATION - CHANGE PASSWORD
+# ============================================================================
+
+###
+
+### Change Password - Success
+# @name changePasswordSuccess
+POST {{baseUrl}}/api/v1/auth/change-password
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "currentPasswordHash": "{{testPasswordHash}}",
+    "newPasswordHash": "b3a8e0e1f9ab1bfe3a36f231f676f78bb30a519d2b21e6c530c0eee8ebb4a5d0"
+}
+
+> {%
+    client.test("Change password returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Success is true", function() {
+        client.assert(response.body.success === true, "Expected success: true");
+    });
+    // Update password hash for subsequent tests
+    client.global.set("testPasswordHash", "b3a8e0e1f9ab1bfe3a36f231f676f78bb30a519d2b21e6c530c0eee8ebb4a5d0");
+%}
+
+###
+
+### Change Password - Missing Authorization (should fail)
+POST {{baseUrl}}/api/v1/auth/change-password
+Content-Type: {{contentType}}
+
+{
+    "currentPasswordHash": "{{testPasswordHash}}",
+    "newPasswordHash": "c4b9f1f2a0bc2cfe4b47g342g787g89cc41b620e3c32f7d641f0fff9fcc5b6e1"
+}
+
+> {%
+    client.test("Missing auth returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+###
+
+### Change Password - Invalid Current Password (should fail)
+POST {{baseUrl}}/api/v1/auth/change-password
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "currentPasswordHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "newPasswordHash": "c4b9f1f2a0bc2cfe4b47g342g787g89cc41b620e3c32f7d641f0fff9fcc5b6e1"
+}
+
+> {%
+    client.test("Wrong current password returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+    client.test("Error mentions current password", function() {
+        client.assert(response.body.error.toLowerCase().includes("current") ||
+                      response.body.error.toLowerCase().includes("incorrect"),
+            "Error should mention current password");
+    });
+%}
+
+###
+
+### Change Password - Invalid Hash Format (should fail)
+POST {{baseUrl}}/api/v1/auth/change-password
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "currentPasswordHash": "not-a-hash",
+    "newPasswordHash": "also-not-a-hash"
+}
+
+> {%
+    client.test("Invalid hash format returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+# ============================================================================
+# USER - PATIENT LINKING
+# ============================================================================
+
+###
+
+### Link Patient - Missing Code (should fail)
+POST {{baseUrl}}/api/v1/user/link
+Content-Type: {{contentType}}
+
+{
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Missing code returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions missing code", function() {
+        client.assert(response.body.error.toLowerCase().includes("code"),
+            "Error should mention code");
+    });
+%}
+
+###
+
+### Link Patient - Invalid Code Format (should fail)
+POST {{baseUrl}}/api/v1/user/link
+Content-Type: {{contentType}}
+
+{
+    "code": "SHORT",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Invalid format returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions format", function() {
+        client.assert(response.body.error.toLowerCase().includes("format") ||
+                      response.body.error.toLowerCase().includes("invalid"),
+            "Error should mention format");
+    });
+%}
+
+###
+
+### Link Patient - Code Not Found (should fail)
+POST {{baseUrl}}/api/v1/user/link
+Content-Type: {{contentType}}
+
+{
+    "code": "XX00000000",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("Unknown code returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions invalid code", function() {
+        client.assert(response.body.error.toLowerCase().includes("invalid") ||
+                      response.body.error.toLowerCase().includes("not found"),
+            "Error should indicate code is invalid");
+    });
+%}
+
+###
+
+### Link Patient - With Dashes in Code (normalized format)
+# This tests that dashes are properly removed
+POST {{baseUrl}}/api/v1/user/link
+Content-Type: {{contentType}}
+
+{
+    "code": "CA-1234-5678",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    // This will likely return 400 (code not found) but validates format handling
+    client.test("Dashed code is accepted for processing", function() {
+        // Should NOT return format error - dashes are stripped
+        client.assert(response.status === 400 || response.status === 200,
+            "Should accept dashed format");
+        if (response.status === 400) {
+            client.assert(!response.body.error.toLowerCase().includes("format"),
+                "Should not be a format error");
+        }
+    });
+%}
+
+# ============================================================================
+# USER - LEGACY ENROLLMENT (DEPRECATED)
+# ============================================================================
+
+###
+
+### Enroll User - Deprecated Endpoint
+POST {{baseUrl}}/api/v1/user/enroll
+Content-Type: {{contentType}}
+
+{
+    "enrollmentCode": "TEST123"
+}
+
+> {%
+    client.test("Deprecated endpoint returns 410", function() {
+        client.assert(response.status === 410, "Expected 410 Gone");
+    });
+    client.test("Error mentions deprecated", function() {
+        client.assert(response.body.error.toLowerCase().includes("deprecated") ||
+                      response.body.error.toLowerCase().includes("legacy"),
+            "Error should mention deprecation");
+    });
+    client.test("Error suggests using /link", function() {
+        client.assert(response.body.error.includes("/link"),
+            "Error should suggest using /api/v1/user/link");
+    });
+%}
+
+# ============================================================================
+# USER - SYNC EVENTS
+# ============================================================================
+
+###
+
+### Sync Events - Success (empty array)
+# @name syncEmpty
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": []
+}
+
+> {%
+    client.test("Sync empty returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Success is true", function() {
+        client.assert(response.body.success === true, "Expected success: true");
+    });
+    client.test("Synced count is 0", function() {
+        client.assert(response.body.syncedCount === 0, "Expected syncedCount: 0");
+    });
+    client.test("Has mobileLinkingStatus", function() {
+        client.assert(response.body.mobileLinkingStatus !== undefined,
+            "Expected mobileLinkingStatus field");
+    });
+%}
+
+###
+
+### Sync Events - Single Event
+# @name syncSingleEvent
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": [
+        {
+            "event_id": "123e4567-e89b-12d3-a456-426614174000",
+            "event_type": "NOSEBLEEDRECORDED",
+            "data": {
+                "timestamp": "2025-02-19T08:30:00.000Z",
+                "duration": 15,
+                "severity": 3
+            },
+            "client_timestamp": "2025-02-19T08:31:00.000Z"
+        }
+    ]
+}
+
+> {%
+    client.test("Sync returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Success is true", function() {
+        client.assert(response.body.success === true, "Expected success: true");
+    });
+    client.test("Has syncedCount", function() {
+        client.assert(response.body.syncedCount !== undefined, "Expected syncedCount");
+    });
+    client.test("Has syncedEventIds array", function() {
+        client.assert(Array.isArray(response.body.syncedEventIds), "Expected syncedEventIds array");
+    });
+%}
+
+###
+
+### Sync Events - Multiple Events
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": [
+        {
+            "event_id": "223e4567-e89b-12d3-a456-426614174001",
+            "event_type": "NOSEBLEEDRECORDED",
+            "data": {
+                "timestamp": "2025-02-19T09:00:00.000Z",
+                "duration": 10,
+                "severity": 2
+            }
+        },
+        {
+            "event_id": "323e4567-e89b-12d3-a456-426614174002",
+            "event_type": "NOSEBLEEDUPDATED",
+            "data": {
+                "timestamp": "2025-02-19T09:00:00.000Z",
+                "duration": 12,
+                "severity": 2
+            },
+            "metadata": {
+                "change_reason": "Corrected duration"
+            }
+        }
+    ]
+}
+
+> {%
+    client.test("Sync multiple returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Synced count reflects events", function() {
+        client.assert(response.body.syncedCount >= 0, "Expected valid syncedCount");
+    });
+%}
+
+###
+
+### Sync Events - Duplicate Event (idempotency test)
+# This event_id was already synced above - should be deduplicated
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": [
+        {
+            "event_id": "123e4567-e89b-12d3-a456-426614174000",
+            "event_type": "NOSEBLEEDRECORDED",
+            "data": {
+                "timestamp": "2025-02-19T08:30:00.000Z",
+                "duration": 15,
+                "severity": 3
+            }
+        }
+    ]
+}
+
+> {%
+    client.test("Duplicate sync returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK (idempotent)");
+    });
+    client.test("Duplicate is handled gracefully", function() {
+        client.assert(response.body.success === true, "Should succeed with deduplication");
+    });
+%}
+
+###
+
+### Sync Events - Missing Authorization (should fail)
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+
+{
+    "events": []
+}
+
+> {%
+    client.test("Missing auth returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+###
+
+### Sync Events - Invalid Token (should fail)
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer invalid.token.here
+
+{
+    "events": []
+}
+
+> {%
+    client.test("Invalid token returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+###
+
+### Sync Events - Invalid Body (should fail)
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": "not-an-array"
+}
+
+> {%
+    client.test("Invalid events returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions array", function() {
+        client.assert(response.body.error.toLowerCase().includes("array"),
+            "Error should mention array");
+    });
+%}
+
+# ============================================================================
+# USER - GET RECORDS
+# ============================================================================
+
+###
+
+### Get Records - Success
+# @name getRecords
+POST {{baseUrl}}/api/v1/user/records
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{}
+
+> {%
+    client.test("Get records returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("Has records array", function() {
+        client.assert(Array.isArray(response.body.records), "Expected records array");
+    });
+    client.test("Has mobileLinkingStatus", function() {
+        client.assert(response.body.mobileLinkingStatus !== undefined,
+            "Expected mobileLinkingStatus");
+    });
+    client.test("Has isDisconnected flag", function() {
+        client.assert(response.body.isDisconnected !== undefined,
+            "Expected isDisconnected");
+    });
+%}
+
+###
+
+### Get Records - Missing Authorization (should fail)
+POST {{baseUrl}}/api/v1/user/records
+Content-Type: {{contentType}}
+
+{}
+
+> {%
+    client.test("Missing auth returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+# ============================================================================
+# USER - FCM TOKEN REGISTRATION
+# ============================================================================
+
+###
+
+### Register FCM Token - Missing Token (should fail)
+POST {{baseUrl}}/api/v1/user/fcm-token
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "platform": "ios"
+}
+
+> {%
+    client.test("Missing token returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions fcm_token", function() {
+        client.assert(response.body.error.toLowerCase().includes("fcm") ||
+                      response.body.error.toLowerCase().includes("token"),
+            "Error should mention fcm_token");
+    });
+%}
+
+###
+
+### Register FCM Token - Invalid Platform (should fail)
+POST {{baseUrl}}/api/v1/user/fcm-token
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "fcm_token": "test-fcm-token-12345",
+    "platform": "windows"
+}
+
+> {%
+    client.test("Invalid platform returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions platform", function() {
+        client.assert(response.body.error.toLowerCase().includes("platform"),
+            "Error should mention platform");
+    });
+%}
+
+###
+
+### Register FCM Token - Missing Authorization (should fail)
+POST {{baseUrl}}/api/v1/user/fcm-token
+Content-Type: {{contentType}}
+
+{
+    "fcm_token": "test-fcm-token-12345",
+    "platform": "ios"
+}
+
+> {%
+    client.test("Missing auth returns 401", function() {
+        client.assert(response.status === 401, "Expected 401 Unauthorized");
+    });
+%}
+
+###
+
+### Register FCM Token - No Linked Patient (should fail)
+# Note: This expects 409 if the user has no linked patient
+POST {{baseUrl}}/api/v1/user/fcm-token
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "fcm_token": "dGhpc2lzYXRlc3R0b2tlbmZvcmZjbQ",
+    "platform": "ios",
+    "app_version": "1.2.3"
+}
+
+> {%
+    client.test("No linked patient returns 409", function() {
+        client.assert(response.status === 409, "Expected 409 Conflict (no linked patient)");
+    });
+    client.test("Error mentions linking", function() {
+        client.assert(response.body.error.toLowerCase().includes("link") ||
+                      response.body.error.toLowerCase().includes("patient"),
+            "Error should mention linking requirement");
+    });
+%}
+
+# ============================================================================
+# SPONSOR - CONFIGURATION
+# ============================================================================
+
+###
+
+### Get Sponsor Config - Callisto
+# @name getSponsorConfigCallisto
+GET {{baseUrl}}/api/v1/sponsor/config?sponsorId=callisto
+Accept: {{contentType}}
+
+> {%
+    client.test("Get config returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("SponsorId matches", function() {
+        client.assert(response.body.sponsorId === "callisto", "Expected sponsorId: callisto");
+    });
+    client.test("Has flags object", function() {
+        client.assert(response.body.flags !== undefined, "Expected flags object");
+    });
+    client.test("Callisto has requireOldEntryJustification", function() {
+        client.assert(response.body.flags.requireOldEntryJustification === true,
+            "Callisto should require old entry justification");
+    });
+    client.test("Not default config", function() {
+        client.assert(response.body.isDefault === false, "Should not be default config");
+    });
+%}
+
+###
+
+### Get Sponsor Config - CureHHT
+GET {{baseUrl}}/api/v1/sponsor/config?sponsorId=curehht
+Accept: {{contentType}}
+
+> {%
+    client.test("Get config returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+    client.test("SponsorId matches", function() {
+        client.assert(response.body.sponsorId === "curehht", "Expected sponsorId: curehht");
+    });
+    client.test("Has flags object", function() {
+        client.assert(response.body.flags !== undefined, "Expected flags object");
+    });
+%}
+
+###
+
+### Get Sponsor Config - Unknown Sponsor (returns defaults)
+GET {{baseUrl}}/api/v1/sponsor/config?sponsorId=unknownsponsor
+Accept: {{contentType}}
+
+> {%
+    client.test("Unknown sponsor returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK with defaults");
+    });
+    client.test("Returns default config", function() {
+        client.assert(response.body.isDefault === true, "Should be default config");
+    });
+    client.test("Has default flags", function() {
+        client.assert(response.body.flags !== undefined, "Expected flags object");
+        client.assert(response.body.flags.useReviewScreen === true, "Default useReviewScreen should be true");
+    });
+%}
+
+###
+
+### Get Sponsor Config - Missing sponsorId (should fail)
+GET {{baseUrl}}/api/v1/sponsor/config
+Accept: {{contentType}}
+
+> {%
+    client.test("Missing sponsorId returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+    client.test("Error mentions sponsorId", function() {
+        client.assert(response.body.error.toLowerCase().includes("sponsorid"),
+            "Error should mention sponsorId");
+    });
+%}
+
+###
+
+### Get Sponsor Config - Wrong Method (should fail)
+POST {{baseUrl}}/api/v1/sponsor/config?sponsorId=callisto
+Content-Type: {{contentType}}
+
+{}
+
+> {%
+    client.test("POST returns 405", function() {
+        client.assert(response.status === 405, "Expected 405 Method Not Allowed");
+    });
+%}
+
+# ============================================================================
+# CORS PREFLIGHT TESTS
+# ============================================================================
+
+###
+
+### CORS Preflight - Auth Endpoint
+OPTIONS {{baseUrl}}/api/v1/auth/register
+Origin: http://localhost:3000
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type, Authorization
+
+> {%
+    client.test("Preflight returns 200", function() {
+        client.assert(response.status === 200 || response.status === 204, "Expected 200/204");
+    });
+    client.test("Has CORS headers", function() {
+        client.assert(response.headers.valueOf("access-control-allow-origin") !== undefined,
+            "Expected Access-Control-Allow-Origin header");
+    });
+%}
+
+###
+
+### CORS Preflight - User Endpoint
+OPTIONS {{baseUrl}}/api/v1/user/sync
+Origin: http://localhost:3000
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type, Authorization
+
+> {%
+    client.test("Preflight returns 200", function() {
+        client.assert(response.status === 200 || response.status === 204, "Expected 200/204");
+    });
+%}
+
+# ============================================================================
+# EDGE CASES AND SECURITY TESTS
+# ============================================================================
+
+###
+
+### SQL Injection Attempt - Username
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "username": "admin'; DROP TABLE users; --",
+    "passwordHash": "{{testPasswordHash}}"
+}
+
+> {%
+    client.test("SQL injection attempt returns 400 or 401", function() {
+        client.assert(response.status === 400 || response.status === 401,
+            "Should reject SQL injection attempt");
+    });
+    client.test("No server error", function() {
+        client.assert(response.status !== 500, "Should not cause server error");
+    });
+%}
+
+###
+
+### XSS Attempt - Username
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "<script>alert('xss')</script>testuser",
+    "passwordHash": "{{testPasswordHash}}",
+    "appUuid": "{{testAppUuid}}"
+}
+
+> {%
+    client.test("XSS attempt rejected", function() {
+        client.assert(response.status === 400, "Should reject XSS attempt (invalid chars)");
+    });
+%}
+
+###
+
+### Malformed JSON
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{ "username": "test", "broken json
+
+> {%
+    client.test("Malformed JSON returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+###
+
+### Empty Body
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+
+
+> {%
+    client.test("Empty body returns 400", function() {
+        client.assert(response.status === 400, "Expected 400 Bad Request");
+    });
+%}
+
+###
+
+### Large Payload Test
+POST {{baseUrl}}/api/v1/user/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "events": [
+        {"event_id": "a00e4567-e89b-12d3-a456-426614174001", "event_type": "NOSEBLEEDRECORDED", "data": {"timestamp": "2025-02-19T01:00:00.000Z", "duration": 1, "severity": 1}},
+        {"event_id": "a00e4567-e89b-12d3-a456-426614174002", "event_type": "NOSEBLEEDRECORDED", "data": {"timestamp": "2025-02-19T02:00:00.000Z", "duration": 2, "severity": 2}},
+        {"event_id": "a00e4567-e89b-12d3-a456-426614174003", "event_type": "NOSEBLEEDRECORDED", "data": {"timestamp": "2025-02-19T03:00:00.000Z", "duration": 3, "severity": 3}},
+        {"event_id": "a00e4567-e89b-12d3-a456-426614174004", "event_type": "NOSEBLEEDRECORDED", "data": {"timestamp": "2025-02-19T04:00:00.000Z", "duration": 4, "severity": 4}},
+        {"event_id": "a00e4567-e89b-12d3-a456-426614174005", "event_type": "NOSEBLEEDRECORDED", "data": {"timestamp": "2025-02-19T05:00:00.000Z", "duration": 5, "severity": 5}}
+    ]
+}
+
+> {%
+    client.test("Batch sync returns 200", function() {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+# ============================================================================
+# RESPONSE FORMAT VALIDATION
+# ============================================================================
+
+###
+
+### Verify JSON Content-Type on Success
+# @name verifyContentType
+GET {{baseUrl}}/health
+Accept: application/json
+
+> {%
+    client.test("Content-Type is JSON", function() {
+        const contentType = response.headers.valueOf("content-type");
+        client.assert(contentType.includes("application/json"),
+            "Expected application/json content type");
+    });
+%}
+
+###
+
+### Verify Error Response Format
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "ab"
+}
+
+> {%
+    client.test("Error has correct format", function() {
+        client.assert(response.body.error !== undefined, "Expected error field");
+        client.assert(typeof response.body.error === "string", "Error should be a string");
+    });
+%}

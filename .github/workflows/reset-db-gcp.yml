@@ -26,7 +26,8 @@ on:
         options:
           - dev
           - qa
-        default: qa
+          - uat
+        default: dev
       debug:
         description: 'Enable debug mode'
         required: true

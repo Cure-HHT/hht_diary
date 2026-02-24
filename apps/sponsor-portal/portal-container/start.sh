@@ -13,7 +13,8 @@ set -eo pipefail
 # Re-exec with line-buffered stdout/stderr so Cloud Run captures all log output
 if [ -z "$_UNBUFFERED" ]; then
     export _UNBUFFERED=1
-    exec stdbuf -oL -eL "$0" "$@"
+    exec stdbuf -o0 -eL "$0" "$@"
+    # exec stdbuf -oL -eL "$0" "$@"
 fi
 
 # Dart server listens on internal port 8081

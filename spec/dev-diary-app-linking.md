@@ -604,7 +604,7 @@ A. The system SHALL display a "Submit" button when all required questions are an
 
 B. The system SHALL display a submission confirmation dialog before final submission.
 
-C. The confirmation dialog SHALL display message "Once submitted, your responses will be sent to your study coordinator for review. You will not be able to change your answers after submission."
+C. The confirmation dialog SHALL display message "Once submitted, your responses will be sent to your study coordinator for review. You may still edit your answers until the study coordinator finalizes the questionnaire."
 
 D. The system SHALL create a "QUESTIONNAIRE_SUBMITTED" event upon user confirmation.
 
@@ -630,7 +630,7 @@ N. The confirmation screen SHALL display message "Welcome to the study! Your dai
 
 O. The system SHALL preserve questionnaire responses indefinitely for audit purposes.
 
-*End* *Questionnaire Submission Flow* | **Hash**: 50d5db71
+*End* *Questionnaire Submission Flow* | **Hash**: b9a8f91b
 
 ---
 

@@ -1,8 +1,8 @@
 # Investigator Questionnaire Approval Workflow
 
-**Version**: 1.0
+**Version**: 2.0
 **Status**: Draft
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-02-18
 
 > **See**: prd-portal.md for sponsor portal overview
 > **See**: prd-diary-app.md for mobile app requirements
@@ -14,6 +14,8 @@
 
 This specification defines the "Investigator Questionnaire Approval" workflow that enables clinical trial staff to request, review, and finalize patient questionnaire responses. This workflow ensures data integrity and regulatory compliance by requiring investigator approval before questionnaire scores are calculated and permanently recorded.
 
+Patients may edit their answers at any time before finalization. Study coordinators may delete a questionnaire at any step after it has been sent.
+
 ---
 
 ## Workflow Diagram
@@ -24,7 +26,7 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 
 ## User Journey
 
-### Investigator Journey
+### Study Coordinator / Investigator Journey
 
 1. **Initiate Questionnaire Request**
 
@@ -35,20 +37,19 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 
 2. **Monitor Completion**
 
-   - Portal updates status when patient completes and submits questionnaire
-   - Diary no longer allows edits to the questionnaire
-   - Questionnaire status changes to "Ready for Review"
+   - Portal updates status as patient progresses through the questionnaire
+   - Questionnaire status changes to "Ready for Review" when patient submits
 
 3. **Review and Finalize**
 
-   - Investigator verifies with patient that the questinnaire is complete
-   - **Option A - Finalize**: Select "Finalize and Score" to calculate score, store permanently, and lock questionnaire
-   - **Option B - Return for Edits**: Select "Unlock for Editing" to return questionnaire to patient for modifications
+   - Investigator verifies with patient that the questionnaire is complete
+   - Select "Finalize and Score" to calculate score, store permanently, and lock questionnaire
 
-4. **Handle Edits (if applicable)**
+4. **Delete (if applicable)**
 
-   - If unlocked, wait for patient to resubmit
-   - Repeat review process until finalized
+   - Study coordinator may delete the questionnaire at any step after it was sent (Sent, In Progress, or Ready to Review)
+   - A deletion reason is recorded in the audit trail
+   - Deletion is NOT permitted after finalization
 
 ### Patient Journey
 
@@ -73,16 +74,14 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 4. **Submit Questionnaire**
 
    - Patient selects "Complete and Submit"
-   - Questionnaire becomes read-only in Diary
    - Answers sync to study database
    - Status visible as "Submitted - Awaiting Review"
 
-5. **Handle Unlock Request (if applicable)**
+5. **Edit Before Finalization (if applicable)**
 
-   - If investigator unlocks for editing, patient receives notification
-   - Questionnaire status changes to "Review"
-   - Patient can modify answers
-   - Patient resubmits when ready
+   - Patient may edit their answers at any time before the investigator finalizes the questionnaire
+   - Edits are permitted during Sent, In Progress, and Ready to Review statuses
+   - If the patient edits after submission, the questionnaire returns to "In Progress" status
 
 ---
 
@@ -90,10 +89,21 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 
 | Diary Status | Portal Status | Description |
 | ------------ | ------------- | ----------- |
-| Active | Pending | Patient is completing questionnaire |
-| Read-only | Ready to Review | Patient submitted, awaiting investigator decision |
-| Review | Unlocked | Investigator returned for patient edits |
+| Active | Sent | Questionnaire sent; patient has not started |
+| Active | In Progress | Patient is completing questionnaire |
+| Editable | Ready to Review | Patient submitted; awaiting investigator decision; patient may still edit |
 | Read-only (permanent) | Finalized | Score calculated, questionnaire permanently locked |
+
+### Permitted Transitions
+
+| From | To | Trigger |
+| ---- | -- | ------- |
+| Not Sent | Sent | Investigator sends questionnaire |
+| Sent | In Progress | Patient opens and starts answering |
+| In Progress | Ready to Review | Patient submits |
+| Ready to Review | In Progress | Patient edits after submission |
+| Ready to Review | Finalized | Investigator selects "Finalize and Score" |
+| Sent / In Progress / Ready to Review | Deleted (soft) | Study coordinator deletes |
 
 ---
 
@@ -105,7 +115,7 @@ This specification defines the "Investigator Questionnaire Approval" workflow th
 
 ## Rationale
 
-Clinical trials often require investigator oversight of patient-reported outcomes to ensure data quality and protocol compliance. The Investigator Questionnaire Approval workflow provides a controlled process where investigators can trigger questionnaires, review patient responses, and either finalize with scoring or return for patient edits. Delaying score calculation until investigator approval prevents patients from iteratively adjusting answers to achieve desired scores, maintaining data integrity. The review cycle allows investigators to address incomplete or unclear responses before permanent finalization.
+Clinical trials often require investigator oversight of patient-reported outcomes to ensure data quality and protocol compliance. The Investigator Questionnaire Approval workflow provides a controlled process where investigators can trigger questionnaires, review patient responses, and finalize with scoring. Delaying score calculation until investigator approval prevents patients from iteratively adjusting answers to achieve desired scores, maintaining data integrity. Patients retain edit access until finalization so they can correct mistakes without requiring investigator intervention. Study coordinators can delete questionnaires at any active lifecycle step to handle protocol deviations or errors.
 
 ## Assertions
 
@@ -121,9 +131,9 @@ E. The system SHALL present a review screen to patients for questionnaires that 
 
 F. The system SHALL NOT calculate questionnaire scores until the investigator selects "Finalize and Score".
 
-G. The system SHALL transition questionnaire status to "Read-only" in the Diary and "Ready to Review" in the Portal upon patient submission.
+G. The system SHALL transition questionnaire status to "Ready to Review" in the Portal upon patient submission.
 
-H. The system SHALL prevent patients from modifying submitted questionnaire answers while status is "Read-only".
+H. The system SHALL allow patients to edit their answers at any time before the investigator finalizes the questionnaire, including after submission.
 
 I. The system SHALL allow investigators to select "Finalize and Score" for submitted questionnaires.
 
@@ -133,23 +143,23 @@ K. The system SHALL transition questionnaire status to "Read-only (permanent)" i
 
 L. The system SHALL prevent any modification to questionnaire answers after finalization.
 
-M. The system SHALL allow investigators to select "Unlock for Editing" for submitted questionnaires.
+M. The system SHALL allow study coordinators to delete a questionnaire at any step after it has been sent (Sent, In Progress, or Ready to Review).
 
-N. The system SHALL transition questionnaire status to "Review" in the Diary when the investigator unlocks for editing.
+N. The system SHALL NOT allow deletion of a finalized questionnaire.
 
-O. The system SHALL notify the patient when their questionnaire has been unlocked for editing.
+O. The system SHALL require a deletion reason when a study coordinator deletes a questionnaire.
 
-P. The system SHALL allow patients to modify answers when questionnaire status is "Review".
+P. The system SHALL transition the questionnaire status from "Ready to Review" back to "In Progress" when a patient edits after submission.
 
-Q. The system SHALL allow patients to resubmit after making edits, returning to "Read-only" / "Ready to Review" status.
+Q. The system SHALL support the questionnaire lifecycle until the questionnaire is finalized or deleted.
 
-R. The system SHALL support multiple review cycles until the questionnaire is finalized or deleted.
+R. The system SHALL record all status transitions in the audit trail with timestamps and acting user.
 
-S. The system SHALL record all status transitions in the audit trail with timestamps and acting user.
+S. The system SHALL record the investigator who finalized the questionnaire in the audit trail.
 
-T. The system SHALL record the investigator who finalized the questionnaire in the audit trail.
+T. The system SHALL record the study coordinator who deleted the questionnaire and the deletion reason in the audit trail.
 
-*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 8790cf5d
+*End* *Investigator Questionnaire Approval Workflow* | **Hash**: 735ee5a6
 ---
 
 ## Audit Trail Events
@@ -162,10 +172,10 @@ The following events SHALL be recorded for this workflow:
 | Notification delivered | System | Device ID, delivery timestamp |
 | Questionnaire started | Patient | Start timestamp |
 | Questionnaire submitted | Patient | Submit timestamp, answer snapshot |
+| Answers modified | Patient | Change timestamp, previous/new values |
 | Review initiated | Investigator | Review start timestamp |
 | Questionnaire finalized | Investigator | Finalization timestamp, calculated score |
-| Questionnaire unlocked | Investigator | Unlock timestamp, reason (optional) |
-| Answers modified | Patient | Change timestamp, previous/new values |
+| Questionnaire deleted | Study Coordinator | Deletion timestamp, deletion reason |
 
 ---
 

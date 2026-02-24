@@ -96,12 +96,70 @@ resource "google_service_account_iam_member" "cloud_run_impersonate" {
 }
 
 # -----------------------------------------------------------------------------
+# IAM: Allow Sponsor Cloud Run Service Agents to Pull from Artifact Registry
+# -----------------------------------------------------------------------------
+#
+# Each sponsor project's Cloud Run Service Agent needs permission to pull
+# container images from this admin project's Artifact Registry (ghcr-remote).
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00001: Separate GCP Projects Per Sponsor
+
+resource "google_project_iam_member" "cloudrun_service_acct_artifact_reader" {
+  for_each = toset(var.sponsor_cloud_run_service_accounts)
+
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${each.value}"
+}
+
+# -----------------------------------------------------------------------------
+# IAM: Allow Sponsor Compute Engine Default SAs to Read from Schema Bucket
+# -----------------------------------------------------------------------------
+#
+# Cloud Run jobs in sponsor projects use the Compute Engine default service
+# account to run. These jobs need to read schema files from the admin project's
+# schema bucket (for database migrations/resets).
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00001: Separate GCP Projects Per Sponsor
+
+resource "google_storage_bucket_iam_member" "sponsor_compute_sa_schema_reader" {
+  for_each = toset(var.sponsor_compute_default_service_accounts)
+
+  bucket = var.schema_bucket_name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${each.value}"
+}
+
+# -----------------------------------------------------------------------------
+# IAM: Allow Sponsor Terraform SAs to Reference Admin Project Resources
+# -----------------------------------------------------------------------------
+#
+# When sponsor-envs Terraform references service accounts from this admin
+# project (e.g., github-actions-sa), GCP requires serviceUsageConsumer
+# permission on the admin project to validate the service account exists.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00002: Infrastructure as Code for environment provisioning
+
+resource "google_project_iam_member" "sponsor_terraform_sa_service_usage" {
+  for_each = toset(var.sponsor_terraform_service_accounts)
+
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = "serviceAccount:${each.value}"
+}
+
+# -----------------------------------------------------------------------------
 # Note: Artifact Registry
 # -----------------------------------------------------------------------------
 #
 # The Artifact Registry (ghcr-remote) in this project was created manually
 # and is used as a pull-through cache for GitHub Container Registry.
-# It is referenced in sponsor-portal configurations.
+# It is referenced in sponsor-envs configurations.
 #
 # If you need to manage it via Terraform in the future, add:
 #

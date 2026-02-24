@@ -1,4 +1,4 @@
-# sponsor-portal/versions.tf
+# sponsor-envs/versions.tf
 #
 # Terraform and provider version constraints
 
