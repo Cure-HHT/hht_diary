@@ -77,7 +77,7 @@ void main() {
     Future<
       ({AuthService authService, Map<String, Map<String, String>> captured})
     >
-    _setupMultiRoleUser({
+    setupMultiRoleUser({
       required String activeRole,
       required MockClient mockHttpClient,
       required Map<String, Map<String, String>> capturedHeaders,
@@ -108,7 +108,7 @@ void main() {
 
     /// Creates a MockClient that returns a multi-role /me response and
     /// captures headers from all other requests.
-    MockClient _createMockClient(
+    MockClient createMockClient(
       Map<String, Map<String, String>> capturedHeaders, {
       required String activeRole,
     }) {
@@ -144,11 +144,11 @@ void main() {
 
     test('sends X-Active-Role header with GET requests', () async {
       final capturedHeaders = <String, Map<String, String>>{};
-      final mockHttpClient = _createMockClient(
+      final mockHttpClient = createMockClient(
         capturedHeaders,
         activeRole: 'Investigator',
       );
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Investigator',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
@@ -166,11 +166,11 @@ void main() {
 
     test('sends X-Active-Role header with POST requests', () async {
       final capturedHeaders = <String, Map<String, String>>{};
-      final mockHttpClient = _createMockClient(
+      final mockHttpClient = createMockClient(
         capturedHeaders,
         activeRole: 'Investigator',
       );
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Investigator',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
@@ -188,11 +188,11 @@ void main() {
 
     test('sends X-Active-Role header with DELETE requests', () async {
       final capturedHeaders = <String, Map<String, String>>{};
-      final mockHttpClient = _createMockClient(
+      final mockHttpClient = createMockClient(
         capturedHeaders,
         activeRole: 'Investigator',
       );
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Investigator',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
@@ -211,11 +211,11 @@ void main() {
 
     test('sends X-Active-Role header with PATCH requests', () async {
       final capturedHeaders = <String, Map<String, String>>{};
-      final mockHttpClient = _createMockClient(
+      final mockHttpClient = createMockClient(
         capturedHeaders,
         activeRole: 'Investigator',
       );
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Investigator',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
@@ -233,11 +233,11 @@ void main() {
 
     test('sends Developer Admin role when that is active', () async {
       final capturedHeaders = <String, Map<String, String>>{};
-      final mockHttpClient = _createMockClient(
+      final mockHttpClient = createMockClient(
         capturedHeaders,
         activeRole: 'Developer Admin',
       );
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Developer Admin',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
@@ -287,7 +287,7 @@ void main() {
         );
       });
 
-      final setup = await _setupMultiRoleUser(
+      final setup = await setupMultiRoleUser(
         activeRole: 'Developer Admin',
         mockHttpClient: mockHttpClient,
         capturedHeaders: capturedHeaders,
