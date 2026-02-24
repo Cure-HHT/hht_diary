@@ -15,8 +15,10 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ## Critical Rules
 
 ### 1. Requirement Traceability (MANDATORY)
-- **ALL commits** must include `Implements: REQ-xxx` or `Fixes: REQ-xxx` in commit messages
-- Git hooks enforce this - commits without REQ references will be blocked
+- **ALL commits** must include a `[CUR-XXX]` Linear ticket reference
+- Git hooks enforce the CUR-XXX reference - commits without it will be blocked
+- REQ-xxx references in commit messages are **optional** (enforcement disabled via `ENFORCE_REQ_IN_COMMITS` flag)
+- REQ references are still **required** in PR titles/descriptions for squash-merge traceability
 - Requirement format: `REQ-{type}{number}` where type is `p` (PRD), `o` (Ops), or `d` (Dev), and number is 5 digits (e.g., `REQ-d00027`)
 - Implementation files must include requirement headers, e.g.:
   ```sql
