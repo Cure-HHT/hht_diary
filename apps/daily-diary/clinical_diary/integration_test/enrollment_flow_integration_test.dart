@@ -80,9 +80,7 @@ void main() {
 
       // Create a real EnrollmentService with mock HTTP client
       authService = AuthService(httpClient: mockHttpClient);
-      var sharedPreferences = await SharedPreferences.getInstance();
       preferencesService = PreferencesService(
-        sharedPreferences: sharedPreferences,
       );
       nosebleedService = NosebleedService(
         enrollmentService: enrollmentService,
@@ -102,7 +100,7 @@ void main() {
       }
     });
 
-    Widget _buildHomeScreen() {
+    Widget buildHomeScreen() {
       return MaterialApp(
         locale: const Locale('en'),
         supportedLocales: AppLocalizations.supportedLocales,
@@ -125,12 +123,12 @@ void main() {
       );
     }
 
-    void _setUpTestScreenSize(WidgetTester tester) {
+    void setUpTestScreenSize(WidgetTester tester) {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
     }
 
-    void _resetTestScreenSize(WidgetTester tester) {
+    void resetTestScreenSize(WidgetTester tester) {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     }
@@ -138,14 +136,14 @@ void main() {
     testWidgets(
       'REQ-CAL-p00049: User can enroll via enrollment page and enrollment is saved to local storage',
       (tester) async {
-        _setUpTestScreenSize(tester);
+        setUpTestScreenSize(tester);
 
         // Verify user is not enrolled initially
         var isEnrolled = await enrollmentService.isEnrolled();
         expect(isEnrolled, false);
 
         // Load home screen
-        await tester.pumpWidget(_buildHomeScreen());
+        await tester.pumpWidget(buildHomeScreen());
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
         // Open menu by tapping the menu button
@@ -188,11 +186,11 @@ void main() {
     testWidgets(
       'REQ-d00005: Sponsor branding is displayed on home screen after enrollment',
       (tester) async {
-        _setUpTestScreenSize(tester);
-        addTearDown(() => _resetTestScreenSize(tester));
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
 
         // Load and display home screen
-        await tester.pumpWidget(_buildHomeScreen());
+        await tester.pumpWidget(buildHomeScreen());
         await tester.pumpAndSettle();
 
         // Verify enrollment is active
@@ -221,11 +219,11 @@ void main() {
     testWidgets(
       'REQ-CAL-p00076: Active trial badge is displayed on profile screen after enrollment',
       (tester) async {
-        _setUpTestScreenSize(tester);
-        addTearDown(() => _resetTestScreenSize(tester));
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
 
         // Load and display home screen
-        await tester.pumpWidget(_buildHomeScreen());
+        await tester.pumpWidget(buildHomeScreen());
         await tester.pumpAndSettle();
         await tester.tap(find.byIcon(Icons.person_outline).first);
         await tester.pumpAndSettle();

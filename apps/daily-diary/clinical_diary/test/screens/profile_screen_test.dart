@@ -4,10 +4,10 @@
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail_image_network/mocktail_image_network.dart';
 
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
-import 'package:mocktail_image_network/mocktail_image_network.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
