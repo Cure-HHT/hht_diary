@@ -30,6 +30,7 @@ class _ClinicalTrialEnrollmentScreenState
   bool _isLoading = false;
   String? _errorMessage;
   bool _hasAgreedToSharing = false;
+  bool _shareDataPriorToEnrollment = false;
   bool _showSuccessDialog = false;
 
   @override
@@ -316,7 +317,44 @@ class _ClinicalTrialEnrollmentScreenState
                           ),
                           child: Column(
                             children: [
+                              // Optional: Share data prior to enrollment
+                              InkWell(
+                                onTap: _isLoading
+                                    ? null
+                                    : () => setState(
+                                        () => _shareDataPriorToEnrollment =
+                                            !_shareDataPriorToEnrollment,
+                                      ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Checkbox(
+                                      value: _shareDataPriorToEnrollment,
+                                      onChanged: _isLoading
+                                          ? null
+                                          : (value) => setState(
+                                              () =>
+                                                  _shareDataPriorToEnrollment =
+                                                      value ?? false,
+                                            ),
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 12),
+                                        child: Text(
+                                          'Share data prior to enrollment (optional)',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
 
+                              const SizedBox(height: 8),
 
                               // Required: Consent to sharing agreement
                               InkWell(
