@@ -1,9 +1,9 @@
 # Operations Specification: CI/CD Pipeline for Requirement Traceability
 
-**Version**: 2.0
+**Version**: 3.0
 **Audience**: DevOps, Operations, Release Management
 **Status**: Draft
-**Last Updated**: 2025-12-28
+**Last Updated**: 2026-02-23
 
 ## Overview
 
@@ -259,70 +259,41 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 
 ## CI/CD Pipeline Architecture
 
-### Pipeline Stages
+### Pipeline Overview (CI 2.0)
+
+The CI/CD pipeline uses a **single-job fast-fail** pattern for PR validation, replacing the previous 10-parallel-job structure. App-specific CI workflows run separately with an **early-pass pattern** so they can be required status checks without blocking unrelated PRs.
+
+### PR Validation Pipeline
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       PR Created/Updated                         │
-└────────────────────────┬────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                       PR Created/Updated                          │
+└────────────────────────┬─────────────────────────────────────────┘
                          │
                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 1: Requirement Validation                                  │
-│ - Validate requirement format and IDs                            │
-│ - Check for duplicates and orphans                               │
-│ - Generate traceability matrix                                   │
-│ - Upload artifacts                                               │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 2: Code Header Validation                                  │
-│ - Check implementation files have requirement headers            │
-│ - Validate header format                                         │
-│ - Warn on missing headers (non-blocking)                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 3: Migration Header Validation                             │
-│ - Check migration files have proper headers                      │
-│ - Validate migration metadata                                    │
-│ - Fail on invalid headers (blocking)                             │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 4: Security Check                                          │
-│ - Scan for accidentally committed secrets                        │
-│ - Check for .env files in git                                    │
-│ - Validate no hardcoded credentials                              │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 5: FDA Compliance Check                                    │
-│ - Verify audit trail requirements present                        │
-│ - Check RLS policies exist                                       │
-│ - Validate event sourcing implementation                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 6: Infrastructure Validation (if infra changes)            │
-│ - Run `pulumi preview` on changed stacks                         │
-│ - Verify no unexpected resource deletions                        │
-│ - Validate Pulumi code compiles (tsc --noEmit)                   │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 7: Validation Summary                                      │
-│ - Aggregate results from all stages                              │
-│ - Post summary to GitHub PR                                      │
-│ - Generate GitHub Step Summary                                   │
-│ - Overall pass/fail determination                                │
-└────────────────────────┬────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Single Job: validate-pr.sh (fast-fail, exits on first failure)   │
+│                                                                    │
+│  Tier 0 - Instant checks (< 5s)                                   │
+│    1. PR title must contain [CUR-XXX]          [BLOCKING]          │
+│    2. Commit message CUR-XXX check             [BLOCKING]          │
+│       (REQ-xxx is advisory only, per CUR-677)                      │
+│                                                                    │
+│  Tier 1 - Change detection                                         │
+│    3. git diff: spec, code, database, docs, workflows              │
+│                                                                    │
+│  Tier 2 - Security (always runs)                                   │
+│    4. Gitleaks secret scanning                 [BLOCKING]          │
+│                                                                    │
+│  Tier 3 - Conditional checks (only when relevant files changed)    │
+│    5. elspais: requirement validation + hash   [BLOCKING if runs]  │
+│    6. Code implementation headers              [WARNING/BLOCKING]  │
+│    7. Migration file headers                   [BLOCKING if runs]  │
+│    8. FDA compliance (audit trail, RLS)        [BLOCKING if runs]  │
+│    9. Documentation linting (markdownlint)     [BLOCKING if runs]  │
+│                                                                    │
+│  On success: upload artifacts, comment on PR                       │
+└────────────────────────┬─────────────────────────────────────────┘
                          │
                          ▼
                   ┌──────┴──────┐
@@ -335,18 +306,29 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
            └──────────┘  └──────────┘
 ```
 
+### App CI Workflows (parallel, with early-pass)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Each app workflow runs independently in parallel:                 │
+│                                                                    │
+│  clinical_diary-ci.yml  ──┐                                        │
+│  diary-server-ci.yml    ──┼── All trigger on every PR to main      │
+│  sponsor-portal-ci.yml  ──┤   Use early-pass: detect changes,      │
+│  database-migration.yml ──┘   skip if irrelevant (counts as pass)  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
 ### Pipeline Characteristics
 
-- **Total Runtime**: < 10 minutes typical, 10 minute timeout
-- **Parallelization**: 6 validation jobs run in parallel, 1 summary job waits for all
-- **Early-Pass Optimization**: Migration validation exits early (1-2s) when no migrations modified
-- **Early-Pass Optimization**: Infrastructure validation exits early when no Pulumi changes
-- **Fail-Fast**: Critical failures (requirements, security, FDA compliance, infrastructure) block merge
-- **Warnings**: Code header validation issues are warnings, not blocking
-- **Artifacts**: Generated on every run, regardless of pass/fail status
-- **Notifications**: Failed runs trigger GitHub notifications to PR author
-- **Clean Results**: All jobs show ✅ PASSED or ❌ FAILED (never ⏭️ SKIPPED)
-- **Infrastructure Preview**: Pulumi preview runs on infra changes to validate before merge
+- **Single job**: PR validation runs all checks sequentially in one job (no runner spin-up overhead)
+- **Fast-fail**: Script exits on first failure via `set -euo pipefail`
+- **Conditional checks**: Tier 3 checks only run when relevant files changed
+- **REQ-optional**: REQ-xxx references in commits are advisory only; only CUR-XXX is enforced (per CUR-677)
+- **Early-pass pattern**: App CI workflows always report a status, even when no relevant files changed
+- **Centralized versions**: All tool versions sourced from `.github/versions.env`
+- **Artifacts**: Traceability matrix generated when spec/code/workflow files change
+- **Post-merge safety net**: Separate job creates Linear ticket for non-compliant merge commits
 
 ---
 
@@ -355,63 +337,38 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 ### pr-validation.yml
 
 **File**: `.github/workflows/pr-validation.yml`
-**Purpose**: Validates requirements and traceability on every PR
-**Triggers**: Pull requests to `main`, `develop`, `feature/**`, `release/**`
+**Purpose**: Single-job fast-fail PR validation
+**Triggers**: Pull requests to `main`, `develop`, `feature/**`, `release/**`; pushes to `main`/`develop`
+**Script**: `.github/scripts/validate-pr.sh`
 
 #### Jobs
 
-**1. validate-requirements**
+**1. validate** (PR event only)
 
-- Validates requirement format using `validate_requirements.py`
-- Generates traceability matrices (HTML + Markdown)
-- Uploads artifacts
-- Comments on PR with results
-- **Blocking**: YES
+Single job running `.github/scripts/validate-pr.sh` with `set -euo pipefail` (exits on first failure):
 
-**2. validate-code-headers**
+| Check | Condition | Blocking |
+| --- | --- | --- |
+| PR title `[CUR-XXX]` | Always | YES |
+| Commit message `CUR-XXX` | Always | YES |
+| Commit message `REQ-xxx` | Always | NO (advisory warning per CUR-677) |
+| Change detection | Always | N/A (categorizes files) |
+| Gitleaks secret scanning | Always | YES |
+| Requirement validation (elspais) | spec/code/workflows changed | YES |
+| Code implementation headers | code/database changed | YES (main) / WARNING (feature) |
+| Migration file headers | database changed | YES |
+| FDA compliance | database/spec changed | YES |
+| Documentation linting | docs/spec changed | YES |
 
-- Checks SQL and Dart files for requirement headers
-- Validates header format per `spec/requirements-format.md`
-- **Blocking**: NO (warning only)
+After the script succeeds:
+- Traceability artifacts uploaded (90-day retention)
+- PR comment posted with traceability summary (when spec changed)
 
-**3. validate-migrations**
+**2. post-merge** (push event only)
 
-- Checks migration files for proper headers
-- Validates per `database/migrations/README.md`
-- **Blocking**: YES
-- **Conditional Validation**: Checks if migrations were modified; if not, passes immediately
-- **Always Shows**: ✅ PASSED (either "all valid" or "no migrations to validate")
-- **Audit Note**: Job always runs but exits early with success when no migrations modified
-
-**4. security-check**
-
-- Scans for API keys, passwords, secrets
-- Checks for committed .env files
-- **Blocking**: YES
-
-**5. fda-compliance-check**
-
-- Verifies audit trail requirements exist
-- Checks for RLS policies
-- Validates event sourcing implementation
-- **Blocking**: YES
-
-**6. validate-infrastructure**
-
-- Checks if Pulumi code was modified in the PR
-- Validates TypeScript compilation (`tsc --noEmit`)
-- Runs `pulumi preview` to verify infrastructure changes
-- **Blocking**: YES (if infrastructure changes detected)
-- **Conditional Validation**: Checks if `infrastructure/pulumi/` was modified; if not, passes immediately
-- **Always Shows**: ✅ PASSED (either "preview successful" or "no infra changes")
-- **Audit Note**: Job always runs but exits early with success when no infrastructure modified
-
-**7. summary**
-
-- Aggregates results from all jobs
-- Posts to GitHub Step Summary
-- Determines overall pass/fail
-- **Blocking**: YES
+- Validates merge commits on `main`/`develop` have CUR-XXX references
+- Creates a Linear compliance ticket if references missing (safety net)
+- REQ-xxx absence is advisory only
 
 #### Artifact Outputs
 
@@ -420,9 +377,25 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 | `traceability_matrix.md` | Markdown | 90 days | Human-readable audit trail |
 | `traceability_matrix.html` | HTML | 90 days | Presentation-quality report |
 
-#### Environment Variables
+### App CI Workflows
 
-None required. All validation uses tools checked into the repository.
+Each app CI workflow uses the **early-pass pattern**: triggers on every PR (no path filter), detects relevant changes via `git diff`, and skips real work when no relevant files changed. Skipped jobs report as "passed" so they can be required status checks.
+
+All tool versions sourced from `.github/versions.env` (no hardcoded versions).
+
+| Workflow | Key Job Name | Relevant Paths |
+| --- | --- | --- |
+| `clinical_diary-ci.yml` | `Analyze Flutter (Clinical Diary)` | `apps/daily-diary/clinical_diary/` |
+| `diary-server-ci.yml` | `Static Analysis (Diary Server)` | `apps/daily-diary/`, `database/` |
+| `sponsor-portal-ci.yml` | `Static Analysis (Sponsor Portal)` | `apps/sponsor-portal/`, `database/` |
+| `database-migration.yml` | `validate-migrations` | `database/**/*.sql` |
+
+### Deleted Workflows (CI 2.0)
+
+| Workflow | Reason |
+| --- | --- |
+| `requirement-verification.yml` | Redundant with pr-validation (duplicate elspais runs) |
+| `build-test.yml` | Redundant; doc linting moved into validate-pr.sh |
 
 ---
 
@@ -452,13 +425,10 @@ None required. All validation uses tools checked into the repository.
 
    - ✅ Require branches to be up to date before merging
    - ✅ Status checks required:
-     - `Validate Requirements Format & Traceability`
-     - `Validate Code Implementation Headers` (optional)
-     - `Validate Database Migration Headers`
-     - `Security - Check for Secrets`
-     - `FDA Compliance - Audit Trail Verification`
-     - `Validate Infrastructure (Pulumi)`
-     - `Validation Summary`
+     - `PR Validation` (pr-validation.yml - single fast-fail job)
+     - `Analyze Flutter (Clinical Diary)` (clinical_diary-ci.yml)
+     - `Static Analysis (Diary Server)` (diary-server-ci.yml)
+     - `Static Analysis (Sponsor Portal)` (sponsor-portal-ci.yml)
 
    ✅ **Require conversation resolution before merging**
 
@@ -861,93 +831,35 @@ du -sh .
 
 ---
 
-### Note: Migration Validation Always Passes
+### Note: Early-Pass Pattern for App CI Workflows
 
-**Behavior**: The "Validate Database Migration Headers" job always shows ✅ PASSED
+**Behavior**: App CI workflows (Clinical Diary, Diary Server, Sponsor Portal, Database Migration) always report a status on every PR, even when no relevant files changed.
 
-**This is Expected!** ✅
+**This is Expected!**
 
 **How It Works**:
 
-The migration validation job uses an **early-pass pattern**:
+Each app CI workflow uses an **early-pass pattern**:
 
-1. **Job always runs** (never skipped)
-2. **First step**: Check if PR modified any files in `database/migrations/`
-3. **If no migrations changed**: Exit immediately with success and notice: "No migration files were modified"
-4. **If migrations changed**: Proceed with full header validation
+1. **Workflow always triggers** on every PR to main (no `paths:` filter)
+2. **First job (`changes`)**: Detects if any relevant files changed via `git diff`
+3. **If no relevant changes**: Real jobs are skipped (GitHub reports them as "passed")
+4. **If relevant changes**: Real jobs run normally
 
 **Benefits**:
 
-1. **Clean UI**: All jobs show ✅ PASSED (no ⏭️ SKIPPED to explain)
-2. **Auditor Friendly**: Everything passes - clear audit trail
-3. **Efficient**: Still saves time by exiting early when nothing to validate
-4. **Self-Documenting**: Job logs clearly state "no migrations to validate" when applicable
-
-**Job Output Examples**:
-
-When no migrations changed:
-```
-ℹ️  No migration files were modified in this PR
-✅ Migration validation: PASSED (no migrations to validate)
-```
-
-When migrations were changed:
-```
-✓ Migration files were modified in this PR
-✅ All migration files have proper headers
-```
+1. **Required status checks**: Workflows can be required in branch protection since they always report
+2. **Clean UI**: All checks show passed; no ambiguous "skipped" or "expected" states
+3. **Efficient**: Real work only runs when relevant files changed
+4. **Self-Documenting**: `changes` job logs show exactly which paths were checked
 
 **For Auditors**:
 
-The PASSED status always means one of:
-
-- ✅ All migrations have valid headers (when migrations exist)
-- ✅ No migrations to validate (when none were modified)
+A "passed" status means one of:
+- All checks ran and passed (when relevant files changed)
+- No relevant files changed, so checks were not needed (when skipped)
 
 Both outcomes are compliant and indicate no issues detected.
-
----
-
-### Note: Infrastructure Validation Always Passes
-
-**Behavior**: The "Validate Infrastructure (Pulumi)" job always shows ✅ PASSED
-
-**This is Expected!** ✅
-
-**How It Works**:
-
-The infrastructure validation job uses an **early-pass pattern**:
-
-1. **Job always runs** (never skipped)
-2. **First step**: Check if PR modified any files in `infrastructure/pulumi/`
-3. **If no infrastructure changed**: Exit immediately with success and notice: "No infrastructure files were modified"
-4. **If infrastructure changed**: Proceed with full validation:
-
-   - TypeScript compilation (`tsc --noEmit`)
-   - Pulumi preview for affected stacks
-
-**Benefits**:
-
-1. **Clean UI**: All jobs show ✅ PASSED (no ⏭️ SKIPPED to explain)
-2. **Auditor Friendly**: Everything passes - clear audit trail
-3. **Efficient**: Saves time by exiting early when nothing to validate
-4. **Self-Documenting**: Job logs clearly state "no infrastructure to validate" when applicable
-
-**Job Output Examples**:
-
-When no infrastructure changed:
-```
-ℹ️  No infrastructure files were modified in this PR
-✅ Infrastructure validation: PASSED (no changes to validate)
-```
-
-When infrastructure was changed:
-```
-✓ Infrastructure files were modified in this PR
-✓ TypeScript compilation: PASSED
-✓ Pulumi preview: PASSED (3 resources unchanged)
-✅ All infrastructure validation checks passed
-```
 
 ---
 
@@ -1047,9 +959,10 @@ This CI/CD system has been validated per:
 
 | Date | Version | Changes | Author |
 | --- | --- | --- | --- |
+| 2026-02-23 | 3.0 | CI 2.0: Single-job fast-fail PR validation, early-pass pattern for app CI, centralized version pinning, REQ-optional policy, deleted redundant workflows | Claude Code |
+| 2025-12-28 | 2.0 | Added Pulumi infrastructure validation stage, cross-references to IaC docs | Claude |
 | 2025-12-28 | 1.1 | Added elspais tool references; removed redundant Test 2 (invalid requirement test) | Claude Code |
 | 2025-10-28 | 1.0 | Initial CI/CD specification | DevOps Team |
-| 2025-12-28 | 2.0 | Added Pulumi infrastructure validation stage, cross-references to IaC docs | Claude |
 
 ---
 

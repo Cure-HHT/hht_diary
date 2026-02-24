@@ -17,6 +17,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -27,10 +28,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+        working-directory: ${{ github.workspace }}
+      
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: 'stable'
+          sdk: '${{ steps.versions.outputs.dart_version }}'
       
       - name: Install dependencies
         run: dart pub get
@@ -44,6 +52,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:

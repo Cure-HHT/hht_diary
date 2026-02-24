@@ -533,6 +533,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Check for Flutter/Dart code
         id: check-flutter
         run: |
@@ -548,7 +554,7 @@ jobs:
         if: steps.check-flutter.outputs.has_flutter == 'true'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.7'  # Version from .github/versions.env
+          flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
 
       - name: Install dependencies
