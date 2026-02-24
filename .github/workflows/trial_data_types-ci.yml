@@ -1,3 +1,5 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00030: CI/CD Environment Parity
 name: Trial Data Types CI
 
 on:
@@ -14,68 +16,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  analyze:
-    name: Analyze
+  analyze-and-test:
+    name: Analyze & Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/trial_data_types
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Load version pinning
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-        working-directory: ${{ github.workspace }}
-      
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: '${{ steps.versions.outputs.dart_version }}'
-      
-      - name: Install dependencies
-        run: dart pub get
-      
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-      
-      - name: Analyze project source
-        run: dart analyze --fatal-infos
+      packages: read
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/trial_data_types
-    
-    strategy:
-      matrix:
-        sdk: ['stable', 'beta']
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+
+      - name: Start CI container
+        uses: ./.github/actions/start-ci-container
         with:
-          sdk: ${{ matrix.sdk }}
-      
-      - name: Install dependencies
-        run: dart pub get
-      
-      - name: Run tests
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Dart format check
+        working-directory: tools/dev-env
         run: |
-          chmod +x tool/test.sh
-          ./tool/test.sh
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/common-dart/trial_data_types
+            dart pub get
+            dart format --output=none --set-exit-if-changed .
+          "
+
+      - name: Run Dart analyze
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/common-dart/trial_data_types
+            dart analyze --fatal-infos
+          "
+
+      - name: Run tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/common-dart/trial_data_types
+            chmod +x tool/test.sh
+            ./tool/test.sh
+          "
+
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
