@@ -39,7 +39,7 @@ String _getPortalBaseUrl(Request request) {
   }
   return Platform.environment['PORTAL_URL'] ??
       Platform.environment['PORTAL_BASE_URL'] ??
-      'http://localhost:8080';
+      'http://localhost:8084';
 }
 
 /// Get access token for Identity Platform API
