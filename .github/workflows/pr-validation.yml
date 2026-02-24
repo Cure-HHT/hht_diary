@@ -17,7 +17,7 @@ on:
       - develop
       - 'feature/**'
       - 'release/**'
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited]
   push:
     branches:
       - main
