@@ -24,8 +24,8 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: cure-hht
   DART_BASE_IMAGE: cure-hht/dart-base
-  DART_VERSION: 3.10.7
-  DART_IMAGE: cure-hht/dart:3.10.7
+  # DART_VERSION loaded from versions.env in steps below
+  # DART_IMAGE set dynamically after loading versions
 
 permissions:
   contents: read
@@ -44,6 +44,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Load versions
+        run: |
+          source .github/versions.env
+          echo "DART_VERSION=$DART_VERSION" >> $GITHUB_ENV
+          echo "DART_IMAGE=cure-hht/dart:$DART_VERSION" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

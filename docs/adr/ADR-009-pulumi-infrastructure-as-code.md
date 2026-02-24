@@ -7,7 +7,12 @@
 
 ## Status
 
-Draft
+Superseded by Terraform
+
+> **Note**: Pulumi was evaluated but never adopted. The project uses Terraform for
+> infrastructure as code. See `infrastructure/terraform/` for the active IaC
+> implementation. All Pulumi references in containers have been removed as part of
+> the Debian 12 container consolidation (2026-02).
 
 ---
 

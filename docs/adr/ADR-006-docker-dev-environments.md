@@ -6,7 +6,7 @@
 
 ## Status
 
-Accepted
+Accepted (Amended 2026-02-23 — see Amendment section below)
 
 ---
 
@@ -321,6 +321,46 @@ We will use **Docker Compose with multi-service architecture** for development e
 
 ---
 
+---
+
+## Amendment: Debian 12 Consolidation & Role Redesign (2026-02-23)
+
+### Context
+
+After 4 months of use, the original architecture had two issues:
+
+1. **OS Mismatch**: Dev containers used Ubuntu 24.04 while production uses Debian 12-slim. This created subtle differences in package versions (e.g., Python 3.12 vs 3.11) and available system libraries.
+2. **Role Mismatch**: The 5 container roles (base→dev→qa→ops→mgmt) didn't match actual usage. The base→dev→qa chain made CI builds slow (3 sequential jobs). `dev` and `qa` were largely identical. `mgmt` was rarely used.
+
+### Changes
+
+**Base Image**: `ubuntu:24.04` → `debian:12-slim`
+- Matches production runtime exactly
+- Python 3.11 (Debian 12 default) instead of 3.12
+- Git 2.39.x (Debian packaged) — sufficient, no PPA needed
+- Hardcode `bookworm` for apt repos — eliminates `lsb-release` dependency
+
+**Container Topology**: 5 roles → 3 purpose-built containers
+- `ci.Dockerfile` — All-in-one CI image (replaces base+dev+qa chain). Used by GitHub Actions; not run locally.
+- `devops.Dockerfile` — Terraform + gcloud (replaces ops). Two compose services: `devops-main` and `devops-sponsor` differentiated by env vars.
+- `audit.Dockerfile` — Read-only audit tools (replaces mgmt). Adds `opentimestamps-client`.
+
+**User**: `ubuntu` (uid 1000) → `devuser` (uid 1000)
+- Distinct from production's `appuser`
+- Avoids confusion with Ubuntu default user
+
+**Pulumi**: Removed entirely (never adopted; project uses Terraform)
+
+**Version Pinning**: `.github/versions.env` expanded as single source of truth for all tool versions across Dockerfiles and CI workflows.
+
+### Impact
+
+- CI builds 3 images in parallel (no chaining) — faster
+- dev/prod OS parity — fewer surprises in deployment
+- Fewer images to maintain (3 vs 5)
+- All validation protocols (IQ/OQ/PQ) require re-execution
+
 **Decision Date**: 2025-10-26
-**Review Date**: 2026-01-26 (quarterly)
+**Review Date**: 2026-05-23 (quarterly)
 **Supersedes**: Initial PowerShell/Multipass approach (never deployed)
+**Amended**: 2026-02-23 — Debian 12 consolidation + role redesign

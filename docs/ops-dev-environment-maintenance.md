@@ -7,7 +7,7 @@
 ## Maintenance Schedule
 
 ### Quarterly Review (Every 90 Days)
-**Files**: `docker/dev.Dockerfile`, `docker/qa.Dockerfile`, `docker/ops.Dockerfile`
+**Files**: `docker/ci.Dockerfile`, `docker/devops.Dockerfile`, `docker/audit.Dockerfile`
 
 **Process**:
 ```bash
@@ -33,13 +33,13 @@ git push origin main
 ```
 
 ### Annual Review (Every 365 Days)
-**Files**: `docker/base.Dockerfile`
+**Files**: All Dockerfiles + `.github/versions.env`
 
 **Process**:
 ```bash
-# 1. Review base OS (Ubuntu LTS)
-# Currently: Ubuntu 24.04 LTS
-# Check: ubuntu.com for new LTS releases
+# 1. Review base OS (Debian stable)
+# Currently: Debian 12 (bookworm) slim
+# Check: debian.org for new stable releases
 
 # 2. Review Node.js LTS
 # Currently: Node 20.x
@@ -53,7 +53,7 @@ git push origin main
 ./validate-environment.sh --full
 
 # 5. Commit
-git add docker/base.Dockerfile
+git add docker/*.Dockerfile .github/versions.env
 git commit -m "[MAINTENANCE] Annual review - $(date +%Y-%m-%d)"
 git push origin main
 ```
@@ -62,12 +62,11 @@ git push origin main
 
 ### Security Patches (Immediate)
 ```bash
-# Example: Supabase security fix
-vim docker/ops.Dockerfile
-# Change: ENV SUPABASE_CLI_VERSION=v2.54.10
-# To:     ENV SUPABASE_CLI_VERSION=v2.54.11
+# Example: Security fix for a tool version
+vim .github/versions.env
+# Update the affected version pin
 
-git commit -m "[SECURITY] Update Supabase CLI to v2.54.11 (CVE-XXXX-XXXX)"
+git commit -m "[SECURITY] Update <tool> to <version> (CVE-XXXX-XXXX)"
 git push origin main
 ```
 
@@ -103,13 +102,13 @@ If you see **different warnings**, investigate before suppressing.
 # 3. Create hotfix branch
 git checkout -b hotfix/cve-2025-xxxxx
 
-# 4. Update affected Dockerfile(s)
-vim docker/ops.Dockerfile  # or relevant file
+# 4. Update version in .github/versions.env (or Dockerfile if needed)
+vim .github/versions.env
 
 # 5. Test
 ./setup.sh --rebuild
-docker compose up -d ops
-docker compose exec ops <tool> --version
+docker compose up -d devops-main
+docker compose exec devops-main <tool> --version
 
 # 6. Commit and merge immediately
 git commit -m "[SECURITY HOTFIX] CVE-2025-XXXXX: Update <tool> to <version>"
@@ -178,7 +177,7 @@ Annual Review: October 15
 
 ## Validation After Updates
 
-After any Dockerfile changes:
+After any Dockerfile or versions.env changes:
 ```bash
 # Rebuild
 ./setup.sh --rebuild
@@ -186,14 +185,17 @@ After any Dockerfile changes:
 # Run full validation
 ./validate-environment.sh --full
 
-# Test role-specific functionality
-docker compose exec dev flutter doctor -v
-docker compose exec qa npx playwright --version
-docker compose exec ops terraform --version
-docker compose exec mgmt git --version
+# Test service-specific functionality
+docker compose exec devops-main terraform --version
+docker compose exec devops-main gcloud --version
+docker compose exec devops-main doppler --version
+docker compose exec devops-main psql --version
+docker compose exec audit psql --version
+docker compose exec audit gcloud --version
+docker compose exec audit ots --help
 
-# Build test Flutter app
-docker compose exec dev bash -c "cd /workspace/repos && flutter create test_app && cd test_app && flutter build apk --debug"
+# Test CI image (build-only, not run locally)
+docker run --rm clinical-diary-ci:latest bash -c "flutter --version && node --version && gcloud --version"
 ```
 
 ## FAQ

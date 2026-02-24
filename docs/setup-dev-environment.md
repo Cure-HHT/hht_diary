@@ -1,7 +1,7 @@
 # Development Environment Setup Guide
 
-**Document Version**: 1.0
-**Date**: 2025-10-27
+**Document Version**: 2.0
+**Date**: 2026-02-23
 **Audience**: Developers, DevOps Engineers
 **Status**: Active
 
@@ -33,7 +33,7 @@ This project supports two development approaches:
 **Docker-based development** is recommended for:
 - Consistent environments across team
 - FDA validation requirements
-- Role-based access control (Developer, QA, DevOps, Management)
+- Role-based access control (CI, DevOps, Audit)
 - Quick onboarding (5 minutes vs 2 hours)
 
 **Local development** is suitable for:
@@ -52,7 +52,7 @@ This project supports two development approaches:
 - **gcloud CLI** : https://docs.cloud.google.com/sdk/docs/install
 
 **Platform-Specific Notes**:
-- **Windows WSL2**: Use WSL2 terminal for better performance. Files in `/home/ubuntu/repos` are faster than Windows filesystem.
+- **Windows WSL2**: Use WSL2 terminal for better performance. Files in WSL2 filesystem are faster than Windows filesystem.
 - **macOS Apple Silicon**: Docker Desktop supports ARM64. Some tools may be x86 only (handled automatically).
 - **Linux**: Native Docker performance (fastest), no VM overhead.
 
@@ -100,62 +100,64 @@ cd tools/dev-env
 
 First run takes 15-30 minutes (downloads and builds images).
 
-#### Roles and Capabilities
+#### Services and Capabilities
 
-| Role | Container | Tools | Use Case |
+| Service | Container | Tools | Use Case |
 | --- | --- | --- | --- |
-| Developer | `dev` | Flutter, Android SDK, Node, Python | Build mobile app |
-| QA | `qa` | Playwright, test frameworks | Run automated tests |
-| DevOps | `ops` | Terraform, Supabase CLI, Cosign, Syft | Deploy infrastructure |
-| Management | `mgmt` | Git (read-only), report viewers | View status |
+| CI | `ci` | Flutter, Android SDK, Node, Python, Playwright, Gitleaks | CI builds & tests (build-only) |
+| DevOps (Main) | `devops-main` | Terraform, gcloud, Doppler, psql | Shared infrastructure operations |
+| DevOps (Sponsor) | `devops-sponsor` | Terraform, gcloud, Doppler, psql | Per-sponsor isolated operations |
+| Audit | `audit` | psql, gcloud, OTS, Doppler (read-only) | Compliance auditing |
+
+**Note**: The `ci` service has a `build-only` profile and is not started locally. It is used by GitHub Actions CI workflows.
 
 #### Daily Usage - Method 1: VS Code (Recommended)
 
 1. Open project in VS Code
 2. Press `F1` → "Dev Containers: Reopen in Container"
-3. Select role: Developer, QA, DevOps, or Management
+3. Select: DevOps (default) or Audit
 4. VS Code reopens inside container
 
 #### Daily Usage - Method 2: Command Line
 
 ```bash
 # Start container
-docker compose up -d dev
+docker compose up -d devops-main
 
 # Enter container
-docker compose exec dev bash
+docker compose exec devops-main bash
 
 # Stop container
-docker compose stop dev
+docker compose stop devops-main
 ```
 
-#### Role Switching
+#### Service Switching
 
 **VS Code**:
 1. `F1` → "Dev Containers: Reopen in Container"
-2. Select different role
+2. Select different service config
 
 **Command Line**:
 ```bash
-docker compose stop dev
-docker compose up -d qa
-docker compose exec qa bash
+docker compose stop devops-main
+docker compose up -d audit
+docker compose exec audit bash
 ```
 
 #### Common Docker Commands
 
 ```bash
-# Start all containers
-docker compose up -d
+# Start devops container
+docker compose up -d devops-main
 
-# Start specific role
-docker compose up -d dev
+# Start sponsor-specific devops
+SPONSOR_NAME=acme docker compose up -d devops-sponsor
 
 # Enter container
-docker compose exec dev bash
+docker compose exec devops-main bash
 
 # View logs
-docker compose logs dev
+docker compose logs devops-main
 
 # Stop all containers
 docker compose down
@@ -195,36 +197,38 @@ tools/dev-env/
 └── README.md             # Quick reference (redirects to this doc)
 ```
 
-**Inside Containers**:
+**Inside Containers (devops-main)**:
 ```
 /workspace/
-├── repos/                # Git repositories (persisted)
-├── exchange/             # Share files between roles
-├── src/                  # Source code (bind mount)
-└── reports/              # Test reports (QA only)
+├── terraform/            # Bind mount (read-write)
+│   ├── main.tf
+│   └── modules/
+└── src/                  # Bind mount from host (read-only)
+    └── (full repo)
+```
+
+**Inside Containers (audit)**:
+```
+/workspace/
+├── src/                  # Bind mount (read-only)
+└── terraform/            # Bind mount (read-only)
 ```
 
 **Named Volumes (Persist Data)**:
 - `clinical-diary-repos` - Git repositories
 - `clinical-diary-exchange` - File sharing
-- `qa-reports` - Test reports
 
 **Bind Mounts (Direct Access)**:
-- `/workspace/src` → Project root
-- `/home/ubuntu/.ssh` → Your SSH keys (read-only)
-- `/home/ubuntu/.gitconfig.host` → Your git config (read-only)
+- `/workspace/terraform` → infrastructure/terraform (devops)
+- `/workspace/src` → Project root (read-only)
+- `/home/devuser/.ssh` → Your SSH keys (read-only)
+- `/home/devuser/.gitconfig.host` → Your git config (read-only)
 
 #### Git Configuration in Containers
 
-Each role has a default identity:
-- dev: "Developer <dev@clinical-diary.local>"
-- qa: "QA Automation Bot <qa@clinical-diary.local>"
-- ops: "DevOps Engineer <ops@clinical-diary.local>"
-- mgmt: "Manager <mgmt@clinical-diary.local>"
-
 To use your personal identity:
 ```bash
-git config --global include.path /home/ubuntu/.gitconfig.host
+git config --global include.path /home/devuser/.gitconfig.host
 ```
 
 #### Health Checks
@@ -234,7 +238,8 @@ git config --global include.path /home/ubuntu/.gitconfig.host
 docker compose ps
 
 # Run health check manually
-docker compose exec dev /usr/local/bin/health-check.sh
+docker compose exec devops-main terraform --version && gcloud --version
+docker compose exec audit psql --version && gcloud --version && ots --help
 ```
 
 #### Cleanup
@@ -794,22 +799,21 @@ docker compose ps
 
 ---
 
-#### Flutter Command Not Found in Container
+#### Tool Not Found in Container
 
-**Problem**: Flutter command not working inside container.
+**Problem**: A tool is not available inside your container.
 
 **Solution**:
-You're in the wrong container. Flutter is only in `dev` and `qa` containers.
+Each container has role-specific tools. Flutter is only in the `ci` container (used by CI, not locally).
 
 ```bash
-# Check which container you're in
-docker compose exec dev flutter --version  # Should work
-docker compose exec ops flutter --version  # Won't work
+# DevOps tools:
+docker compose exec devops-main terraform --version  # Should work
+docker compose exec devops-main flutter --version     # Won't work (CI only)
 
-# Switch to dev container
-docker compose stop ops
-docker compose up -d dev
-docker compose exec dev bash
+# Audit tools:
+docker compose exec audit psql --version              # Should work
+docker compose exec audit ots --help                   # Should work
 ```
 
 ---
@@ -986,7 +990,7 @@ git commit
 - [ ] Docker environment built (`cd tools/dev-env && ./setup.sh`)
 - [ ] Docker environment validated (`./validate-environment.sh --full`)
 - [ ] VS Code with Dev Containers extension (optional)
-- [ ] Successfully entered dev container (via VS Code or `docker compose exec dev bash`)
+- [ ] Successfully entered container (via VS Code or `docker compose exec devops-main bash`)
 - [ ] Doppler configured inside container (`doppler login && doppler setup`)
 - [ ] Git hooks configured and tested
 - [ ] Claude Code extension installed and authenticated (if using VS Code)
@@ -1028,13 +1032,14 @@ git commit
 ---
 
 **Document Control**:
-- **Version**: 1.0
-- **Effective Date**: 2025-10-27
-- **Next Review**: 2026-04-27 (Semi-annual)
+- **Version**: 2.0
+- **Effective Date**: 2026-02-23
+- **Next Review**: 2026-08-23 (Semi-annual)
 - **Owner**: Dev Lead
-- **Last Updated**: 2025-10-27
+- **Last Updated**: 2026-02-23
 
 ---
 
 **Change Log**:
+- 2026-02-23 v2.0: Debian 12 consolidation - replaced dev/qa/ops/mgmt with ci/devops/audit containers
 - 2025-10-27 v1.0: Initial version (CUR-81)

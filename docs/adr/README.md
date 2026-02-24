@@ -47,7 +47,7 @@ What other options did we consider and why were they rejected?
 | [006](./ADR-006-docker-dev-environments.md) | Docker Dev Environments | Accepted | 2025-10-15 |
 | [007](./ADR-007-multi-sponsor-build-reports.md) | Multi-Sponsor Build Reports | Accepted | 2025-10-16 |
 | [008](./ADR-008-timestamp-attestation.md) | Timestamp Attestation | Accepted | 2025-10-20 |
-| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Accepted | 2025-11-01 |
+| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Superseded by Terraform | 2025-11-01 |
 | [010](./ADR-010-requirements-format-enhancements.md) | Requirements Format Enhancements | Accepted | 2025-11-15 |
 | [011](./ADR-011-event-sourcing-refinements.md) | Event Sourcing Refinements | Accepted | 2026-01-01 |
 | [012](./ADR-012-terminology-standardization.md) | Terminology Standardization | Accepted | 2026-01-25 |

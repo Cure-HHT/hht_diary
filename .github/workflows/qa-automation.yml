@@ -190,27 +190,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull pre-built images from GHCR
+      - name: Pull pre-built CI image from GHCR
         if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false'
         id: pull-images
         continue-on-error: true
         run: |
-          echo "Pulling pre-built images from GHCR..."
+          echo "Pulling pre-built CI image from GHCR..."
 
           # Docker requires lowercase repository names
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
-          # Pull and tag images (allow failure if images don't exist yet)
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-base:latest clinical-diary-base:latest
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest || exit 1
+          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest clinical-diary-ci:latest
 
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest clinical-diary-dev:latest
-
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest clinical-diary-qa:latest
-
-          echo "Images pulled and tagged successfully"
+          echo "CI image pulled and tagged successfully"
 
       - name: Free up disk space for build (if pulling failed)
         if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
@@ -227,64 +220,45 @@ jobs:
         if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker images to GHCR
+      - name: Build and push CI image to GHCR
         if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         working-directory: tools/dev-env
         run: |
-          echo "Docker files changed - building from source with registry caching"
+          echo "Building CI image from source with registry caching"
 
           # Docker requires lowercase repository names
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
-          # PROPER REGISTRY-BASED CACHING:
-          # 1. Pull existing images from GHCR for cache (|| true allows failure if not exists)
-          # 2. Build each image (BuildKit uses cache_from to reuse layers from pulled images)
-          # 3. Push to GHCR immediately so subsequent builds can use as cache
-          # This ensures FROM directives can resolve from GHCR and layer caching works
+          echo "Pulling previous CI image for cache..."
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest || true
 
-          echo "Pulling previous images for cache..."
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || true
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || true
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || true
+          echo "Building CI image..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build ci
 
-          echo "Building base image..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
-          echo "Pushing base to GHCR..."
-          docker tag clinical-diary-base:latest ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
+          echo "Pushing CI image to GHCR..."
+          docker tag clinical-diary-ci:latest ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest
+          docker push ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest
 
-          echo "Building dev image (FROM GHCR base)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
-          echo "Pushing dev to GHCR..."
-          docker tag clinical-diary-dev:latest ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
+          echo "CI image built and pushed to GHCR successfully"
 
-          echo "Building qa image (FROM GHCR dev)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg DEV_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
-          echo "Pushing qa to GHCR..."
-          docker tag clinical-diary-qa:latest ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
-
-          echo "All images built and pushed to GHCR successfully"
-
-      - name: Start QA environment
+      - name: Start CI environment
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d qa
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d ci
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
-      - name: Wait for QA container to be healthy
+      - name: Wait for CI container to be healthy
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
-          timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
+          timeout 120 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci flutter --version; do sleep 2; done'
 
       - name: Prepare repository in QA container
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             mkdir -p /workspace/repos/daily-diary/clinical_diary
             # Copy the checked-out repository from /workspace/src to expected location
             if [ ! -d /workspace/repos/daily-diary/clinical_diary ]; then
@@ -301,7 +275,7 @@ jobs:
         working-directory: tools/dev-env
         run: |
           if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
-            docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
           else
             echo "No Doppler token configured, skipping authentication"
           fi
@@ -311,7 +285,7 @@ jobs:
         id: flutter-tests
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/repos/daily-diary/clinical_diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
             if [ -f pubspec.yaml ]; then
               flutter pub get
@@ -445,7 +419,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'image'
-          image-ref: 'ghcr.io/${{ steps.repo-owner.outputs.owner }}/clinical-diary-base:latest'
+          image-ref: 'ghcr.io/${{ steps.repo-owner.outputs.owner }}/clinical-diary-ci:latest'
           format: 'sarif'
           output: 'trivy-container-results.sarif'
           severity: 'CRITICAL,HIGH'

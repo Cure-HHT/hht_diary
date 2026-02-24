@@ -215,7 +215,7 @@ check_ghcr_auth() {
 
   # The GHCR registry and org used for caching
   local GHCR_ORG="cure-hht"
-  local GHCR_TEST_IMAGE="ghcr.io/${GHCR_ORG}/clinical-diary-base:latest"
+  local GHCR_TEST_IMAGE="ghcr.io/${GHCR_ORG}/clinical-diary-ci:latest"
 
   # Step 1: Check if credentials exist at all
   local has_credentials=false
@@ -297,7 +297,7 @@ show_ghcr_setup_instructions() {
   echo "     doppler run -- bash -c 'echo \$GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin'"
   echo ""
   echo "  4. Verify authentication:"
-  echo "     docker pull ghcr.io/cure-hht/clinical-diary-base:latest || echo 'Failed to pull'"
+  echo "     docker pull ghcr.io/cure-hht/clinical-diary-ci:latest || echo 'Failed to pull'"
   echo ""
   echo "  Note: The GITHUB_TOKEN will be available in all Doppler-managed environments."
   echo ""
@@ -516,24 +516,16 @@ build_base_image() {
 
   docker build \
     $platform_flag \
-    -f docker/base.Dockerfile \
-    -t clinical-diary-base:latest \
+    -f docker/ci.Dockerfile \
+    -t clinical-diary-ci:latest \
     docker/
 
-  success "Base image built successfully"
+  success "CI image built successfully"
 }
 
 build_role_image() {
   local role=$1
   info "Building $role image..."
-
-  # Check if base image exists
-  if ! docker images clinical-diary-base:latest --format "{{.Repository}}" | grep -q "clinical-diary-base"; then
-    error "Base image 'clinical-diary-base:latest' not found!"
-    echo "  Please build the base image first with:"
-    echo "  ./setup.sh --build-only"
-    exit 1
-  fi
 
   # On macOS, force linux/amd64 platform for Flutter compatibility
   local platform_flag=""
@@ -545,7 +537,6 @@ build_role_image() {
     $platform_flag \
     -f "docker/${role}.Dockerfile" \
     -t "clinical-diary-${role}:latest" \
-    --build-arg BASE_IMAGE_TAG=latest \
     docker/
 
   success "$role image built successfully"
@@ -555,10 +546,12 @@ build_all_images() {
   info "Building all Docker images..."
   echo ""
 
+  # CI image (all-in-one: build, test, lint, scan)
   build_base_image
   echo ""
 
-  for role in dev qa ops mgmt; do
+  # Independent images from debian:12-slim
+  for role in devops audit; do
     build_role_image "$role"
     echo ""
   done
@@ -607,7 +600,7 @@ show_status() {
 
   # Show images
   echo "Built Images:"
-  for image in clinical-diary-base clinical-diary-dev clinical-diary-qa clinical-diary-ops clinical-diary-mgmt; do
+  for image in clinical-diary-ci clinical-diary-devops clinical-diary-audit; do
     if docker images "$image:latest" --format "{{.Repository}}:{{.Tag}} ({{.Size}})" | grep -q "$image"; then
       echo "  ✓ $(docker images "$image:latest" --format "{{.Repository}}:{{.Tag}} - {{.Size}}")"
     else
@@ -632,8 +625,8 @@ show_status() {
 cleanup_all() {
   warning "This will remove ALL Clinical Diary containers, images, and volumes!"
   echo ""
-  echo "  • All containers (dev, qa, ops, mgmt)"
-  echo "  • All images (base + role images)"
+  echo "  • All containers (ci, devops, audit)"
+  echo "  • All images (ci, devops, audit)"
   echo "  • All volumes (repos, exchange, reports)"
   echo ""
   read -p "Are you sure? Type 'yes' to confirm: " -r
@@ -651,7 +644,7 @@ cleanup_all() {
   success "Containers removed"
 
   info "Removing images..."
-  for image in clinical-diary-base clinical-diary-dev clinical-diary-qa clinical-diary-ops clinical-diary-mgmt; do
+  for image in clinical-diary-ci clinical-diary-devops clinical-diary-audit; do
     docker rmi "${image}:latest" 2>/dev/null && success "Removed $image" || warning "$image not found"
   done
 
@@ -678,7 +671,7 @@ backup_volumes() {
       docker run --rm \
         -v "$volume:/source:ro" \
         -v "$backup_path:/backup" \
-        ubuntu:24.04 \
+        debian:12-slim \
         tar czf "/backup/${volume}.tar.gz" -C /source . 2>/dev/null || true
       success "Backed up $volume"
     fi
@@ -686,7 +679,7 @@ backup_volumes() {
 
   echo ""
   success "Backup complete: $backup_path"
-  echo "  To restore: docker run --rm -v <volume>:/dest -v $backup_path:/backup ubuntu:24.04 tar xzf /backup/<volume>.tar.gz -C /dest"
+  echo "  To restore: docker run --rm -v <volume>:/dest -v $backup_path:/backup debian:12-slim tar xzf /backup/<volume>.tar.gz -C /dest"
 }
 
 # ============================================================
@@ -700,7 +693,7 @@ validate_setup() {
   cd "$SCRIPT_DIR"
 
   # Check if images exist
-  for image in clinical-diary-base clinical-diary-dev clinical-diary-qa clinical-diary-ops clinical-diary-mgmt; do
+  for image in clinical-diary-ci clinical-diary-devops clinical-diary-audit; do
     if docker images "$image:latest" --format "{{.Repository}}" | grep -q "$image"; then
       success "Image exists: $image:latest"
     else
@@ -763,11 +756,10 @@ interactive_setup() {
   check_ghcr_auth
   echo ""
 
-  info "This will build Docker images for all roles:"
-  echo "  • dev  - Developer environment (Flutter, Android SDK)"
-  echo "  • qa   - QA environment (Playwright, testing tools)"
-  echo "  • ops  - DevOps environment (Terraform, deployment)"
-  echo "  • mgmt - Management environment (read-only)"
+  info "This will build Docker images for all containers:"
+  echo "  • ci     - All-in-one CI (Flutter, Android SDK, Playwright, testing)"
+  echo "  • devops - DevOps environment (Terraform, gcloud)"
+  echo "  • audit  - Audit environment (read-only, psql, gcloud, OTS)"
   echo ""
 
   if [ "$dry_run" = true ]; then
@@ -792,21 +784,19 @@ interactive_setup() {
   validate_setup
   echo ""
 
-  info "Which role would you like to start? (or press Enter to skip)"
-  echo "  1) dev  - Developer"
-  echo "  2) qa   - QA/Testing"
-  echo "  3) ops  - DevOps"
-  echo "  4) mgmt - Management"
+  info "Which service would you like to start? (or press Enter to skip)"
+  echo "  1) devops-main    - Shared infrastructure operations"
+  echo "  2) devops-sponsor - Per-sponsor operations"
+  echo "  3) audit          - Audit (read-only)"
   echo ""
-  read -p "Select [1-4 or Enter]: " -r choice
+  read -p "Select [1-3 or Enter]: " -r choice
 
   case $choice in
-    1) start_service dev;;
-    2) start_service qa;;
-    3) start_service ops;;
-    4) start_service mgmt;;
-    "") info "Skipping container start. Start manually with: docker compose up -d <role>";;
-    *) warning "Invalid choice. Start manually with: docker compose up -d <role>";;
+    1) start_service devops-main;;
+    2) start_service devops-sponsor;;
+    3) start_service audit;;
+    "") info "Skipping container start. Start manually with: docker compose up -d <service>";;
+    *) warning "Invalid choice. Start manually with: docker compose up -d <service>";;
   esac
 
   echo ""

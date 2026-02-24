@@ -1,7 +1,7 @@
 # Development Environment Architecture
 
-**Version**: 1.0
-**Date**: 2025-10-26
+**Version**: 2.0
+**Date**: 2026-02-23
 **Related**: docs/adr/ADR-006-docker-dev-environments.md
 
 ## IMPLEMENTS REQUIREMENTS
@@ -29,19 +29,20 @@ This document provides architectural diagrams and technical details for the Clin
 │  │                    Docker Engine                         │   │
 │  │                                                           │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │   │
-│  │  │     dev      │  │      qa      │  │     ops      │  │   │
-│  │  │  container   │  │  container   │  │  container   │  │   │
+│  │  │   devops     │  │   devops     │  │    audit     │  │   │
+│  │  │   -main      │  │   -sponsor   │  │  container   │  │   │
 │  │  │              │  │              │  │              │  │   │
-│  │  │  Flutter     │  │  Playwright  │  │  Terraform   │  │   │
-│  │  │  Android SDK │  │  Testing     │  │  Supabase    │  │   │
-│  │  │  Node/Python │  │  Reports     │  │  Deploy      │  │   │
+│  │  │  Terraform   │  │  Terraform   │  │  psql, gcloud│  │   │
+│  │  │  gcloud      │  │  gcloud      │  │  OTS, Doppler│  │   │
+│  │  │  Doppler     │  │  Doppler     │  │  (read-only) │  │   │
 │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │   │
 │  │         │                  │                  │          │   │
 │  │         └──────────────────┼──────────────────┘          │   │
 │  │                            │                             │   │
 │  │  ┌────────────────────────┴─────────────────────────┐  │   │
-│  │  │              mgmt container                       │  │   │
-│  │  │         (Read-only management tools)              │  │   │
+│  │  │              ci container (build-only)             │  │   │
+│  │  │  Flutter, Android SDK, Node, Python, Playwright   │  │   │
+│  │  │  (Used by GitHub Actions; not run locally)        │  │   │
 │  │  └──────────────────────────────────────────────────┘  │   │
 │  │                                                           │   │
 │  │  ┌────────────────────────────────────────────────────┐ │   │
@@ -53,7 +54,7 @@ This document provides architectural diagrams and technical details for the Clin
 │                                                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                   VS Code + Dev Containers              │   │
-│  │        "Reopen in Container" → Select Role              │   │
+│  │    "Reopen in Container" → Select: DevOps or Audit      │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -65,42 +66,49 @@ This document provides architectural diagrams and technical details for the Clin
 ```
 docker-compose.yml
 ├── services:
-│   ├── dev:
-│   │   ├── build: ./docker/dev.Dockerfile
-│   │   ├── volumes:
-│   │   │   ├── clinical-diary-repos:/workspace/repos
-│   │   │   ├── clinical-diary-exchange:/workspace/exchange
-│   │   │   └── ./src:/workspace/src  (bind mount for editing)
-│   │   ├── environment:
-│   │   │   └── (injected via Doppler)
+│   ├── ci:
+│   │   ├── build: ./docker/ci.Dockerfile
+│   │   ├── profiles: [build-only]  (not started locally)
 │   │   └── resources:
-│   │       ├── cpus: 4
+│   │       ├── cpus: 2
 │   │       └── memory: 6G
 │   │
-│   ├── qa:
-│   │   ├── build: ./docker/qa.Dockerfile
+│   ├── devops-main:
+│   │   ├── build: ./docker/devops.Dockerfile
+│   │   ├── environment:
+│   │   │   ├── ROLE=devops-main
+│   │   │   ├── TF_WORKSPACE=admin
+│   │   │   └── (injected via Doppler)
 │   │   ├── volumes:
-│   │   │   ├── clinical-diary-repos:/workspace/repos
-│   │   │   ├── clinical-diary-exchange:/workspace/exchange
-│   │   │   └── ./qa_reports:/workspace/reports (artifacts)
-│   │   ├── resources:
-│   │       ├── cpus: 4
-│   │       └── memory: 6G
-│   │
-│   ├── ops:
-│   │   ├── build: ./docker/ops.Dockerfile
-│   │   ├── volumes:
-│   │   │   ├── clinical-diary-repos:/workspace/repos
-│   │   │   └── clinical-diary-exchange:/workspace/exchange
-│   │   ├── resources:
+│   │   │   ├── ../../infrastructure/terraform:/workspace/terraform
+│   │   │   ├── ../../:/workspace/src:ro
+│   │   │   ├── ~/.ssh:/home/devuser/.ssh:ro
+│   │   │   └── ~/.gitconfig:/home/devuser/.gitconfig.host:ro
+│   │   └── resources:
 │   │       ├── cpus: 2
 │   │       └── memory: 4G
 │   │
-│   └── mgmt:
-│       ├── build: ./docker/mgmt.Dockerfile
+│   ├── devops-sponsor:
+│   │   ├── build: ./docker/devops.Dockerfile
+│   │   ├── environment:
+│   │   │   ├── ROLE=devops-sponsor
+│   │   │   └── SPONSOR_NAME=${SPONSOR_NAME:-}
+│   │   ├── volumes:
+│   │   │   ├── ../../infrastructure/terraform:/workspace/terraform
+│   │   │   ├── ../../sponsor/${SPONSOR_NAME}:/workspace/sponsor:ro
+│   │   │   ├── ../../:/workspace/src:ro
+│   │   │   ├── ~/.ssh:/home/devuser/.ssh:ro
+│   │   │   └── ~/.gitconfig:/home/devuser/.gitconfig.host:ro
+│   │   └── resources:
+│   │       ├── cpus: 2
+│   │       └── memory: 4G
+│   │
+│   └── audit:
+│       ├── build: ./docker/audit.Dockerfile
 │       ├── volumes:
-│       │   ├── clinical-diary-repos:/workspace/repos:ro  (read-only!)
-│       │   └── clinical-diary-exchange:/workspace/exchange:ro
+│       │   ├── ../../:/workspace/src:ro  (read-only!)
+│       │   ├── ../../infrastructure/terraform:/workspace/terraform:ro
+│       │   └── ~/.ssh:/home/devuser/.ssh:ro
 │       └── resources:
 │           ├── cpus: 2
 │           └── memory: 2G
@@ -115,57 +123,61 @@ docker-compose.yml
 
 ---
 
-## Dockerfile Inheritance Hierarchy
+## Dockerfile Hierarchy
 
 ```
 ┌──────────────────────────────────────┐
-│    ubuntu:24.04 (base image)         │
+│      debian:12-slim (base image)     │
+│      (matches production runtime)    │
 └──────────────┬───────────────────────┘
                │
-               ▼
-┌──────────────────────────────────────┐
-│      base.Dockerfile                  │
-│  - Git, GitHub CLI, curl, jq         │
-│  - Node.js 20 LTS                    │
-│  - Python 3.11+                      │
-│  - Doppler CLI                       │
-│  - Claude Code CLI                   │
-│  - Common utilities                  │
-└──────────────┬───────────────────────┘
-               │
-       ┌───────┴────────┬──────────┬──────────┐
-       │                │          │          │
-       ▼                ▼          ▼          ▼
-┌──────────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐
-│ dev          │ │ qa       │ │ ops     │ │ mgmt     │
-│.Dockerfile   │ │.Docker-  │ │.Docker- │ │.Docker-  │
-│              │ │ file     │ │ file    │ │ file     │
-│+ Flutter     │ │+ Play-   │ │+ Terra- │ │(minimal) │
-│+ Android SDK │ │  wright  │ │  form   │ │          │
-│+ Hot reload  │ │+ Testing │ │+ Supa-  │ │          │
-│+ Debug tools │ │  tools   │ │  base   │ │          │
-└──────────────┘ └──────────┘ └─────────┘ └──────────┘
+       ┌───────┼────────┬──────────────┐
+       │       │        │              │
+       ▼       │        ▼              ▼
+┌──────────────┐│ ┌──────────┐  ┌──────────┐
+│ ci           ││ │ devops   │  │ audit    │
+│.Dockerfile   ││ │.Docker-  │  │.Docker-  │
+│              ││ │ file     │  │ file     │
+│+ Flutter     ││ │+ Terra-  │  │+ psql    │
+│+ Android SDK ││ │  form    │  │+ gcloud  │
+│+ Node/Python ││ │+ gcloud  │  │+ OTS     │
+│+ Playwright  ││ │+ Doppler │  │+ Doppler │
+│+ Gitleaks    ││ │+ psql    │  │(minimal) │
+│+ Squawk      ││ └──────────┘  └──────────┘
+│+ gcloud      ││
+│+ psql        ││
+│(all-in-one)  ││
+└──────────────┘│
+                │
+  All images build independently
+  from debian:12-slim (no chaining)
 ```
 
 ---
 
 ## Role-Based Tool Matrix
 
-| Tool / Feature | dev | qa | ops | mgmt |
-| --- | --- | --- | --- | --- |
-| **Git** | ✅ | ✅ | ✅ | ✅ (read-only) |
-| **GitHub CLI** | ✅ | ✅ | ✅ | ✅ (read-only) |
-| **Doppler CLI** | ✅ | ✅ | ✅ | ✅ |
-| **Node.js 20** | ✅ | ✅ | ✅ | ❌ |
-| **Python 3.11+** | ✅ | ✅ | ✅ | ❌ |
-| **Flutter 3.24** | ✅ | ✅ | ❌ | ❌ |
-| **Android SDK** | ✅ | ✅ | ❌ | ❌ |
-| **Playwright** | ❌ | ✅ | ❌ | ❌ |
-| **Terraform** | ❌ | ❌ | ✅ | ❌ |
-| **Supabase CLI** | ✅ | ✅ | ✅ | ❌ |
-| **Claude Code CLI** | ✅ | ✅ | ✅ | ❌ |
-| **jq (JSON processor)** | ✅ | ✅ | ✅ | ✅ |
-| **Write Access** | ✅ | ✅ | ✅ | ❌ |
+| Tool / Feature | ci | devops | audit |
+| --- | --- | --- | --- |
+| **Git** | ✅ | ✅ | ✅ |
+| **Doppler CLI** | ✅ | ✅ | ✅ |
+| **gcloud CLI** | ✅ | ✅ | ✅ |
+| **Cloud SQL Proxy** | ✅ | ✅ | ✅ |
+| **PostgreSQL client (psql)** | ✅ | ✅ | ✅ |
+| **Python 3.11** | ✅ | ✅ | ✅ |
+| **Node.js 20** | ✅ | ❌ | ❌ |
+| **Flutter 3.38** | ✅ | ❌ | ❌ |
+| **Android SDK** | ✅ | ❌ | ❌ |
+| **Playwright** | ✅ | ❌ | ❌ |
+| **Gitleaks** | ✅ | ❌ | ❌ |
+| **Squawk** | ✅ | ❌ | ❌ |
+| **GitHub CLI (gh)** | ✅ | ❌ | ❌ |
+| **Claude Code CLI** | ✅ | ❌ | ❌ |
+| **OpenJDK 17** | ✅ | ❌ | ❌ |
+| **Terraform** | ❌ | ✅ | ❌ |
+| **opentimestamps (ots)** | ❌ | ❌ | ✅ |
+| **Write Access** | ✅ | ✅ | ❌ |
+| **Used in CI** | ✅ | ❌ | ❌ |
 
 ---
 
@@ -184,21 +196,20 @@ docker-compose.yml
                  │
                  │ API Request (authenticated)
                  │
-    ┌────────────┴────────────┬──────────────┬────────────────┐
-    │                         │              │                │
-    ▼                         ▼              ▼                ▼
-┌─────────┐             ┌─────────┐     ┌─────────┐     ┌─────────┐
-│   dev   │             │   qa    │     │   ops   │     │  mgmt   │
-│container│             │container│     │container│     │container│
-│         │             │         │     │         │     │         │
-│ Doppler │             │ Doppler │     │ Doppler │     │ Doppler │
-│  CLI    │             │  CLI    │     │  CLI    │     │  CLI    │
-│         │             │         │     │         │     │         │
-│ Secrets │             │ Secrets │     │ Secrets │     │ Secrets │
-│ injected│             │ injected│     │ injected│     │ injected│
-│ at      │             │ at      │     │ at      │     │ at      │
-│ runtime │             │ runtime │     │ runtime │     │ runtime │
-└─────────┘             └─────────┘     └─────────┘     └─────────┘
+    ┌────────────┴──────────────┬──────────────────────────────┐
+    │                           │                              │
+    ▼                           ▼                              ▼
+┌─────────────┐          ┌─────────────┐              ┌─────────────┐
+│ devops-main │          │   devops-   │              │    audit    │
+│  container  │          │   sponsor   │              │  container  │
+│             │          │  container  │              │             │
+│  Doppler    │          │  Doppler    │              │  Doppler    │
+│   CLI       │          │   CLI       │              │   CLI       │
+│             │          │             │              │             │
+│  Secrets    │          │  Secrets    │              │  Secrets    │
+│  injected   │          │  injected   │              │  injected   │
+│  at runtime │          │  at runtime │              │  at runtime │
+└─────────────┘          └─────────────┘              └─────────────┘
 
 Flow:
 1. Developer runs: doppler run -- gh auth login
@@ -215,67 +226,47 @@ Flow:
 
 ```
 .devcontainer/
-├── dev/
-│   ├── devcontainer.json
-│   │   {
-│   │     "name": "Clinical Diary - Developer",
-│   │     "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
-│   │     "service": "dev",
-│   │     "workspaceFolder": "/workspace/src",
-│   │     "customizations": {
-│   │       "vscode": {
-│   │         "extensions": [
-│   │           "dart-code.flutter",
-│   │           "dart-code.dart-code",
-│   │           "ms-python.python",
-│   │           "github.copilot"
-│   │         ]
-│   │       }
-│   │     }
-│   │   }
-│   └── ...
+├── devcontainer.json           (default: devops-main)
+│   {
+│     "name": "Clinical Diary - DevOps",
+│     "dockerComposeFile": [
+│       "../tools/dev-env/docker-compose.yml"
+│     ],
+│     "service": "devops-main",
+│     "workspaceFolder": "/workspace/terraform",
+│     "remoteUser": "devuser",
+│     "customizations": {
+│       "vscode": {
+│         "extensions": [
+│           "hashicorp.terraform",
+│           "googlecloudtools.cloudcode"
+│         ]
+│       }
+│     }
+│   }
 │
-├── qa/
-│   ├── devcontainer.json
-│   │   {
-│   │     "name": "Clinical Diary - QA",
-│   │     "service": "qa",
-│   │     "extensions": [
-│   │       "ms-playwright.playwright",
-│   │       "github.copilot"
-│   │     ]
-│   │   }
-│   └── ...
-│
-├── ops/
-│   ├── devcontainer.json
-│   │   {
-│   │     "name": "Clinical Diary - DevOps",
-│   │     "service": "ops",
-│   │     "extensions": [
-│   │       "hashicorp.terraform",
-│   │       "supabase.supabase"
-│   │     ]
-│   │   }
-│   └── ...
-│
-└── mgmt/
+└── audit/
     └── devcontainer.json
         {
-          "name": "Clinical Diary - Management (Read-Only)",
-          "service": "mgmt",
-          "extensions": [
-            "github.vscode-pull-request-github"
-          ]
+          "name": "Clinical Diary - Audit (Read-Only)",
+          "service": "audit",
+          "workspaceFolder": "/workspace",
+          "remoteUser": "devuser",
+          "customizations": {
+            "vscode": {
+              "extensions": [
+                "ckolkman.vscode-postgres"
+              ]
+            }
+          }
         }
 
 User Experience:
 1. Open VS Code
 2. Command Palette → "Dev Containers: Reopen in Container"
-3. Select role: dev / qa / ops / mgmt
+3. Select: DevOps (default) or Audit
 4. VS Code reopens inside container with role-specific tools
-5. Integrated terminal has role-specific prompt
-6. Extensions auto-installed per role
+5. Extensions auto-installed per role
 ```
 
 ---
@@ -290,8 +281,8 @@ GitHub Repository
 │   ▼
 │   .github/workflows/qa-automation.yml
 │   │
-│   ├── Build qa-container from Dockerfile
-│   │   (same Dockerfile as local dev!)
+│   ├── Build ci container from ci.Dockerfile
+│   │   (same Dockerfile as CI image builds!)
 │   │
 │   ├── Run Flutter Tests
 │   │   flutter test integration_test
@@ -314,20 +305,23 @@ GitHub Repository
 └── Tag/Release Created
     │
     ▼
-    .github/workflows/build-and-sign.yml
+    .github/workflows/build-publish-images.yml
     │
-    ├── Build ALL containers (dev, qa, ops, mgmt)
+    ├── Build 3 images IN PARALLEL (all from debian:12-slim):
+    │   ├── ci.Dockerfile      → clinical-diary-ci
+    │   ├── devops.Dockerfile  → clinical-diary-devops
+    │   └── audit.Dockerfile   → clinical-diary-audit
     │
-    ├── Run Validation Tests (IQ/OQ checks)
+    ├── Sign ALL images (Cosign keyless via GitHub OIDC)
     │
-    ├── Generate SBOMs (Syft)
-    │   syft packages docker:dev-container
+    ├── Generate SBOMs (Syft) for ALL images
     │
-    ├── Sign Images (Cosign)
-    │   cosign sign docker:dev-container:1.0.0
+    ├── Attach SBOM attestations
+    │
+    ├── Verify ALL image signatures
     │
     └── Push to GHCR (GitHub Container Registry)
-        docker push ghcr.io/org/dev-container:1.0.0
+        ghcr.io/cure-hht/clinical-diary-{ci,devops,audit}
 ```
 
 ---
@@ -345,8 +339,8 @@ GitHub Repository
 │             GitHub Actions Runner                                │
 │                                                                   │
 │  ┌────────────────────────────────────────────────────────┐    │
-│  │  Step 1: Build qa-container                            │    │
-│  │    docker build -f tools/dev-env/docker/qa.Dockerfile  │    │
+│  │  Step 1: Build ci container                            │    │
+│  │    docker build -f tools/dev-env/docker/ci.Dockerfile  │    │
 │  └────────────────────────────────────────────────────────┘    │
 │                           │                                      │
 │                           ▼                                      │
@@ -358,7 +352,7 @@ GitHub Repository
 │                           ▼                                      │
 │  ┌────────────────────────────────────────────────────────┐    │
 │  │  Step 3: Run Tests in Container                        │    │
-│  │    docker run qa-container:latest                      │    │
+│  │    docker compose exec ci bash                         │    │
 │  │      - flutter test integration_test                   │    │
 │  │      - npx playwright test                             │    │
 │  └────────────────────────────────────────────────────────┘    │
@@ -405,56 +399,59 @@ GitHub Repository
 Host Machine:
 ~/projects/clinical-diary/
 ├── .devcontainer/
-│   ├── dev/
-│   ├── qa/
-│   ├── ops/
-│   └── mgmt/
+│   ├── devcontainer.json        (default → devops-main)
+│   └── audit/
+│       └── devcontainer.json    (audit service)
 │
-├── src/                      ← Bind mounted to containers
-│   ├── flutter_app/
-│   ├── web_portal/
-│   └── shared_lib/
+├── apps/                        ← Application source code
+│   ├── daily-diary/
+│   └── common-dart/
+│
+├── packages/                    ← Shared Flutter packages
+│
+├── sponsor/                     ← Per-sponsor customization
+│   └── {sponsor-name}/
 │
 ├── tools/
 │   └── dev-env/
 │       ├── docker/
-│       │   ├── base.Dockerfile
-│       │   ├── dev.Dockerfile
-│       │   ├── qa.Dockerfile
-│       │   ├── ops.Dockerfile
-│       │   └── mgmt.Dockerfile
+│       │   ├── ci.Dockerfile
+│       │   ├── devops.Dockerfile
+│       │   └── audit.Dockerfile
 │       ├── docker-compose.yml
+│       ├── docker-compose.ci.yml
 │       ├── setup.sh
 │       └── README.md
 │
-└── database/                 ← Available in all containers via volume
+├── infrastructure/
+│   └── terraform/               ← Mounted into devops containers
+│
+└── database/                    ← Schema, migrations, triggers
 
 
-Inside Containers:
+Inside Containers (devops-main):
 /workspace/
-├── repos/                    ← Named volume (persistent)
-│   ├── clinical-diary-core/
-│   └── sponsor-repos/
-│
-├── exchange/                 ← Named volume (file sharing between roles)
-│   └── (temporary files)
-│
-└── src/                      ← Bind mount from host (for IDE editing)
-    ├── flutter_app/
-    ├── web_portal/
-    └── shared_lib/
+├── terraform/                   ← Bind mount from host
+│   ├── main.tf
+│   ├── variables.tf
+│   └── modules/
+└── src/                         ← Bind mount (read-only)
+    └── (full repo)
+
+Inside Containers (audit):
+/workspace/
+├── src/                         ← Bind mount (read-only)
+└── terraform/                   ← Bind mount (read-only)
 
 
-Container-Specific:
-/home/ubuntu/               ← Container user home
-├── .gitconfig              ← Role-specific (Dev: "Developer")
-├── .ssh/                   ← Mounted from host
-│   ├── id_ed25519          ← Read-only
+Container User Home:
+/home/devuser/                   ← Container user home (uid 1000)
+├── .gitconfig.host              ← Mounted from host (read-only)
+├── .ssh/                        ← Mounted from host (read-only)
+│   ├── id_ed25519
 │   └── authorized_keys
-├── .config/
-│   ├── gh/                 ← GitHub CLI auth (via Doppler)
-│   └── doppler/            ← Doppler config
-└── .profile                ← Role-specific prompt
+└── .config/
+    └── doppler/                 ← Doppler config
 ```
 
 ---
@@ -466,18 +463,16 @@ Container-Specific:
 │                         Docker Bridge Network                    │
 │                      (clinical-diary-net)                        │
 │                                                                   │
-│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐          │
-│   │     dev     │   │     qa      │   │     ops     │          │
-│   │ 172.18.0.2  │   │ 172.18.0.3  │   │ 172.18.0.4  │          │
-│   └─────────────┘   └─────────────┘   └─────────────┘          │
-│                                                                   │
-│   ┌─────────────┐                                               │
-│   │    mgmt     │                                               │
-│   │ 172.18.0.5  │                                               │
-│   └─────────────┘                                               │
+│   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐       │
+│   │ devops-main  │   │devops-sponsor│   │    audit     │       │
+│   │ 172.18.0.2   │   │ 172.18.0.3   │   │ 172.18.0.4   │       │
+│   └──────────────┘   └──────────────┘   └──────────────┘       │
 │                                                                   │
 │   All containers can communicate with each other                │
 │   (May add network segmentation later if needed)                │
+│                                                                   │
+│   Note: ci container runs only in CI (build-only profile),      │
+│   not on the local Docker network.                              │
 └───────────────────────┬─────────────────────────────────────────┘
                         │
                         │ Bridge to Host
@@ -487,7 +482,7 @@ Container-Specific:
 │  - Internet access                                               │
 │  - GitHub API (api.github.com)                                  │
 │  - Doppler API (api.doppler.com)                                │
-│  - Supabase API (project.supabase.co)                           │
+│  - Google Cloud APIs                                             │
 │  - Package registries (npm, pub.dev, etc.)                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -505,16 +500,16 @@ Container-Specific:
           │ Docker Daemon (runs as root)
           ▼
 ┌────────────────────────────────────────────────────────────────┐
-│              Container User: ubuntu (non-root)                  │
+│              Container User: devuser (uid 1000, non-root)      │
 │                                                                  │
 │  Permissions:                                                   │
-│  - Read/Write: /workspace/repos, /workspace/exchange           │
-│  - Read/Write: /workspace/src (bind mount)                     │
-│  - Read-Only (mgmt role): All workspace volumes                │
+│  - devops: Read/Write /workspace/terraform                     │
+│  - devops: Read-Only /workspace/src                            │
+│  - audit: Read-Only all workspace volumes                      │
 │  - No access: Host system files outside mounts                 │
 │                                                                  │
 │  Network:                                                       │
-│  - Outbound: Internet access (GitHub, Doppler, Supabase)       │
+│  - Outbound: Internet access (GitHub, Doppler, GCP)            │
 │  - Inbound: None (no ports exposed by default)                 │
 │  - Container-to-Container: Allowed within Docker network       │
 │                                                                  │
@@ -542,17 +537,16 @@ Environment Build:
 │
 ├─ OQ (Operational Qualification)
 │   ├─ Git works (clone, commit, push)?
-│   ├─ GitHub CLI authenticated?
-│   ├─ Flutter builds sample app?
-│   ├─ Playwright runs sample test?
-│   ├─ Terraform validates config?
+│   ├─ Terraform validates config? (devops)
+│   ├─ gcloud authenticated? (devops, audit)
+│   ├─ psql connects to database? (devops, audit)
 │   ├─ Doppler retrieves secrets?
+│   ├─ ots verify works? (audit)
 │   └─ All tools report correct versions?
 │
 └─ PQ (Performance Qualification)
-    ├─ Flutter build time < 5 min?
     ├─ Container startup < 30 sec?
-    ├─ Test suite runs in reasonable time?
+    ├─ CI image builds in < 20 min?
     ├─ Cross-platform builds produce identical binaries?
     └─ Resource usage within limits?
 ```
@@ -566,12 +560,12 @@ Quarterly Review Cycle:
 
 Month 1:
 ├─ Check for security updates
-│   ├─ Base OS (Ubuntu)
+│   ├─ Base OS (Debian 12-slim)
 │   ├─ Flutter stable channel
 │   ├─ Node.js LTS
 │   └─ Tool dependencies
 │
-├─ Review tool versions
+├─ Review tool versions (.github/versions.env)
 │   ├─ Any deprecation notices?
 │   ├─ New LTS releases available?
 │   └─ Security advisories?
@@ -580,7 +574,7 @@ Month 1:
 
 Month 2:
 ├─ Create feature branch
-├─ Update Dockerfiles
+├─ Update Dockerfiles + versions.env
 ├─ Run IQ/OQ/PQ validation
 ├─ Document changes
 └─ Merge if validation passes
@@ -623,14 +617,11 @@ Month 3:
 | --- | --- | --- | --- |
 | First-time setup | < 30 min | TBD | Includes Docker install + image pull |
 | Subsequent startup | < 30 sec | TBD | Container start from stopped state |
-| Flutter hot reload | < 1 sec | TBD | Within dev container |
-| Test suite (Flutter) | < 5 min | TBD | Integration tests |
-| Test suite (Playwright) | < 3 min | TBD | E2E tests |
-| Container size (dev) | < 8 GB | TBD | Includes all tools |
-| Container size (qa) | < 6 GB | TBD | Testing tools |
-| Container size (ops) | < 2 GB | TBD | Infrastructure tools |
-| Container size (mgmt) | < 1 GB | TBD | Minimal tools |
-| Memory usage (dev) | < 6 GB | TBD | During active development |
+| Container size (ci) | < 10 GB | TBD | All-in-one: Flutter + Android + Playwright |
+| Container size (devops) | < 2 GB | TBD | Terraform + gcloud |
+| Container size (audit) | < 1 GB | TBD | Minimal tools |
+| Memory usage (devops) | < 4 GB | TBD | During active operations |
+| Memory usage (audit) | < 2 GB | TBD | Read-only queries |
 | CPU usage (idle) | < 5% | TBD | Background processes |
 
 ---
@@ -640,5 +631,5 @@ Month 3:
 - spec/dev-environment.md
 - tools/dev-env/README.md
 
-**Last Updated**: 2025-10-26
-**Next Review**: 2026-01-26 (quarterly)
+**Last Updated**: 2026-02-23
+**Next Review**: 2026-05-23 (quarterly)
