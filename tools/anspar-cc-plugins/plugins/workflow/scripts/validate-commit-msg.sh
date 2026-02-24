@@ -3,9 +3,10 @@
 # validate-commit-msg.sh
 # =====================================================
 #
-# Validates that a commit message contains:
-#   1. A Linear ticket reference [CUR-XXX] (work item traceability)
-#   2. The ticket reference matches the claimed active ticket
+# Validates commit message references (all checks controlled by env vars):
+#   1. (Optional) Linear ticket reference [CUR-XXX] (work item traceability)
+#      Controlled by ENFORCE_CUR_IN_COMMITS env var (default: false)
+#   2. (Optional) Ticket mismatch check (only when CUR enforcement is on)
 #   3. (Optional) At least one REQ-xxx reference (requirement traceability)
 #      Controlled by ENFORCE_REQ_IN_COMMITS env var (default: false)
 #
@@ -19,8 +20,8 @@
 #   - commit-msg git hook
 #
 # Exit codes:
-#   0  Valid (CUR reference found, ticket matches, REQ present if enforced)
-#   1  Invalid (missing CUR reference, ticket mismatch, or missing REQ when enforced)
+#   0  Valid (all enforced checks pass)
+#   1  Invalid (missing enforced reference or ticket mismatch when enforced)
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00018: Git Hook Implementation
@@ -50,6 +51,12 @@ COMMIT_MSG=$(cat "$MSG_FILE")
 # =====================================================
 # Validate Linear Ticket Reference (CUR-XXX)
 # =====================================================
+# TODO: Re-enable CUR enforcement by setting ENFORCE_CUR_IN_COMMITS=true
+# CUR-XXX is now enforced at the PR level only (validate-pr-metadata CI job).
+# When re-enabling, also update:
+#   - .github/workflows/pr-validation.yml (ENFORCE_CUR_IN_COMMITS env var)
+#   - tests/test-hooks.sh (test expectations)
+ENFORCE_CUR_IN_COMMITS="${ENFORCE_CUR_IN_COMMITS:-false}"
 
 # Pattern: CUR-{number} or [CUR-{number}]
 # Number: 1+ digits
@@ -83,7 +90,8 @@ if [ -n "$REPO_ROOT" ] && [ -f "$WORKFLOW_STATE" ]; then
     fi
 
     # If we have both an active ticket and a commit ticket, verify they match
-    if [ -n "$ACTIVE_TICKET" ] && [ -n "$COMMIT_TICKET" ]; then
+    # Only check mismatch when CUR enforcement is on
+    if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ -n "$ACTIVE_TICKET" ] && [ -n "$COMMIT_TICKET" ]; then
         if [ "$ACTIVE_TICKET" != "$COMMIT_TICKET" ]; then
             TICKET_MISMATCH=true
         fi
@@ -116,7 +124,7 @@ fi
 
 ERRORS=()
 
-if [ "$HAS_CUR" = "false" ]; then
+if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ "$HAS_CUR" = "false" ]; then
     ERRORS+=("Missing Linear ticket reference (CUR-XXX)")
 fi
 
@@ -142,7 +150,11 @@ else
 
     echo "" >&2
     echo "Expected format:" >&2
-    echo "  [CUR-XXX] Subject line describing the change" >&2
+    if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ]; then
+        echo "  [CUR-XXX] Subject line describing the change" >&2
+    else
+        echo "  Subject line describing the change" >&2
+    fi
     echo "  " >&2
     echo "  Optional body with more details." >&2
     if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
@@ -150,13 +162,17 @@ else
         echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}" >&2
     fi
     echo "" >&2
-    echo "Where:" >&2
-    echo "  CUR-XXX: Linear ticket number (must match claimed ticket: $ACTIVE_TICKET)" >&2
-    if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
-        echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)" >&2
-        echo "  REQ/EQ-CAL number: 5 digits (e.g., 00042)" >&2
+    if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] || [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+        echo "Where:" >&2
+        if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ]; then
+            echo "  CUR-XXX: Linear ticket number (must match claimed ticket: $ACTIVE_TICKET)" >&2
+        fi
+        if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
+            echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)" >&2
+            echo "  REQ/EQ-CAL number: 5 digits (e.g., 00042)" >&2
+        fi
+        echo "" >&2
     fi
-    echo "" >&2
 
     if [ "$TICKET_MISMATCH" = "true" ]; then
         echo "To fix ticket mismatch:" >&2
@@ -166,7 +182,11 @@ else
     fi
 
     echo "Example:" >&2
-    echo "  [${ACTIVE_TICKET:-CUR-XXX}] Add Linear ticket enforcement to hooks" >&2
+    if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ]; then
+        echo "  [${ACTIVE_TICKET:-CUR-XXX}] Add Linear ticket enforcement to hooks" >&2
+    else
+        echo "  Add Linear ticket enforcement to hooks" >&2
+    fi
     if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
         echo "  " >&2
         echo "  Implements: REQ-d00018" >&2

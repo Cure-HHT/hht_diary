@@ -126,7 +126,7 @@ test_precommit_blocks_commits_to_master() {
 
 test_commitmsg_blocks_without_cur_reference() {
     echo ""
-    echo "=== Commit-Msg: CUR Reference Validation Tests ==="
+    echo "=== Commit-Msg: CUR Reference Validation Tests (enforced) ==="
     echo ""
 
     setup_test_repo "no-cur"
@@ -134,13 +134,31 @@ test_commitmsg_blocks_without_cur_reference() {
     create_workflow_state "CUR-123" '["REQ-d00001"]'
     create_test_file "feature.txt" "New feature"
 
-    # Commit message with REQ but without CUR reference
+    # Commit message with REQ but without CUR reference (with enforcement ON)
     assert_failure \
-        "git commit -m 'Add feature without ticket
+        "ENFORCE_CUR_IN_COMMITS=true git commit -m 'Add feature without ticket
 
 Implements: REQ-d00001'" \
-        "Should block commit without Linear ticket reference" \
+        "Should block commit without Linear ticket reference when enforced" \
         "Missing Linear ticket reference\|CUR-"
+
+    cleanup_test_repo
+}
+
+test_commitmsg_allows_without_cur_when_disabled() {
+    echo ""
+    echo "=== Commit-Msg: CUR Not Required When Disabled (default) ==="
+    echo ""
+
+    setup_test_repo "no-cur-ok"
+
+    create_workflow_state "CUR-123"
+    create_test_file "feature.txt" "New feature"
+
+    # Commit message without CUR reference (enforcement OFF = default)
+    assert_success \
+        "git commit -m 'Add feature without CUR reference'" \
+        "Should allow commit without CUR reference when enforcement is disabled"
 
     cleanup_test_repo
 }
@@ -397,6 +415,7 @@ main() {
 
     # Commit-msg tests
     test_commitmsg_blocks_without_cur_reference
+    test_commitmsg_allows_without_cur_when_disabled
     test_commitmsg_blocks_without_req_reference
     test_commitmsg_blocks_invalid_req_format
     test_commitmsg_allows_without_req_when_disabled
