@@ -74,6 +74,21 @@ RUN apt-get update -y && \
     sudo \
     # Report generation
     pandoc \
+    # Flutter Linux desktop build dependencies
+    libgtk-3-dev \
+    libx11-dev \
+    pkg-config \
+    cmake \
+    ninja-build \
+    libblkid-dev \
+    liblzma-dev \
+    # Secure storage testing (gnome-keyring + dbus for Flutter secure_storage)
+    libsecret-1-dev \
+    gnome-keyring \
+    dbus-x11 \
+    xvfb \
+    # Coverage tools
+    lcov \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -99,6 +114,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash -
     npm install -g pnpm && \
     pnpm --version && \
     rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Firebase CLI (integration testing)
+# ============================================================
+RUN npm install -g firebase-tools && \
+    firebase --version
 
 # ============================================================
 # Python 3.11 (Debian 12 default)
@@ -270,6 +291,9 @@ RUN echo 'export PATH="$HOME/.pub-cache/bin:$PATH"' >> /home/devuser/.profile
 # Install junitreport
 RUN PATH="/home/devuser/.pub-cache/bin:$PATH" flutter pub global activate junitreport || true
 
+# Install Dart coverage formatter (LCOV generation for server packages)
+RUN PATH="/home/devuser/.pub-cache/bin:$PATH" dart pub global activate coverage || true
+
 # ============================================================
 # Git configuration defaults
 # ============================================================
@@ -288,5 +312,5 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
 CMD ["/bin/bash", "-l"]
 
 LABEL com.clinical-diary.version="2.0.0"
-LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc"
+LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc,firebase-cli,lcov"
 LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00059,REQ-d00030"
