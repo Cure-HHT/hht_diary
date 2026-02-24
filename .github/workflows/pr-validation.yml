@@ -12,12 +12,7 @@ name: PR Validation
 
 on:
   pull_request:
-    branches:
-      - main
-      - develop
-      - 'feature/**'
-      - 'release/**'
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited]
   push:
     branches:
       - main
