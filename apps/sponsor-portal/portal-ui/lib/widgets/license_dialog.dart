@@ -7,11 +7,7 @@ class LicensesDialog extends StatelessWidget {
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
 
-    await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-
-    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -22,7 +18,6 @@ class LicensesDialog extends StatelessWidget {
         'subtitle': 'gnu.org official license text',
         'url': 'https://www.gnu.org/licenses/agpl-3.0.en.html',
       },
-
     ];
 
     return Dialog(
@@ -34,24 +29,18 @@ class LicensesDialog extends StatelessWidget {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Licenses',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
-                  )
+                  ),
                 ],
               ),
             ),

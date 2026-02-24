@@ -428,7 +428,9 @@ void main() {
       });
     });
     group('License Navigation', () {
-      testWidgets('opens license page when tapping logo then Licenses', (tester) async {
+      testWidgets('opens license page when tapping logo then Licenses', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
@@ -437,8 +439,8 @@ void main() {
 
         // 1️⃣ Tap the logo image by asset name
         final logoFinder = find.byWidgetPredicate(
-              (widget) =>
-          widget is Image &&
+          (widget) =>
+              widget is Image &&
               widget.image is AssetImage &&
               (widget.image as AssetImage).assetName ==
                   'assets/images/cure-hht-grey.png',
@@ -2193,7 +2195,6 @@ void main() {
       },
     );
   });
-
 }
 
 /// Helper to wrap widget with MaterialApp and localization support

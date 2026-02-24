@@ -106,18 +106,22 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
             Text('Version ${F.version}', style: theme.textTheme.bodyLarge),
 
             InkWell(
-              onTap: (){
+              onTap: () {
                 Navigator.pop(context);
                 showDialog(
                   context: context,
                   builder: (_) => const LicensesDialog(),
                 );
-
               },
-              child: Text('Licenses', style: theme.textTheme.bodyMedium?.copyWith(
-                decorationColor: Colors.blueAccent,
-                color: Colors.blueAccent,decorationStyle: TextDecorationStyle.solid,decoration: TextDecoration.underline
-              ),),
+              child: Text(
+                'Licenses',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  decorationColor: Colors.blueAccent,
+                  color: Colors.blueAccent,
+                  decorationStyle: TextDecorationStyle.solid,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
             ),
             if (F.showDevTools) ...[
               const SizedBox(height: 8),
@@ -232,6 +236,4 @@ class _RoleSwitcher extends StatelessWidget {
         break;
     }
   }
-
-
 }
