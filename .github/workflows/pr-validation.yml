@@ -136,7 +136,6 @@ jobs:
         run: |
           if [ -f .ci-github-env ]; then
             cat .ci-github-env >> "$GITHUB_ENV"
-            rm -f .ci-github-env || true
           fi
 
       - name: Upload traceability artifacts
