@@ -78,7 +78,7 @@ jobs:
           channel: 'stable'
 
       - name: Setup Node.js for Firebase Emulator
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
