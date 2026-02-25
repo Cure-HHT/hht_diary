@@ -5,7 +5,7 @@
 #   REQ-o00082: Automated Test Execution (unit-tests, integration-tests, coverage jobs)
 #
 # CI workflow for diary_server and diary_functions
-# Runs unit tests, integration tests (with PostgreSQL), and static analysis
+# Runs static analysis, unit tests, integration tests (with PostgreSQL), and coverage
 
 name: Diary Server CI
 
@@ -43,11 +43,26 @@ jobs:
             echo "relevant=false" >> $GITHUB_OUTPUT
           fi
 
-  analyze:
-    name: Static Analysis (Diary Server)
+  ci:
+    name: Analyze, Test & Coverage
     runs-on: ubuntu-latest
     needs: changes
     timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17-alpine  # version pinned in .github/versions.env
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sponsor_portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Skip - no relevant changes
@@ -95,93 +110,6 @@ jobs:
           dart format --set-exit-if-changed apps/daily-diary/diary_functions
           dart format --set-exit-if-changed apps/daily-diary/diary_server
 
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 30
-
-    steps:
-      - name: Skip - no relevant changes
-        if: needs.changes.outputs.relevant != 'true'
-        run: echo "No relevant changes detected — skipping"
-
-      - uses: actions/checkout@v4
-        if: needs.changes.outputs.relevant == 'true'
-
-      - name: Load version pinning
-        if: needs.changes.outputs.relevant == 'true'
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-
-      - uses: dart-lang/setup-dart@v1
-        if: needs.changes.outputs.relevant == 'true'
-        with:
-          sdk: '${{ steps.versions.outputs.dart_version }}'
-
-      - name: Install dependencies (diary_functions)
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_functions
-        run: dart pub get
-
-      - name: Install dependencies (diary_server)
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_server
-        run: dart pub get
-
-      - name: Run diary_functions unit tests
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_functions
-        run: dart test test/
-
-      - name: Run diary_server unit tests
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_server
-        run: dart test test/
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 30
-
-    services:
-      postgres:
-        image: postgres:17-alpine  # version pinned in .github/versions.env
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Skip - no relevant changes
-        if: needs.changes.outputs.relevant != 'true'
-        run: echo "No relevant changes detected — skipping"
-
-      - uses: actions/checkout@v4
-        if: needs.changes.outputs.relevant == 'true'
-
-      - name: Load version pinning
-        if: needs.changes.outputs.relevant == 'true'
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-
-      - uses: dart-lang/setup-dart@v1
-        if: needs.changes.outputs.relevant == 'true'
-        with:
-          sdk: '${{ steps.versions.outputs.dart_version }}'
-
       - name: Wait for PostgreSQL
         if: needs.changes.outputs.relevant == 'true'
         run: |
@@ -197,96 +125,9 @@ jobs:
         run: |
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
-      - name: Install dependencies (diary_functions)
+      - name: Activate coverage tool
         if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_functions
-        run: dart pub get
-
-      - name: Install dependencies (diary_server)
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_server
-        run: dart pub get
-
-      - name: Run diary_functions integration tests
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_functions
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
-        run: dart test integration_test/
-
-      - name: Run diary_server integration tests
-        if: needs.changes.outputs.relevant == 'true'
-        working-directory: apps/daily-diary/diary_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
-        run: dart test integration_test/
-
-  coverage:
-    name: Test Coverage
-    runs-on: ubuntu-latest
-    needs: [changes, unit-tests, integration-tests]
-    timeout-minutes: 30
-
-    services:
-      postgres:
-        image: postgres:17-alpine  # version pinned in .github/versions.env
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Skip - no relevant changes
-        if: needs.changes.outputs.relevant != 'true'
-        run: echo "No relevant changes detected — skipping"
-
-      - uses: actions/checkout@v4
-        if: needs.changes.outputs.relevant == 'true'
-
-      - name: Load version pinning
-        if: needs.changes.outputs.relevant == 'true'
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-
-      - uses: dart-lang/setup-dart@v1
-        if: needs.changes.outputs.relevant == 'true'
-        with:
-          sdk: '${{ steps.versions.outputs.dart_version }}'
-
-      - name: Apply database schema
-        if: needs.changes.outputs.relevant == 'true'
-        env:
-          PGPASSWORD: postgres
-        run: |
-          psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
-
-      - name: Install dependencies
-        if: needs.changes.outputs.relevant == 'true'
-        run: |
-          dart pub get --directory=apps/daily-diary/diary_functions
-          dart pub get --directory=apps/daily-diary/diary_server
-          dart pub global activate coverage
+        run: dart pub global activate coverage
 
       - name: Run diary_functions tests with coverage
         if: needs.changes.outputs.relevant == 'true'
