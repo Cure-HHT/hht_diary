@@ -3,9 +3,6 @@ name: Database Migration Validation
 on:
   push:
     branches: [main]
-    paths:
-      - 'database/**'
-      - '.github/workflows/database-migration.yml'
   pull_request:
     branches: [main]
     paths:

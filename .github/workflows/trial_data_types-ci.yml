@@ -3,9 +3,6 @@ name: Trial Data Types CI
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/trial_data_types/**'
-      - '.github/workflows/trial_data_types-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:

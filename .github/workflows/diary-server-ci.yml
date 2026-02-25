@@ -15,10 +15,6 @@ permissions:
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/daily-diary/**'
-      - 'database/**'
-      - '.github/workflows/diary-server-ci.yml'
   pull_request:
     branches: [main]
     paths:

@@ -3,9 +3,6 @@ name: Append-Only Datastore CI
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/append_only_datastore/**'
-      - '.github/workflows/append_only_datastore-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:

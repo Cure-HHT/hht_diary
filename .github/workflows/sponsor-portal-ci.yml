@@ -16,10 +16,6 @@ permissions:
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/sponsor-portal/**'
-      - 'database/**'
-      - '.github/workflows/sponsor-portal-ci.yml'
   pull_request:
     branches: [main]
     paths:
