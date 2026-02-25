@@ -155,12 +155,6 @@ RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
     gitleaks version
 
 # ============================================================
-# Anthropic Python SDK & Claude Code CLI
-# ============================================================
-RUN pip3 install --no-cache-dir --break-system-packages --root-user-action=ignore anthropic && \
-    npm install -g @anthropic-ai/claude-code
-
-# ============================================================
 # Google Cloud SDK (gcloud CLI)
 # ============================================================
 RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \

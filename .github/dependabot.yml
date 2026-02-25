@@ -114,7 +114,7 @@ updates:
 # Notes:
 # 1. Dependabot does NOT support SHA-pinning GitHub Actions
 #    - For FDA compliance, consider Renovate (see Linear ticket CUR-XXX)
-# 2. Dockerfile ENV versions (e.g., SUPABASE_CLI_VERSION) are NOT detected
+# 2. Dockerfile ENV versions are NOT detected by Dependabot
 #    - These must be updated manually (quarterly maintenance review)
 # 3. Security updates are enabled automatically if vulnerability alerts are on
 # 4. Align this with quarterly maintenance-check.yml reviews

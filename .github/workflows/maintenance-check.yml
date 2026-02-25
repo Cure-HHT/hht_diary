@@ -116,11 +116,6 @@ jobs:
           echo ""
 
           # Extract pinned versions
-          echo "📦 Supabase CLI:"
-          grep "ENV SUPABASE_CLI_VERSION" tools/dev-env/docker/dev.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/supabase/cli/releases"
-          echo ""
-
           echo "📦 kubectl:"
           grep "ENV KUBECTL_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
           echo "   Latest: Check https://github.com/kubernetes/kubernetes/releases"
@@ -225,7 +220,6 @@ jobs:
 
             1. Review the files listed in the workflow run
             2. Check for updated tool versions:
-               - Supabase CLI: https://github.com/supabase/cli/releases
                - kubectl: https://github.com/kubernetes/kubernetes/releases
                - Cosign: https://github.com/sigstore/cosign/releases
                - Syft: https://github.com/anchore/syft/releases
