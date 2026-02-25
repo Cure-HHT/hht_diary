@@ -350,6 +350,20 @@ class _LogoMenuState extends State<LogoMenu> {
         // Version info at bottom
         const PopupMenuDivider(),
         PopupMenuItem<String>(
+          value: 'licenses',
+          child: Row(
+            children: [
+              Icon(
+                Icons.credit_card_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              const SizedBox(width: 12),
+              Flexible(child: Text(l10n.licenses)),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
           value: 'check_for_updates',
           child: Row(
             children: [
@@ -396,20 +410,7 @@ class _LogoMenuState extends State<LogoMenu> {
             ],
           ),
         ),
-        PopupMenuItem<String>(
-          value: 'licenses',
-          child: Row(
-            children: [
-              Icon(
-                Icons.credit_card_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              const SizedBox(width: 12),
-              Flexible(child: Text(l10n.licenses)),
-            ],
-          ),
-        ),
+
         PopupMenuItem<String>(
           enabled: false,
           height: 32,

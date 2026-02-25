@@ -1,3 +1,4 @@
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,22 +18,23 @@ class LicensesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Licenses')),
+      appBar: AppBar(title: Text(l10n.licenses)),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.open_in_new),
-            title: const Text('GNU AGPL v3 License'),
-            subtitle: const Text('gnu.org official license text'),
+            title:  Text(l10n.gnuAgplTitle),
+            subtitle:  Text(l10n.gnuAgplDescription),
             onTap: () =>
                 _openUrl('https://www.gnu.org/licenses/agpl-3.0.en.html'),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.open_in_new),
-            title: const Text('Atkinson Hyperlegible Font License'),
-            subtitle: const Text('SIL Open Font License 1.1'),
+            title:  Text(l10n.atkinsonTitle),
+            subtitle:  Text(l10n.atkinsonDescription),
             onTap: () => _openUrl(
               'https://braileinstitute.app.box.com/s/rin3vzegmcy7sil28yfqslz2r5etv5nl',
             ),

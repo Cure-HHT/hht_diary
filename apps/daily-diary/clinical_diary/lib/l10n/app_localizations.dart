@@ -348,6 +348,10 @@ class AppLocalizations {
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Old Entry Modification',
+      'gnuAgplTitle': 'GNU AGPL v3 License',
+      'gnuAgplDescription':'gnu.org official license text',
+      'atkinsonTitle': 'Atkinson Hyperlegible Font License',
+      'atkinsonDescription':'SIL Open Font License 1.1',
       'oldEntryJustificationPrompt':
           'This is an event more than one day old. Please explain why you are adding/changing it now:',
       'justificationPaperRecords': 'Entered from paper records',
@@ -1888,6 +1892,10 @@ class AppLocalizations {
 
   // Intensity
   String get spotting => translate('spotting');
+  String get gnuAgplTitle => translate('gnuAgplTitle');
+  String get gnuAgplDescription => translate('gnuAgplDescription');
+  String get atkinsonTitle => translate('atkinsonTitle');
+  String get atkinsonDescription => translate('atkinsonDescription');
   String get dripping => translate('dripping');
   String get drippingQuickly => translate('drippingQuickly');
   String get steadyStream => translate('steadyStream');
