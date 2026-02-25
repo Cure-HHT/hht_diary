@@ -349,9 +349,9 @@ class AppLocalizations {
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Old Entry Modification',
       'gnuAgplTitle': 'GNU AGPL v3 License',
-      'gnuAgplDescription':'gnu.org official license text',
+      'gnuAgplDescription': 'gnu.org official license text',
       'atkinsonTitle': 'Atkinson Hyperlegible Font License',
-      'atkinsonDescription':'SIL Open Font License 1.1',
+      'atkinsonDescription': 'SIL Open Font License 1.1',
       'oldEntryJustificationPrompt':
           'This is an event more than one day old. Please explain why you are adding/changing it now:',
       'justificationPaperRecords': 'Entered from paper records',
