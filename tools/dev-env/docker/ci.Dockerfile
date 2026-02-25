@@ -4,38 +4,30 @@
 #   REQ-d00059: Development Tool Specifications
 #   REQ-d00030: CI/CD Environment Parity
 #
-# All-in-One CI Image for Clinical Diary
-# Replaces the base -> dev -> qa chain with a single image.
-# Contains everything needed for build, test, lint, and scan.
+# Multi-stage CI Image for Clinical Diary
+# Split into 5 stages for independent layer caching:
+#   1. ci-system       — Debian, apt, GitHub CLI, Node.js+pnpm, Firebase, Python
+#   2. ci-java-flutter — OpenJDK, Flutter SDK, Android SDK + licenses
+#   3. ci-cloud-tools  — Doppler, gcloud, Cloud SQL Proxy, PostgreSQL client, Squawk
+#   4. ci-test-tools   — Gitleaks, Playwright + browsers + system deps
+#   5. ci              — devuser, ownership, Flutter config, git config, healthcheck
+#
+# ARGs are scoped to the stage that uses them so that changing one tool
+# (e.g. GITLEAKS_VERSION) only invalidates that stage and later stages,
+# not the entire image. Combined with mode=max registry caching, each
+# stage's layers are cached independently.
 #
 # Built on: Debian 12 (Bookworm) slim — matches production runtime
 # Future: dev.Dockerfile will extend this image for interactive use
 
-FROM debian:12-slim
+# ==============================================================
+# Stage 1: ci-system — base OS, system packages, Node.js, Python
+# Changes when: new system dep added, Node.js major version bump
+# ==============================================================
+FROM debian:12-slim AS ci-system
 
-LABEL maintainer="Clinical Diary Team"
-LABEL description="All-in-one CI image: build, test, lint, scan"
-LABEL org.opencontainers.image.source="https://github.com/cure-hht/clinical-diary"
-LABEL org.opencontainers.image.licenses="MIT"
-LABEL com.clinical-diary.role="ci"
-
-# ============================================================
-# Build arguments — sourced from .github/versions.env at build time
-# ============================================================
 ARG NODE_MAJOR_VERSION=20
-ARG FLUTTER_VERSION=3.38.7
-ARG GITLEAKS_VERSION=8.29.0
-ARG SQUAWK_VERSION=2.41.0
-ARG CLOUD_SQL_PROXY_VERSION=2.14.3
-ARG ANDROID_CMDLINE_TOOLS_VERSION=11076708
-ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
-ARG ANDROID_PLATFORM_VERSION=34
-ARG OPENJDK_VERSION=17
-ARG POSTGRESQL_CLIENT_VERSION=16
 
-# ============================================================
-# Environment
-# ============================================================
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
@@ -48,10 +40,9 @@ RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
     echo "path-exclude=/usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude=/usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc
 
-# ============================================================
-# System Packages
-# ============================================================
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# System Packages
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     # Core utilities
@@ -91,9 +82,7 @@ RUN apt-get update -y && \
     lcov \
     && rm -rf /var/lib/apt/lists/*
 
-# ============================================================
 # GitHub CLI (2.40+)
-# ============================================================
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
     dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -104,9 +93,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
     gh --version && \
     rm -rf /var/lib/apt/lists/*
 
-# ============================================================
 # Node.js LTS + pnpm
-# ============================================================
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - 2>&1 | grep -v "apt does not have a stable CLI" && \
     apt-get install -y --no-install-recommends nodejs && \
     node --version && \
@@ -115,15 +102,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash -
     pnpm --version && \
     rm -rf /var/lib/apt/lists/*
 
-# ============================================================
 # Firebase CLI (integration testing)
-# ============================================================
 RUN npm install -g firebase-tools && \
     firebase --version
 
-# ============================================================
 # Python 3.11 (Debian 12 default)
-# ============================================================
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     python3 \
@@ -134,68 +117,19 @@ RUN apt-get update -y && \
     pip3 --version 2>/dev/null || true && \
     rm -rf /var/lib/apt/lists/*
 
-# ============================================================
-# Doppler CLI (secrets management)
-# ============================================================
-RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
-    gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | \
-    tee /etc/apt/sources.list.d/doppler-cli.list && \
-    apt-get update -y && \
-    apt-get install -y --no-install-recommends doppler && \
-    doppler --version && \
-    rm -rf /var/lib/apt/lists/*
+# ==============================================================
+# Stage 2: ci-java-flutter — JDK, Flutter, Android SDK
+# Changes when: Flutter/Android version bump (quarterly)
+# ==============================================================
+FROM ci-system AS ci-java-flutter
 
-# ============================================================
-# Gitleaks (secret scanning)
-# ============================================================
-RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
-    tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz -C /usr/local/bin && \
-    rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
-    gitleaks version
+ARG OPENJDK_VERSION=17
+ARG FLUTTER_VERSION=3.38.7
+ARG ANDROID_CMDLINE_TOOLS_VERSION=11076708
+ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
+ARG ANDROID_PLATFORM_VERSION=34
 
-# ============================================================
-# Google Cloud SDK (gcloud CLI)
-# ============================================================
-RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-    tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
-    apt-get update -y && \
-    apt-get install -y --no-install-recommends google-cloud-cli && \
-    gcloud --version && \
-    rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# Cloud SQL Auth Proxy
-# ============================================================
-RUN curl -o /usr/local/bin/cloud-sql-proxy \
-    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v${CLOUD_SQL_PROXY_VERSION}/cloud-sql-proxy.linux.amd64 && \
-    chmod +x /usr/local/bin/cloud-sql-proxy && \
-    cloud-sql-proxy --version
-
-# ============================================================
-# PostgreSQL Client (bookworm-pgdg — no lsb-release dependency)
-# ============================================================
-RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-    gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" | \
-    tee /etc/apt/sources.list.d/pgdg.list && \
-    apt-get update -y && \
-    apt-get install -y --no-install-recommends postgresql-client-${POSTGRESQL_CLIENT_VERSION} && \
-    psql --version && \
-    rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# Squawk (PostgreSQL migration linter)
-# ============================================================
-RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x64 -O /usr/local/bin/squawk && \
-    chmod +x /usr/local/bin/squawk && \
-    squawk --version
-
-# ============================================================
 # OpenJDK (required for Android SDK)
-# ============================================================
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends openjdk-${OPENJDK_VERSION}-jdk-headless && \
     java -version && \
@@ -210,9 +144,7 @@ RUN JAVA_BIN=$(update-alternatives --query java | grep 'Value:' | awk '{print $2
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-# ============================================================
 # Flutter
-# ============================================================
 ENV FLUTTER_ROOT=/opt/flutter
 ENV PATH="${FLUTTER_ROOT}/bin:${PATH}"
 
@@ -221,9 +153,7 @@ RUN cd /opt && \
     tar -xJf flutter_linux_${FLUTTER_VERSION}-stable.tar.xz && \
     rm flutter_linux_${FLUTTER_VERSION}-stable.tar.xz
 
-# ============================================================
 # Android SDK
-# ============================================================
 ENV ANDROID_HOME=/opt/android
 ENV ANDROID_SDK_ROOT=/opt/android
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
@@ -245,16 +175,83 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
                "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
                "platforms;android-${ANDROID_PLATFORM_VERSION}"
 
-# ============================================================
+# ==============================================================
+# Stage 3: ci-cloud-tools — Doppler, gcloud, Cloud SQL, PostgreSQL, Squawk
+# Changes when: tool version bumps (infrequent)
+# ==============================================================
+FROM ci-java-flutter AS ci-cloud-tools
+
+ARG CLOUD_SQL_PROXY_VERSION=2.14.3
+ARG POSTGRESQL_CLIENT_VERSION=16
+ARG SQUAWK_VERSION=2.41.0
+
+# Doppler CLI (secrets management)
+RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
+    gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | \
+    tee /etc/apt/sources.list.d/doppler-cli.list && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends doppler && \
+    doppler --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# Google Cloud SDK (gcloud CLI)
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+    tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends google-cloud-cli && \
+    gcloud --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# Cloud SQL Auth Proxy
+RUN curl -o /usr/local/bin/cloud-sql-proxy \
+    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v${CLOUD_SQL_PROXY_VERSION}/cloud-sql-proxy.linux.amd64 && \
+    chmod +x /usr/local/bin/cloud-sql-proxy && \
+    cloud-sql-proxy --version
+
+# PostgreSQL Client (bookworm-pgdg — no lsb-release dependency)
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+    gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" | \
+    tee /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends postgresql-client-${POSTGRESQL_CLIENT_VERSION} && \
+    psql --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# Squawk (PostgreSQL migration linter)
+RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x64 -O /usr/local/bin/squawk && \
+    chmod +x /usr/local/bin/squawk && \
+    squawk --version
+
+# ==============================================================
+# Stage 4: ci-test-tools — Gitleaks, Playwright
+# Changes when: browser updates, Gitleaks version bump
+# ==============================================================
+FROM ci-cloud-tools AS ci-test-tools
+
+ARG GITLEAKS_VERSION=8.29.0
+
+# Gitleaks (secret scanning)
+RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz -C /usr/local/bin && \
+    rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    gitleaks version
+
 # Playwright (latest + browsers + system deps)
-# ============================================================
 RUN npm install -g playwright && \
     npx playwright --version && \
     DEBIAN_FRONTEND=noninteractive npx playwright install --with-deps
 
-# ============================================================
+# ==============================================================
+# Stage 5: ci — user setup, Flutter config, workspace, healthcheck
+# Changes when: rarely (user/workspace config changes)
+# ==============================================================
+FROM ci-test-tools AS ci
+
 # Create non-root user: devuser
-# ============================================================
 RUN useradd -m -s /bin/bash -u 1000 devuser && \
     usermod -aG sudo devuser && \
     echo "devuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
@@ -262,15 +259,11 @@ RUN useradd -m -s /bin/bash -u 1000 devuser && \
 # Set ownership for Flutter and Android SDK
 RUN chown -R devuser:devuser /opt/flutter ${ANDROID_HOME}
 
-# ============================================================
 # Set up workspace
-# ============================================================
 RUN mkdir -p /workspace/repos /workspace/exchange /workspace/src /workspace/reports && \
     chown -R devuser:devuser /workspace
 
-# ============================================================
 # Flutter configuration (as devuser)
-# ============================================================
 USER devuser
 WORKDIR /home/devuser
 
@@ -288,16 +281,12 @@ RUN PATH="/home/devuser/.pub-cache/bin:$PATH" flutter pub global activate junitr
 # Install Dart coverage formatter (LCOV generation for server packages)
 RUN PATH="/home/devuser/.pub-cache/bin:$PATH" dart pub global activate coverage || true
 
-# ============================================================
 # Git configuration defaults
-# ============================================================
 RUN git config --global pull.rebase false && \
     git config --global init.defaultBranch main && \
     git config --global core.editor "vim"
 
-# ============================================================
 # Final configuration
-# ============================================================
 WORKDIR /workspace/src
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
@@ -305,6 +294,11 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
 
 CMD ["/bin/bash", "-l"]
 
+LABEL maintainer="Clinical Diary Team"
+LABEL description="All-in-one CI image: build, test, lint, scan"
+LABEL org.opencontainers.image.source="https://github.com/cure-hht/clinical-diary"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL com.clinical-diary.role="ci"
 LABEL com.clinical-diary.version="2.0.0"
 LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc,firebase-cli,lcov"
 LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00059,REQ-d00030"
