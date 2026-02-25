@@ -83,7 +83,7 @@ jobs:
           echo "✅ Target version verified: ${TARGET_VERSION}"
 
       - name: Checkout target version
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.target_version }}
 
