@@ -93,6 +93,9 @@ jobs:
           echo "OPENJDK_VERSION=${OPENJDK_VERSION:-$JAVA_VERSION}" >> $GITHUB_ENV
           echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
 
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -162,6 +165,9 @@ jobs:
           echo "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION:-2.14.3}" >> $GITHUB_ENV
           echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
 
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -222,6 +228,9 @@ jobs:
           source .github/versions.env
           echo "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION:-2.14.3}" >> $GITHUB_ENV
           echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
