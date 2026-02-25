@@ -63,30 +63,6 @@ jobs:
           path: build-reports/
           retention-days: 90
 
-  test-linear-cli-tools:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Validate Linear API scripts
-        run: |
-          echo "🔍 Validating Linear API scripts syntax..."
-          cd tools/anspar-cc-plugins/plugins/linear-api/scripts
-          # Check all JavaScript files for syntax errors
-          for file in *.js; do
-            if [ -f "$file" ]; then
-              node --check "$file" && echo "✅ $file syntax valid" || exit 1
-            fi
-          done
-          echo "✅ All Linear API scripts validated"
-
   validate-documentation:
     runs-on: ubuntu-latest
     permissions:

@@ -1,6 +1,6 @@
 name: trial_data_types
 description: "A Dart module for common data types for trial data - REQ-p00006: Offline-First Data Entry"
-version: 0.0.1+5
+version: 0.0.1+6
 homepage:
 
 environment:

@@ -1,6 +1,6 @@
 name: eq
 description: "Questionnaire UI widgets for clinical diary - REQ-p01070, REQ-p01071"
-version: 0.0.1+5
+version: 0.0.1+6
 publish_to: none
 homepage:
 
