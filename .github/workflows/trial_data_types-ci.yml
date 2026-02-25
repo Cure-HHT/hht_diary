@@ -3,10 +3,14 @@ name: Trial Data Types CI
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/trial_data_types/**'
+      - '.github/workflows/trial_data_types-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'apps/common-dart/trial_data_types/**'
+      - '.github/workflows/trial_data_types-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,29 +21,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    name: Detect Changes
+  # Lightweight job to set dynamic matrix (stable-only on PRs, stable+beta on main)
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
       sdks: ${{ steps.sdks.outputs.sdks }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Check for relevant changes
-        id: filter
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "relevant=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha || 'HEAD~1' }} ${{ github.sha }} | grep -E '^apps/common-dart/trial_data_types/|^\.github/workflows/trial_data_types-ci\.yml$' || true)
-          if [ -n "$CHANGED" ]; then
-            echo "relevant=true" >> $GITHUB_OUTPUT
-          else
-            echo "relevant=false" >> $GITHUB_OUTPUT
-          fi
       - name: Set SDK channels
         id: sdks
         run: |
@@ -52,52 +40,44 @@ jobs:
   ci:
     name: Analyze & Test (${{ matrix.sdk }})
     runs-on: ubuntu-latest
-    needs: changes
+    needs: setup
     timeout-minutes: 30
 
     strategy:
       matrix:
-        sdk: ${{ fromJSON(needs.changes.outputs.sdks) }}
+        sdk: ${{ fromJSON(needs.setup.outputs.sdks) }}
 
     steps:
-      - name: Skip - no relevant changes
-        if: needs.changes.outputs.relevant != 'true'
-        run: echo "No relevant changes detected — skipping"
-
       - name: Checkout code
-        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
 
       - name: Load version pinning
-        if: needs.changes.outputs.relevant == 'true' && matrix.sdk == 'stable'
+        if: matrix.sdk == 'stable'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Setup Dart
-        if: needs.changes.outputs.relevant == 'true'
         uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ matrix.sdk }}
 
       - name: Install dependencies
-        if: needs.changes.outputs.relevant == 'true'
         run: dart pub get
         working-directory: apps/common-dart/trial_data_types
 
       - name: Verify formatting
-        if: needs.changes.outputs.relevant == 'true' && matrix.sdk == 'stable'
+        if: matrix.sdk == 'stable'
         run: dart format --output=none --set-exit-if-changed .
         working-directory: apps/common-dart/trial_data_types
 
       - name: Analyze project source
-        if: needs.changes.outputs.relevant == 'true' && matrix.sdk == 'stable'
+        if: matrix.sdk == 'stable'
         run: dart analyze --fatal-infos
         working-directory: apps/common-dart/trial_data_types
 
       - name: Run tests
-        if: needs.changes.outputs.relevant == 'true'
         run: |
           chmod +x tool/test.sh
           ./tool/test.sh
@@ -106,7 +86,7 @@ jobs:
   gate:
     name: Trial Data Types CI
     runs-on: ubuntu-latest
-    needs: [changes, ci]
+    needs: [setup, ci]
     if: always()
     steps:
       - name: Check result
