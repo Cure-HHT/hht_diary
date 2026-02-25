@@ -67,6 +67,7 @@ RUN apt-get update -y && \
     pandoc \
     # Flutter Linux desktop build dependencies (clang required — Flutter hardcodes CC=clang CXX=clang++)
     clang \
+    lld \
     libgtk-3-dev \
     libx11-dev \
     pkg-config \
