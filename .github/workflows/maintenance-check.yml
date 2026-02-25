@@ -16,7 +16,6 @@ on:
   pull_request:
     paths:
       - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/EXPECTED_WARNINGS.md'
       - '.github/workflows/maintenance-check.yml'
 
 jobs:
@@ -39,7 +38,6 @@ jobs:
             "tools/dev-env/docker/dev.Dockerfile"
             "tools/dev-env/docker/qa.Dockerfile"
             "tools/dev-env/docker/ops.Dockerfile"
-            "tools/dev-env/EXPECTED_WARNINGS.md"
           )
 
           # Files that require annual review (365 days)
@@ -167,7 +165,6 @@ jobs:
           - tools/dev-env/docker/dev.Dockerfile
           - tools/dev-env/docker/qa.Dockerfile
           - tools/dev-env/docker/ops.Dockerfile
-          - tools/dev-env/EXPECTED_WARNINGS.md
 
           **Annual Review Required (365 days)**:
           - tools/dev-env/docker/base.Dockerfile

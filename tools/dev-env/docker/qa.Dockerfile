@@ -6,6 +6,7 @@
 #
 # QA Environment Dockerfile
 # Extends dev with: Playwright, testing tools, report generation
+# Last reviewed: 2026-02-24 — no version changes needed
 
 ARG DEV_IMAGE_NAME=clinical-diary-dev
 ARG DEV_IMAGE_TAG=latest
