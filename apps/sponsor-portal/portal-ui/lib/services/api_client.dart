@@ -30,27 +30,44 @@ class ApiClient {
 
     // Default to localhost for development
     if (kDebugMode) {
-      return 'http://localhost:8080';
+      return 'http://localhost:8084';
     }
 
     // Use the current host origin in production (same-origin API)
     return Uri.base.origin;
   }
 
+  /// Build authenticated headers including the active role.
+  /// Returns null if the user is not authenticated.
+  Future<Map<String, String>?> _authHeaders() async {
+    final token = await _authService.getIdToken();
+    if (token == null) return null;
+
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    // Include active role so server uses the role the user selected in the UI
+    final activeRole = _authService.currentUser?.activeRole;
+    if (activeRole != null) {
+      headers['X-Active-Role'] = activeRole.systemName;
+    }
+
+    return headers;
+  }
+
   /// Make an authenticated GET request
   Future<ApiResponse> get(String path) async {
     try {
-      final token = await _authService.getIdToken();
-      if (token == null) {
+      final headers = await _authHeaders();
+      if (headers == null) {
         return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.get(
         Uri.parse('$_apiBaseUrl$path'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
 
       return _parseResponse(response);
@@ -63,17 +80,14 @@ class ApiClient {
   /// Make an authenticated POST request
   Future<ApiResponse> post(String path, Map<String, dynamic> body) async {
     try {
-      final token = await _authService.getIdToken();
-      if (token == null) {
+      final headers = await _authHeaders();
+      if (headers == null) {
         return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.post(
         Uri.parse('$_apiBaseUrl$path'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(body),
       );
 
@@ -87,17 +101,14 @@ class ApiClient {
   /// Make an authenticated DELETE request
   Future<ApiResponse> delete(String path, {Map<String, dynamic>? body}) async {
     try {
-      final token = await _authService.getIdToken();
-      if (token == null) {
+      final headers = await _authHeaders();
+      if (headers == null) {
         return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.delete(
         Uri.parse('$_apiBaseUrl$path'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: body != null ? jsonEncode(body) : null,
       );
 
@@ -111,17 +122,14 @@ class ApiClient {
   /// Make an authenticated PATCH request
   Future<ApiResponse> patch(String path, Map<String, dynamic> body) async {
     try {
-      final token = await _authService.getIdToken();
-      if (token == null) {
+      final headers = await _authHeaders();
+      if (headers == null) {
         return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.patch(
         Uri.parse('$_apiBaseUrl$path'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(body),
       );
 

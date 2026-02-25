@@ -40,6 +40,17 @@ echo "=========================================="
 echo "Sponsor Portal Startup"
 echo "=========================================="
 
+# Output component versions (generated during Docker build)
+if [ -f /app/UI_VERSION ]; then
+    echo "  portal_ui:        $(cat /app/UI_VERSION)"
+fi
+if [ -f /app/SERVER_VERSIONS ]; then
+    while IFS='=' read -r key value; do
+        printf '  %-18s%s\n' "$key:" "$value"
+    done < /app/SERVER_VERSIONS
+fi
+echo "=========================================="
+
 # Show identity for debugging
 echo "Fetching active service account..."
 IDENTITY=$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || echo "unknown")
@@ -68,10 +79,6 @@ if [ ! -f "/app/sponsor-content/${SPONSOR_ID}/sponsor-config.json" ]; then
 fi
 echo "✅ Sponsor content verified for ${SPONSOR_ID}."
 
-# Check if DOPPLER_TOKEN is set
-if [ -z "$DOPPLER_TOKEN" ]; then
-    echo "❌ ERROR: DOPPLER_TOKEN environment variable is not set!"
-    echo "Cloud Run service must have DOPPLER_TOKEN configured for this environment."
 if [ -z "$DOPPLER_CONFIG_NAME" ]; then
     echo "ERROR: DOPPLER_CONFIG_NAME is not set!"
     exit 2

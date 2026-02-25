@@ -1,0 +1,112 @@
+# CI Gate — Single required status check that aggregates all other workflow results
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00052: CI/CD Pipeline with Automated Quality Gates
+#   REQ-o00078: Change-Appropriate CI Validation
+#
+# This workflow replaces multiple individual required status checks in branch
+# protection with a single "CI Gate" check. Individual workflows are free to
+# use `paths` filters and skip entirely — CI Gate treats skipped as OK.
+#
+# Only CI Gate needs to be a required status check in branch protection.
+
+name: CI Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  checks: read
+  statuses: read
+  actions: read
+
+jobs:
+  gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Wait for all checks and aggregate results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "CI Gate: Waiting for all checks on commit ${SHA:0:7}"
+          echo ""
+
+          MAX_ATTEMPTS=60   # 60 * 30s = 30 minutes
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+
+            # Fetch all check runs for this commit
+            CHECKS=$(gh api "repos/${REPO}/commits/${SHA}/check-runs" \
+              --paginate \
+              --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}')
+
+            # Count statuses (exclude ourselves)
+            TOTAL=0
+            COMPLETED=0
+            FAILED=0
+            FAILED_NAMES=""
+            PENDING_NAMES=""
+
+            while IFS= read -r check; do
+              [ -z "$check" ] && continue
+              NAME=$(echo "$check" | jq -r '.name')
+              STATUS=$(echo "$check" | jq -r '.status')
+              CONCLUSION=$(echo "$check" | jq -r '.conclusion')
+
+              # Skip our own check
+              [ "$NAME" = "CI Gate" ] && continue
+
+              TOTAL=$((TOTAL + 1))
+
+              if [ "$STATUS" = "completed" ]; then
+                COMPLETED=$((COMPLETED + 1))
+                if [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+                  FAILED=$((FAILED + 1))
+                  FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
+                fi
+              else
+                PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
+              fi
+            done <<< "$CHECKS"
+
+            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMPLETED}/${TOTAL} checks completed"
+
+            # If any check has already failed, fail fast
+            if [ $FAILED -gt 0 ]; then
+              echo ""
+              echo "FAILED: ${FAILED} check(s) failed:"
+              echo -e "$FAILED_NAMES"
+              exit 1
+            fi
+
+            # All checks completed successfully (or skipped)
+            if [ $TOTAL -gt 0 ] && [ $COMPLETED -eq $TOTAL ]; then
+              echo ""
+              echo "All ${TOTAL} checks passed (or were skipped)."
+              exit 0
+            fi
+
+            # Still waiting — show what's pending
+            if [ -n "$PENDING_NAMES" ]; then
+              echo "  Waiting on:$PENDING_NAMES" | head -5
+            fi
+
+            sleep 30
+          done
+
+          echo ""
+          echo "TIMEOUT: Not all checks completed within 30 minutes."
+          echo "Pending checks:"
+          echo -e "$PENDING_NAMES"
+          exit 1

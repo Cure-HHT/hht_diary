@@ -5,38 +5,65 @@
 #   REQ-o00082: Automated Test Execution (unit-tests, integration-tests, coverage jobs)
 #
 # CI workflow for diary_server and diary_functions
-# Runs unit tests, integration tests (with PostgreSQL), and static analysis
+# Runs static analysis, unit tests, integration tests (with PostgreSQL), and coverage
 
 name: Diary Server CI
 
 permissions:
   contents: read
 
+# Trigger strategy:
+#   push to main  — runs unconditionally (safety net after merge)
+#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
+#   workflow_dispatch — runs unconditionally (manual override)
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/daily-diary/**'
-      - 'database/**'
-      - '.github/workflows/diary-server-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/daily-diary/**'
       - 'database/**'
       - '.github/workflows/diary-server-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  analyze:
-    name: Static Analysis
+  ci:
+    name: Diary Server CI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17-alpine  # version pinned in .github/versions.env
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sponsor_portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Install dependencies (diary_functions)
         working-directory: apps/daily-diary/diary_functions
@@ -59,59 +86,6 @@ jobs:
           dart format --set-exit-if-changed apps/daily-diary/diary_functions
           dart format --set-exit-if-changed apps/daily-diary/diary_server
 
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: Install dependencies (diary_functions)
-        working-directory: apps/daily-diary/diary_functions
-        run: dart pub get
-
-      - name: Install dependencies (diary_server)
-        working-directory: apps/daily-diary/diary_server
-        run: dart pub get
-
-      - name: Run diary_functions unit tests
-        working-directory: apps/daily-diary/diary_functions
-        run: dart test test/
-
-      - name: Run diary_server unit tests
-        working-directory: apps/daily-diary/diary_server
-        run: dart test test/
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
       - name: Wait for PostgreSQL
         run: |
           until pg_isready -h localhost -p 5432 -U postgres; do
@@ -125,76 +99,8 @@ jobs:
         run: |
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
-      - name: Install dependencies (diary_functions)
-        working-directory: apps/daily-diary/diary_functions
-        run: dart pub get
-
-      - name: Install dependencies (diary_server)
-        working-directory: apps/daily-diary/diary_server
-        run: dart pub get
-
-      - name: Run diary_functions integration tests
-        working-directory: apps/daily-diary/diary_functions
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
-        run: dart test integration_test/
-
-      - name: Run diary_server integration tests
-        working-directory: apps/daily-diary/diary_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
-        run: dart test integration_test/
-
-  coverage:
-    name: Test Coverage
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: Apply database schema
-        env:
-          PGPASSWORD: postgres
-        run: |
-          psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
-
-      - name: Install dependencies
-        run: |
-          dart pub get --directory=apps/daily-diary/diary_functions
-          dart pub get --directory=apps/daily-diary/diary_server
-          dart pub global activate coverage
+      - name: Activate coverage tool
+        run: dart pub global activate coverage
 
       - name: Run diary_functions tests with coverage
         working-directory: apps/daily-diary/diary_functions

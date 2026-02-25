@@ -152,7 +152,7 @@ class FlavorConfig {
   static void initializeLocal() {
     F.appFlavor = Flavor.local;
     _values = const FlavorValues(
-      apiBaseUrl: 'http://localhost:8080',
+      apiBaseUrl: 'http://localhost:8084',
       // Emulator doesn't validate these, so placeholders are fine
       firebaseApiKey: 'demo-api-key',
       firebaseAppId: '1:000000000000:web:0000000000000000000000',
@@ -182,7 +182,7 @@ class FlavorConfig {
   static void initializeWithEmulatorFallback(Flavor flavor) {
     F.appFlavor = flavor;
     _values = const FlavorValues(
-      apiBaseUrl: 'http://localhost:8080',
+      apiBaseUrl: 'http://localhost:8084',
       firebaseApiKey: 'demo-api-key',
       firebaseAppId: '1:000000000000:web:0000000000000000000000',
       firebaseProjectId: 'demo-sponsor-portal',

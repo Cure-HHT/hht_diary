@@ -7,6 +7,8 @@
 //   REQ-CAL-p00082: Patient Alert Delivery
 //   REQ-CAL-p00081: Patient Task System
 //   REQ-p00049: Ancillary Platform Services (push notifications)
+//   REQ-p01067: NOSE HHT Questionnaire Content
+//   REQ-p01068: HHT Quality of Life Questionnaire Content
 //
 // Route definitions for diary server
 
@@ -38,6 +40,12 @@ Router createRouter() {
 
   // FCM token registration (mobile app registers its push notification token)
   router.post('/api/v1/user/fcm-token', registerFcmTokenHandler);
+
+  // Questionnaire submission (mobile app submits completed questionnaire)
+  router.post(
+    '/api/v1/user/questionnaires/<instanceId>/submit',
+    submitQuestionnaireHandler,
+  );
 
   return router;
 }

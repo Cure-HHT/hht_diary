@@ -29,9 +29,9 @@ The Diary mobile application is a **Flutter-based cross-platform app** (iOS and 
 - **Framework**: Flutter (single codebase � iOS, Android, Web)
 - **Language**: Dart
 - **Backend**: Cloud Run with Dart Container GCP (also, indirectly, Cloud SQL + Identity Platform)
-- **Local Storage**: FLutter Secure Storage 
+- **Local Storage**: Flutter Secure Storage 
 - **State Management**: No third-party library needed.
-- **Networking**: Firebase Hosting -> Cloud Run
+- **Networking**: Public internet <--> Cloud Run
 
 ---
 

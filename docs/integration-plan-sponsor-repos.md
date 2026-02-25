@@ -91,8 +91,6 @@ tools/build/integrate-sponsors.sh  # Direct copy
 spec/prd-system.md                 # Cherry-pick changes
 spec/INDEX.md                      # Add new REQs
 spec/README.md                     # Add sponsor namespace docs
-tools/requirements/trace_view/cli.py     # Add --sponsor-manifest
-tools/requirements/trace_view/scanning.py # Multi-repo support
 .github/workflows/build-test.yml   # Sponsor awareness
 .github/workflows/pr-validation.yml # Namespace validation
 ```
