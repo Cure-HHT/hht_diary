@@ -96,6 +96,7 @@ jobs:
         run: |
           chmod +x tool/collect_sponsor_content.sh
           ./tool/collect_sponsor_content.sh
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Install Flutter dependencies
         run: flutter pub get
