@@ -32,6 +32,7 @@ jobs:
           fi
 
   validate-migrations:
+    name: Database Migration Validation
     needs: changes
     runs-on: ubuntu-latest
     permissions:

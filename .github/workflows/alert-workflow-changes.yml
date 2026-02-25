@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   alert-workflow-changes:
-    name: Alert on Sensitive File Changes
+    name: Alert on Workflow Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

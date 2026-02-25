@@ -44,7 +44,7 @@ jobs:
           fi
 
   ci:
-    name: Analyze, Test & Coverage
+    name: Diary Server CI
     runs-on: ubuntu-latest
     needs: changes
     timeout-minutes: 30

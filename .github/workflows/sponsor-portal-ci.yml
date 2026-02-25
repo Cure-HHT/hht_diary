@@ -49,7 +49,7 @@ jobs:
           fi
 
   ci:
-    name: Analyze, Test & Coverage
+    name: Sponsor Portal CI
     runs-on: ubuntu-latest
     needs: changes
     timeout-minutes: 30

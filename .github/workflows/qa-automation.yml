@@ -812,3 +812,18 @@ jobs:
             echo "- Unsafe ALTER TABLE operations" >> $GITHUB_STEP_SUMMARY
             echo "- NOT NULL additions without defaults" >> $GITHUB_STEP_SUMMARY
           fi
+
+  gate:
+    name: QA Automation
+    runs-on: ubuntu-latest
+    needs: [qa-tests, security-scan, flutter-dart-security, sql-linting]
+    if: always()
+    steps:
+      - name: Check result
+        run: |
+          results="${{ needs.qa-tests.result }} ${{ needs.security-scan.result }} ${{ needs.flutter-dart-security.result }} ${{ needs.sql-linting.result }}"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              exit 1
+            fi
+          done
