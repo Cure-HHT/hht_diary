@@ -55,6 +55,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Record Nosebleed',
+      'overlappingRecordNotAllowed':
+          'This entry overlaps an existing record. Please modify the time range.',
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
@@ -1787,6 +1789,8 @@ class AppLocalizations {
   String get reenterPassword => translate('reenterPassword');
   String get noAccountCreate => translate('noAccountCreate');
   String get hasAccountLogin => translate('hasAccountLogin');
+  String get overlappingRecordNotAllowed =>
+      translate('overlappingRecordNotAllowed');
   String minimumCharacters(int count) =>
       translateWithParams('minimumCharacters', [count]);
 

@@ -399,7 +399,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   /// Saves the record and returns the record ID, or null if save failed.
-  Future<String?> _saveRecord() async {
+  Future<String?> _saveRecord({bool fromBack = false}) async {
     debugPrint(
       '[RecordingScreen] _saveRecord: start=$_startDateTime, '
       'intensity=$_intensity, end=$_endDateTime',
@@ -410,6 +410,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final shouldProceed = await _runValidationChecks();
     debugPrint('[RecordingScreen] _saveRecord: shouldProceed=$shouldProceed');
     if (!shouldProceed) {
+      return null;
+    }
+    final overlapping = _getOverlappingEvents();
+
+    if (overlapping.isNotEmpty) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+
+        if (!fromBack) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.overlappingRecordNotAllowed),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
       return null;
     }
 
@@ -616,7 +633,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
       // Auto-save the partial record without prompting
       debugPrint('[RecordingScreen] _handleExit: calling _saveRecord()');
-      final recordId = await _saveRecord();
+      final recordId = await _saveRecord(fromBack: true);
       if (recordId == null) {
         if (mounted) {
           final l10n = AppLocalizations.of(context);
