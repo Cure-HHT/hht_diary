@@ -21,7 +21,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Load version pinning
         id: versions
@@ -48,7 +48,7 @@ jobs:
           ./tool/coverage.sh
       
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: apps/common-dart/append_only_datastore/coverage/lcov.info
           flags: append_only_datastore

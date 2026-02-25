@@ -89,7 +89,7 @@ jobs:
           df -h
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Collect sponsor content
         env:
@@ -238,7 +238,7 @@ jobs:
 
       - name: Build and push portal-server image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/sponsor-portal/portal-container/Dockerfile
@@ -287,7 +287,7 @@ jobs:
             --file portal-server-sbom.spdx.json
 
       - name: Upload SBOMs as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sboms-${{ github.sha }}
           path: |

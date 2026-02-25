@@ -58,7 +58,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Load version pinning
         id: versions
@@ -78,7 +78,7 @@ jobs:
           channel: 'stable'
 
       - name: Setup Node.js for Firebase Emulator
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
@@ -254,7 +254,7 @@ jobs:
           flutter test --coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: |
             apps/sponsor-portal/portal_functions/coverage/lcov.info
@@ -264,7 +264,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage reports as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sponsor-portal-coverage
           path: |

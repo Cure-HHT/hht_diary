@@ -51,7 +51,7 @@ jobs:
       qa_needed: ${{ steps.check.outputs.qa_needed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for better git context
 
@@ -326,7 +326,7 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-reports-${{ github.sha }}
           path: |
@@ -337,7 +337,7 @@ jobs:
 
       - name: Comment PR with test results
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -398,10 +398,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
+        uses: aquasecurity/trivy-action@0.34.1  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -413,7 +413,7 @@ jobs:
           TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
 
       - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
-        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
+        uses: aquasecurity/trivy-action@0.34.1  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -450,7 +450,7 @@ jobs:
 
       - name: Run Trivy container scanner (base image from GHCR)
         if: steps.check-docker.outputs.has_docker == 'true'
-        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
+        uses: aquasecurity/trivy-action@0.34.1  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'image'
           image-ref: 'ghcr.io/${{ steps.repo-owner.outputs.owner }}/clinical-diary-base:latest'
@@ -518,7 +518,7 @@ jobs:
 
       - name: Upload all scan results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-scan-results-${{ github.sha }}
           path: |
@@ -544,7 +544,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Load version pinning
         id: versions
@@ -655,7 +655,7 @@ jobs:
 
       - name: Upload analysis results
         if: always() && steps.check-flutter.outputs.has_flutter == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: flutter-analysis-results-${{ github.sha }}
           path: |
@@ -683,7 +683,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for detecting changed files
 

@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Use BOT_BYPASS_MAIN_PROTECTION to allow bypassing branch protection
           # This token is ONLY authorized for modifying spec/INDEX.md
@@ -50,7 +50,7 @@ jobs:
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
