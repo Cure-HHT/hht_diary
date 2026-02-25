@@ -165,8 +165,8 @@ end_group
 begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 
 if [ "$SPEC_CHANGED" = "true" ]; then
-  python3 -m pip install --upgrade pip -q
-  pip install elspais=="${ELSPAIS_VERSION}" -q
+  python3 -m pip install --upgrade pip -q --break-system-packages
+  pip install elspais=="${ELSPAIS_VERSION}" -q --break-system-packages
   elspais --version
 
   elspais validate --mode core

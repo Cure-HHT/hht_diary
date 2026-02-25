@@ -41,13 +41,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check migration validation flag
+        id: check-flag
+        shell: bash
+        run: |
+          source .github/versions.env
+          echo "validate=${VALIDATE_MIGRATIONS:-true}" >> $GITHUB_OUTPUT
+          if [ "${VALIDATE_MIGRATIONS:-true}" = "false" ]; then
+            echo "::notice::Migration validation disabled via VALIDATE_MIGRATIONS=false in versions.env"
+          fi
+
       - name: Start CI container
+        if: steps.check-flag.outputs.validate == 'true'
         uses: ./.github/actions/start-ci-container
         with:
           profile: db
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy schema
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying schema..."
@@ -57,6 +69,7 @@ jobs:
           echo "Schema deployed successfully"
 
       - name: Deploy triggers
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying triggers..."
@@ -66,6 +79,7 @@ jobs:
           echo "Triggers deployed successfully"
 
       - name: Deploy roles
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying roles..."
@@ -75,6 +89,7 @@ jobs:
           echo "Roles deployed successfully"
 
       - name: Deploy RLS policies
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying RLS policies..."
@@ -84,6 +99,7 @@ jobs:
           echo "RLS policies deployed successfully"
 
       - name: Deploy indexes
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying indexes..."
@@ -93,6 +109,7 @@ jobs:
           echo "Indexes deployed successfully"
 
       - name: Deploy tamper detection
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying tamper detection (hash triggers)..."
@@ -102,6 +119,7 @@ jobs:
           echo "Tamper detection deployed successfully"
 
       - name: Deploy compliance verification
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Deploying compliance verification functions..."
@@ -111,6 +129,7 @@ jobs:
           echo "Compliance verification deployed successfully"
 
       - name: Run database tests
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Running database tests..."
@@ -122,6 +141,7 @@ jobs:
           echo "Database tests passed"
 
       - name: Validate migration scripts
+        if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: |
           echo "Validating migration scripts have rollbacks..."
@@ -167,6 +187,6 @@ jobs:
             '
 
       - name: Cleanup
-        if: always()
+        if: always() && steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db down -v
