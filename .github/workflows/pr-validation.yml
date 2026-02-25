@@ -3,12 +3,12 @@
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
 #   REQ-o00017: Version Control Workflow (commit message validation)
-#   REQ-o00078: Change-Appropriate CI Validation (changes, summary jobs)
-#   REQ-o00079: Commit and PR Traceability Enforcement (validate-pr-metadata, validate-commit-messages, validate-merge-commit)
-#   REQ-o00080: Secret and Vulnerability Scanning (security-check)
-#   REQ-o00081: Code Quality and Static Analysis (validate-code-headers, validate-migrations)
+#   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
+#   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit messages, post-merge)
+#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks)
+#   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
 
-name: PR Validation - Requirements & Traceability
+name: PR Validation
 
 on:
   pull_request:
@@ -29,267 +29,106 @@ permissions:
   checks: write
 
 jobs:
-  # Detect what changed to skip irrelevant tests
-  # Implements: REQ-o00078-A (detect changed areas)
-  changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    outputs:
-      spec: ${{ steps.filter.outputs.spec }}
-      code: ${{ steps.filter.outputs.code }}
-      database: ${{ steps.filter.outputs.database }}
-      python: ${{ steps.filter.outputs.python }}
-      workflows: ${{ steps.filter.outputs.workflows }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            spec:
-              - 'spec/**'
-            code:
-              - 'packages/**'
-              - 'apps/**'
-            database:
-              - 'database/**'
-            python:
-              - 'tools/**/*.py'
-            workflows:
-              - '.github/workflows/**'
-
-  # Validate PR title and description have required references
-  # This ensures squash merge commits will have proper traceability
-  # Implements: REQ-o00079-A (PR title CUR-XXX), REQ-o00079-E (block merge on failure), REQ-o00079-F (clear error messages)
-  validate-pr-metadata:
-    name: Validate PR Title (CUR)
-    runs-on: ubuntu-latest
+  # ===========================================================================
+  # Single fast-fail validation job for pull requests
+  # Replaces 10 parallel jobs with one sequential script (CUR-957)
+  # ===========================================================================
+  validate:
+    name: PR Validation
     if: github.event_name == 'pull_request'
-    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Validate PR title
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit traversal and gitleaks
+
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "python_version=${PYTHON_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '${{ steps.versions.outputs.python_version }}'
+
+      - name: Run validation
+        run: .github/scripts/validate-pr.sh
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          set -euo pipefail
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
 
-          echo "::group::Validating PR Metadata for Squash Merge"
-          echo "PR #$PR_NUMBER: $PR_TITLE"
-          echo ""
-
-          ERRORS=()
-
-          # Check PR title for [CUR-XXX] reference
-          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
-            echo "✅ PR title contains Linear ticket reference"
-          else
-            echo "❌ PR title missing [CUR-XXX] reference"
-            ERRORS+=("PR title must include [CUR-XXX] (e.g., '[CUR-123] Add feature')")
-          fi
-
-          # TODO: Uncomment to enforce REQ reference in PR body
-          # # Check PR body for REQ reference
-          # if [ -z "$PR_BODY" ]; then
-          #   echo "❌ PR description is empty"
-          #   ERRORS+=("PR description must include 'Implements: REQ-{type}{number}'")
-          # elif echo "$PR_BODY" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
-          #   echo "✅ PR description contains requirement reference"
-          # else
-          #   echo "❌ PR description missing requirement reference"
-          #   ERRORS+=("PR description must include 'Implements: REQ-{type}{number}' (e.g., 'Implements: REQ-d00018')")
-          # fi
-
-          echo ""
-          echo "::endgroup::"
-
-          # Report errors
-          if [ ${#ERRORS[@]} -gt 0 ]; then
-            echo ""
-            echo "❌ PR METADATA VALIDATION FAILED"
-            echo ""
-            echo "The PR title is missing the required Linear ticket reference."
-            echo "This is needed because squash merge uses the PR title as the commit message."
-            echo ""
-            echo "Issues found:"
-            for error in "${ERRORS[@]}"; do
-              echo "  • $error"
-            done
-            echo ""
-            echo "Required format:"
-            echo "  Title: [CUR-XXX] Description of changes"
-            echo ""
-            echo "Where:"
-            echo "  CUR-XXX: Your Linear ticket number"
-            echo ""
-            echo "To fix: Edit the PR title at:"
-            echo "  $PR_URL"
-            echo ""
-            exit 1
-          else
-            echo "✅ PR metadata is valid for squash merge"
-          fi
-
-  # Validate commit messages (CUR-XXX and REQ-XXX checks controlled by flags)
-  # Implements: REQ-o00079-B (push-level traceability check)
-  validate-commit-messages:
-    name: Validate Commit Messages
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 5
-
-    # TODO: Re-enable enforcement by setting these to "true"
-    # CUR-XXX and REQ-XXX are enforced at PR level only (validate-pr-metadata job)
-    env:
-      ENFORCE_CUR_IN_COMMITS: "false"
-      ENFORCE_REQ_IN_COMMITS: "false"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Upload traceability artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0  # Full history for commit traversal
+          name: ci-reports-${{ github.sha }}
+          path: ci-reports/
+          retention-days: 90
+          if-no-files-found: ignore  # Not all PRs generate traceability reports
 
-      - name: Validate PR commit messages
-        id: validate
-        run: |
-          set -euo pipefail
-          echo "::group::Validating Commit Messages"
+      - name: Comment on PR with results
+        if: success() && env.SPEC_CHANGED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '## Requirements Validation Passed\n\n';
+            comment += 'All requirements have been validated successfully.\n\n';
 
-          echo "CUR enforcement: $ENFORCE_CUR_IN_COMMITS"
-          echo "REQ enforcement: $ENFORCE_REQ_IN_COMMITS"
-          echo ""
+            try {
+              const matrix = fs.readFileSync('ci-reports/combined/traceability/traceability_matrix.md', 'utf8');
+              const lines = matrix.split('\n');
 
-          # If neither check is enforced, skip validation
-          if [ "$ENFORCE_CUR_IN_COMMITS" != "true" ] && [ "$ENFORCE_REQ_IN_COMMITS" != "true" ]; then
-            echo "ℹ️  Commit message reference checks are disabled."
-            echo "CUR-XXX and REQ-XXX are enforced at PR level only."
-            echo "::endgroup::"
-            echo "✅ Commit message validation skipped (enforcement disabled)"
-            exit 0
-          fi
+              const summaryStart = lines.findIndex(l => l.includes('## Summary'));
+              if (summaryStart >= 0) {
+                const summaryLines = lines.slice(summaryStart, summaryStart + 20);
+                comment += '### Combined Traceability Summary\n\n';
+                comment += summaryLines.join('\n');
+              } else {
+                comment += '### Traceability Matrix Generated\n\n';
+                comment += 'See artifacts for full traceability details.\n';
+              }
+            } catch (err) {
+              console.error('Traceability matrix warning:', err);
+              comment += 'Could not read traceability matrix summary.\n';
+            }
 
-          # Only check the most recent non-merge commit in this PR
-          # Uses BASE..HEAD range to avoid picking up main commits after a merge
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            comment += '\n\n[View full traceability matrix in artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})';
 
-          echo "Base: $BASE_SHA"
-          echo "Head: $HEAD_SHA"
-          echo ""
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
-          # Get only the latest commit unique to this PR branch (excluding merge commits)
-          COMMITS=$(git log --no-merges -1 --format='%H|%s' "$BASE_SHA".."$HEAD_SHA")
-
-          if [ -z "$COMMITS" ]; then
-            echo "No commits found in PR"
-            echo "::endgroup::"
-            exit 0
-          fi
-
-          INVALID_COMMITS=()
-          VALID_COUNT=0
-
-          while IFS='|' read -r sha subject; do
-            # Get full commit message
-            FULL_MSG=$(git log -1 --format='%B' "$sha")
-
-            # Check for CUR-XXX reference
-            HAS_CUR=false
-            if echo "$FULL_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
-              HAS_CUR=true
-            fi
-
-            # Check for REQ-XXX reference (format: REQ-{p|o|d}NNNNN or EQ-CAL-{p|o|d}NNNNN)
-            HAS_REQ=false
-            if echo "$FULL_MSG" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
-              HAS_REQ=true
-            fi
-
-            # Check validity - only enforce what's enabled
-            IS_VALID=true
-            ERRORS=""
-
-            if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ "$HAS_CUR" = "false" ]; then
-              IS_VALID=false
-              ERRORS="missing CUR-XXX"
-            fi
-
-            if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ] && [ "$HAS_REQ" = "false" ]; then
-              IS_VALID=false
-              if [ -n "$ERRORS" ]; then
-                ERRORS="$ERRORS, missing REQ-XXX"
-              else
-                ERRORS="missing REQ-XXX"
-              fi
-            fi
-
-            if [ "$IS_VALID" = "true" ]; then
-              echo "✅ ${sha:0:7}: $subject"
-              VALID_COUNT=$((VALID_COUNT + 1))
-            else
-              echo "❌ ${sha:0:7}: $subject ($ERRORS)"
-              INVALID_COMMITS+=("$sha|$subject|$ERRORS")
-            fi
-          done <<< "$COMMITS"
-
-          echo ""
-          echo "::endgroup::"
-
-          # Report results
-          if [ ${#INVALID_COMMITS[@]} -gt 0 ]; then
-            echo ""
-            echo "::error::Found ${#INVALID_COMMITS[@]} commit(s) without required references"
-            echo ""
-            echo "❌ COMMIT MESSAGE VALIDATION FAILED"
-            echo ""
-            echo "The following commits are missing required references:"
-            echo ""
-            for commit in "${INVALID_COMMITS[@]}"; do
-              IFS='|' read -r sha subject errors <<< "$commit"
-              echo "  • ${sha:0:7}: $subject"
-              echo "    └── $errors"
-            done
-            echo ""
-            echo "Required format:"
-            if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ]; then
-              echo "  [CUR-XXX] Subject line describing the change"
-              echo ""
-            fi
-            if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ]; then
-              echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}"
-              echo ""
-            fi
-            echo "To fix: Use 'git rebase -i' to edit commit messages"
-            echo ""
-            exit 1
-          else
-            echo "✅ All $VALID_COUNT commit(s) passed enforced checks"
-          fi
-
+  # ===========================================================================
   # Post-merge validation: Check squash merge commits on main/develop
   # Creates a Linear ticket if the merge commit is missing required references
   # Implements: REQ-o00079-C (post-merge safety net)
-  validate-merge-commit:
-    name: Validate Merge Commit (Post-Merge)
-    runs-on: ubuntu-latest
+  # ===========================================================================
+  post-merge:
+    name: Post-Merge Validation
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-
-    # TODO: Re-enable enforcement by setting these to "true"
-    # CUR-XXX is enforced at PR level (validate-pr-metadata), which covers squash merges
-    env:
-      ENFORCE_CUR_IN_COMMITS: "false"
-      ENFORCE_REQ_IN_COMMITS: "false"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Need parent to check if this is a merge
+          fetch-depth: 2
 
       - name: Validate merge commit message
         id: validate
@@ -299,19 +138,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "CUR enforcement: $ENFORCE_CUR_IN_COMMITS"
-          echo "REQ enforcement: $ENFORCE_REQ_IN_COMMITS"
-          echo ""
-
-          # If neither check is enforced, skip validation
-          if [ "$ENFORCE_CUR_IN_COMMITS" != "true" ] && [ "$ENFORCE_REQ_IN_COMMITS" != "true" ]; then
-            echo "ℹ️  Merge commit reference checks are disabled."
-            echo "CUR-XXX is enforced at PR level (validate-pr-metadata)."
-            echo "has_errors=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Get HEAD commit info
           COMMIT_SHA="${{ github.sha }}"
           COMMIT_MSG=$(git log -1 --format='%B' "$COMMIT_SHA")
           COMMIT_SUBJECT=$(git log -1 --format='%s' "$COMMIT_SHA")
@@ -322,33 +148,31 @@ jobs:
           echo "Subject: $COMMIT_SUBJECT"
           echo ""
 
-          # Check for required references
           HAS_CUR=false
-          HAS_REQ=false
-
           if echo "$COMMIT_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
             HAS_CUR=true
           fi
 
+          # REQ is advisory only (per CUR-677)
+          HAS_REQ=false
           if echo "$COMMIT_MSG" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
             HAS_REQ=true
           fi
 
-          # Build error message if needed
           ERRORS=""
-          if [ "$ENFORCE_CUR_IN_COMMITS" = "true" ] && [ "$HAS_CUR" = "false" ]; then
+          if [ "$HAS_CUR" = "false" ]; then
             ERRORS="missing CUR-XXX"
           fi
-          if [ "$ENFORCE_REQ_IN_COMMITS" = "true" ] && [ "$HAS_REQ" = "false" ]; then
+          if [ "$HAS_REQ" = "false" ]; then
             if [ -n "$ERRORS" ]; then
-              ERRORS="$ERRORS, missing REQ-XXX"
+              ERRORS="$ERRORS, missing REQ-XXX (advisory)"
             else
-              ERRORS="missing REQ-XXX"
+              ERRORS="missing REQ-XXX (advisory)"
             fi
           fi
 
-          if [ -n "$ERRORS" ]; then
-            echo "❌ Merge commit is missing required references: $ERRORS"
+          if [ "$HAS_CUR" = "false" ]; then
+            echo "Merge commit is missing required CUR reference: $ERRORS"
             echo "has_errors=true" >> $GITHUB_OUTPUT
             echo "errors=$ERRORS" >> $GITHUB_OUTPUT
             echo "commit_sha=${COMMIT_SHA:0:7}" >> $GITHUB_OUTPUT
@@ -356,7 +180,10 @@ jobs:
             echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
             echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           else
-            echo "✅ Merge commit passed enforced checks"
+            echo "Merge commit has valid CUR-XXX reference"
+            if [ "$HAS_REQ" = "false" ]; then
+              echo "::warning::Merge commit is missing REQ-XXX reference (advisory only)"
+            fi
             echo "has_errors=false" >> $GITHUB_OUTPUT
           fi
 
@@ -368,9 +195,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "$LINEAR_API_KEY" ] || [ -z "$LINEAR_TEAM_ID" ]; then
+          if [ -z "${LINEAR_API_KEY:-}" ] || [ -z "${LINEAR_TEAM_ID:-}" ]; then
             echo "::warning::LINEAR_API_KEY or LINEAR_TEAM_ID not configured. Skipping ticket creation."
-            echo "To enable: Add LINEAR_API_KEY and LINEAR_TEAM_ID secrets to the repository."
             exit 0
           fi
 
@@ -379,7 +205,6 @@ jobs:
           COMMIT_AUTHOR="${{ steps.validate.outputs.commit_author }}"
           ERRORS="${{ steps.validate.outputs.errors }}"
           BRANCH="${{ steps.validate.outputs.branch }}"
-          REPO="${{ github.repository }}"
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
 
           TITLE="[Compliance] Merge commit missing references: $COMMIT_SHA"
@@ -397,18 +222,16 @@ jobs:
 
           ### Required Format
           Merge commits should include:
-          - \`[CUR-XXX]\` - Linear ticket reference
-          - \`Implements: REQ-{type}{number}\` - Requirement reference
+          - \`[CUR-XXX]\` - Linear ticket reference (required)
+          - \`Implements: REQ-{type}{number}\` - Requirement reference (advisory)
 
           ### Action Required
           1. Review the merge commit
-          2. If this was a legitimate oversight, update commit message conventions
-          3. Ensure future PRs have proper references before merging
+          2. Ensure future PRs have proper references before merging
 
           ---
           *Auto-generated by PR Validation workflow*"
 
-          # Create the ticket via Linear API
           RESPONSE=$(curl -s -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: $LINEAR_API_KEY" \
@@ -417,623 +240,13 @@ jobs:
             }" \
             https://api.linear.app/graphql)
 
-          # Check if successful
           if echo "$RESPONSE" | jq -e '.data.issueCreate.success' > /dev/null 2>&1; then
             TICKET_ID=$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.identifier')
             TICKET_URL=$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.url')
-            echo "✅ Created Linear ticket: $TICKET_ID"
-            echo "   URL: $TICKET_URL"
-            echo ""
+            echo "Created Linear ticket: $TICKET_ID"
+            echo "  URL: $TICKET_URL"
             echo "::notice::Created compliance ticket $TICKET_ID for non-compliant merge commit"
           else
             echo "::warning::Failed to create Linear ticket"
             echo "Response: $RESPONSE"
-          fi
-
-  validate-requirements:
-    name: Validate Requirements Format & Traceability
-    needs: changes
-    if: needs.changes.outputs.spec == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for accurate change detection
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          # Note: No pip cache - only elspais installed, no requirements.txt
-
-      - name: Load version configuration
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "elspais_version=${ELSPAIS_VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Install elspais
-        run: |
-          python3 -m pip install --upgrade pip
-          ELSPAIS_VERSION="${{ steps.versions.outputs.elspais_version }}"
-          echo "Installing elspais v${ELSPAIS_VERSION}..."
-          pip install elspais==${ELSPAIS_VERSION}
-          elspais --version
-
-      - name: Validate requirement format and IDs
-        id: validate
-        run: |
-          echo "::group::Requirement Validation"
-          elspais validate --mode core
-          RESULT=$?
-          echo "::endgroup::"
-
-          if [ $RESULT -ne 0 ]; then
-            echo "::error::Requirement validation failed. See details above."
-            exit 1
-          fi
-
-          echo "✅ Requirement validation passed"
-
-      # Phase 4: Traceability matrix generation
-      # Output: build-reports/combined/traceability/
-      # Note: Sponsor-specific traceability now handled in separate sponsor repos
-
-      - name: Generate traceability matrix
-        if: success()
-        run: |
-          echo "::group::Generate Traceability Matrix"
-          mkdir -p build-reports/combined/traceability
-          elspais trace --format both --output build-reports/combined/traceability/traceability_matrix
-          echo "::endgroup::"
-
-      - name: Validate INDEX.md accuracy
-        if: success()
-        run: |
-          echo "::group::INDEX.md Validation"
-          elspais index validate --mode core
-          RESULT=$?
-          echo "::endgroup::"
-
-          if [ $RESULT -ne 0 ]; then
-            echo "::error::INDEX.md validation failed. See details above."
-            exit 1
-          fi
-
-          echo "✅ INDEX.md validation passed"
-
-      - name: Upload build reports as artifacts
-        if: success()  # Only upload if generation succeeded
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-reports-${{ github.sha }}
-          path: build-reports/
-          retention-days: 90
-          if-no-files-found: error  # Fail if files missing (they're required)
-
-      - name: Check for changed spec files
-        id: check-changes
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_SPECS=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^spec/.*\.md$' || true)
-            if [ -n "$CHANGED_SPECS" ]; then
-              echo "spec_changed=true" >> $GITHUB_OUTPUT
-              echo "Changed spec files:"
-              echo "$CHANGED_SPECS"
-            else
-              echo "spec_changed=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
-      - name: Comment on PR with validation results
-        if: success() && github.event_name == 'pull_request' && steps.check-changes.outputs.spec_changed == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let comment = '## ✅ Requirements Validation Passed\n\n';
-            comment += 'All requirements have been validated successfully.\n\n';
-
-            // Read combined traceability matrix (format varies by elspais version)
-            try {
-              const matrix = fs.readFileSync('build-reports/combined/traceability/traceability_matrix.md', 'utf8');
-              const lines = matrix.split('\n');
-
-              // Try to extract summary stats (elspais <0.9.3 format)
-              const summaryStart = lines.findIndex(l => l.includes('## Summary'));
-              if (summaryStart >= 0) {
-                const summaryLines = lines.slice(summaryStart, summaryStart + 20);
-                comment += '### Combined Traceability Summary\n\n';
-                comment += summaryLines.join('\n');
-              } else {
-                // elspais 0.9.3+ format - extract header info
-                const headerLines = lines.slice(0, 10).filter(l => l.trim());
-                comment += '### Traceability Matrix Generated\n\n';
-                comment += 'See artifacts for full traceability details.\n';
-              }
-            } catch (err) {
-              console.error('Traceability matrix warning:', err);
-              comment += '⚠️ Could not read traceability matrix summary.\n';
-            }
-
-            comment += '\n\n📊 [View full traceability matrix in artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})';
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-
-  # Implements: REQ-o00081-A (static analysis headers)
-  validate-code-headers:
-    name: Validate Code Implementation Headers
-    needs: changes
-    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.database == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check implementation files have requirement headers
-        run: |
-          set -euo pipefail
-          echo "::group::Checking Implementation Headers"
-
-          MISSING_HEADERS=()
-
-          # Check SQL files in database directory
-          if [ -d "database" ]; then
-            shopt -s nullglob
-            SQL_FILES=(database/**/*.sql)
-            shopt -u nullglob
-
-            for file in "${SQL_FILES[@]}"; do
-              # Skip tests and migrations
-              if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
-                continue
-              fi
-
-              if [ -f "$file" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-                MISSING_HEADERS+=("$file")
-              fi
-            done
-            echo "::notice::Checked ${#SQL_FILES[@]} SQL files in database/"
-          else
-            echo "::notice::database/ directory not found, skipping SQL validation"
-          fi
-
-          # Check Dart files in packages directory
-          if [ -d "packages" ]; then
-            shopt -s nullglob
-            DART_FILES=(packages/**/*.dart)
-            shopt -u nullglob
-
-            for file in "${DART_FILES[@]}"; do
-              if [ "$(basename "$file")" != "main.dart" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-                MISSING_HEADERS+=("$file")
-              fi
-            done
-            echo "::notice::Checked ${#DART_FILES[@]} Dart files in packages/"
-          else
-            echo "::notice::packages/ directory not found, skipping Dart validation"
-          fi
-
-          # Check Dart files in apps directory
-          if [ -d "apps" ]; then
-            shopt -s nullglob
-            APP_FILES=(apps/**/*.dart)
-            shopt -u nullglob
-
-            for file in "${APP_FILES[@]}"; do
-              if [ "$(basename "$file")" != "main.dart" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-                MISSING_HEADERS+=("$file")
-              fi
-            done
-            echo "::notice::Checked ${#APP_FILES[@]} Dart files in apps/"
-          else
-            echo "::notice::apps/ directory not found, skipping Dart validation"
-          fi
-
-          echo "::endgroup::"
-
-          # Determine branch to decide enforcement level
-          BRANCH="${{ github.base_ref }}"
-          ENFORCE_HEADERS=false
-
-          if [[ "$BRANCH" == "main" ]] || [[ "$BRANCH" == "staging" ]] || [[ "$BRANCH" == "production" ]]; then
-            ENFORCE_HEADERS=true
-          fi
-
-          if [ ${#MISSING_HEADERS[@]} -gt 0 ]; then
-            if [ "$ENFORCE_HEADERS" = "true" ]; then
-              echo "::error::The following implementation files are missing requirement headers:"
-              for file in "${MISSING_HEADERS[@]}"; do
-                echo "::error file=$file::Missing IMPLEMENTS REQUIREMENTS header"
-              done
-              echo ""
-              echo "❌ Implementation headers are REQUIRED for $BRANCH branch."
-              echo "See spec/requirements-format.md for the correct format."
-              exit 1
-            else
-              echo "::warning::The following implementation files are missing requirement headers:"
-              for file in "${MISSING_HEADERS[@]}"; do
-                echo "::warning file=$file::Missing IMPLEMENTS REQUIREMENTS header"
-              done
-              echo ""
-              echo "ℹ️  Note: This is a warning for feature branches. Headers will be required when merging to main/staging/production."
-              echo "See spec/requirements-format.md for the correct format."
-            fi
-          else
-            echo "✅ All implementation files have requirement headers"
-          fi
-
-  # Implements: REQ-o00081-C (SQL migration linting)
-  validate-migrations:
-    name: Validate Database Migration Headers
-    needs: changes
-    if: needs.changes.outputs.database == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Validate migration file headers
-        run: |
-          if false; then
-          echo "::group::Validating Migration Headers"
-
-          INVALID_MIGRATIONS=()
-
-          for file in database/migrations/*.sql; do
-            if [ -f "$file" ]; then
-              # Check for required header components
-              if ! grep -q "^-- Migration:" "$file" || \
-                 ! grep -q "^-- Date:" "$file" || \
-                 ! grep -q "^-- Description:" "$file"; then
-                INVALID_MIGRATIONS+=("$file")
-              fi
-            fi
-          done
-
-          echo "::endgroup::"
-
-          if [ ${#INVALID_MIGRATIONS[@]} -gt 0 ]; then
-            echo "::error::The following migration files have invalid headers:"
-            for file in "${INVALID_MIGRATIONS[@]}"; do
-              echo "::error file=$file::Missing required migration header fields"
-            done
-            echo ""
-            echo "See database/migrations/README.md for the correct format."
-            exit 1
-          else
-            echo "✅ All migration files have proper headers"
-          fi
-          fi
-          echo "Migration header validation temporarily disabled"
-
-  # Implements: REQ-o00080-A (secret scanning on every push), REQ-o00080-E (block merge on detection)
-  security-check:
-    name: Security - Check for Secrets
-    needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for gitleaks
-
-      - name: Install gitleaks
-        env:
-          GITLEAKS_VERSION: '8.29.0'  # Version from .github/versions.env
-        run: |
-          set -euo pipefail
-          echo "::group::Installing gitleaks v${GITLEAKS_VERSION}"
-
-          # Download with retry for network resilience
-          for i in {1..3}; do
-            if wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz; then
-              break
-            fi
-            echo "Download attempt $i failed, retrying..."
-            sleep 5
-          done
-
-          tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
-          sudo mv gitleaks /usr/local/bin/
-          rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
-          gitleaks version
-          echo "::endgroup::"
-
-      - name: Scan for secrets with gitleaks
-        run: |
-          echo "::group::Scanning for secrets with gitleaks"
-
-          # Run gitleaks detect on the entire repository
-          # Uses .gitleaks.toml configuration
-          if gitleaks detect --verbose --no-banner --redact --log-level info; then
-            echo "✅ No secrets detected by gitleaks"
-            GITLEAKS_PASSED=true
-          else
-            echo "::error::Gitleaks detected secrets in the repository"
-            GITLEAKS_PASSED=false
-          fi
-
-          echo "::endgroup::"
-
-          # Store result for later
-          echo "GITLEAKS_PASSED=$GITLEAKS_PASSED" >> $GITHUB_ENV
-
-      - name: Check gitleaks results
-        run: |
-          if [ "$GITLEAKS_PASSED" = "false" ]; then
-            echo "::error::Gitleaks detected secrets in the repository"
-            echo "::error::Review the gitleaks output above for details"
-            echo "::error::Remove all secrets from the codebase before merging"
-            echo "::error::Use environment variables or Doppler for secret management"
-            exit 1
-          else
-            echo "✅ No secrets detected by gitleaks"
-          fi
-
-  fda-compliance-check:
-    name: FDA Compliance - Audit Trail Verification
-    needs: changes
-    if: needs.changes.outputs.database == 'true' || needs.changes.outputs.spec == 'true' || needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Verify audit trail requirements
-        run: |
-          echo "::group::FDA 21 CFR Part 11 Compliance Check"
-
-          COMPLIANCE_ISSUES=()
-
-          # Check that event sourcing requirements exist
-          if ! grep -q "REQ-p00004" spec/prd-database.md 2>/dev/null; then
-            COMPLIANCE_ISSUES+=("Event sourcing requirement REQ-p00004 not found")
-          fi
-
-          # Check that audit trail implementation exists
-          if [ ! -f "database/triggers.sql" ]; then
-            COMPLIANCE_ISSUES+=("Audit trail triggers not found")
-          fi
-
-          # Check that RLS policies exist
-          if [ ! -f "database/rls_policies.sql" ]; then
-            COMPLIANCE_ISSUES+=("Row-level security policies not found")
-          fi
-
-          echo "::endgroup::"
-
-          if [ ${#COMPLIANCE_ISSUES[@]} -gt 0 ]; then
-            echo "::error::FDA compliance issues detected:"
-            for issue in "${COMPLIANCE_ISSUES[@]}"; do
-              echo "::error::$issue"
-            done
-            exit 1
-          else
-            echo "✅ FDA compliance checks passed"
-          fi
-
-  # Note: Plugin structure and git hook tests moved to anspar-wf CI
-
-  # Pre-PR compliance check for requirement changes
-  compliance-check:
-    name: Requirement Compliance Check
-    needs: changes
-    if: needs.changes.outputs.spec == 'true' || needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install tools
-        run: |
-          source .github/versions.env
-          pip install elspais==${ELSPAIS_VERSION}
-
-      - name: Run compliance check
-        id: compliance
-        run: |
-          echo "::group::Running Pre-PR Compliance Check"
-          elspais validate
-          elspais index validate
-          echo "::endgroup::"
-
-      - name: Comment on PR with compliance results
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-
-            // Read the summary that was written by the script
-            const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-            let summary = '';
-            try {
-              summary = fs.readFileSync(summaryPath, 'utf8');
-            } catch (err) {
-              summary = '## Compliance Check\n\nNo compliance issues detected.';
-            }
-
-            // Only comment if there are issues or if explicitly requested
-            if (summary.includes('Changed Requirements') ||
-                summary.includes('Outdated Implementations') ||
-                summary.includes('Non-Compliant')) {
-
-              // Find and update existing comment, or create new one
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number
-              });
-
-              const botComment = comments.find(c =>
-                c.user.type === 'Bot' &&
-                c.body.includes('Pre-PR Compliance Check')
-              );
-
-              const body = summary + '\n\n---\n*This comment is auto-generated by the compliance check workflow.*';
-
-              if (botComment) {
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                  body: body
-                });
-              } else {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: body
-                });
-              }
-            }
-
-  # Implements: REQ-o00078-E (consolidated pass/fail summary)
-  summary:
-    name: Validation Summary
-    runs-on: ubuntu-latest
-    needs: [changes, validate-pr-metadata, validate-commit-messages, validate-merge-commit, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, compliance-check]
-    if: always()
-
-    steps:
-      - name: Check all validations passed
-        run: |
-          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Show what changed
-          echo "### Changed Files" >> $GITHUB_STEP_SUMMARY
-          echo "- Spec: ${{ needs.changes.outputs.spec == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Code: ${{ needs.changes.outputs.code == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Database: ${{ needs.changes.outputs.database == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Python: ${{ needs.changes.outputs.python == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Workflows: ${{ needs.changes.outputs.workflows == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Show test results
-          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-
-          # PR title - ensures squash merge has ticket reference
-          if [ "${{ needs.validate-pr-metadata.result }}" = "success" ]; then
-            echo "✅ PR title (CUR-XXX): PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-pr-metadata.result }}" = "skipped" ]; then
-            echo "⏭️ PR title: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ PR title: FAILED (must include [CUR-XXX])" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Commit messages - PR validation (CUR+REQ enforcement disabled, PR-level only)
-          if [ "${{ needs.validate-commit-messages.result }}" = "success" ]; then
-            echo "✅ Commit messages: PASSED (enforcement disabled)" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-commit-messages.result }}" = "skipped" ]; then
-            echo "⏭️ Commit messages: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Commit messages: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Merge commit validation - post-merge check
-          if [ "${{ needs.validate-merge-commit.result }}" = "success" ]; then
-            echo "✅ Merge commit validation: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-merge-commit.result }}" = "skipped" ]; then
-            echo "⏭️ Merge commit: SKIPPED (not a push to main/develop)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Merge commit: NON-COMPLIANT (ticket created)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Requirements
-          if [ "${{ needs.validate-requirements.result }}" = "success" ]; then
-            echo "✅ Requirements validation: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-requirements.result }}" = "skipped" ]; then
-            echo "⏭️ Requirements validation: SKIPPED (no spec changes)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Requirements validation: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Code headers
-          if [ "${{ needs.validate-code-headers.result }}" = "success" ]; then
-            echo "✅ Code headers: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-code-headers.result }}" = "skipped" ]; then
-            echo "⏭️ Code headers: SKIPPED (no code changes)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Code headers: WARNING" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Migrations
-          if [ "${{ needs.validate-migrations.result }}" = "success" ]; then
-            echo "✅ Migration headers: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-migrations.result }}" = "skipped" ]; then
-            echo "⏭️ Migration headers: SKIPPED (no database changes)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Migration headers: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Security - always runs
-          if [ "${{ needs.security-check.result }}" = "success" ]; then
-            echo "✅ Security check: PASSED" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Security check: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # FDA compliance
-          if [ "${{ needs.fda-compliance-check.result }}" = "success" ]; then
-            echo "✅ FDA compliance: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.fda-compliance-check.result }}" = "skipped" ]; then
-            echo "⏭️ FDA compliance: SKIPPED (no relevant changes)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ FDA compliance: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Compliance check
-          if [ "${{ needs.compliance-check.result }}" = "success" ]; then
-            echo "✅ Compliance check: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.compliance-check.result }}" = "skipped" ]; then
-            echo "⏭️ Compliance check: SKIPPED (no spec/code changes)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Compliance check: REVIEW NEEDED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Overall result - only check jobs that ran
-          echo "" >> $GITHUB_STEP_SUMMARY
-          FAILED=false
-
-          if [ "${{ needs.validate-pr-metadata.result }}" = "failure" ] || \
-             [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
-             [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
-             [ "${{ needs.security-check.result }}" = "failure" ] || \
-             [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
-             [ "${{ needs.validate-migrations.result }}" = "failure" ]; then
-            FAILED=true
-          fi
-
-          if [ "$FAILED" = "false" ]; then
-            echo "🎉 All validations passed!" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          else
-            echo "⚠️ Some validations failed. Please review the errors above." >> $GITHUB_STEP_SUMMARY
-            exit 1
           fi

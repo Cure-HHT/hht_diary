@@ -43,10 +43,16 @@ jobs:
           token: ${{ secrets.BOT_BYPASS_MAIN_PROTECTION || github.token }}
           fetch-depth: 1
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '${{ steps.versions.outputs.node_version }}'
 
       - name: Check for unexpected changes before update
         run: |

@@ -393,7 +393,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -405,7 +405,7 @@ jobs:
           TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
 
       - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -442,7 +442,7 @@ jobs:
 
       - name: Run Trivy container scanner (base image from GHCR)
         if: steps.check-docker.outputs.has_docker == 'true'
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.34.0  # version pinned in .github/versions.env (TRIVY_VERSION)
         with:
           scan-type: 'image'
           image-ref: 'ghcr.io/${{ steps.repo-owner.outputs.owner }}/clinical-diary-base:latest'
@@ -533,6 +533,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Check for Flutter/Dart code
         id: check-flutter
         run: |
@@ -548,7 +554,7 @@ jobs:
         if: steps.check-flutter.outputs.has_flutter == 'true'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.7'  # Version from .github/versions.env
+          flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
 
       - name: Install dependencies

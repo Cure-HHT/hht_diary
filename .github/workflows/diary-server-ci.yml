@@ -15,28 +15,53 @@ permissions:
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/daily-diary/**'
-      - 'database/**'
-      - '.github/workflows/diary-server-ci.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/daily-diary/**'
-      - 'database/**'
-      - '.github/workflows/diary-server-ci.yml'
+  workflow_dispatch:
 
 jobs:
-  analyze:
-    name: Static Analysis
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for relevant changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha || 'HEAD~1' }} ${{ github.sha }} | grep -E '^apps/daily-diary/|^database/|^\.github/workflows/diary-server-ci\.yml$' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+          else
+            echo "relevant=false" >> $GITHUB_OUTPUT
+          fi
+
+  analyze:
+    name: Static Analysis (Diary Server)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Install dependencies (diary_functions)
         working-directory: apps/daily-diary/diary_functions
@@ -62,13 +87,22 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Install dependencies (diary_functions)
         working-directory: apps/daily-diary/diary_functions
@@ -89,10 +123,13 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    timeout-minutes: 30
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine  # version pinned in .github/versions.env
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -108,9 +145,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Wait for PostgreSQL
         run: |
@@ -160,11 +203,13 @@ jobs:
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
+    needs: [changes, unit-tests, integration-tests]
+    if: needs.changes.outputs.relevant == 'true'
+    timeout-minutes: 30
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine  # version pinned in .github/versions.env
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -180,9 +225,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
+
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Apply database schema
         env:
