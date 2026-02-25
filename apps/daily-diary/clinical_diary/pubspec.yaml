@@ -66,6 +66,8 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/svgs/
+    - assets/sponsor-content/
+
 
   fonts:
     - family: OpenDyslexic
