@@ -1,0 +1,49 @@
+{
+  "title": [
+    {
+      "pattern": "^\\[CUR-[0-9]{3,4}\\].*Implements: REQ-[dop][0-9]{5}",
+      "message": "PR title must match: [CUR-XXX] <description> Implements: REQ-{d|o|p}NNNNN"
+    }
+  ],
+  "body": [
+    {
+      "pattern": "https://linear.app/cure-hht-diary/issue/CUR-\\d{1,4}/[a-z0-9-]+",
+      "flags": ["i"],
+      "message": "You need a full Linear issue hyperlink in the description (e.g. https://linear.app/cure-hht-diary/issue/CUR-123/issue-slug)."
+    },
+    {
+      "pattern": ".{1,}",
+      "message": "You need something in the description."
+    }
+  ],
+  "head.ref": [
+    {
+      "pattern": "^(build|ci|docs|feat|fix|perf|refactor|style|test)/",
+      "message": "Your branch name is invalid"
+    }
+  ],
+  "assignee.login": [
+    {
+      "pattern": ".+",
+      "message": "Who should own this PR? Please add an assignee"
+    }
+  ],
+  "requested_teams.0.id": [
+    {
+      "pattern": "2691982",
+      "message": "Our product team needs to be added as a reviewer"
+    }
+  ],
+  "additions": [
+    {
+      "pattern": "0|^[1-9]$|^[1-9]\\d$",
+      "message": "Increase delivery velocity: your PR is too big (over 99 additions)"
+    }
+  ],
+  "labels.0.name": [
+    {
+      "pattern": "bug|enhancement|question",
+      "message": "Please add a label"
+    }
+  ]
+}
