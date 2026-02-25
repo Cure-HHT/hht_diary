@@ -205,68 +205,13 @@ jobs:
           echo "📄 Report generated: $REPORT_FILE"
           cat "$REPORT_FILE"
 
-      - name: Create issue if maintenance overdue
-        if: failure()
-        uses: actions/github-script@v7
+      - name: Notify Slack if maintenance overdue
+        if: failure() && github.event_name == 'schedule'
+        uses: slackapi/slack-github-action@v2.1.1
         with:
-          script: |
-            const title = '🔧 Maintenance Overdue: Docker Environment Review Required';
-            const body = `## Quarterly Maintenance Review Overdue
-
-            One or more Docker environment files have not been reviewed in the required timeframe.
-
-            ### FDA 21 CFR Part 11 Compliance
-
-            This project requires regular review of development environment configuration:
-            - **Quarterly (90 days)**: Role-specific Dockerfiles, warning baselines
-            - **Annual (365 days)**: Base image configuration
-
-            ### Required Actions
-
-            1. Review the files listed in the workflow run
-            2. Check for updated tool versions:
-               - Supabase CLI: https://github.com/supabase/cli/releases
-               - kubectl: https://github.com/kubernetes/kubernetes/releases
-               - Cosign: https://github.com/sigstore/cosign/releases
-               - Syft: https://github.com/anchore/syft/releases
-               - Grype: https://github.com/anchore/grype/releases
-            3. Test any necessary updates
-            4. Commit changes with: \`[MAINTENANCE] Quarterly review - ${new Date().toISOString().split('T')[0]}\`
-
-            ### How to Resolve
-
-            Even if no changes are needed, you must "touch" the file to update its timestamp:
-
-            \`\`\`bash
-            # Review the file, then update timestamp
-            git add tools/dev-env/docker/dev.Dockerfile
-            git commit -m "[MAINTENANCE] Quarterly review - no changes required"
-            git push
-            \`\`\`
-
-            This demonstrates due diligence for audit purposes.
-
-            **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            `;
-
-            // Check if issue already exists
-            const issues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'maintenance'
-            });
-
-            const existingIssue = issues.data.find(issue =>
-              issue.title.includes('Maintenance Overdue')
-            );
-
-            if (!existingIssue) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: title,
-                body: body,
-                labels: ['maintenance', 'compliance', 'priority:high']
-              });
-            }
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            text: ":warning: *Maintenance Overdue: Docker Environment Review Required*\n\nOne or more Docker environment files have not been reviewed in the required timeframe.\n\n*FDA 21 CFR Part 11 Compliance*\n- Quarterly (90 days): Role-specific Dockerfiles, warning baselines\n- Annual (365 days): Base image configuration\n\n*Required Actions*\n1. Review files listed in the workflow run\n2. Check for updated tool versions\n3. Test any necessary updates\n4. Commit with: `[MAINTENANCE] Quarterly review - <date>`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
