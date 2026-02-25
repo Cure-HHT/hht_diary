@@ -326,7 +326,7 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-reports-${{ github.sha }}
           path: |
@@ -518,7 +518,7 @@ jobs:
 
       - name: Upload all scan results as artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-scan-results-${{ github.sha }}
           path: |
@@ -655,7 +655,7 @@ jobs:
 
       - name: Upload analysis results
         if: always() && steps.check-flutter.outputs.has_flutter == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: flutter-analysis-results-${{ github.sha }}
           path: |
