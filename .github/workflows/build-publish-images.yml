@@ -81,7 +81,7 @@ jobs:
 
       - name: Build and push base image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/base.Dockerfile
@@ -186,7 +186,7 @@ jobs:
 
       - name: Build and push dev image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/dev.Dockerfile
@@ -300,7 +300,7 @@ jobs:
 
       - name: Build and push QA image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/qa.Dockerfile
