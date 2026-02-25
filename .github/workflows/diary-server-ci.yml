@@ -1,16 +1,19 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00005: Sponsor Configuration Detection Implementation
+#   REQ-d00030: CI/CD Environment Parity
 #   REQ-p00008: User Account Management
 #   REQ-o00081: Code Quality and Static Analysis (analyze job)
 #   REQ-o00082: Automated Test Execution (unit-tests, integration-tests, coverage jobs)
 #
 # CI workflow for diary_server and diary_functions
-# Runs static analysis, unit tests, integration tests (with PostgreSQL), and coverage
+# Runs unit tests, integration tests (with PostgreSQL), and static analysis
+# using CI container + Docker Compose PostgreSQL sidecar.
 
 name: Diary Server CI
 
 permissions:
   contents: read
+  packages: read
 
 # Trigger strategy:
 #   push to main  — runs unconditionally (safety net after merge)
@@ -37,128 +40,199 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    services:
-      postgres:
-        image: postgres:17-alpine  # version pinned in .github/versions.env
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Load version pinning
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-
-      - uses: dart-lang/setup-dart@v1
         with:
-          sdk: '${{ steps.versions.outputs.dart_version }}'
+          fetch-depth: 0
 
-      - name: Install dependencies (diary_functions)
-        working-directory: apps/daily-diary/diary_functions
-        run: dart pub get
+      - name: Start CI container
+        uses: ./.github/actions/start-ci-container
+        with:
+          profile: db
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies (diary_server)
-        working-directory: apps/daily-diary/diary_server
-        run: dart pub get
+      # ---------------------------------------------------------------
+      # Create sponsor_portal database (compose provides clinical_diary_test)
+      # ---------------------------------------------------------------
+      - name: Create sponsor_portal database
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "psql -h postgres -U postgres -c 'CREATE DATABASE sponsor_portal;'" || true
+
+      # ---------------------------------------------------------------
+      # Static analysis + formatting
+      # ---------------------------------------------------------------
+      - name: Install dependencies
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/diary_functions && dart pub get
+            cd /workspace/src/apps/daily-diary/diary_server && dart pub get
+          "
 
       - name: Analyze diary_functions
-        working-directory: apps/daily-diary/diary_functions
-        run: dart analyze --fatal-infos
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/diary_functions
+            dart analyze --fatal-infos
+          "
 
       - name: Analyze diary_server
-        working-directory: apps/daily-diary/diary_server
-        run: dart analyze --fatal-infos
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/diary_server
+            dart analyze --fatal-infos
+          "
 
       - name: Check formatting
+        working-directory: tools/dev-env
         run: |
-          dart format --set-exit-if-changed apps/daily-diary/diary_functions
-          dart format --set-exit-if-changed apps/daily-diary/diary_server
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            dart format --set-exit-if-changed /workspace/src/apps/daily-diary/diary_functions
+            dart format --set-exit-if-changed /workspace/src/apps/daily-diary/diary_server
+          "
 
-      - name: Wait for PostgreSQL
+      # ---------------------------------------------------------------
+      # Unit tests
+      # ---------------------------------------------------------------
+      - name: Run diary_functions unit tests
+        working-directory: tools/dev-env
         run: |
-          until pg_isready -h localhost -p 5432 -U postgres; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/diary_functions
+            dart test test/
+          "
 
-      - name: Apply database schema
-        env:
-          PGPASSWORD: postgres
+      - name: Run diary_server unit tests
+        working-directory: tools/dev-env
         run: |
-          psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/diary_server
+            dart test test/
+          "
 
-      - name: Activate coverage tool
-        run: dart pub global activate coverage
+      # ---------------------------------------------------------------
+      # Schema deploy for integration tests
+      # ---------------------------------------------------------------
+      - name: Deploy database schema
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d sponsor_portal --set ON_ERROR_STOP=1 -f database/init.sql"
 
+      # ---------------------------------------------------------------
+      # Integration tests
+      # ---------------------------------------------------------------
+      - name: Run diary_functions integration tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_NAME=sponsor_portal \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e DB_SSL=false \
+            -e JWT_SECRET=test-jwt-secret-for-ci \
+            ci bash -c "
+              cd /workspace/src/apps/daily-diary/diary_functions
+              dart test integration_test/
+            "
+
+      - name: Run diary_server integration tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_NAME=sponsor_portal \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e DB_SSL=false \
+            -e JWT_SECRET=test-jwt-secret-for-ci \
+            ci bash -c "
+              cd /workspace/src/apps/daily-diary/diary_server
+              dart test integration_test/
+            "
+
+      # ---------------------------------------------------------------
+      # Coverage collection
+      # ---------------------------------------------------------------
       - name: Run diary_functions tests with coverage
-        working-directory: apps/daily-diary/diary_functions
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
+        working-directory: tools/dev-env
         run: |
-          dart test --coverage=coverage test/ integration_test/
-
-      - name: Generate diary_functions coverage report
-        working-directory: apps/daily-diary/diary_functions
-        run: |
-          dart pub global run coverage:format_coverage \
-            --lcov \
-            --in=coverage \
-            --out=coverage/lcov.info \
-            --report-on=lib \
-            --packages=.dart_tool/package_config.json || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_NAME=sponsor_portal \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e DB_SSL=false \
+            -e JWT_SECRET=test-jwt-secret-for-ci \
+            ci bash -c "
+              cd /workspace/src/apps/daily-diary/diary_functions
+              dart test --coverage=coverage test/ integration_test/
+              dart pub global activate coverage
+              dart pub global run coverage:format_coverage \
+                --lcov \
+                --in=coverage \
+                --out=coverage/lcov.info \
+                --report-on=lib \
+                --packages=.dart_tool/package_config.json || true
+            "
 
       - name: Run diary_server tests with coverage
-        working-directory: apps/daily-diary/diary_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          JWT_SECRET: test-jwt-secret-for-ci
+        working-directory: tools/dev-env
         run: |
-          dart test --coverage=coverage test/ integration_test/
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_NAME=sponsor_portal \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e DB_SSL=false \
+            -e JWT_SECRET=test-jwt-secret-for-ci \
+            ci bash -c "
+              cd /workspace/src/apps/daily-diary/diary_server
+              dart test --coverage=coverage test/ integration_test/
+              dart pub global activate coverage
+              dart pub global run coverage:format_coverage \
+                --lcov \
+                --in=coverage \
+                --out=coverage/lcov.info \
+                --report-on=lib \
+                --packages=.dart_tool/package_config.json || true
+            "
 
-      - name: Generate diary_server coverage report
-        working-directory: apps/daily-diary/diary_server
+      # ---------------------------------------------------------------
+      # Extract coverage from container for codecov upload
+      # ---------------------------------------------------------------
+      - name: Copy coverage from container
+        working-directory: tools/dev-env
         run: |
-          dart pub global run coverage:format_coverage \
-            --lcov \
-            --in=coverage \
-            --out=coverage/lcov.info \
-            --report-on=lib \
-            --packages=.dart_tool/package_config.json || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/daily-diary/diary_server/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/diary-server-lcov.info || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/daily-diary/diary_functions/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/diary-functions-lcov.info || true
 
       - name: Upload diary_functions coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: apps/daily-diary/diary_functions/coverage/lcov.info
+          files: diary-functions-lcov.info
           flags: diary-functions
           fail_ci_if_error: false
 
       - name: Upload diary_server coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: apps/daily-diary/diary_server/coverage/lcov.info
+          files: diary-server-lcov.info
           flags: diary-server
           fail_ci_if_error: false
 
@@ -167,6 +241,14 @@ jobs:
         with:
           name: coverage-reports
           path: |
-            apps/daily-diary/diary_functions/coverage/lcov.info
-            apps/daily-diary/diary_server/coverage/lcov.info
+            diary-functions-lcov.info
+            diary-server-lcov.info
           retention-days: 30
+
+      # ---------------------------------------------------------------
+      # Cleanup
+      # ---------------------------------------------------------------
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db down -v

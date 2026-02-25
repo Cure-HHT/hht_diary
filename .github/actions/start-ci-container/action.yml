@@ -1,0 +1,116 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00030: CI/CD Environment Parity
+#
+# Reusable composite action: start CI container
+# Handles GHCR login, cache pull, optional rebuild, compose up, health check.
+#
+# Usage in a workflow:
+#   - uses: ./.github/actions/start-ci-container
+#     with:
+#       profile: db           # optional: activates Docker Compose profile
+#       ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+name: Start CI Container
+description: Pull or build the CI container image and start it via Docker Compose
+
+inputs:
+  profile:
+    description: 'Docker Compose profile to activate (e.g., "db" for PostgreSQL)'
+    required: false
+    default: ''
+  ghcr-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Detect Docker file changes
+      id: docker-changes
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          if git diff --name-only "origin/${BASE_REF}...${{ github.sha }}" | grep -qE '^tools/dev-env/(docker/|docker-compose)'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Free disk space (only if rebuilding)
+      if: steps.docker-changes.outputs.changed == 'true'
+      shell: bash
+      run: |
+        docker image prune -af
+        docker container prune -f
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+        df -h
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.ghcr-token }}
+
+    - name: Pull CI image from GHCR
+      if: steps.docker-changes.outputs.changed == 'false'
+      id: pull-image
+      shell: bash
+      continue-on-error: true
+      run: |
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || exit 1
+        docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
+
+    - name: Free disk space (pull failed, must build)
+      if: steps.docker-changes.outputs.changed == 'false' && steps.pull-image.outcome == 'failure'
+      shell: bash
+      run: |
+        docker image prune -af
+        docker container prune -f
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+
+    - name: Set up Docker Buildx
+      if: steps.docker-changes.outputs.changed == 'true' || steps.pull-image.outcome == 'failure'
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build CI image
+      if: steps.docker-changes.outputs.changed == 'true' || steps.pull-image.outcome == 'failure'
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || true
+        docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build ci
+        docker tag clinical-diary-ci:latest "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest"
+        docker push "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest"
+
+    - name: Start CI container
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        PROFILE_FLAG=""
+        if [ -n "${{ inputs.profile }}" ]; then
+          PROFILE_FLAG="--profile ${{ inputs.profile }}"
+        fi
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml ${PROFILE_FLAG} up --no-build -d ci
+        if [ -n "${{ inputs.profile }}" ] && [ "${{ inputs.profile }}" = "db" ]; then
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db up --no-build -d postgres
+        fi
+
+    - name: Wait for CI container healthy
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        timeout 120 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci flutter --version 2>/dev/null; do sleep 2; done'
+
+    - name: Wait for PostgreSQL healthy
+      if: inputs.profile == 'db'
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci pg_isready -h postgres -U postgres 2>/dev/null; do sleep 2; done'
