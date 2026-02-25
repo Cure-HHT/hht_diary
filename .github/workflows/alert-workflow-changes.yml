@@ -7,9 +7,15 @@ name: Alert on Workflow Changes
 
 on:
   pull_request:
+    paths:
+      - '.github/**'
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

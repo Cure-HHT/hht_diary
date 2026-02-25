@@ -5,10 +5,17 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/trial_data_types/**'
+      - '.github/workflows/trial_data_types-ci.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -16,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
+      sdks: ${{ steps.sdks.outputs.sdks }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,6 +41,14 @@ jobs:
           else
             echo "relevant=false" >> $GITHUB_OUTPUT
           fi
+      - name: Set SDK channels
+        id: sdks
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'sdks=["stable"]' >> $GITHUB_OUTPUT
+          else
+            echo 'sdks=["stable","beta"]' >> $GITHUB_OUTPUT
+          fi
 
   ci:
     name: Analyze & Test (${{ matrix.sdk }})
@@ -42,7 +58,7 @@ jobs:
 
     strategy:
       matrix:
-        sdk: ['stable', 'beta']
+        sdk: ${{ fromJSON(needs.changes.outputs.sdks) }}
 
     steps:
       - name: Skip - no relevant changes

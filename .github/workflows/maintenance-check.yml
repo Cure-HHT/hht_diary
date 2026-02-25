@@ -18,6 +18,10 @@ on:
       - 'tools/dev-env/docker/**'
       - '.github/workflows/maintenance-check.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-maintenance-status:
     runs-on: ubuntu-latest

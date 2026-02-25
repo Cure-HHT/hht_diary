@@ -5,10 +5,17 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/append_only_datastore/**'
+      - '.github/workflows/append_only_datastore-ci.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -16,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
+      channels: ${{ steps.channels.outputs.channels }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,6 +41,14 @@ jobs:
           else
             echo "relevant=false" >> $GITHUB_OUTPUT
           fi
+      - name: Set channels
+        id: channels
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'channels=["stable"]' >> $GITHUB_OUTPUT
+          else
+            echo 'channels=["stable","beta"]' >> $GITHUB_OUTPUT
+          fi
 
   ci:
     name: Analyze & Test (${{ matrix.channel }})
@@ -42,7 +58,7 @@ jobs:
 
     strategy:
       matrix:
-        channel: ['stable', 'beta']
+        channel: ${{ fromJSON(needs.changes.outputs.channels) }}
 
     steps:
       - name: Skip - no relevant changes

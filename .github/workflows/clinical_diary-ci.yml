@@ -7,7 +7,14 @@ name: Clinical Diary CI
 on:
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+      - '.github/workflows/clinical_diary-ci.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
