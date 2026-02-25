@@ -66,6 +66,7 @@ RUN apt-get update -y && \
     # Report generation
     pandoc \
     # Flutter Linux desktop build dependencies
+    g++ \
     libgtk-3-dev \
     libx11-dev \
     pkg-config \
