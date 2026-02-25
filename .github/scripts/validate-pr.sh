@@ -324,8 +324,7 @@ fi
 if [ "$DOCS_CHANGED" = "true" ] || [ "$SPEC_CHANGED" = "true" ]; then
   begin_group "Documentation Linting (markdownlint-cli v${MARKDOWNLINT_CLI_VERSION})"
 
-  npm install -g "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" --silent 2>/dev/null
-  markdownlint --config .markdownlint.json '**/*.md'
+  npx "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" --config .markdownlint.json '**/*.md'
 
   echo "Documentation linting passed"
   end_group
