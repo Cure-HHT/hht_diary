@@ -30,6 +30,7 @@ permissions:
   checks: write
   security-events: write
   packages: read
+  actions: read  # Required for gh run watch in start-ci-container
 
 jobs:
   # ===========================================================================

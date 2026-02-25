@@ -37,9 +37,9 @@ runs:
       run: |
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           BASE_REF="${{ github.event.pull_request.base.ref }}"
-          # Shallow clones (depth=1) don't have origin/<base> — fetch it
+          # Shallow clones (depth=1) need base ref fetched; two-dot diff avoids merge-base lookup
           git fetch --depth=1 origin "${BASE_REF}" 2>/dev/null || true
-          if git diff --name-only "origin/${BASE_REF}...${{ github.sha }}" | grep -qE '^(tools/dev-env/(docker/|docker-compose)|\.github/versions\.env)'; then
+          if git diff --name-only "origin/${BASE_REF}..${{ github.sha }}" | grep -qE '^(tools/dev-env/(docker/|docker-compose)|\.github/versions\.env)'; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT

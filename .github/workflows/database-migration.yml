@@ -28,6 +28,7 @@ concurrency:
 permissions:
   contents: read
   packages: read
+  actions: read  # Required for gh run watch in start-ci-container
 
 jobs:
   validate-migrations:
