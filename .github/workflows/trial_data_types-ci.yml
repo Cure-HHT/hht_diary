@@ -3,79 +3,113 @@ name: Trial Data Types CI
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/trial_data_types/**'
-      - '.github/workflows/trial_data_types-ci.yml'
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/trial_data_types/**'
-      - '.github/workflows/trial_data_types-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for relevant changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha || 'HEAD~1' }} ${{ github.sha }} | grep -E '^apps/common-dart/trial_data_types/|^\.github/workflows/trial_data_types-ci\.yml$' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+          else
+            echo "relevant=false" >> $GITHUB_OUTPUT
+          fi
+
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    needs: changes
     timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/trial_data_types
-    
+
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
-      
+
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
-        working-directory: ${{ github.workspace }}
-      
+
       - name: Setup Dart
+        if: needs.changes.outputs.relevant == 'true'
         uses: dart-lang/setup-dart@v1
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
-      
+
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: dart pub get
-      
+        working-directory: apps/common-dart/trial_data_types
+
       - name: Verify formatting
+        if: needs.changes.outputs.relevant == 'true'
         run: dart format --output=none --set-exit-if-changed .
-      
+        working-directory: apps/common-dart/trial_data_types
+
       - name: Analyze project source
+        if: needs.changes.outputs.relevant == 'true'
         run: dart analyze --fatal-infos
+        working-directory: apps/common-dart/trial_data_types
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: changes
     timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/trial_data_types
-    
+
     strategy:
       matrix:
         sdk: ['stable', 'beta']
-    
+
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
-      
+
       - name: Setup Dart
+        if: needs.changes.outputs.relevant == 'true'
         uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ matrix.sdk }}
-      
+
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: dart pub get
-      
+        working-directory: apps/common-dart/trial_data_types
+
       - name: Run tests
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           chmod +x tool/test.sh
           ./tool/test.sh
+        working-directory: apps/common-dart/trial_data_types

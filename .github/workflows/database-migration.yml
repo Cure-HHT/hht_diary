@@ -33,7 +33,6 @@ jobs:
 
   validate-migrations:
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,9 +59,15 @@ jobs:
           - 5432:5432
 
     steps:
+      - name: Skip — no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes — skipping job"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Install PostgreSQL client
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           sudo apt-get update
           # Add PostgreSQL apt repo for version 17
@@ -74,48 +79,56 @@ jobs:
           which psql || (echo "ERROR: postgresql-client-17 installation failed" && exit 1)
 
       - name: Deploy schema
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying schema..."
           psql --set ON_ERROR_STOP=1 -f database/schema.sql
           echo "Schema deployed successfully"
 
       - name: Deploytriggers
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying triggers..."
           psql --set ON_ERROR_STOP=1 -f database/triggers.sql
           echo "Triggers deployed successfully"
 
       - name: Deploy roles
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying roles..."
           psql --set ON_ERROR_STOP=1 -f database/roles.sql
           echo "Roles deployed successfully"
 
       - name: Deploy RLS policies
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying  RLS policies..."
           psql --set ON_ERROR_STOP=1 -f database/rls_policies.sql
           echo "RLS policies deployed successfully"
 
       - name: Deploy indexes
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying indexes..."
           psql --set ON_ERROR_STOP=1 -f database/indexes.sql
           echo "Indexes deployed successfully"
 
       - name: Deploy tamper detection
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying  tamper detection (hash triggers)..."
           psql --set ON_ERROR_STOP=1 -f database/tamper_detection.sql
           echo "Tamper detection deployed successfully"
 
       - name: Deploy compliance verification
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Deploying  compliance verification functions..."
           psql --set ON_ERROR_STOP=1 -f database/compliance_verification.sql
           echo "Compliance verification deployed successfully"
 
       - name: Run database tests
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           echo "Running database tests..."
           psql --set ON_ERROR_STOP=1 -f database/tests/test_audit_trail.sql
@@ -123,6 +136,7 @@ jobs:
           echo "Database tests passed"
 
       - name: Validate migration scripts
+        if: needs.changes.outputs.relevant == 'true'
         env:
           PGHOST: localhost
           PGPORT: 5432

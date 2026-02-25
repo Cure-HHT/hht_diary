@@ -47,39 +47,50 @@ jobs:
     name: Static Analysis (Diary Server)
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Install dependencies (diary_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: dart pub get
 
       - name: Install dependencies (diary_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: dart pub get
 
       - name: Analyze diary_functions
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: dart analyze --fatal-infos
 
       - name: Analyze diary_server
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: dart analyze --fatal-infos
 
       - name: Check formatting
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           dart format --set-exit-if-changed apps/daily-diary/diary_functions
           dart format --set-exit-if-changed apps/daily-diary/diary_server
@@ -88,35 +99,45 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Install dependencies (diary_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: dart pub get
 
       - name: Install dependencies (diary_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: dart pub get
 
       - name: Run diary_functions unit tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: dart test test/
 
       - name: Run diary_server unit tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: dart test test/
 
@@ -124,7 +145,6 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     services:
@@ -143,19 +163,27 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Wait for PostgreSQL
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           until pg_isready -h localhost -p 5432 -U postgres; do
             echo "Waiting for PostgreSQL..."
@@ -163,20 +191,24 @@ jobs:
           done
 
       - name: Apply database schema
+        if: needs.changes.outputs.relevant == 'true'
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
       - name: Install dependencies (diary_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: dart pub get
 
       - name: Install dependencies (diary_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: dart pub get
 
       - name: Run diary_functions integration tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         env:
           DB_HOST: localhost
@@ -189,6 +221,7 @@ jobs:
         run: dart test integration_test/
 
       - name: Run diary_server integration tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         env:
           DB_HOST: localhost
@@ -204,7 +237,6 @@ jobs:
     name: Test Coverage
     runs-on: ubuntu-latest
     needs: [changes, unit-tests, integration-tests]
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     services:
@@ -223,31 +255,41 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "dart_version=${DART_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Apply database schema
+        if: needs.changes.outputs.relevant == 'true'
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           dart pub get --directory=apps/daily-diary/diary_functions
           dart pub get --directory=apps/daily-diary/diary_server
           dart pub global activate coverage
 
       - name: Run diary_functions tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         env:
           DB_HOST: localhost
@@ -261,6 +303,7 @@ jobs:
           dart test --coverage=coverage test/ integration_test/
 
       - name: Generate diary_functions coverage report
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_functions
         run: |
           dart pub global run coverage:format_coverage \
@@ -271,6 +314,7 @@ jobs:
             --packages=.dart_tool/package_config.json || true
 
       - name: Run diary_server tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         env:
           DB_HOST: localhost
@@ -284,6 +328,7 @@ jobs:
           dart test --coverage=coverage test/ integration_test/
 
       - name: Generate diary_server coverage report
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/daily-diary/diary_server
         run: |
           dart pub global run coverage:format_coverage \
@@ -294,6 +339,7 @@ jobs:
             --packages=.dart_tool/package_config.json || true
 
       - name: Upload diary_functions coverage to Codecov
+        if: needs.changes.outputs.relevant == 'true'
         uses: codecov/codecov-action@v4
         with:
           files: apps/daily-diary/diary_functions/coverage/lcov.info
@@ -301,6 +347,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload diary_server coverage to Codecov
+        if: needs.changes.outputs.relevant == 'true'
         uses: codecov/codecov-action@v4
         with:
           files: apps/daily-diary/diary_server/coverage/lcov.info
@@ -308,6 +355,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage reports as artifacts
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports

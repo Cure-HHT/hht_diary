@@ -117,10 +117,6 @@ fi
 
 # Export for workflow steps that follow the script
 echo "SPEC_CHANGED=${SPEC_CHANGED}" >> "$GITHUB_ENV"
-echo "CODE_CHANGED=${CODE_CHANGED}" >> "$GITHUB_ENV"
-echo "DB_CHANGED=${DB_CHANGED}" >> "$GITHUB_ENV"
-echo "DOCS_CHANGED=${DOCS_CHANGED}" >> "$GITHUB_ENV"
-echo "WORKFLOWS_CHANGED=${WORKFLOWS_CHANGED}" >> "$GITHUB_ENV"
 
 end_group
 

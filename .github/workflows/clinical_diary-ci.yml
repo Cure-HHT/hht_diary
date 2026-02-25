@@ -35,21 +35,23 @@ jobs:
     name: Analyze Flutter (Clinical Diary)
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: apps/daily-diary/clinical_diary
 
     steps:
+      - name: Skip — no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes — skipping job"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -58,6 +60,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Setup Flutter
+        if: needs.changes.outputs.relevant == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
@@ -65,31 +68,39 @@ jobs:
           cache: true
 
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter pub get
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Verify formatting
+        if: needs.changes.outputs.relevant == 'true'
         run: dart format --output=none --set-exit-if-changed .
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Analyze project source
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter analyze --fatal-infos
+        working-directory: apps/daily-diary/clinical_diary
 
   test-clinical-diary:
     name: Test Clinical Diary
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: apps/daily-diary/clinical_diary
 
     steps:
+      - name: Skip — no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes — skipping job"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -99,6 +110,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Install Linux desktop dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -113,8 +125,10 @@ jobs:
             gnome-keyring \
             dbus-x11 \
             xvfb
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Setup Flutter
+        if: needs.changes.outputs.relevant == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
@@ -122,26 +136,35 @@ jobs:
           cache: true
 
       - name: Setup Node.js
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
       - name: Setup Java (required for Firebase emulator)
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '${{ steps.versions.outputs.java_version }}'
 
       - name: Install Firebase CLI
+        if: needs.changes.outputs.relevant == 'true'
         run: npm install -g firebase-tools
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Install Flutter dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter pub get
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Install lcov
+        if: needs.changes.outputs.relevant == 'true'
         run: sudo apt-get update && sudo apt-get install -y lcov
+        working-directory: apps/daily-diary/clinical_diary
 
       - name: Run coverage tests (includes integration tests with emulator)
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           chmod +x tool/test.sh
           # Start dbus session and unlock gnome-keyring for flutter_secure_storage
@@ -150,7 +173,10 @@ jobs:
             echo "test" | gnome-keyring-daemon --unlock
             ./tool/test.sh -c
           '
+        working-directory: apps/daily-diary/clinical_diary
+
       - name: Upload coverage to Codecov
+        if: needs.changes.outputs.relevant == 'true'
         uses: codecov/codecov-action@v4
         with:
           file: apps/daily-diary/clinical_diary/coverage/lcov.info

@@ -3,80 +3,114 @@ name: Append-Only Datastore CI
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/append_only_datastore/**'
-      - '.github/workflows/append_only_datastore-ci.yml'
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - 'apps/common-dart/append_only_datastore/**'
-      - '.github/workflows/append_only_datastore-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for relevant changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha || 'HEAD~1' }} ${{ github.sha }} | grep -E '^apps/common-dart/append_only_datastore/|^\.github/workflows/append_only_datastore-ci\.yml$' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+          else
+            echo "relevant=false" >> $GITHUB_OUTPUT
+          fi
+
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    needs: changes
     timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/append_only_datastore
-    
+
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
-      
+
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
           echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
-        working-directory: ${{ github.workspace }}
-      
+
       - name: Setup Flutter
+        if: needs.changes.outputs.relevant == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
-      
+
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter pub get
-      
+        working-directory: apps/common-dart/append_only_datastore
+
       - name: Verify formatting
+        if: needs.changes.outputs.relevant == 'true'
         run: dart format --output=none --set-exit-if-changed .
-      
+        working-directory: apps/common-dart/append_only_datastore
+
       - name: Analyze project source
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter analyze --fatal-infos
+        working-directory: apps/common-dart/append_only_datastore
 
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: changes
     timeout-minutes: 30
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: apps/common-dart/append_only_datastore
-    
+
     strategy:
       matrix:
         flutter-version: ['stable', 'beta']
-    
+
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - name: Checkout code
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
+        if: needs.changes.outputs.relevant == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ matrix.flutter-version }}
-      
+
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: flutter pub get
-      
+        working-directory: apps/common-dart/append_only_datastore
+
       - name: Run tests
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           chmod +x tool/test.sh
           ./tool/test.sh
+        working-directory: apps/common-dart/append_only_datastore

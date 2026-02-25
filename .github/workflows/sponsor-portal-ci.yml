@@ -52,13 +52,18 @@ jobs:
     name: Static Analysis (Sponsor Portal)
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -67,39 +72,48 @@ jobs:
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - uses: subosito/flutter-action@v2
+        if: needs.changes.outputs.relevant == 'true'
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
 
       - name: Install dependencies (portal_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: dart pub get
 
       - name: Install dependencies (portal_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: dart pub get
 
       - name: Install dependencies (portal-ui)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal-ui
         run: flutter pub get
 
       - name: Analyze portal_functions
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: dart analyze --fatal-infos
 
       - name: Analyze portal_server
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: dart analyze --fatal-infos
 
       - name: Analyze portal-ui
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal-ui
         run: flutter analyze
 
       - name: Check formatting
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           dart format --set-exit-if-changed apps/sponsor-portal/portal_functions
           dart format --set-exit-if-changed apps/sponsor-portal/portal_server
@@ -108,13 +122,18 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -123,35 +142,43 @@ jobs:
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - uses: subosito/flutter-action@v2
+        if: needs.changes.outputs.relevant == 'true'
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
 
       - name: Install dependencies (portal_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: dart pub get
 
       - name: Install dependencies (portal_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: dart pub get
 
       - name: Install dependencies (portal-ui)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal-ui
         run: flutter pub get
 
       - name: Run portal_functions unit tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: dart test test/
 
       - name: Run portal_server unit tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: dart test test/
 
       - name: Run portal-ui unit tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal-ui
         run: flutter test
 
@@ -159,7 +186,6 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     services:
@@ -178,9 +204,15 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -189,18 +221,22 @@ jobs:
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - name: Setup Node.js for Firebase Emulator
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
       - name: Install Firebase Tools
+        if: needs.changes.outputs.relevant == 'true'
         run: npm install -g firebase-tools
 
       - name: Start Firebase Auth Emulator
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           # Create minimal firebase.json for auth emulator
           cat > firebase.json << 'EOF'
@@ -231,6 +267,7 @@ jobs:
           done
 
       - name: Wait for PostgreSQL
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           until pg_isready -h localhost -p 5432 -U postgres; do
             echo "Waiting for PostgreSQL..."
@@ -238,6 +275,7 @@ jobs:
           done
 
       - name: Apply database schema
+        if: needs.changes.outputs.relevant == 'true'
         env:
           PGPASSWORD: postgres
         run: |
@@ -248,14 +286,17 @@ jobs:
           psql -h localhost -U postgres -d sponsor_portal -f init_test.sql
 
       - name: Install dependencies (portal_functions)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: dart pub get
 
       - name: Install dependencies (portal_server)
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: dart pub get
 
       - name: Run portal_functions integration tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         env:
           DB_HOST: localhost
@@ -269,6 +310,7 @@ jobs:
         run: dart test integration_test/
 
       - name: Run portal_server integration tests
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         env:
           DB_HOST: localhost
@@ -285,7 +327,6 @@ jobs:
     name: Test Coverage
     runs-on: ubuntu-latest
     needs: [changes, unit-tests, integration-tests]
-    if: needs.changes.outputs.relevant == 'true'
     timeout-minutes: 30
 
     services:
@@ -304,9 +345,15 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Skip - no relevant changes
+        if: needs.changes.outputs.relevant != 'true'
+        run: echo "No relevant changes detected — skipping"
+
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: Load version pinning
+        if: needs.changes.outputs.relevant == 'true'
         id: versions
         run: |
           source .github/versions.env
@@ -315,23 +362,28 @@ jobs:
           echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.changes.outputs.relevant == 'true'
         with:
           sdk: '${{ steps.versions.outputs.dart_version }}'
 
       - uses: subosito/flutter-action@v2
+        if: needs.changes.outputs.relevant == 'true'
         with:
           flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
 
       - name: Setup Node.js for Firebase Emulator
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '${{ steps.versions.outputs.node_version }}'
 
       - name: Install Firebase Tools
+        if: needs.changes.outputs.relevant == 'true'
         run: npm install -g firebase-tools
 
       - name: Start Firebase Auth Emulator
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           cat > firebase.json << 'EOF'
           {
@@ -359,6 +411,7 @@ jobs:
           done
 
       - name: Apply database schema
+        if: needs.changes.outputs.relevant == 'true'
         env:
           PGPASSWORD: postgres
         run: |
@@ -369,6 +422,7 @@ jobs:
           psql -h localhost -U postgres -d sponsor_portal -f init_test.sql
 
       - name: Install dependencies
+        if: needs.changes.outputs.relevant == 'true'
         run: |
           dart pub get --directory=apps/sponsor-portal/portal_functions
           dart pub get --directory=apps/sponsor-portal/portal_server
@@ -376,12 +430,14 @@ jobs:
           dart pub global activate coverage
 
       - name: Run portal_functions unit tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: |
           # Unit tests run WITHOUT emulator to test production token verification
           dart test --coverage=coverage test/
 
       - name: Run portal_functions integration tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         env:
           DB_HOST: localhost
@@ -397,6 +453,7 @@ jobs:
           dart test --coverage=coverage integration_test/
 
       - name: Generate portal_functions coverage report
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: |
           dart pub global run coverage:format_coverage \
@@ -407,6 +464,7 @@ jobs:
             --packages=.dart_tool/package_config.json || true
 
       - name: Check portal_functions coverage threshold
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_functions
         run: |
           if [ -f coverage/lcov.info ]; then
@@ -434,12 +492,14 @@ jobs:
           fi
 
       - name: Run portal_server unit tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: |
           # Unit tests run WITHOUT emulator to test production token verification
           dart test --coverage=coverage test/
 
       - name: Run portal_server integration tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         env:
           DB_HOST: localhost
@@ -455,6 +515,7 @@ jobs:
           dart test --coverage=coverage integration_test/
 
       - name: Generate portal_server coverage report
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal_server
         run: |
           dart pub global run coverage:format_coverage \
@@ -465,11 +526,13 @@ jobs:
             --packages=.dart_tool/package_config.json || true
 
       - name: Run portal-ui tests with coverage
+        if: needs.changes.outputs.relevant == 'true'
         working-directory: apps/sponsor-portal/portal-ui
         run: |
           flutter test --coverage
 
       - name: Upload coverage to Codecov
+        if: needs.changes.outputs.relevant == 'true'
         uses: codecov/codecov-action@v4
         with:
           files: |
@@ -480,6 +543,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage reports as artifacts
+        if: needs.changes.outputs.relevant == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: sponsor-portal-coverage
