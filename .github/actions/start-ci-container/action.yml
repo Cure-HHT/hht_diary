@@ -117,6 +117,13 @@ runs:
           docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
         fi
 
+    - name: Fix workspace ownership for container user
+      shell: bash
+      run: |
+        # Container runs as devuser (uid 1000); runner checkout is uid 1001.
+        # Grant devuser write access so flutter pub get, .dart_tool, etc. work.
+        sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+
     - name: Start CI container
       shell: bash
       working-directory: tools/dev-env
