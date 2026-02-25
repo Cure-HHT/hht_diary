@@ -367,7 +367,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // Sponsor logo placeholder
                 if (widget.sponsorLogo != null)
-                  Image.network(widget.sponsorLogo!, height: 40, width: 120)
+                  Image.asset(
+                    widget.sponsorLogo!,
+                    height: 40,
+                    width: 120,
+                    errorBuilder: (context, _, _) {
+                      return Image.asset(
+                        'assets/images/generic_company_logo.png',
+                        height: 40,
+                        width: 120,
+                      );
+                    },
+                  )
                 else
                   Image.asset(
                     'assets/images/generic_company_logo.png',
