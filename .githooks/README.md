@@ -149,18 +149,14 @@ chmod +x tools/claude-marketplace/*/hooks/*
 
 ### Validation errors
 
-Plugins call validation scripts via elspais (or fallback to `tools/requirements/`). If validation fails:
+Plugins call validation scripts via elspais. If validation fails:
 
 1. Read the error message carefully
 2. See `spec/requirements-format.md` for format rules
 3. Run validation manually to see full output:
    ```bash
-   # Using elspais (primary)
    elspais validate
    elspais index validate
-
-   # Or using local scripts (fallback)
-   python3 tools/requirements/validate_requirements.py
    ```
 
 ### Pre-push blocking unexpectedly
@@ -202,5 +198,4 @@ See plugin documentation for detailed troubleshooting:
 
 - **Marketplace Overview**: `tools/claude-marketplace/README.md`
 - **Requirement format**: `spec/requirements-format.md`
-- **Validation tools**: `tools/requirements/README.md`
 - **Project instructions**: `CLAUDE.md`

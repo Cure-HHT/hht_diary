@@ -95,21 +95,6 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Python packages - Requirement tools
-  - package-ecosystem: "pip"
-    directory: "/tools/requirements"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:00"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
-      - "requirements-tools"
-    commit-message:
-      prefix: "[Dependabot]"
-      include: "scope"
 
 # Notes:
 # 1. Dependabot does NOT support SHA-pinning GitHub Actions
