@@ -377,7 +377,7 @@ void main() {
               buildProfileScreen(
                 isEnrolledInTrial: true,
                 isDisconnected: false,
-                sponsorLogo: 'https://picsum.photos/200/300',
+                sponsorLogo: 'assets/sponsor-content/status_badge.png',
               ),
             );
 
@@ -426,7 +426,7 @@ void main() {
               buildProfileScreen(
                 isEnrolledInTrial: true,
                 isDisconnected: true,
-                sponsorLogo: 'https://picsum.photos/200/300',
+                sponsorLogo: 'assets/sponsor-content/status_badge.png',
               ),
             );
 
