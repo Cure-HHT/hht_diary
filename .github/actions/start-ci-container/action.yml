@@ -71,7 +71,7 @@ runs:
 
         if [ -n "$RUN_ID" ]; then
           echo "  Found build workflow run $RUN_ID — watching until completion..."
-          gh run watch "$RUN_ID" --exit-status && echo "  Build workflow succeeded." || {
+          gh run watch "$RUN_ID" --interval 30 --exit-status && echo "  Build workflow succeeded." || {
             echo "::error::Build & Publish Docker Images workflow failed (run $RUN_ID)"
             echo "  See: $(gh run view "$RUN_ID" --json url -q '.url')"
             exit 1
