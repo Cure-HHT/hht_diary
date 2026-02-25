@@ -23,6 +23,40 @@ This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks
 
 ## Available Hooks
 
+### custom-pre-push
+
+**Purpose**: Extended pre-push validations sourced by the anspar-wf generated pre-push hook.
+
+**What it does**:
+
+1. **INDEX.md Validation**: Runs `elspais index --mode core validate`
+2. **Unset GIT_DIR/GIT_WORK_TREE**: Fixes Flutter version detection in hook context
+3. **Dart Dependency Resolution**: Runs `dart pub get` / `flutter pub get` across nested apps
+4. **Dart Format Check**: Validates formatting in all `apps/` projects
+5. **Dart Static Analysis**: Runs `dart analyze --fatal-infos` in all `apps/` projects
+6. **Per-App Test Discovery**: Runs `tool/test.sh` for each app directory with changes
+7. **Auto-Bump Clinical Diary Version**: Bumps patch version when source files change
+
+**Opt-Out**:
+
+Set the `SKIP_CUSTOM_PREPUSH` environment variable to skip all custom checks:
+
+```bash
+# Skip custom pre-push checks for this push
+SKIP_CUSTOM_PREPUSH=1 git push
+
+# Or export for the session
+export SKIP_CUSTOM_PREPUSH=1
+git push
+
+# Re-enable by unsetting
+unset SKIP_CUSTOM_PREPUSH
+```
+
+When skipped, a notice is printed confirming the checks were bypassed.
+
+---
+
 ### pre-push
 
 **Purpose**: Runs validation scripts before push with PR-aware blocking.
