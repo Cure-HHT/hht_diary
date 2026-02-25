@@ -110,24 +110,23 @@ git push --no-verify
 
 1. **Branch Protection**: Blocks direct commits to main/master
 2. **Plugin Hooks**: Auto-discovers and runs pre-commit hooks from installed plugins
-3. **Dockerfile linting** (hadolint) - If Dockerfiles changed
-4. **Dart Code Quality** - If `.dart` files changed in `apps/`:
+3. **Dart Code Quality** - If `.dart` files changed in `apps/`:
    - Runs `dart format .` (auto-formats and re-stages files)
    - Runs `dart analyze --fatal-infos` (blocks on any issues)
-5. **TypeScript Code Quality** - If `.ts`/`.tsx` files changed in `apps/`:
+4. **TypeScript Code Quality** - If `.ts`/`.tsx` files changed in `apps/`:
    - Runs `npm run lint` (ESLint) for each affected project
    - Blocks commit if lint errors found
-6. **Markdown linting** (markdownlint) - If `.md` files changed
-7. **Traceability Matrix Regeneration** (plugin):
+5. **Markdown linting** (markdownlint) - If `.md` files changed
+6. **Traceability Matrix Regeneration** (plugin):
    - Automatically regenerates `traceability_matrix.md` and `traceability_matrix.html`
    - Stages updated matrices for commit
    - Only runs when spec/ files change
-8. **Requirement Validation** (plugin):
+7. **Requirement Validation** (plugin):
    - Validates requirement format (REQ-{p|o|d}NNNNN)
    - Checks requirement ID uniqueness
    - Verifies "Implements" references exist
    - Detects orphaned requirements
-9. **Spec Compliance Validation** (plugin):
+8. **Spec Compliance Validation** (plugin):
    - Validates file naming conventions
    - Enforces audience scope rules (PRD/Ops/Dev)
    - Detects code in PRD files
@@ -151,7 +150,6 @@ Only bypass if you're:
 
 - `dart` CLI for Dart formatting/analysis
 - Node.js/npm for TypeScript linting
-- `hadolint` for Dockerfile linting (optional): <https://github.com/hadolint/hadolint#install>
 - `markdownlint` for markdown linting (optional): `npm install -g markdownlint-cli`
 
 ## Troubleshooting
