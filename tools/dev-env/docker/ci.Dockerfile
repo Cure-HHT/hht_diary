@@ -78,6 +78,7 @@ RUN apt-get update -y && \
     gnome-keyring \
     dbus-x11 \
     xvfb \
+    xauth \
     # Coverage tools
     lcov \
     && rm -rf /var/lib/apt/lists/*
