@@ -36,7 +36,7 @@ class LicensesPage extends StatelessWidget {
             title:  Text(l10n.atkinsonTitle),
             subtitle:  Text(l10n.atkinsonDescription),
             onTap: () => _openUrl(
-              'https://braileinstitute.app.box.com/s/rin3vzegmcy7sil28yfqslz2r5etv5nl',
+              'https://openfontlicense.org/open-font-license-official-text/',
             ),
           ),
         ],
