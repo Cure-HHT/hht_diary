@@ -5,8 +5,9 @@
 #   REQ-o00017: Version Control Workflow (commit message validation)
 #   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
 #   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit messages, post-merge)
-#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks)
+#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks, Trivy)
 #   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
+#   REQ-p01018: Security Audit and Compliance (Trivy SARIF upload)
 
 name: PR Validation
 
@@ -31,8 +32,72 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
+  security-events: write
 
 jobs:
+  # ===========================================================================
+  # Security scan — Trivy filesystem & IaC scanning with SARIF upload
+  # Runs on every PR and push to main/develop so GitHub Code Scanning always
+  # has results, unblocking the repository ruleset requirement.
+  # IMPLEMENTS REQUIREMENTS:
+  #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
+  #   REQ-o00080: Secret and Vulnerability Scanning (Trivy multi-layer scanning)
+  # ===========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@0.34.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+        env:
+          TRIVY_QUIET: true
+
+      - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
+        uses: aquasecurity/trivy-action@0.34.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-iac-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          skip-dirs: 'node_modules,vendor,.git'
+        env:
+          TRIVY_QUIET: true
+
+      - name: Upload Trivy filesystem results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-filesystem'
+        continue-on-error: true
+
+      - name: Upload Trivy IaC results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-iac-results.sarif'
+          category: 'trivy-iac'
+        continue-on-error: true
+
+
   # ===========================================================================
   # Single fast-fail validation job for pull requests
   # Replaces 10 parallel jobs with one sequential script (CUR-957)
