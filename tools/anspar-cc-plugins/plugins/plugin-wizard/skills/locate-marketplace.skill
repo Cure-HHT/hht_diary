@@ -1,5 +1,0 @@
-#!/bin/bash
-# Locate marketplace directory by finding tools/*/marketplace.json
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-bash "$SCRIPT_DIR/scripts/locate-marketplace.sh" "$@"

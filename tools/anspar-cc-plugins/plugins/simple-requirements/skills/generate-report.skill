@@ -1,9 +1,0 @@
-#!/bin/bash
-# Generate requirements compliance report
-# Usage: generate-report.skill [--output FILE]
-
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-python3 "$SCRIPT_DIR/scripts/generate-report.py" "$@"

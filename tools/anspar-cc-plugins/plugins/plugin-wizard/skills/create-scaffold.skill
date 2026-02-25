@@ -1,5 +1,0 @@
-#!/bin/bash
-# Create plugin directory structure with all essential components
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-bash "$SCRIPT_DIR/scripts/create-scaffold.sh" "$@"

@@ -6,7 +6,6 @@
 # ./tools/release-ticket.sh "Work complete" --pr-number 42 --pr-url https://github.com/org/repo/pull/42
 # Can be called from any directory within the repo.
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
 
-"${SCRIPT_DIR}/anspar-cc-plugins/plugins/workflow/scripts/release-ticket.sh" "$@"
+"${ANSPAR_PLUGINS}/workflow/scripts/release-ticket.sh" "$@"
