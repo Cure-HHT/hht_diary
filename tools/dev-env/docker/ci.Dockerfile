@@ -25,7 +25,7 @@ LABEL com.clinical-diary.role="ci"
 ARG NODE_MAJOR_VERSION=20
 ARG FLUTTER_VERSION=3.38.7
 ARG GITLEAKS_VERSION=8.29.0
-ARG SQUAWK_VERSION=2.35.0
+ARG SQUAWK_VERSION=2.41.0
 ARG CLOUD_SQL_PROXY_VERSION=2.14.3
 ARG ANDROID_CMDLINE_TOOLS_VERSION=11076708
 ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
@@ -189,7 +189,7 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
 # ============================================================
 # Squawk (PostgreSQL migration linter)
 # ============================================================
-RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x86_64 -O /usr/local/bin/squawk && \
+RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x64 -O /usr/local/bin/squawk && \
     chmod +x /usr/local/bin/squawk && \
     squawk --version
 
