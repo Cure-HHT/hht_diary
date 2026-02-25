@@ -93,6 +93,8 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Fetching sponsor
+        env:
+            GH_TOKEN: ${{ secrets.SPONSOR_REPO_PAT }}
         run: |
           chmod +x tool/collect_sponsor_content.sh
           ./tool/collect_sponsor_content.sh
