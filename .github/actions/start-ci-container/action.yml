@@ -2,7 +2,13 @@
 #   REQ-d00030: CI/CD Environment Parity
 #
 # Reusable composite action: start CI container
-# Handles GHCR login, cache pull, optional rebuild, compose up, health check.
+# Handles GHCR login, image pull, compose up, health check.
+# No local build fallback — if the pull fails, the workflow fails.
+#
+# When Docker files changed in a PR, this action waits for the
+# "Build & Publish Docker Images" workflow to finish building the new
+# image, then pulls the result. This avoids redundant parallel rebuilds
+# across the ~7 workflows that use this action.
 #
 # Usage in a workflow:
 #   - uses: ./.github/actions/start-ci-container
@@ -11,7 +17,7 @@
 #       ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
 name: Start CI Container
-description: Pull or build the CI container image and start it via Docker Compose
+description: Pull the CI container image from GHCR and start it via Docker Compose
 
 inputs:
   profile:
@@ -31,7 +37,7 @@ runs:
       run: |
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           BASE_REF="${{ github.event.pull_request.base.ref }}"
-          if git diff --name-only "origin/${BASE_REF}...${{ github.sha }}" | grep -qE '^tools/dev-env/(docker/|docker-compose)'; then
+          if git diff --name-only "origin/${BASE_REF}...${{ github.sha }}" | grep -qE '^(tools/dev-env/(docker/|docker-compose)|\.github/versions\.env)'; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT
@@ -40,7 +46,40 @@ runs:
           echo "changed=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Free disk space (only if rebuilding)
+    - name: Wait for container build workflow
+      if: steps.docker-changes.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.ghcr-token }}
+      run: |
+        echo "Docker files changed — waiting for Build & Publish Docker Images workflow..."
+        WORKFLOW="build-publish-images.yml"
+        SHA="${{ github.event.pull_request.head.sha }}"
+
+        # Wait up to 30s for the build workflow run to appear
+        for i in $(seq 1 6); do
+          RUN_ID=$(gh run list --workflow="$WORKFLOW" --commit "$SHA" \
+            --json databaseId,status -q '.[0].databaseId' 2>/dev/null || true)
+          if [ -n "$RUN_ID" ]; then
+            break
+          fi
+          echo "  Build workflow not yet started, waiting... (attempt $i/6)"
+          sleep 5
+        done
+
+        if [ -n "$RUN_ID" ]; then
+          echo "  Found build workflow run $RUN_ID — watching until completion..."
+          gh run watch "$RUN_ID" --exit-status && echo "  Build workflow succeeded." || {
+            echo "::error::Build & Publish Docker Images workflow failed (run $RUN_ID)"
+            echo "  See: $(gh run view "$RUN_ID" --json url -q '.url')"
+            exit 1
+          }
+        else
+          echo "::error::Build workflow not found for commit $SHA after 30s — cannot proceed without built image"
+          exit 1
+        fi
+
+    - name: Free disk space (new image incoming)
       if: steps.docker-changes.outputs.changed == 'true'
       shell: bash
       run: |
@@ -57,37 +96,20 @@ runs:
         password: ${{ inputs.ghcr-token }}
 
     - name: Pull CI image from GHCR
-      if: steps.docker-changes.outputs.changed == 'false'
-      id: pull-image
       shell: bash
-      continue-on-error: true
       run: |
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || exit 1
-        docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
-
-    - name: Free disk space (pull failed, must build)
-      if: steps.docker-changes.outputs.changed == 'false' && steps.pull-image.outcome == 'failure'
-      shell: bash
-      run: |
-        docker image prune -af
-        docker container prune -f
-        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
-
-    - name: Set up Docker Buildx
-      if: steps.docker-changes.outputs.changed == 'true' || steps.pull-image.outcome == 'failure'
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build CI image
-      if: steps.docker-changes.outputs.changed == 'true' || steps.pull-image.outcome == 'failure'
-      shell: bash
-      working-directory: tools/dev-env
-      run: |
-        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || true
-        docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build ci
-        docker tag clinical-diary-ci:latest "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest"
-        docker push "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest"
+        if [ "${{ steps.docker-changes.outputs.changed }}" = "true" ]; then
+          # Docker files changed — pull the PR-tagged image built by build-publish-images
+          PR_NUM="${{ github.event.pull_request.number }}"
+          echo "Pulling PR-tagged image: ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}"
+          docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}" || exit 1
+          docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}" clinical-diary-ci:latest
+        else
+          echo "Pulling latest cached image"
+          docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || exit 1
+          docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
+        fi
 
     - name: Start CI container
       shell: bash
