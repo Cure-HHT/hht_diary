@@ -149,14 +149,14 @@ jobs:
             --packages=.dart_tool/package_config.json || true
 
       - name: Upload diary_functions coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: apps/daily-diary/diary_functions/coverage/lcov.info
           flags: diary-functions
           fail_ci_if_error: false
 
       - name: Upload diary_server coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: apps/daily-diary/diary_server/coverage/lcov.info
           flags: diary-server

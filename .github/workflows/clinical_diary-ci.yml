@@ -105,7 +105,7 @@ jobs:
         working-directory: apps/daily-diary/clinical_diary
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: apps/daily-diary/clinical_diary/coverage/lcov.info
           flags: clinical_diary

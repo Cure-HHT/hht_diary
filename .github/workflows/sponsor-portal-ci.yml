@@ -254,7 +254,7 @@ jobs:
           flutter test --coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: |
             apps/sponsor-portal/portal_functions/coverage/lcov.info
