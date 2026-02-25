@@ -4,6 +4,9 @@
 
 name: Clinical Diary CI
 
+# Trigger strategy:
+#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
+#   workflow_dispatch — runs unconditionally (manual override)
 on:
   pull_request:
     branches: [ main, develop ]

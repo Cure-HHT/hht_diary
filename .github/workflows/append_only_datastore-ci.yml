@@ -1,5 +1,9 @@
 name: Append-Only Datastore CI
 
+# Trigger strategy:
+#   push to main  — runs unconditionally (safety net after merge)
+#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
+#   workflow_dispatch — runs unconditionally (manual override)
 on:
   push:
     branches: [ main, develop ]
