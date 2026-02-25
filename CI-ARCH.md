@@ -109,7 +109,7 @@ Commands run inside the container via:
 
 This document covers workflows that run tests and validation inside the CI container. The repository also contains workflows for other purposes that are **out of scope** for this document:
 
-- **Build/publish**: `build-publish-images`, `build-dart-base`, `build-flutter-base`, `build-portal-server`, `build-diary-server`
+- **Build/publish**: `build-ghcr-containers`, `build-dart-base`, `build-flutter-base`, `build-portal-server`, `build-diary-server`
 - **Deploy**: `deploy-run-service`, `reset-db-gcp`, `android-dev-deploy`
 - **Compliance/Ops**: `claim-requirement-number`, `tag-production-candidate`, `maintenance-check`, `alert-workflow-changes`, `validate-bot-commits`
 - **Archival**: `archive-audit-trail`, `archive-artifacts`, `archive-deployment-logs`, `verify-archive-integrity`

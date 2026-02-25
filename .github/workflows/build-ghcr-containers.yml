@@ -22,13 +22,13 @@ on:
     paths:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
-      - '.github/workflows/build-publish-images.yml'
+      - '.github/workflows/build-ghcr-containers.yml'
       - '.github/versions.env'
   pull_request:
     paths:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
-      - '.github/workflows/build-publish-images.yml'
+      - '.github/workflows/build-ghcr-containers.yml'
       - '.github/versions.env'
   workflow_dispatch:
     inputs:

@@ -254,7 +254,7 @@ docker image prune -a
 
 GitHub Actions workflows use these same Docker images:
 - `.github/workflows/qa-automation.yml` - Automated testing
-- `.github/workflows/build-publish-images.yml` - Image builds
+- `.github/workflows/build-ghcr-containers.yml` - Image builds
 
 **See**:
 - [Development Environment Architecture](/home/mclew/dev24/diary-worktrees/clean-docs/docs/setup-dev-environment-architecture.md)

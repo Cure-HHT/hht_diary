@@ -55,7 +55,7 @@ runs:
         GH_TOKEN: ${{ inputs.ghcr-token }}
       run: |
         echo "Docker files changed — waiting for Build & Publish Docker Images workflow..."
-        WORKFLOW="build-publish-images.yml"
+        WORKFLOW="build-ghcr-containers.yml"
         SHA="${{ github.event.pull_request.head.sha }}"
 
         # Wait up to 30s for the build workflow run to appear
@@ -102,7 +102,7 @@ runs:
       run: |
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         if [ "${{ steps.docker-changes.outputs.changed }}" = "true" ]; then
-          # Docker files changed — pull the PR-tagged image built by build-publish-images
+          # Docker files changed — pull the PR-tagged image built by build-ghcr-containers
           PR_NUM="${{ github.event.pull_request.number }}"
           echo "Pulling PR-tagged image: ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}"
           docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}" || exit 1
@@ -111,7 +111,7 @@ runs:
           echo "Pulling latest cached image"
           docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || {
             echo "::error::Failed to pull clinical-diary-ci:latest from GHCR."
-            echo "::error::If this is the first run, merge the build-publish-images workflow to main first to push the :latest tag."
+            echo "::error::If this is the first run, merge the build-ghcr-containers workflow to main first to push the :latest tag."
             exit 1
           }
           docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
