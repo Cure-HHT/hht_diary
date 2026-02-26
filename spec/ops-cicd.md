@@ -11,7 +11,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 > **See**: ops-deployment.md for deployment operations
 > **See**: ops-deployment-automation.md for automated deployment procedures
-> **See**: ops-infrastructure-as-code.md for Pulumi infrastructure definitions
+> **See**: ops-infrastructure-as-code.md for Terraform infrastructure definitions
 
 ## Table of Contents
 
@@ -310,9 +310,9 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ Stage 6: Infrastructure Validation (if infra changes)            │
-│ - Run `pulumi preview` on changed stacks                         │
+│ - Run `terraform plan` on changed modules                        │
 │ - Verify no unexpected resource deletions                        │
-│ - Validate Pulumi code compiles (tsc --noEmit)                   │
+│ - Validate Terraform configs (`terraform validate`)              │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ▼
@@ -340,13 +340,13 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 - **Total Runtime**: < 10 minutes typical, 10 minute timeout
 - **Parallelization**: 6 validation jobs run in parallel, 1 summary job waits for all
 - **Early-Pass Optimization**: Migration validation exits early (1-2s) when no migrations modified
-- **Early-Pass Optimization**: Infrastructure validation exits early when no Pulumi changes
+- **Early-Pass Optimization**: Infrastructure validation exits early when no Terraform changes
 - **Fail-Fast**: Critical failures (requirements, security, FDA compliance, infrastructure) block merge
 - **Warnings**: Code header validation issues are warnings, not blocking
 - **Artifacts**: Generated on every run, regardless of pass/fail status
 - **Notifications**: Failed runs trigger GitHub notifications to PR author
 - **Clean Results**: All jobs show ✅ PASSED or ❌ FAILED (never ⏭️ SKIPPED)
-- **Infrastructure Preview**: Pulumi preview runs on infra changes to validate before merge
+- **Infrastructure Preview**: Terraform plan runs on infra changes to validate before merge
 
 ---
 
@@ -398,12 +398,12 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 
 **6. validate-infrastructure**
 
-- Checks if Pulumi code was modified in the PR
-- Validates TypeScript compilation (`tsc --noEmit`)
-- Runs `pulumi preview` to verify infrastructure changes
+- Checks if Terraform configs were modified in the PR
+- Validates HCL syntax (`terraform validate`)
+- Runs `terraform plan` to verify infrastructure changes
 - **Blocking**: YES (if infrastructure changes detected)
-- **Conditional Validation**: Checks if `infrastructure/pulumi/` was modified; if not, passes immediately
-- **Always Shows**: ✅ PASSED (either "preview successful" or "no infra changes")
+- **Conditional Validation**: Checks if `infrastructure/terraform/` was modified; if not, passes immediately
+- **Always Shows**: ✅ PASSED (either "plan successful" or "no infra changes")
 - **Audit Note**: Job always runs but exits early with success when no infrastructure modified
 
 **7. summary**
@@ -457,7 +457,7 @@ None required. All validation uses tools checked into the repository.
      - `Validate Database Migration Headers`
      - `Security - Check for Secrets`
      - `FDA Compliance - Audit Trail Verification`
-     - `Validate Infrastructure (Pulumi)`
+     - `Validate Infrastructure (Terraform)`
      - `Validation Summary`
 
    ✅ **Require conversation resolution before merging**
@@ -655,7 +655,7 @@ EOF
 
 ### Test 5: Validate Infrastructure Check
 
-**Purpose**: Verify Pulumi infrastructure validation works
+**Purpose**: Verify Terraform infrastructure validation works
 
 **Steps**:
 
@@ -664,28 +664,30 @@ EOF
    git checkout -b test/validate-infra-fail
    ```
 
-2. Add invalid Pulumi code:
+2. Add invalid Terraform config:
    ```bash
-   cat > infrastructure/pulumi/components/test-invalid/index.ts <<'EOF'
-   // This file has TypeScript errors
-   import * as pulumi from "@pulumi/pulumi";
-
-   const badVariable: string = 123; // Type error
+   mkdir -p infrastructure/terraform/modules/test-invalid
+   cat > infrastructure/terraform/modules/test-invalid/main.tf <<'EOF'
+   # This file has HCL syntax errors
+   resource "google_project" "bad" {
+     name = 123  # Type error: expected string
+     invalid_attr = true
+   }
    EOF
-   git add infrastructure/pulumi/components/test-invalid/index.ts
-   git commit -m "Test: Add invalid Pulumi code"
+   git add infrastructure/terraform/modules/test-invalid/main.tf
+   git commit -m "Test: Add invalid Terraform config"
    ```
 
 3. Push and create PR:
    ```bash
    git push -u origin test/validate-infra-fail
-   gh pr create --title "Test: Infrastructure Validation Fail" --body "Testing Pulumi validation"
+   gh pr create --title "Test: Infrastructure Validation Fail" --body "Testing Terraform validation"
    ```
 
 4. Observe GitHub Actions tab:
 
    - `validate-infrastructure` job should fail
-   - Error message should indicate TypeScript compilation error
+   - Error message should indicate Terraform validation error
    - PR should be blocked from merging
 
 5. Clean up:
@@ -910,7 +912,7 @@ Both outcomes are compliant and indicate no issues detected.
 
 ### Note: Infrastructure Validation Always Passes
 
-**Behavior**: The "Validate Infrastructure (Pulumi)" job always shows ✅ PASSED
+**Behavior**: The "Validate Infrastructure (Terraform)" job always shows ✅ PASSED
 
 **This is Expected!** ✅
 
@@ -919,12 +921,12 @@ Both outcomes are compliant and indicate no issues detected.
 The infrastructure validation job uses an **early-pass pattern**:
 
 1. **Job always runs** (never skipped)
-2. **First step**: Check if PR modified any files in `infrastructure/pulumi/`
+2. **First step**: Check if PR modified any files in `infrastructure/terraform/`
 3. **If no infrastructure changed**: Exit immediately with success and notice: "No infrastructure files were modified"
 4. **If infrastructure changed**: Proceed with full validation:
 
-   - TypeScript compilation (`tsc --noEmit`)
-   - Pulumi preview for affected stacks
+   - HCL syntax validation (`terraform validate`)
+   - Terraform plan for affected modules
 
 **Benefits**:
 
@@ -944,8 +946,8 @@ When no infrastructure changed:
 When infrastructure was changed:
 ```
 ✓ Infrastructure files were modified in this PR
-✓ TypeScript compilation: PASSED
-✓ Pulumi preview: PASSED (3 resources unchanged)
+✓ Terraform validate: PASSED
+✓ Terraform plan: PASSED (3 resources unchanged)
 ✅ All infrastructure validation checks passed
 ```
 
@@ -1049,7 +1051,8 @@ This CI/CD system has been validated per:
 | --- | --- | --- | --- |
 | 2025-12-28 | 1.1 | Added elspais tool references; removed redundant Test 2 (invalid requirement test) | Claude Code |
 | 2025-10-28 | 1.0 | Initial CI/CD specification | DevOps Team |
-| 2025-12-28 | 2.0 | Added Pulumi infrastructure validation stage, cross-references to IaC docs | Claude |
+| 2025-12-28 | 2.0 | Added infrastructure validation stage, cross-references to IaC docs | Claude |
+| 2026-02-24 | 2.1 | Replaced Pulumi references with Terraform (project uses Terraform, not Pulumi) | Claude Code |
 
 ---
 

@@ -18,7 +18,6 @@
 #   - Branch health (blocks commits on merged branches)
 #   - Branch protection (blocks commits to main/master)
 #   - Ticket-branch consistency (warns on mismatch)
-#   - Dockerfile linting (if hadolint available)
 #   - Dart code quality (dart format + dart analyze)
 #   - TypeScript code quality (ESLint)
 #   - Markdown linting (if markdownlint available)
@@ -211,51 +210,7 @@ if [ -d "$PLUGIN_DIR" ]; then
 fi
 
 # =====================================================
-# 2. Dockerfile Linting (Built-in)
-# =====================================================
-
-# Check if any Dockerfiles are being committed
-DOCKERFILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(Dockerfile|\.dockerfile)$' || true)
-
-if [ -n "$DOCKERFILES_CHANGED" ]; then
-    echo "🐳 Linting Dockerfiles..."
-    echo ""
-
-    # Check if hadolint is installed
-    if command -v hadolint &> /dev/null; then
-        HADOLINT_FAILED=0
-
-        while IFS= read -r dockerfile; do
-            echo "  Checking: $dockerfile"
-            if ! hadolint "$dockerfile"; then
-                HADOLINT_FAILED=1
-            fi
-        done <<< "$DOCKERFILES_CHANGED"
-
-        if [ $HADOLINT_FAILED -eq 1 ]; then
-            echo ""
-            echo "❌ Dockerfile linting failed!"
-            echo ""
-            echo "Fix the errors above before committing."
-            echo "See https://github.com/hadolint/hadolint for rules."
-            echo ""
-            echo "To bypass this check (NOT RECOMMENDED):"
-            echo "  git commit --no-verify"
-            exit 1
-        fi
-
-        echo ""
-        echo "✅ Dockerfile linting passed!"
-        echo ""
-    else
-        echo "⚠️  WARNING: hadolint not installed - skipping Dockerfile linting"
-        echo "   Install: https://github.com/hadolint/hadolint#install"
-        echo ""
-    fi
-fi
-
-# =====================================================
-# 3. Dart Code Quality (Format + Analyze)
+# 2. Dart Code Quality (Format + Analyze)
 # =====================================================
 # For Dart code changes in apps/ directory:
 #   - Run dart format on changed files
@@ -349,7 +304,7 @@ $DIR"
 fi
 
 # =====================================================
-# 4. TypeScript Code Quality (ESLint)
+# 3. TypeScript Code Quality (ESLint)
 # =====================================================
 # For TypeScript code changes in apps/ directory:
 #   - Run ESLint and reject commit if it fails
@@ -424,7 +379,7 @@ $DIR"
 fi
 
 # =====================================================
-# 5. Requirement Hash Update (elspais)
+# 4. Requirement Hash Update (elspais)
 # =====================================================
 # Auto-update stale requirement hashes before commit
 # This ensures hashes are always current
@@ -453,7 +408,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 6. Markdown Linting (Built-in)
+# 5. Markdown Linting (Built-in)
 # =====================================================
 
 # Check if any markdown files are being committed
@@ -500,6 +455,11 @@ fi
 # 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
 # =====================================================
 #
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006-C: Increment version numbers following semantic versioning
+#   REQ-o00017-F: Pre-commit hooks run automatically before accepting commits
+#   REQ-o00017-H: Pre-commit hooks block invalid commits (exit code 1)
+#
 # On PR-intended branches, detects which Dart/Flutter projects
 # have source changes (including via dependencies) and increments
 # the +N build number. Bumped files are staged so they become
@@ -510,12 +470,17 @@ fi
 # skip re-bumping. This prevents infinite increments on
 # repeated commits.
 
+# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE before running Flutter/Dart commands.
+# Git hooks set these, which causes Flutter to report version as 0.0.0-unknown.
+unset GIT_DIR GIT_WORK_TREE
+
 # Skip bumps on main/master (already checked above, but be safe)
 if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
 
-    # Load shared project definitions
+    # Load shared project definitions and version utilities
     HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
     source "$HOOK_DIR/project-defs.sh"
+    source "$HOOK_DIR/version-utils.sh"
 
     # Get repo root
     REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -553,51 +518,30 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 continue
             fi
 
-            # Check if any trigger path matches a changed file
-            should_bump=false
+            # Determine what changed: code (own source) vs any trigger (infra/dep)
             own_dir=$(dirname "$pubspec")/
-            for trigger in $triggers; do
-                if echo "$BUMP_CHANGED_FILES" | grep -q "^${trigger}"; then
-                    if [ "$trigger" = "$own_dir" ]; then
-                        # Own directory: exclude pubspec changes (avoid self-trigger)
-                        relevant=$(echo "$BUMP_CHANGED_FILES" | grep "^${trigger}" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
-                    else
-                        # Dependency directory: allow all changes including pubspec bumps (cascade)
-                        relevant=$(echo "$BUMP_CHANGED_FILES" | grep "^${trigger}" || true)
-                    fi
-                    if [ -n "$relevant" ]; then
-                        should_bump=true
-                        break
-                    fi
-                fi
-            done
+            code_changed=false
+            any_trigger=false
 
-            if [ "$should_bump" = true ]; then
+            if has_code_changes "$own_dir" "$BUMP_CHANGED_FILES"; then
+                code_changed=true
+                any_trigger=true
+            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES" "$own_dir"; then
+                any_trigger=true
+            fi
+
+            if [ "$any_trigger" = true ]; then
                 current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
 
-                # Parse current build number
-                if [[ "$current" == *"+"* ]]; then
-                    current_build="${current##*+}"
-                else
-                    current_build=0
-                fi
-
-                # Get the build number from origin/main for comparison
+                # Get the version from origin/main for comparison
                 main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
-                if [ -n "$main_version" ] && [[ "$main_version" == *"+"* ]]; then
-                    main_build="${main_version##*+}"
-                else
-                    main_build=0
-                fi
 
-                # Only bump if we haven't already bumped above main's build number
-                if [ "$current_build" -gt "$main_build" ]; then
+                # Skip if already properly bumped for this change type
+                if verify_version_bumped "$current" "${main_version:-0}" "$code_changed"; then
                     continue
                 fi
 
-                base_version="${current%%+*}"
-                new_build=$((main_build + 1))
-                new_version="${base_version}+${new_build}"
+                new_version=$(compute_new_version "$current" "${main_version:-$current}" "$code_changed")
 
                 # Update pubspec.yaml (portable: works on both BSD and GNU sed)
                 if sed --version >/dev/null 2>&1; then
@@ -610,7 +554,11 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 git add "$FULL_PUBSPEC"
 
                 BUMPED_PUBSPECS+=("$pubspec")
-                echo "  📦 $name: $current -> $new_version"
+                if [ "$code_changed" = true ]; then
+                    echo "  📦 $name: $current -> $new_version (code change)"
+                else
+                    echo "  📦 $name: $current -> $new_version (build trigger)"
+                fi
                 BUMPED_LIST="${BUMPED_LIST} ${name}"
             fi
         done
@@ -634,9 +582,11 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 fi
 
                 if [ "$PUB_EXIT" -ne 0 ]; then
-                    echo "  ⚠️  pub get failed in $(dirname "$pubspec") (exit $PUB_EXIT)"
-                    echo "     $PUB_OUTPUT" | head -5 | sed 's/^/     /'
-                    echo "     Lock file may be stale — run pub get manually."
+                    echo "  ❌ pub get failed in $(dirname "$pubspec") (exit $PUB_EXIT)"
+                    echo "$PUB_OUTPUT" | sed 's/^/     /'
+                    echo ""
+                    echo "  Resolve the dependency issue above, then re-commit."
+                    exit 1
                 else
                     git add "$LOCK_FILE"
                 fi

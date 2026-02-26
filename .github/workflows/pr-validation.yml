@@ -1,22 +1,19 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00014: Requirement Validation Tooling
+#   REQ-d00030: CI/CD Environment Parity
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
 #   REQ-o00017: Version Control Workflow (commit message validation)
 #   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
 #   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit messages, post-merge)
-#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks)
+#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks, Trivy)
 #   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
+#   REQ-p01018: Security Audit and Compliance (Trivy SARIF upload)
 
 name: PR Validation
 
 on:
   pull_request:
-    branches:
-      - main
-      - develop
-      - 'feature/**'
-      - 'release/**'
     types: [opened, synchronize, reopened, edited]
   push:
     branches:
@@ -31,8 +28,74 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
+  security-events: write
+  packages: read
+  actions: read  # Required for gh run watch in start-ci-container
 
 jobs:
+  # ===========================================================================
+  # Security scan — Combined Trivy vuln + IaC + secret scanning with SARIF upload
+  # Runs on every PR and push to main/develop so GitHub Code Scanning always
+  # has results, unblocking the repository ruleset requirement.
+  # IMPLEMENTS REQUIREMENTS:
+  #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
+  #   REQ-o00080: Secret and Vulnerability Scanning (Trivy multi-layer scanning)
+  # ===========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Combined vuln + IaC + secret scan in a single `fs` pass.
+      # Implements: REQ-o00080-B (dependency vuln scan),
+      #             REQ-o00080-C (IaC misconfig scan),
+      #             REQ-o00080-A (secret scan)
+      - name: Run Trivy security scanner (vulnerabilities + misconfigurations)
+        uses: aquasecurity/trivy-action@0.34.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,misconfig,secret'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          skip-dirs: 'node_modules,vendor,.git'
+        env:
+          TRIVY_QUIET: true
+
+      # Trivy's misconfig scanner (v0.56.0+) emits SARIF with empty
+      # artifactLocation URIs, which GitHub Code Scanning rejects:
+      #   "locationFromSarifResult: expected artifact location"
+      # See: https://github.com/aquasecurity/trivy/issues/8141
+      # Patch empty URIs to "." so the upload succeeds.
+      - name: Fix Trivy SARIF artifact locations
+        if: always()
+        run: |
+          jq '(.runs[].results[]?.locations[]?
+               .physicalLocation.artifactLocation.uri) |=
+               if . == "" or . == null then "." else . end' \
+            trivy-results.sarif > trivy-results-fixed.sarif
+          mv trivy-results-fixed.sarif trivy-results.sarif
+
+      # Implements: REQ-o00080-D (upload results to GitHub Security)
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
+        continue-on-error: true
+
+
   # ===========================================================================
   # Single fast-fail validation job for pull requests
   # Replaces 10 parallel jobs with one sequential script (CUR-957)
@@ -49,35 +112,43 @@ jobs:
         with:
           fetch-depth: 0  # Full history for commit traversal and gitleaks
 
-      - name: Load version pinning
-        id: versions
-        run: |
-          source .github/versions.env
-          echo "python_version=${PYTHON_VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Start CI container
+        uses: ./.github/actions/start-ci-container
         with:
-          python-version: '${{ steps.versions.outputs.python_version }}'
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run validation
-        run: .github/scripts/validate-pr.sh
+        working-directory: tools/dev-env
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_REF: ${{ github.base_ref }}
-          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PR_TITLE="$PR_TITLE" \
+            -e PR_NUMBER="${{ github.event.pull_request.number }}" \
+            -e PR_URL="${{ github.event.pull_request.html_url }}" \
+            -e BASE_SHA="${{ github.event.pull_request.base.sha }}" \
+            -e HEAD_SHA="${{ github.event.pull_request.head.sha }}" \
+            -e BASE_REF="${{ github.base_ref }}" \
+            -e EVENT_NAME="${{ github.event_name }}" \
+            -e GITHUB_ENV="/workspace/src/.ci-github-env" \
+            ci bash -c "cd /workspace/src && .github/scripts/validate-pr.sh"
+
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      - name: Import GITHUB_ENV from container
+        run: |
+          if [ -f .ci-github-env ]; then
+            cat .ci-github-env >> "$GITHUB_ENV"
+          fi
 
       - name: Upload traceability artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-reports-${{ github.sha }}
-          path: ci-reports/
+          name: build-reports-${{ github.sha }}
+          path: build-reports/
           retention-days: 90
           if-no-files-found: ignore  # Not all PRs generate traceability reports
 
@@ -91,7 +162,7 @@ jobs:
             comment += 'All requirements have been validated successfully.\n\n';
 
             try {
-              const matrix = fs.readFileSync('ci-reports/combined/traceability/traceability_matrix.md', 'utf8');
+              const matrix = fs.readFileSync('build-reports/combined/traceability/traceability_matrix.md', 'utf8');
               const lines = matrix.split('\n');
 
               const summaryStart = lines.findIndex(l => l.includes('## Summary'));
@@ -116,6 +187,11 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
 
   # ===========================================================================
   # Post-merge validation: Check squash merge commits on main/develop

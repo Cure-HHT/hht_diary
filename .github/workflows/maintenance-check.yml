@@ -39,14 +39,13 @@ jobs:
         run: |
           # Files that require quarterly review (90 days)
           QUARTERLY_FILES=(
-            "tools/dev-env/docker/dev.Dockerfile"
-            "tools/dev-env/docker/qa.Dockerfile"
-            "tools/dev-env/docker/ops.Dockerfile"
+            "tools/dev-env/docker/devops.Dockerfile"
+            "tools/dev-env/docker/audit.Dockerfile"
           )
 
           # Files that require annual review (365 days)
           ANNUAL_FILES=(
-            "tools/dev-env/docker/base.Dockerfile"
+            "tools/dev-env/docker/ci.Dockerfile"
           )
 
           CURRENT_DATE=$(date +%s)
@@ -117,34 +116,25 @@ jobs:
           echo "Current pinned versions (from Dockerfiles):"
           echo ""
 
-          # Extract pinned versions
-          echo "📦 Supabase CLI:"
-          grep "ENV SUPABASE_CLI_VERSION" tools/dev-env/docker/dev.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/supabase/cli/releases"
+          # Extract pinned versions from versions.env
+          echo "📦 Pinned versions from .github/versions.env:"
+          echo ""
+          cat .github/versions.env | grep -v '^#' | grep -v '^$' | grep '=' | while read line; do
+            echo "  $line"
+          done
           echo ""
 
-          echo "📦 kubectl:"
-          grep "ENV KUBECTL_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/kubernetes/kubernetes/releases"
+          echo "📦 CI container tool versions:"
+          grep "ARG.*VERSION" tools/dev-env/docker/ci.Dockerfile | head -10 || true
           echo ""
 
-          echo "📦 Cosign:"
-          grep "ENV COSIGN_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/sigstore/cosign/releases"
-          echo ""
-
-          echo "📦 Syft:"
-          grep "ENV SYFT_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/anchore/syft/releases"
-          echo ""
-
-          echo "📦 Grype:"
-          grep "ENV GRYPE_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/anchore/grype/releases"
+          echo "📦 DevOps container tool versions:"
+          grep "ARG.*VERSION" tools/dev-env/docker/devops.Dockerfile | head -10 || true
           echo ""
 
           echo "ℹ️  This is informational - manual review required for FDA compliance"
           echo "   Review release notes and test before updating pinned versions"
+          echo "   All versions centralized in .github/versions.env"
 
       - name: Generate maintenance report
         if: always()
@@ -166,12 +156,11 @@ jobs:
           ### Files Checked
 
           **Quarterly Review Required (90 days)**:
-          - tools/dev-env/docker/dev.Dockerfile
-          - tools/dev-env/docker/qa.Dockerfile
-          - tools/dev-env/docker/ops.Dockerfile
+          - tools/dev-env/docker/devops.Dockerfile
+          - tools/dev-env/docker/audit.Dockerfile
 
           **Annual Review Required (365 days)**:
-          - tools/dev-env/docker/base.Dockerfile
+          - tools/dev-env/docker/ci.Dockerfile
 
           ### Pinned Tool Versions
 

@@ -61,3 +61,6 @@
 
 # Linear CLI tools (not needed in containers)
 **/tools/linear-cli
+
+# Requirement validation tools (not needed in containers)
+**/tools/requirements
