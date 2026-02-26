@@ -224,6 +224,25 @@ module "billing_alerts" {
 }
 
 # -----------------------------------------------------------------------------
+# Billing Stop Function (automated cost control – disables billing)
+# Unlinks the billing account when spend exceeds the configured threshold.
+# -----------------------------------------------------------------------------
+
+module "billing_stop" {
+  source = "../modules/billing-stop-funk"
+  count  = var.enable_cost_controls ? 1 : 0
+
+  project_id            = var.project_id
+  project_number        = var.project_number
+  region                = var.region
+  sponsor               = var.sponsor
+  environment           = var.environment
+  budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
+  function_source_dir   = "${path.module}/../modules/billing-stop-funk/src"
+  slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
+}
+
+# -----------------------------------------------------------------------------
 # Identity Platform (HIPAA/GDPR-compliant authentication)
 # -----------------------------------------------------------------------------
 
