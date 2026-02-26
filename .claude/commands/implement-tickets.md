@@ -134,8 +134,8 @@ After implementing 5 tickets:
 
 2. **Update traceability matrix**:
    ```bash
-   python3 tools/requirements/validate_requirements.py
-   python3 tools/requirements/generate_traceability.py --format both
+   elspais validate
+   elspais trace --format both
    ```
 
 3. **Git status**:
@@ -172,7 +172,7 @@ After implementing 5 tickets:
 | --- | --- | --- |
 | Database schema | SQL files | `database/schema.sql` |
 | Migrations | SQL files | `database/migrations/` |
-| Validation tooling | Python scripts | `tools/requirements/` |
+| Validation tooling | elspais CLI | `elspais validate` / `elspais trace` |
 | Git hooks | Bash scripts | `.githooks/` |
 | Documentation | Markdown files | `docs/`, `spec/` |
 | ADRs | Markdown files | `docs/adr/` |

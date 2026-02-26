@@ -4,6 +4,9 @@
 
 set -e  # Exit on any error
 
+# Change to the package root directory (parent of tool/)
+cd "$(dirname "$0")/.."
+
 # Parse command line arguments
 CONCURRENCY="10"
 
@@ -13,10 +16,15 @@ while [[ $# -gt 0 ]]; do
       CONCURRENCY="$2"
       shift 2
       ;;
+    -u)
+      # Unit-only flag (no-op: all tests in this package are unit tests)
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--concurrency N]"
-      echo "  --concurrency N    Set test concurrency (default: 10)"
+      echo "Usage: $0 [-u] [--concurrency N]"
+      echo "  -u               Run unit tests only (default, all tests are unit tests)"
+      echo "  --concurrency N  Set test concurrency (default: 10)"
       exit 1
       ;;
   esac

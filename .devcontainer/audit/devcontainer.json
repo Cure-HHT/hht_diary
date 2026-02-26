@@ -1,0 +1,60 @@
+{
+  // ============================================================
+  // Audit Dev Container — Read-only access
+  // ============================================================
+  //
+  // For audit and compliance review: DB queries, cloud logs, OTS verification.
+  // All mounts are read-only.
+  //
+  // FIRST-TIME SETUP: Run tools/dev-env/setup.sh before opening.
+
+  "name": "Clinical Diary - Audit (Read-Only)",
+  "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
+  "service": "audit",
+  "workspaceFolder": "/workspace/src",
+
+  "initializeCommand": "${localWorkspaceFolder}/.devcontainer/check-prerequisites.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Git viewing
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+
+        // Markdown viewing
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-preview-github-styles",
+
+        // Code viewing
+        "streetsidesoftware.code-spell-checker"
+      ],
+
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+
+        // Read-only indicators
+        "files.readonlyInclude": {
+          "**/*": true
+        },
+
+        "editor.readonlyMessage": "Audit role has read-only access. Switch to devops for editing.",
+
+        // Role identification
+        "window.title": "[AUDIT-READ-ONLY] ${activeEditorShort}${separator}${rootName}"
+      }
+    }
+  },
+
+  "forwardPorts": [],
+
+  "postCreateCommand": "echo 'Audit environment ready. Tools: psql, gcloud, ots, git'",
+
+  "remoteUser": "devuser"
+}

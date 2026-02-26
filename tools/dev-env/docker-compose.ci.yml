@@ -3,98 +3,59 @@
 #   REQ-d00030: CI/CD Environment Parity
 #
 # Docker Compose CI Override
-# Reduces resource limits for GitHub Actions (2 CPU limit)
+# CI-specific configuration for GitHub Actions runners.
 #
-# Usage:
-#   docker-compose -f docker-compose.yml -f docker-compose.ci.yml up
+# Usage (no database):
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up ci
+#
+# Usage (with database):
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db up ci postgres
 
 services:
-  # ============================================================
-  # Developer Environment - CI Limits
-  # ============================================================
-  dev:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'      # GitHub Actions max (reduced from 4)
-          memory: 4G     # Reduced from 6G for stability
-        reservations:
-          cpus: '1'      # Reduced from 2
-          memory: 2G     # Reduced from 4G
-
-    # CI: Override volumes to exclude host-specific mounts
-    # GitHub runners don't have meaningful .gitconfig or .ssh
-    # Mounting non-existent files causes Docker to create directories, breaking checkout cleanup
+  ci:
+    image: clinical-diary-ci:latest
+    user: "devuser:devuser"
+    stdin_open: true
+    tty: true
     volumes:
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
       - ../../:/workspace/src:cached
-      # Excluded: ${HOME}/.ssh (not needed in CI, causes directory creation)
-      # Excluded: ${HOME}/.gitconfig (not needed in CI, git config set in Dockerfile)
-
-  # ============================================================
-  # QA Environment - CI Limits
-  # ============================================================
-  qa:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'      # GitHub Actions max (reduced from 4)
-          memory: 4G     # Reduced from 6G for stability
-        reservations:
-          cpus: '1'      # Reduced from 2
-          memory: 2G     # Reduced from 4G
-
-    # CI: Override volumes to exclude host-specific mounts
-    volumes:
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
-      - ../../:/workspace/src:cached
-      - qa-reports:/workspace/reports
-      # Excluded: ${HOME}/.ssh (not needed in CI)
-      # Excluded: ${HOME}/.gitconfig (not needed in CI)
-
-  # ============================================================
-  # DevOps Environment - CI Limits
-  # Already at 2 CPUs, but reduce memory for stability
-  # ============================================================
-  ops:
     deploy:
       resources:
         limits:
           cpus: '2'
-          memory: 3G     # Reduced from 4G
+          memory: 6G
         reservations:
           cpus: '1'
-          memory: 1G     # Reduced from 2G
+          memory: 4G
+    networks:
+      - ci-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
 
-    # CI: Override volumes to exclude host-specific mounts
-    volumes:
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
-      - ../../:/workspace/src:cached
-      # Excluded: ${HOME}/.ssh (not needed in CI)
-      # Excluded: ${HOME}/.gitconfig (not needed in CI)
-
-  # ============================================================
-  # Management Environment - CI Limits
-  # Already at 2 CPUs, keep as-is
-  # ============================================================
-  mgmt:
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["db"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clinical_diary_test
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ci-net
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
           cpus: '1'
-          memory: 1G
+          memory: 512M
 
-    # CI: Override volumes to exclude host-specific mounts
-    volumes:
-      - clinical-diary-repos:/workspace/repos:ro
-      - clinical-diary-exchange:/workspace/exchange:ro
-      - ../../:/workspace/src:ro
-      - qa-reports:/workspace/reports:ro
-      # Excluded: ${HOME}/.ssh (not needed in CI)
-      # Excluded: ${HOME}/.gitconfig (not needed in CI)
+networks:
+  ci-net:
+    driver: bridge

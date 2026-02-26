@@ -85,16 +85,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          cd tools/requirements
-          pip install -r requirements.txt || echo "No requirements.txt"
+      - name: Install elspais
+        run: pip install elspais
 
       - name: Validate requirement traceability
-        run: python3 tools/requirements/validate_requirements.py
+        run: elspais validate
 
       - name: Generate traceability matrix
-        run: python3 tools/requirements/generate_traceability.py --format markdown
+        run: elspais trace --format markdown
 
   lint-code:
     runs-on: ubuntu-latest

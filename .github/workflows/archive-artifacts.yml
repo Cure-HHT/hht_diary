@@ -39,8 +39,8 @@ jobs:
       - name: Download build reports
         uses: actions/download-artifact@v4
         with:
-          name: build-reports-${{ github.sha }}
-          path: ./build-reports
+          name: ci-reports-${{ github.sha }}
+          path: ./ci-reports
         continue-on-error: true  # May not exist for manual runs
 
       - name: Create archive metadata
@@ -79,9 +79,9 @@ jobs:
           echo "COMBINED_ARCHIVE=$ARCHIVE_NAME" >> $GITHUB_ENV
 
           # Package combined reports with metadata
-          if [ -d "build-reports/combined" ]; then
+          if [ -d "ci-reports/combined" ]; then
             tar -czf $ARCHIVE_NAME \
-              -C build-reports/combined \
+              -C ci-reports/combined \
               . \
               -C ../.. \
               metadata.json
@@ -150,9 +150,9 @@ jobs:
             ARCHIVE_NAME="${sponsor}-reports-${VERSION}-$(date +%Y%m%d-%H%M%S).tar.gz"
 
             # Package sponsor-specific reports
-            if [ -d "build-reports/$sponsor" ]; then
+            if [ -d "ci-reports/$sponsor" ]; then
               tar -czf $ARCHIVE_NAME \
-                -C build-reports/$sponsor \
+                -C ci-reports/$sponsor \
                 . \
                 -C ../.. \
                 metadata.json

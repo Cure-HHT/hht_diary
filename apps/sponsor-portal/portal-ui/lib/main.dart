@@ -47,7 +47,7 @@ void main() async {
     // Deployed environments: fetch config from server
     try {
       final config = await IdentityConfigService().fetchConfig();
-      final apiBaseUrl = kDebugMode ? 'http://localhost:8080' : Uri.base.origin;
+      final apiBaseUrl = kDebugMode ? 'http://localhost:8084' : Uri.base.origin;
 
       FlavorConfig.initializeWithConfig(flavor, config, apiBaseUrl: apiBaseUrl);
       debugPrint('Identity Platform config loaded: ${config.projectId}');

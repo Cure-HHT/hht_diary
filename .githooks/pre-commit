@@ -8,17 +8,16 @@
 #   REQ-o00053: Branch Protection Enforcement
 #
 # Auto-discovers and executes pre-commit hooks from all
-# installed Claude Code plugins in anspar-cc-plugins.
+# installed Claude Code plugins via anspar-wf.
 #
 # Plugin Discovery:
-#   Scans: tools/anspar-cc-plugins/plugins/*/hooks/pre-commit
+#   Scans: $ANSPAR_WF_PLUGINS/*/hooks/pre-commit (or ~/anspar-wf/plugins/plugins)
 #   Executes: All found hooks in alphabetical order
 #
 # Built-in Checks:
 #   - Branch health (blocks commits on merged branches)
 #   - Branch protection (blocks commits to main/master)
 #   - Ticket-branch consistency (warns on mismatch)
-#   - Dockerfile linting (if hadolint available)
 #   - Dart code quality (dart format + dart analyze)
 #   - TypeScript code quality (ESLint)
 #   - Markdown linting (if markdownlint available)
@@ -34,10 +33,30 @@
 set -e
 
 # =====================================================
+# anspar-wf plugin path (installed via pip)
+# =====================================================
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
+
+# =====================================================
+# Portable version comparison (macOS BSD sort lacks -V)
+# =====================================================
+_ver_lt() {
+    # Returns 0 (true) if $1 < $2 using numeric dot-separated comparison
+    local IFS=.
+    local i a=($1) b=($2)
+    for ((i=0; i<${#b[@]}; i++)); do
+        [[ -z "${a[i]}" ]] && a[i]=0
+        if ((10#${a[i]} < 10#${b[i]})); then return 0; fi
+        if ((10#${a[i]} > 10#${b[i]})); then return 1; fi
+    done
+    return 1
+}
+
+# =====================================================
 # 0. Branch Health Check - Block Commits on Merged Branches
 # =====================================================
 
-BRANCH_HEALTH_SCRIPT="tools/anspar-cc-plugins/plugins/workflow/scripts/branch-health-check.sh"
+BRANCH_HEALTH_SCRIPT="$ANSPAR_PLUGINS/workflow/scripts/branch-health-check.sh"
 
 if [ -x "$BRANCH_HEALTH_SCRIPT" ]; then
     BRANCH_HEALTH_JSON=$("$BRANCH_HEALTH_SCRIPT" --format=json 2>/dev/null || echo '{"status": "error", "canWork": true}')
@@ -91,7 +110,7 @@ fi
 # =====================================================
 # Warns if the branch name doesn't match the claimed ticket
 
-GET_ACTIVE_TICKET="tools/anspar-cc-plugins/plugins/workflow/scripts/get-active-ticket.sh"
+GET_ACTIVE_TICKET="$ANSPAR_PLUGINS/workflow/scripts/get-active-ticket.sh"
 
 if [ -x "$GET_ACTIVE_TICKET" ]; then
     ACTIVE_TICKET=$("$GET_ACTIVE_TICKET" --format=id 2>/dev/null || echo "")
@@ -113,7 +132,7 @@ if [ -x "$GET_ACTIVE_TICKET" ]; then
                 echo "   You are committing to a branch for a different ticket."
                 echo "   If this is intentional, you can continue."
                 echo ""
-                echo "   To switch tickets: tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh $BRANCH_TICKET"
+                echo "   To switch tickets: $ANSPAR_PLUGINS/workflow/scripts/switch-ticket.sh $BRANCH_TICKET"
                 echo "   To continue anyway: This is just a warning, commit will proceed."
                 echo ""
             fi
@@ -140,7 +159,7 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     if command -v elspais &> /dev/null; then
         INSTALLED_ELSPAIS=$(elspais --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ -n "$INSTALLED_ELSPAIS" ]; then
-            if [ "$(printf '%s\n%s\n' "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION" | sort -V | head -n1)" != "$ELSPAIS_VERSION" ]; then
+            if _ver_lt "$INSTALLED_ELSPAIS" "$ELSPAIS_VERSION"; then
                 echo "❌ ERROR: elspais $INSTALLED_ELSPAIS is older than required $ELSPAIS_VERSION"
                 echo ""
                 echo "   Update with one of:"
@@ -167,7 +186,7 @@ fi
 # 1. Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-PLUGIN_DIR="tools/anspar-cc-plugins/plugins"
+PLUGIN_DIR="$ANSPAR_PLUGINS"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin pre-commit hooks
@@ -191,51 +210,7 @@ if [ -d "$PLUGIN_DIR" ]; then
 fi
 
 # =====================================================
-# 2. Dockerfile Linting (Built-in)
-# =====================================================
-
-# Check if any Dockerfiles are being committed
-DOCKERFILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(Dockerfile|\.dockerfile)$' || true)
-
-if [ -n "$DOCKERFILES_CHANGED" ]; then
-    echo "🐳 Linting Dockerfiles..."
-    echo ""
-
-    # Check if hadolint is installed
-    if command -v hadolint &> /dev/null; then
-        HADOLINT_FAILED=0
-
-        while IFS= read -r dockerfile; do
-            echo "  Checking: $dockerfile"
-            if ! hadolint "$dockerfile"; then
-                HADOLINT_FAILED=1
-            fi
-        done <<< "$DOCKERFILES_CHANGED"
-
-        if [ $HADOLINT_FAILED -eq 1 ]; then
-            echo ""
-            echo "❌ Dockerfile linting failed!"
-            echo ""
-            echo "Fix the errors above before committing."
-            echo "See https://github.com/hadolint/hadolint for rules."
-            echo ""
-            echo "To bypass this check (NOT RECOMMENDED):"
-            echo "  git commit --no-verify"
-            exit 1
-        fi
-
-        echo ""
-        echo "✅ Dockerfile linting passed!"
-        echo ""
-    else
-        echo "⚠️  WARNING: hadolint not installed - skipping Dockerfile linting"
-        echo "   Install: https://github.com/hadolint/hadolint#install"
-        echo ""
-    fi
-fi
-
-# =====================================================
-# 3. Dart Code Quality (Format + Analyze)
+# 2. Dart Code Quality (Format + Analyze)
 # =====================================================
 # For Dart code changes in apps/ directory:
 #   - Run dart format on changed files
@@ -329,7 +304,7 @@ $DIR"
 fi
 
 # =====================================================
-# 4. TypeScript Code Quality (ESLint)
+# 3. TypeScript Code Quality (ESLint)
 # =====================================================
 # For TypeScript code changes in apps/ directory:
 #   - Run ESLint and reject commit if it fails
@@ -404,7 +379,7 @@ $DIR"
 fi
 
 # =====================================================
-# 5. Requirement Hash Update (elspais)
+# 4. Requirement Hash Update (elspais)
 # =====================================================
 # Auto-update stale requirement hashes before commit
 # This ensures hashes are always current
@@ -433,7 +408,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 6. Markdown Linting (Built-in)
+# 5. Markdown Linting (Built-in)
 # =====================================================
 
 # Check if any markdown files are being committed
@@ -473,6 +448,156 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
         echo "⚠️  WARNING: markdownlint not installed - skipping markdown linting"
         echo "   Install: npm install -g markdownlint-cli@${MARKDOWNLINT_CLI_VERSION:-latest}"
         echo ""
+    fi
+fi
+
+# =====================================================
+# 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
+# =====================================================
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006-C: Increment version numbers following semantic versioning
+#   REQ-o00017-F: Pre-commit hooks run automatically before accepting commits
+#   REQ-o00017-H: Pre-commit hooks block invalid commits (exit code 1)
+#
+# On PR-intended branches, detects which Dart/Flutter projects
+# have source changes (including via dependencies) and increments
+# the +N build number. Bumped files are staged so they become
+# part of the developer's commit — no separate bump commit needed.
+#
+# IMPORTANT: Only bumps ONCE per PR. If the pubspec.yaml
+# already has a higher build number than origin/main, we
+# skip re-bumping. This prevents infinite increments on
+# repeated commits.
+
+# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE before running Flutter/Dart commands.
+# Git hooks set these, which causes Flutter to report version as 0.0.0-unknown.
+unset GIT_DIR GIT_WORK_TREE
+
+# Skip bumps on main/master (already checked above, but be safe)
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+
+    # Load shared project definitions and version utilities
+    HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    source "$HOOK_DIR/project-defs.sh"
+    source "$HOOK_DIR/version-utils.sh"
+
+    # Get repo root
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+
+    # Combine staged files + branch history for trigger matching
+    BUMP_BASE_BRANCH="origin/main"
+    if ! git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+        BUMP_BASE_BRANCH="main"
+    fi
+
+    BUMP_CHANGED_FILES=""
+    if git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+        # Staged files (current commit) + branch history (previous commits)
+        BUMP_CHANGED_FILES=$({ git diff --cached --name-only; git diff --name-only "$BUMP_BASE_BRANCH"...HEAD 2>/dev/null; } | sort -u)
+    else
+        BUMP_CHANGED_FILES=$(git diff --cached --name-only)
+    fi
+
+    if [ -n "$BUMP_CHANGED_FILES" ]; then
+        BUMPED_LIST=""
+        # Collect projects that need lock file refresh (pubspec path)
+        BUMPED_PUBSPECS=()
+
+        # --- Pass 1: Bump all pubspec.yaml versions first ---
+        # This ensures all versions are updated before any pub get
+        # runs, so lock files resolve the correct dependency versions.
+
+        for project_def in "${PROJECT_DEFS[@]}"; do
+            IFS='|' read -r name pubspec triggers <<< "$project_def"
+
+            FULL_PUBSPEC="$REPO_ROOT/$pubspec"
+
+            # Skip if pubspec doesn't exist
+            if [ ! -f "$FULL_PUBSPEC" ]; then
+                continue
+            fi
+
+            # Determine what changed: code (own source) vs any trigger (infra/dep)
+            own_dir=$(dirname "$pubspec")/
+            code_changed=false
+            any_trigger=false
+
+            if has_code_changes "$own_dir" "$BUMP_CHANGED_FILES"; then
+                code_changed=true
+                any_trigger=true
+            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES" "$own_dir"; then
+                any_trigger=true
+            fi
+
+            if [ "$any_trigger" = true ]; then
+                current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
+
+                # Get the version from origin/main for comparison
+                main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+
+                # Skip if already properly bumped for this change type
+                if verify_version_bumped "$current" "${main_version:-0}" "$code_changed"; then
+                    continue
+                fi
+
+                new_version=$(compute_new_version "$current" "${main_version:-$current}" "$code_changed")
+
+                # Update pubspec.yaml (portable: works on both BSD and GNU sed)
+                if sed --version >/dev/null 2>&1; then
+                    sed -i "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+                else
+                    sed -i '' "s/^version: .*/version: ${new_version}/" "$FULL_PUBSPEC"
+                fi
+
+                # Stage the bumped pubspec.yaml
+                git add "$FULL_PUBSPEC"
+
+                BUMPED_PUBSPECS+=("$pubspec")
+                if [ "$code_changed" = true ]; then
+                    echo "  📦 $name: $current -> $new_version (code change)"
+                else
+                    echo "  📦 $name: $current -> $new_version (build trigger)"
+                fi
+                BUMPED_LIST="${BUMPED_LIST} ${name}"
+            fi
+        done
+
+        # --- Pass 2: Refresh lock files for tracked pubspec.lock ---
+        # Now that ALL pubspec.yaml versions are final, pub get will
+        # resolve the correct dependency versions in each lock file.
+
+        for pubspec in "${BUMPED_PUBSPECS[@]}"; do
+            PROJECT_DIR="$REPO_ROOT/$(dirname "$pubspec")"
+            LOCK_FILE="$PROJECT_DIR/pubspec.lock"
+
+            # Only update lock files that are tracked by git
+            if git ls-files --error-unmatch "$LOCK_FILE" &>/dev/null 2>&1; then
+                PUB_OUTPUT=""
+                PUB_EXIT=0
+                if grep -q "flutter:" "$PROJECT_DIR/pubspec.yaml" 2>/dev/null && command -v flutter &>/dev/null; then
+                    PUB_OUTPUT=$( (cd "$PROJECT_DIR" && flutter pub get --suppress-analytics) 2>&1) || PUB_EXIT=$?
+                elif command -v dart &>/dev/null; then
+                    PUB_OUTPUT=$( (cd "$PROJECT_DIR" && dart pub get) 2>&1) || PUB_EXIT=$?
+                fi
+
+                if [ "$PUB_EXIT" -ne 0 ]; then
+                    echo "  ❌ pub get failed in $(dirname "$pubspec") (exit $PUB_EXIT)"
+                    echo "$PUB_OUTPUT" | sed 's/^/     /'
+                    echo ""
+                    echo "  Resolve the dependency issue above, then re-commit."
+                    exit 1
+                else
+                    git add "$LOCK_FILE"
+                fi
+            fi
+        done
+
+        if [ -n "$BUMPED_LIST" ]; then
+            echo ""
+            echo "✅ Build numbers bumped for:${BUMPED_LIST}"
+            echo ""
+        fi
     fi
 fi
 

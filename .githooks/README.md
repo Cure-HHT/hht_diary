@@ -23,6 +23,40 @@ This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks
 
 ## Available Hooks
 
+### custom-pre-push
+
+**Purpose**: Extended pre-push validations sourced by the anspar-wf generated pre-push hook.
+
+**What it does**:
+
+1. **INDEX.md Validation**: Runs `elspais index --mode core validate`
+2. **Unset GIT_DIR/GIT_WORK_TREE**: Fixes Flutter version detection in hook context
+3. **Dart Dependency Resolution**: Runs `dart pub get` / `flutter pub get` across nested apps
+4. **Dart Format Check**: Validates formatting in all `apps/` projects
+5. **Dart Static Analysis**: Runs `dart analyze --fatal-infos` in all `apps/` projects
+6. **Per-App Test Discovery**: Runs `tool/test.sh` for each app directory with changes
+7. **Auto-Bump Clinical Diary Version**: Bumps patch version when source files change
+
+**Opt-Out**:
+
+Set the `SKIP_CUSTOM_PREPUSH` environment variable to skip all custom checks:
+
+```bash
+# Skip custom pre-push checks for this push
+SKIP_CUSTOM_PREPUSH=1 git push
+
+# Or export for the session
+export SKIP_CUSTOM_PREPUSH=1
+git push
+
+# Re-enable by unsetting
+unset SKIP_CUSTOM_PREPUSH
+```
+
+When skipped, a notice is printed confirming the checks were bypassed.
+
+---
+
 ### pre-push
 
 **Purpose**: Runs validation scripts before push with PR-aware blocking.
@@ -76,24 +110,23 @@ git push --no-verify
 
 1. **Branch Protection**: Blocks direct commits to main/master
 2. **Plugin Hooks**: Auto-discovers and runs pre-commit hooks from installed plugins
-3. **Dockerfile linting** (hadolint) - If Dockerfiles changed
-4. **Dart Code Quality** - If `.dart` files changed in `apps/`:
+3. **Dart Code Quality** - If `.dart` files changed in `apps/`:
    - Runs `dart format .` (auto-formats and re-stages files)
    - Runs `dart analyze --fatal-infos` (blocks on any issues)
-5. **TypeScript Code Quality** - If `.ts`/`.tsx` files changed in `apps/`:
+4. **TypeScript Code Quality** - If `.ts`/`.tsx` files changed in `apps/`:
    - Runs `npm run lint` (ESLint) for each affected project
    - Blocks commit if lint errors found
-6. **Markdown linting** (markdownlint) - If `.md` files changed
-7. **Traceability Matrix Regeneration** (plugin):
+5. **Markdown linting** (markdownlint) - If `.md` files changed
+6. **Traceability Matrix Regeneration** (plugin):
    - Automatically regenerates `traceability_matrix.md` and `traceability_matrix.html`
    - Stages updated matrices for commit
    - Only runs when spec/ files change
-8. **Requirement Validation** (plugin):
+7. **Requirement Validation** (plugin):
    - Validates requirement format (REQ-{p|o|d}NNNNN)
    - Checks requirement ID uniqueness
    - Verifies "Implements" references exist
    - Detects orphaned requirements
-9. **Spec Compliance Validation** (plugin):
+8. **Spec Compliance Validation** (plugin):
    - Validates file naming conventions
    - Enforces audience scope rules (PRD/Ops/Dev)
    - Detects code in PRD files
@@ -117,7 +150,6 @@ Only bypass if you're:
 
 - `dart` CLI for Dart formatting/analysis
 - Node.js/npm for TypeScript linting
-- `hadolint` for Dockerfile linting (optional): <https://github.com/hadolint/hadolint#install>
 - `markdownlint` for markdown linting (optional): `npm install -g markdownlint-cli`
 
 ## Troubleshooting
@@ -149,18 +181,14 @@ chmod +x tools/claude-marketplace/*/hooks/*
 
 ### Validation errors
 
-Plugins call validation scripts via elspais (or fallback to `tools/requirements/`). If validation fails:
+Plugins call validation scripts via elspais. If validation fails:
 
 1. Read the error message carefully
 2. See `spec/requirements-format.md` for format rules
 3. Run validation manually to see full output:
    ```bash
-   # Using elspais (primary)
    elspais validate
    elspais index validate
-
-   # Or using local scripts (fallback)
-   python3 tools/requirements/validate_requirements.py
    ```
 
 ### Pre-push blocking unexpectedly
@@ -202,5 +230,4 @@ See plugin documentation for detailed troubleshooting:
 
 - **Marketplace Overview**: `tools/claude-marketplace/README.md`
 - **Requirement format**: `spec/requirements-format.md`
-- **Validation tools**: `tools/requirements/README.md`
 - **Project instructions**: `CLAUDE.md`
