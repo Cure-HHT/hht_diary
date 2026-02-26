@@ -386,7 +386,7 @@ void main() {
             expect(find.byType(Image), findsWidgets);
 
             final image = tester.widget<Image>(find.byType(Image).first);
-            expect(image.image, isA<NetworkImage>());
+            expect(image.image, isA<AssetImage>());
           });
         },
       );
@@ -435,7 +435,7 @@ void main() {
             expect(find.byType(Image), findsWidgets);
 
             final image = tester.widget<Image>(find.byType(Image).first);
-            expect(image.image, isA<NetworkImage>());
+            expect(image.image, isA<AssetImage>());
           });
         },
       );
