@@ -55,13 +55,6 @@ jobs:
         uses: actions/checkout@v4
 
       # Combined vuln + IaC + secret scan in a single `fs` pass.
-      # Why not separate `config` scan? Trivy CLI v0.56.0+ has a regression
-      # where `scan-type: config` produces SARIF with empty artifactLocation
-      # fields, causing GitHub Code Scanning to reject the upload with:
-      #   "locationFromSarifResult: expected artifact location"
-      # See: https://github.com/aquasecurity/trivy/issues/8141
-      # The `fs` scan with `scanners: vuln,misconfig,secret` covers the same
-      # ground and produces valid SARIF.
       # Implements: REQ-o00080-B (dependency vuln scan),
       #             REQ-o00080-C (IaC misconfig scan),
       #             REQ-o00080-A (secret scan)
@@ -78,6 +71,20 @@ jobs:
           skip-dirs: 'node_modules,vendor,.git'
         env:
           TRIVY_QUIET: true
+
+      # Trivy's misconfig scanner (v0.56.0+) emits SARIF with empty
+      # artifactLocation URIs, which GitHub Code Scanning rejects:
+      #   "locationFromSarifResult: expected artifact location"
+      # See: https://github.com/aquasecurity/trivy/issues/8141
+      # Patch empty URIs to "." so the upload succeeds.
+      - name: Fix Trivy SARIF artifact locations
+        if: always()
+        run: |
+          jq '(.runs[].results[]?.locations[]?
+               .physicalLocation.artifactLocation.uri) |=
+               if . == "" or . == null then "." else . end' \
+            trivy-results.sarif > trivy-results-fixed.sarif
+          mv trivy-results-fixed.sarif trivy-results.sarif
 
       # Implements: REQ-o00080-D (upload results to GitHub Security)
       - name: Upload Trivy results to GitHub Security
