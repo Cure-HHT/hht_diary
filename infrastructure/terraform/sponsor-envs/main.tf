@@ -124,6 +124,15 @@ module "database" {
   database_name          = "${var.sponsor}_${var.environment}_${var.database_name}"
   db_username            = var.db_username
   DB_PASSWORD            = var.DB_PASSWORD
+
+  # Backup & recovery (REQ-p00047, REQ-o00008)
+  # Daily backups at 02:00 UTC, stored in same region, PITR enabled
+  backup_start_time              = "02:00"
+  transaction_log_retention_days = 7
+
+  # Maintenance window: Sunday 05:00 UTC = 06:00 CET
+  maintenance_window_day  = 7
+  maintenance_window_hour = 5
 }
 
 # -----------------------------------------------------------------------------
@@ -241,6 +250,7 @@ module "billing_stop" {
   budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
   function_source_dir   = "${path.module}/../modules/billing-stop-funk/src"
   slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
+  threshold_cutoff      = var.threshold_cutoff
 }
 
 # -----------------------------------------------------------------------------

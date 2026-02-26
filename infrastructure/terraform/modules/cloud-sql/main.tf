@@ -5,6 +5,8 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: IaC for portal deployment
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
+#   REQ-p00047: Data Backup and Archival
+#   REQ-o00008: Backup and Retention Policy
 
 terraform {
   required_version = ">= 1.7.0"
@@ -48,9 +50,13 @@ locals {
     local.is_production ? 100 : (var.environment == "uat" ? 20 : 10)
   )
 
-  disk_autoresize_limit = local.is_production ? 500 : (var.environment == "uat" ? 100 : 50)
+  disk_autoresize_limit = var.disk_autoresize_limit_override > 0 ? var.disk_autoresize_limit_override : (
+    local.is_production ? 500 : (var.environment == "uat" ? 100 : 50)
+  )
 
-  backup_retention = local.is_production ? 30 : (var.environment == "uat" ? 14 : 7)
+  backup_retention = var.backup_retention_override > 0 ? var.backup_retention_override : (
+    local.is_production ? 30 : (var.environment == "uat" ? 14 : 7)
+  )
 
   common_labels = {
     sponsor     = var.sponsor
@@ -98,13 +104,14 @@ resource "google_sql_database_instance" "main" {
       ssl_mode                                      = "ENCRYPTED_ONLY"
     }
 
-    # Backup configuration
+    # Backup configuration (daily automated backups, same region)
+    # IMPLEMENTS: REQ-p00047 (A, C, F), REQ-o00008 (A, B)
     backup_configuration {
       enabled                        = true
-      start_time                     = "02:00"
+      start_time                     = var.backup_start_time
       location                       = var.region
       point_in_time_recovery_enabled = true
-      transaction_log_retention_days = 7
+      transaction_log_retention_days = var.transaction_log_retention_days
 
       backup_retention_settings {
         retained_backups = local.backup_retention
@@ -112,10 +119,10 @@ resource "google_sql_database_instance" "main" {
       }
     }
 
-    # Maintenance window
+    # Maintenance window (default: Sunday 05:00 UTC = 06:00 CET)
     maintenance_window {
-      day          = 7 # Sunday
-      hour         = 4 # 4 AM UTC
+      day          = var.maintenance_window_day
+      hour         = var.maintenance_window_hour
       update_track = local.is_production ? "stable" : "canary"
     }
 

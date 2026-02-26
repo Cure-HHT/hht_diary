@@ -378,6 +378,17 @@ variable "enable_cost_controls" {
 }
 
 
+variable "threshold_cutoff" {
+  description = "Fraction of budget at which billing is disabled (e.g. 0.50 = 50%)"
+  type        = number
+  default     = 0.50
+
+  validation {
+    condition     = var.threshold_cutoff > 0 && var.threshold_cutoff <= 1.0
+    error_message = "threshold_cutoff must be between 0 (exclusive) and 1.0 (inclusive)."
+  }
+}
+
 variable "SLACK_INCIDENT_WEBHOOK_URL" {
   description = "Slack webhook URL for billing alert notifications (from Doppler: TF_VAR_SLACK_INCIDENT_WEBHOOK_URL)"
   type        = string
