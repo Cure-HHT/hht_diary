@@ -22,10 +22,18 @@
 # or upon a merge to the main branch
 
 name: Build portal-server
+# IMPLEMENTS: REQ-o00043-A (auto-trigger deployment on merge to main)
 on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/sponsor-portal/**'
+      - 'apps/common-dart/trial_data_types/**'
+      - 'apps/edc/rave-integration/**'
+      - '.github/workflows/build-portal-server.yml'
+      - '.github/workflows/deploy-run-service.yml'
+      - 'tools/build/**'
     tags:
       - 'v*.*.*'
   workflow_dispatch:
