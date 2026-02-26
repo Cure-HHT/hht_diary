@@ -40,6 +40,29 @@ jobs:
           echo "CI Gate: Waiting for all checks on commit ${SHA:0:7}"
           echo ""
 
+          # Fetch check runs with retry on rate limit (HTTP 403)
+          fetch_checks() {
+            local retries=3
+            local wait=30
+            for i in $(seq 1 $retries); do
+              RESULT=$(gh api "repos/${REPO}/commits/${SHA}/check-runs" \
+                --paginate \
+                --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}' 2>&1) && {
+                echo "$RESULT"
+                return 0
+              }
+              if echo "$RESULT" | grep -qi "rate limit"; then
+                echo "::warning::API rate limit hit, backing off ${wait}s (retry $i/$retries)" >&2
+                sleep $wait
+                wait=$((wait * 2))
+              else
+                echo "::warning::API call failed: $RESULT" >&2
+                return 1
+              fi
+            done
+            return 1
+          }
+
           MAX_ATTEMPTS=60   # 60 * 30s = 30 minutes
           ATTEMPT=0
 
@@ -47,9 +70,7 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
 
             # Fetch all check runs for this commit
-            CHECKS=$(gh api "repos/${REPO}/commits/${SHA}/check-runs" \
-              --paginate \
-              --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}')
+            CHECKS=$(fetch_checks) || { echo "  Skipping poll (API error), will retry..."; sleep 30; continue; }
 
             # Count statuses (exclude ourselves)
             TOTAL=0

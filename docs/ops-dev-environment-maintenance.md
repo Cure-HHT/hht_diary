@@ -13,7 +13,6 @@
 ```bash
 # 1. Check for outdated tool versions
 # Review release notes for:
-# - Supabase CLI: https://github.com/supabase/cli/releases
 # - kubectl: https://github.com/kubernetes/kubernetes/releases
 # - Cosign: https://github.com/sigstore/cosign/releases
 # - Syft: https://github.com/anchore/syft/releases
@@ -62,12 +61,12 @@ git push origin main
 
 ### Security Patches (Immediate)
 ```bash
-# Example: Supabase security fix
+# Example: Terraform security fix
 vim docker/ops.Dockerfile
-# Change: ENV SUPABASE_CLI_VERSION=v2.54.10
-# To:     ENV SUPABASE_CLI_VERSION=v2.54.11
+# Change: ENV TERRAFORM_VERSION=1.7.4
+# To:     ENV TERRAFORM_VERSION=1.7.5
 
-git commit -m "[SECURITY] Update Supabase CLI to v2.54.11 (CVE-XXXX-XXXX)"
+git commit -m "[SECURITY] Update Terraform to v1.7.5 (CVE-XXXX-XXXX)"
 git push origin main
 ```
 
@@ -118,10 +117,6 @@ git push origin hotfix/cve-2025-xxxxx
 ```
 
 ## Tool-Specific Notes
-
-### Supabase CLI
-- **Update Frequency**: Quarterly (unless security patch)
-- **Test Command**: `supabase --version && supabase db diff --help`
 
 ### Flutter
 - **Update Frequency**: Align with stable channel releases

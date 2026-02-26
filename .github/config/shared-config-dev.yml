@@ -22,7 +22,7 @@ versions:
   node: "20"
   python: "3.11"
   flutter: "3.19.6"
-  supabase_cli: "1.142.2"
+
   postgres: "15"
   docker: "24"
 

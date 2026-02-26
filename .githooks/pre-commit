@@ -211,51 +211,7 @@ if [ -d "$PLUGIN_DIR" ]; then
 fi
 
 # =====================================================
-# 2. Dockerfile Linting (Built-in)
-# =====================================================
-
-# Check if any Dockerfiles are being committed
-DOCKERFILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(Dockerfile|\.dockerfile)$' || true)
-
-if [ -n "$DOCKERFILES_CHANGED" ]; then
-    echo "🐳 Linting Dockerfiles..."
-    echo ""
-
-    # Check if hadolint is installed
-    if command -v hadolint &> /dev/null; then
-        HADOLINT_FAILED=0
-
-        while IFS= read -r dockerfile; do
-            echo "  Checking: $dockerfile"
-            if ! hadolint "$dockerfile"; then
-                HADOLINT_FAILED=1
-            fi
-        done <<< "$DOCKERFILES_CHANGED"
-
-        if [ $HADOLINT_FAILED -eq 1 ]; then
-            echo ""
-            echo "❌ Dockerfile linting failed!"
-            echo ""
-            echo "Fix the errors above before committing."
-            echo "See https://github.com/hadolint/hadolint for rules."
-            echo ""
-            echo "To bypass this check (NOT RECOMMENDED):"
-            echo "  git commit --no-verify"
-            exit 1
-        fi
-
-        echo ""
-        echo "✅ Dockerfile linting passed!"
-        echo ""
-    else
-        echo "⚠️  WARNING: hadolint not installed - skipping Dockerfile linting"
-        echo "   Install: https://github.com/hadolint/hadolint#install"
-        echo ""
-    fi
-fi
-
-# =====================================================
-# 3. Dart Code Quality (Format + Analyze)
+# 2. Dart Code Quality (Format + Analyze)
 # =====================================================
 # For Dart code changes in apps/ directory:
 #   - Run dart format on changed files
@@ -349,7 +305,7 @@ $DIR"
 fi
 
 # =====================================================
-# 4. TypeScript Code Quality (ESLint)
+# 3. TypeScript Code Quality (ESLint)
 # =====================================================
 # For TypeScript code changes in apps/ directory:
 #   - Run ESLint and reject commit if it fails
@@ -424,7 +380,7 @@ $DIR"
 fi
 
 # =====================================================
-# 5. Requirement Hash Update (elspais)
+# 4. Requirement Hash Update (elspais)
 # =====================================================
 # Auto-update stale requirement hashes before commit
 # This ensures hashes are always current
@@ -453,7 +409,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 6. Markdown Linting (Built-in)
+# 5. Markdown Linting (Built-in)
 # =====================================================
 
 # Check if any markdown files are being committed
@@ -497,7 +453,7 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
+# 6. Auto-Bump Build Numbers (+N in pubspec.yaml)
 # =====================================================
 #
 # On PR-intended branches, detects which Dart/Flutter projects

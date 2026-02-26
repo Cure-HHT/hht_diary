@@ -141,7 +141,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Runs: Pre-commit hook + CI/CD
    - Purpose: Prevent accidental commit of secrets (API keys, tokens, passwords)
    - Exit behavior: BLOCKS commit/PR if secrets detected
-   - Version: v8.29.0 (pinned in `.github/versions.env`)
+   - Version pinned in `.github/versions.env`
 
 2. **Trivy** (Multi-Layer Vulnerability Scanner)
    - Runs: CI/CD only
@@ -164,7 +164,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
    - Checks: Table locks, missing indexes, unsafe ALTER TABLE, NOT NULL without DEFAULT
    - Exit behavior: BLOCKS PR if dangerous patterns detected
-   - Version: v0.29.2
+   - Version pinned in `.github/versions.env`
 
 ### Why NOT CodeQL?
 

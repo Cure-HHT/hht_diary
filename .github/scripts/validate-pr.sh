@@ -165,8 +165,9 @@ end_group
 begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 
 if [ "$SPEC_CHANGED" = "true" ]; then
-  python3 -m pip install --upgrade pip -q
-  pip install elspais=="${ELSPAIS_VERSION}" -q
+  python3 -m pip install --upgrade pip -q --break-system-packages
+  python3 -m pip install elspais=="${ELSPAIS_VERSION}" -q --break-system-packages
+  export PATH="$HOME/.local/bin:$PATH"
   elspais --version
 
   elspais validate --mode core
@@ -323,8 +324,7 @@ fi
 if [ "$DOCS_CHANGED" = "true" ] || [ "$SPEC_CHANGED" = "true" ]; then
   begin_group "Documentation Linting (markdownlint-cli v${MARKDOWNLINT_CLI_VERSION})"
 
-  npm install -g "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" --silent 2>/dev/null
-  markdownlint --config .markdownlint.json '**/*.md'
+  npx "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" --config .markdownlint.json '**/*.md'
 
   echo "Documentation linting passed"
   end_group

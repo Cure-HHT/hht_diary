@@ -1,44 +1,38 @@
 {
   // ============================================================
-  // ⚠️ FIRST-TIME SETUP REQUIRED - READ THIS BEFORE OPENING! ⚠️
+  // Default Dev Container — DevOps (most common interactive use)
   // ============================================================
   //
-  // DO NOT open in Dev Container until you've run setup:
-  //   1. Close VS Code
-  //   2. cd tools/dev-env
-  //   3. ./setup.sh
-  //   4. Wait for completion (5-15 minutes)
-  //   5. NOW open in Dev Container
-  //
-  // Why? The base Docker image must be built locally first.
+  // FIRST-TIME SETUP: Run tools/dev-env/setup.sh before opening.
   // See: .devcontainer/README.md for complete instructions.
+  //
+  // Other profiles:
+  //   .devcontainer/audit/devcontainer.json — read-only audit access
   // ============================================================
 
-  "name": "Clinical Diary - Developer (Default)",
+  "name": "Clinical Diary - DevOps (Default)",
   "dockerComposeFile": "../tools/dev-env/docker-compose.yml",
-  "service": "dev",
+  "service": "devops-main",
   "workspaceFolder": "/workspace/src",
 
-  // Run prerequisite checks on host BEFORE attempting build
   "initializeCommand": "${localWorkspaceFolder}/.devcontainer/check-prerequisites.sh",
 
   "customizations": {
     "vscode": {
       "extensions": [
-        // Flutter & Dart
-        "Dart-Code.flutter",
-        "Dart-Code.dart-code",
+        // Terraform
+        "hashicorp.terraform",
 
-        // JavaScript/TypeScript
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
+        // Docker & Kubernetes
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+        // YAML
+        "redhat.vscode-yaml",
 
         // Python
         "ms-python.python",
         "ms-python.vscode-pylance",
-
-        // Docker
-        "ms-azuretools.vscode-docker",
 
         // Git
         "eamodio.gitlens",
@@ -64,21 +58,27 @@
           }
         },
 
+        // Terraform settings
+        "terraform.languageServer.enable": true,
+        "terraform.experimentalFeatures.validateOnSave": true,
+
+        // YAML settings
+        "yaml.schemas": {
+          "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+        },
+
         // Editor settings
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-        // Flutter settings
-        "dart.flutterSdkPath": "/opt/flutter",
-
         // Role identification
-        "window.title": "[DEV] ${dirty}${activeEditorShort}${separator}${rootName}"
+        "window.title": "[DEVOPS] ${dirty}${activeEditorShort}${separator}${rootName}"
       }
     },
 
     "codespaces": {
       "repositories": {
-        "yourorg/*": {
+        "cure-hht/*": {
           "permissions": {
             "contents": "write",
             "pull_requests": "write"
@@ -94,26 +94,11 @@
     }
   },
 
-  "forwardPorts": [3000, 5000, 8080],
+  "forwardPorts": [],
 
-  "portsAttributes": {
-    "3000": {
-      "label": "Flutter Web",
-      "onAutoForward": "notify"
-    },
-    "5000": {
-      "label": "API Server",
-      "onAutoForward": "notify"
-    },
-    "8080": {
-      "label": "Preview",
-      "onAutoForward": "openBrowser"
-    }
-  },
+  "postCreateCommand": "git config core.hooksPath .githooks && echo 'Git hooks enabled' && echo 'DevOps environment ready! Tools: terraform, gcloud, doppler, psql' || echo 'Failed to enable git hooks'",
 
-  "postCreateCommand": "git config core.hooksPath .githooks && echo '✅ Git hooks enabled' && cat /etc/motd && echo '' && echo '✅ Developer environment ready! Run: flutter --version' || echo '⚠️ Failed to enable git hooks'",
-
-  "remoteUser": "ubuntu",
+  "remoteUser": "devuser",
 
   "updateContentCommand": "git pull",
 

@@ -1,12 +1,18 @@
 {
-  // ⚠️ FIRST-TIME SETUP REQUIRED: Run tools/dev-env/setup.sh BEFORE opening in container!
-  // See: .devcontainer/README.md for complete instructions.
-  "name": "Clinical Diary - Management (Read-Only)",
+  // ============================================================
+  // Audit Dev Container — Read-only access
+  // ============================================================
+  //
+  // For audit and compliance review: DB queries, cloud logs, OTS verification.
+  // All mounts are read-only.
+  //
+  // FIRST-TIME SETUP: Run tools/dev-env/setup.sh before opening.
+
+  "name": "Clinical Diary - Audit (Read-Only)",
   "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
-  "service": "mgmt",
+  "service": "audit",
   "workspaceFolder": "/workspace/src",
-  
-  // Run prerequisite checks on host BEFORE attempting build
+
   "initializeCommand": "${localWorkspaceFolder}/.devcontainer/check-prerequisites.sh",
 
   "customizations": {
@@ -38,17 +44,17 @@
           "**/*": true
         },
 
-        "editor.readonlyMessage": "⚠️ Management role has read-only access. Switch to dev/qa/ops to edit.",
+        "editor.readonlyMessage": "Audit role has read-only access. Switch to devops for editing.",
 
         // Role identification
-        "window.title": "[MGMT-READ-ONLY] ${activeEditorShort}${separator}${rootName}"
+        "window.title": "[AUDIT-READ-ONLY] ${activeEditorShort}${separator}${rootName}"
       }
     }
   },
 
   "forwardPorts": [],
 
-  "postCreateCommand": "cat /etc/motd && echo '' && echo 'Available commands: view-repo-status.sh, view-qa-reports.sh'",
+  "postCreateCommand": "echo 'Audit environment ready. Tools: psql, gcloud, ots, git'",
 
-  "remoteUser": "ubuntu"
+  "remoteUser": "devuser"
 }

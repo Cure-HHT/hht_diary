@@ -1,3 +1,10 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00030: CI/CD Environment Parity
+#
+# Database Migration Validation
+# Validates schema deployment, tests, and migration rollbacks using
+# CI container + Docker Compose PostgreSQL sidecar.
+
 name: Database Migration Validation
 
 # Trigger strategy:
@@ -18,146 +25,168 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: read
+  actions: read  # Required for gh run watch in start-ci-container
+
 jobs:
   validate-migrations:
     name: Database Migration Validation
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     timeout-minutes: 10
-    env:
-      # Database connection for all steps
-      PGHOST: localhost
-      PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      PGDATABASE: test_db
-    services:
-      postgres:
-        image: postgres:17-alpine  # version pinned in .github/versions.env
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install PostgreSQL client
+      - name: Check migration validation flag
+        id: check-flag
+        shell: bash
         run: |
-          sudo apt-get update
-          # Add PostgreSQL apt repo for version 17
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-          sudo apt-get update
-          # Pinned to PostgreSQL 17 (matches production database version)
-          sudo apt-get install -y postgresql-client-17
-          which psql || (echo "ERROR: postgresql-client-17 installation failed" && exit 1)
+          source .github/versions.env
+          echo "validate=${VALIDATE_MIGRATIONS:-true}" >> $GITHUB_OUTPUT
+          if [ "${VALIDATE_MIGRATIONS:-true}" = "false" ]; then
+            echo "::notice::Migration validation disabled via VALIDATE_MIGRATIONS=false in versions.env"
+          fi
+
+      - name: Start CI container
+        if: steps.check-flag.outputs.validate == 'true'
+        uses: ./.github/actions/start-ci-container
+        with:
+          profile: db
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy schema
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
           echo "Deploying schema..."
-          psql --set ON_ERROR_STOP=1 -f database/schema.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/schema.sql"
           echo "Schema deployed successfully"
 
-      - name: Deploytriggers
+      - name: Deploy triggers
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
           echo "Deploying triggers..."
-          psql --set ON_ERROR_STOP=1 -f database/triggers.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/triggers.sql"
           echo "Triggers deployed successfully"
 
       - name: Deploy roles
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
           echo "Deploying roles..."
-          psql --set ON_ERROR_STOP=1 -f database/roles.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/roles.sql"
           echo "Roles deployed successfully"
 
       - name: Deploy RLS policies
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
-          echo "Deploying  RLS policies..."
-          psql --set ON_ERROR_STOP=1 -f database/rls_policies.sql
+          echo "Deploying RLS policies..."
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/rls_policies.sql"
           echo "RLS policies deployed successfully"
 
       - name: Deploy indexes
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
           echo "Deploying indexes..."
-          psql --set ON_ERROR_STOP=1 -f database/indexes.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/indexes.sql"
           echo "Indexes deployed successfully"
 
       - name: Deploy tamper detection
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
-          echo "Deploying  tamper detection (hash triggers)..."
-          psql --set ON_ERROR_STOP=1 -f database/tamper_detection.sql
+          echo "Deploying tamper detection (hash triggers)..."
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/tamper_detection.sql"
           echo "Tamper detection deployed successfully"
 
       - name: Deploy compliance verification
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
-          echo "Deploying  compliance verification functions..."
-          psql --set ON_ERROR_STOP=1 -f database/compliance_verification.sql
+          echo "Deploying compliance verification functions..."
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/compliance_verification.sql"
           echo "Compliance verification deployed successfully"
 
       - name: Run database tests
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
           echo "Running database tests..."
-          psql --set ON_ERROR_STOP=1 -f database/tests/test_audit_trail.sql
-          psql --set ON_ERROR_STOP=1 -f database/tests/test_compliance_functions.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && \
+              psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/tests/test_audit_trail.sql && \
+              psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/tests/test_compliance_functions.sql"
           echo "Database tests passed"
 
       - name: Validate migration scripts
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
         run: |
-          if false; then
           echo "Validating migration scripts have rollbacks..."
-          for migration in database/migrations/*.sql; do
-            if [ -f "$migration" ]; then
-              filename=$(basename "$migration")
-              # Extract migration number (e.g., "008" from "008_add_jsonb_validation.sql")
-              migration_num=$(echo "$filename" | grep -oE '^[0-9]+')
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c '
+              cd /workspace/src
+              for migration in database/migrations/*.sql; do
+                if [ -f "$migration" ]; then
+                  filename=$(basename "$migration")
+                  migration_num=$(echo "$filename" | grep -oE "^[0-9]+")
 
-              # Check for corresponding rollback using standard naming convention
-              rollback_dir="database/migrations/rollback"
-              rollback_file="${rollback_dir}/${migration_num}_rollback.sql"
+                  rollback_dir="database/migrations/rollback"
+                  rollback_file="${rollback_dir}/${migration_num}_rollback.sql"
 
-              if [ ! -f "$rollback_file" ]; then
-                echo "ERROR: Missing rollback for $migration"
-                echo "Expected: $rollback_file"
-                exit 1
-              fi
+                  if [ ! -f "$rollback_file" ]; then
+                    echo "ERROR: Missing rollback for $migration"
+                    echo "Expected: $rollback_file"
+                    exit 1
+                  fi
 
-              echo "Testing rollback for $migration: $rollback_file"
+                  echo "Testing rollback for $migration: $rollback_file"
 
-              # Apply migration to test database
-              if ! psql --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
-                echo "ERROR: Failed to apply migration $migration"
-                exit 1
-              fi
+                  if ! psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                    echo "ERROR: Failed to apply migration $migration"
+                    exit 1
+                  fi
 
-              # Apply rollback to test database
-              if ! psql --set ON_ERROR_STOP=1 -f "$rollback_file" > /dev/null 2>&1; then
-                echo "ERROR: Rollback failed for $rollback_file"
-                exit 1
-              fi
+                  if ! psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f "$rollback_file" > /dev/null 2>&1; then
+                    echo "ERROR: Rollback failed for $rollback_file"
+                    exit 1
+                  fi
 
-              # Re-apply migration to verify it can be applied again
-              if ! psql --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
-                echo "ERROR: Failed to re-apply migration $migration after rollback"
-                exit 1
-              fi
+                  if ! psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                    echo "ERROR: Failed to re-apply migration $migration after rollback"
+                    exit 1
+                  fi
 
-              echo "Rollback verified for $migration"
-            fi
-          done
-          echo "All migrations have corresponding rollbacks and rollbacks are functional"
-          fi
-          echo "Rollback validation temporarily disabled"
+                  echo "Rollback verified for $migration"
+                fi
+              done
+              echo "All migrations have corresponding rollbacks and rollbacks are functional"
+            '
+
+      - name: Cleanup
+        if: always() && steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db down -v
