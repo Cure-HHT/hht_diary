@@ -95,7 +95,8 @@ RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 # Copy Dart server binary and startup script
 COPY --from=dart-build --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
 COPY --chmod=755 apps/daily-diary/diary-server-container/start.sh /app/start.sh
-
+# Copy nginx configuration
+COPY apps/sponsor-portal/portal-container/nginx.conf /etc/nginx/nginx.conf
 # Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
 COPY sponsor-content/ /app/sponsor-content/
 

@@ -165,7 +165,7 @@ class _LogoMenuState extends State<LogoMenu> {
           children: [
             if (widget.isEnrolled ?? false)
               (widget.sponsorLogo != null)
-                  ? Image.asset(
+                  ? Image.network(
                       widget.sponsorLogo!,
                       height: 40,
                       width: 120,

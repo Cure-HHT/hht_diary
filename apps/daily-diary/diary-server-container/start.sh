@@ -16,7 +16,7 @@ if [ -z "$_UNBUFFERED" ]; then
     exec stdbuf -o0 -eL "$0" "$@"
     # exec stdbuf -oL -eL "$0" "$@"
 fi
-
+export PORT=8081
 echo "=========================================="
 echo "Diary Server Startup"
 echo "=========================================="
@@ -53,6 +53,7 @@ echo "DOPPLER_TOKEN fetched (length: ${#DOPPLER_TOKEN} chars)"
 
 # Validate GCP_PROJECT_ID matches expected environment
 GCP_PROJECT_ID=$(doppler secrets get GCP_PROJECT_ID --plain --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" 2>/dev/null)
+echo "Getting gcp id"
 if [ -z "$GCP_PROJECT_ID" ]; then
     echo "ERROR: GCP_PROJECT_ID secret not found in Doppler!"
     exit 4
@@ -71,4 +72,30 @@ echo "Starting Dart server with Doppler-injected secrets..."
 echo "=========================================="
 
 # Use exec so doppler becomes PID 1 and receives signals properly
-exec doppler run --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" -- /app/server
+exec doppler run --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" -- /app/server&
+DART_PID=$!
+
+# Wait for Dart server to be ready
+echo "Waiting for Dart server..."
+for _ in $(seq 1 60); do
+    if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
+        echo "Dart server is ready!"
+        break
+    fi
+    if ! kill -0 "$DART_PID" 2>/dev/null; then
+        echo "Dart server failed to start!"
+        exit 7
+    fi
+    sleep 1
+done
+
+# Check if Dart server started successfully
+if ! curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
+    echo "Dart server failed to respond to health check!"
+    exit 8
+fi
+
+# Start nginx in foreground (receives external traffic on port 8080)
+echo "Starting nginx on port 8080..."
+exec nginx -g 'daemon off;'
+
