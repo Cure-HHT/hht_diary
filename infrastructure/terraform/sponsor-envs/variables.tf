@@ -63,6 +63,22 @@ variable "DOPPLER_TOKEN" {
 }
 
 # -----------------------------------------------------------------------------
+# Required: Database Configuration
+# -----------------------------------------------------------------------------
+
+variable "database_name" {
+  description = "Base name of the database to create (combined as sponsor_env_name)"
+  type        = string
+  default     = "db"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "app_user"
+}
+
+# -----------------------------------------------------------------------------
 # Optional: Region Configuration
 # -----------------------------------------------------------------------------
 

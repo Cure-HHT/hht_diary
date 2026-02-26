@@ -108,22 +108,23 @@ resource "google_secret_manager_secret_iam_member" "doppler_token_compute_access
 # }
 
 # -----------------------------------------------------------------------------
-# Cloud SQL
+# Cloud SQL Database
+# Migrated from bootstrap via scripts/migrate-db-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
-# module "cloud_sql" {
-#   source = "../modules/cloud-sql"
 
-#   project_id             = var.project_id
-#   sponsor                = var.sponsor
-#   environment            = var.environment
-#   region                 = var.region
-#   vpc_network_id         = module.vpc.network_id
-#   private_vpc_connection = module.vpc.private_vpc_connection
-#   DB_PASSWORD            = var.DB_PASSWORD
+module "database" {
+  source = "../modules/cloud-sql"
 
-#   depends_on = [module.vpc]
-# }
+  project_id             = var.project_id
+  sponsor                = var.sponsor
+  environment            = var.environment
+  region                 = var.region
+  vpc_network_id         = data.terraform_remote_state.bootstrap.outputs.network_ids[var.environment]
+  private_vpc_connection = data.terraform_remote_state.bootstrap.outputs.private_vpc_connections[var.environment]
+  database_name          = "${var.sponsor}_${var.environment}_${var.database_name}"
+  db_username            = var.db_username
+  DB_PASSWORD            = var.DB_PASSWORD
+}
 
 # -----------------------------------------------------------------------------
 # Cloud Run Services

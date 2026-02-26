@@ -199,26 +199,9 @@ variable "proxy_only_subnet_cidr" {
 }
 
 # -----------------------------------------------------------------------------
-# Database Configuration
+# Database Configuration — MIGRATED to sponsor-envs
+# DB_PASSWORD, database_name, db_username moved to sponsor-envs/variables.tf
 # -----------------------------------------------------------------------------
-
-variable "DB_PASSWORD" {
-  description = "Database password for Cloud SQL (from Doppler)"
-  type        = string
-  sensitive   = true
-}
-
-variable "database_name" {
-  description = "Name of the database to create"
-  type        = string
-  default     = "db"
-}
-
-variable "db_username" {
-  description = "Database username"
-  type        = string
-  default     = "app_user"
-}
 
 # -----------------------------------------------------------------------------
 # Terraform State Configuration
