@@ -4,7 +4,6 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
 /// User profile screen with enrollment status, data sharing, and settings
@@ -337,8 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Row(
           children: [
-            SvgPicture.asset('assets/svgs/users.svg'),
-
+            Image.asset('assets/images/users.png'),
             const SizedBox(width: 12),
             Expanded(
               child: Row(
