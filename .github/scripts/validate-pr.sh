@@ -12,7 +12,6 @@
 #
 # Expected environment variables (set by the workflow):
 #   PR_TITLE   - Pull request title
-#   PR_BODY    - Pull request body
 #   PR_NUMBER  - Pull request number
 #   PR_URL     - Pull request HTML URL
 #   BASE_SHA   - Base branch SHA
@@ -124,7 +123,7 @@ end_group
 # Tier 2: Security (always runs)
 # ============================================================================
 
-# --- 3. Gitleaks - secret scanning ---
+# --- 2. Gitleaks - secret scanning ---
 begin_group "Secret Scanning (gitleaks v${GITLEAKS_VERSION})"
 
 # Download gitleaks with retry
@@ -155,6 +154,76 @@ else
   exit 1
 fi
 
+end_group
+
+# ============================================================================
+# Tier 2.5: Version bump enforcement (always runs when trigger paths change)
+# ============================================================================
+
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00052-A: CI/CD validation on every PR to protected branches
+#   REQ-d00057-E: Build commands reproducible across local and CI environments
+#
+# --- 3. Verify version bumps match changed trigger paths ---
+begin_group "Version Bump Verification"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+source "$REPO_ROOT/.githooks/project-defs.sh"
+source "$REPO_ROOT/.githooks/version-utils.sh"
+
+VERSION_FAILED=false
+
+for project_def in "${PROJECT_DEFS[@]}"; do
+  IFS='|' read -r name pubspec triggers <<< "$project_def"
+  own_dir=$(dirname "$pubspec")/
+
+  code_changed=false
+  any_trigger=false
+  if has_code_changes "$own_dir" "$CHANGED_FILES"; then
+    code_changed=true
+    any_trigger=true
+  elif has_any_trigger "$triggers" "$CHANGED_FILES" "$own_dir"; then
+    any_trigger=true
+  fi
+
+  if [ "$any_trigger" = true ]; then
+    main_ver=$(git show "${BASE_SHA}:${pubspec}" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+    pr_ver=$(git show "${HEAD_SHA}:${pubspec}" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+
+    if [ -z "$main_ver" ] || [ -z "$pr_ver" ]; then
+      echo "Skipping ${name} — pubspec not found in base or head"
+      continue
+    fi
+
+    if ! verify_version_bumped "$pr_ver" "$main_ver" "$code_changed"; then
+      expected=$(compute_new_version "$pr_ver" "$main_ver" "$code_changed")
+      if [ "$code_changed" = true ]; then
+        echo "::error::${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
+      else
+        echo "::error::${name} build number not bumped (trigger change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
+      fi
+      VERSION_FAILED=true
+    else
+      echo "${name}: version OK (main: ${main_ver} -> PR: ${pr_ver})"
+    fi
+  fi
+done
+
+if [ "$VERSION_FAILED" = true ]; then
+  echo ""
+  echo "VERSION BUMP VERIFICATION FAILED"
+  echo ""
+  echo "The pre-commit hook should auto-bump versions. If you see this error:"
+  echo "  1. Ensure git hooks are installed: git config core.hooksPath .githooks"
+  echo "  2. Re-commit to trigger the version bump hook"
+  echo "  3. Or manually update the version in pubspec.yaml"
+  end_group
+  exit 1
+fi
+
+echo "Version bump verification passed"
 end_group
 
 # ============================================================================

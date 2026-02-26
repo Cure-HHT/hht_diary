@@ -119,10 +119,11 @@ jobs:
 
       - name: Run validation
         working-directory: tools/dev-env
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e PR_TITLE="${{ github.event.pull_request.title }}" \
-            -e PR_BODY="${{ github.event.pull_request.body }}" \
+            -e PR_TITLE="$PR_TITLE" \
             -e PR_NUMBER="${{ github.event.pull_request.number }}" \
             -e PR_URL="${{ github.event.pull_request.html_url }}" \
             -e BASE_SHA="${{ github.event.pull_request.base.sha }}" \
