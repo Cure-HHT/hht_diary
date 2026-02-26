@@ -536,10 +536,8 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 # Get the version from origin/main for comparison
                 main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
 
-                # Skip if already bumped above main's build number
-                current_build=$(extract_build_number "$current")
-                main_build=$(extract_build_number "${main_version:-0}")
-                if [ "$current_build" -gt "$main_build" ]; then
+                # Skip if already properly bumped for this change type
+                if verify_version_bumped "$current" "${main_version:-0}" "$code_changed"; then
                     continue
                 fi
 

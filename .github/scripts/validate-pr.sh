@@ -12,7 +12,6 @@
 #
 # Expected environment variables (set by the workflow):
 #   PR_TITLE   - Pull request title
-#   PR_BODY    - Pull request body
 #   PR_NUMBER  - Pull request number
 #   PR_URL     - Pull request HTML URL
 #   BASE_SHA   - Base branch SHA
