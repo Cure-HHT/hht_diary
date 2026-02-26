@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # Security scan — Trivy filesystem & IaC scanning with SARIF upload
+  # Security scan — Combined Trivy vuln + IaC + secret scanning with SARIF upload
   # Runs on every PR and push to main/develop so GitHub Code Scanning always
   # has results, unblocking the repository ruleset requirement.
   # IMPLEMENTS REQUIREMENTS:
@@ -54,45 +54,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (filesystem)
+      # Combined vuln + IaC + secret scan in a single `fs` pass.
+      # Why not separate `config` scan? Trivy CLI v0.56.0+ has a regression
+      # where `scan-type: config` produces SARIF with empty artifactLocation
+      # fields, causing GitHub Code Scanning to reject the upload with:
+      #   "locationFromSarifResult: expected artifact location"
+      # See: https://github.com/aquasecurity/trivy/issues/8141
+      # The `fs` scan with `scanners: vuln,misconfig,secret` covers the same
+      # ground and produces valid SARIF.
+      # Implements: REQ-o00080-B (dependency vuln scan),
+      #             REQ-o00080-C (IaC misconfig scan),
+      #             REQ-o00080-A (secret scan)
+      - name: Run Trivy security scanner (vulnerabilities + misconfigurations)
         uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          scanners: 'vuln,misconfig,secret'
           format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-        env:
-          TRIVY_QUIET: true
-
-      - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
-        uses: aquasecurity/trivy-action@0.34.0
-        with:
-          scan-type: 'config'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-iac-results.sarif'
+          output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
           skip-dirs: 'node_modules,vendor,.git'
         env:
           TRIVY_QUIET: true
 
-      - name: Upload Trivy filesystem results to GitHub Security
+      # Implements: REQ-o00080-D (upload results to GitHub Security)
+      - name: Upload Trivy results to GitHub Security
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-fs-results.sarif'
-          category: 'trivy-filesystem'
-        continue-on-error: true
-
-      - name: Upload Trivy IaC results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-iac-results.sarif'
-          category: 'trivy-iac'
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
         continue-on-error: true
 
 
