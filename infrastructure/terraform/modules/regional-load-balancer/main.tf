@@ -34,6 +34,14 @@ terraform {
 locals {
   lb_name_prefix = "${var.sponsor}-${var.environment}"
 
+  # For wildcard certificates (*.example.com), DNS authorization must use
+  # the parent domain (example.com). Strip the "*." prefix if present.
+  dns_auth_domain = trimprefix(var.domain, "*.")
+
+  # Short domain hash ensures GCP resource names change when the domain
+  # changes, allowing create_before_destroy to work without name collisions.
+  domain_hash = substr(md5(var.domain), 0, 8)
+
   common_labels = {
     sponsor     = var.sponsor
     environment = var.environment
@@ -60,13 +68,17 @@ resource "google_compute_address" "lb_ip" {
 # -----------------------------------------------------------------------------
 
 resource "google_certificate_manager_dns_authorization" "main" {
-  name        = "${local.lb_name_prefix}-dns-auth"
+  name        = "${local.lb_name_prefix}-dns-auth-${local.domain_hash}"
   project     = var.project_id
   location    = var.region
-  domain      = var.domain
-  description = "DNS authorization for ${var.domain}"
+  domain      = local.dns_auth_domain
+  description = "DNS authorization for ${local.dns_auth_domain}"
 
   labels = local.common_labels
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -74,7 +86,7 @@ resource "google_certificate_manager_dns_authorization" "main" {
 # -----------------------------------------------------------------------------
 
 resource "google_certificate_manager_certificate" "main" {
-  name        = "${local.lb_name_prefix}-cert"
+  name        = "${local.lb_name_prefix}-cert-${local.domain_hash}"
   project     = var.project_id
   location    = var.region
   description = "Google-managed SSL certificate for ${var.domain}"
@@ -87,6 +99,10 @@ resource "google_certificate_manager_certificate" "main" {
   }
 
   labels = local.common_labels
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # -----------------------------------------------------------------------------
