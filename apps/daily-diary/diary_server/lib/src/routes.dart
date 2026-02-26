@@ -40,6 +40,7 @@ Router createRouter() {
 
   // FCM token registration (mobile app registers its push notification token)
   router.post('/api/v1/user/fcm-token', registerFcmTokenHandler);
+  router.get('/api/v1/sponsor/branding/<sponsorId>', sponsorBrandingHandler);
 
   // Questionnaire submission (mobile app submits completed questionnaire)
   router.post(

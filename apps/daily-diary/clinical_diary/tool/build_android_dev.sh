@@ -7,11 +7,6 @@
 
 set -e
 
-echo "Collecting sponsor content..."
-ls -la
-./tool/collect_sponsor_content.sh
-
-echo ""
 echo "Building Clinical Diary for Android (DEV flavor)..."
 
 # For Android, --flavor sets FLUTTER_APP_FLAVOR automatically
