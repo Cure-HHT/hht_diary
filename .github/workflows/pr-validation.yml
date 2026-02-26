@@ -132,6 +132,10 @@ jobs:
             -e GITHUB_ENV="/workspace/src/.ci-github-env" \
             ci bash -c "cd /workspace/src && .github/scripts/validate-pr.sh"
 
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
       - name: Import GITHUB_ENV from container
         run: |
           if [ -f .ci-github-env ]; then

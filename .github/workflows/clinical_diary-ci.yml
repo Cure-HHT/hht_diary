@@ -84,6 +84,10 @@ jobs:
       # ---------------------------------------------------------------
       # Extract coverage from container for codecov upload
       # ---------------------------------------------------------------
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
       - name: Copy coverage from container
         working-directory: tools/dev-env
         run: |

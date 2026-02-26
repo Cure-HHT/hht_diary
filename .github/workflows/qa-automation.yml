@@ -168,8 +168,8 @@ jobs:
             if [ -f pubspec.yaml ]; then
               flutter pub get
               mkdir -p /workspace/reports
-              flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json 2>&1 || true
-              flutter test --coverage
+              flutter test --coverage --reporter json \
+                | tee /workspace/reports/flutter-test-results.json
             fi
           "
 
@@ -180,7 +180,6 @@ jobs:
       - name: Flutter analyze on all packages
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: flutter-analyze
-        continue-on-error: true
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
@@ -241,7 +240,6 @@ jobs:
       # -----------------------------------------------------------------
       - name: SQL migration linting
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        continue-on-error: true
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
@@ -249,12 +247,17 @@ jobs:
             CHANGED_SQL=\$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | grep '\.sql$' || true)
             if [ -n \"\$CHANGED_SQL\" ]; then
               echo 'Linting changed SQL files...'
-              echo \"\$CHANGED_SQL\" | while read f; do
+              LINT_FAILED=false
+              while IFS= read -r f; do
                 if [ -f \"\$f\" ]; then
                   echo \"Checking: \$f\"
-                  squawk \"\$f\" || true
+                  squawk \"\$f\" || LINT_FAILED=true
                 fi
-              done
+              done <<< \"\$CHANGED_SQL\"
+              if [ \"\$LINT_FAILED\" = 'true' ]; then
+                echo 'SQL linting found dangerous patterns'
+                exit 1
+              fi
             else
               echo 'No SQL files changed'
             fi
@@ -263,6 +266,10 @@ jobs:
       # -----------------------------------------------------------------
       # Copy artifacts out of container
       # -----------------------------------------------------------------
+      - name: Restore workspace ownership
+        if: always() && steps.check-qa-needed.outputs.qa_needed == 'true'
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
       - name: Copy artifacts from container
         if: always() && steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
@@ -327,7 +334,3 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
-
-      - name: Fail workflow if tests failed
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.flutter-tests.outcome == 'failure'
-        run: exit 1

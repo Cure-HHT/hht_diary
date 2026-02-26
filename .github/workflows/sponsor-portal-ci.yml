@@ -65,7 +65,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
             -e PGPASSWORD=postgres \
-            ci bash -c "psql -h postgres -U postgres -c 'CREATE DATABASE sponsor_portal;'" || true
+            ci bash -c "psql -h postgres -U postgres -c 'CREATE DATABASE sponsor_portal;'"
 
       # ---------------------------------------------------------------
       # Install dependencies for all packages
@@ -234,6 +234,10 @@ jobs:
       # ---------------------------------------------------------------
       # Extract coverage from container for codecov upload
       # ---------------------------------------------------------------
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
       - name: Copy coverage from container
         working-directory: tools/dev-env
         run: |
