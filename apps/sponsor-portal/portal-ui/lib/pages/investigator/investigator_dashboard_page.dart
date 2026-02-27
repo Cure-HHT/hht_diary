@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
@@ -38,62 +39,64 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
 
     final user = authService.currentUser!;
 
-    return Scaffold(
-      appBar: const PortalAppBar(title: 'Study Coordinator Dashboard'),
-      body: Column(
-        children: [
-          // Role banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            color: theme.colorScheme.secondaryContainer,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 20,
-                  color: theme.colorScheme.onSecondaryContainer,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Logged in as ${user.role.displayName}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
+    return UserActivityListener(
+      child: Scaffold(
+        appBar: const PortalAppBar(title: 'Study Coordinator Dashboard'),
+        body: Column(
+          children: [
+            // Role banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: theme.colorScheme.secondaryContainer,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.science_outlined,
+                    size: 20,
                     color: theme.colorScheme.onSecondaryContainer,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Main content with navigation rail
-          Expanded(
-            child: Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: (index) {
-                    setState(() => _selectedIndex = index);
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.people_alt_outlined),
-                      selectedIcon: Icon(Icons.people_alt),
-                      label: Text('Patients'),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Logged in as ${user.role.displayName}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w500,
                     ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.history_outlined),
-                      selectedIcon: Icon(Icons.history),
-                      label: Text('Audit Logs'),
-                    ),
-                  ],
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: _buildContent(theme)),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            // Main content with navigation rail
+            Expanded(
+              child: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: (index) {
+                      setState(() => _selectedIndex = index);
+                    },
+                    labelType: NavigationRailLabelType.all,
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.people_alt_outlined),
+                        selectedIcon: Icon(Icons.people_alt),
+                        label: Text('Patients'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.history_outlined),
+                        selectedIcon: Icon(Icons.history),
+                        label: Text('Audit Logs'),
+                      ),
+                    ],
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(child: _buildContent(theme)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

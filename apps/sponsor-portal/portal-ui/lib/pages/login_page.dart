@@ -239,6 +239,16 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
+                      // Session timeout banner
+                      if (authService.isTimedOut &&
+                          authService.error == null) ...[
+                        const SizedBox(height: 16),
+                        const ErrorMessage(
+                          message:
+                              "Your session has expired due to inactivity.",
+                        ),
+                      ],
+
                       // Error message
                       if (authService.error != null) ...[
                         const SizedBox(height: 16),

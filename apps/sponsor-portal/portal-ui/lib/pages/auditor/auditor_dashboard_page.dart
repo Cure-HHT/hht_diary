@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
@@ -23,27 +24,29 @@ class AuditorDashboardPage extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      appBar: const PortalAppBar(title: 'Auditor Dashboard'),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.fact_check_outlined,
-              size: 64,
-              color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text('Auditor Dashboard', style: theme.textTheme.headlineMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Audit trail review and data export features coming soon.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+    return UserActivityListener(
+      child: Scaffold(
+        appBar: const PortalAppBar(title: 'Auditor Dashboard'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.fact_check_outlined,
+                size: 64,
+                color: theme.colorScheme.primary.withValues(alpha: 0.5),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text('Auditor Dashboard', style: theme.textTheme.headlineMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Audit trail review and data export features coming soon.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -8,6 +8,7 @@
 // Portal authentication service using Firebase Auth (Identity Platform)
 // Supports both TOTP (for Developer Admin) and Email OTP (for other users)
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -222,18 +223,37 @@ class PortalUser {
 
 /// Authentication service using Firebase Auth and portal API
 class AuthService extends ChangeNotifier {
-  /// Create AuthService with optional dependencies for testing
-  AuthService({FirebaseAuth? firebaseAuth, http.Client? httpClient})
-    : _auth = firebaseAuth ?? FirebaseAuth.instance,
-      _httpClient = httpClient ?? http.Client() {
+  /// Create AuthService with optional dependencies for testing.
+  ///
+  /// [inactivityTimeout] controls how long without an API call before the user
+  /// is automatically signed out. Defaults to 15 minutes. Pass a shorter
+  /// duration in tests to avoid sleeping.
+  AuthService({
+    FirebaseAuth? firebaseAuth,
+    http.Client? httpClient,
+    Duration inactivityTimeout = const Duration(minutes: 15),
+  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
+       _httpClient = httpClient ?? http.Client(),
+       _inactivityTimeout = inactivityTimeout {
     _init();
   }
 
   final FirebaseAuth _auth;
   final http.Client _httpClient;
+  final Duration _inactivityTimeout;
+
   PortalUser? _currentUser;
   bool _isLoading = false;
   String? _error;
+
+  /// Inactivity timer — fires [_inactivityTimeout] after the last activity.
+  Timer? _inactivityTimer;
+
+  /// True when the session was ended due to inactivity (not an explicit sign-out).
+  bool _timedOut = false;
+
+  /// Whether the previous session ended because of inactivity.
+  bool get isTimedOut => _timedOut;
 
   /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
@@ -277,6 +297,18 @@ class AuthService extends ChangeNotifier {
   /// Masked email address for display (e.g., t***@example.com)
   String? get maskedEmail => _maskedEmail;
 
+  void resetInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer(_inactivityTimeout, _onInactivityTimeout);
+  }
+
+  /// Called when the inactivity timer fires.
+  void _onInactivityTimeout() {
+    _currentUser = null;
+    _timedOut = true;
+    notifyListeners();
+  }
+
   /// Initialize auth state listener
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
@@ -284,7 +316,9 @@ class AuthService extends ChangeNotifier {
         // User signed in - fetch portal user info
         await _fetchPortalUser();
       } else {
-        // User signed out
+        // User signed out — cancel any pending inactivity timer
+        _inactivityTimer?.cancel();
+        _inactivityTimer = null;
         _currentUser = null;
         notifyListeners();
       }
@@ -326,6 +360,9 @@ class AuthService extends ChangeNotifier {
         return true;
       }
 
+      // Full login complete (no MFA required) — start inactivity timer.
+      _timedOut = false;
+      resetInactivityTimer();
       return true;
     } on FirebaseAuthMultiFactorException catch (e) {
       // TOTP MFA required - store resolver for completing the challenge
@@ -417,6 +454,9 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
+      // TOTP MFA login complete — start inactivity timer.
+      _timedOut = false;
+      resetInactivityTimer();
       return true;
     } on FirebaseAuthException catch (e) {
       _error = _mapFirebaseError(e.code);
@@ -523,6 +563,10 @@ class AuthService extends ChangeNotifier {
         // This ensures currentUser has up-to-date roles and status
         await _fetchPortalUser();
 
+        // Email OTP login complete — start inactivity timer.
+        _timedOut = false;
+        resetInactivityTimer();
+
         _isLoading = false;
         notifyListeners();
         return EmailOtpResult.success();
@@ -551,6 +595,10 @@ class AuthService extends ChangeNotifier {
 
   /// Sign out
   Future<void> signOut() async {
+    // Cancel inactivity timer before signing out so it doesn't fire after.
+    _inactivityTimer?.cancel();
+    _inactivityTimer = null;
+    _timedOut = false;
     await _auth.signOut();
     _currentUser = null;
     _emailOtpRequired = false;
