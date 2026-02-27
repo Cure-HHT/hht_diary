@@ -3,6 +3,7 @@
 //   REQ-d00006: Mobile App Build and Release Process
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/services/version_check_service.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -211,6 +212,12 @@ class _LogoMenuState extends State<LogoMenu> {
             widget.onInstructionsAndFeedback();
           case 'check_for_updates':
             _manualCheckForUpdates(context);
+          case 'licenses':
+            // CUR-543: Must pass onDelete callback when existingRecord is non-null.
+            Navigator.push<dynamic>(
+              context,
+              MaterialPageRoute(builder: (context) => const LicensesPage()),
+            );
         }
       },
       itemBuilder: (context) => [
@@ -343,6 +350,20 @@ class _LogoMenuState extends State<LogoMenu> {
         // Version info at bottom
         const PopupMenuDivider(),
         PopupMenuItem<String>(
+          value: 'licenses',
+          child: Row(
+            children: [
+              Icon(
+                Icons.credit_card_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              const SizedBox(width: 12),
+              Flexible(child: Text(l10n.licenses)),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
           value: 'check_for_updates',
           child: Row(
             children: [
@@ -389,6 +410,7 @@ class _LogoMenuState extends State<LogoMenu> {
             ],
           ),
         ),
+
         PopupMenuItem<String>(
           enabled: false,
           height: 32,
