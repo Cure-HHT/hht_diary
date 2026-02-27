@@ -77,7 +77,7 @@ P. The responsive layout SHALL adapt rendering based on viewport width.
 
 Q. Shared components SHALL render consistently between web and mobile applications.
 
-*End* *Web Diary Frontend Framework* | **Hash**: 8e194f4d
+*End* *Web Diary Frontend Framework* | **Hash**: 7adcbff1
 
 ---
 
@@ -123,7 +123,7 @@ O. The system SHALL display the login page when the user navigates back after lo
 
 P. The system SHALL NOT display cached data when the user navigates back after logout.
 
-*End* *Web Session Management Implementation* | **Hash**: 4b91624f
+*End* *Web Session Management Implementation* | **Hash**: 482b7002
 
 ---
 
@@ -219,7 +219,7 @@ Q. The browser back button SHALL display the login page after logout, not cached
 
 R. Patient data SHALL NOT be recoverable via browser developer tools after logout.
 
-*End* *Browser Storage Clearing* | **Hash**: 3c9baff2
+*End* *Browser Storage Clearing* | **Hash**: dd80cdb0
 
 ---
 TODO - remove or move to dev-app.md
