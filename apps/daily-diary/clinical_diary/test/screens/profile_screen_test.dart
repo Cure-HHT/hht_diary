@@ -407,7 +407,7 @@ void main() {
           final imageFinder = find.byType(Image);
           expect(imageFinder, findsWidgets);
 
-          final image = tester.widget<Image>(imageFinder.first);
+          final image = tester.widget<Image>(imageFinder.last);
           expect(image.image, isA<AssetImage>());
 
           final assetImage = image.image as AssetImage;
@@ -456,10 +456,11 @@ void main() {
           final imageFinder = find.byType(Image);
           expect(imageFinder, findsWidgets);
 
-          final image = tester.widget<Image>(imageFinder.first);
+          final image = tester.widget<Image>(imageFinder.last);
           expect(image.image, isA<AssetImage>());
 
           final assetImage = image.image as AssetImage;
+
           expect(
             assetImage.assetName,
             'assets/images/generic_company_logo.png',
