@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
@@ -48,72 +49,74 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      appBar: const PortalAppBar(title: 'Admin Dashboard'),
-      body: Column(
-        children: [
-          // Role banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            color: _getRoleBannerColor(user.role, theme),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.admin_panel_settings,
-                  size: 20,
-                  color: _getRoleBannerTextColor(user.role, theme),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Logged in as ${user.role.displayName}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
+    return UserActivityListener(
+      child: Scaffold(
+        appBar: const PortalAppBar(title: 'Admin Dashboard'),
+        body: Column(
+          children: [
+            // Role banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: _getRoleBannerColor(user.role, theme),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings,
+                    size: 20,
                     color: _getRoleBannerTextColor(user.role, theme),
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'Logged in as ${user.role.displayName}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: _getRoleBannerTextColor(user.role, theme),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Main content with navigation rail
-          Expanded(
-            child: Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: (index) {
-                    setState(() => _selectedIndex = index);
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard),
-                      label: Text('Overview'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.people_outline),
-                      selectedIcon: Icon(Icons.people),
-                      label: Text('Users'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.location_city_outlined),
-                      selectedIcon: Icon(Icons.location_city),
-                      label: Text('Sites'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.people_alt_outlined),
-                      selectedIcon: Icon(Icons.people_alt),
-                      label: Text('Patients'),
-                    ),
-                  ],
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: _buildContent(user, theme)),
-              ],
+            // Main content with navigation rail
+            Expanded(
+              child: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: (index) {
+                      setState(() => _selectedIndex = index);
+                    },
+                    labelType: NavigationRailLabelType.all,
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard),
+                        label: Text('Overview'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.people_outline),
+                        selectedIcon: Icon(Icons.people),
+                        label: Text('Users'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.location_city_outlined),
+                        selectedIcon: Icon(Icons.location_city),
+                        label: Text('Sites'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.people_alt_outlined),
+                        selectedIcon: Icon(Icons.people_alt),
+                        label: Text('Patients'),
+                      ),
+                    ],
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(child: _buildContent(user, theme)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
