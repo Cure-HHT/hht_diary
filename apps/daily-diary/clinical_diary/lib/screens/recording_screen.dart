@@ -944,7 +944,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onTimeChanged: _setEndDateTime,
           onTimezoneChanged: _handleEndTimezoneChanged,
           confirmLabel: l10n.setEndTime,
-          maxDateTime: DateTime.now(),
         );
 
       // CUR-408: Notes case removed from recording flow - TODO PUT BACK
