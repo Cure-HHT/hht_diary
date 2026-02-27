@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -27,6 +28,8 @@ import 'identity_platform.dart';
 ///
 /// Returns masked email if code is valid and not expired.
 /// Used by frontend to display activation form.
+///
+final _jwtSecret = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 Future<Response> validateActivationCodeHandler(
   Request request,
   String code,
@@ -72,18 +75,18 @@ Future<Response> validateActivationCodeHandler(
   final row = result.first;
   final email = row[1] as String;
   final status = row[3] as String;
-  final expiresAt = row[4] as DateTime?;
 
   // Check if already activated
   if (status == 'active') {
     print('[ACTIVATION] Account already activated');
     return _jsonResponse({'error': 'Account already activated'}, 400);
   }
-
+  Map validation = _validateActivationToken(code);
   // Check expiration
-  if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
-    print('[ACTIVATION] Code expired');
-    return _jsonResponse({'error': 'Activation code has expired'}, 401);
+
+  if (!validation['valid']) {
+    print('[ACTIVATION] Code validation failed: ${validation['message']}');
+    return _jsonResponse({'error': validation['message']}, 401);
   }
 
   // Return full email so UI can create Firebase account with correct address
@@ -98,6 +101,22 @@ Future<Response> validateActivationCodeHandler(
     'email': email, // Full email for Firebase account creation
     'maskedEmail': maskedEmail, // Masked for display in UI
   });
+}
+
+Map _validateActivationToken(String token) {
+  try {
+    final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+
+    if (jwt.payload['type'] != 'activation') {
+      return {'message': 'Invalid token type', 'valid': false};
+    }
+  } on JWTExpiredException {
+    return {'message': 'Activation link expired', 'valid': false};
+  } on JWTException {
+    return {'message': 'Invalid token signature', 'valid': false};
+  }
+
+  return {'message': 'Token valid', 'valid': true};
 }
 
 /// Activate user account with code and GCP Idenity Provider token

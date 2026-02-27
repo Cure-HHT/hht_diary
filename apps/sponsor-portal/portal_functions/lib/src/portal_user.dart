@@ -24,6 +24,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -333,12 +334,11 @@ Future<Response> createPortalUserHandler(Request request) async {
   // NOTE: Linking codes are ONLY for patients (diary app device linking).
   // Portal users (Admins, Investigators, etc.) only need activation codes.
   // Patient enrollment is handled separately, not through this endpoint.
-
+  final activationExpiry = DateTime.now().add(const Duration(hours: 12));
   // Generate activation code for all new users
-  final activationCode = _generateCode();
-  final activationExpiry = DateTime.now().add(const Duration(days: 14));
+  final activationToken = _generateActivationToken(email);
 
-  print('[PORTAL_USER] Generated activation_code=$activationCode for $email');
+  print('[PORTAL_USER] Generated activation_code=$activationToken for $email');
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -370,7 +370,7 @@ Future<Response> createPortalUserHandler(Request request) async {
     parameters: {
       'email': email,
       'name': name,
-      'activationCode': activationCode,
+      'activationCode': activationToken,
       'activationExpiry': activationExpiry,
     },
     context: serviceContext,
@@ -378,7 +378,7 @@ Future<Response> createPortalUserHandler(Request request) async {
 
   final newUserId = createResult.first[0] as String;
   print(
-    '[PORTAL_USER] INSERT complete: userId=$newUserId, activation_code=$activationCode',
+    '[PORTAL_USER] INSERT complete: userId=$newUserId, activation_code=$activationToken',
   );
 
   // Verify the code was stored correctly
@@ -391,7 +391,7 @@ Future<Response> createPortalUserHandler(Request request) async {
       ? verifyResult.first[0]
       : 'NOT_FOUND';
   print(
-    '[PORTAL_USER] VERIFY: stored_code=$storedCode, matches=${storedCode == activationCode}',
+    '[PORTAL_USER] VERIFY: stored_code=$storedCode, matches=${storedCode == activationToken}',
   );
 
   // Create role assignments in portal_user_roles
@@ -429,12 +429,12 @@ Future<Response> createPortalUserHandler(Request request) async {
   if (FeatureFlags.emailActivation) {
     // Construct activation URL from the portal origin the caller used
     final portalBaseUrl = _getPortalBaseUrl(request);
-    final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
+    final activationUrl = '$portalBaseUrl/activate?token=$activationToken';
 
     final emailResult = await EmailService.instance.sendActivationCode(
       recipientEmail: email,
       recipientName: name,
-      activationCode: activationCode,
+      activationCode: activationToken,
       activationUrl: activationUrl,
       sentByUserId: user.id,
     );
@@ -450,7 +450,7 @@ Future<Response> createPortalUserHandler(Request request) async {
   }
 
   print(
-    '[PORTAL_USER] RESPONSE: activation_code=$activationCode (returning to client)',
+    '[PORTAL_USER] RESPONSE: activation_code=$activationToken (returning to client)',
   );
 
   // NOTE: linking_code not included - portal users don't need linking codes
@@ -461,11 +461,26 @@ Future<Response> createPortalUserHandler(Request request) async {
     'name': name,
     'roles': roles,
     'status': 'pending',
-    'activation_code': activationCode,
+    'activation_code': activationToken,
     'site_ids': siteIds,
     'email_sent': emailSent,
     if (emailError != null) 'email_error': emailError,
   }, 201);
+}
+
+final _jwtSecret = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+String _generateActivationToken(String userId) {
+  final jwt = JWT({
+    'userId': userId,
+    'type': 'activation',
+  }, issuer: 'your-portal');
+
+  final token = jwt.sign(
+    SecretKey(_jwtSecret),
+    expiresIn: const Duration(hours: 12),
+  );
+
+  return token;
 }
 
 /// Update portal user (Admin only)

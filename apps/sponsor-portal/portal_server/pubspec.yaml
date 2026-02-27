@@ -23,6 +23,8 @@ dependencies:
 
   # Environment & logging
   logging: ^1.3.0
+  dart_jsonwebtoken: ^2.12.0
+  uuid: ^4.3.3
 
 dev_dependencies:
   test: ^1.25.15

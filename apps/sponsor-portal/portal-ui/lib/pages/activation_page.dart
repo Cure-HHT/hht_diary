@@ -23,8 +23,9 @@ import '../widgets/error_message.dart';
 class ActivationPage extends StatefulWidget {
   final String? code;
 
-  const ActivationPage({super.key, this.code});
-
+  ActivationPage({super.key, this.code, http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
+  final http.Client _httpClient;
   @override
   State<ActivationPage> createState() => _ActivationPageState();
 }
@@ -35,10 +36,20 @@ class _ActivationPageState extends State<ActivationPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  // ignore: unused_field
   bool _isValidating = false;
   bool _isActivating = false;
   bool _codeValidated = false;
+  set codeValidated(bool value) {
+    _codeValidated = value;
+  }
+
   String? _maskedEmail;
+
+  set maskedEmail(String value) {
+    _maskedEmail = value;
+  }
+
   String? _error;
   bool _showPassword = false;
 
@@ -82,7 +93,7 @@ class _ActivationPageState extends State<ActivationPage> {
     });
 
     try {
-      final response = await http.get(
+      final response = await widget._httpClient.get(
         Uri.parse('$_apiBaseUrl/api/v1/portal/activate/$code'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -288,7 +299,11 @@ class _ActivationPageState extends State<ActivationPage> {
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 450),
+          constraints: const BoxConstraints(
+            maxWidth: 450,
+            minHeight: 300,
+            maxHeight: 700,
+          ),
           child: Card(
             margin: const EdgeInsets.all(24),
             child: Padding(
@@ -306,25 +321,24 @@ class _ActivationPageState extends State<ActivationPage> {
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      _codeValidated
-                          ? 'Create Your Password'
-                          : 'Activate Account',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    if (_codeValidated) ...[
+                      Text(
+                        'Create Your Password',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _codeValidated
-                          ? 'Set a password for your account'
-                          : 'Enter your activation code to get started',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Set a password for your account',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                    ],
                     const SizedBox(height: 32),
 
                     // Error message
@@ -341,39 +355,10 @@ class _ActivationPageState extends State<ActivationPage> {
 
                     if (!_codeValidated) ...[
                       // Activation code input
-                      TextFormField(
-                        controller: _codeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Activation Code',
-                          hintText: 'XXXXX-XXXXX',
-                          prefixIcon: Icon(Icons.vpn_key_outlined),
-                          border: OutlineInputBorder(),
+                      const Center(
+                        child: Text(
+                          "Enter Valid code to Activate Your Account",
                         ),
-                        textCapitalization: TextCapitalization.characters,
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Activation code is required';
-                          }
-                          if (!RegExp(
-                            r'^[A-Z0-9]{5}-[A-Z0-9]{5}$',
-                          ).hasMatch(v.trim().toUpperCase())) {
-                            return 'Invalid format. Use XXXXX-XXXXX';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: _isValidating ? null : _validateCode,
-                        child: _isValidating
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Validate Code'),
                       ),
                     ] else ...[
                       // Email display
