@@ -261,7 +261,9 @@ K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the inter
 
 L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
 
-*End* *Sponsor Portal Application* | **Hash**: 493e8af0
+M. The Sponsor Portal SHALL implement web application session management per REQ-p01044.
+
+*End* *Sponsor Portal Application* | **Hash**: 290ca25c
 ---
 
 # REQ-p70005: Customizable Role-Based Access Control

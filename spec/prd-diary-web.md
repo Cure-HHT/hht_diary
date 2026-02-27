@@ -111,13 +111,13 @@ R. The authentication system SHALL function correctly across all supported brows
 *End* *Web Diary Authentication via Linking Code* | **Hash**: 8c7d6240
 ---
 
-# REQ-p01044: Web Diary Session Management
+# REQ-p01044: Web Application Session Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
 ## Rationale
 
-Web access to clinical trial diaries may occur on shared or public computers where the next user could access patient data if sessions persist. Aggressive session timeout and complete data clearing protect patient privacy in these environments. The short default timeout (2 minutes) reflects the sensitive nature of clinical trial data and balances security with usability. This requirement implements the session security provisions of REQ-p01042.
+Web applications in the platform (patient diary and sponsor portal) may be accessed on shared or public computers — particularly in clinical and hospital settings — where the next user could access sensitive data if sessions persist. Aggressive session timeout and complete data clearing protect patient privacy and clinical trial confidentiality in these environments. The short default timeout (2 minutes) reflects the sensitive nature of clinical trial data and balances security with usability; sponsors may override the timeout within the configured range. This requirement satisfies FDA 21 CFR Part 11 session timeout mandates (REQ-d80021-F, REQ-d80021-G).
 
 ## Assertions
 
@@ -155,7 +155,7 @@ P. The system SHALL NOT provide a 'remember me' option.
 
 Q. The system SHALL NOT provide a persistent login option.
 
-*End* *Web Diary Session Management* | **Hash**: 8264ceb9
+*End* *Web Application Session Management* | **Hash**: 8264ceb9
 
 ---
 
