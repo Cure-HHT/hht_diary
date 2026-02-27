@@ -159,9 +159,12 @@ class _TimePickerDialState extends State<TimePickerDial> {
   int? _errorButtonDelta;
 
   void _adjustMinutes(int delta) {
-    final newTime = _selectedTime.add(Duration(minutes: delta));
+    final newTime = _selectedTime
+        .copyWith(second: 0)
+        .add(Duration(minutes: delta));
 
     // CUR-564: Check if this would exceed the max time, considering timezone
+
     if (_isDisplayedTimeInFuture(newTime)) {
       // Show error flash on the button
       setState(() => _errorButtonDelta = delta);
