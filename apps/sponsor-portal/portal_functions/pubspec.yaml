@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.0+9
+version: 0.1.0+13
 publish_to: none
 
 environment:
@@ -31,6 +31,8 @@ dependencies:
   # Gmail API for email OTP
   googleapis: ^15.0.0
   googleapis_auth: ^2.0.0
+  dart_jsonwebtoken: ^2.12.0
+  uuid: ^4.3.3
 
   # EDC Integration (RAVE)
   rave_integration:
