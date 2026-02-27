@@ -45,9 +45,11 @@ Response sponsorBrandingHandler(Request request, String sponsorId) {
   final config = SponsorBranding.loadConfig(sponsorId);
   if (config == null) {
     return Response(
-      500,
+      503,
       body: jsonEncode({
-        'error': 'Failed to load sponsor branding configuration',
+        'error': 'Sponsor branding not configured',
+        'message':
+            'Failed to load sponsor branding configuration for SPONSOR_ID:S$sponsorId',
       }),
       headers: {'Content-Type': 'application/json'},
     );
