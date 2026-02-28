@@ -132,4 +132,4 @@ Q. When the app is resumed after being closed by the OS, if a questionnaire is i
 - **NOSE HHT Questionnaire**: prd-questionnaire-nose-hht.md (REQ-p01067)
 - **HHT Quality of Life**: prd-questionnaire-qol.md (REQ-p01068)
 - **Event Sourcing**: prd-database.md (REQ-p00004)
-- **Amended by this requirement**: REQ-d00106-G, REQ-d00106-H, REQ-CAL-p00023-J
+- **Amended by this requirement**: REQ-CAL-p00023-J
