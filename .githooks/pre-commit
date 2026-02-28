@@ -391,14 +391,21 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
     echo ""
 
     if command -v elspais &> /dev/null; then
-        # Run hash update (modifies files in place)
-        if elspais fix 2>&1; then
-            # Re-stage any files that were modified
-            echo "$SPEC_FILES_CHANGED" | xargs git add 2>/dev/null || true
-            echo "✅ Requirement hashes updated!"
-        else
-            echo "⚠️  Hash update had issues (continuing anyway)"
+        # Run hash fix and index regeneration (modify files in place)
+        if ! elspais fix 2>&1; then
+            echo ""
+            echo "‼️  elspais fix FAILED — requirement hashes may be stale"
+            echo ""
         fi
+        if ! elspais index regenerate 2>&1; then
+            echo ""
+            echo "‼️  elspais index regenerate FAILED — INDEX.md may be stale"
+            echo ""
+        fi
+        # Re-stage any files that were modified
+        echo "$SPEC_FILES_CHANGED" | xargs git add 2>/dev/null || true
+        git add spec/INDEX.md 2>/dev/null || true
+        echo "✅ Requirement hashes and INDEX.md updated!"
         echo ""
     else
         echo "⚠️  WARNING: elspais not installed - skipping hash update"

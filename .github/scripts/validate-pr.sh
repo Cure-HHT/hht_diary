@@ -242,7 +242,12 @@ if [ "$SPEC_CHANGED" = "true" ]; then
   elspais validate --mode core
   elspais index validate --mode core
 
-  # Hash freshness is verified by `elspais validate` above (CUR-1013)
+  # Verify requirement hash freshness (CUR-1013)
+  if elspais hash verify 2>/dev/null; then
+    echo "Requirement hashes are up to date"
+  else
+    echo "::warning::Requirement hash verification returned non-zero (may not be supported in this elspais version)"
+  fi
 
   echo "Requirement validation passed"
 else
