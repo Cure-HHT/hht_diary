@@ -5,18 +5,21 @@
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00057: Automated database schema deployment
+#   REQ-d00031: Identity Platform Integration (user seeding)
 
 FROM google/cloud-sdk:slim
 
 # Set shell with pipefail for safer piped commands
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install required tools (PostgreSQL client + utilities)
+# Install required tools (PostgreSQL client + utilities + Node.js for Identity Platform seeding)
 # Note: google/cloud-sdk:slim is Debian-based and includes gcloud, gsutil, bq
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     jq \
+    nodejs \
+    npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,9 +30,15 @@ RUN groupadd --gid 1001 appuser \
 # Create working directory
 WORKDIR /app
 
-# Copy entrypoint script
+# Copy scripts and package manifest
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh \
+COPY seed_identity_users.js /app/seed_identity_users.js
+COPY package.json /app/package.json
+
+# Install npm dependencies (firebase-admin for Identity Platform user seeding)
+# hadolint ignore=DL3016
+RUN npm install --production \
+    && chmod +x /app/entrypoint.sh \
     && chown -R appuser:appuser /app
 
 # Switch to non-root user

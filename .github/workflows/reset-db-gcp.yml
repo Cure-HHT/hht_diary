@@ -28,6 +28,11 @@ on:
           - qa
           - uat
         default: dev
+      reset_identities:
+        description: 'Reset Identity Platform users'
+        required: false
+        type: boolean
+        default: false
       debug:
         description: 'Enable debug mode'
         required: true
@@ -117,6 +122,8 @@ jobs:
             --set-env-vars="DB_PASSWORD=${{ secrets.SPONSOR_DB_PASSWORD }}" \
             --set-env-vars="DB_PORT=${{ vars.SPONSOR_DB_PORT }}" \
             --set-env-vars="DB_USER=${{ vars.SPONSOR_DB_USER }}" \
+            --set-env-vars="DEFAULT_USER_PWD=${{ secrets.SPONSOR_DEFAULT_USER_PWD }}" \
+            --set-env-vars="RESET_IDS=${{ inputs.reset_identities }}" \
             --set-env-vars="ENVIRONMENT=${{ inputs.sponsor-env }}" \
             --set-env-vars="SCHEMA_BUCKET=${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}" \
             --set-env-vars="SCHEMA_FILE=${{ env.SCHEMA_FILE }}" \

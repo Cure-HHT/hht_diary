@@ -7,6 +7,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00057: Automated database schema deployment
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
+#   REQ-d00031: Identity Platform Integration (user seeding)
 
 set -euo pipefail
 
@@ -26,6 +27,9 @@ set -euo pipefail
 : "${SPONSOR_DATA_FILE:=seed_data_dev.sql}"
 : "${SPONSOR:?SPONSOR is required}"
 : "${ENVIRONMENT:?ENVIRONMENT is required}"
+
+# Optional environment variables
+: "${DEFAULT_USER_PWD:=}"
 
 # Optional settings
 SKIP_IF_TABLES_EXIST="${SKIP_IF_TABLES_EXIST:-true}"
@@ -153,6 +157,43 @@ main() {
     "
 
     log_info "Schema verification: $(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -t -c "${verification_query}")"
+
+    # -------------------------------------------------------------------------
+    # Seed Identity Platform users (optional - requires DEFAULT_USER_PWD)
+    # Queries portal_users table for emails and names, then creates/updates
+    # corresponding users in GCP Identity Platform via seed_identity_users.js
+    # -------------------------------------------------------------------------
+    if [[ "${RESET_IDS:-false}" == "true" && -n "${DEFAULT_USER_PWD}" ]]; then
+        log_info "Seeding Identity Platform users..."
+
+        # Extract comma-separated emails and names from portal_users table
+        local user_emails
+        user_emails=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+            "SELECT string_agg(email, ',') FROM portal_users")
+
+        local user_names
+        user_names=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+            "SELECT string_agg(name, ',') FROM portal_users")
+
+        if [[ -n "${user_emails}" ]]; then
+            log_info "Found portal users to seed: ${user_emails}"
+
+            if node /app/seed_identity_users.js \
+                --project="${SPONSOR}" \
+                --env="${ENVIRONMENT}" \
+                --password="${DEFAULT_USER_PWD}" \
+                --users="${user_emails}" \
+                --user-names="${user_names}"; then
+                log_info "Identity Platform users seeded successfully"
+            else
+                log_warn "Identity Platform user seeding failed (non-fatal)"
+            fi
+        else
+            log_warn "No portal users found in database - skipping Identity Platform seeding"
+        fi
+    else
+        log_info "DEFAULT_USER_PWD not set - skipping Identity Platform user seeding"
+    fi
 
     # Log completion
     log_info "=========================================="
