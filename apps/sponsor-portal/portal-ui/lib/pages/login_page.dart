@@ -3,6 +3,7 @@
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00034: Login Page Implementation
 //   REQ-p00002: Multi-Factor Authentication for Staff
+//   REQ-d00080: Web Session Management Implementation
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -240,6 +241,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       // Session timeout banner
+                      // Implements REQ-d00080-O (display login page after
+                      // timeout/logout) and REQ-d00080-F (feedback for
+                      // inactivity session termination).
                       if (authService.isTimedOut &&
                           authService.error == null) ...[
                         const SizedBox(height: 16),

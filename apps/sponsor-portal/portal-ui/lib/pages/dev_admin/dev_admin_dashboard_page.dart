@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00035: Admin Dashboard Implementation
+//   REQ-d00080: Web Session Management Implementation
 //   REQ-p00024: Portal User Roles and Permissions
 //
 // Developer Admin dashboard - for bootstrapping the first Portal Admin
@@ -48,6 +49,7 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // REQ-d00080-B, REQ-d00080-C: track user activity to reset inactivity timer.
     return UserActivityListener(
       child: Scaffold(
         appBar: const PortalAppBar(

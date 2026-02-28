@@ -4,6 +4,9 @@
 //   REQ-d00032: Role-Based Access Control Implementation
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//   REQ-d00080: Web Session Management Implementation
+//   REQ-p01044: Web Diary Session Management
+//   REQ-d80051: Authentication and Authorization Controls
 //
 // Portal authentication service using Firebase Auth (Identity Platform)
 // Supports both TOTP (for Developer Admin) and Email OTP (for other users)
@@ -225,9 +228,11 @@ class PortalUser {
 class AuthService extends ChangeNotifier {
   /// Create AuthService with optional dependencies for testing.
   ///
-  /// [inactivityTimeout] controls how long without an API call before the user
-  /// is automatically signed out. Defaults to 15 minutes. Pass a shorter
-  /// duration in tests to avoid sleeping.
+  /// [inactivityTimeout] controls how long without user activity before the
+  /// session is automatically terminated. Defaults to 15 minutes. Pass a
+  /// shorter duration in tests to avoid sleeping.
+  ///
+  /// Implements REQ-d00080-A (configurable inactivity timeout).
   AuthService({
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
@@ -297,12 +302,18 @@ class AuthService extends ChangeNotifier {
   /// Masked email address for display (e.g., t***@example.com)
   String? get maskedEmail => _maskedEmail;
 
+  /// Cancel and restart the inactivity timer.
+  /// Implements REQ-d00080-C (reset timer on tracked interaction).
   void resetInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(_inactivityTimeout, _onInactivityTimeout);
   }
 
   /// Called when the inactivity timer fires.
+  ///
+  /// Implements REQ-d00080-F (terminate session on inactivity timeout),
+  /// REQ-p01044-A (auto-terminate after configured inactivity period),
+  /// REQ-d80051-M (terminate inactive sessions after configurable timeout).
   void _onInactivityTimeout() {
     _currentUser = null;
     _timedOut = true;

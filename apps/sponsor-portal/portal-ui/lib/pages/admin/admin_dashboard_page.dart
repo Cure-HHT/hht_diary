@@ -2,6 +2,7 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: User Management Interface
+//   REQ-d00080: Web Session Management Implementation
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC sites display)
 //   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-CAL-p00073: Patient Status Definitions
@@ -49,6 +50,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // REQ-d00080-B, REQ-d00080-C: track user activity to reset inactivity timer.
     return UserActivityListener(
       child: Scaffold(
         appBar: const PortalAppBar(title: 'Admin Dashboard'),

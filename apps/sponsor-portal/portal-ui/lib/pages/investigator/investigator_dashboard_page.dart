@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00080: Web Session Management Implementation
 //   REQ-CAL-p00073: Patient Status Definitions
 //
 // Investigator (Study Coordinator) dashboard with patients and audit logs tabs
@@ -39,6 +40,7 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
 
     final user = authService.currentUser!;
 
+    // REQ-d00080-B, REQ-d00080-C: track user activity to reset inactivity timer.
     return UserActivityListener(
       child: Scaffold(
         appBar: const PortalAppBar(title: 'Study Coordinator Dashboard'),

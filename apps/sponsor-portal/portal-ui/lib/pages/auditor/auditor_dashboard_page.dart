@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00080: Web Session Management Implementation
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +25,7 @@ class AuditorDashboardPage extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // REQ-d00080-B, REQ-d00080-C: track user activity to reset inactivity timer.
     return UserActivityListener(
       child: Scaffold(
         appBar: const PortalAppBar(title: 'Auditor Dashboard'),
