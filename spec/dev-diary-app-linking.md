@@ -518,7 +518,7 @@ Addresses: JNY-Study-Start-01
 
 ## Rationale
 
-The Study Start questionnaire is a gating requirement for clinical trial enrollment. The questionnaire must be rendered consistently with the overall app experience while following the specific questionnaire design defined in REQ-p01066. The rendering implementation uses custom Flutter components per REQ-p01065-B, not a generic form builder.
+The Study Start questionnaire is a gating requirement for clinical trial enrollment. The questionnaire must be rendered consistently with the overall app experience while following the specific questionnaire design defined in REQ-p01066. The rendering implementation uses custom Flutter components per REQ-p01065-B, not a generic form builder. Session management behavior (state preservation and restore on resume) is governed by REQ-p01073.
 
 ## Assertions
 
@@ -534,10 +534,6 @@ E. The system SHALL display questionnaire progress indicator showing current sec
 
 F. The system SHALL support scrolling for questionnaires that exceed viewport height.
 
-G. The system SHALL preserve questionnaire state when app is backgrounded or interrupted, subject to session timeout constraints defined in REQ-p01073.
-
-H. Unless the session has expired per REQ-p01073, the system SHALL restore questionnaire progress on app resume.
-
 I. The system SHALL render validation errors inline with the corresponding question.
 
 J. The system SHALL prevent submission until all required questions are answered.
@@ -548,7 +544,7 @@ L. The system SHALL support the Daily Epistaxis Record questionnaire type as the
 
 M. The system SHALL allow sponsors to configure alternative Study Start questionnaire types.
 
-*End* *Study Start Questionnaire Rendering* | **Hash**: cbb2b7e7
+*End* *Study Start Questionnaire Rendering* | **Hash**: 60f1a652
 
 ---
 
@@ -574,7 +570,7 @@ E. The system SHALL capture response modification events when users change answe
 
 F. The system SHALL preserve the complete response history including modifications in the event log.
 
-G. The system SHALL associate questionnaire responses with the questionnaire version used.
+G. Each questionnaire response event SHALL include schema_version, content_version, and gui_version fields in event_data per the versioning model defined in REQ-p01051.
 
 H. The system SHALL store timestamps in patient's wall-clock time with timezone offset per REQ-p01066-L.
 
@@ -584,7 +580,7 @@ J. The system SHALL maintain referential integrity between questionnaire instanc
 
 K. The system SHALL encrypt stored questionnaire responses using the same encryption as diary entries.
 
-*End* *Questionnaire Response Collection and Storage* | **Hash**: d5097084
+*End* *Questionnaire Response Collection and Storage* | **Hash**: 888d43b7
 
 ---
 

@@ -87,7 +87,7 @@
 | REQ-p01041 | Open Source Licensing                                               | prd-system.md                             | 7e6b1e00 |
 | REQ-p01042 | Web Diary Application                                               | prd-diary-web.md                          | a19f716f |
 | REQ-p01043 | Web Diary Authentication via Linking Code                           | prd-diary-web.md                          | 8c7d6240 |
-| REQ-p01044 | Web Diary Session Management                                        | prd-diary-web.md                          | 8264ceb9 |
+| REQ-p01044 | Web Application Session Management                                  | prd-diary-web.md                          | 8264ceb9 |
 | REQ-p01045 | Web Diary Privacy Protection                                        | prd-diary-web.md                          | 58e010cd |
 | REQ-p01046 | Web Diary Account Creation                                          | prd-diary-web.md                          | 8d39c8e6 |
 | REQ-p01047 | Web Diary User Profile                                              | prd-diary-web.md                          | c132adc2 |
@@ -110,7 +110,7 @@
 | REQ-p01065 | Clinical Questionnaire System                                       | prd-questionnaire-system.md               | 0a439bc2 |
 | REQ-p01066 | Daily Epistaxis Record Questionnaire                                | prd-questionnaire-epistaxis.md            | 29498f8f |
 | REQ-p01067 | NOSE HHT Questionnaire                                              | prd-questionnaire-nose-hht.md             | 23b411c6 |
-| REQ-p01068 | HHT Quality of Life Questionnaire                                   | prd-questionnaire-qol.md                  | e4980a4b |
+| REQ-p01068 | HHT Quality of Life Questionnaire                                   | prd-questionnaire-qol.md                  | d3970cea |
 | REQ-p01069 | Daily Epistaxis Record User Interface                               | prd-questionnaire-epistaxis.md            | 0efa31a6 |
 | REQ-p01070 | NOSE HHT User Interface                                             | prd-questionnaire-nose-hht.md             | 84fa171d |
 | REQ-p01071 | HHT Quality of Life User Interface                                  | prd-questionnaire-qol.md                  | a231a942 |
@@ -118,7 +118,7 @@
 | REQ-p01073 | Questionnaire Session Management                                    | prd-questionnaire-session.md              | a101e60e |
 | REQ-p01074 | User-Facing State Change Communication                              | prd-system.md                             | ec6b0b1d |
 | REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | ab1e5121 |
-| REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 493e8af0 |
+| REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 290ca25c |
 | REQ-p70005 | Customizable Role-Based Access Control                              | prd-portal.md                             | d0617ddb |
 | REQ-p70006 | Comprehensive Audit Trail                                           | prd-portal.md                             | e3ed7b52 |
 | REQ-p70007 | Linking Code Lifecycle Management                                   | prd-portal.md                             | c0a77938 |
@@ -258,13 +258,13 @@
 | REQ-d00066 | Plugin-Specific Permission Management              | dev-marketplace-permissions.md                       | 03045719 |
 | REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md                                     | f6d9e288 |
 | REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md                                     | 951ecf65 |
-| REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md                                     | 8e194f4d |
+| REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md                                     | 7adcbff1 |
 | REQ-d00078 | Linking Code Validation                            | dev-linking.md                                       | 8cc744c2 |
 | REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                                       | f5e20cde |
-| REQ-d00080 | Web Session Management Implementation              | dev-diary-web.md                                     | 4b91624f |
+| REQ-d00080 | Web Session Management Implementation              | dev-diary-web.md                                     | 482b7002 |
 | REQ-d00081 | Linked Device Records                              | dev-linking.md                                       | 16853ebd |
 | REQ-d00082 | Password Hashing Implementation                    | dev-diary-web.md                                     | 1174dead |
-| REQ-d00083 | Browser Storage Clearing                           | dev-diary-web.md                                     | 3c9baff2 |
+| REQ-d00083 | Browser Storage Clearing                           | dev-diary-web.md                                     | dd80cdb0 |
 | REQ-d00084 | Sponsor Configuration Loading                      | dev-diary-web.md                                     | b8eb0a19 |
 | REQ-d00085 | Local Database Export and Import                   | dev-app.md                                           | eaa18d27 |
 | REQ-d00086 | Sponsor Repository Structure Template              | dev-sponsor-repos.md                                 | 0ede3cec |
@@ -287,9 +287,9 @@
 | REQ-d00103 | Disconnection Detection                            | dev-diary-app-linking.md                             | 0ef54680 |
 | REQ-d00104 | Contact Study Coordinator Screen                   | dev-diary-app-linking.md                             | 9e53fe8a |
 | REQ-d00105 | Reconnection Recovery Path                         | dev-diary-app-linking.md                             | 01389d10 |
-| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md                             | cbb2b7e7 |
-| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md                             | d5097084 |
-| REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md                             | 50d5db71 |
+| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md                             | 60f1a652 |
+| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md                             | 888d43b7 |
+| REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md                             | b9a8f91b |
 | REQ-d00109 | Portal Linking Code Validation Endpoint            | dev-portal-api.md                                    | bac91a72 |
 | REQ-d00110 | Linking API Error Response Strategy                | dev-portal-api.md                                    | 39ae2a18 |
 | REQ-d00111 | Linking API Audit Trail                            | dev-portal-api.md                                    | 90a41f24 |

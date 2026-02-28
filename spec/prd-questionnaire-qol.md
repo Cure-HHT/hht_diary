@@ -109,9 +109,7 @@ G. The system SHALL prevent modification of answers after the questionnaire has 
 
 H. The system SHALL record the exact response value (0-4) for each answered question, along with the answer the text of the answer the user selected and the normalized (English) text.
 
-K. The system SHALL record the questionnaire version used for each record.
-
-*End* *HHT Quality of Life Questionnaire* | **Hash**: e4980a4b
+*End* *HHT Quality of Life Questionnaire* | **Hash**: d3970cea
 ---
 
 # REQ-p01071: HHT Quality of Life User Interface
