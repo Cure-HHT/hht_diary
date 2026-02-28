@@ -392,7 +392,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
 
     if command -v elspais &> /dev/null; then
         # Run hash update (modifies files in place)
-        if elspais hash update 2>&1; then
+        if elspais fix 2>&1; then
             # Re-stage any files that were modified
             echo "$SPEC_FILES_CHANGED" | xargs git add 2>/dev/null || true
             echo "✅ Requirement hashes updated!"
