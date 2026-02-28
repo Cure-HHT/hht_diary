@@ -6,6 +6,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00057: Automated database schema deployment
 #   REQ-d00031: Identity Platform Integration (user seeding)
+#   REQ-d00058: Secrets Management via Doppler
 
 FROM google/cloud-sdk:slim
 
@@ -20,8 +21,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     nodejs \
     npm \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Doppler CLI (pinned version for reproducibility)
+ARG DOPPLER_VERSION=3.75.1
+RUN curl -sfL "https://github.com/DopplerHQ/cli/releases/download/${DOPPLER_VERSION}/doppler_${DOPPLER_VERSION}_linux_amd64.tar.gz" \
+    -o /tmp/doppler.tar.gz \
+    && tar xzf /tmp/doppler.tar.gz -C /usr/local/bin \
+    && chmod +x /usr/local/bin/doppler \
+    && rm /tmp/doppler.tar.gz
 
 # Create non-root user for runtime (Trivy DS002)
 RUN groupadd --gid 1001 appuser \

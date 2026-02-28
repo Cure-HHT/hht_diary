@@ -8,14 +8,59 @@
 #   REQ-d00057: Automated database schema deployment
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
 #   REQ-d00031: Identity Platform Integration (user seeding)
+#   REQ-d00058: Secrets Management via Doppler
 
 set -euo pipefail
 
 # -----------------------------------------------------------------------------
-# Configuration
+# Logging (defined early so Doppler bootstrap can use it)
 # -----------------------------------------------------------------------------
 
-# Required environment variables
+log() {
+    local level="$1"
+    shift
+    echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [$level] $*"
+}
+
+log_info() { log "INFO" "$@"; }
+log_warn() { log "WARN" "$@"; }
+log_error() { log "ERROR" "$@"; }
+
+# -----------------------------------------------------------------------------
+# Doppler Bootstrap
+# Fetches DOPPLER_TOKEN from Secret Manager and re-execs with doppler run
+# to inject all secrets (DB_HOST, DB_PASSWORD, DEFAULT_USER_PWD, etc.)
+# If DOPPLER_PROJECT_ID is not set, falls back to explicit env vars.
+# -----------------------------------------------------------------------------
+
+if [ -n "${DOPPLER_PROJECT_ID:-}" ] && [ -z "${_DOPPLER_INJECTED:-}" ]; then
+    : "${DOPPLER_CONFIG_NAME:?DOPPLER_CONFIG_NAME is required when DOPPLER_PROJECT_ID is set}"
+
+    log_info "Doppler Project: ${DOPPLER_PROJECT_ID}"
+    log_info "Doppler Config:  ${DOPPLER_CONFIG_NAME}"
+
+    log_info "Fetching DOPPLER_TOKEN from Secret Manager..."
+    DOPPLER_TOKEN="$(gcloud secrets versions access latest --secret=DOPPLER_TOKEN 2>&1)" || true
+    if [ -z "$DOPPLER_TOKEN" ]; then
+        log_error "Failed to fetch DOPPLER_TOKEN from Secret Manager"
+        log_error "Ensure the service account has secretmanager.versions.access permission"
+        exit 1
+    fi
+    export DOPPLER_TOKEN
+    log_info "DOPPLER_TOKEN fetched (length: ${#DOPPLER_TOKEN} chars)"
+
+    export _DOPPLER_INJECTED=1
+    log_info "Re-executing with Doppler-injected secrets..."
+    exec doppler run --project "${DOPPLER_PROJECT_ID}" --config "${DOPPLER_CONFIG_NAME}" -- "$0" "$@"
+fi
+
+# -----------------------------------------------------------------------------
+# Configuration
+# After Doppler injection, DB_* vars are available as env vars from Doppler.
+# Without Doppler, they must be passed as explicit Cloud Run env vars.
+# -----------------------------------------------------------------------------
+
+# Required environment variables (from Doppler or explicit)
 : "${DB_HOST:?DB_HOST is required}"
 : "${DB_PORT:=5432}"
 : "${DB_NAME:?DB_NAME is required}"
@@ -28,26 +73,12 @@ set -euo pipefail
 : "${SPONSOR:?SPONSOR is required}"
 : "${ENVIRONMENT:?ENVIRONMENT is required}"
 
-# Optional environment variables
+# Optional environment variables (from Doppler or explicit)
 : "${DEFAULT_USER_PWD:=}"
 
 # Optional settings
 SKIP_IF_TABLES_EXIST="${SKIP_IF_TABLES_EXIST:-true}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
-
-# -----------------------------------------------------------------------------
-# Logging
-# -----------------------------------------------------------------------------
-
-log() {
-    local level="$1"
-    shift
-    echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [$level] $*"
-}
-
-log_info() { log "INFO" "$@"; }
-log_warn() { log "WARN" "$@"; }
-log_error() { log "ERROR" "$@"; }
 
 # -----------------------------------------------------------------------------
 # Main
@@ -86,7 +117,7 @@ main() {
     export PGDATABASE="${DB_NAME}"
     export PGUSER="${DB_USER}"
     export PGPASSWORD="${DB_PASSWORD}"
-    
+
     env | grep PG > /tmp/env_vars.txt 2>&1
     log_info "ENVIRONMENT VARIABLES: $(cat /tmp/env_vars.txt)"
 
@@ -159,40 +190,122 @@ main() {
     log_info "Schema verification: $(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -t -c "${verification_query}")"
 
     # -------------------------------------------------------------------------
-    # Seed Identity Platform users (optional - requires DEFAULT_USER_PWD)
-    # Queries portal_users table for emails and names, then creates/updates
-    # corresponding users in GCP Identity Platform via seed_identity_users.js
+    # Reset Identity Platform users (optional - requires RESET_IDS=true)
+    # 1. Batch-delete all existing users via Identity Toolkit REST API
+    # 2. Re-seed users from portal_users table via seed_identity_users.js
     # -------------------------------------------------------------------------
-    if [[ "${RESET_IDS:-false}" == "true" && -n "${DEFAULT_USER_PWD}" ]]; then
-        log_info "Seeding Identity Platform users..."
+    if [[ "${RESET_IDS:-false}" == "true" ]]; then
+        local id_project="${SPONSOR}-${ENVIRONMENT}"
+        log_info "Resetting Identity Platform users for project: ${id_project}"
 
-        # Extract comma-separated emails and names from portal_users table
-        local user_emails
-        user_emails=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
-            "SELECT string_agg(email, ',') FROM portal_users")
-
-        local user_names
-        user_names=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
-            "SELECT string_agg(name, ',') FROM portal_users")
-
-        if [[ -n "${user_emails}" ]]; then
-            log_info "Found portal users to seed: ${user_emails}"
-
-            if node /app/seed_identity_users.js \
-                --project="${SPONSOR}" \
-                --env="${ENVIRONMENT}" \
-                --password="${DEFAULT_USER_PWD}" \
-                --users="${user_emails}" \
-                --user-names="${user_names}"; then
-                log_info "Identity Platform users seeded successfully"
-            else
-                log_warn "Identity Platform user seeding failed (non-fatal)"
-            fi
+        # Get access token for Identity Toolkit API calls
+        local access_token
+        access_token=$(gcloud auth print-access-token 2>/dev/null)
+        if [[ -z "${access_token}" ]]; then
+            log_warn "Failed to obtain access token - skipping Identity Platform reset"
         else
-            log_warn "No portal users found in database - skipping Identity Platform seeding"
+            # --- Step 1: Batch-delete existing users ---
+            log_info "Looking up existing Identity Platform users..."
+            local api_base="https://identitytoolkit.googleapis.com/v1/projects/${id_project}"
+            local all_local_ids=()
+            local next_page_token=""
+
+            # Paginate through all users via accounts:batchGet
+            while true; do
+                local batch_url="${api_base}/accounts:batchGet?maxResults=1000"
+                if [[ -n "${next_page_token}" ]]; then
+                    batch_url="${batch_url}&nextPageToken=${next_page_token}"
+                fi
+
+                local response
+                response=$(curl -sf -H "Authorization: Bearer ${access_token}" \
+                    -H "Content-Type: application/json" \
+                    "${batch_url}" 2>/dev/null) || true
+
+                if [[ -z "${response}" ]]; then
+                    log_warn "Empty response from accounts:batchGet - may have no users"
+                    break
+                fi
+
+                # Extract localIds from response
+                local page_ids
+                page_ids=$(echo "${response}" | jq -r '.users[]?.localId // empty' 2>/dev/null)
+                if [[ -n "${page_ids}" ]]; then
+                    while IFS= read -r uid; do
+                        all_local_ids+=("${uid}")
+                    done <<< "${page_ids}"
+                fi
+
+                # Check for next page
+                next_page_token=$(echo "${response}" | jq -r '.nextPageToken // empty' 2>/dev/null)
+                if [[ -z "${next_page_token}" ]]; then
+                    break
+                fi
+            done
+
+            local user_count=${#all_local_ids[@]}
+            log_info "Found ${user_count} existing Identity Platform users"
+
+            if [[ ${user_count} -gt 0 ]]; then
+                log_info "Batch-deleting ${user_count} users..."
+
+                # Build JSON array of localIds for batchDelete
+                local ids_json
+                ids_json=$(printf '%s\n' "${all_local_ids[@]}" | jq -R . | jq -s '.')
+
+                local delete_response
+                delete_response=$(curl -sf -X POST \
+                    -H "Authorization: Bearer ${access_token}" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"localIds\": ${ids_json}, \"force\": true}" \
+                    "${api_base}/accounts:batchDelete" 2>/dev/null) || true
+
+                # Check for errors in the response
+                local error_count
+                error_count=$(echo "${delete_response}" | jq -r '.errors | length // 0' 2>/dev/null)
+                if [[ "${error_count}" -gt 0 ]]; then
+                    log_warn "Batch delete completed with ${error_count} errors"
+                    log_warn "Details: $(echo "${delete_response}" | jq -c '.errors' 2>/dev/null)"
+                else
+                    log_info "Batch-deleted ${user_count} Identity Platform users"
+                fi
+            fi
+
+            # --- Step 2: Re-seed users from portal_users table ---
+            if [[ -n "${DEFAULT_USER_PWD}" ]]; then
+                log_info "Seeding Identity Platform users..."
+
+                # Extract comma-separated emails and names from portal_users table
+                local user_emails
+                user_emails=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                    "SELECT string_agg(email, ',') FROM portal_users")
+
+                local user_names
+                user_names=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                    "SELECT string_agg(name, ',') FROM portal_users")
+
+                if [[ -n "${user_emails}" ]]; then
+                    log_info "Found portal users to seed: ${user_emails}"
+
+                    if node /app/seed_identity_users.js \
+                        --project="${SPONSOR}" \
+                        --env="${ENVIRONMENT}" \
+                        --password="${DEFAULT_USER_PWD}" \
+                        --users="${user_emails}" \
+                        --user-names="${user_names}"; then
+                        log_info "Identity Platform users seeded successfully"
+                    else
+                        log_warn "Identity Platform user seeding failed (non-fatal)"
+                    fi
+                else
+                    log_warn "No portal users found in database - skipping Identity Platform seeding"
+                fi
+            else
+                log_info "DEFAULT_USER_PWD not set - skipping Identity Platform user seeding (delete-only reset)"
+            fi
         fi
     else
-        log_info "DEFAULT_USER_PWD not set - skipping Identity Platform user seeding"
+        log_info "RESET_IDS not set - skipping Identity Platform reset"
     fi
 
     # Log completion

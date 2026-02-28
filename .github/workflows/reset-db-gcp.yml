@@ -45,6 +45,7 @@ on:
 env:
   CUREHHT_ADMIN_REPO_PATH: 'europe-west9-docker.pkg.dev/${{ vars.CUREHHT_ADMIN_PROJECT_ID }}/cloud-run-source-deploy'
   SCHEMA_FILE: 'init-consolidated.sql'
+  DOPPLER_PROJECT: 'hht-diary'
 
 jobs:
   deploy:
@@ -106,25 +107,16 @@ jobs:
 
       - name: 'Deploy deploy-db job to Cloud Run'
         run: |
-          DB_INSTANCE_IP=$(gcloud sql instances describe ${{ vars.SPONSOR_DB_INSTANCE_NAME }} \
-            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
-            --format=json | jq \
-            --raw-output '.ipAddresses[] | select(.type == "PRIVATE") | .ipAddress')
-
           gcloud run jobs deploy deploy-db \
             --image=${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
             --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
             --region=${{ vars.GCP_REGION }} \
             --task-timeout=5m \
             --max-retries=1 \
-            --set-env-vars="DB_HOST=$DB_INSTANCE_IP" \
-            --set-env-vars="DB_NAME=${{ vars.SPONSOR_DB_NAME }}" \
-            --set-env-vars="DB_PASSWORD=${{ secrets.SPONSOR_DB_PASSWORD }}" \
-            --set-env-vars="DB_PORT=${{ vars.SPONSOR_DB_PORT }}" \
-            --set-env-vars="DB_USER=${{ vars.SPONSOR_DB_USER }}" \
-            --set-env-vars="DEFAULT_USER_PWD=${{ secrets.SPONSOR_DEFAULT_USER_PWD }}" \
-            --set-env-vars="RESET_IDS=${{ inputs.reset_identities }}" \
+            --set-env-vars="DOPPLER_PROJECT_ID=${{ env.DOPPLER_PROJECT }}" \
+            --set-env-vars="DOPPLER_CONFIG_NAME=${{ inputs.sponsor-env }}" \
             --set-env-vars="ENVIRONMENT=${{ inputs.sponsor-env }}" \
+            --set-env-vars="RESET_IDS=${{ inputs.reset_identities }}" \
             --set-env-vars="SCHEMA_BUCKET=${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}" \
             --set-env-vars="SCHEMA_FILE=${{ env.SCHEMA_FILE }}" \
             --set-env-vars="SPONSOR_DATA_FILE=${{ vars.SPONSOR_DATA_FILE }}" \

@@ -92,13 +92,14 @@ resource "google_secret_manager_secret_iam_member" "doppler_token_compute_access
 }
 
 # Grant Compute Engine default service account Identity Platform admin access
-# Required for deploy-db job to seed Identity Platform users via seed_identity_users.js
+# Required for deploy-db job to batch-delete and seed Identity Platform users
+# via Identity Toolkit REST API and seed_identity_users.js
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00031: Identity Platform Integration (user seeding)
-resource "google_project_iam_member" "compute_sa_firebase_auth_admin" {
+resource "google_project_iam_member" "compute_sa_identity_platform_admin" {
   count   = var.compute_service_account != "" ? 1 : 0
   project = var.project_id
-  role    = "roles/firebaseauth.admin"
+  role    = "roles/identityplatform.admin"
   member  = "serviceAccount:${var.compute_service_account}"
 }
 
