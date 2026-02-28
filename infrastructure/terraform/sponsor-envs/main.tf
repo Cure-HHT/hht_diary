@@ -91,6 +91,25 @@ resource "google_secret_manager_secret_iam_member" "doppler_token_compute_access
   member    = "serviceAccount:${var.compute_service_account}"
 }
 
+# Grant Compute Engine default service account Identity Platform admin access
+# Required for deploy-db job to batch-delete and seed Identity Platform users
+# via Identity Toolkit REST API and seed_identity_users.js
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00031: Identity Platform Integration (user seeding)
+resource "google_project_iam_member" "compute_sa_identity_platform_admin" {
+  count   = var.compute_service_account != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/identityplatform.admin"
+  member  = "serviceAccount:${var.compute_service_account}"
+}
+
+resource "google_project_iam_member" "compute_sa_service_usage_consumer" {
+  count   = var.compute_service_account != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = "serviceAccount:${var.compute_service_account}"
+}
+
 # -----------------------------------------------------------------------------
 # Audit Logs (FDA Compliant)
 # -----------------------------------------------------------------------------
@@ -108,22 +127,32 @@ resource "google_secret_manager_secret_iam_member" "doppler_token_compute_access
 # }
 
 # -----------------------------------------------------------------------------
-# Cloud SQL
+# Cloud SQL Database
+# Migrated from bootstrap via scripts/migrate-db-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
-# module "cloud_sql" {
-#   source = "../modules/cloud-sql"
 
-#   project_id             = var.project_id
-#   sponsor                = var.sponsor
-#   environment            = var.environment
-#   region                 = var.region
-#   vpc_network_id         = module.vpc.network_id
-#   private_vpc_connection = module.vpc.private_vpc_connection
-#   DB_PASSWORD            = var.DB_PASSWORD
+module "database" {
+  source = "../modules/cloud-sql"
 
-#   depends_on = [module.vpc]
-# }
+  project_id             = var.project_id
+  sponsor                = var.sponsor
+  environment            = var.environment
+  region                 = var.region
+  vpc_network_id         = data.terraform_remote_state.bootstrap.outputs.network_ids[var.environment]
+  private_vpc_connection = data.terraform_remote_state.bootstrap.outputs.private_vpc_connections[var.environment]
+  database_name          = "${var.sponsor}_${var.environment}_${var.database_name}"
+  db_username            = var.db_username
+  DB_PASSWORD            = var.DB_PASSWORD
+
+  # Backup & recovery (REQ-p00047, REQ-o00008)
+  # Daily backups at 02:00 UTC, stored in same region, PITR enabled
+  backup_start_time              = "02:00"
+  transaction_log_retention_days = 7
+
+  # Maintenance window: Sunday 05:00 UTC = 06:00 CET
+  maintenance_window_day  = 7
+  maintenance_window_hour = 5
+}
 
 # -----------------------------------------------------------------------------
 # Cloud Run Services
@@ -240,6 +269,7 @@ module "billing_stop" {
   budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
   function_source_dir   = "${path.module}/../modules/billing-stop-funk/src"
   slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
+  threshold_cutoff      = var.threshold_cutoff
 }
 
 # -----------------------------------------------------------------------------

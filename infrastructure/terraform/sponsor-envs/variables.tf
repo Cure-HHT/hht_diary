@@ -63,6 +63,22 @@ variable "DOPPLER_TOKEN" {
 }
 
 # -----------------------------------------------------------------------------
+# Required: Database Configuration
+# -----------------------------------------------------------------------------
+
+variable "database_name" {
+  description = "Base name of the database to create (combined as sponsor_env_name)"
+  type        = string
+  default     = "db"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "app_user"
+}
+
+# -----------------------------------------------------------------------------
 # Optional: Region Configuration
 # -----------------------------------------------------------------------------
 
@@ -361,6 +377,17 @@ variable "enable_cost_controls" {
   default     = false
 }
 
+
+variable "threshold_cutoff" {
+  description = "Fraction of budget at which billing is disabled (e.g. 0.50 = 50%)"
+  type        = number
+  default     = 0.50
+
+  validation {
+    condition     = var.threshold_cutoff > 0 && var.threshold_cutoff <= 1.0
+    error_message = "threshold_cutoff must be between 0 (exclusive) and 1.0 (inclusive)."
+  }
+}
 
 variable "SLACK_INCIDENT_WEBHOOK_URL" {
   description = "Slack webhook URL for billing alert notifications (from Doppler: TF_VAR_SLACK_INCIDENT_WEBHOOK_URL)"

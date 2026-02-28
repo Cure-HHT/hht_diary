@@ -171,40 +171,9 @@ output "budget_alert_topics" {
 # }
 
 # -----------------------------------------------------------------------------
-# Database Configuration
+# Database Configuration — MIGRATED to sponsor-envs
+# Database outputs now come from each per-environment sponsor-envs state
 # -----------------------------------------------------------------------------
-
-output "database_instance_names" {
-  description = "Map of environment to Cloud SQL instance name"
-  value = {
-    for env in local.environments :
-    env => module.database[env].instance_name
-  }
-}
-
-output "database_connection_names" {
-  description = "Map of environment to Cloud SQL connection name (for proxy)"
-  value = {
-    for env in local.environments :
-    env => module.database[env].instance_connection_name
-  }
-}
-
-output "database_private_ips" {
-  description = "Map of environment to Cloud SQL private IP"
-  value = {
-    for env in local.environments :
-    env => module.database[env].private_ip_address
-  }
-}
-
-output "database_names" {
-  description = "Map of environment to database name"
-  value = {
-    for env in local.environments :
-    env => module.database[env].database_name
-  }
-}
 
 # -----------------------------------------------------------------------------
 # VPC Network Information
@@ -251,6 +220,18 @@ output "proxy_only_subnet_cidrs" {
 }
 
 # -----------------------------------------------------------------------------
+# Private VPC Connections (for Cloud SQL in sponsor-envs)
+# -----------------------------------------------------------------------------
+
+output "private_vpc_connections" {
+  description = "Map of environment to private VPC connection ID (for Cloud SQL depends_on)"
+  value = {
+    for env in local.environments :
+    env => module.network[env].private_vpc_connection
+  }
+}
+
+# -----------------------------------------------------------------------------
 # VPC CIDR Information
 # -----------------------------------------------------------------------------
 
@@ -291,11 +272,7 @@ output "next_steps" {
 
     VPC CIDR Range: 10.${var.sponsor_id}.0.0/16
 
-    Cloud SQL Databases (PostgreSQL 17):
-      - Dev:  ${module.database["dev"].instance_name}
-      - QA:   ${module.database["qa"].instance_name}
-      - UAT:  ${module.database["uat"].instance_name}
-      - Prod: ${module.database["prod"].instance_name}
+    Cloud SQL Databases: Managed per-environment in sponsor-envs/
 
     Audit Log Retention: ${var.audit_retention_years} years
     Prod Audit Locked: ${local.audit_lock["prod"]}
