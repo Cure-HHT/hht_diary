@@ -282,7 +282,7 @@ A. The system SHALL authenticate patients before data entry to establish privile
 
 B. The system SHALL use the device's native lock screen as the primary authentication mechanism.
 
-C. The system SHALL require an in-app PIN as a fallback authentication mechanism when the device lock screen is not enabled.
+C. When enabled by Sponsor configuration, the system SHALL require an in-app PIN as a fallback authentication mechanism when the device lock screen is not enabled.
 
 D. The system SHALL detect whether the device has a lock screen enabled.
 
@@ -290,21 +290,21 @@ E. The system SHALL detect device lock screen status at patient enrollment.
 
 F. The system SHALL periodically detect device lock screen status after enrollment.
 
-G. The system SHALL prompt patients to set an in-app PIN when the device lock screen is not enabled.
+G. When the in-app PIN fallback is enabled, the system SHALL prompt patients to set a PIN when the device lock screen is not enabled.
 
-H. The system SHALL allow Site Coordinators to send PIN reset notifications to patients.
+H. When the in-app PIN fallback is enabled, the system SHALL allow Site Coordinators to send PIN reset notifications to patients.
 
-I. The system SHALL NOT allow Site Coordinators to view patient PINs.
+I. When the in-app PIN fallback is enabled, the system SHALL NOT allow Site Coordinators to view patient PINs.
 
 J. The system SHALL record authentication status with each data submission.
 
 K. The system SHALL log failed authentication attempts for audit purposes.
 
-L. The system SHALL use device-specific UUID binding as an identity assurance control, establishing a one-to-one association between the enrolled patient and a single application instance.
+L. The system SHALL use device-specific UUID binding as an identity assurance control, establishing a controlled association between the enrolled patient and registered application instances.
 
 M. The system SHALL treat the combination of mandatory device-level lock screen authentication and device UUID binding as equivalent to application-level login credentials for the purpose of patient identity assurance during data submission.
 
-*End* *Patient Authentication for Data Attribution* | **Hash**: 066b7b1d
+*End* *Patient Authentication for Data Attribution* | **Hash**: fc02cd59
 ---
 
 ---

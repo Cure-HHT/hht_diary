@@ -39,6 +39,8 @@ Modern mobile operating systems provide hardware-backed authentication mechanism
 
 The Cure HHT Tracker requires that device-level authentication be enabled and validates the presence of an active lock screen at application launch and during runtime. Use of the application is prevented if device-level authentication is disabled. This establishes a baseline access-control standard across BYOD devices without introducing additional authentication steps within the application itself.
 
+Where Sponsor policy requires an additional authentication layer, the system supports an optional in-app PIN that may be enabled on a per-Sponsor basis. When enabled, this PIN serves as a fallback mechanism for patients whose devices do not have an active lock screen.
+
 ---
 
 ## 4. Device-Level Locking as a Primary Access Control
@@ -69,7 +71,7 @@ Identity assurance for data collected using the Cure HHT Tracker is supported th
 
 From a technical perspective, the application generates a unique device-specific identifier (UUID) at installation. This identifier is stored in hardware-secured device memory and is not accessible to other applications. During initial study setup, the application also obtains a server-issued token derived from a one-time code. The UUID and server-issued token are used together to authenticate data submissions to the backend system.
 
-This mechanism enforces a one-to-one association between a subject and a single device for the duration of the study. Data submissions from additional installations or devices are rejected by the server, preventing the same subject from linking multiple devices to the study.
+This mechanism establishes a controlled association between a subject and a registered device. Additional devices may be registered only through a Sponsor- or CRO-mediated process. This approach prevents uncontrolled parallel device use while allowing the Sponsor to evaluate whether a new registration reflects device replacement or an additional access request, thereby supporting consistent user attribution and audit trail integrity.
 
 In addition to these technical controls, identity assurance can be supported through procedural and contextual measures implemented by the Sponsor or its designated CRO, depending on the study design. These may include subject identity verification at enrollment, explicit prohibition of device sharing, subject training and attestation, and site oversight. The Cure HHT Tracker captures usage metadata and timestamps and makes these data available to support sponsor- or CRO-led monitoring and review activities. The system provides technical features and audit data that enable Sponsor- or CRO-led user attribution activities consistent with the intended use and risk profile of the system.
 
