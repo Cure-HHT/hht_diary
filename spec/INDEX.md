@@ -295,6 +295,7 @@
 | REQ-d00111 | Linking API Audit Trail                            | dev-portal-api.md                                    | 90a41f24 |
 | REQ-d00112 | Enrollment Token Revocation                        | dev-portal-api.md                                    | e8863441 |
 | REQ-d00113 | Deleted Questionnaire Submission Handling          | dev-questionnaire.md                                 | 6aaa85fd |
+| REQ-d00114 | Sync Request Device Binding Verification           | dev-portal-api.md                                    | b1a11feb |
 | REQ-d80011 | ALCOA++ Data Integrity Implementation              | regulations/fda/dev-fda-part11-technical-controls.md | 9bbe74ec |
 | REQ-d80021 | Electronic Signature Technical Controls            | regulations/fda/dev-fda-part11-technical-controls.md | dd16ae7a |
 | REQ-d80031 | Audit Trail Technical Implementation               | regulations/fda/dev-fda-part11-technical-controls.md | 5e69b0c1 |
