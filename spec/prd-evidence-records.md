@@ -300,7 +300,11 @@ J. The system SHALL record authentication status with each data submission.
 
 K. The system SHALL log failed authentication attempts for audit purposes.
 
-*End* *Patient Authentication for Data Attribution* | **Hash**: da907239
+L. The system SHALL use device-specific UUID binding as an identity assurance control, establishing a one-to-one association between the enrolled patient and a single application instance.
+
+M. The system SHALL treat the combination of mandatory device-level lock screen authentication and device UUID binding as equivalent to application-level login credentials for the purpose of patient identity assurance during data submission.
+
+*End* *Patient Authentication for Data Attribution* | **Hash**: 066b7b1d
 ---
 
 ---

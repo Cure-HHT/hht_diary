@@ -73,7 +73,7 @@
 | REQ-p01027 | Timestamp Verification Interface                                    | prd-evidence-records.md                   | 9956bd94 |
 | REQ-p01028 | Timestamp Proof Archival                                            | prd-evidence-records.md                   | 69a49395 |
 | REQ-p01029 | Device Fingerprinting                                               | prd-evidence-records.md                   | 8e10b85a |
-| REQ-p01030 | Patient Authentication for Data Attribution                         | prd-evidence-records.md                   | da907239 |
+| REQ-p01030 | Patient Authentication for Data Attribution                         | prd-evidence-records.md                   | 066b7b1d |
 | REQ-p01031 | Optional Geolocation Tagging                                        | prd-evidence-records.md                   | f9a69607 |
 | REQ-p01032 | Hashed Email Identity Verification                                  | prd-evidence-records.md                   | 0ba2d208 |
 | REQ-p01033 | Customer Incident Notification                                      | prd-SLA.md                                | 3ca3df0f |
