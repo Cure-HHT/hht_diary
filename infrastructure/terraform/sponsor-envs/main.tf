@@ -50,8 +50,8 @@ locals {
     local.is_production ? 10 : 3
   )
 
-  # Audit log lock: only prod gets locked
-  lock_audit_retention = local.is_production
+  # Billing account: prod uses prod account, others use dev account
+  billing_account_id = local.is_production ? var.BILLING_ACCOUNT_PROD : var.BILLING_ACCOUNT_DEV
 
   common_labels = {
     sponsor     = var.sponsor
@@ -59,6 +59,23 @@ locals {
     managed_by  = "terraform"
     compliance  = "fda-21-cfr-part-11"
   }
+}
+
+# -----------------------------------------------------------------------------
+# Billing Budgets (per-environment)
+# Migrated from bootstrap via scripts/migrate-budgets-audit-to-sponsor-envs.sh
+# -----------------------------------------------------------------------------
+
+module "budgets" {
+  source = "../modules/billing-budget"
+
+  billing_account_id   = local.billing_account_id
+  project_id           = var.project_id
+  project_number       = var.project_number
+  sponsor              = var.sponsor
+  environment          = var.environment
+  budget_amount        = var.budget_amount
+  enable_cost_controls = var.enable_cost_controls
 }
 
 # -----------------------------------------------------------------------------
@@ -112,19 +129,21 @@ resource "google_project_iam_member" "compute_sa_service_usage_consumer" {
 
 # -----------------------------------------------------------------------------
 # Audit Logs (FDA Compliant)
+# Migrated from bootstrap via scripts/migrate-budgets-audit-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
-# module "audit_logs" {
-#   source = "../modules/audit-logs"
 
-#   project_id            = var.project_id
-#   project_prefix        = var.project_prefix
-#   sponsor               = var.sponsor
-#   environment           = var.environment
-#   region                = var.region
-#   retention_years       = local.is_production ? var.audit_retention_years : 0
-#   lock_retention_policy = local.lock_audit_retention
-# }
+module "audit_logs" {
+  source = "../modules/audit-logs"
+
+  project_id               = var.project_id
+  project_prefix           = var.project_prefix
+  sponsor                  = var.sponsor
+  environment              = var.environment
+  region                   = var.region
+  retention_years          = local.is_production ? var.audit_retention_years : 0
+  lock_retention_policy    = var.lock_audit_retention
+  include_data_access_logs = var.include_data_access_logs
+}
 
 # -----------------------------------------------------------------------------
 # Cloud SQL Database
@@ -250,7 +269,7 @@ module "billing_alerts" {
   region                = var.region
   sponsor               = var.sponsor
   environment           = var.environment
-  budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
+  budget_alert_topic_id = module.budgets.budget_alert_topic
   # "${var.sponsor}-${var.environment}-budget-alerts"
   function_source_dir = "${path.module}/../modules/billing-alert-funk/src"
   slack_webhook_url   = var.SLACK_INCIDENT_WEBHOOK_URL
@@ -270,7 +289,7 @@ module "billing_stop" {
   region                = var.region
   sponsor               = var.sponsor
   environment           = var.environment
-  budget_alert_topic_id = data.terraform_remote_state.bootstrap.outputs.budget_alert_topics[var.environment]
+  budget_alert_topic_id = module.budgets.budget_alert_topic
   function_source_dir   = "${path.module}/../modules/billing-stop-funk/src"
   slack_webhook_url     = var.SLACK_INCIDENT_WEBHOOK_URL
   threshold_cutoff      = var.threshold_cutoff

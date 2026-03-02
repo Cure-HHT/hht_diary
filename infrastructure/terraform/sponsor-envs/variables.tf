@@ -63,6 +63,41 @@ variable "DOPPLER_TOKEN" {
 }
 
 # -----------------------------------------------------------------------------
+# Required: Billing Configuration (from Doppler)
+# -----------------------------------------------------------------------------
+
+variable "BILLING_ACCOUNT_PROD" {
+  description = "Billing account ID for production (from Doppler: TF_VAR_BILLING_ACCOUNT_PROD)"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.BILLING_ACCOUNT_PROD))
+    error_message = "Billing account ID must be in format XXXXXX-XXXXXX-XXXXXX."
+  }
+}
+
+variable "BILLING_ACCOUNT_DEV" {
+  description = "Billing account ID for dev/qa/uat (from Doppler: TF_VAR_BILLING_ACCOUNT_DEV)"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.BILLING_ACCOUNT_DEV))
+    error_message = "Billing account ID must be in format XXXXXX-XXXXXX-XXXXXX."
+  }
+}
+
+variable "budget_amount" {
+  description = "Monthly budget amount in USD for this environment"
+  type        = number
+  default     = 500
+
+  validation {
+    condition     = var.budget_amount > 0
+    error_message = "Budget amount must be greater than 0."
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Required: Database Configuration
 # -----------------------------------------------------------------------------
 
@@ -396,8 +431,17 @@ variable "audit_retention_years" {
   default     = 25
 }
 
-# Note: lock_retention_policy is automatically set based on environment
-# (true for prod, false for others)
+variable "include_data_access_logs" {
+  description = "Include data access logs in audit exports (more verbose, higher cost)"
+  type        = bool
+  default     = true
+}
+
+variable "lock_audit_retention" {
+  description = "Lock audit log retention policy (IRREVERSIBLE). Set true for prod when ready."
+  type        = bool
+  default     = false
+}
 
 # -----------------------------------------------------------------------------
 # Optional: Monitoring

@@ -115,8 +115,10 @@ workforce_identity_enabled = false
 # -----------------------------------------------------------------------------
 
 audit_retention_years = 25
-# Note: lock_retention_policy is automatically set based on environment
-# (true for prod, false for dev/qa/uat)
+# lock_audit_retention defaults to false; set true when ready to lock prod
+
+# Billing budget (migrated from bootstrap)
+budget_amount = 500 # Monthly budget in USD
 
 # -----------------------------------------------------------------------------
 # Optional: Regional Load Balancer (europe-west9)

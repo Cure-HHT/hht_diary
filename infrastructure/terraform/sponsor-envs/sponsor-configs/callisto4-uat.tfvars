@@ -142,9 +142,10 @@ workforce_identity_enabled = false
 # Optional: Audit Configuration
 # -----------------------------------------------------------------------------
 
-audit_retention_years = 25
-# Note: lock_retention_policy is automatically set based on environment
-# (true for prod, false for dev/qa/uat)
+audit_retention_years = 0
+
+# Billing budget (migrated from bootstrap)
+budget_amount = 1000 # Monthly budget in USD
 
 enable_cost_controls = true
 threshold_cutoff = 0.50 # 50% of budget - adjust as needed

@@ -17,13 +17,15 @@ environment = "prod"
 # -----------------------------------------------------------------------------
 
 project_id     = "callisto4-prod" # From bootstrap output
-project_number = ""               # TODO: Run: gcloud projects describe callisto4-prod --format='value(projectNumber)'
+project_number = "163292813995"
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID
 # - TF_VAR_BILLING_ACCOUNT_PROD
 # - TF_VAR_BILLING_ACCOUNT_DEV
 # - TF_VAR_DB_PASSWORD
+# - TF_VAR_DOPPLER_TOKEN
+# - TF_VAR_SLACK_INCIDENT_WEBHOOK_URL
 #
 # Find your GCP Organization ID: gcloud organizations list
 # Find your Billing Account IDs: gcloud billing accounts list
@@ -50,8 +52,8 @@ db_username   = "app_user"
 disk_size                       = 0      # 0 = use environment default
 backup_start_time               = "02:00"
 transaction_log_retention_days  = 7
-backup_retention_override       = 0      # 0 = use environment default (prod=30)
-disk_autoresize_limit_override  = 0      # 0 = use environment default (prod=500)
+backup_retention_override       = 30      # 0 = use environment default (prod=30)
+disk_autoresize_limit_override  = 500      # 0 = use environment default (prod=500)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -64,10 +66,10 @@ project_prefix = "cure-hht"
 # Optional: Cloud Run Sizing
 # -----------------------------------------------------------------------------
 
-min_instances    = 1
-max_instances    = 5
-container_memory = "512Mi"
-container_cpu    = "1"
+min_instances    = 0
+max_instances    = 2
+container_memory = "2Gi"
+container_cpu    = "2"
 
 # -----------------------------------------------------------------------------
 # Optional: CI/CD Configuration
@@ -82,12 +84,8 @@ github_repo = "hht_diary"
 # Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
 enable_cloud_build_triggers = false
 
-# Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
-
 # Disable public access due to organization policy restrictions
-allow_public_access = false
+allow_public_access = true
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -106,15 +104,15 @@ identity_platform_phone_auth     = false # Phone number authentication
 identity_platform_mfa_enforcement     = "DISABLED" # Non-prod can be relaxed
 identity_platform_password_min_length = 12         # HIPAA recommends 12+
 
-# Email configuration for invitations/password resets
-identity_platform_email_sender_name = ID_PLATFORM_NAME
-identity_platform_email_reply_to    = EMAIL_SUPPORT
+# Email configuration for invitations/password resets, from Doppler
+identity_platform_email_sender_name = "Diary Platform"
+identity_platform_email_reply_to    = "support@anspar.org"
 
 # Session duration (HIPAA recommends 60 minutes or less)
 identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
-# identity_platform_authorized_domains = ["portal.example.com"]
+identity_platform_authorized_domains = ["portal-prod.callisto.anspar.org"]
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
@@ -141,14 +139,30 @@ workforce_identity_enabled = false
 # Optional: Audit Configuration
 # -----------------------------------------------------------------------------
 
-audit_retention_years = 25
-# Note: lock_retention_policy is automatically set based on environment
-# (true for prod, false for dev/qa/uat)
+audit_retention_years = 0
+# lock_audit_retention defaults to false; set true when ready to lock prod
 
-enable_cost_controls = false
+# Billing budget (migrated from bootstrap)
+budget_amount = 5000 # Monthly budget in USD
+
+enable_cost_controls = true
+threshold_cutoff = 0.50 # 50% of budget - adjust as needed
 
 # -----------------------------------------------------------------------------
 # GitHub Actions Service Account (Cross-Project Deployment)
 # -----------------------------------------------------------------------------
 
 github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
+
+# -----------------------------------------------------------------------------
+# Compute Service Account (Secret Manager Access)
+# -----------------------------------------------------------------------------
+
+compute_service_account = "163292813995-compute@developer.gserviceaccount.com"
+
+enable_gmail_api = true
+
+enable_regional_lb            = true
+lb_domain                     = "callisto.anspar.org"
+lb_cloud_run_service_name     = "portal-server"
+lb_enable_http_redirect       = true

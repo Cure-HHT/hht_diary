@@ -79,17 +79,40 @@ output "region" {
 # }
 
 # -----------------------------------------------------------------------------
+# Audit Logs
+# -----------------------------------------------------------------------------
+
+output "audit_log_bucket" {
+  description = "Audit log bucket name"
+  value       = module.audit_logs.bucket_name
+}
+
+output "audit_compliance_status" {
+  description = "FDA compliance status"
+  value       = module.audit_logs.compliance_status
+}
+
+# -----------------------------------------------------------------------------
+# Budget Information
+# -----------------------------------------------------------------------------
+
+output "budget_id" {
+  description = "Budget ID"
+  value       = module.budgets.budget_id
+}
+
+output "budget_alert_topic" {
+  description = "Pub/Sub topic for budget alerts"
+  value       = module.budgets.budget_alert_topic
+}
+
+# -----------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------
 
 # output "backup_bucket" {
 #   description = "Backup bucket name"
 #   value       = module.storage.backup_bucket_name
-# }
-
-# output "audit_log_bucket" {
-#   description = "Audit log bucket name"
-#   value       = module.audit_logs.bucket_name
 # }
 
 # -----------------------------------------------------------------------------
@@ -104,15 +127,6 @@ output "region" {
 # output "portal_server_image" {
 #   description = "Portal server container image URL"
 #   value       = var.portal_server_image
-# }
-
-# -----------------------------------------------------------------------------
-# Compliance
-# -----------------------------------------------------------------------------
-
-# output "audit_compliance_status" {
-#   description = "FDA compliance status"
-#   value       = module.audit_logs.compliance_status
 # }
 
 # -----------------------------------------------------------------------------

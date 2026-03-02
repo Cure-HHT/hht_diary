@@ -102,48 +102,10 @@ variable "enable_workload_identity" {
 }
 
 # -----------------------------------------------------------------------------
-# Budget Configuration
+# Budget & Audit Log Configuration — MIGRATED to sponsor-envs/variables.tf
+# Variables: budget_amounts, enable_cost_controls, SLACK_INCIDENT_WEBHOOK_URL,
+#            audit_retention_years, include_data_access_logs
 # -----------------------------------------------------------------------------
-
-variable "budget_amounts" {
-  description = "Monthly budget amounts per environment (USD)"
-  type        = map(number)
-  default = {
-    dev  = 500
-    qa   = 500
-    uat  = 1000
-    prod = 5000
-  }
-}
-
-variable "enable_cost_controls" {
-  description = "Enable automated cost controls (Pub/Sub + Cloud Function to stop services when budget exceeded). Only affects non-prod environments - prod will alert but not auto-stop."
-  type        = bool
-  default     = true
-}
-
-variable "SLACK_INCIDENT_WEBHOOK_URL" {
-  description = "Slack webhook URL for billing alert notifications (from Doppler)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-# -----------------------------------------------------------------------------
-# Audit Log Configuration
-# -----------------------------------------------------------------------------
-
-variable "audit_retention_years" {
-  description = "Audit log retention in years (FDA requires 25)"
-  type        = number
-  default     = 25
-}
-
-variable "include_data_access_logs" {
-  description = "Include data access logs in audit exports"
-  type        = bool
-  default     = true
-}
 
 # -----------------------------------------------------------------------------
 # Network Configuration

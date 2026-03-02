@@ -106,69 +106,14 @@ output "tf_env_service_account_ids" {
 }
 
 # -----------------------------------------------------------------------------
-# Audit Log Configuration
+# Audit Log Configuration — MIGRATED to sponsor-envs
+# Audit log outputs now come from each per-environment sponsor-envs state
 # -----------------------------------------------------------------------------
 
-output "audit_log_buckets" {
-  description = "Map of environment to audit log bucket name"
-  value = {
-    for env in local.environments :
-    env => module.audit_logs[env].bucket_name
-  }
-}
-
-output "audit_compliance_status" {
-  description = "FDA compliance status for each environment"
-  value = {
-    for env in local.environments :
-    env => module.audit_logs[env].compliance_status
-  }
-}
-
 # -----------------------------------------------------------------------------
-# Budget Information
+# Budget Information — MIGRATED to sponsor-envs
+# Budget outputs now come from each per-environment sponsor-envs state
 # -----------------------------------------------------------------------------
-
-output "budget_ids" {
-  description = "Map of environment to budget ID"
-  value = {
-    for env in local.environments :
-    env => module.budgets[env].budget_id
-  }
-}
-
-output "cost_controls_enabled" {
-  description = "Map of environment to cost control status (non-prod only)"
-  value = {
-    for env in local.environments :
-    env => module.budgets[env].cost_controls_enabled
-  }
-}
-
-output "budget_alert_topics" {
-  description = "Pub/Sub topics for budget alerts (for custom automation)"
-  value = {
-    for env in local.environments :
-    env => module.budgets[env].budget_alert_topic
-  }
-}
-
-# Billing alert outputs moved to sponsor-portal
-# output "billing_alert_functions" {
-#   description = "Map of environment to billing alert Cloud Function name"
-#   value = {
-#     for env, alert in module.billing_alerts :
-#     env => alert.function_name
-#   }
-# }
-#
-# output "billing_alert_dead_letter_topics" {
-#   description = "Map of environment to dead-letter topic ID (null when disabled)"
-#   value = {
-#     for env, alert in module.billing_alerts :
-#     env => alert.dead_letter_topic
-#   }
-# }
 
 # -----------------------------------------------------------------------------
 # Database Configuration — MIGRATED to sponsor-envs
@@ -273,11 +218,8 @@ output "next_steps" {
     VPC CIDR Range: 10.${var.sponsor_id}.0.0/16
 
     Cloud SQL Databases: Managed per-environment in sponsor-envs/
-
-    Audit Log Retention: ${var.audit_retention_years} years
-    Prod Audit Locked: ${local.audit_lock["prod"]}
-
-    Cost Controls: ${var.enable_cost_controls ? "Enabled (non-prod will auto-stop on budget exceed)" : "Disabled (alerts only)"}
+    Billing Budgets:     Managed per-environment in sponsor-envs/
+    Audit Logs:          Managed per-environment in sponsor-envs/
 
     Next Steps:
     1. Create sponsor-envs tfvars for each environment:
@@ -302,7 +244,7 @@ output "next_steps" {
        gcloud run jobs execute ${var.sponsor}-uat-db-schema --project=${var.sponsor}-uat --region=${var.default_region} --wait
        gcloud run jobs execute ${var.sponsor}-prod-db-schema --project=${var.sponsor}-prod --region=${var.default_region} --wait
 
-    5. Verify audit log compliance:
+    5. Verify audit log compliance (after deploy-environment.sh):
        ../scripts/verify-audit-compliance.sh ${var.sponsor}
 
   EOT

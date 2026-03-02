@@ -94,7 +94,8 @@ resource "google_identity_platform_config" "main" {
     enabled_providers = ["PHONE_SMS"]
 
     # Production and UAT should enforce MFA (REQ-p00002, REQ-o00006)
-    state = contains(["prod", "uat"], var.environment) ? "MANDATORY" : var.mfa_enforcement
+    # state = contains(["prod", "uat"], var.environment) ? "MANDATORY" : var.mfa_enforcement
+    state = var.mfa_enforcement # TODO make this mandatory for prod/uat and configurable for dev/qa
 
     provider_configs {
       state = "ENABLED"
@@ -154,10 +155,21 @@ data "google_project" "current" {
 # OAuth Consent Screen (for social logins if needed later)
 # -----------------------------------------------------------------------------
 
-resource "google_iap_brand" "main" {
-  count = local.is_production ? 1 : 0
+# resource "google_project_service" "iap" {
+#   count   = local.is_production ? 1 : 0
+#   project = var.project_id
+#   service = "iap.googleapis.com"
 
-  support_email     = var.email_reply_to != "" ? var.email_reply_to : "support@${var.sponsor}.com"
-  application_title = "${title(var.sponsor)} Clinical Diary Portal"
-  project           = data.google_project.current.number
-}
+#   disable_dependent_services = false
+#   disable_on_destroy         = false
+# }
+
+# resource "google_iap_brand" "main" {
+#   count = local.is_production ? 1 : 0
+
+#   support_email     = var.email_reply_to != "" ? var.email_reply_to : "support@${var.sponsor}.com"
+#   application_title = "${title(var.sponsor)} Diary Portal"
+#   project           = data.google_project.current.number
+
+#   depends_on = [google_project_service.iap]
+# }

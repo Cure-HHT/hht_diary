@@ -47,21 +47,6 @@ locals {
     env => "${title(var.sponsor)} ${upper(env)}"
   }
 
-  # Audit log lock: only prod gets locked
-  audit_lock = {
-    dev  = false
-    qa   = false
-    uat  = false
-    prod = false # TODO Set true when ready to lock audit logs.
-  }
-
-  # Audit retention: only prod gets FDA-required retention, non-prod = 0 (no retention)
-  audit_retention = {
-    dev  = 0
-    qa   = 0
-    uat  = 0
-    prod = var.audit_retention_years
-  }
 }
 
 # -----------------------------------------------------------------------------
@@ -104,43 +89,14 @@ module "network" {
 }
 
 # -----------------------------------------------------------------------------
-# Billing Budgets - One per Environment
+# Billing Budgets — MIGRATED to sponsor-envs/main.tf
+# State migrated via scripts/migrate-budgets-audit-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
 
-module "budgets" {
-  source   = "../modules/billing-budget"
-  for_each = toset(local.environments)
-
-  billing_account_id   = local.billing_accounts[each.key]
-  project_id           = module.projects[each.key].project_id
-  project_number       = module.projects[each.key].project_number
-  sponsor              = var.sponsor
-  environment          = each.key
-  budget_amount        = var.budget_amounts[each.key]
-  enable_cost_controls = var.enable_cost_controls
-
-  depends_on = [module.projects]
-}
-
 # -----------------------------------------------------------------------------
-# Audit Logs - FDA 21 CFR Part 11 Compliant
+# Audit Logs — MIGRATED to sponsor-envs/main.tf
+# State migrated via scripts/migrate-budgets-audit-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-
-module "audit_logs" {
-  source   = "../modules/audit-logs"
-  for_each = toset(local.environments)
-
-  project_id               = module.projects[each.key].project_id
-  project_prefix           = var.project_prefix
-  sponsor                  = var.sponsor
-  environment              = each.key
-  region                   = var.default_region
-  retention_years          = local.audit_retention[each.key]
-  lock_retention_policy    = local.audit_lock[each.key]
-  include_data_access_logs = var.include_data_access_logs
-
-  depends_on = [module.projects]
-}
 
 # -----------------------------------------------------------------------------
 # CI/CD Service Account with Workload Identity Federation
@@ -210,7 +166,26 @@ locals {
     "roles/cloudbuild.builds.editor",        # Cloud Build for function deployment
     "roles/resourcemanager.projectIamAdmin", # Manage IAM bindings within the project
     "roles/certificatemanager.owner",        # Certificate Manager for Regional LB SSL certs
+    "roles/iap.admin",                       # IAP Brand (OAuth consent screen) for Identity Platform
   ]
+}
+
+# Grant per-environment Terraform SAs billing budget permissions.
+# This is a billing-account-level role (not project-level), so it must use
+# google_billing_account_iam_member instead of google_project_iam_member.
+resource "google_billing_account_iam_member" "tf_env_billing_budgets" {
+  for_each = {
+    for pair in setproduct(local.environments, [
+      { key = "dev",  account = var.BILLING_ACCOUNT_DEV },
+      { key = "prod", account = var.BILLING_ACCOUNT_PROD },
+    ]) :
+    pair[0] => pair[1].account
+    if (pair[0] == "prod" && pair[1].key == "prod") || (pair[0] != "prod" && pair[1].key == "dev")
+  }
+
+  billing_account_id = each.value
+  role               = "roles/billing.costsManager"
+  member             = "serviceAccount:${google_service_account.tf_env[each.key].email}"
 }
 
 resource "google_project_iam_member" "tf_env_roles" {
