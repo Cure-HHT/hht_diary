@@ -95,24 +95,11 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     // Navigate based on active role
-    _navigateToRoleDashboard(user.activeRole);
+    _navigateToCommonDashboard(user.activeRole);
   }
 
-  void _navigateToRoleDashboard(UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-      case UserRole.administrator:
-        context.go('/admin');
-      case UserRole.investigator:
-        context.go('/investigator');
-      case UserRole.auditor:
-        context.go('/auditor');
-      case UserRole.analyst:
-        context.go('/analyst');
-      case UserRole.sponsor:
-        context.go('/sponsor');
-    }
+  void _navigateToCommonDashboard(UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 
   @override

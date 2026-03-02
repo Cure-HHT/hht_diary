@@ -231,7 +231,7 @@ class AuthService extends ChangeNotifier {
   AuthService({
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
-    Duration inactivityTimeout = const Duration(minutes: 15),
+    Duration inactivityTimeout = const Duration(minutes: 30),
   }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout {
@@ -303,10 +303,13 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Called when the inactivity timer fires.
-  void _onInactivityTimeout() {
-    _currentUser = null;
+  void _onInactivityTimeout() async {
+    _inactivityTimer = null;
     _timedOut = true;
-    notifyListeners();
+
+    try {
+      await signOut();
+    } catch (_) {}
   }
 
   /// Initialize auth state listener
