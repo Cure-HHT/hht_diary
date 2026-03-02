@@ -16,7 +16,7 @@ import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 /// Creates an [AuthService] with a signed-in mock user.
 Future<AuthService> _createSignedInAuthService({
-  Duration inactivityTimeout = const Duration(minutes: 15),
+  Duration inactivityTimeout = const Duration(minutes: 1),
 }) async {
   final mockUser = MockUser(
     uid: 'test-uid',
@@ -51,7 +51,6 @@ Future<AuthService> _createSignedInAuthService({
 
   // Trigger _fetchPortalUser so isAuthenticated becomes true
   await authService.signIn('test@example.com', 'password');
-  addTearDown(authService.signOut);
   return authService;
 }
 
@@ -89,6 +88,7 @@ void main() {
           _wrapWithProvider(
             UserActivityListener(
               child: GestureDetector(
+                key: const Key('user-activity-area'),
                 onTap: () {},
                 child: const SizedBox(width: 200, height: 200),
               ),
@@ -98,12 +98,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byType(SizedBox));
+        await tester.tap(find.byKey(const Key('user-activity-area')));
         await tester.pump();
 
         // Still authenticated after tap — timer was reset not cancelled
         expect(authService.isAuthenticated, isTrue);
         expect(authService.isTimedOut, isFalse);
+        await tester.pump(const Duration(minutes: 1));
       },
     );
 
@@ -115,16 +116,22 @@ void main() {
 
       await tester.pumpWidget(
         _wrapWithProvider(
-          UserActivityListener(child: const SizedBox(width: 200, height: 200)),
+          UserActivityListener(
+            child: GestureDetector(
+              key: const Key('user-activity-area'),
+              onTap: () {},
+              child: const SizedBox(width: 200, height: 200),
+            ),
+          ),
           authService,
         ),
       );
       await tester.pumpAndSettle();
 
       // Tapping when not authenticated should not throw
-      await tester.tap(find.byType(SizedBox));
+      await tester.tap(find.byKey(const Key('user-activity-area')));
       await tester.pump();
-
+      await tester.pump(const Duration(minutes: 1));
       expect(authService.isTimedOut, isFalse);
     });
 
@@ -135,13 +142,14 @@ void main() {
 
       await tester.pumpWidget(
         _wrapWithProvider(
-          UserActivityListener(child: const Text('dashboard content')),
+          const UserActivityListener(child: Text('dashboard content')),
           authService,
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('dashboard content'), findsOneWidget);
+      await tester.pump(const Duration(minutes: 1));
     });
   });
 }
