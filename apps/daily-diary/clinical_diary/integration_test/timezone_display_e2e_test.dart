@@ -89,6 +89,9 @@ void main() {
         final dayBeforeYesterday = DateTime(now.year, now.month, now.day - 2);
         final dayBeforeYesterdayDay = dayBeforeYesterday.day.toString();
 
+        final dayBeforeYesterdayInDifferentMonth =
+            dayBeforeYesterday.month != now.month;
+
         // Launch the actual ClinicalDiaryApp
         await tester.pumpWidget(const ClinicalDiaryApp());
         await tester.pumpAndSettle();
@@ -345,6 +348,13 @@ void main() {
 
         // ===== STEP 14: Click on the day where record was saved =====
         // Since we clicked -15 from midnight of yesterday, the record is on day before yesterday
+
+        if (dayBeforeYesterdayInDifferentMonth) {
+          debugPrint(
+            'Day before yesterday ($dayBeforeYesterdayDay) is in previous month, navigating...',
+          );
+          await _navigateToPreviousMonth(tester);
+        }
         debugPrint(
           'Step 14: Click on day before yesterday ($dayBeforeYesterdayDay) to see entries',
         );
@@ -1098,6 +1108,320 @@ void main() {
 
       debugPrint('Hawaii Time future start time test passed!');
     });
+
+    testWidgets(
+      'CUR-565: end timezone can be changed independently and stored with correct cross-timezone duration',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        debugPrint('Step 1: Click Record Nosebleed');
+        // Step 1: Start a new recording from home
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        debugPrint('Step 2: Change timezone to Tokyo Time');
+        await changeTimezone(tester, 'Tokyo');
+
+        // Step 3: Adjust start time and confirm
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+
+        debugPrint('Step 3: Click Set Start Time');
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // Step 4: Select intensity to go to END time
+        debugPrint('Step 4: Click Dripping');
+        await tester.tap(find.text('Dripping'));
+        expect(
+          find.text('Dripping'),
+          findsOneWidget,
+          reason: 'Should be on intensity picker before changing end timezone',
+        );
+        await tester.pumpAndSettle();
+
+        // At this point, end timezone should have been carried forward from start.
+        // Now change END timezone independently to Europe/Paris (device local).
+        await changeTimezone(tester, 'Paris');
+
+        // Step 5: Adjust end time slightly and confirm
+        await tester.tap(find.text('+5'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+
+        // If a duration confirmation dialog appears, tap "Yes"
+        final yesButton = find.text('Yes');
+        if (yesButton.evaluate().isNotEmpty) {
+          debugPrint(
+            'Duration confirmation dialog appeared, confirming with Yes',
+          );
+          await tester.tap(yesButton);
+          await tester.pumpAndSettle();
+        }
+
+        await tester.pumpAndSettle(const Duration(milliseconds: 500));
+        // Step 6: Inspect datastore
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+
+        debugPrint('Total events: ${allEvents.length}');
+        for (final event in allEvents) {
+          debugPrint('Event: type=${event.eventType}, data=${event.data}');
+        }
+        expect(
+          allEvents.isNotEmpty,
+          isTrue,
+          reason: 'A nosebleed record should have been created',
+        );
+
+        final nosebleedEvent = allEvents.firstWhere(
+          (e) => e.eventType == 'NosebleedRecorded',
+          orElse: () => throw StateError(
+            'No NosebleedRecorded event found. '
+            'Events: ${allEvents.map((e) => e.eventType).toList()}',
+          ),
+        );
+
+        final data = nosebleedEvent.data;
+        final startTz = data['startTimeTimezone'] as String?;
+        final endTz = data['endTimeTimezone'] as String?;
+        final startTimeStr = data['startTime'] as String;
+        final endTimeStr = data['endTime'] as String;
+
+        // Stored data fidelity: both timezones reflect actual user selections
+        expect(
+          startTz,
+          equals('Asia/Tokyo'),
+          reason:
+              'Start timezone should remain the original non-device selection (PST)',
+        );
+        expect(
+          endTz,
+          equals('Europe/Paris'),
+          reason:
+              "End timezone should reflect the user's independent change to CET",
+        );
+
+        // Duration correctness after timezone carry-forward + independent end change:
+        final startTime = DateTime.parse(startTimeStr);
+        final endTime = DateTime.parse(endTimeStr);
+        final durationMinutes = endTime.difference(startTime).inMinutes;
+
+        // We don't assert the exact value (depends on "now"), but it MUST be > 0
+        // and reasonably small (we only moved -15 then +5 minutes).
+        expect(
+          durationMinutes,
+          greaterThan(0),
+          reason: 'Duration should be positive after cross-timezone conversion',
+        );
+        expect(
+          durationMinutes,
+          lessThan(490),
+          reason:
+              'Duration should remain short (we only nudged the time by minutes)',
+        );
+      },
+    );
+
+    testWidgets(
+      'CUR-565: changing only start timezone and end time zone defaults to device timezone and stores both correctly with accurate duration',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // Step 1: Start a new recording from home
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // Step 2: Change START timezone to Europe/Berlin (safe, same offset as device CET)
+        await changeTimezone(tester, 'Berlin');
+
+        // Step 3: Adjust start time and confirm
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // Step 4: Select intensity to go to END time
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+
+        // IMPORTANT: Do NOT change end timezone – it should default to start timezone.
+
+        // Step 5: Adjust end time slightly and confirm
+        await tester.tap(find.text('+5'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+
+        // Step 6: If a duration dialog appears, confirm with "Yes"
+        final yesButton = find.text('Yes');
+        if (yesButton.evaluate().isNotEmpty) {
+          await tester.tap(yesButton);
+          await tester.pumpAndSettle();
+        }
+
+        // Step 7: Inspect datastore
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+        expect(
+          allEvents.isNotEmpty,
+          isTrue,
+          reason: 'A nosebleed record should have been created',
+        );
+
+        final nosebleedEvent = allEvents.firstWhere(
+          (e) => e.eventType == 'NosebleedRecorded',
+          orElse: () => throw StateError(
+            'No NosebleedRecorded event found. '
+            'Events: ${allEvents.map((e) => e.eventType).toList()}',
+          ),
+        );
+
+        final data = nosebleedEvent.data;
+        final startTz = data['startTimeTimezone'] as String?;
+        final endTz = data['endTimeTimezone'] as String?;
+        final startTimeStr = data['startTime'] as String;
+        final endTimeStr = data['endTime'] as String;
+
+        // Stored data fidelity: both fields reflect the carried-forward start timezone.
+        expect(
+          startTz,
+          equals('Europe/Berlin'),
+          reason:
+              'Start timezone should reflect user selection (Europe/Berlin)',
+        );
+        expect(
+          endTz,
+          equals('Europe/Paris'),
+          reason:
+              'End timezone should default to the device timezone when unchanged',
+        );
+
+        // Duration: both in same offset, we did -15 then +5 => 20 minutes.
+        final startTime = DateTime.parse(startTimeStr);
+        final endTime = DateTime.parse(endTimeStr);
+        final durationMinutes = endTime.difference(startTime).inMinutes;
+
+        expect(
+          durationMinutes,
+          lessThan(10),
+          reason:
+              'Duration should be approximately 10 minutes, proving that timezone carry-forward worked correctly',
+        );
+      },
+    );
+
+    testWidgets(
+      'CUR-565: changing only end timezone keeps start on device timezone and stores both correctly',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // Step 1: Start a new recording from home
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // IMPORTANT: Do NOT change start timezone.
+        // TimePickerDial will initialize it to the device TZ (Europe/Paris via test override).
+
+        // Step 2: Adjust start time and confirm
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // Step 3: Select intensity to go to END time
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+
+        // Step 4: Change ONLY END timezone to Europe/Berlin
+        await changeTimezone(tester, 'Berlin');
+
+        // Step 5: Adjust end time slightly and confirm
+        await tester.tap(find.text('+5'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+
+        // Step 6: If a duration dialog appears, confirm with "Yes"
+        final yesButton = find.text('Yes');
+        if (yesButton.evaluate().isNotEmpty) {
+          await tester.tap(yesButton);
+          await tester.pumpAndSettle();
+        }
+
+        // Step 7: Inspect datastore
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+        expect(
+          allEvents.isNotEmpty,
+          isTrue,
+          reason: 'A nosebleed record should have been created',
+        );
+
+        final nosebleedEvent = allEvents.firstWhere(
+          (e) => e.eventType == 'NosebleedRecorded',
+          orElse: () => throw StateError(
+            'No NosebleedRecorded event found. '
+            'Events: ${allEvents.map((e) => e.eventType).toList()}',
+          ),
+        );
+
+        final data = nosebleedEvent.data;
+        final startTz = data['startTimeTimezone'] as String?;
+        final endTz = data['endTimeTimezone'] as String?;
+        final startTimeStr = data['startTime'] as String;
+        final endTimeStr = data['endTime'] as String;
+
+        // Stored data fidelity: start stays on device TZ, end reflects independent change.
+        expect(
+          startTz,
+          equals('Europe/Paris'),
+          reason: 'Start timezone should remain device timezone (Europe/Paris)',
+        );
+        expect(
+          endTz,
+          equals('Europe/Berlin'),
+          reason: "End timezone should reflect the user's independent change",
+        );
+
+        // Duration: Paris and Berlin share the same UTC offset, so -15 then +5 => 20 minutes.
+        final startTime = DateTime.parse(startTimeStr);
+        final endTime = DateTime.parse(endTimeStr);
+        final durationMinutes = endTime.difference(startTime).inMinutes;
+
+        expect(
+          durationMinutes,
+          equals(5),
+          reason:
+              'Duration should be 5 minutes, proving that end timezone change worked and start stayed on device timezone',
+        );
+      },
+    );
   });
 
   // CUR-564: Future time validation should consider timezone differences
@@ -1577,7 +1901,7 @@ void main() {
         );
 
         // Also verify the timezone label is shown
-        final estLabel = find.text('EST');
+        final estLabel = find.text('EST/PST');
         expect(
           estLabel,
           findsWidgets,

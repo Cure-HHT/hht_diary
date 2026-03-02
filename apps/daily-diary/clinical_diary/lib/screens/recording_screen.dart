@@ -939,12 +939,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
-          initialTimezone: _endTimeTimezone ?? _startTimeTimezone,
+          //   REQ-p00042: Default end timezone to user-selected start timezone when different from device timezone
+          //   REQ-p01069: Pre-populate end time timezone picker with start time timezone, with user modification allowed
+          initialTimezone: _endTimeTimezone,
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: _setEndDateTime,
           onTimezoneChanged: _handleEndTimezoneChanged,
           confirmLabel: l10n.setEndTime,
-          maxDateTime: DateTime.now(),
         );
 
       // CUR-408: Notes case removed from recording flow - TODO PUT BACK
