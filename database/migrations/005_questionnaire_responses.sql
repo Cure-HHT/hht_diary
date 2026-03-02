@@ -1,15 +1,15 @@
--- Migration 005: Questionnaire Responses
+-- =====================================================
+-- Migration: Add questionnaire_responses table
+-- Number: 005
 -- Date: 2026-02-24
--- Ticket: CUR-847
---
--- IMPLEMENTS REQUIREMENTS:
---   REQ-p01067: NOSE HHT Questionnaire Content
---   REQ-p01068: HHT Quality of Life Questionnaire Content
---   REQ-p01065: Clinical Questionnaire System
---
--- Stores individual question responses when a patient submits a questionnaire.
--- Written by diary server after mobile app POSTs submission.
--- Read by portal server for investigator review and finalization.
+-- Description: Stores individual question responses when a patient submits
+--   a questionnaire. Written by diary server after mobile app POSTs
+--   submission. Read by portal server for investigator review and
+--   finalization.
+--   (Linear: CUR-847)
+-- Dependencies: Requires migration 004 (questionnaire_instances table)
+-- Reference: database/schema.sql, spec/prd-questionnaires.md
+-- =====================================================
 
 -- =====================================================
 -- QUESTIONNAIRE RESPONSES TABLE
