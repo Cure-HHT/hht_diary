@@ -104,7 +104,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage report as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: clinical-diary-coverage
           path: clinical-diary-lcov.info
