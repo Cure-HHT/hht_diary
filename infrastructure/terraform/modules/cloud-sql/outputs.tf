@@ -44,3 +44,16 @@ output "availability_type" {
   description = "The availability type (ZONAL or REGIONAL)"
   value       = google_sql_database_instance.main.settings[0].availability_type
 }
+
+# Backup outputs
+output "backup_configuration" {
+  description = "Backup configuration summary"
+  value = {
+    enabled                        = true
+    start_time                     = var.backup_start_time
+    location                       = var.region
+    point_in_time_recovery_enabled = true
+    transaction_log_retention_days = var.transaction_log_retention_days
+    retained_backups               = local.backup_retention
+  }
+}

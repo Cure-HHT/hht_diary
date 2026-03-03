@@ -1,0 +1,9 @@
+{
+  "name": "db-schema-job",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Database schema deployment job with Identity Platform user seeding",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

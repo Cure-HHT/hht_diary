@@ -63,6 +63,75 @@ variable "DOPPLER_TOKEN" {
 }
 
 # -----------------------------------------------------------------------------
+# Required: Database Configuration
+# -----------------------------------------------------------------------------
+
+variable "database_name" {
+  description = "Name of the database to create"
+  type        = string
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "app_user"
+}
+
+# -----------------------------------------------------------------------------
+# Cloud SQL Configuration
+# -----------------------------------------------------------------------------
+
+variable "disk_size" {
+  description = "Initial disk size in GB (0 = use environment default)"
+  type        = number
+  default     = 0
+}
+
+variable "backup_start_time" {
+  description = "HH:MM time (UTC) when daily backup starts"
+  type        = string
+  default     = "02:00"
+
+  validation {
+    condition     = can(regex("^([01]\\d|2[0-3]):[0-5]\\d$", var.backup_start_time))
+    error_message = "backup_start_time must be in HH:MM format (24-hour UTC)."
+  }
+}
+
+variable "transaction_log_retention_days" {
+  description = "Days to retain transaction logs for PITR (1-7)"
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.transaction_log_retention_days >= 1 && var.transaction_log_retention_days <= 7
+    error_message = "transaction_log_retention_days must be between 1 and 7."
+  }
+}
+
+variable "backup_retention_override" {
+  description = "Override number of retained backups (0 = use environment default: prod=30, uat=14, dev/qa=7)"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.backup_retention_override >= 0 && var.backup_retention_override <= 365
+    error_message = "backup_retention_override must be between 0 and 365."
+  }
+}
+
+variable "disk_autoresize_limit_override" {
+  description = "Override disk auto-resize limit in GB (0 = use environment default: prod=500, uat=100, dev/qa=50)"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.disk_autoresize_limit_override >= 0
+    error_message = "disk_autoresize_limit_override must be >= 0."
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Optional: Region Configuration
 # -----------------------------------------------------------------------------
 
@@ -361,6 +430,17 @@ variable "enable_cost_controls" {
   default     = false
 }
 
+
+variable "threshold_cutoff" {
+  description = "Fraction of budget at which billing is disabled (e.g. 0.50 = 50%)"
+  type        = number
+  default     = 0.50
+
+  validation {
+    condition     = var.threshold_cutoff > 0 && var.threshold_cutoff <= 1.0
+    error_message = "threshold_cutoff must be between 0 (exclusive) and 1.0 (inclusive)."
+  }
+}
 
 variable "SLACK_INCIDENT_WEBHOOK_URL" {
   description = "Slack webhook URL for billing alert notifications (from Doppler: TF_VAR_SLACK_INCIDENT_WEBHOOK_URL)"

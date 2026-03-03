@@ -1,46 +1,45 @@
--- Migration 005: Questionnaire Responses
+-- =====================================================
+-- Migration: Add questionnaire_responses table
+-- Number: 005
 -- Date: 2026-02-24
--- Ticket: CUR-847
---
--- IMPLEMENTS REQUIREMENTS:
---   REQ-p01067: NOSE HHT Questionnaire Content
---   REQ-p01068: HHT Quality of Life Questionnaire Content
---   REQ-p01065: Clinical Questionnaire System
---
--- Stores individual question responses when a patient submits a questionnaire.
--- Written by diary server after mobile app POSTs submission.
--- Read by portal server for investigator review and finalization.
+-- Description: Stores individual question responses when a patient submits
+--   a questionnaire. Written by diary server after mobile app POSTs
+--   submission. Read by portal server for investigator review and
+--   finalization.
+--   (Linear: CUR-847)
+-- Dependencies: Requires migration 004 (questionnaire_instances table)
+-- Reference: database/schema.sql, spec/prd-questionnaires.md
+-- =====================================================
 
 -- =====================================================
 -- QUESTIONNAIRE RESPONSES TABLE
 -- =====================================================
 
+set lock_timeout = '1s';
+set statement_timeout = '5s';
+
+-- Transaction 1: Create table (without inline FK), enable RLS, policies, grants, comments
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS questionnaire_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    questionnaire_instance_id UUID NOT NULL REFERENCES questionnaire_instances(id),
+    questionnaire_instance_id UUID NOT NULL,
     question_id TEXT NOT NULL,
-    value INTEGER NOT NULL CHECK (value >= 0 AND value <= 4),
+    value bigint NOT NULL CHECK (value >= 0 AND value <= 4),
     display_label TEXT NOT NULL,
     normalized_label TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (questionnaire_instance_id, question_id)
 );
 
--- Index for looking up all responses for a questionnaire instance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qr_instance_id
-    ON questionnaire_responses(questionnaire_instance_id);
-
--- Enable RLS
 ALTER TABLE questionnaire_responses ENABLE ROW LEVEL SECURITY;
 
--- Service role: full access (both portal and diary servers use service_role)
 CREATE POLICY qr_service_all ON questionnaire_responses
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
--- Investigators can view responses for patients at their assigned sites
 CREATE POLICY qr_investigator_select ON questionnaire_responses
     FOR SELECT
     TO authenticated
@@ -61,13 +60,33 @@ CREATE POLICY qr_investigator_select ON questionnaire_responses
 GRANT ALL ON questionnaire_responses TO service_role;
 GRANT SELECT ON questionnaire_responses TO authenticated;
 
--- Comments
 COMMENT ON TABLE questionnaire_responses IS 'Individual question responses for submitted questionnaires. One row per question per instance.';
 COMMENT ON COLUMN questionnaire_responses.questionnaire_instance_id IS 'FK to questionnaire_instances — the submitted questionnaire';
 COMMENT ON COLUMN questionnaire_responses.question_id IS 'Question identifier from questionnaires.json (e.g., nose_physical_1, qol_q1)';
 COMMENT ON COLUMN questionnaire_responses.value IS 'Numeric response value (0-4) for scoring';
 COMMENT ON COLUMN questionnaire_responses.display_label IS 'Human-readable response label (e.g., "Moderate problem")';
 COMMENT ON COLUMN questionnaire_responses.normalized_label IS 'Normalized label for cross-questionnaire comparison';
+
+COMMIT;
+
+-- Index (must be outside transaction for CONCURRENTLY)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qr_instance_id
+    ON questionnaire_responses(questionnaire_instance_id);
+
+-- Transaction 2: Add FK constraint as NOT VALID (no table scan, no long lock)
+BEGIN;
+ALTER TABLE questionnaire_responses
+    ADD CONSTRAINT fk_qr_questionnaire_instance_id
+    FOREIGN KEY (questionnaire_instance_id)
+    REFERENCES questionnaire_instances(id)
+    NOT VALID;
+COMMIT;
+
+-- Transaction 3: Validate FK (acquires only SHARE UPDATE EXCLUSIVE, doesn't block writes)
+BEGIN;
+ALTER TABLE questionnaire_responses
+    VALIDATE CONSTRAINT fk_qr_questionnaire_instance_id;
+COMMIT;
 
 -- =====================================================
 -- VERIFICATION
