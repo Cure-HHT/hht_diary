@@ -27,6 +27,7 @@ class CommonDashboard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // REQ-d00080-A: implement client-side session management by wrapping all role dashboards
     return UserActivityListener(
       child: switch (resolvedRole) {
         UserRole.developerAdmin => const DevAdminDashboardPage(),

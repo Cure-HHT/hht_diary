@@ -81,6 +81,7 @@ Widget _wrapWithProvider({
 
 void main() {
   group('CommonDashboard', () {
+    // REQ-d00080-A, REQ-p00024: role-based dashboard wrapped with session activity listener
     testWidgets('renders correct dashboard for each role via role parameter', (
       tester,
     ) async {
@@ -130,6 +131,7 @@ void main() {
       await tester.pump(const Duration(seconds: 30));
     });
 
+    // REQ-d00080-A: session management redirects to login when no authenticated user
     testWidgets('redirects to login when role is null and user is null', (
       tester,
     ) async {

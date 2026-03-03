@@ -24,12 +24,13 @@ class _UserActivityListenerState extends State<UserActivityListener> {
     final auth = context.read<AuthService>();
     if (auth.isAuthenticated) {
       _lastReset = now;
-      auth.resetInactivityTimer();
+      auth.resetInactivityTimer(); // REQ-d00080-C: reset inactivity timer when tracked interaction occurs
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // REQ-d00080-B: track mouse movement, touch events, clicks, and keyboard input to detect activity
     return MouseRegion(
       onHover: (_) {
         _onUserActivity(context);

@@ -302,12 +302,14 @@ class AuthService extends ChangeNotifier {
   /// Masked email address for display (e.g., t***@example.com)
   String? get maskedEmail => _maskedEmail;
 
+  // REQ-d00080-C: reset inactivity timer on any tracked user interaction
   void resetInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(_inactivityTimeout, _onInactivityTimeout);
   }
 
   /// Called when the inactivity timer fires.
+  // REQ-d00080-F: terminate session when inactivity timeout expires without user extension
   void _onInactivityTimeout() async {
     _inactivityTimer = null;
     _timedOut = true;

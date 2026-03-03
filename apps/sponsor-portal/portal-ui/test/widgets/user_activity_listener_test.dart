@@ -70,6 +70,7 @@ Widget _wrapWithProvider(Widget child, AuthService authService) {
 
 void main() {
   group('UserActivityListener', () {
+    // REQ-d00080-B, REQ-d00080-C: track user interactions and reset inactivity timer
     testWidgets(
       'calls resetInactivityTimer on pointer down when authenticated',
       (tester) async {
