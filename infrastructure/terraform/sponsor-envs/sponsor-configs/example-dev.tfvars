@@ -121,16 +121,22 @@ audit_retention_years = 25
 budget_amount = 500 # Monthly budget in USD
 
 # -----------------------------------------------------------------------------
+# Optional: VPC Network
+# -----------------------------------------------------------------------------
+
+# Enable proxy-only subnet for Regional Load Balancer (required if enable_regional_lb = true)
+# enable_proxy_only_subnet = true
+
+# -----------------------------------------------------------------------------
 # Optional: Regional Load Balancer (europe-west9)
 # -----------------------------------------------------------------------------
 # Creates a Regional External HTTPS Load Balancer with:
 # - Regional static IP (Standard network tier)
-# - Proxy-only subnet for Envoy-based load balancers (managed by bootstrap)
+# - Proxy-only subnet for Envoy-based load balancers
 # - Google-managed regional SSL certificate with DNS authorization
 # - HTTP to HTTPS redirect
 #
-# NOTE: The proxy-only subnet is created by the bootstrap vpc-network module.
-# To enable it, set enable_proxy_only_subnet=true in your bootstrap tfvars.
+# NOTE: Set enable_proxy_only_subnet=true above before enabling the load balancer.
 
 # Enable the Regional Load Balancer
 # enable_regional_lb = true

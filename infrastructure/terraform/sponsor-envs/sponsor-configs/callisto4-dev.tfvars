@@ -159,3 +159,9 @@ enable_cost_controls = false
 
 github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
 
+# -----------------------------------------------------------------------------
+# VPC Network (migrated from bootstrap)
+# -----------------------------------------------------------------------------
+
+enable_proxy_only_subnet = true
+

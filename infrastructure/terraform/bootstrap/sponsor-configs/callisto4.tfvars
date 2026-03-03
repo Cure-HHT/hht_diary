@@ -48,15 +48,7 @@ anspar_admin_group = "devops-admins@anspar.org"
 tf_env_token_creators = ["tom@anspar.org"]
 
 # -----------------------------------------------------------------------------
-# Budget Configuration (Temporary: disable cost controls for initial setup)
+# Migrated to sponsor-envs:
+#   enable_cost_controls     -> sponsor-envs tfvars
+#   enable_proxy_only_subnet -> sponsor-envs tfvars
 # -----------------------------------------------------------------------------
-
-enable_cost_controls = true
-
-# -----------------------------------------------------------------------------
-# Regional Load Balancer Support
-# -----------------------------------------------------------------------------
-# Enable proxy-only subnet for Regional External HTTPS Load Balancer
-# This must be enabled in bootstrap before using enable_regional_lb in sponsor-envs
-
-enable_proxy_only_subnet = true

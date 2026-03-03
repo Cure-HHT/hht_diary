@@ -60,23 +60,19 @@ output "region" {
 # }
 
 # -----------------------------------------------------------------------------
-# VPC
+# VPC Network
+# Migrated from bootstrap via scripts/migrate-network-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
 
-# output "vpc_network_name" {
-#   description = "VPC network name"
-#   value       = module.vpc.network_name
-# }
+output "vpc_network_name" {
+  description = "VPC network name"
+  value       = module.network.network_name
+}
 
-# output "vpc_connector_name" {
-#   description = "VPC connector name"
-#   value       = module.vpc.connector_name
-# }
-
-# output "vpc_cidr" {
-#   description = "VPC CIDR range"
-#   value       = "10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18"
-# }
+output "vpc_connector_id" {
+  description = "VPC connector ID"
+  value       = module.network.connector_id
+}
 
 # -----------------------------------------------------------------------------
 # Audit Logs
@@ -226,7 +222,7 @@ output "summary" {
       portal:      ${var.portal_server_url}
       API:         ${var.diary_server_url}
 
-    VPC CIDR:    10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18
+    VPC Network: ${module.network.network_name}
 
     Container Images:
       Diary:       ${var.diary_server_image}

@@ -8,39 +8,28 @@
 #   REQ-p00042: Infrastructure audit trail for FDA compliance
 
 # -----------------------------------------------------------------------------
-# Remote State – read bootstrap outputs (billing-budget topic, etc.)
-# -----------------------------------------------------------------------------
-
-data "terraform_remote_state" "bootstrap" {
-  backend = "gcs"
-
-  config = {
-    bucket = "cure-hht-terraform-state"
-    prefix = "bootstrap/${var.sponsor}"
-  }
-}
-
-# -----------------------------------------------------------------------------
 # Local Variables
 # -----------------------------------------------------------------------------
 
 locals {
   is_production = var.environment == "prod"
 
-  # Environment offsets for VPC CIDR
-  env_offsets = {
-    dev  = 0
-    qa   = 64
-    uat  = 128
-    prod = 192
+  # VPC CIDRs — hardcoded per-environment, matching deployed bootstrap defaults.
+  # All sponsors use the same CIDRs (no collision: each env is a separate GCP project).
+  default_cidrs = {
+    app_subnet = {
+      dev = "10.0.1.0/24", qa = "10.0.4.0/24", uat = "10.0.8.0/24", prod = "10.0.12.0/24"
+    }
+    db_subnet = {
+      dev = "10.0.2.0/24", qa = "10.0.5.0/24", uat = "10.0.9.0/24", prod = "10.0.13.0/24"
+    }
+    connector = {
+      dev = "10.0.3.0/28", qa = "10.0.6.0/28", uat = "10.0.10.0/28", prod = "10.0.14.0/28"
+    }
+    proxy_only = {
+      dev = "10.0.16.0/23", qa = "10.0.18.0/23", uat = "10.0.20.0/23", prod = "10.0.22.0/23"
+    }
   }
-
-  env_offset = local.env_offsets[var.environment]
-
-  # VPC CIDRs calculated from sponsor_id and environment
-  app_subnet_cidr = "10.${var.sponsor_id}.${local.env_offset}.0/22"
-  db_subnet_cidr  = "10.${var.sponsor_id}.${local.env_offset + 4}.0/22"
-  connector_cidr  = "10.${var.sponsor_id}.${local.env_offset + 12}.0/28"
 
   # VPC connector sizing defaults
   connector_min = var.vpc_connector_min_instances > 0 ? var.vpc_connector_min_instances : (
@@ -76,6 +65,25 @@ module "budgets" {
   environment          = var.environment
   budget_amount        = var.budget_amount
   enable_cost_controls = var.enable_cost_controls
+}
+
+# -----------------------------------------------------------------------------
+# VPC Network (per-environment)
+# Migrated from bootstrap via scripts/migrate-network-to-sponsor-envs.sh
+# -----------------------------------------------------------------------------
+
+module "network" {
+  source = "../modules/vpc-network"
+
+  project_id               = var.project_id
+  environment              = var.environment
+  sponsor                  = var.sponsor
+  region                   = var.region
+  app_subnet_cidr          = local.default_cidrs.app_subnet[var.environment]
+  db_subnet_cidr           = local.default_cidrs.db_subnet[var.environment]
+  connector_cidr           = local.default_cidrs.connector[var.environment]
+  enable_proxy_only_subnet = var.enable_proxy_only_subnet
+  proxy_only_subnet_cidr   = local.default_cidrs.proxy_only[var.environment]
 }
 
 # -----------------------------------------------------------------------------
@@ -157,8 +165,8 @@ module "database" {
   sponsor                = var.sponsor
   environment            = var.environment
   region                 = var.region
-  vpc_network_id         = data.terraform_remote_state.bootstrap.outputs.network_ids[var.environment]
-  private_vpc_connection = data.terraform_remote_state.bootstrap.outputs.private_vpc_connections[var.environment]
+  vpc_network_id         = module.network.network_id
+  private_vpc_connection = module.network.private_vpc_connection
   database_name          = var.database_name
   db_username            = var.db_username
   DB_PASSWORD            = var.DB_PASSWORD
@@ -489,9 +497,9 @@ module "regional_load_balancer" {
   environment            = var.environment
   region                 = var.region
   domain                 = var.lb_domain
-  proxy_only_subnet_id   = data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_ids[var.environment]
-  proxy_only_subnet_cidr = data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_cidrs[var.environment] != null ? data.terraform_remote_state.bootstrap.outputs.proxy_only_subnet_cidrs[var.environment] : ""
-  vpc_network_self_link  = data.terraform_remote_state.bootstrap.outputs.network_self_links[var.environment]
+  proxy_only_subnet_id   = module.network.proxy_only_subnet_id
+  proxy_only_subnet_cidr = module.network.proxy_only_subnet_cidr != null ? module.network.proxy_only_subnet_cidr : ""
+  vpc_network_self_link  = module.network.network_self_link
 
   # Optional configuration
   backend_timeout_sec  = var.lb_backend_timeout_sec

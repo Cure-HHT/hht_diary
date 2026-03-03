@@ -71,22 +71,9 @@ module "projects" {
 }
 
 # -----------------------------------------------------------------------------
-# GCP Networks - One per Environment
+# VPC Networks — MIGRATED to sponsor-envs/main.tf
+# State migrated via scripts/migrate-network-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-
-module "network" {
-  source   = "../modules/vpc-network"
-  for_each = toset(local.environments)
-
-  project_id               = local.project_ids[each.key]
-  environment              = each.key
-  app_subnet_cidr          = var.app_subnet_cidr[each.key]
-  connector_cidr           = var.connector_cidr[each.key]
-  db_subnet_cidr           = var.db_subnet_cidr[each.key]
-  sponsor                  = var.sponsor
-  enable_proxy_only_subnet = var.enable_proxy_only_subnet
-  proxy_only_subnet_cidr   = var.proxy_only_subnet_cidr[each.key]
-}
 
 # -----------------------------------------------------------------------------
 # Billing Budgets — MIGRATED to sponsor-envs/main.tf
@@ -161,8 +148,10 @@ locals {
     "roles/logging.admin",                   # Log-based metrics for function errors
     "roles/monitoring.admin",                # Future monitoring alerts
     "roles/artifactregistry.admin",          # Artifact Registry for function builds
-    "roles/compute.networkAdmin",            # VPC/subnet management
-    "roles/compute.loadBalancerAdmin",       # Regional LB, NEGs, backend services
+    "roles/compute.networkAdmin",                       # VPC/subnet management
+    "roles/compute.loadBalancerAdmin",                  # Regional LB, NEGs, backend services
+    "roles/servicenetworking.networksAdmin",             # Private service connection (Cloud SQL)
+    "roles/vpcaccess.admin",                            # Serverless VPC Access Connector
     "roles/cloudbuild.builds.editor",        # Cloud Build for function deployment
     "roles/resourcemanager.projectIamAdmin", # Manage IAM bindings within the project
     "roles/certificatemanager.owner",        # Certificate Manager for Regional LB SSL certs

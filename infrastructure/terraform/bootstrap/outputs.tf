@@ -121,79 +121,9 @@ output "tf_env_service_account_ids" {
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# VPC Network Information
+# VPC Network — MIGRATED to sponsor-envs
+# Network outputs now come from each per-environment sponsor-envs state
 # -----------------------------------------------------------------------------
-
-output "network_ids" {
-  description = "Map of environment to VPC network ID"
-  value = {
-    for env in local.environments :
-    env => module.network[env].network_id
-  }
-}
-
-output "network_names" {
-  description = "Map of environment to VPC network name"
-  value = {
-    for env in local.environments :
-    env => module.network[env].network_name
-  }
-}
-
-output "network_self_links" {
-  description = "Map of environment to VPC network self link"
-  value = {
-    for env in local.environments :
-    env => module.network[env].network_self_link
-  }
-}
-
-output "proxy_only_subnet_ids" {
-  description = "Map of environment to proxy-only subnet ID (null if not enabled)"
-  value = {
-    for env in local.environments :
-    env => module.network[env].proxy_only_subnet_id
-  }
-}
-
-output "proxy_only_subnet_cidrs" {
-  description = "Map of environment to proxy-only subnet CIDR (null if not enabled)"
-  value = {
-    for env in local.environments :
-    env => module.network[env].proxy_only_subnet_cidr
-  }
-}
-
-# -----------------------------------------------------------------------------
-# Private VPC Connections (for Cloud SQL in sponsor-envs)
-# -----------------------------------------------------------------------------
-
-output "private_vpc_connections" {
-  description = "Map of environment to private VPC connection ID (for Cloud SQL depends_on)"
-  value = {
-    for env in local.environments :
-    env => module.network[env].private_vpc_connection
-  }
-}
-
-# -----------------------------------------------------------------------------
-# VPC CIDR Information
-# -----------------------------------------------------------------------------
-
-output "vpc_cidr_base" {
-  description = "Base VPC CIDR for this sponsor"
-  value       = "10.${var.sponsor_id}.0.0/16"
-}
-
-output "vpc_cidrs" {
-  description = "VPC CIDRs per environment"
-  value = {
-    dev  = "10.${var.sponsor_id}.0.0/18"
-    qa   = "10.${var.sponsor_id}.64.0/18"
-    uat  = "10.${var.sponsor_id}.128.0/18"
-    prod = "10.${var.sponsor_id}.192.0/18"
-  }
-}
 
 # -----------------------------------------------------------------------------
 # Next Steps
@@ -215,11 +145,10 @@ output "next_steps" {
 
     CI/CD Service Account: ${module.cicd.service_account_email}
 
-    VPC CIDR Range: 10.${var.sponsor_id}.0.0/16
-
     Cloud SQL Databases: Managed per-environment in sponsor-envs/
     Billing Budgets:     Managed per-environment in sponsor-envs/
     Audit Logs:          Managed per-environment in sponsor-envs/
+    VPC Networks:        Managed per-environment in sponsor-envs/
 
     Next Steps:
     1. Create sponsor-envs tfvars for each environment:

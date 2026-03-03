@@ -217,9 +217,14 @@ variable "allow_public_access" {
 }
 
 # -----------------------------------------------------------------------------
-# Optional: VPC Configuration Override
-# These are calculated from sponsor_id by default
+# Optional: VPC Configuration
 # -----------------------------------------------------------------------------
+
+variable "enable_proxy_only_subnet" {
+  description = "Enable proxy-only subnet for Regional Load Balancer"
+  type        = bool
+  default     = false
+}
 
 variable "vpc_connector_min_instances" {
   description = "VPC connector minimum instances (0 = use environment default)"
@@ -535,8 +540,8 @@ variable "lb_domain" {
   default     = ""
 }
 
-# Note: lb_proxy_only_subnet_cidr is now derived from bootstrap outputs.
-# The proxy-only subnet is created by the vpc-network module in bootstrap.
+# Note: The proxy-only subnet is created by module.network in this root module.
+# Set enable_proxy_only_subnet=true when using the Regional Load Balancer.
 
 variable "lb_backend_timeout_sec" {
   description = "Backend service timeout in seconds"

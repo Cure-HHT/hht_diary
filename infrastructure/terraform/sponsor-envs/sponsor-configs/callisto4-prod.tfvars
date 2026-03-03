@@ -162,6 +162,9 @@ compute_service_account = "163292813995-compute@developer.gserviceaccount.com"
 
 enable_gmail_api = true
 
+# VPC Network (migrated from bootstrap)
+enable_proxy_only_subnet = true
+
 enable_regional_lb            = true
 lb_domain                     = "callisto.anspar.org"
 lb_cloud_run_service_name     = "portal-server"

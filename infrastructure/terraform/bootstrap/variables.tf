@@ -108,57 +108,10 @@ variable "enable_workload_identity" {
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# Network Configuration
+# Network Configuration — MIGRATED to sponsor-envs/variables.tf
+# Variables: app_subnet_cidr, db_subnet_cidr, connector_cidr,
+#            enable_proxy_only_subnet, proxy_only_subnet_cidr
 # -----------------------------------------------------------------------------
-
-variable "app_subnet_cidr" {
-  description = "App subnet CIDR per environment"
-  type        = map(string)
-  default = {
-    dev  = "10.0.1.0/24"
-    qa   = "10.0.4.0/24"
-    uat  = "10.0.8.0/24"
-    prod = "10.0.12.0/24"
-  }
-}
-
-variable "db_subnet_cidr" {
-  description = "DB subnet CIDR per environment"
-  type        = map(string)
-  default = {
-    dev  = "10.0.2.0/24"
-    qa   = "10.0.5.0/24"
-    uat  = "10.0.9.0/24"
-    prod = "10.0.13.0/24"
-  }
-}
-variable "connector_cidr" {
-  description = "Connector subnet CIDR per environment"
-  type        = map(string)
-  default = {
-    dev  = "10.0.3.0/28"
-    qa   = "10.0.6.0/28"
-    uat  = "10.0.10.0/28"
-    prod = "10.0.14.0/28"
-  }
-}
-
-variable "enable_proxy_only_subnet" {
-  description = "Enable proxy-only subnet for Regional Load Balancer"
-  type        = bool
-  default     = false
-}
-
-variable "proxy_only_subnet_cidr" {
-  description = "Proxy-only subnet CIDR per environment (for Regional Load Balancer). Must not overlap with app/db/connector subnets."
-  type        = map(string)
-  default = {
-    dev  = "10.0.16.0/23"
-    qa   = "10.0.18.0/23"
-    uat  = "10.0.20.0/23"
-    prod = "10.0.22.0/23"
-  }
-}
 
 # -----------------------------------------------------------------------------
 # Database Configuration — MIGRATED to sponsor-envs
