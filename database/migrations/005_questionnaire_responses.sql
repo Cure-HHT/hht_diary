@@ -15,11 +15,14 @@
 -- QUESTIONNAIRE RESPONSES TABLE
 -- =====================================================
 
+set lock_timeout = '1s';
+set statement_timeout = '5s';
+
 CREATE TABLE IF NOT EXISTS questionnaire_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     questionnaire_instance_id UUID NOT NULL REFERENCES questionnaire_instances(id),
     question_id TEXT NOT NULL,
-    value INTEGER NOT NULL CHECK (value >= 0 AND value <= 4),
+    value bigint NOT NULL CHECK (value >= 0 AND value <= 4),
     display_label TEXT NOT NULL,
     normalized_label TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
