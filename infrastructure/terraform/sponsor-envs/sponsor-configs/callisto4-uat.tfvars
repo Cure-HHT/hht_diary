@@ -39,7 +39,20 @@ project_number = "768644809588"  # From bootstrap output (gcloud projects descri
 # Required: Database
 # -----------------------------------------------------------------------------
 
+database_name = "callisto4_uat_db"
+db_username   = "app_user"
+
 # Database password - use Doppler or set via environment variable
+
+# -----------------------------------------------------------------------------
+# Cloud SQL Configuration
+# -----------------------------------------------------------------------------
+
+disk_size                       = 0      # 0 = use environment default
+backup_start_time               = "02:00"
+transaction_log_retention_days  = 7
+backup_retention_override       = 14     # Override default (uat default=14)
+disk_autoresize_limit_override  = 0      # 0 = use environment default (uat=100)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -133,7 +146,8 @@ audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
 
-enable_cost_controls = false
+enable_cost_controls = true
+threshold_cutoff = 0.50 # 50% of budget - adjust as needed
 
 # -----------------------------------------------------------------------------
 # GitHub Actions Service Account (Cross-Project Deployment)
@@ -150,6 +164,6 @@ compute_service_account = "768644809588-compute@developer.gserviceaccount.com"
 enable_gmail_api = true
 
 enable_regional_lb            = true
-lb_domain                     = "portal-uat.callisto.anspar.org"
+lb_domain                     = "*.callisto.anspar.org"
 lb_cloud_run_service_name     = "portal-server"
 lb_enable_http_redirect       = true
