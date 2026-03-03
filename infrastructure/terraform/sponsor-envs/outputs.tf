@@ -191,9 +191,9 @@ output "lb_dns_record_data" {
   value       = var.enable_regional_lb ? module.regional_load_balancer[0].dns_record_data : null
 }
 
-output "lb_backend_service_id" {
-  description = "Regional backend service ID (for attaching Cloud Run NEGs)"
-  value       = var.enable_regional_lb ? module.regional_load_balancer[0].backend_service_id : null
+output "lb_backend_service_ids" {
+  description = "Map of Cloud Run service names to backend service IDs"
+  value       = var.enable_regional_lb ? module.regional_load_balancer[0].backend_service_ids : null
 }
 
 output "lb_setup_instructions" {

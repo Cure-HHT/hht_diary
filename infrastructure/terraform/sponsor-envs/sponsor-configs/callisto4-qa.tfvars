@@ -51,8 +51,8 @@ db_username   = "app_user"
 disk_size                       = 0      # 0 = use environment default
 backup_start_time               = "02:00"
 transaction_log_retention_days  = 7
-backup_retention_override       = 0      # 0 = use environment default (qa=7)
-disk_autoresize_limit_override  = 0      # 0 = use environment default (qa=50)
+backup_retention_override       = 7      # 0 = use environment default (qa=7)
+disk_autoresize_limit_override  = 50     # 0 = use environment default (qa=50)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -65,10 +65,10 @@ project_prefix = "cure-hht"
 # Optional: Cloud Run Sizing
 # -----------------------------------------------------------------------------
 
-min_instances    = 1
-max_instances    = 5
-container_memory = "512Mi"
-container_cpu    = "1"
+min_instances    = 0
+max_instances    = 2
+container_memory = "2Gi"
+container_cpu    = "2"
 # -----------------------------------------------------------------------------
 # Optional: CI/CD Configuration
 # -----------------------------------------------------------------------------
@@ -115,10 +115,6 @@ identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
 identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
-# "diary-qa.callisto.anspar.org", 
-
-portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
-diary_server_url  = "https://diary-server-421945483876.europe-west9.run.app"
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
@@ -145,17 +141,19 @@ workforce_identity_enabled = false
 # Optional: Audit Configuration
 # -----------------------------------------------------------------------------
 
-audit_retention_years = 25
+audit_retention_years = 0
 
 # Billing budget (migrated from bootstrap)
-budget_amount = 500 # Monthly budget in USD
+budget_amount = 5000 # Monthly budget in USD
 
 # -----------------------------------------------------------------------------
 # Optional: Email
 # -----------------------------------------------------------------------------
+enable_gmail_api = true
 impersonating_service_account_email = "421945483876-compute@callisto-4-qa.iam.gserviceaccount.com"
 
-enable_cost_controls = false
+enable_cost_controls = true
+threshold_cutoff = 0.50 # 50% of budget - adjust as needed
 
 # -----------------------------------------------------------------------------
 # GitHub Actions Service Account (Cross-Project Deployment)
@@ -163,8 +161,27 @@ enable_cost_controls = false
 
 github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
 
+
+# -----------------------------------------------------------------------------
+# Compute Service Account (Secret Manager Access)
+# -----------------------------------------------------------------------------
+
+compute_service_account = "768644809588-compute@developer.gserviceaccount.com"
+
 # -----------------------------------------------------------------------------
 # VPC Network (migrated from bootstrap)
 # -----------------------------------------------------------------------------
 
 enable_proxy_only_subnet = true
+enable_regional_lb      = true
+lb_domain               = "*.callisto.anspar.org"
+lb_enable_http_redirect = true
+lb_cloud_run_services = {
+  "diary-server" = {
+    hosts = ["diary-uat.callisto.anspar.org"]
+  }
+  "portal-server" = {
+    hosts = ["portal-uat.callisto.anspar.org"]
+  }
+}
+

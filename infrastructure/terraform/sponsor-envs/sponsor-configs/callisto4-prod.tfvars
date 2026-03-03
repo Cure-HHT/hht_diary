@@ -165,7 +165,14 @@ enable_gmail_api = true
 # VPC Network (migrated from bootstrap)
 enable_proxy_only_subnet = true
 
-enable_regional_lb            = true
-lb_domain                     = "callisto.anspar.org"
-lb_cloud_run_service_name     = "portal-server"
-lb_enable_http_redirect       = true
+enable_regional_lb      = true
+lb_domain               = "*.callisto.anspar.org"
+lb_enable_http_redirect = true
+lb_cloud_run_services = {
+  "diary-server" = {
+    hosts = ["diary.callisto.anspar.org"]
+  }
+  "portal-server" = {
+    hosts = ["portal.callisto.anspar.org"]
+  }
+}

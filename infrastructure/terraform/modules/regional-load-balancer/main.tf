@@ -48,6 +48,12 @@ locals {
     managed_by  = "terraform"
     compliance  = "fda-21-cfr-part-11"
   }
+
+  # Determine default backend service for the URL map.
+  # Uses explicit override if set, otherwise picks the alphabetically first service.
+  default_service_key = var.default_cloud_run_service != "" ? var.default_cloud_run_service : (
+    length(var.cloud_run_services) > 0 ? sort(keys(var.cloud_run_services))[0] : ""
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -135,68 +141,108 @@ resource "google_compute_region_health_check" "main" {
 }
 
 # -----------------------------------------------------------------------------
-# Serverless NEG for Cloud Run
+# One-time migration: moved blocks for single-service → multi-service refactor.
+# These tell Terraform the old resources were renamed, not destroyed+recreated.
+# Safe to remove after the first successful apply of each environment.
 # -----------------------------------------------------------------------------
-# Creates a Network Endpoint Group that points to a Cloud Run service.
-# This allows the regional load balancer to route traffic to Cloud Run.
+
+moved {
+  from = google_compute_region_network_endpoint_group.cloud_run[0]
+  to   = google_compute_region_network_endpoint_group.cloud_run["portal-server"]
+}
+
+moved {
+  from = google_compute_region_backend_service.main
+  to   = google_compute_region_backend_service.services["portal-server"]
+}
+
+# -----------------------------------------------------------------------------
+# Serverless NEGs for Cloud Run (one per service)
+# -----------------------------------------------------------------------------
+# Creates a Network Endpoint Group for each Cloud Run service.
+# This allows the regional load balancer to route traffic to multiple
+# Cloud Run services via host-based routing in the URL map.
 
 resource "google_compute_region_network_endpoint_group" "cloud_run" {
-  count = var.cloud_run_service_name != "" ? 1 : 0
+  for_each = var.cloud_run_services
 
-  name                  = "${local.lb_name_prefix}-cloud-run-neg"
+  name                  = "${local.lb_name_prefix}-${each.key}-neg"
   project               = var.project_id
   region                = var.region
   network_endpoint_type = "SERVERLESS"
 
   cloud_run {
-    service = var.cloud_run_service_name
+    service = each.key
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
 # -----------------------------------------------------------------------------
-# Regional Backend Service
+# Regional Backend Services (one per Cloud Run service)
 # -----------------------------------------------------------------------------
 
-resource "google_compute_region_backend_service" "main" {
-  name                  = "${local.lb_name_prefix}-backend"
+resource "google_compute_region_backend_service" "services" {
+  for_each = var.cloud_run_services
+
+  name                  = "${local.lb_name_prefix}-${each.key}-backend"
   project               = var.project_id
   region                = var.region
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTP"
   port_name             = "http"
   timeout_sec           = var.backend_timeout_sec
-  description           = "Regional backend service for ${var.sponsor} ${var.environment}"
+  description           = "Backend for ${each.key} in ${var.sponsor} ${var.environment}"
 
-  # Health checks are not used with serverless NEGs (Cloud Run has its own health checks)
-  # Only include health check if NOT using Cloud Run backend
-  health_checks = var.cloud_run_service_name == "" ? [google_compute_region_health_check.main.id] : null
+  # Cloud Run has its own health checks; serverless NEGs do not use external health checks
+  health_checks = null
 
-  # Attach Cloud Run NEG as backend if configured
-  dynamic "backend" {
-    for_each = var.cloud_run_service_name != "" ? [1] : []
-    content {
-      group           = google_compute_region_network_endpoint_group.cloud_run[0].id
-      balancing_mode  = "UTILIZATION"
-      capacity_scaler = 1.0
-    }
+  backend {
+    group           = google_compute_region_network_endpoint_group.cloud_run[each.key].id
+    balancing_mode  = "UTILIZATION"
+    capacity_scaler = 1.0
   }
 
   log_config {
     enable      = var.enable_logging
     sample_rate = var.log_sample_rate
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # -----------------------------------------------------------------------------
-# Regional URL Map
+# Regional URL Map (host-based routing)
 # -----------------------------------------------------------------------------
+# Routes requests to the appropriate backend service based on the Host header.
+# Each Cloud Run service is mapped to one or more hostnames.
 
 resource "google_compute_region_url_map" "main" {
   name            = "${local.lb_name_prefix}-url-map"
   project         = var.project_id
   region          = var.region
-  default_service = google_compute_region_backend_service.main.id
+  default_service = google_compute_region_backend_service.services[local.default_service_key].id
   description     = "Regional URL map for ${var.sponsor} ${var.environment}"
+
+  dynamic "host_rule" {
+    for_each = var.cloud_run_services
+    content {
+      hosts        = host_rule.value.hosts
+      path_matcher = host_rule.key
+    }
+  }
+
+  dynamic "path_matcher" {
+    for_each = var.cloud_run_services
+    content {
+      name            = path_matcher.key
+      default_service = google_compute_region_backend_service.services[path_matcher.key].id
+    }
+  }
 }
 
 # -----------------------------------------------------------------------------

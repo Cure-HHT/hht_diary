@@ -59,22 +59,22 @@ output "certificate_name" {
 }
 
 # -----------------------------------------------------------------------------
-# Backend Service
+# Backend Services (one per Cloud Run service)
 # -----------------------------------------------------------------------------
 
-output "backend_service_id" {
-  description = "The ID of the regional backend service"
-  value       = google_compute_region_backend_service.main.id
+output "backend_service_ids" {
+  description = "Map of Cloud Run service names to backend service IDs"
+  value       = { for k, v in google_compute_region_backend_service.services : k => v.id }
 }
 
-output "backend_service_name" {
-  description = "The name of the regional backend service"
-  value       = google_compute_region_backend_service.main.name
+output "backend_service_names" {
+  description = "Map of Cloud Run service names to backend service names"
+  value       = { for k, v in google_compute_region_backend_service.services : k => v.name }
 }
 
-output "backend_service_self_link" {
-  description = "The self link of the regional backend service"
-  value       = google_compute_region_backend_service.main.self_link
+output "backend_service_self_links" {
+  description = "Map of Cloud Run service names to backend service self links"
+  value       = { for k, v in google_compute_region_backend_service.services : k => v.self_link }
 }
 
 # -----------------------------------------------------------------------------

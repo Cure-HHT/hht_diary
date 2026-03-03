@@ -52,7 +52,7 @@ disk_size                       = 0      # 0 = use environment default
 backup_start_time               = "02:00"
 transaction_log_retention_days  = 7
 backup_retention_override       = 14     # Override default (uat default=14)
-disk_autoresize_limit_override  = 0      # 0 = use environment default (uat=100)
+disk_autoresize_limit_override  = 100      # 0 = use environment default (uat=100)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -84,8 +84,8 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = false
 
 # Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # Disable public access due to organization policy restrictions
 allow_public_access = true
@@ -145,7 +145,13 @@ workforce_identity_enabled = false
 audit_retention_years = 0
 
 # Billing budget (migrated from bootstrap)
-budget_amount = 1000 # Monthly budget in USD
+budget_amount = 5000 # Monthly budget in USD
+
+# -----------------------------------------------------------------------------
+# Optional: Email
+# -----------------------------------------------------------------------------
+enable_gmail_api = true
+impersonating_service_account_email = "421945483876-compute@callisto-4-qa.iam.gserviceaccount.com"
 
 enable_cost_controls = true
 threshold_cutoff = 0.50 # 50% of budget - adjust as needed
@@ -162,12 +168,20 @@ github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
 
 compute_service_account = "768644809588-compute@developer.gserviceaccount.com"
 
-enable_gmail_api = true
-
+# -----------------------------------------------------------------------------
 # VPC Network (migrated from bootstrap)
+# -----------------------------------------------------------------------------
+
 enable_proxy_only_subnet = true
 
-enable_regional_lb            = true
-lb_domain                     = "*.callisto.anspar.org"
-lb_cloud_run_service_name     = "portal-server"
-lb_enable_http_redirect       = true
+enable_regional_lb      = true
+lb_domain               = "*.callisto.anspar.org"
+lb_enable_http_redirect = true
+lb_cloud_run_services = {
+  "diary-server" = {
+    hosts = ["diary-uat.callisto.anspar.org"]
+  }
+  "portal-server" = {
+    hosts = ["portal-uat.callisto.anspar.org"]
+  }
+}

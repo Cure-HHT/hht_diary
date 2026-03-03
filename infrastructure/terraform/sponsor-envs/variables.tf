@@ -567,8 +567,16 @@ variable "lb_enable_http_redirect" {
   default     = true
 }
 
-variable "lb_cloud_run_service_name" {
-  description = "Name of the Cloud Run service to route traffic to (e.g., 'portal-server')"
+variable "lb_cloud_run_services" {
+  description = "Map of Cloud Run service configurations for host-based routing. Key is the Cloud Run service name, value has 'hosts' (list of hostname patterns). Example: { \"diary-server\" = { hosts = [\"diary.example.com\"] } }"
+  type = map(object({
+    hosts = list(string)
+  }))
+  default = {}
+}
+
+variable "lb_default_cloud_run_service" {
+  description = "Cloud Run service name to use as the URL map default backend. Must be a key in lb_cloud_run_services. If empty, the alphabetically first service is used."
   type        = string
   default     = ""
 }

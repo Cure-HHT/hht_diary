@@ -507,8 +507,9 @@ module "regional_load_balancer" {
   log_sample_rate      = var.lb_log_sample_rate
   enable_http_redirect = var.lb_enable_http_redirect
 
-  # Cloud Run backend
-  cloud_run_service_name = var.lb_cloud_run_service_name
+  # Cloud Run backends (host-based routing)
+  cloud_run_services        = var.lb_cloud_run_services
+  default_cloud_run_service = var.lb_default_cloud_run_service
 
   depends_on = [google_project_service.certificate_manager_api]
 }
