@@ -90,15 +90,19 @@ class _TimePickerDialState extends State<TimePickerDial> {
         oldWidget.maxDateTime != null &&
         widget.maxDateTime!.difference(oldWidget.maxDateTime!).inSeconds.abs() >
             1;
-    final maxDateTimeNewOrRemoved =
-        (widget.maxDateTime == null) != (oldWidget.maxDateTime == null);
+    // CUR-983: Only treat maxDateTime changes as meaningful when it becomes
+    // newly non-null (i.e., constraints get stricter). When maxDateTime is
+    // removed (non-null -> null), do NOT re-clamp to avoid unexpected jumps
+    // in existing selections (e.g., end time picker dropping stale maxDateTime).
+    final maxDateTimeBecameNonNull =
+        widget.maxDateTime != null && oldWidget.maxDateTime == null;
     // Only re-clamp if time/max changed AND timezone is NOT changing
     // When timezone changes, the selected time stays the same - we just interpret
     // it differently. The confirm button will validate using the new timezone.
     final shouldReclamp =
         !timezoneChanging &&
         (maxDateTimeChangedSignificantly ||
-            maxDateTimeNewOrRemoved ||
+            maxDateTimeBecameNonNull ||
             widget.initialTime != oldWidget.initialTime);
     if (shouldReclamp) {
       // Re-clamp the selected time with the new maxDateTime
@@ -144,15 +148,21 @@ class _TimePickerDialState extends State<TimePickerDial> {
   /// to device time before comparing against DateTime.now().
   DateTime _clampToMaxIfNeeded(DateTime time) {
     // CUR-564: Use timezone-aware check instead of raw DateTime comparison
-    if (_isDisplayedTimeInFuture(time)) {
+    final normalizedTime = time.copyWith(
+      second: 0,
+      millisecond: 0,
+      microsecond: 0,
+    );
+
+    if (_isDisplayedTimeInFuture(normalizedTime)) {
       // Return a clamped time that represents "now" in the display timezone
       // Convert _effectiveMaxDateTime (device time) to display timezone
       return TimezoneConverter.toDisplayedDateTime(
         _effectiveMaxDateTime,
         _selectedTimezone,
-      );
+      ).copyWith(second: 0, millisecond: 0, microsecond: 0);
     }
-    return time;
+    return normalizedTime;
   }
 
   // Track which button should show error flash
@@ -160,7 +170,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
 
   void _adjustMinutes(int delta) {
     final newTime = _selectedTime
-        .copyWith(second: 0)
+        .copyWith(second: 0, millisecond: 0, microsecond: 0)
         .add(Duration(minutes: delta));
 
     // CUR-564: Check if this would exceed the max time, considering timezone
