@@ -101,10 +101,7 @@ class EnrollmentService {
       final response = await _httpClient.post(
         Uri.parse(linkUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'code': normalizedCode,
-          'appUuid': ?appUuid,
-        }),
+        body: jsonEncode({'code': normalizedCode, 'appUuid': ?appUuid}),
       );
 
       debugPrint('Link response status: ${response.statusCode}');

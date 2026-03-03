@@ -435,7 +435,6 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-
         final existingStart = DateTime(
           DateTime.now().year,
           DateTime.now().month,
@@ -460,7 +459,6 @@ void main() {
         final initialRecords = await nosebleedService
             .getLocalMaterializedRecords();
         expect(initialRecords.length, 1);
-
 
         String? popResult;
         final records = await nosebleedService.getLocalMaterializedRecords();
@@ -527,7 +525,6 @@ void main() {
         await tester.tap(find.text('Set End Time'));
         await tester.pumpAndSettle(const Duration(seconds: 1));
 
-
         debugDumpApp();
         expect(
           find.textContaining('overlaps'),
@@ -535,9 +532,7 @@ void main() {
           reason: 'Should show overlap snackbar',
         );
 
-
         expect(popResult, isNull);
-
 
         final finalRecords = await nosebleedService
             .getLocalMaterializedRecords();

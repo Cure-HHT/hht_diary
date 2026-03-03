@@ -461,6 +461,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Registrar Hemorragia Nasal',
+      'overlappingRecordNotAllowed':
+          'Esta entrada se superpone con un registro existente. Por favor, modifique el rango de tiempo.',
       'noEventsToday': 'sin eventos hoy',
       'noEventsYesterday': 'sin eventos ayer',
       'incompleteRecords': 'Registros Incompletos',
@@ -873,6 +875,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Enregistrer un Saignement',
+      'overlappingRecordNotAllowed':
+          'Cette entrée chevauche un enregistrement existant. Veuillez modifier la plage horaire.',
       'noEventsToday': "pas d'evenements aujourd'hui",
       'noEventsYesterday': "pas d'evenements hier",
       'incompleteRecords': 'Enregistrements Incomplets',
@@ -1296,6 +1300,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Nasenbluten erfassen',
+      'overlappingRecordNotAllowed':
+          'Dieser Eintrag überschneidet sich mit einem bestehenden Datensatz. Bitte passen Sie den Zeitraum an.',
       'noEventsToday': 'keine Ereignisse heute',
       'noEventsYesterday': 'keine Ereignisse gestern',
       'incompleteRecords': 'Unvollstandige Eintrage',
