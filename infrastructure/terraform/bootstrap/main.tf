@@ -266,25 +266,9 @@ resource "google_storage_bucket_iam_member" "tf_env_token_creator_state_access" 
 }
 
 # -----------------------------------------------------------------------------
-# Cloud SQL Database - One per Environment
+# Cloud SQL Database — MIGRATED to sponsor-envs/main.tf
+# State migrated via scripts/migrate-db-to-sponsor-envs.sh
 # -----------------------------------------------------------------------------
-
-module "database" {
-  source   = "../modules/cloud-sql"
-  for_each = toset(local.environments)
-
-  project_id             = local.project_ids[each.key]
-  sponsor                = var.sponsor
-  environment            = each.key
-  region                 = var.default_region
-  vpc_network_id         = module.network[each.key].network_id
-  private_vpc_connection = module.network[each.key].private_vpc_connection
-  database_name          = "${var.sponsor}_${each.key}_${var.database_name}"
-  db_username            = var.db_username
-  DB_PASSWORD            = var.DB_PASSWORD
-
-  depends_on = [module.network]
-}
 
 resource "google_project_service" "gmail_api" {
   for_each = toset(local.environments)

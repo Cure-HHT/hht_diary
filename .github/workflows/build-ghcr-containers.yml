@@ -1,0 +1,449 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00030: CI/CD Integration
+#   REQ-d00033: FDA Validation Documentation
+#   REQ-d00035: Security and Compliance
+#
+# Clinical Diary Docker Image Build & Publish
+# Builds, signs, and publishes Docker images to GitHub Container Registry
+#
+# Topology: 3 independent images from debian:12-slim (no chained builds)
+#   ci      — All-in-one CI: build, test, lint, scan
+#   devops  — Terraform + gcloud for cloud operations
+#   audit   — Read-only audit: DB, cloud, code, OTS
+
+name: Build & Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths:
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - '.github/workflows/build-ghcr-containers.yml'
+      - '.github/versions.env'
+  pull_request:
+    paths:
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - '.github/workflows/build-ghcr-containers.yml'
+      - '.github/versions.env'
+  workflow_dispatch:
+    inputs:
+      push_to_registry:
+        description: 'Push images to GitHub Container Registry'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/clinical-diary
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # For Cosign signing
+
+jobs:
+  # ============================================================
+  # Build CI Image — all-in-one: build, test, lint, scan
+  # ============================================================
+  build-ci:
+    name: Build CI Image
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load versions
+        run: |
+          source .github/versions.env
+          echo "FLUTTER_VERSION=$FLUTTER_VERSION" >> $GITHUB_ENV
+          echo "GITLEAKS_VERSION=$GITLEAKS_VERSION" >> $GITHUB_ENV
+          echo "SQUAWK_VERSION=$SQUAWK_VERSION" >> $GITHUB_ENV
+          echo "NODE_MAJOR_VERSION=${NODE_MAJOR_VERSION:-$NODE_VERSION}" >> $GITHUB_ENV
+          echo "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION:-2.14.3}" >> $GITHUB_ENV
+          echo "ANDROID_CMDLINE_TOOLS_VERSION=${ANDROID_CMDLINE_TOOLS_VERSION:-11076708}" >> $GITHUB_ENV
+          echo "ANDROID_BUILD_TOOLS_VERSION=${ANDROID_BUILD_TOOLS_VERSION:-34.0.0}" >> $GITHUB_ENV
+          echo "ANDROID_PLATFORM_VERSION=${ANDROID_PLATFORM_VERSION:-34}" >> $GITHUB_ENV
+          echo "OPENJDK_VERSION=${OPENJDK_VERSION:-$JAVA_VERSION}" >> $GITHUB_ENV
+          echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and push CI image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: tools/dev-env/docker
+          file: tools/dev-env/docker/ci.Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            NODE_MAJOR_VERSION=${{ env.NODE_MAJOR_VERSION }}
+            FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}
+            GITLEAKS_VERSION=${{ env.GITLEAKS_VERSION }}
+            SQUAWK_VERSION=${{ env.SQUAWK_VERSION }}
+            CLOUD_SQL_PROXY_VERSION=${{ env.CLOUD_SQL_PROXY_VERSION }}
+            ANDROID_CMDLINE_TOOLS_VERSION=${{ env.ANDROID_CMDLINE_TOOLS_VERSION }}
+            ANDROID_BUILD_TOOLS_VERSION=${{ env.ANDROID_BUILD_TOOLS_VERSION }}
+            ANDROID_PLATFORM_VERSION=${{ env.ANDROID_PLATFORM_VERSION }}
+            OPENJDK_VERSION=${{ env.OPENJDK_VERSION }}
+            POSTGRESQL_CLIENT_VERSION=${{ env.POSTGRESQL_CLIENT_VERSION }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci:buildcache,mode=max
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+  # ============================================================
+  # Build DevOps Image — Terraform + gcloud (parallel with CI)
+  # ============================================================
+  build-devops:
+    name: Build DevOps Image
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load versions
+        run: |
+          source .github/versions.env
+          echo "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION:-2.14.3}" >> $GITHUB_ENV
+          echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and push DevOps image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: tools/dev-env/docker
+          file: tools/dev-env/docker/devops.Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            CLOUD_SQL_PROXY_VERSION=${{ env.CLOUD_SQL_PROXY_VERSION }}
+            POSTGRESQL_CLIENT_VERSION=${{ env.POSTGRESQL_CLIENT_VERSION }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops:buildcache,mode=max
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+  # ============================================================
+  # Build Audit Image — read-only tools (parallel with CI)
+  # ============================================================
+  build-audit:
+    name: Build Audit Image
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load versions
+        run: |
+          source .github/versions.env
+          echo "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION:-2.14.3}" >> $GITHUB_ENV
+          echo "POSTGRESQL_CLIENT_VERSION=${POSTGRESQL_CLIENT_VERSION:-16}" >> $GITHUB_ENV
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and push Audit image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: tools/dev-env/docker
+          file: tools/dev-env/docker/audit.Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            CLOUD_SQL_PROXY_VERSION=${{ env.CLOUD_SQL_PROXY_VERSION }}
+            POSTGRESQL_CLIENT_VERSION=${{ env.POSTGRESQL_CLIENT_VERSION }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit:buildcache,mode=max
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+  # ============================================================
+  # Sign Images & Generate SBOMs
+  # ============================================================
+  sign-and-sbom:
+    name: Sign Images & Generate SBOMs
+    runs-on: ubuntu-latest
+    needs: [build-ci, build-devops, build-audit]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Sign CI image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
+
+      - name: Sign DevOps image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
+
+      - name: Sign Audit image
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
+
+      - name: Generate SBOM for CI image
+        run: |
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }} \
+            -o spdx-json \
+            --file ci-sbom.spdx.json
+
+      - name: Generate SBOM for DevOps image
+        run: |
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }} \
+            -o spdx-json \
+            --file devops-sbom.spdx.json
+
+      - name: Generate SBOM for Audit image
+        run: |
+          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }} \
+            -o spdx-json \
+            --file audit-sbom.spdx.json
+
+      - name: Upload SBOMs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms-${{ github.sha }}
+          path: |
+            *-sbom.spdx.json
+          retention-days: 90
+
+      - name: Attach SBOM attestation to CI image
+        run: |
+          cosign attest --yes \
+            --predicate ci-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to DevOps image
+        run: |
+          cosign attest --yes \
+            --predicate devops-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to Audit image
+        run: |
+          cosign attest --yes \
+            --predicate audit-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
+
+  # ============================================================
+  # Verify Image Signatures
+  # ============================================================
+  verify-images:
+    name: Verify Image Signatures
+    runs-on: ubuntu-latest
+    needs: [sign-and-sbom, build-ci, build-devops, build-audit]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Verify CI image signature
+        run: |
+          echo "Verifying CI image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
+
+      - name: Verify DevOps image signature
+        run: |
+          echo "Verifying DevOps image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
+
+      - name: Verify Audit image signature
+        run: |
+          echo "Verifying Audit image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
+
+  # ============================================================
+  # Build Summary
+  # ============================================================
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-ci, build-devops, build-audit]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CI (build + test + lint + scan) | ${{ needs.build-ci.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| DevOps (Terraform + gcloud) | ${{ needs.build-devops.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Audit (read-only) | ${{ needs.build-audit.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "## Published to GHCR" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-*\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
+            echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Build Verification Only" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Pull request builds are not pushed to registry." >> $GITHUB_STEP_SUMMARY
+          fi

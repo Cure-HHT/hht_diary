@@ -1,9 +1,0 @@
-#!/bin/bash
-# Check active ticket status (non-interactive)
-# Usage: check-active-ticket.skill
-
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-"$SCRIPT_DIR/scripts/check-active-ticket.sh"

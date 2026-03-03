@@ -1,4 +1,5 @@
 # IMPLEMENTS REQUIREMENTS:
+#   REQ-d00030: CI/CD Environment Parity
 #   REQ-d00031: Identity Platform Integration
 #   REQ-d00032: Role-Based Access Control Implementation
 #   REQ-p00024: Portal User Roles and Permissions
@@ -7,417 +8,268 @@
 #
 # CI workflow for sponsor-portal (portal_functions, portal_server, portal-ui)
 # Runs unit tests, integration tests (with PostgreSQL + Firebase emulator), and coverage
+# using CI container + Docker Compose PostgreSQL sidecar.
 
 name: Sponsor Portal CI
 
 permissions:
   contents: read
+  packages: read
+  actions: read  # Required for gh run watch in start-ci-container
 
+# Trigger strategy:
+#   push to main  — runs unconditionally (safety net after merge)
+#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
+#   workflow_dispatch — runs unconditionally (manual override)
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/sponsor-portal/**'
-      - 'database/**'
-      - '.github/workflows/sponsor-portal-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'apps/sponsor-portal/**'
       - 'database/**'
       - '.github/workflows/sponsor-portal-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # Coverage threshold
   MIN_COVERAGE: 70
 
 jobs:
-  analyze:
-    name: Static Analysis
+  ci:
+    name: Sponsor Portal CI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.10.7
+          fetch-depth: 0
 
-      - uses: subosito/flutter-action@v2
+      - name: Start CI container
+        uses: ./.github/actions/start-ci-container
         with:
-          flutter-version: '3.38.7'
-          channel: 'stable'
+          profile: db
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies (portal_functions)
-        working-directory: apps/sponsor-portal/portal_functions
-        run: dart pub get
+      # ---------------------------------------------------------------
+      # Create sponsor_portal database
+      # ---------------------------------------------------------------
+      - name: Create sponsor_portal database
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "psql -h postgres -U postgres -c 'CREATE DATABASE sponsor_portal;'"
 
-      - name: Install dependencies (portal_server)
-        working-directory: apps/sponsor-portal/portal_server
-        run: dart pub get
+      # ---------------------------------------------------------------
+      # Install dependencies for all packages
+      # ---------------------------------------------------------------
+      - name: Install dependencies
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_functions && dart pub get
+            cd /workspace/src/apps/sponsor-portal/portal_server && dart pub get
+            cd /workspace/src/apps/sponsor-portal/portal-ui && flutter pub get
+          "
 
-      - name: Install dependencies (portal-ui)
-        working-directory: apps/sponsor-portal/portal-ui
-        run: flutter pub get
-
+      # ---------------------------------------------------------------
+      # Static analysis + formatting
+      # ---------------------------------------------------------------
       - name: Analyze portal_functions
-        working-directory: apps/sponsor-portal/portal_functions
-        run: dart analyze --fatal-infos
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_functions
+            dart analyze --fatal-infos
+          "
 
       - name: Analyze portal_server
-        working-directory: apps/sponsor-portal/portal_server
-        run: dart analyze --fatal-infos
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_server
+            dart analyze --fatal-infos
+          "
 
       - name: Analyze portal-ui
-        working-directory: apps/sponsor-portal/portal-ui
-        run: flutter analyze
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal-ui
+            flutter analyze
+          "
 
       - name: Check formatting
+        working-directory: tools/dev-env
         run: |
-          dart format --set-exit-if-changed apps/sponsor-portal/portal_functions
-          dart format --set-exit-if-changed apps/sponsor-portal/portal_server
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            dart format --set-exit-if-changed /workspace/src/apps/sponsor-portal/portal_functions
+            dart format --set-exit-if-changed /workspace/src/apps/sponsor-portal/portal_server
+          "
 
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: 3.10.7
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.7'
-          channel: 'stable'
-
-      - name: Install dependencies (portal_functions)
-        working-directory: apps/sponsor-portal/portal_functions
-        run: dart pub get
-
-      - name: Install dependencies (portal_server)
-        working-directory: apps/sponsor-portal/portal_server
-        run: dart pub get
-
-      - name: Install dependencies (portal-ui)
-        working-directory: apps/sponsor-portal/portal-ui
-        run: flutter pub get
-
+      # ---------------------------------------------------------------
+      # Unit tests
+      # ---------------------------------------------------------------
       - name: Run portal_functions unit tests
-        working-directory: apps/sponsor-portal/portal_functions
-        run: dart test test/
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_functions
+            dart test test/
+          "
 
       - name: Run portal_server unit tests
-        working-directory: apps/sponsor-portal/portal_server
-        run: dart test test/
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_server
+            dart test test/
+          "
 
       - name: Run portal-ui unit tests
-        working-directory: apps/sponsor-portal/portal-ui
-        run: flutter test
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: 3.10.7
-
-      - name: Setup Node.js for Firebase Emulator
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Firebase Tools
-        run: npm install -g firebase-tools
-
-      - name: Start Firebase Auth Emulator
+        working-directory: tools/dev-env
         run: |
-          # Create minimal firebase.json for auth emulator
-          cat > firebase.json << 'EOF'
-          {
-            "emulators": {
-              "auth": {
-                "port": 9099,
-                "host": "127.0.0.1"
-              },
-              "ui": {
-                "enabled": false
-              }
-            }
-          }
-          EOF
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal-ui
+            flutter test
+          "
 
-          # Start emulator in background
-          firebase emulators:start --only auth --project demo-sponsor-portal &
-
-          # Wait for emulator to be ready
-          echo "Waiting for Firebase Auth emulator..."
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:9099/ > /dev/null 2>&1; then
-              echo "Firebase Auth emulator is ready!"
-              break
-            fi
-            sleep 1
-          done
-
-      - name: Wait for PostgreSQL
+      # ---------------------------------------------------------------
+      # Schema deploy for integration tests
+      # ---------------------------------------------------------------
+      - name: Deploy database schema
+        working-directory: tools/dev-env
         run: |
-          until pg_isready -h localhost -p 5432 -U postgres; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "
+              cd /workspace/src
+              psql -h postgres -U postgres -d sponsor_portal --set ON_ERROR_STOP=1 -f database/init.sql
+              psql -h postgres -U postgres -d sponsor_portal --set ON_ERROR_STOP=1 -f database/init_test.sql
+            "
 
-      - name: Apply database schema
-        env:
-          PGPASSWORD: postgres
-        run: |
-          cd database
-          # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
-          psql -h localhost -U postgres -d sponsor_portal -f init.sql
-          # Run init_test.sql for test fixtures
-          psql -h localhost -U postgres -d sponsor_portal -f init_test.sql
-
-      - name: Install dependencies (portal_functions)
-        working-directory: apps/sponsor-portal/portal_functions
-        run: dart pub get
-
-      - name: Install dependencies (portal_server)
-        working-directory: apps/sponsor-portal/portal_server
-        run: dart pub get
-
+      # ---------------------------------------------------------------
+      # Integration tests (Firebase emulator + PostgreSQL)
+      # ---------------------------------------------------------------
       - name: Run portal_functions integration tests
-        working-directory: apps/sponsor-portal/portal_functions
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
-          GCP_PROJECT_ID: demo-sponsor-portal
-        run: dart test integration_test/
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            firebase emulators:start --only auth --project demo-sponsor-portal &
+            sleep 5  # wait for emulator to start
+            cd /workspace/src/apps/sponsor-portal/portal_functions
+            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
+            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
+            dart test integration_test/
+          "
 
       - name: Run portal_server integration tests
-        working-directory: apps/sponsor-portal/portal_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
-          GCP_PROJECT_ID: demo-sponsor-portal
-        run: dart test integration_test/
-
-  coverage:
-    name: Test Coverage
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: 3.10.7
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.7'
-          channel: 'stable'
-
-      - name: Setup Node.js for Firebase Emulator
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Firebase Tools
-        run: npm install -g firebase-tools
-
-      - name: Start Firebase Auth Emulator
+        working-directory: tools/dev-env
         run: |
-          cat > firebase.json << 'EOF'
-          {
-            "emulators": {
-              "auth": {
-                "port": 9099,
-                "host": "127.0.0.1"
-              },
-              "ui": {
-                "enabled": false
-              }
-            }
-          }
-          EOF
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            firebase emulators:start --only auth --project demo-sponsor-portal &
+            sleep 5  # wait for emulator to start
+            cd /workspace/src/apps/sponsor-portal/portal_server
+            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
+            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
+            dart test integration_test/
+          "
 
-          firebase emulators:start --only auth --project demo-sponsor-portal &
-
-          echo "Waiting for Firebase Auth emulator..."
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:9099/ > /dev/null 2>&1; then
-              echo "Firebase Auth emulator is ready!"
-              break
-            fi
-            sleep 1
-          done
-
-      - name: Apply database schema
-        env:
-          PGPASSWORD: postgres
+      # ---------------------------------------------------------------
+      # Coverage collection
+      # ---------------------------------------------------------------
+      - name: Run portal_functions tests with coverage
+        working-directory: tools/dev-env
         run: |
-          cd database
-          # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
-          psql -h localhost -U postgres -d sponsor_portal -f init.sql
-          # Run init_test.sql for test fixtures
-          psql -h localhost -U postgres -d sponsor_portal -f init_test.sql
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            firebase emulators:start --only auth --project demo-sponsor-portal &
+            sleep 5  # wait for emulator to start
+            cd /workspace/src/apps/sponsor-portal/portal_functions
+            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
+            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
+            dart test --coverage=coverage test/ integration_test/
+            dart pub global activate coverage
+            dart pub global run coverage:format_coverage \
+              --lcov \
+              --in=coverage \
+              --out=coverage/lcov.info \
+              --report-on=lib \
+              --packages=.dart_tool/package_config.json || true
+          "
 
-      - name: Install dependencies
+      - name: Run portal_server tests with coverage
+        working-directory: tools/dev-env
         run: |
-          dart pub get --directory=apps/sponsor-portal/portal_functions
-          dart pub get --directory=apps/sponsor-portal/portal_server
-          flutter pub get --directory=apps/sponsor-portal/portal-ui
-          dart pub global activate coverage
-
-      - name: Run portal_functions unit tests with coverage
-        working-directory: apps/sponsor-portal/portal_functions
-        run: |
-          # Unit tests run WITHOUT emulator to test production token verification
-          dart test --coverage=coverage test/
-
-      - name: Run portal_functions integration tests with coverage
-        working-directory: apps/sponsor-portal/portal_functions
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
-          GCP_PROJECT_ID: demo-sponsor-portal
-        run: |
-          # Integration tests need emulator for Firebase auth
-          dart test --coverage=coverage integration_test/
-
-      - name: Generate portal_functions coverage report
-        working-directory: apps/sponsor-portal/portal_functions
-        run: |
-          dart pub global run coverage:format_coverage \
-            --lcov \
-            --in=coverage \
-            --out=coverage/lcov.info \
-            --report-on=lib \
-            --packages=.dart_tool/package_config.json || true
-
-      - name: Check portal_functions coverage threshold
-        working-directory: apps/sponsor-portal/portal_functions
-        run: |
-          if [ -f coverage/lcov.info ]; then
-            # Calculate coverage percentage
-            LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info 2>/dev/null || echo "0")
-            LINES_HIT=$(grep "^DA:" coverage/lcov.info 2>/dev/null | grep -cv ",0$" || echo "0")
-
-            if [ "$LINES_FOUND" -gt 0 ]; then
-              COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($LINES_HIT/$LINES_FOUND)*100}")
-              echo "Coverage: ${COVERAGE}%"
-
-              # Check threshold (warn-only until coverage gaps are addressed)
-              # TODO: Revert to exit 1 after CUR-955 adds missing handler tests
-              PASSES=$(echo "$COVERAGE ${{ env.MIN_COVERAGE }}" | awk '{print ($1 >= $2) ? "1" : "0"}')
-              if [ "$PASSES" = "1" ]; then
-                echo "✅ Coverage ${COVERAGE}% meets threshold ${{ env.MIN_COVERAGE }}%"
-              else
-                echo "::warning::Coverage ${COVERAGE}% is below threshold ${{ env.MIN_COVERAGE }}%"
-              fi
-            else
-              echo "⚠️ No coverage data found"
-            fi
-          else
-            echo "⚠️ Coverage file not found"
-          fi
-
-      - name: Run portal_server unit tests with coverage
-        working-directory: apps/sponsor-portal/portal_server
-        run: |
-          # Unit tests run WITHOUT emulator to test production token verification
-          dart test --coverage=coverage test/
-
-      - name: Run portal_server integration tests with coverage
-        working-directory: apps/sponsor-portal/portal_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: 'false'
-          FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
-          GCP_PROJECT_ID: demo-sponsor-portal
-        run: |
-          # Integration tests need emulator for Firebase auth
-          dart test --coverage=coverage integration_test/
-
-      - name: Generate portal_server coverage report
-        working-directory: apps/sponsor-portal/portal_server
-        run: |
-          dart pub global run coverage:format_coverage \
-            --lcov \
-            --in=coverage \
-            --out=coverage/lcov.info \
-            --report-on=lib \
-            --packages=.dart_tool/package_config.json || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            firebase emulators:start --only auth --project demo-sponsor-portal &
+            sleep 5  # wait for emulator to start
+            cd /workspace/src/apps/sponsor-portal/portal_server
+            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
+            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
+            dart test --coverage=coverage test/ integration_test/
+            dart pub global activate coverage
+            dart pub global run coverage:format_coverage \
+              --lcov \
+              --in=coverage \
+              --out=coverage/lcov.info \
+              --report-on=lib \
+              --packages=.dart_tool/package_config.json || true
+          "
 
       - name: Run portal-ui tests with coverage
-        working-directory: apps/sponsor-portal/portal-ui
+        working-directory: tools/dev-env
         run: |
-          flutter test --coverage
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal-ui
+            flutter test --coverage
+          "
 
-      - name: Upload coverage to Codecov
+      # ---------------------------------------------------------------
+      # Extract coverage from container for codecov upload
+      # ---------------------------------------------------------------
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      - name: Copy coverage from container
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/sponsor-portal/portal_functions/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/portal-functions-lcov.info || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/sponsor-portal/portal_server/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/portal-server-lcov.info || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/sponsor-portal/portal-ui/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/portal-ui-lcov.info || true
+
+      - name: Upload portal_functions coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: |
-            apps/sponsor-portal/portal_functions/coverage/lcov.info
-            apps/sponsor-portal/portal_server/coverage/lcov.info
-            apps/sponsor-portal/portal-ui/coverage/lcov.info
-          flags: sponsor-portal
+          files: portal-functions-lcov.info
+          flags: portal-functions
+          fail_ci_if_error: false
+
+      - name: Upload portal_server coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: portal-server-lcov.info
+          flags: portal-server
+          fail_ci_if_error: false
+
+      - name: Upload portal-ui coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: portal-ui-lcov.info
+          flags: portal-ui
           fail_ci_if_error: false
 
       - name: Upload coverage reports as artifacts
@@ -425,7 +277,15 @@ jobs:
         with:
           name: sponsor-portal-coverage
           path: |
-            apps/sponsor-portal/portal_functions/coverage/lcov.info
-            apps/sponsor-portal/portal_server/coverage/lcov.info
-            apps/sponsor-portal/portal-ui/coverage/lcov.info
+            portal-functions-lcov.info
+            portal-server-lcov.info
+            portal-ui-lcov.info
           retention-days: 30
+
+      # ---------------------------------------------------------------
+      # Cleanup
+      # ---------------------------------------------------------------
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db down -v

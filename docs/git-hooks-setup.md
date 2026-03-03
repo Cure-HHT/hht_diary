@@ -410,20 +410,17 @@ chmod +x .githooks/post-commit
 
 2. **Run validation manually to see full output**:
    ```bash
-   # Requirement validation (primary - using elspais)
+   # Requirement validation (using elspais)
    elspais validate spec/dev-api.md
 
    # Index validation (using elspais)
    elspais index validate
 
-   # Or using local scripts (fallback if elspais not available)
-   python3 tools/requirements/validate_requirements.py spec/dev-api.md
-
    # Spec compliance
    ./tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
 
    # Traceability matrix generation
-   python3 tools/requirements/generate_traceability.py --format markdown
+   elspais trace --format markdown
    ```
 
 3. **Check if issue is in staged vs unstaged changes**:
@@ -450,25 +447,6 @@ ls -la .githooks/ | head
 ls -la tools/anspar-cc-plugins/plugins/*/hooks/ | grep -E 'pre-commit|commit-msg|post-commit'
 ```
 
-### Python Script Not Found
-
-**Symptom**: Hook fails with "script not found" error
-
-**Cause**: Validation scripts in `tools/requirements/` missing or moved
-
-**Solution**:
-```bash
-# Verify scripts exist
-ls -l tools/requirements/validate_requirements.py
-ls -l tools/requirements/generate_traceability.py
-
-# If missing, check git status
-git status tools/requirements/
-
-# If deleted, restore from git
-git checkout HEAD -- tools/requirements/
-```
-
 ### Validation Passes Locally But Fails in CI
 
 **Symptom**: Commit works locally, PR validation fails
@@ -481,24 +459,17 @@ git checkout HEAD -- tools/requirements/
 
 **Solution**:
 ```bash
-# Check elspais version (primary validation tool)
+# Check elspais version
 elspais --version
 
-# Check Python version (for fallback scripts)
-python3 --version
-
-# Ensure scripts are committed
-git status tools/requirements/
+# Ensure plugin scripts are committed
 git status tools/anspar-cc-plugins/
 
 # Run validation manually (using elspais)
 elspais validate
 
-# Or using Python scripts (fallback)
-python3 tools/requirements/validate_requirements.py
-
 # Commit any updated scripts
-git add tools/requirements/ tools/anspar-cc-plugins/
+git add tools/anspar-cc-plugins/
 git commit -m "Update validation scripts
 
 Implements: REQ-xxx

@@ -21,7 +21,7 @@ The Clinical Diary project requires development environments that support:
 5. **Small Team**: 3 developers need efficient onboarding and minimal maintenance burden
 6. **Multi-Sponsor Architecture**: Single public core repo + multiple private sponsor repos
 7. **Complex Toolchain**: Flutter, Android SDK, Node.js, Python, Terraform, testing frameworks
-8. **Secrets Management**: Secure handling of GitHub tokens, Supabase credentials, API keys
+8. **Secrets Management**: Secure handling of GitHub tokens, database credentials, API keys
 
 **Previous Approach (Rejected)**:
 An initial PowerShell script using Canonical Multipass created 4 Ubuntu VMs with role-specific tooling. While this achieved role separation, it had critical limitations:

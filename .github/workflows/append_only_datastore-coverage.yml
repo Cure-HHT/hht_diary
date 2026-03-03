@@ -12,6 +12,7 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -22,10 +23,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Load version pinning
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "flutter_version=${FLUTTER_VERSION}" >> $GITHUB_OUTPUT
+        working-directory: ${{ github.workspace }}
+      
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.7'
+          flutter-version: '${{ steps.versions.outputs.flutter_version }}'
           channel: 'stable'
       
       - name: Install dependencies

@@ -45,7 +45,7 @@ class _ActivationPageState extends State<ActivationPage> {
   String get _apiBaseUrl {
     const envUrl = String.fromEnvironment('PORTAL_API_URL');
     if (envUrl.isNotEmpty) return envUrl;
-    if (kDebugMode) return 'http://localhost:8080';
+    if (kDebugMode) return 'http://localhost:8084';
     // Use the current host origin in production (same-origin API)
     return Uri.base.origin;
   }

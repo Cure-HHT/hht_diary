@@ -47,19 +47,15 @@
     "anspar-cc-plugins": {
       "source": {
         "source": "directory",
-        "path": "./tools/anspar-cc-plugins"
-      }
+        "path": "~/.local/share/anspar-wf/plugins"
+      },
+      "version": "2.0.0"
     }
   },
   "enabledPlugins": {
-    "plugin-wizard@anspar-cc-plugins": true,
-    "linear-api@anspar-cc-plugins": true,
     "workflow@anspar-cc-plugins": true,
-    "simple-requirements@anspar-cc-plugins": true,
-    "requirement-traceability@anspar-cc-plugins": true,
     "spec-compliance@anspar-cc-plugins": true,
-    "compliance-verification@anspar-cc-plugins": true,
-    "traceability-matrix@anspar-cc-plugins": true,
+    "plugin-wizard@anspar-cc-plugins": true,
     "debugging-toolkit@claude-code-workflows": true,
     "unit-testing@claude-code-workflows": true,
     "tdd-workflows@claude-code-workflows": true,

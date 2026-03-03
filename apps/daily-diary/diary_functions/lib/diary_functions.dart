@@ -5,6 +5,8 @@
 //   REQ-CAL-p00082: Patient Alert Delivery
 //   REQ-CAL-p00081: Patient Task System
 //   REQ-p00049: Ancillary Platform Services (push notifications)
+//   REQ-p01067: NOSE HHT Questionnaire Content
+//   REQ-p01068: HHT Quality of Life Questionnaire Content
 //
 // Diary functions library - Dart conversion of Firebase Cloud Functions
 
@@ -15,6 +17,7 @@ export 'src/database.dart';
 export 'src/fcm_token.dart';
 export 'src/health.dart';
 export 'src/jwt.dart';
+export 'src/questionnaire_submit.dart';
 export 'src/sponsor.dart';
 export 'src/tasks.dart';
 export 'src/user.dart';

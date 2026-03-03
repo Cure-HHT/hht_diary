@@ -253,7 +253,7 @@ class AuthService extends ChangeNotifier {
 
     // Default to localhost for development
     if (kDebugMode) {
-      return 'http://localhost:8080';
+      return 'http://localhost:8084';
     }
 
     // Use the current host origin in production (same-origin API)

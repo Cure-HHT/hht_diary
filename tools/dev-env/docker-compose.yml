@@ -4,211 +4,56 @@
 #   REQ-d00030: CI/CD Environment Parity
 #   REQ-d00036: Shared Workspace and File Exchange
 #
-# Clinical Diary Development Environment
-# Docker Compose configuration for role-based containerized development
+# Clinical Diary Development Environment — Debian 12 Topology
+# Docker Compose configuration with purpose-built containers
+#
+# Topology:
+#   ci           — All-in-one CI: build, test, lint, scan (build-only profile)
+#   devops-main  — Shared infrastructure operations (admin project)
+#   devops-sponsor — Per-sponsor operations (isolated by env vars)
+#   audit        — Read-only audit: DB, cloud, code, OTS
 #
 # Usage:
-#   docker-compose up -d dev    # Start developer container
-#   docker-compose exec dev bash  # Enter developer shell
-#   docker-compose down         # Stop all containers
+#   docker compose up -d devops-main   # Start devops for shared infra
+#   docker compose exec devops-main bash
+#   SPONSOR_NAME=orion docker compose up -d devops-sponsor
+#   docker compose up -d audit         # Start audit container
+#   docker compose down                # Stop all containers
 #
 # See: tools/dev-env/README.md for complete setup instructions
 
 services:
   # ============================================================
-  # Base Image
-  # Common tools for all environments: Git, Node, Python, Doppler
-  # Note: This service is built but not run (used as base for others)
+  # CI Image — All-in-one: build, test, lint, scan
+  # Used by CI workflows. Not run locally by default.
+  # Future: dev.Dockerfile will extend this for interactive use.
   # ============================================================
-  base:
+  ci:
     build:
       context: ./docker
-      dockerfile: base.Dockerfile
-      cache_from:
-        - clinical-diary-base:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
-      # Force linux/amd64 for cross-platform compatibility
+      dockerfile: ci.Dockerfile
       platforms:
         - linux/amd64
-    image: clinical-diary-base:latest
-    platform: linux/amd64
-    # Base is not meant to be run directly, only built
+    image: clinical-diary-ci:latest
     profiles:
       - build-only
 
   # ============================================================
-  # Developer Environment
-  # Full development tools: Flutter, Android SDK, hot reload
+  # DevOps — Shared infrastructure operations (admin project)
+  # Terraform + gcloud for managing shared/admin GCP resources
   # ============================================================
-  dev:
+  devops-main:
     build:
       context: ./docker
-      dockerfile: dev.Dockerfile
-      args:
-        BASE_IMAGE: clinical-diary-base:latest
-      cache_from:
-        - clinical-diary-base:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
-        - clinical-diary-dev:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
-      # Force linux/amd64 for Flutter compatibility on Apple Silicon
+      dockerfile: devops.Dockerfile
       platforms:
         - linux/amd64
-    pull_policy: build
-    image: clinical-diary-dev:latest
-    container_name: clinical-diary-dev
-    hostname: dev
-    # Specify platform for runtime (required for Apple Silicon)
+    image: clinical-diary-devops:latest
+    container_name: clinical-diary-devops-main
+    hostname: devops-main
     platform: linux/amd64
 
-    # User configuration (non-root for security)
-    user: "ubuntu:ubuntu"
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 6G
-        reservations:
-          cpus: '2'
-          memory: 4G
-
-    # Volumes
-    volumes:
-      # Named volumes (persistent)
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
-
-      # Bind mount for source code editing (host IDE)
-      - ../../:/workspace/src:cached
-
-      # SSH keys (read-only)
-      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
-
-      # Git config from host (optional)
-      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
-
-    # Environment variables
-    environment:
-      - ROLE=dev
-      - DOPPLER_PROJECT=clinical-diary-dev
-      - ANDROID_HOME=/opt/android
-      - ANDROID_SDK_ROOT=/opt/android
-      - FLUTTER_ROOT=/opt/flutter
-      - PATH=/opt/flutter/bin:/opt/android/cmdline-tools/latest/bin:/opt/android/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-    # Network
-    networks:
-      - clinical-diary-net
-
-    # Health check
-    healthcheck:
-      test: ["CMD", "flutter", "--version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-    # Keep container running
-    stdin_open: true
-    tty: true
-
-    # Working directory
-    working_dir: /workspace/src
-
-  # ============================================================
-  # QA Environment
-  # Testing tools: Playwright, Flutter tests, report generation
-  # ============================================================
-  qa:
-    build:
-      context: ./docker
-      dockerfile: qa.Dockerfile
-      args:
-        BASE_IMAGE: clinical-diary-dev:latest
-      cache_from:
-        - clinical-diary-base:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
-        - clinical-diary-dev:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
-        - clinical-diary-qa:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-qa:latest
-      platforms:
-        - linux/amd64
-    pull_policy: build
-    image: clinical-diary-qa:latest
-    container_name: clinical-diary-qa
-    hostname: qa
-    platform: linux/amd64
-
-    user: "ubuntu:ubuntu"
-
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 6G
-        reservations:
-          cpus: '2'
-          memory: 4G
-
-    volumes:
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
-      - ../../:/workspace/src:cached
-      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
-      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
-
-      # QA-specific: mount for test reports
-      - qa-reports:/workspace/reports
-
-    environment:
-      - ROLE=qa
-      - DOPPLER_PROJECT=clinical-diary-dev
-      - ANDROID_HOME=/opt/android
-      - ANDROID_SDK_ROOT=/opt/android
-      - FLUTTER_ROOT=/opt/flutter
-      - PATH=/opt/flutter/bin:/opt/android/cmdline-tools/latest/bin:/opt/android/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-    networks:
-      - clinical-diary-net
-
-    healthcheck:
-      test: ["CMD", "npx", "playwright", "--version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-    stdin_open: true
-    tty: true
-    working_dir: /workspace/src
-
-  # ============================================================
-  # DevOps Environment
-  # Infrastructure tools: Terraform, Supabase CLI, deployment
-  # ============================================================
-  ops:
-    build:
-      context: ./docker
-      dockerfile: ops.Dockerfile
-      args:
-        BASE_IMAGE_TAG: latest
-      cache_from:
-        - clinical-diary-base:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
-        - clinical-diary-ops:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-ops:latest
-      platforms:
-        - linux/amd64
-    pull_policy: build
-    image: clinical-diary-ops:latest
-    container_name: clinical-diary-ops
-    hostname: ops
-    platform: linux/amd64
-
-    user: "ubuntu:ubuntu"
+    user: "devuser:devuser"
 
     deploy:
       resources:
@@ -220,16 +65,14 @@ services:
           memory: 2G
 
     volumes:
-      - clinical-diary-repos:/workspace/repos
-      - clinical-diary-exchange:/workspace/exchange
-      - ../../:/workspace/src:cached
-      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
-      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
+      - ../../infrastructure/terraform:/workspace/terraform:cached
+      - ../../:/workspace/src:ro
+      - ${HOME}/.ssh:/home/devuser/.ssh:ro
+      - ${HOME}/.gitconfig:/home/devuser/.gitconfig.host:ro
 
     environment:
-      - ROLE=ops
-      - DOPPLER_PROJECT=clinical-diary-dev
-      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - ROLE=devops-main
+      - TF_WORKSPACE=admin
 
     networks:
       - clinical-diary-net
@@ -243,32 +86,74 @@ services:
 
     stdin_open: true
     tty: true
-    working_dir: /workspace/src
 
   # ============================================================
-  # Management Environment
-  # Read-only tools: Git viewer, audit logs, reports
+  # DevOps — Per-sponsor operations (isolated)
+  # Same image, differentiated by SPONSOR_NAME env var + volumes
+  # Usage: SPONSOR_NAME=orion docker compose up -d devops-sponsor
   # ============================================================
-  mgmt:
+  devops-sponsor:
     build:
       context: ./docker
-      dockerfile: mgmt.Dockerfile
-      args:
-        BASE_IMAGE_TAG: latest
-      cache_from:
-        - clinical-diary-base:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
-        - clinical-diary-mgmt:latest
-        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-mgmt:latest
+      dockerfile: devops.Dockerfile
       platforms:
         - linux/amd64
-    pull_policy: build
-    image: clinical-diary-mgmt:latest
-    container_name: clinical-diary-mgmt
-    hostname: mgmt
+    image: clinical-diary-devops:latest
+    container_name: clinical-diary-devops-${SPONSOR_NAME:-default}
+    hostname: devops-${SPONSOR_NAME:-default}
     platform: linux/amd64
 
-    user: "ubuntu:ubuntu"
+    user: "devuser:devuser"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+    volumes:
+      - ../../infrastructure/terraform:/workspace/terraform:cached
+      - ../../sponsor/${SPONSOR_NAME:-_empty}:/workspace/sponsor:ro
+      - ../../:/workspace/src:ro
+      - ${HOME}/.ssh:/home/devuser/.ssh:ro
+      - ${HOME}/.gitconfig:/home/devuser/.gitconfig.host:ro
+
+    environment:
+      - ROLE=devops-sponsor
+      - SPONSOR_NAME=${SPONSOR_NAME:-}
+
+    networks:
+      - clinical-diary-net
+
+    healthcheck:
+      test: ["CMD", "terraform", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    stdin_open: true
+    tty: true
+
+  # ============================================================
+  # Audit Environment — Read-only access
+  # DB, cloud, code, and OpenTimestamps verification
+  # ============================================================
+  audit:
+    build:
+      context: ./docker
+      dockerfile: audit.Dockerfile
+      platforms:
+        - linux/amd64
+    image: clinical-diary-audit:latest
+    container_name: clinical-diary-audit
+    hostname: audit
+    platform: linux/amd64
+
+    user: "devuser:devuser"
 
     deploy:
       resources:
@@ -280,24 +165,15 @@ services:
           memory: 1G
 
     volumes:
-      # Read-only mounts for management role
-      - clinical-diary-repos:/workspace/repos:ro
-      - clinical-diary-exchange:/workspace/exchange:ro
       - ../../:/workspace/src:ro
-      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
-      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
-      - qa-reports:/workspace/reports:ro
-
-    environment:
-      - ROLE=mgmt
-      - DOPPLER_PROJECT=clinical-diary-dev
-      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - ../../infrastructure/terraform:/workspace/terraform:ro
+      - ${HOME}/.ssh:/home/devuser/.ssh:ro
 
     networks:
       - clinical-diary-net
 
     healthcheck:
-      test: ["CMD", "gh", "--version"]
+      test: ["CMD", "psql", "--version"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -305,7 +181,6 @@ services:
 
     stdin_open: true
     tty: true
-    working_dir: /workspace/src
 
 # ============================================================
 # Named Volumes (persistent storage)

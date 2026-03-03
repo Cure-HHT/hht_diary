@@ -1,5 +1,0 @@
-#!/bin/bash
-# Generate hook scripts based on agent's hook knowledge
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-bash "$SCRIPT_DIR/scripts/generate-hooks.sh" "$@"

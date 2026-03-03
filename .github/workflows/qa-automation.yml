@@ -1,14 +1,15 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00028: Role-Based Environment Separation
+#   REQ-d00030: CI/CD Environment Parity
 #   REQ-d00031: Automated QA Testing
 #   REQ-d00033: FDA Validation Documentation
-#   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
-#   REQ-o00083: QA Promotion Gate (qa-tests job)
-#   REQ-o00080: Secret and Vulnerability Scanning (security-scan job)
-#   REQ-o00081: Code Quality and Static Analysis (flutter-dart-security, sql-linting jobs)
+#   REQ-p01018: Security Audit and Compliance (flutter analyze, sql linting)
+#   REQ-o00083: QA Promotion Gate (ci-tests job)
+#   REQ-o00081: Code Quality and Static Analysis (flutter analyze, sql linting in ci-tests)
 #
 # Clinical Diary QA Automation Workflow
-# Triggers on pull requests to run automated tests and security scans in the qa container
+# Single job: ci-tests — Flutter tests, static analysis, SQL linting (all via CI container)
+# Security scanning (Trivy) runs unconditionally in pr-validation.yml
 
 name: QA Automation
 
@@ -19,6 +20,11 @@ on:
       - main
       - 'feature/**'
       - 'release/**'
+    paths:
+      - 'apps/daily-diary/**'
+      - 'tools/dev-env/**'
+      - 'database/**'
+      - '.github/workflows/qa-automation.yml'
   workflow_dispatch:
     inputs:
       test_suite:
@@ -26,35 +32,38 @@ on:
         required: false
         default: 'all'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # COHERENT CACHING: Use BuildKit with GHCR registry cache
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  qa-tests:
-    name: Run QA Test Suite
+  # ===========================================================================
+  # Job 1: CI Tests & Analysis
+  # Runs Flutter tests, Flutter analyze, and SQL linting inside the CI container.
+  # Replaces former qa-tests, flutter-dart-security, and sql-linting jobs.
+  # ===========================================================================
+  ci-tests:
+    name: CI Tests & Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       contents: read
       pull-requests: write
       checks: write
-      packages: write  # Required to push/pull images to/from GHCR
+      packages: read
+      actions: read  # Required for gh run watch in start-ci-container
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for better git context
-
-      - name: Base directory
-        run: echo "Base directory=$GITHUB_WORKSPACE" 
-
-      - name: List files
-        run: |
-          pwd
-          find $GITHUB_WORKSPACE/apps/daily-diary/clinical_diary -print
+          fetch-depth: 0  # Full history for git diff and change detection
 
       - name: Check if QA tests should run
         id: check-qa-needed
@@ -66,7 +75,7 @@ jobs:
             LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
             if echo "$LABELS" | grep -q "skip-qa"; then
               echo "qa_needed=false" >> $GITHUB_OUTPUT
-              echo "⏭️  PR has 'skip-qa' label - skipping QA tests"
+              echo "PR has 'skip-qa' label - skipping QA tests"
               echo "::endgroup::"
               exit 0
             fi
@@ -78,7 +87,7 @@ jobs:
           else
             # For workflow_dispatch, always run
             echo "qa_needed=true" >> $GITHUB_OUTPUT
-            echo "✅ Manual trigger - will run QA tests"
+            echo "Manual trigger - will run QA tests"
             echo "::endgroup::"
             exit 0
           fi
@@ -87,6 +96,8 @@ jobs:
           QA_PATTERNS=(
             'dev-env'                # Dev environment scripts
             'apps\/daily-diary\/clinical_diary'    # Main app code
+            'packages\/'             # Shared packages
+            'database\/'             # Database schema / migrations
             '^\.github\/workflows\/qa-automation\.yml$'  # This workflow itself
           )
 
@@ -94,22 +105,22 @@ jobs:
           for pattern in "${QA_PATTERNS[@]}"; do
             if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
               QA_NEEDED=true
-              echo "✅ Found changes matching: $pattern"
+              echo "Found changes matching: $pattern"
               break
             fi
           done
 
           if [ "$QA_NEEDED" = "true" ]; then
             echo "qa_needed=true" >> $GITHUB_OUTPUT
-            echo "✅ QA tests are needed for this PR"
+            echo "QA tests are needed for this PR"
           else
             echo "qa_needed=false" >> $GITHUB_OUTPUT
-            echo "⏭️  No QA-relevant changes detected - skipping tests"
+            echo "No QA-relevant changes detected - skipping tests"
             echo ""
             echo "Changed files:"
             echo "$CHANGED_FILES" | sed 's/^/  - /'
             echo ""
-            echo "💡 To force QA tests, add the 'run-qa' label to this PR"
+            echo "To force QA tests, add the 'run-qa' label to this PR"
           fi
 
           echo "::endgroup::"
@@ -118,7 +129,7 @@ jobs:
         if: steps.check-qa-needed.outputs.qa_needed == 'false'
         run: |
           echo "::notice::Skipping QA tests - no app/test code changes detected"
-          echo "## ⏭️ QA Tests Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "## QA Tests Skipped" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "No QA-relevant changes detected in this PR." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -128,216 +139,170 @@ jobs:
           echo "- Database schema (database/)" >> $GITHUB_STEP_SUMMARY
           echo "- Dev environment (tools/dev-env/, Docker files)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "💡 To force QA tests, add the 'run-qa' label to this PR" >> $GITHUB_STEP_SUMMARY
+          echo "To force QA tests, add the 'run-qa' label to this PR" >> $GITHUB_STEP_SUMMARY
 
-      - name: Detect Docker file changes
+      # -----------------------------------------------------------------
+      # Start CI container via reusable composite action
+      # Handles: GHCR login, Docker change detection, pull-or-build,
+      #          compose up, health check
+      # -----------------------------------------------------------------
+      - name: Start CI container
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        id: docker-changes
-        run: |
-          # Hybrid Docker change detection:
-          # - First push: Check if PR changes Docker files vs base branch
-          # - Subsequent pushes: Check if this push changes Docker files
-          # This avoids unnecessary rebuilds for docs-only PRs while maintaining safety
-
-          # Handle first push or force push where before ref is empty or all zeros
-          if [ -z "${{ github.event.before }}" ] ||
-             [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "First push to branch detected - checking if PR changes Docker files"
-
-            # For first push, compare PR changes against base branch
-            BASE_REF="${{ github.event.pull_request.base.ref || github.base_ref || 'main' }}"
-            echo "Comparing against base branch: $BASE_REF"
-
-            if git diff --name-only origin/${BASE_REF}...${{ github.sha }} | grep -E '^tools/dev-env/(docker/|docker-compose)'; then
-              echo "changed=true" >> $GITHUB_OUTPUT
-              echo "✅ Docker files changed in this PR - will rebuild images"
-            else
-              echo "changed=false" >> $GITHUB_OUTPUT
-              echo "⏭️  No Docker changes in this PR - will pull pre-built images from GHCR"
-            fi
-          else
-            # Subsequent push: check only changes in this push
-            echo "Subsequent push detected - checking changes since last push"
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/(docker/|docker-compose)'; then
-              echo "changed=true" >> $GITHUB_OUTPUT
-              echo "✅ Docker files changed in this push - will rebuild images"
-            else
-              echo "changed=false" >> $GITHUB_OUTPUT
-              echo "⏭️  No Docker changes in this push - will pull pre-built images from GHCR"
-            fi
-          fi
-
-      - name: Free up disk space
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'true'
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          echo "Cleaning up unnecessary files..."
-          docker image prune -af
-          docker container prune -f
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/local/share/boost
-          echo "Disk space after cleanup:"
-          df -h
-
-      - name: Log in to GitHub Container Registry
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        uses: docker/login-action@v3
+        uses: ./.github/actions/start-ci-container
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull pre-built images from GHCR
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false'
-        id: pull-images
-        continue-on-error: true
-        run: |
-          echo "Pulling pre-built images from GHCR..."
-
-          # Docker requires lowercase repository names
-          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-
-          # Pull and tag images (allow failure if images don't exist yet)
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-base:latest clinical-diary-base:latest
-
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest clinical-diary-dev:latest
-
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || exit 1
-          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest clinical-diary-qa:latest
-
-          echo "Images pulled and tagged successfully"
-
-      - name: Free up disk space for build (if pulling failed)
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
-        run: |
-          echo "Pull failed, need to build images. Freeing up disk space..."
-          docker image prune -af
-          docker container prune -f
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/local/share/boost
-
-      - name: Set up Docker Buildx
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker images to GHCR
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
-        working-directory: tools/dev-env
-        run: |
-          echo "Docker files changed - building from source with registry caching"
-
-          # Docker requires lowercase repository names
-          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-
-          # PROPER REGISTRY-BASED CACHING:
-          # 1. Pull existing images from GHCR for cache (|| true allows failure if not exists)
-          # 2. Build each image (BuildKit uses cache_from to reuse layers from pulled images)
-          # 3. Push to GHCR immediately so subsequent builds can use as cache
-          # This ensures FROM directives can resolve from GHCR and layer caching works
-
-          echo "Pulling previous images for cache..."
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || true
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || true
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || true
-
-          echo "Building base image..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
-          echo "Pushing base to GHCR..."
-          docker tag clinical-diary-base:latest ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
-
-          echo "Building dev image (FROM GHCR base)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
-          echo "Pushing dev to GHCR..."
-          docker tag clinical-diary-dev:latest ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
-
-          echo "Building qa image (FROM GHCR dev)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg DEV_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
-          echo "Pushing qa to GHCR..."
-          docker tag clinical-diary-qa:latest ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
-          docker push ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
-
-          echo "All images built and pushed to GHCR successfully"
-
-      - name: Start QA environment
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d qa
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
-
-      - name: Wait for QA container to be healthy
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        working-directory: tools/dev-env
-        run: |
-          timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
-
-      - name: Prepare repository in QA container
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
-            mkdir -p /workspace/repos/daily-diary/clinical_diary
-            # Copy the checked-out repository from /workspace/src to expected location
-            if [ ! -d /workspace/repos/daily-diary/clinical_diary ]; then
-              echo Copying $GITHUB_WORKSPACE/apps/clinical_diary to /workspace/repos/daily-diary/clinical_diary
-              cp -r $GITHUB_WORKSPACE/apps/daily-diary/clinical_diary/ /workspace/repos/daily-diary/clinical_diary
-              echo 'Repository prepared successfully'
-            else
-              echo 'Repository already exists at /workspace/repos/daily-diary/clinical_diary'
-            fi
-          "
-
-      - name: Authenticate with Doppler (if configured)
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        working-directory: tools/dev-env
-        run: |
-          if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
-            docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
-          else
-            echo "No Doppler token configured, skipping authentication"
-          fi
-
+      # -----------------------------------------------------------------
+      # Flutter unit tests (from former qa-tests job)
+      # -----------------------------------------------------------------
       - name: Run Flutter unit tests
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: flutter-tests
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
-            cd /workspace/repos/daily-diary/clinical_diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary 2>/dev/null || {
+              echo 'No Flutter project found, skipping Flutter tests'
+              exit 0
+            }
             if [ -f pubspec.yaml ]; then
               flutter pub get
-              flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json
-              flutter test --coverage
+              mkdir -p /workspace/reports
+              flutter test --coverage --reporter json \
+                | tee /workspace/reports/flutter-test-results.json
             fi
           "
 
-      - name: Upload coverage reports
+      # -----------------------------------------------------------------
+      # Flutter static analysis (from former flutter-dart-security job)
+      # Runs inside CI container where Flutter is pre-installed
+      # -----------------------------------------------------------------
+      - name: Flutter analyze on all packages
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        id: flutter-analyze
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src
+            ANALYSIS_FAILED=false
+
+            # Analyze root project
+            if [ -f pubspec.yaml ]; then
+              echo '--- Analyzing root project ---'
+              flutter pub get
+              if ! flutter analyze --no-fatal-infos --no-fatal-warnings; then
+                ANALYSIS_FAILED=true
+              fi
+            fi
+
+            # Analyze packages
+            if [ -d packages ]; then
+              for pkg in packages/*/; do
+                if [ -f \"\${pkg}pubspec.yaml\" ]; then
+                  PKG_NAME=\$(basename \"\$pkg\")
+                  echo \"--- Analyzing package: \$PKG_NAME ---\"
+                  (cd \"\$pkg\" && flutter pub get && flutter analyze --no-fatal-infos --no-fatal-warnings) || ANALYSIS_FAILED=true
+                fi
+              done
+            fi
+
+            # Analyze apps with pubspec.yaml
+            if [ -d apps ]; then
+              for app_dir in apps/daily-diary/clinical_diary; do
+                if [ -f \"\${app_dir}/pubspec.yaml\" ]; then
+                  echo \"--- Analyzing app: \$app_dir ---\"
+                  (cd \"\$app_dir\" && flutter pub get && flutter analyze --no-fatal-infos --no-fatal-warnings) || ANALYSIS_FAILED=true
+                fi
+              done
+            fi
+
+            if [ \"\$ANALYSIS_FAILED\" = 'true' ]; then
+              echo 'Flutter analysis found issues'
+              exit 1
+            fi
+          "
+
+      - name: Check for outdated dependencies
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        continue-on-error: true
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary
+            if [ -f pubspec.yaml ]; then
+              flutter pub outdated || true
+            fi
+          "
+
+      # -----------------------------------------------------------------
+      # SQL migration linting (from former sql-linting job)
+      # Squawk is pre-installed in the CI container
+      # -----------------------------------------------------------------
+      - name: SQL migration linting
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src
+            CHANGED_SQL=\$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | grep '\.sql$' || true)
+            if [ -n \"\$CHANGED_SQL\" ]; then
+              echo 'Linting changed SQL files...'
+              LINT_FAILED=false
+              while IFS= read -r f; do
+                if [ -f \"\$f\" ]; then
+                  echo \"Checking: \$f\"
+                  squawk \"\$f\" || LINT_FAILED=true
+                fi
+              done <<< \"\$CHANGED_SQL\"
+              if [ \"\$LINT_FAILED\" = 'true' ]; then
+                echo 'SQL linting found dangerous patterns'
+                exit 1
+              fi
+            else
+              echo 'No SQL files changed'
+            fi
+          "
+
+      # -----------------------------------------------------------------
+      # Copy artifacts out of container
+      # -----------------------------------------------------------------
+      - name: Restore workspace ownership
+        if: always() && steps.check-qa-needed.outputs.qa_needed == 'true'
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      - name: Copy artifacts from container
+        if: always() && steps.check-qa-needed.outputs.qa_needed == 'true'
+        working-directory: tools/dev-env
+        continue-on-error: true
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/qa-reports
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/reports/flutter-test-results.json 2>/dev/null" \
+            > $GITHUB_WORKSPACE/qa-reports/flutter-test-results.json || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/daily-diary/clinical_diary/coverage/lcov.info 2>/dev/null" \
+            > $GITHUB_WORKSPACE/qa-reports/lcov.info || true
+
+      - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-reports-${{ github.sha }}
+          name: qa-reports-${{ github.sha }}
           path: |
-            qa-reports/coverage/
-            qa-reports/lcov.info
+            qa-reports/
           retention-days: 30
         continue-on-error: true
 
+      # -----------------------------------------------------------------
+      # PR comment with results
+      # -----------------------------------------------------------------
       - name: Comment PR with test results
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            let comment = '## 🤖 QA Automation Results\n\n';
+            let comment = '## QA Automation Results\n\n';
 
             // Read test summary if available
             if (fs.existsSync('qa-reports/test-summary.md')) {
@@ -346,7 +311,7 @@ jobs:
             }
 
             // Add artifact links
-            comment += '### 📊 Detailed Reports\n\n';
+            comment += '### Detailed Reports\n\n';
             comment += `- [Test Reports Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
             comment += `- Commit: \`${{ github.sha }}\`\n`;
             comment += `- Workflow: [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n`;
@@ -362,447 +327,10 @@ jobs:
               body: comment
             });
 
-      - name: Cleanup containers
+      # -----------------------------------------------------------------
+      # Cleanup (always runs)
+      # -----------------------------------------------------------------
+      - name: Cleanup
         if: always()
         working-directory: tools/dev-env
-        run: |
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml down -v
-
-      - name: Fail workflow if tests failed
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.flutter-tests.outcome == 'failure' || steps.playwright-tests.outcome == 'failure' || steps.qa-suite.outcome == 'failure')
-        run: exit 1
-
-  security-scan:
-    name: Security & Compliance Scan
-    runs-on: ubuntu-latest
-    needs: qa-tests  # Wait for QA to build and push images to GHCR
-    # IMPLEMENTS REQUIREMENTS:
-    #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
-    # Enabled: Using Trivy which works with private repos without paid GitHub license
-    # Scans: Filesystem dependencies, IaC configs, Container images
-    # OPTIMIZATION: Reuses Docker images built by qa-tests job (saves ~4 minutes per run)
-
-    permissions:
-      contents: read
-      security-events: write  # Required to upload SARIF results
-      actions: read
-      packages: read  # Required to pull images from GHCR
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner (filesystem)
-        uses: aquasecurity/trivy-action@0.34.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail on filesystem issues
-        env:
-          TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
-
-      - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
-        uses: aquasecurity/trivy-action@0.34.0
-        with:
-          scan-type: 'config'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-iac-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # Don't fail on IaC issues
-          skip-dirs: 'node_modules,vendor,.git'
-        env:
-          TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
-
-      - name: Check for Docker images to scan
-        id: check-docker
-        run: |
-          if [ -f "tools/dev-env/docker/base.Dockerfile" ] || find . -name "Dockerfile" -o -name "*.dockerfile" | grep -q .; then
-            echo "has_docker=true" >> $GITHUB_OUTPUT
-            echo "✅ Dockerfile(s) detected - will scan container images"
-          else
-            echo "has_docker=false" >> $GITHUB_OUTPUT
-            echo "⏭️  No Dockerfiles found - skipping container scan"
-          fi
-
-      - name: Set lowercase repo owner
-        id: repo-owner
-        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Log in to GitHub Container Registry
-        if: steps.check-docker.outputs.has_docker == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Trivy container scanner (base image from GHCR)
-        if: steps.check-docker.outputs.has_docker == 'true'
-        uses: aquasecurity/trivy-action@0.34.0
-        with:
-          scan-type: 'image'
-          image-ref: 'ghcr.io/${{ steps.repo-owner.outputs.owner }}/clinical-diary-base:latest'
-          format: 'sarif'
-          output: 'trivy-container-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-        env:
-          TRIVY_QUIET: true
-
-      - name: Upload Trivy filesystem results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-fs-results.sarif'
-          category: 'trivy-filesystem'
-        continue-on-error: true
-
-      - name: Upload Trivy IaC results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-iac-results.sarif'
-          category: 'trivy-iac'
-        continue-on-error: true
-
-      - name: Upload Trivy container results to GitHub Security
-        if: always() && steps.check-docker.outputs.has_docker == 'true'
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-container-results.sarif'
-          category: 'trivy-container'
-        continue-on-error: true
-
-      - name: Generate comprehensive vulnerability report
-        if: always()
-        run: |
-          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Trivy Multi-Layer Security Scan" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Filesystem scan
-          if [ -f trivy-fs-results.sarif ]; then
-            echo "✅ **Filesystem Dependencies**: Scanned for vulnerable packages" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # IaC scan
-          if [ -f trivy-iac-results.sarif ]; then
-            echo "✅ **Infrastructure as Code**: Scanned Dockerfiles, Terraform, K8s configs" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Container scan
-          if [ -f trivy-container-results.sarif ]; then
-            echo "✅ **Container Images**: Scanned base development image" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Action**: Review detailed findings in the Security → Code scanning tab" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Scan Scope**:" >> $GITHUB_STEP_SUMMARY
-          echo "- Dependencies (npm, pub, pip packages)" >> $GITHUB_STEP_SUMMARY
-          echo "- IaC misconfigurations (Docker, Terraform, K8s)" >> $GITHUB_STEP_SUMMARY
-          echo "- Container vulnerabilities (OS packages, base images)" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload all scan results as artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-scan-results-${{ github.sha }}
-          path: |
-            trivy-*.sarif
-          retention-days: 30
-        continue-on-error: true
-
-  flutter-dart-security:
-    name: Flutter/Dart Security Analysis
-    runs-on: ubuntu-latest
-    # IMPLEMENTS REQUIREMENTS:
-    #   REQ-p01018: Security Audit and Compliance (static analysis for Dart/Flutter)
-    # Purpose: Provides static analysis for Dart/Flutter codebase (not supported by CodeQL)
-
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check for Flutter/Dart code
-        id: check-flutter
-        run: |
-          if [ -f pubspec.yaml ] || find . -name "pubspec.yaml" -type f | grep -q .; then
-            echo "has_flutter=true" >> $GITHUB_OUTPUT
-            echo "✅ Flutter/Dart code detected"
-          else
-            echo "has_flutter=false" >> $GITHUB_OUTPUT
-            echo "⏭️  No Flutter/Dart code found - skipping analysis"
-          fi
-
-      - name: Set up Flutter
-        if: steps.check-flutter.outputs.has_flutter == 'true'
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.7'  # Version from .github/versions.env
-          channel: 'stable'
-
-      - name: Install dependencies
-        if: steps.check-flutter.outputs.has_flutter == 'true'
-        run: |
-          if [ -f pubspec.yaml ]; then
-            flutter pub get
-          fi
-          # Check for packages directory
-          if [ -d packages ]; then
-            for pkg in packages/*/; do
-              if [ -f "${pkg}pubspec.yaml" ]; then
-                echo "Installing dependencies for ${pkg}"
-                (cd "$pkg" && flutter pub get)
-              fi
-            done
-          fi
-
-      - name: Run Flutter analyze
-        if: steps.check-flutter.outputs.has_flutter == 'true'
-        id: flutter-analyze
-        continue-on-error: true
-        run: |
-          echo "## Flutter/Dart Static Analysis Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          ANALYSIS_FAILED=false
-
-          # Analyze root project
-          if [ -f pubspec.yaml ]; then
-            echo "### Root Project" >> $GITHUB_STEP_SUMMARY
-            if flutter analyze --no-fatal-infos --no-fatal-warnings > analyze-output.txt 2>&1; then
-              echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
-            else
-              ANALYSIS_FAILED=true
-              echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-              cat analyze-output.txt >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-            fi
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Analyze packages
-          if [ -d packages ]; then
-            for pkg in packages/*/; do
-              if [ -f "${pkg}pubspec.yaml" ]; then
-                PKG_NAME=$(basename "$pkg")
-                echo "### Package: $PKG_NAME" >> $GITHUB_STEP_SUMMARY
-                if (cd "$pkg" && flutter analyze --no-fatal-infos --no-fatal-warnings > ../analyze-${PKG_NAME}.txt 2>&1); then
-                  echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
-                else
-                  ANALYSIS_FAILED=true
-                  echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
-                  echo '```' >> $GITHUB_STEP_SUMMARY
-                  cat "analyze-${PKG_NAME}.txt" >> $GITHUB_STEP_SUMMARY
-                  echo '```' >> $GITHUB_STEP_SUMMARY
-                fi
-                echo "" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-          fi
-
-          if [ "$ANALYSIS_FAILED" = "true" ]; then
-            exit 1
-          fi
-
-      - name: Check for outdated dependencies
-        if: steps.check-flutter.outputs.has_flutter == 'true'
-        continue-on-error: true
-        run: |
-          echo "### Dependency Security Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f pubspec.yaml ]; then
-            flutter pub outdated --json > outdated.json 2>&1 || true
-            if [ -s outdated.json ]; then
-              echo "⚠️ Outdated dependencies detected - review for security updates" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "Run \`flutter pub outdated\` locally for details" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "✅ All dependencies are up to date" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-
-      - name: Upload analysis results
-        if: always() && steps.check-flutter.outputs.has_flutter == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-analysis-results-${{ github.sha }}
-          path: |
-            analyze-*.txt
-            outdated.json
-          retention-days: 30
-        continue-on-error: true
-
-  sql-linting:
-    name: SQL Migration Linting
-    runs-on: ubuntu-latest
-    # IMPLEMENTS REQUIREMENTS:
-    #   REQ-p01018: Security Audit and Compliance (SQL migration safety)
-    # Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
-
-    permissions:
-      contents: read
-      pull-requests: write
-      checks: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for detecting changed files
-
-      - name: Check for SQL files
-        id: check-sql
-        run: |
-          echo "::group::Checking for SQL files in database/"
-
-          if find database -name "*.sql" -type f 2>/dev/null | grep -q .; then
-            echo "has_sql=true" >> $GITHUB_OUTPUT
-            echo "✅ SQL files detected:"
-            find database -name "*.sql" -type f | head -10
-            SQL_COUNT=$(find database -name "*.sql" -type f | wc -l)
-            if [ "$SQL_COUNT" -gt 10 ]; then
-              echo "... and $((SQL_COUNT - 10)) more"
-            fi
-          else
-            echo "has_sql=false" >> $GITHUB_OUTPUT
-            echo "⏭️  No SQL files found in database/ - skipping linting"
-          fi
-
-          echo "::endgroup::"
-
-      - name: Get changed SQL files
-        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'pull_request'
-        id: changed-sql
-        run: |
-          echo "::group::Detecting changed SQL files in this PR"
-
-          # Get list of changed SQL files
-          CHANGED_SQL=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '\.sql$' || true)
-
-          if [ -n "$CHANGED_SQL" ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "✅ Changed SQL files:"
-            echo "$CHANGED_SQL" | sed 's/^/  - /'
-
-            # Save for later use
-            echo "$CHANGED_SQL" > changed-sql-files.txt
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "⏭️  No SQL files changed in this PR - skipping Squawk"
-          fi
-
-          echo "::endgroup::"
-
-      - name: Install Squawk
-        if: steps.check-sql.outputs.has_sql == 'true' && (steps.changed-sql.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch')
-        run: |
-          echo "::group::Installing Squawk PostgreSQL linter"
-
-          # Load version from central versions.env
-          source .github/versions.env
-          SQUAWK_VERSION="v${SQUAWK_VERSION}"
-
-          curl -fsSL "https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x64" -o squawk
-          chmod +x squawk
-          sudo mv squawk /usr/local/bin/squawk
-
-          # Verify installation
-          squawk --version
-
-          echo "::endgroup::"
-
-      - name: Run Squawk on changed files
-        if: steps.check-sql.outputs.has_sql == 'true' && steps.changed-sql.outputs.has_changes == 'true'
-        id: squawk
-        continue-on-error: true
-        run: |
-          echo "::group::Running Squawk on changed SQL files"
-          echo "## SQL Migration Linting Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          LINT_FAILED=false
-
-          while IFS= read -r sql_file; do
-            if [ -f "$sql_file" ]; then
-              # Skip files with psql meta-commands (not pure SQL)
-              if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
-                echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
-                echo "⏭️ Skipped (contains psql meta-commands)" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                continue
-              fi
-
-              echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-
-              # Run squawk and capture output
-              if squawk "$sql_file" > squawk-output.txt 2>&1; then
-                echo "✅ No issues detected" >> $GITHUB_STEP_SUMMARY
-              else
-                LINT_FAILED=true
-                echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
-                echo '```' >> $GITHUB_STEP_SUMMARY
-                cat squawk-output.txt >> $GITHUB_STEP_SUMMARY
-                echo '```' >> $GITHUB_STEP_SUMMARY
-
-                # Also output to console for GitHub annotations
-                cat squawk-output.txt
-              fi
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
-          done < changed-sql-files.txt
-
-          echo "::endgroup::"
-
-          if [ "$LINT_FAILED" = "true" ]; then
-            echo "::warning::Squawk detected potential issues in SQL migrations. Review the step summary for details."
-            exit 1
-          fi
-
-      - name: Run Squawk on all migrations (manual trigger)
-        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'workflow_dispatch' && steps.changed-sql.outputs.has_changes != 'true'
-        continue-on-error: true
-        run: |
-          echo "::group::Running Squawk on all SQL files (manual trigger)"
-          echo "## SQL Migration Linting Results (Full Scan)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          find database -name "*.sql" -type f | while IFS= read -r sql_file; do
-            # Skip files with psql meta-commands (not pure SQL)
-            if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
-              echo "Skipping: $sql_file (contains psql meta-commands)"
-              continue
-            fi
-            echo "Linting: $sql_file"
-            squawk "$sql_file" || true
-          done
-
-          echo "::endgroup::"
-
-      - name: Generate linting summary
-        if: always() && steps.check-sql.outputs.has_sql == 'true'
-        run: |
-          if [ "${{ steps.changed-sql.outputs.has_changes }}" != "true" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "## SQL Migration Linting" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⏭️ No SQL files changed in this PR - linting skipped" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Squawk checks for**:" >> $GITHUB_STEP_SUMMARY
-            echo "- Table locks during migrations" >> $GITHUB_STEP_SUMMARY
-            echo "- Missing indexes on foreign keys" >> $GITHUB_STEP_SUMMARY
-            echo "- Unsafe ALTER TABLE operations" >> $GITHUB_STEP_SUMMARY
-            echo "- NOT NULL additions without defaults" >> $GITHUB_STEP_SUMMARY
-          fi
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v

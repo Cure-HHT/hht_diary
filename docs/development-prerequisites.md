@@ -181,7 +181,6 @@ echo 'test: value' | yq .test
 **Minimum version**: Python 3.8, pip 20.0+
 
 Python is used for:
-- Requirement validation scripts (`tools/requirements/`)
 - Testing and automation
 - Development utilities
 
@@ -344,9 +343,6 @@ elspais index validate
 elspais --help
 elspais validate --help
 ```
-
-**Fallback**:
-Local Python scripts in `tools/requirements/` remain available as fallback if elspais is not installed, but elspais is the recommended primary tool.
 
 **Verification**:
 ```bash
@@ -1100,16 +1096,6 @@ gcloud config configurations list
 gcloud auth list
 ```
 
-### Testing Requirement Tools
-
-```bash
-# Validate requirements
-python3 tools/requirements/validate_requirements.py
-
-# Generate traceability matrix
-python3 tools/requirements/generate_traceability.py --format both
-```
-
 ## Common Issues and Solutions
 
 ### jq command not found
@@ -1273,7 +1259,6 @@ ls -la tools/anspar-cc-plugins/plugins/workflow/scripts/
 - **Requirements Format**: `spec/requirements-format.md` - Detailed requirement syntax
 - **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md` - Ticket workflow enforcement
 - **Linear API Plugin**: `tools/anspar-cc-plugins/plugins/linear-api/README.md` - Linear integration
-- **Requirements Tools**: `tools/requirements/README.md` - Validation and traceability
 - **Dev Environment**: `tools/dev-env/docker/base.Dockerfile` - Container tool specifications
 - **VS Code Dev Containers**: https://code.visualstudio.com/docs/devcontainers/containers
 - **Docker Desktop**: https://www.docker.com/products/docker-desktop

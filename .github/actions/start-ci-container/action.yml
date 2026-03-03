@@ -1,0 +1,151 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00030: CI/CD Environment Parity
+#
+# Reusable composite action: start CI container
+# Handles GHCR login, image pull, compose up, health check.
+# No local build fallback — if the pull fails, the workflow fails.
+#
+# When Docker files changed in a PR, this action waits for the
+# "Build & Publish Docker Images" workflow to finish building the new
+# image, then pulls the result. This avoids redundant parallel rebuilds
+# across the ~7 workflows that use this action.
+#
+# Usage in a workflow:
+#   - uses: ./.github/actions/start-ci-container
+#     with:
+#       profile: db           # optional: activates Docker Compose profile
+#       ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+name: Start CI Container
+description: Pull the CI container image from GHCR and start it via Docker Compose
+
+inputs:
+  profile:
+    description: 'Docker Compose profile to activate (e.g., "db" for PostgreSQL)'
+    required: false
+    default: ''
+  ghcr-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Detect Docker file changes
+      id: docker-changes
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          # Shallow clones (depth=1) need base ref fetched; two-dot diff avoids merge-base lookup
+          git fetch --depth=1 origin "${BASE_REF}" 2>/dev/null || true
+          if git diff --name-only "origin/${BASE_REF}..${{ github.sha }}" | grep -qE '^(tools/dev-env/(docker/|docker-compose)|\.github/versions\.env)'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Wait for container build workflow
+      if: steps.docker-changes.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.ghcr-token }}
+      run: |
+        echo "Docker files changed — waiting for Build & Publish Docker Images workflow..."
+        WORKFLOW="build-ghcr-containers.yml"
+        SHA="${{ github.event.pull_request.head.sha }}"
+
+        # Wait up to 30s for the build workflow run to appear
+        for i in $(seq 1 6); do
+          RUN_ID=$(gh run list --workflow="$WORKFLOW" --commit "$SHA" \
+            --json databaseId,status -q '.[0].databaseId' 2>/dev/null || true)
+          if [ -n "$RUN_ID" ]; then
+            break
+          fi
+          echo "  Build workflow not yet started, waiting... (attempt $i/6)"
+          sleep 5
+        done
+
+        if [ -n "$RUN_ID" ]; then
+          echo "  Found build workflow run $RUN_ID — watching until completion..."
+          gh run watch "$RUN_ID" --interval 30 --exit-status && echo "  Build workflow succeeded." || {
+            echo "::error::Build & Publish Docker Images workflow failed (run $RUN_ID)"
+            echo "  See: $(gh run view "$RUN_ID" --json url -q '.url')"
+            exit 1
+          }
+        else
+          echo "::error::Build workflow not found for commit $SHA after 30s — cannot proceed without built image"
+          exit 1
+        fi
+
+    - name: Free disk space (new image incoming)
+      if: steps.docker-changes.outputs.changed == 'true'
+      shell: bash
+      run: |
+        docker image prune -af
+        docker container prune -f
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+        df -h
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.ghcr-token }}
+
+    - name: Pull CI image from GHCR
+      shell: bash
+      run: |
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        if [ "${{ steps.docker-changes.outputs.changed }}" = "true" ]; then
+          # Docker files changed — pull the PR-tagged image built by build-ghcr-containers
+          PR_NUM="${{ github.event.pull_request.number }}"
+          echo "Pulling PR-tagged image: ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}"
+          docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}" || exit 1
+          docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:pr-${PR_NUM}" clinical-diary-ci:latest
+        else
+          echo "Pulling latest cached image"
+          docker pull "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" || {
+            echo "::error::Failed to pull clinical-diary-ci:latest from GHCR."
+            echo "::error::If this is the first run, merge the build-ghcr-containers workflow to main first to push the :latest tag."
+            exit 1
+          }
+          docker tag "ghcr.io/${REPO_OWNER}/clinical-diary-ci:latest" clinical-diary-ci:latest
+        fi
+
+    - name: Fix workspace ownership for container user
+      shell: bash
+      run: |
+        # Container runs as devuser (uid 1000); runner checkout is uid 1001.
+        # Grant devuser write access so flutter pub get, .dart_tool, etc. work.
+        sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+
+    - name: Start CI container
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        PROFILE_FLAG=""
+        if [ -n "${{ inputs.profile }}" ]; then
+          PROFILE_FLAG="--profile ${{ inputs.profile }}"
+        fi
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml ${PROFILE_FLAG} up --no-build -d ci
+        if [ -n "${{ inputs.profile }}" ] && [ "${{ inputs.profile }}" = "db" ]; then
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db up --no-build -d postgres
+        fi
+
+    - name: Wait for CI container healthy
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        timeout 120 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci flutter --version 2>/dev/null; do sleep 2; done'
+
+    - name: Wait for PostgreSQL healthy
+      if: inputs.profile == 'db'
+      shell: bash
+      working-directory: tools/dev-env
+      run: |
+        timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci pg_isready -h postgres -U postgres 2>/dev/null; do sleep 2; done'

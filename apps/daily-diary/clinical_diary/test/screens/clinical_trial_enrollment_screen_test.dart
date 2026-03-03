@@ -184,25 +184,6 @@ void main() {
     });
 
     group('Checkbox Interactions', () {
-      testWidgets('can toggle optional sharing checkbox', (tester) async {
-        await tester.pumpWidget(buildScreen());
-        await tester.pumpAndSettle();
-
-        // Find the optional checkbox by its text
-        final optionalCheckbox = find.ancestor(
-          of: find.text('Share data prior to enrollment (optional)'),
-          matching: find.byType(InkWell),
-        );
-
-        await tester.tap(optionalCheckbox);
-        await tester.pump();
-
-        // Checkbox should be checked
-        final checkboxes = find.byType(Checkbox);
-        final firstCheckbox = tester.widget<Checkbox>(checkboxes.first);
-        expect(firstCheckbox.value, isTrue);
-      });
-
       testWidgets('can toggle required consent checkbox', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();

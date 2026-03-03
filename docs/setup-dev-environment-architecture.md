@@ -33,7 +33,7 @@ This document provides architectural diagrams and technical details for the Clin
 │  │  │  container   │  │  container   │  │  container   │  │   │
 │  │  │              │  │              │  │              │  │   │
 │  │  │  Flutter     │  │  Playwright  │  │  Terraform   │  │   │
-│  │  │  Android SDK │  │  Testing     │  │  Supabase    │  │   │
+│  │  │  Android SDK │  │  Testing     │  │  GCP CLI     │  │   │
 │  │  │  Node/Python │  │  Reports     │  │  Deploy      │  │   │
 │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │   │
 │  │         │                  │                  │          │   │
@@ -142,8 +142,8 @@ docker-compose.yml
 │              │ │ file     │ │ file    │ │ file     │
 │+ Flutter     │ │+ Play-   │ │+ Terra- │ │(minimal) │
 │+ Android SDK │ │  wright  │ │  form   │ │          │
-│+ Hot reload  │ │+ Testing │ │+ Supa-  │ │          │
-│+ Debug tools │ │  tools   │ │  base   │ │          │
+│+ Hot reload  │ │+ Testing │ │+ GCP    │ │          │
+│+ Debug tools │ │  tools   │ │  CLI    │ │          │
 └──────────────┘ └──────────┘ └─────────┘ └──────────┘
 ```
 
@@ -162,7 +162,6 @@ docker-compose.yml
 | **Android SDK** | ✅ | ✅ | ❌ | ❌ |
 | **Playwright** | ❌ | ✅ | ❌ | ❌ |
 | **Terraform** | ❌ | ❌ | ✅ | ❌ |
-| **Supabase CLI** | ✅ | ✅ | ✅ | ❌ |
 | **Claude Code CLI** | ✅ | ✅ | ✅ | ❌ |
 | **jq (JSON processor)** | ✅ | ✅ | ✅ | ✅ |
 | **Write Access** | ✅ | ✅ | ✅ | ❌ |
@@ -253,8 +252,7 @@ Flow:
 │   │     "name": "Clinical Diary - DevOps",
 │   │     "service": "ops",
 │   │     "extensions": [
-│   │       "hashicorp.terraform",
-│   │       "supabase.supabase"
+│   │       "hashicorp.terraform"
 │   │     ]
 │   │   }
 │   └── ...
@@ -487,7 +485,7 @@ Container-Specific:
 │  - Internet access                                               │
 │  - GitHub API (api.github.com)                                  │
 │  - Doppler API (api.doppler.com)                                │
-│  - Supabase API (project.supabase.co)                           │
+│  - GCP APIs (*.googleapis.com)                                  │
 │  - Package registries (npm, pub.dev, etc.)                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -514,7 +512,7 @@ Container-Specific:
 │  - No access: Host system files outside mounts                 │
 │                                                                  │
 │  Network:                                                       │
-│  - Outbound: Internet access (GitHub, Doppler, Supabase)       │
+│  - Outbound: Internet access (GitHub, Doppler, GCP)            │
 │  - Inbound: None (no ports exposed by default)                 │
 │  - Container-to-Container: Allowed within Docker network       │
 │                                                                  │

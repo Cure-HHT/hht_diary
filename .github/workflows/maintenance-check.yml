@@ -16,8 +16,11 @@ on:
   pull_request:
     paths:
       - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/EXPECTED_WARNINGS.md'
       - '.github/workflows/maintenance-check.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check-maintenance-status:
@@ -36,15 +39,13 @@ jobs:
         run: |
           # Files that require quarterly review (90 days)
           QUARTERLY_FILES=(
-            "tools/dev-env/docker/dev.Dockerfile"
-            "tools/dev-env/docker/qa.Dockerfile"
-            "tools/dev-env/docker/ops.Dockerfile"
-            "tools/dev-env/EXPECTED_WARNINGS.md"
+            "tools/dev-env/docker/devops.Dockerfile"
+            "tools/dev-env/docker/audit.Dockerfile"
           )
 
           # Files that require annual review (365 days)
           ANNUAL_FILES=(
-            "tools/dev-env/docker/base.Dockerfile"
+            "tools/dev-env/docker/ci.Dockerfile"
           )
 
           CURRENT_DATE=$(date +%s)
@@ -115,34 +116,25 @@ jobs:
           echo "Current pinned versions (from Dockerfiles):"
           echo ""
 
-          # Extract pinned versions
-          echo "📦 Supabase CLI:"
-          grep "ENV SUPABASE_CLI_VERSION" tools/dev-env/docker/dev.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/supabase/cli/releases"
+          # Extract pinned versions from versions.env
+          echo "📦 Pinned versions from .github/versions.env:"
+          echo ""
+          cat .github/versions.env | grep -v '^#' | grep -v '^$' | grep '=' | while read line; do
+            echo "  $line"
+          done
           echo ""
 
-          echo "📦 kubectl:"
-          grep "ENV KUBECTL_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/kubernetes/kubernetes/releases"
+          echo "📦 CI container tool versions:"
+          grep "ARG.*VERSION" tools/dev-env/docker/ci.Dockerfile | head -10 || true
           echo ""
 
-          echo "📦 Cosign:"
-          grep "ENV COSIGN_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/sigstore/cosign/releases"
-          echo ""
-
-          echo "📦 Syft:"
-          grep "ENV SYFT_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/anchore/syft/releases"
-          echo ""
-
-          echo "📦 Grype:"
-          grep "ENV GRYPE_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
-          echo "   Latest: Check https://github.com/anchore/grype/releases"
+          echo "📦 DevOps container tool versions:"
+          grep "ARG.*VERSION" tools/dev-env/docker/devops.Dockerfile | head -10 || true
           echo ""
 
           echo "ℹ️  This is informational - manual review required for FDA compliance"
           echo "   Review release notes and test before updating pinned versions"
+          echo "   All versions centralized in .github/versions.env"
 
       - name: Generate maintenance report
         if: always()
@@ -164,13 +156,11 @@ jobs:
           ### Files Checked
 
           **Quarterly Review Required (90 days)**:
-          - tools/dev-env/docker/dev.Dockerfile
-          - tools/dev-env/docker/qa.Dockerfile
-          - tools/dev-env/docker/ops.Dockerfile
-          - tools/dev-env/EXPECTED_WARNINGS.md
+          - tools/dev-env/docker/devops.Dockerfile
+          - tools/dev-env/docker/audit.Dockerfile
 
           **Annual Review Required (365 days)**:
-          - tools/dev-env/docker/base.Dockerfile
+          - tools/dev-env/docker/ci.Dockerfile
 
           ### Pinned Tool Versions
 
@@ -205,68 +195,13 @@ jobs:
           echo "📄 Report generated: $REPORT_FILE"
           cat "$REPORT_FILE"
 
-      - name: Create issue if maintenance overdue
-        if: failure()
-        uses: actions/github-script@v7
+      - name: Notify Slack if maintenance overdue
+        if: failure() && github.event_name == 'schedule'
+        uses: slackapi/slack-github-action@v2.1.1
         with:
-          script: |
-            const title = '🔧 Maintenance Overdue: Docker Environment Review Required';
-            const body = `## Quarterly Maintenance Review Overdue
-
-            One or more Docker environment files have not been reviewed in the required timeframe.
-
-            ### FDA 21 CFR Part 11 Compliance
-
-            This project requires regular review of development environment configuration:
-            - **Quarterly (90 days)**: Role-specific Dockerfiles, warning baselines
-            - **Annual (365 days)**: Base image configuration
-
-            ### Required Actions
-
-            1. Review the files listed in the workflow run
-            2. Check for updated tool versions:
-               - Supabase CLI: https://github.com/supabase/cli/releases
-               - kubectl: https://github.com/kubernetes/kubernetes/releases
-               - Cosign: https://github.com/sigstore/cosign/releases
-               - Syft: https://github.com/anchore/syft/releases
-               - Grype: https://github.com/anchore/grype/releases
-            3. Test any necessary updates
-            4. Commit changes with: \`[MAINTENANCE] Quarterly review - ${new Date().toISOString().split('T')[0]}\`
-
-            ### How to Resolve
-
-            Even if no changes are needed, you must "touch" the file to update its timestamp:
-
-            \`\`\`bash
-            # Review the file, then update timestamp
-            git add tools/dev-env/docker/dev.Dockerfile
-            git commit -m "[MAINTENANCE] Quarterly review - no changes required"
-            git push
-            \`\`\`
-
-            This demonstrates due diligence for audit purposes.
-
-            **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            `;
-
-            // Check if issue already exists
-            const issues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'maintenance'
-            });
-
-            const existingIssue = issues.data.find(issue =>
-              issue.title.includes('Maintenance Overdue')
-            );
-
-            if (!existingIssue) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: title,
-                body: body,
-                labels: ['maintenance', 'compliance', 'priority:high']
-              });
-            }
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            text: ":warning: *Maintenance Overdue: Docker Environment Review Required*\n\nOne or more Docker environment files have not been reviewed in the required timeframe.\n\n*FDA 21 CFR Part 11 Compliance*\n- Quarterly (90 days): Role-specific Dockerfiles, warning baselines\n- Annual (365 days): Base image configuration\n\n*Required Actions*\n1. Review files listed in the workflow run\n2. Check for updated tool versions\n3. Test any necessary updates\n4. Commit with: `[MAINTENANCE] Quarterly review - <date>`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
