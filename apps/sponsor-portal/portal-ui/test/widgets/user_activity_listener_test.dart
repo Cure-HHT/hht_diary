@@ -1,7 +1,4 @@
 // test/widgets/user_activity_listener_test.dart
-//
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00044: Session Inactivity Timeout
 
 import 'dart:convert';
 

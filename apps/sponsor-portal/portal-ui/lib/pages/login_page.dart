@@ -35,9 +35,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
+    final authService = context.read<AuthService>();
+    if (authService.isTimedOut) {
+      authService.setIsTimedOut(false);
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
-    final authService = context.read<AuthService>();
     final success = await authService.signIn(
       _emailController.text.trim(),
       _passwordController.text,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/admin/admin_dashboard_page.dart';
 import 'package:sponsor_portal_ui/pages/analyst/analyst_dashboard_page.dart';
 import 'package:sponsor_portal_ui/pages/auditor/auditor_dashboard_page.dart';
@@ -11,12 +13,22 @@ import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 class CommonDashboard extends StatelessWidget {
   const CommonDashboard({super.key, required this.role});
 
-  final UserRole role;
+  final UserRole? role;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedRole =
+        role ?? context.watch<AuthService>().currentUser?.activeRole;
+
+    if (resolvedRole == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => context.replace('/login'),
+      );
+      return const SizedBox.shrink();
+    }
+
     return UserActivityListener(
-      child: switch (role) {
+      child: switch (resolvedRole) {
         UserRole.developerAdmin => const DevAdminDashboardPage(),
         UserRole.administrator => const AdminDashboardPage(),
         UserRole.investigator => const InvestigatorDashboardPage(),

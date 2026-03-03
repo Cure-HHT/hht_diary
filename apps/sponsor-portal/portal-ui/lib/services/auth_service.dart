@@ -231,7 +231,7 @@ class AuthService extends ChangeNotifier {
   AuthService({
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
-    Duration inactivityTimeout = const Duration(minutes: 30),
+    Duration inactivityTimeout = const Duration(minutes: 15),
   }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout {
@@ -254,6 +254,11 @@ class AuthService extends ChangeNotifier {
 
   /// Whether the previous session ended because of inactivity.
   bool get isTimedOut => _timedOut;
+
+  void setIsTimedOut(bool value) {
+    _timedOut = value;
+    notifyListeners();
+  }
 
   /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
@@ -308,8 +313,10 @@ class AuthService extends ChangeNotifier {
     _timedOut = true;
 
     try {
-      await signOut();
-    } catch (_) {}
+      await signOut(fromInactivity: true);
+    } catch (e) {
+      debugPrint('Error signing out after inactivity timeout: $e');
+    }
   }
 
   /// Initialize auth state listener
@@ -597,11 +604,15 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Sign out
-  Future<void> signOut() async {
+  Future<void> signOut({bool fromInactivity = false}) async {
     // Cancel inactivity timer before signing out so it doesn't fire after.
     _inactivityTimer?.cancel();
     _inactivityTimer = null;
-    _timedOut = false;
+    if (fromInactivity) {
+      _timedOut = true;
+    } else {
+      _timedOut = false;
+    }
     await _auth.signOut();
     _currentUser = null;
     _emailOtpRequired = false;

@@ -2,14 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
-class UserActivityListener extends StatelessWidget {
+class UserActivityListener extends StatefulWidget {
   final Widget child;
 
   const UserActivityListener({super.key, required this.child});
 
+  @override
+  State<UserActivityListener> createState() => _UserActivityListenerState();
+}
+
+class _UserActivityListenerState extends State<UserActivityListener> {
+  DateTime? _lastReset;
+  final Duration _throttleDuration = const Duration(seconds: 30);
+
   void _onUserActivity(BuildContext context) {
+    final now = DateTime.now();
+    if (_lastReset != null && now.difference(_lastReset!) < _throttleDuration) {
+      return;
+    }
+
     final auth = context.read<AuthService>();
     if (auth.isAuthenticated) {
+      _lastReset = now;
       auth.resetInactivityTimer();
     }
   }
@@ -33,7 +47,7 @@ class UserActivityListener extends StatelessWidget {
             _onUserActivity(context);
             return KeyEventResult.ignored;
           },
-          child: child,
+          child: widget.child,
         ),
       ),
     );
