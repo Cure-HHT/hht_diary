@@ -394,8 +394,18 @@ if [ "$START_SERVICES" = true ]; then
             export DB_USER="postgres"
             export DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
 
+            # Extract component versions
+            local ps_ver pf_ver tdt_ver
+            ps_ver=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+            pf_ver=$(grep '^version:' ../portal_functions/pubspec.yaml | sed 's/version: //')
+            tdt_ver=$(grep '^version:' ../../common-dart/trial_data_types/pubspec.yaml | sed 's/version: //')
+
             # Start server in background and capture PID
-            dart run bin/server.dart &
+            dart run \
+              -DPORTAL_SERVER_VERSION="$ps_ver" \
+              -DPORTAL_FUNCTIONS_VERSION="$pf_ver" \
+              -DTRIAL_DATA_TYPES_VERSION="$tdt_ver" \
+              bin/server.dart &
             SERVER_PID=$!
             echo "   Server PID: $SERVER_PID"
 

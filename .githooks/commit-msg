@@ -4,10 +4,10 @@
 # =====================================================
 #
 # Auto-discovers and executes commit-msg hooks from all
-# installed Claude Code plugins in anspar-cc-plugins.
+# installed Claude Code plugins via anspar-wf.
 #
 # Plugin Discovery:
-#   Scans: tools/anspar-cc-plugins/plugins/*/hooks/commit-msg
+#   Scans: $ANSPAR_WF_PLUGINS/*/hooks/commit-msg (or ~/anspar-wf/plugins/plugins)
 #   Executes: All found hooks in alphabetical order
 #   Passes: commit message file path as $1 to each hook
 #
@@ -24,10 +24,15 @@ set -e
 COMMIT_MSG_FILE="$1"
 
 # =====================================================
+# anspar-wf plugin path (installed via pip)
+# =====================================================
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
+
+# =====================================================
 # Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-PLUGIN_DIR="tools/anspar-cc-plugins/plugins"
+PLUGIN_DIR="$ANSPAR_PLUGINS"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin commit-msg hooks

@@ -38,7 +38,20 @@ project_number = "1012274191696" # From bootstrap output (gcloud projects descri
 # Required: Database
 # -----------------------------------------------------------------------------
 
+database_name = "callisto4_dev_db"
+db_username   = "app_user"
+
 # Database password - use Doppler or set via environment variable
+
+# -----------------------------------------------------------------------------
+# Cloud SQL Configuration
+# -----------------------------------------------------------------------------
+
+disk_size                       = 0      # 0 = use environment default
+backup_start_time               = "02:00"
+transaction_log_retention_days  = 7
+backup_retention_override       = 0      # 0 = use environment default (dev=7)
+disk_autoresize_limit_override  = 0      # 0 = use environment default (dev=50)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration

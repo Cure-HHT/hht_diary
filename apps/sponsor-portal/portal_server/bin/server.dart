@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-o00002: Environment-Specific Configuration Management
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Main entry point for the portal server
@@ -11,6 +12,21 @@ import 'dart:io';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:portal_server/portal_server.dart';
 import 'package:logging/logging.dart';
+
+/// Component versions injected at compile time via -D flags in Dockerfile.
+/// Defaults to 'unknown' when running outside Docker (e.g. local dev).
+const _portalServerVersion = String.fromEnvironment(
+  'PORTAL_SERVER_VERSION',
+  defaultValue: 'unknown',
+);
+const _portalFunctionsVersion = String.fromEnvironment(
+  'PORTAL_FUNCTIONS_VERSION',
+  defaultValue: 'unknown',
+);
+const _trialDataTypesVersion = String.fromEnvironment(
+  'TRIAL_DATA_TYPES_VERSION',
+  defaultValue: 'unknown',
+);
 
 void main(List<String> args) async {
   // Configure logging
@@ -25,6 +41,11 @@ void main(List<String> args) async {
   });
 
   final log = Logger('portal_server');
+
+  // Log component versions at startup
+  log.info('=== Portal Server v$_portalServerVersion ===');
+  log.info('  portal_functions: $_portalFunctionsVersion');
+  log.info('  trial_data_types: $_trialDataTypesVersion');
 
   // Log environment configuration at startup (secrets masked)
   log.info('=== Environment Configuration ===');

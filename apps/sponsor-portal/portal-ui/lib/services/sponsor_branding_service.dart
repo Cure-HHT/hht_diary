@@ -73,7 +73,7 @@ class SponsorBrandingService {
   String get _apiBaseUrl {
     const envUrl = String.fromEnvironment('PORTAL_API_URL');
     if (envUrl.isNotEmpty) return envUrl;
-    if (kDebugMode) return 'http://localhost:8080';
+    if (kDebugMode) return 'http://localhost:8084';
     return Uri.base.origin;
   }
 

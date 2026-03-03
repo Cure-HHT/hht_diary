@@ -38,7 +38,20 @@ project_number = ""               # TODO: Run: gcloud projects describe callisto
 # Required: Database
 # -----------------------------------------------------------------------------
 
+database_name = "callisto4_prod_db"
+db_username   = "app_user"
+
 # Database password - use Doppler or set via environment variable
+
+# -----------------------------------------------------------------------------
+# Cloud SQL Configuration
+# -----------------------------------------------------------------------------
+
+disk_size                       = 0      # 0 = use environment default
+backup_start_time               = "02:00"
+transaction_log_retention_days  = 7
+backup_retention_override       = 0      # 0 = use environment default (prod=30)
+disk_autoresize_limit_override  = 0      # 0 = use environment default (prod=500)
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration

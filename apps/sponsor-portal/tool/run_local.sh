@@ -141,7 +141,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "Services started:"
     echo "  - PostgreSQL:        localhost:5432"
     echo "  - Firebase Emulator: localhost:9099 (UI at localhost:4000) - skipped with --dev"
-    echo "  - Portal Server:     localhost:8080"
+    echo "  - Portal Server:     localhost:8084"
     echo "  - Portal UI:         localhost:PORT (Flutter assigns port)"
     echo ""
     echo "Email handling:"
@@ -568,13 +568,13 @@ start_firebase() {
 
 # Start the portal server
 start_server() {
-    log_info "Starting Portal Server on port 8080..."
+    log_info "Starting Portal Server on port 8084..."
 
     cd "$SPONSOR_PORTAL_DIR/portal_server"
 
     # Export environment variables for the server
     export DB_SSL="false"
-    export PORT="8080"
+    export PORT="8084"
     export DB_HOST="$DB_HOST"
     export DB_PORT="$DB_PORT"
     export DB_NAME="$DB_NAME"
@@ -609,11 +609,21 @@ start_server() {
         log_info "Server using Firebase Emulator: $FIREBASE_AUTH_EMULATOR_HOST"
     fi
 
-    # Start in background
-    dart run bin/server.dart &
+    # Extract component versions for local dev logging
+    local portal_server_ver portal_functions_ver trial_data_types_ver
+    portal_server_ver=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+    portal_functions_ver=$(grep '^version:' ../portal_functions/pubspec.yaml | sed 's/version: //')
+    trial_data_types_ver=$(grep '^version:' ../../common-dart/trial_data_types/pubspec.yaml | sed 's/version: //')
+
+    # Start in background with version defines
+    dart run \
+      -DPORTAL_SERVER_VERSION="$portal_server_ver" \
+      -DPORTAL_FUNCTIONS_VERSION="$portal_functions_ver" \
+      -DTRIAL_DATA_TYPES_VERSION="$trial_data_types_ver" \
+      bin/server.dart &
     SERVER_PID=$!
 
-    wait_for_port "localhost" "8080" "Portal Server"
+    wait_for_port "localhost" "8084" "Portal Server"
 }
 
 # Start the Flutter web UI
@@ -646,7 +656,7 @@ start_ui() {
         flutter run -d chrome \
             --dart-define=APP_FLAVOR=dev \
             --dart-define=APP_VERSION="$app_version" \
-            --dart-define=PORTAL_API_URL=http://localhost:8080 &
+            --dart-define=PORTAL_API_URL=http://localhost:8084 &
         UI_PID=$!
     else
         # Use local flavor with Firebase emulator
@@ -758,7 +768,7 @@ main() {
     echo "=========================================="
     echo "  Access Points:"
     echo "=========================================="
-    echo "  Portal Server:      http://localhost:8080"
+    echo "  Portal Server:      http://localhost:8084"
     if [ "$USE_DEV_IDENTITY" = false ]; then
         echo "  Firebase Emulator:  http://localhost:4000"
     else

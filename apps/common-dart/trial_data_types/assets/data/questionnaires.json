@@ -113,6 +113,13 @@
       "scored": true,
       "recallPeriod": "4 weeks",
       "totalQuestions": 4,
+      "sessionConfig": {
+        "readinessCheck": true,
+        "readinessMessage": "This questionnaire takes about 2-3 minutes. Please ensure you have enough uninterrupted time to complete it.",
+        "estimatedMinutes": "2-3",
+        "sessionTimeoutMinutes": 30,
+        "timeoutWarningMinutes": 5
+      },
       "preamble": [
         {
           "id": "qol_preamble_1",

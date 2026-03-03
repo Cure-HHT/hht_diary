@@ -110,7 +110,7 @@ Future<Response> linkHandler(Request request) async {
     );
 
     if (codeResult.isEmpty) {
-      // Check if code exists but is expired/used/revoked for better error message
+      // REQ-d00078-C: Return error for invalid, expired, or already-used codes
       final checkResult = await db.execute(
         'SELECT used_at, expires_at, revoked_at FROM patient_linking_codes WHERE code_hash = @codeHash',
         parameters: {'codeHash': codeHash},

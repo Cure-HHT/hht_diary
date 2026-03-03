@@ -4,10 +4,10 @@
 # =====================================================
 #
 # Auto-discovers and executes post-commit hooks from all
-# installed Claude Code plugins in anspar-cc-plugins.
+# installed Claude Code plugins via anspar-wf.
 #
 # Plugin Discovery:
-#   Scans: tools/anspar-cc-plugins/plugins/*/hooks/post-commit
+#   Scans: $ANSPAR_WF_PLUGINS/*/hooks/post-commit (or ~/anspar-wf/plugins/plugins)
 #   Executes: All found hooks in alphabetical order
 #
 # Note: This hook does not use set -e because we don't want
@@ -21,10 +21,15 @@
 # Note: No set -e - post-commit hooks should not block
 
 # =====================================================
+# anspar-wf plugin path (installed via pip)
+# =====================================================
+ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
+
+# =====================================================
 # Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-PLUGIN_DIR="tools/anspar-cc-plugins/plugins"
+PLUGIN_DIR="$ANSPAR_PLUGINS"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin post-commit hooks

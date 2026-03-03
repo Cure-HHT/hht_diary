@@ -958,6 +958,39 @@ GRANT ALL ON questionnaire_instances TO service_role;
 GRANT SELECT ON questionnaire_instances TO authenticated;
 
 -- =====================================================
+-- QUESTIONNAIRE RESPONSES RLS (REQ-p01067, REQ-p01068)
+-- =====================================================
+-- Written by diary server, read by portal server and investigators.
+
+-- Service role: full access
+CREATE POLICY qr_service_all ON questionnaire_responses
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Investigators can view responses for patients at their assigned sites
+CREATE POLICY qr_investigator_select ON questionnaire_responses
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'Investigator'
+        AND questionnaire_instance_id IN (
+            SELECT qi.id FROM questionnaire_instances qi
+            WHERE qi.patient_id IN (
+                SELECT p.patient_id FROM patients p
+                WHERE p.site_id IN (
+                    SELECT pusa.site_id FROM portal_user_site_access pusa
+                    WHERE pusa.user_id = current_user_id()::uuid
+                )
+            )
+        )
+    );
+
+GRANT ALL ON questionnaire_responses TO service_role;
+GRANT SELECT ON questionnaire_responses TO authenticated;
+
+-- =====================================================
 -- PATIENT FCM TOKENS RLS (REQ-CAL-p00082)
 -- =====================================================
 -- Written by diary server, read by portal server.

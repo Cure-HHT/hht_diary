@@ -254,7 +254,7 @@ docker image prune -a
 
 GitHub Actions workflows use these same Docker images:
 - `.github/workflows/qa-automation.yml` - Automated testing
-- `.github/workflows/build-publish-images.yml` - Image builds
+- `.github/workflows/build-ghcr-containers.yml` - Image builds
 
 **See**:
 - [Development Environment Architecture](/home/mclew/dev24/diary-worktrees/clean-docs/docs/setup-dev-environment-architecture.md)
@@ -306,19 +306,17 @@ npm --version   # Should show 9.x.x or higher
 
 ---
 
-#### Install Python Dependencies
+#### Install elspais (Requirement Validation)
 
 ```bash
-# Ensure Python 3.10+ is installed
-python3 --version
+# Install elspais CLI (requirement validation tool)
+pip3 install --user elspais
 
-# Install requirement validation tools
-cd tools/requirements
-pip3 install --user -r requirements.txt  # If requirements.txt exists
+# Verify installation
+elspais --version
 
-# Verify validation tools work
-cd ../..
-python3 tools/requirements/validate_requirements.py
+# Run validation
+elspais validate
 ```
 
 **Verification**: Should show requirement validation summary with no errors.
@@ -401,8 +399,8 @@ Create `.vscode/tasks.json` for common development tasks:
     {
       "label": "Validate Requirements",
       "type": "shell",
-      "command": "python3",
-      "args": ["tools/requirements/validate_requirements.py"],
+      "command": "elspais",
+      "args": ["validate"],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -413,12 +411,8 @@ Create `.vscode/tasks.json` for common development tasks:
     {
       "label": "Generate Traceability Matrix",
       "type": "shell",
-      "command": "python3",
-      "args": [
-        "tools/requirements/generate_traceability.py",
-        "--format",
-        "both"
-      ],
+      "command": "elspais",
+      "args": ["trace", "--format", "both"],
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -524,7 +518,7 @@ Claude Code provides built-in monitoring via:
 2. **Verify requirement traceability** in all new files
 3. **Run validation tools** after Claude Code makes changes:
    ```bash
-   python3 tools/requirements/validate_requirements.py
+   elspais validate
    git status  # Check what changed
    git diff    # Review changes in detail
    ```
@@ -573,15 +567,15 @@ Claude Code provides built-in monitoring via:
 # - Requirement hierarchy (PRD -> Ops -> Dev)
 ```
 
-**Manual Validation**:
+**Manual Validation** (using elspais CLI):
 ```bash
 # Validate all requirements
-python3 tools/requirements/validate_requirements.py
+elspais validate
 
 # Generate traceability matrix
-python3 tools/requirements/generate_traceability.py --format markdown
-python3 tools/requirements/generate_traceability.py --format html
-python3 tools/requirements/generate_traceability.py --format both
+elspais trace --format markdown
+elspais trace --format html
+elspais trace --format both
 ```
 
 **Validation Errors**:
@@ -673,7 +667,7 @@ Access via: https://app.supabase.com/project/YOUR_PROJECT_ID/editor
    - Test locally
 5. **Validate**:
    ```bash
-   python3 tools/requirements/validate_requirements.py
+   elspais validate
    git status
    git diff
    ```
@@ -880,7 +874,7 @@ node fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json
 **Solution**:
 ```bash
 # Run validation manually to see errors
-python3 tools/requirements/validate_requirements.py
+elspais validate
 
 # Common issues:
 # 1. Missing requirement header in new code files

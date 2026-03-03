@@ -40,7 +40,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
-PORTAL_URL="${PORTAL_URL:-http://localhost:8080}"
+PORTAL_URL="${PORTAL_URL:-http://localhost:8084}"
 FIREBASE_EMULATOR_URL="${FIREBASE_EMULATOR_URL:-http://localhost:9099}"
 DEV_EMAIL="mike.bushe@anspar.org"
 DEV_PASSWORD="curehht"

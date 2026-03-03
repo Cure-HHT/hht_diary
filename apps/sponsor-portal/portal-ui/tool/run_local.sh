@@ -35,7 +35,7 @@ cd "$SCRIPT_DIR/.."
 # Configuration
 FIREBASE_HOST="${FIREBASE_HOST:-localhost}"
 FIREBASE_PORT="${FIREBASE_PORT:-9099}"
-PORTAL_API_URL="${PORTAL_API_URL:-http://localhost:8080}"
+PORTAL_API_URL="${PORTAL_API_URL:-http://localhost:8084}"
 
 # Default device
 DEVICE="chrome"

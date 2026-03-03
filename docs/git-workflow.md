@@ -905,7 +905,6 @@ git rebase origin/main
 
 - **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md`
 - **Requirement Tracking**: `tools/anspar-cc-plugins/plugins/simple-requirements/TRACKING-WORKFLOW.md`
-- **Requirements Tools**: `tools/requirements/README.md`
 
 ### External Resources
 

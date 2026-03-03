@@ -78,8 +78,7 @@ they should report to the orchestrator any messages they want to pass to another
 │   └── {sponsor-name}/       # Isolated per sponsor
 ├── tools/                     # Development & automation tools
 │   ├── requirements/         # Validation & traceability scripts
-│   ├── dev-env/              # Docker dev containers (role-based)
-│   └── anpar-cc-plugins/   # Claude Code plugins
+│   └── dev-env/              # Docker dev containers (role-based)
 ├── .githooks/                 # Git hooks for enforcement
 └── .devcontainer/             # Dev container config (recommended)
 ```
@@ -92,7 +91,7 @@ You orchestrate common tasks using dedicated sub-agents.
 Use sub-agents in parallel when possible. 
 You may use multiple instances of a sub-agent in parallel when appropriate.
 
-The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugins/workflow/`
+The following **priority plugins** are provided by the `anspar-wf` package (installed via pip)
 
 ## use `workflow:workflow` sub-agent for
 - changes in top-level tasks, as indicated by the current ticket or REQuirement
@@ -142,7 +141,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Runs: Pre-commit hook + CI/CD
    - Purpose: Prevent accidental commit of secrets (API keys, tokens, passwords)
    - Exit behavior: BLOCKS commit/PR if secrets detected
-   - Version: v8.29.0 (pinned in `.github/versions.env`)
+   - Version pinned in `.github/versions.env`
 
 2. **Trivy** (Multi-Layer Vulnerability Scanner)
    - Runs: CI/CD only
@@ -165,7 +164,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
    - Checks: Table locks, missing indexes, unsafe ALTER TABLE, NOT NULL without DEFAULT
    - Exit behavior: BLOCKS PR if dangerous patterns detected
-   - Version: v0.29.2
+   - Version pinned in `.github/versions.env`
 
 ### Why NOT CodeQL?
 

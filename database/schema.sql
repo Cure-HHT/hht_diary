@@ -1031,6 +1031,40 @@ COMMENT ON COLUMN questionnaire_instances.delete_reason IS 'Reason for deletion,
 COMMENT ON COLUMN questionnaire_instances.score IS 'Calculated score after finalization per REQ-CAL-p00009';
 
 -- =====================================================
+-- QUESTIONNAIRE RESPONSES (REQ-p01067, REQ-p01068)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p01067: NOSE HHT Questionnaire Content
+--   REQ-p01068: HHT Quality of Life Questionnaire Content
+--   REQ-p01065: Clinical Questionnaire System
+--
+-- Individual question responses for submitted questionnaires.
+-- Written by diary server (mobile app submits responses).
+-- Read by portal server (investigator review and finalization).
+
+CREATE TABLE questionnaire_responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    questionnaire_instance_id UUID NOT NULL REFERENCES questionnaire_instances(id),
+    question_id TEXT NOT NULL,
+    value INTEGER NOT NULL CHECK (value >= 0 AND value <= 4),
+    display_label TEXT NOT NULL,
+    normalized_label TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (questionnaire_instance_id, question_id)
+);
+
+CREATE INDEX idx_qr_instance_id ON questionnaire_responses(questionnaire_instance_id);
+
+ALTER TABLE questionnaire_responses ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE questionnaire_responses IS 'Individual question responses for submitted questionnaires. One row per question per instance.';
+COMMENT ON COLUMN questionnaire_responses.questionnaire_instance_id IS 'FK to questionnaire_instances — the submitted questionnaire';
+COMMENT ON COLUMN questionnaire_responses.question_id IS 'Question identifier from questionnaires.json (e.g., nose_physical_1, qol_q1)';
+COMMENT ON COLUMN questionnaire_responses.value IS 'Numeric response value (0-4) for scoring';
+COMMENT ON COLUMN questionnaire_responses.display_label IS 'Human-readable response label (e.g., "Moderate problem")';
+COMMENT ON COLUMN questionnaire_responses.normalized_label IS 'Normalized label for cross-questionnaire comparison';
+
+-- =====================================================
 -- PATIENT FCM TOKENS (REQ-CAL-p00082)
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:

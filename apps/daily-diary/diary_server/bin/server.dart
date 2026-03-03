@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-o00002: Environment-Specific Configuration Management
 //
 // Main entry point for the diary server
 // Runs a shelf HTTP server on Cloud Run
@@ -10,6 +11,21 @@ import 'dart:io';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:diary_server/diary_server.dart';
 import 'package:logging/logging.dart';
+
+/// Component versions injected at compile time via -D flags in Dockerfile.
+/// Defaults to 'unknown' when running outside Docker (e.g. local dev).
+const _diaryServerVersion = String.fromEnvironment(
+  'DIARY_SERVER_VERSION',
+  defaultValue: 'unknown',
+);
+const _diaryFunctionsVersion = String.fromEnvironment(
+  'DIARY_FUNCTIONS_VERSION',
+  defaultValue: 'unknown',
+);
+const _trialDataTypesVersion = String.fromEnvironment(
+  'TRIAL_DATA_TYPES_VERSION',
+  defaultValue: 'unknown',
+);
 
 void main(List<String> args) async {
   // Configure logging
@@ -24,6 +40,11 @@ void main(List<String> args) async {
   });
 
   final log = Logger('diary_server');
+
+  // Log component versions at startup
+  log.info('=== Diary Server v$_diaryServerVersion ===');
+  log.info('  diary_functions: $_diaryFunctionsVersion');
+  log.info('  trial_data_types: $_trialDataTypesVersion');
 
   // Initialize database connection pool
   log.info('Initializing database connection...');

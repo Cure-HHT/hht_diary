@@ -178,7 +178,7 @@ jobs:
             --max-instances=2 \
             --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
             --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }} \
-            --set-env-vars="DOPPLER_PROJECT_ID=${{ env.DOPPLER_PROJECT }},DOPPLER_CONFIG_NAME=${{ inputs.sponsor-env }}"
+            --set-env-vars="DOPPLER_PROJECT_ID=${{ env.DOPPLER_PROJECT }},DOPPLER_CONFIG_NAME=${{ inputs.sponsor-env }},SPONSOR_ID=callisto" \
 
           echo "✅ Cloud Run deployment successful${VERSION:+ (version: $VERSION)}"
 

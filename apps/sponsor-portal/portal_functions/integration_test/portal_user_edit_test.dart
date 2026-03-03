@@ -80,7 +80,11 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, role, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Edit Test Admin', 'Administrator', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (email) DO UPDATE SET
+        firebase_uid = EXCLUDED.firebase_uid,
+        name = EXCLUDED.name,
+        role = EXCLUDED.role,
+        status = EXCLUDED.status
       ''',
       parameters: {
         'id': testAdminId,
@@ -104,7 +108,11 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, role, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Target User', 'Investigator', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (email) DO UPDATE SET
+        firebase_uid = EXCLUDED.firebase_uid,
+        name = EXCLUDED.name,
+        role = EXCLUDED.role,
+        status = EXCLUDED.status
       ''',
       parameters: {
         'id': testTargetId,

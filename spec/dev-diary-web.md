@@ -43,41 +43,41 @@ Flutter Web enables significant code reuse from the mobile application, reducing
 
 ## Assertions
 
-A. The Web Diary SHALL be implemented using Flutter Web.
+A. The system SHALL be implemented using Flutter Web.
 
-B. The Web Diary SHALL reuse the same codebase as the mobile application.
+B. The system SHALL reuse the same codebase as the mobile application.
 
 C. The system SHALL include a shared widget library between web and mobile applications to ensure consistent UI patterns.
 
-D. The Web Diary SHALL implement Material Design 3 theming.
+D. The system SHALL implement Material Design 3 theming.
 
 E. The theming system SHALL support sponsor-specific customization.
 
-F. The Web Diary SHALL implement responsive layouts supporting desktop viewports.
+F. The system SHALL implement responsive layouts supporting desktop viewports.
 
-G. The Web Diary SHALL implement responsive layouts supporting tablet viewports.
+G. The system SHALL implement responsive layouts supporting tablet viewports.
 
-H. The Web Diary SHALL disable service workers to prevent offline caching.
+H. The system SHALL disable service workers to prevent offline caching.
 
-I. The Web Diary SHALL unregister any existing service worker registrations on application initialization.
+I. The system SHALL unregister any existing service worker registrations on application initialization.
 
-J. The Web Diary SHALL load and function correctly in the latest two versions of Chrome.
+J. The system SHALL load and function correctly in the latest two versions of Chrome.
 
-K. The Web Diary SHALL load and function correctly in the latest two versions of Firefox.
+K. The system SHALL load and function correctly in the latest two versions of Firefox.
 
-L. The Web Diary SHALL load and function correctly in the latest two versions of Safari.
+L. The system SHALL load and function correctly in the latest two versions of Safari.
 
-M. The Web Diary SHALL load and function correctly in the latest two versions of Edge.
+M. The system SHALL load and function correctly in the latest two versions of Edge.
 
 N. The system SHALL NOT register a service worker after application initialization.
 
-O. The Web Diary SHALL apply sponsor-specific theming after user authentication.
+O. The system SHALL apply sponsor-specific theming after user authentication.
 
 P. The responsive layout SHALL adapt rendering based on viewport width.
 
 Q. Shared components SHALL render consistently between web and mobile applications.
 
-*End* *Web Diary Frontend Framework* | **Hash**: 8e194f4d
+*End* *Web Diary Frontend Framework* | **Hash**: 7adcbff1
 
 ---
 
@@ -91,7 +91,7 @@ This requirement ensures patient data protection on shared computers through com
 
 ## Assertions
 
-A. The Web Diary SHALL implement client-side session management with configurable inactivity timeout.
+A. The system SHALL implement client-side session management with configurable inactivity timeout.
 
 B. The system SHALL track user interactions including mouse movement, keyboard input, touch events, and clicks to detect activity.
 
@@ -123,7 +123,7 @@ O. The system SHALL display the login page when the user navigates back after lo
 
 P. The system SHALL NOT display cached data when the user navigates back after logout.
 
-*End* *Web Session Management Implementation* | **Hash**: 4b91624f
+*End* *Web Session Management Implementation* | **Hash**: 482b7002
 
 ---
 
@@ -183,43 +183,43 @@ Complete storage clearing prevents the next user on a shared computer from acces
 
 ## Assertions
 
-A. The Web Diary SHALL clear localStorage on logout.
+A. The system SHALL clear localStorage on logout.
 
-B. The Web Diary SHALL clear sessionStorage on logout.
+B. The system SHALL clear sessionStorage on logout.
 
-C. The Web Diary SHALL clear all cookies on logout by setting their expiry to a past date.
+C. The system SHALL clear all cookies on logout by setting their expiry to a past date.
 
-D. The Web Diary SHALL clear IndexedDB databases on logout.
+D. The system SHALL clear IndexedDB databases on logout.
 
-E. The Web Diary SHALL clear Cache Storage (service worker caches) on logout.
+E. The system SHALL clear Cache Storage (service worker caches) on logout.
 
-F. The Web Diary SHALL clear localStorage on session timeout.
+F. The system SHALL clear localStorage on session timeout.
 
-G. The Web Diary SHALL clear sessionStorage on session timeout.
+G. The system SHALL clear sessionStorage on session timeout.
 
-H. The Web Diary SHALL clear all cookies on session timeout by setting their expiry to a past date.
+H. The system SHALL clear all cookies on session timeout by setting their expiry to a past date.
 
-I. The Web Diary SHALL clear IndexedDB databases on session timeout.
+I. The system SHALL clear IndexedDB databases on session timeout.
 
-J. The Web Diary SHALL clear Cache Storage on session timeout.
+J. The system SHALL clear Cache Storage on session timeout.
 
-K. The Web Diary SHALL clear localStorage on browser close.
+K. The system SHALL clear localStorage on browser close.
 
-L. The Web Diary SHALL clear sessionStorage on browser close.
+L. The system SHALL clear sessionStorage on browser close.
 
-M. The Web Diary SHALL clear all cookies on browser close by setting their expiry to a past date.
+M. The system SHALL clear all cookies on browser close by setting their expiry to a past date.
 
-N. The Web Diary SHALL clear IndexedDB databases on browser close.
+N. The system SHALL clear IndexedDB databases on browser close.
 
-O. The Web Diary SHALL clear Cache Storage on browser close.
+O. The system SHALL clear Cache Storage on browser close.
 
-P. The Web Diary SHALL navigate to the login page after clearing all storage mechanisms.
+P. The system SHALL navigate to the login page after clearing all storage mechanisms.
 
 Q. The browser back button SHALL display the login page after logout, not cached content.
 
 R. Patient data SHALL NOT be recoverable via browser developer tools after logout.
 
-*End* *Browser Storage Clearing* | **Hash**: 3c9baff2
+*End* *Browser Storage Clearing* | **Hash**: dd80cdb0
 
 ---
 TODO - remove or move to dev-app.md
