@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
+//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
+//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
 
 // CUR-543: End-to-end integration test for timezone display
 // Uses the actual ClinicalDiaryApp to test real app behavior
@@ -1734,6 +1736,9 @@ void main() {
     );
   });
 
+  // Implements: REQ-p01066-K — verify the future-time constraint is applied
+  // correctly: enforced when a limit is set, but not applied stale when the
+  // end-time picker loses its maxDateTime (fixing positive increment buttons).
   group('CUR-983: TimePickerDial seconds & maxDateTime behavior', () {
     late Directory tempDir;
 

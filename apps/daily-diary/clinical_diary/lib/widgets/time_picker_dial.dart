@@ -5,6 +5,11 @@ import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
+//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01069-A: Provide an intuitive time picker for start and end times
+
 /// Time picker widget with a dial-style interface
 class TimePickerDial extends StatefulWidget {
   const TimePickerDial({
@@ -94,6 +99,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
     // newly non-null (i.e., constraints get stricter). When maxDateTime is
     // removed (non-null -> null), do NOT re-clamp to avoid unexpected jumps
     // in existing selections (e.g., end time picker dropping stale maxDateTime).
+    // Implements: REQ-p01066-K — enforce the future-time constraint only when
+    // a genuine limit is being applied, not when the constraint is lifted.
     final maxDateTimeBecameNonNull =
         widget.maxDateTime != null && oldWidget.maxDateTime == null;
     // Only re-clamp if time/max changed AND timezone is NOT changing
@@ -168,6 +175,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
   // Track which button should show error flash
   int? _errorButtonDelta;
 
+  // Implements: REQ-p01066-K — reject any minute adjustment that would push
+  // the selected time into the future, using timezone-aware comparison.
   void _adjustMinutes(int delta) {
     final newTime = _selectedTime
         .copyWith(second: 0, millisecond: 0, microsecond: 0)
