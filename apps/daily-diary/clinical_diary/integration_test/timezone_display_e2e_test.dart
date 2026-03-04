@@ -1739,7 +1739,7 @@ void main() {
   // Implements: REQ-p01066-K — verify the future-time constraint is applied
   // correctly: enforced when a limit is set, but not applied stale when the
   // end-time picker loses its maxDateTime (fixing positive increment buttons).
-  group('CUR-983: TimePickerDial seconds & maxDateTime behavior', () {
+  group('REQ-p01066-K: TimePickerDial seconds & maxDateTime behavior', () {
     late Directory tempDir;
 
     setUp(() async {
@@ -1781,7 +1781,7 @@ void main() {
     });
 
     testWidgets(
-      'CUR-983: quick adjust buttons zero out seconds in onTimeChanged callback',
+      'REQ-p01066-K: quick adjust buttons zero out seconds in onTimeChanged callback',
       (tester) async {
         await initializeDateFormatting();
 
@@ -1827,7 +1827,7 @@ void main() {
     );
 
     testWidgets(
-      'CUR-983: end time picker does not receive a maxDateTime (avoids stale max bug)',
+      'REQ-p01066-K: end time picker does not receive a maxDateTime (avoids stale max bug)',
       (tester) async {
         tester.view.physicalSize = const Size(1080, 1920);
         tester.view.devicePixelRatio = 1.0;

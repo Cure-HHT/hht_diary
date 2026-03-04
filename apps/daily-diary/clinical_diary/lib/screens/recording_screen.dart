@@ -934,7 +934,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onTimeChanged: _setStartDateTime,
           onTimezoneChanged: _handleStartTimezoneChanged,
           confirmLabel: l10n.setStartTime,
-          maxDateTime: DateTime.now(),
         );
 
       case RecordingStep.intensity:
