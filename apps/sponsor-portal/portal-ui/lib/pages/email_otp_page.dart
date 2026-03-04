@@ -133,7 +133,7 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
       return;
     }
 
-    _navigateToCommonDashboard(user.role);
+    _navigateToCommonDashboard(user.activeRole);
   }
 
   void _navigateToCommonDashboard(UserRole role) {

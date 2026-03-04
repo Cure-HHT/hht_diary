@@ -7,6 +7,7 @@
 
 import 'dart:convert';
 
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -514,5 +515,120 @@ void main() {
         );
       }
     });
+  });
+
+  group('AuthService inactivity timeout', () {
+    Future<AuthService> createSignedInAuthService({
+      required Duration inactivityTimeout,
+    }) async {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        inactivityTimeout: inactivityTimeout,
+      );
+      await authService.signIn('test@example.com', 'password');
+      return authService;
+    }
+
+    test(
+      'inactivity timer firing signs user out and sets isTimedOut',
+      () async {
+        final authService = await createSignedInAuthService(
+          inactivityTimeout: const Duration(milliseconds: 100),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        expect(authService.isTimedOut, isFalse);
+
+        // Wait for the inactivity timer to fire
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+        expect(authService.currentUser, isNull);
+      },
+    );
+
+    test(
+      'inactivity timer does not fire before the timeout duration',
+      () async {
+        final authService = await createSignedInAuthService(
+          inactivityTimeout: const Duration(milliseconds: 300),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+
+        // Wait less than the timeout
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        expect(authService.isTimedOut, isFalse);
+        expect(authService.isAuthenticated, isTrue);
+
+        // Clean up
+        await authService.signOut();
+      },
+    );
+
+    test('resetInactivityTimer prevents timeout from firing', () async {
+      final authService = await createSignedInAuthService(
+        inactivityTimeout: const Duration(milliseconds: 200),
+      );
+
+      // Reset at 150ms — before the 200ms timeout fires
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      authService.resetInactivityTimer();
+
+      // Wait another 150ms — would have timed out without the reset
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      expect(authService.isTimedOut, isFalse);
+      expect(authService.isAuthenticated, isTrue);
+
+      // Clean up
+      await authService.signOut();
+    });
+
+    test(
+      'isTimedOut remains true after timeout even when currentUser is null',
+      () async {
+        final authService = await createSignedInAuthService(
+          inactivityTimeout: const Duration(milliseconds: 100),
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+
+        // Both must be true simultaneously — this is what drives the login banner
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.currentUser, isNull);
+      },
+    );
   });
 }

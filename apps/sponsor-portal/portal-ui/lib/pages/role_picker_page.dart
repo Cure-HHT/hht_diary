@@ -143,27 +143,6 @@ class _RolePickerPageState extends State<RolePickerPage> {
   void _navigateToCommonDashboard(BuildContext context, UserRole role) {
     context.go('/common-dashboard', extra: role);
   }
-
-  // void _navigateToRoleDashboard(BuildContext context, UserRole role) {
-  //   switch (role) {
-  //     case UserRole.developerAdmin:
-  //       context.go('/dev-admin');
-  //       break;
-  //     case UserRole.administrator:
-  //       context.go('/admin');
-  //       break;
-  //     case UserRole.investigator:
-  //       context.go('/investigator');
-  //       break;
-  //     case UserRole.auditor:
-  //       context.go('/auditor');
-  //       break;
-  //     case UserRole.sponsor:
-  //     case UserRole.analyst:
-  //       context.go('/admin'); // Default dashboard for now
-  //       break;
-  //   }
-  // }
 }
 
 /// Individual role option card
