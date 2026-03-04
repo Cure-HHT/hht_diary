@@ -47,6 +47,7 @@ import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
+import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -424,6 +425,25 @@ void main() {
 
         // Both records should show warning icons
         expect(find.byIcon(Icons.warning_amber_rounded), findsNWidgets(2));
+      });
+    });
+
+    group('Logo Menu (Data Management)', () {
+      testWidgets('does not show Check for Updates option in logo menu', (
+        tester,
+      ) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        // Open the LogoMenu
+        await tester.tap(find.byType(LogoMenu));
+        await tester.pumpAndSettle();
+
+        // "Check for updates" should NOT be present in the menu
+        expect(find.text('Check for updates'), findsNothing);
       });
     });
   });
