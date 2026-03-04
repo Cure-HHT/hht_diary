@@ -232,12 +232,15 @@ class AuthService extends ChangeNotifier {
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
     Duration inactivityTimeout = const Duration(minutes: 15),
+    bool enableInactivityTimer = true,
   }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
-       _inactivityTimeout = inactivityTimeout {
+       _inactivityTimeout = inactivityTimeout,
+       _enableInactivityTimer = enableInactivityTimer {
     _init();
   }
 
+  final bool _enableInactivityTimer;
   final FirebaseAuth _auth;
   final http.Client _httpClient;
   final Duration _inactivityTimeout;
@@ -304,6 +307,7 @@ class AuthService extends ChangeNotifier {
 
   // REQ-d00080-C: reset inactivity timer on any tracked user interaction
   void resetInactivityTimer() {
+    if (!_enableInactivityTimer) return;
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer(_inactivityTimeout, _onInactivityTimeout);
   }
@@ -490,6 +494,13 @@ class AuthService extends ChangeNotifier {
     _mfaResolver = null;
     _error = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = null;
+    super.dispose();
   }
 
   /// Send email OTP code to the user's email
