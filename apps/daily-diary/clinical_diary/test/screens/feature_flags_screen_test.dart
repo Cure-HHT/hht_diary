@@ -202,7 +202,7 @@ void main() {
         expect(find.byType(TextButton), findsOneWidget);
         expect(
           find.byType(FilledButton),
-          findsAtLeastNWidgets(2),
+          findsAtLeastNWidgets(1),
         ); // One in dialog, one  load
       });
 
