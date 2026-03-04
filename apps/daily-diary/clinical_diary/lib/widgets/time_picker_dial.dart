@@ -82,7 +82,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
     super.didUpdateWidget(oldWidget);
     // When maxDateTime changes (e.g., user selected a different date),
     // we need to re-validate the selected time against the new max.
-    // CUR-447: This ensures past dates allow full 24-hour selection.
+    // REQ-p01066-K: This ensures past dates allow full 24-hour selection.
     // REQ-p01066-K: Only re-clamp if maxDateTime changed significantly (>1 sec) to avoid
     // unnecessary re-clamping when parent rebuilds with DateTime.now().
     // CRITICAL: Don't re-clamp when timezone changes, since the time itself hasn't
