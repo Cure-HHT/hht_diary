@@ -1017,6 +1017,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
+                    sponsorLogo: sponsorBranding.appLogoUrl,
+                    isEnrolled: _isEnrolled,
                   ),
                   // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(
