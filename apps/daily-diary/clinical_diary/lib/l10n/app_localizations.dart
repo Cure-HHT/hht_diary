@@ -435,6 +435,7 @@ class AppLocalizations {
       'requiredVersionLabel': 'Required version:',
       'whatsNew': "What's New",
       'licenses': 'Licenses',
+      'checkForUpdates': 'Check for Updates',
       'youAreUpToDate': 'You are up to date',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
