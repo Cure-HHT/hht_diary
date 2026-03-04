@@ -178,10 +178,10 @@ lb_domain               = "*.callisto.anspar.org"
 lb_enable_http_redirect = true
 lb_cloud_run_services = {
   "diary-server" = {
-    hosts = ["diary-uat.callisto.anspar.org"]
+    hosts = ["diary-qa.callisto.anspar.org"]
   }
   "portal-server" = {
-    hosts = ["portal-uat.callisto.anspar.org"]
+    hosts = ["portal-qa.callisto.anspar.org"]
   }
 }
 

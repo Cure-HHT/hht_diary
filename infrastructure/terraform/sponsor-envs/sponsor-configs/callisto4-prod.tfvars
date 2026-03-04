@@ -84,6 +84,10 @@ github_repo = "hht_diary"
 # Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
 enable_cloud_build_triggers = false
 
+# Container Images (via Artifact Registry GHCR proxy in admin project)
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/portal-server:latest"
+
 # Disable public access due to organization policy restrictions
 allow_public_access = true
 
@@ -139,11 +143,17 @@ workforce_identity_enabled = false
 # Optional: Audit Configuration
 # -----------------------------------------------------------------------------
 
-audit_retention_years = 0
-# lock_audit_retention defaults to false; set true when ready to lock prod
+audit_retention_years = 0	# TODO Set to 25 years when prod released
+# TODO lock_audit_retention defaults to false; set true when ready to lock prod
 
 # Billing budget (migrated from bootstrap)
 budget_amount = 5000 # Monthly budget in USD
+
+# -----------------------------------------------------------------------------
+# Optional: Email
+# -----------------------------------------------------------------------------
+enable_gmail_api = true
+impersonating_service_account_email = "163292813995-compute@callisto-4-qa.iam.gserviceaccount.com"
 
 enable_cost_controls = true
 threshold_cutoff = 0.50 # 50% of budget - adjust as needed
@@ -160,9 +170,10 @@ github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
 
 compute_service_account = "163292813995-compute@developer.gserviceaccount.com"
 
-enable_gmail_api = true
-
+# -----------------------------------------------------------------------------
 # VPC Network (migrated from bootstrap)
+# -----------------------------------------------------------------------------
+
 enable_proxy_only_subnet = true
 
 enable_regional_lb      = true
