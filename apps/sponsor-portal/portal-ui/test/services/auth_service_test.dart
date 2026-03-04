@@ -7,6 +7,7 @@
 
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -518,9 +519,12 @@ void main() {
   });
 
   group('AuthService inactivity timeout', () {
-    Future<AuthService> createSignedInAuthService({
+    // Synchronous setup helper — must run inside a fakeAsync zone so that
+    // the AuthService's internal Timer is governed by fake time.
+    AuthService buildSignedInAuthService(
+      FakeAsync fake, {
       required Duration inactivityTimeout,
-    }) async {
+    }) {
       final mockUser = MockUser(
         uid: 'test-uid',
         email: 'test@example.com',
@@ -554,80 +558,100 @@ void main() {
         httpClient: mockHttpClient,
         inactivityTimeout: inactivityTimeout,
       );
-      await authService.signIn('test@example.com', 'password');
+      // Fire sign-in without awaiting, then flush microtasks to complete the
+      // entire sign-in chain (Firebase mock → token → HTTP mock → user set →
+      // resetInactivityTimer() → Timer created under fake time control).
+      authService.signIn('test@example.com', 'password');
+      fake.flushMicrotasks();
       return authService;
     }
 
-    test(
-      'inactivity timer firing signs user out and sets isTimedOut',
-      () async {
-        final authService = await createSignedInAuthService(
+    test('inactivity timer firing signs user out and sets isTimedOut', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
           inactivityTimeout: const Duration(milliseconds: 100),
         );
 
         expect(authService.isAuthenticated, isTrue);
         expect(authService.isTimedOut, isFalse);
 
-        // Wait for the inactivity timer to fire
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+        // Advance fake clock past the inactivity timeout
+        fake.elapse(const Duration(milliseconds: 200));
 
         expect(authService.isTimedOut, isTrue);
         expect(authService.isAuthenticated, isFalse);
         expect(authService.currentUser, isNull);
-      },
-    );
 
-    test(
-      'inactivity timer does not fire before the timeout duration',
-      () async {
-        final authService = await createSignedInAuthService(
+        // Clean up
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('inactivity timer does not fire before the timeout duration', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
           inactivityTimeout: const Duration(milliseconds: 300),
         );
 
         expect(authService.isAuthenticated, isTrue);
 
-        // Wait less than the timeout
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        // Advance less than the timeout
+        fake.elapse(const Duration(milliseconds: 100));
 
         expect(authService.isTimedOut, isFalse);
         expect(authService.isAuthenticated, isTrue);
 
         // Clean up
-        await authService.signOut();
-      },
-    );
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
 
-    test('resetInactivityTimer prevents timeout from firing', () async {
-      final authService = await createSignedInAuthService(
-        inactivityTimeout: const Duration(milliseconds: 200),
-      );
+    test('resetInactivityTimer prevents timeout from firing', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
 
-      // Reset at 150ms — before the 200ms timeout fires
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      authService.resetInactivityTimer();
+        // Advance to 150ms — before the 200ms timeout fires
+        fake.elapse(const Duration(milliseconds: 150));
+        authService.resetInactivityTimer();
 
-      // Wait another 150ms — would have timed out without the reset
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+        // Advance another 150ms — would have timed out without the reset
+        fake.elapse(const Duration(milliseconds: 150));
 
-      expect(authService.isTimedOut, isFalse);
-      expect(authService.isAuthenticated, isTrue);
+        expect(authService.isTimedOut, isFalse);
+        expect(authService.isAuthenticated, isTrue);
 
-      // Clean up
-      await authService.signOut();
+        // Clean up
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
     });
 
     test(
       'isTimedOut remains true after timeout even when currentUser is null',
-      () async {
-        final authService = await createSignedInAuthService(
-          inactivityTimeout: const Duration(milliseconds: 100),
-        );
+      () {
+        fakeAsync((fake) {
+          final authService = buildSignedInAuthService(
+            fake,
+            inactivityTimeout: const Duration(milliseconds: 100),
+          );
 
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+          fake.elapse(const Duration(milliseconds: 200));
 
-        // Both must be true simultaneously — this is what drives the login banner
-        expect(authService.isTimedOut, isTrue);
-        expect(authService.currentUser, isNull);
+          // Both must be true simultaneously — this is what drives the login banner
+          expect(authService.isTimedOut, isTrue);
+          expect(authService.currentUser, isNull);
+
+          // Clean up (timer already fired, but ensures no pending microtasks)
+          authService.signOut();
+          fake.flushMicrotasks();
+        });
       },
     );
   });
