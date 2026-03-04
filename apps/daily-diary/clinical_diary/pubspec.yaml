@@ -64,8 +64,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-    - assets/licenses/GNU Affero General Public License - GNU Project - Free Software Foundation.pdf
-    - assets/licenses/SIL Open Font License Official Text.pdf
+    - assets/licenses/
 
   fonts:
     - family: OpenDyslexic
