@@ -488,8 +488,8 @@ void main() {
                             DateTime.now().year,
                             DateTime.now().month,
                             DateTime.now().day,
-                            10,
-                            15,
+                            DateTime.now().hour,
+                            DateTime.now().minute,
                           ),
 
                           // overlaps
@@ -525,7 +525,6 @@ void main() {
         await tester.tap(find.text('Set End Time'));
         await tester.pumpAndSettle(const Duration(seconds: 1));
 
-        debugDumpApp();
         expect(
           find.textContaining('overlaps'),
           findsWidgets,
