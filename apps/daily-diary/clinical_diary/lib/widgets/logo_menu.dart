@@ -81,8 +81,6 @@ class _LogoMenuState extends State<LogoMenu> {
                 fit: BoxFit.contain,
               ),
             ),
-
-            // Update indicator dot
           ],
         ),
       ),

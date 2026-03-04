@@ -430,9 +430,6 @@ class AppLocalizations {
       'currentVersionLabel': 'Current version:',
       'requiredVersionLabel': 'Required version:',
       'whatsNew': "What's New",
-      'checkForUpdates': 'Check for updates',
-      'youAreUpToDate': 'You are up to date',
-
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Disconnected from Study',
       'contactYourSite': 'Please contact your study site.',
@@ -842,9 +839,6 @@ class AppLocalizations {
       'currentVersionLabel': 'Version actual:',
       'requiredVersionLabel': 'Version requerida:',
       'whatsNew': 'Novedades',
-      'checkForUpdates': 'Buscar actualizaciones',
-      'youAreUpToDate': 'Esta actualizado',
-
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Desconectado del Estudio',
       'contactYourSite': 'Por favor, contacte a su sitio de estudio.',
@@ -1265,9 +1259,6 @@ class AppLocalizations {
       'currentVersionLabel': 'Version actuelle:',
       'requiredVersionLabel': 'Version requise:',
       'whatsNew': 'Nouveautes',
-      'checkForUpdates': 'Rechercher des mises a jour',
-      'youAreUpToDate': 'Vous etes a jour',
-
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': "Deconnecte de l'Etude",
       'contactYourSite': "Veuillez contacter votre site d'etude.",
@@ -1681,9 +1672,6 @@ class AppLocalizations {
       'currentVersionLabel': 'Aktuelle Version:',
       'requiredVersionLabel': 'Erforderliche Version:',
       'whatsNew': 'Was ist neu',
-      'checkForUpdates': 'Nach Updates suchen',
-      'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
-
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Von der Studie getrennt',
       'contactYourSite': 'Bitte kontaktieren Sie Ihre Studienstelle.',
@@ -2099,9 +2087,6 @@ class AppLocalizations {
   String get currentVersionLabel => translate('currentVersionLabel');
   String get requiredVersionLabel => translate('requiredVersionLabel');
   String get whatsNew => translate('whatsNew');
-  String get checkForUpdates => translate('checkForUpdates');
-  String get youAreUpToDate => translate('youAreUpToDate');
-
   // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
   String get disconnectedFromStudy => translate('disconnectedFromStudy');
   String get contactYourSite => translate('contactYourSite');
