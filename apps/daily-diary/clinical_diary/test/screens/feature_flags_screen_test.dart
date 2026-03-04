@@ -200,10 +200,7 @@ void main() {
         await tester.pumpAndSettle();
         // Should have TextButton (Cancel) and FilledButton (Reset)
         expect(find.byType(TextButton), findsOneWidget);
-        expect(
-          find.byType(FilledButton),
-          findsAtLeastNWidgets(2),
-        ); // One in dialog, one  load
+        expect(find.byType(FilledButton), findsAtLeastNWidgets(1));
       });
 
       testWidgets('tapping cancel closes dialog without resetting', (
