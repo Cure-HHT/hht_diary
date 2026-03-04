@@ -201,7 +201,10 @@ void main() {
 
         // Should have TextButton (Cancel) and FilledButton (Reset)
         expect(find.byType(TextButton), findsOneWidget);
-        expect(find.byType(FilledButton), findsOneWidget);
+        expect(
+          find.byType(FilledButton),
+          findsAtLeastNWidgets(2),
+        ); // One in dialog, one for load
       });
 
       testWidgets('tapping cancel closes dialog without resetting', (
@@ -243,7 +246,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Confirm reset
-        await tester.tap(find.byType(FilledButton));
+        await tester.tap(find.byType(FilledButton).last);
         await tester.pumpAndSettle();
 
         // Values should be back to defaults
@@ -266,7 +269,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Confirm reset
-        await tester.tap(find.byType(FilledButton));
+        await tester.tap(find.byType(FilledButton).last);
         await tester.pumpAndSettle();
 
         // Snackbar should appear
