@@ -748,8 +748,7 @@ class AppLocalizations {
       'joinedDate': 'Inscrito: {0}',
       'linkingCode': 'Codigo de Enlace: {0}',
       'enterNewLinkingCode': 'Ingresar Nuevo Codigo de Enlace',
-      'participationStatusActiveMessage':
-          'Estas participando activamente en un ensayo clinico. Tus datos se estan sincronizando.',
+      'participationStatusActiveMessage': 'Te has unido al estudio',
       'participationStatusDisconnectedMessage':
           'Has sido desconectado del ensayo clinico. Por favor contacta a tu sitio de estudio o ingresa un nuevo codigo de enlace.',
       'participationStatusNotParticipatingMessage':
@@ -1170,8 +1169,7 @@ class AppLocalizations {
       'joinedDate': 'Inscrit: {0}',
       'linkingCode': 'Code de Liaison: {0}',
       'enterNewLinkingCode': 'Entrer un Nouveau Code de Liaison',
-      'participationStatusActiveMessage':
-          'Vous participez activement a un essai clinique. Vos donnees sont synchronisees.',
+      'participationStatusActiveMessage': "Vous avez rejoint l'etude",
       'participationStatusDisconnectedMessage':
           "Vous avez ete deconnecte de l'essai clinique. Veuillez contacter votre site d'etude ou entrer un nouveau code de liaison.",
       'participationStatusNotParticipatingMessage':
@@ -1587,8 +1585,7 @@ class AppLocalizations {
       'joinedDate': 'Angemeldet: {0}',
       'linkingCode': 'Verknupfungscode: {0}',
       'enterNewLinkingCode': 'Neuen Verknupfungscode Eingeben',
-      'participationStatusActiveMessage':
-          'Sie nehmen aktiv an einer klinischen Studie teil. Ihre Daten werden synchronisiert.',
+      'participationStatusActiveMessage': 'Sie sind der Studie beigetreten',
       'participationStatusDisconnectedMessage':
           'Sie wurden von der klinischen Studie getrennt. Bitte kontaktieren Sie Ihr Studienzentrum oder geben Sie einen neuen Verknupfungscode ein.',
       'participationStatusNotParticipatingMessage':

@@ -370,10 +370,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 40,
                     width: 120,
                     errorBuilder: (context, _, _) {
-                      return Image.asset(
-                        'assets/images/generic_company_logo.png',
+                      return const SizedBox(
                         height: 40,
                         width: 120,
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined, size: 32),
+                        ),
                       );
                     },
                   )
