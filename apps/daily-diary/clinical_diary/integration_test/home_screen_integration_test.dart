@@ -49,6 +49,7 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
+import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -2446,6 +2447,182 @@ void main() {
           isTrue,
           reason: 'onEnrolled must be called to trigger task sync',
         );
+      },
+    );
+  });
+
+  // REQ-d00005: Sponsor Configuration Detection Implementation
+  // REQ-p70007: Linking Code Lifecycle Management
+  // REQ-d00078: Linking Code Validation
+  // REQ-CAL-p00049: Mobile Linking Codes
+  // REQ-CAL-p00076: Participation Status Badge
+  group('Enrollment Flow Integration Tests', () {
+    late EnrollmentService enrollmentService;
+    late AuthService authService;
+    late PreferencesService preferencesService;
+    late NosebleedService nosebleedService;
+    late Directory tempDir;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      tempDir = await Directory.systemTemp.createTemp('enrollment_int_test_');
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path.contains('/api/v1/user/link')) {
+          return http.Response(
+            '{"jwt":"mock-jwt-token","userId":"test-patient-123","patientId":"patient-456","siteId":"site-789","siteName":"Test Research Center","sitePhoneNumber":"+1-555-0123","studyPatientId":"STUDY-001"}',
+            200,
+          );
+        }
+        return http.Response('{"success": true}', 200);
+      });
+
+      enrollmentService = EnrollmentService(httpClient: mockHttpClient);
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_enrollment.db',
+          enableEncryption: false,
+        ),
+      );
+
+      authService = AuthService(httpClient: mockHttpClient);
+      preferencesService = PreferencesService();
+      nosebleedService = NosebleedService(
+        enrollmentService: enrollmentService,
+        httpClient: mockHttpClient,
+        enableCloudSync: false,
+      );
+    });
+
+    tearDown(() async {
+      nosebleedService.dispose();
+      enrollmentService.dispose();
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    Widget buildEnrollmentHomeScreen() {
+      return _wrapWithApp(
+        HomeScreen(
+          nosebleedService: nosebleedService,
+          enrollmentService: enrollmentService,
+          authService: authService,
+          taskService: TaskService(),
+          preferencesService: preferencesService,
+          onLocaleChanged: (_) {},
+          onThemeModeChanged: (_) {},
+          onLargerTextChanged: (_) {},
+        ),
+      );
+    }
+
+    testWidgets(
+      'REQ-CAL-p00049: User can enroll via enrollment page and enrollment is saved to local storage',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+
+        var isEnrolled = await enrollmentService.isEnrolled();
+        expect(isEnrolled, false);
+
+        await tester.pumpWidget(buildEnrollmentHomeScreen());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.tap(find.byIcon(Icons.person_outline).first);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Enroll in Clinical Trial').first);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).first, 'CAXXX');
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).last, 'XXXXX');
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(Checkbox).last);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+        await tester.tap(find.byType(FilledButton).first);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        isEnrolled = await enrollmentService.isEnrolled();
+        expect(isEnrolled, true);
+
+        final savedEnrollment = await enrollmentService.getEnrollment();
+        expect(savedEnrollment, isNotNull);
+        expect(savedEnrollment!.userId, 'test-patient-123');
+        expect(savedEnrollment.patientId, 'patient-456');
+        expect(savedEnrollment.siteId, 'site-789');
+        expect(savedEnrollment.siteName, 'Test Research Center');
+        expect(savedEnrollment.jwtToken, 'mock-jwt-token');
+        expect(savedEnrollment.enrolledAt, isNotNull);
+        expect(savedEnrollment.isLinkedToClinicalTrial, true);
+      },
+    );
+
+    testWidgets(
+      'REQ-d00005: Sponsor branding is displayed on home screen after enrollment',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(buildEnrollmentHomeScreen());
+        await tester.pumpAndSettle();
+
+        final isEnrolled = await enrollmentService.isEnrolled();
+        expect(isEnrolled, true);
+
+        final enrollment = await enrollmentService.getEnrollment();
+        expect(enrollment!.sponsorId, isNotNull);
+
+        expect(find.byType(LogoMenu), findsOneWidget);
+
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Image &&
+                widget.image is AssetImage &&
+                (widget.image as AssetImage).assetName ==
+                    'assets/images/cure-hht-grey.png',
+          ),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'REQ-CAL-p00076: Active trial badge is displayed on profile screen after enrollment',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(buildEnrollmentHomeScreen());
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.person_outline).first);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Profile').first);
+        await tester.pumpAndSettle();
+
+        expect(find.text("You've joined the study"), findsOneWidget);
       },
     );
   });

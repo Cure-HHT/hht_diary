@@ -11,33 +11,25 @@ import 'package:http/http.dart' as http;
 
 /// Sponsor branding configuration returned by GET /api/v1/sponsor/branding.
 class SponsorBrandingConfig {
-  const SponsorBrandingConfig({
-    required this.sponsorId,
-    required this.title,
-    required this.assetBaseUrl,
-  });
+  const SponsorBrandingConfig({this.sponsorId, this.title, this.assetBaseUrl});
 
   factory SponsorBrandingConfig.fromJson(Map<String, dynamic> json) {
     return SponsorBrandingConfig(
-      sponsorId: json['sponsorId'] as String? ?? '',
-      title: json['title'] as String? ?? 'Clinical Trial',
-      assetBaseUrl: json['assetBaseUrl'] as String? ?? '',
+      sponsorId: json['sponsorId'] as String?,
+      title: json['title'] as String?,
+      assetBaseUrl: json['assetBaseUrl'] as String?,
     );
   }
-  final String sponsorId;
-  final String title;
-  final String assetBaseUrl;
+  final String? sponsorId;
+  final String? title;
+  final String? assetBaseUrl;
 
   /// Fallback branding when config is unavailable.
-  static const fallback = SponsorBrandingConfig(
-    sponsorId: '',
-    title: 'Clinical Trial ',
-    assetBaseUrl: '',
-  );
+  static const fallback = SponsorBrandingConfig();
 
   /// Convention-based URL for the app logo.
   String? get appLogoUrl {
-    if (assetBaseUrl.isEmpty) return null;
+    if (assetBaseUrl == null) return null;
     return '${AppConfig.apiBase}$assetBaseUrl/mobile/assets/images/app_logo.png';
   }
 
@@ -84,7 +76,7 @@ class SponsorBrandingService {
       if (response.statusCode == 503) {
         debugPrint('[SponsorBrandingService] Server returned 503');
         throw SponsorBrandingException(
-          'Sponsor branding not configured on server',
+          'Sponsor branding may not be configured on server',
           statusCode: 503,
         );
       }
