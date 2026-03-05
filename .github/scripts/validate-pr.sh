@@ -381,7 +381,7 @@ if [ "$ENFORCE_CODE_HEADERS" = "on" ] && { [ "$CODE_CHANGED" = "true" ] || [ "$D
     done
     echo ""
     echo "CODE HEADER VALIDATION FAILED (ENFORCE_CODE_HEADERS=on)"
-    echo "See spec/requirements-format.md for the correct format."
+    echo "See spec/requirements-spec.md for the correct format."
     end_group
     exit 1
   fi

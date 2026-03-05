@@ -165,7 +165,6 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
         └── andromeda/
             └── (sponsor-specific REQs - imported later)
 ├── tools/
-│   ├── anspar-cc-plugins/       (Plugins for Claude Code)
 │   ├── build/                   (Speculative Sponsor Integration - TODO fix)
 │   └── dev-env/                 (Development Environment Containers)
 │   └── requirements/            (Tools for managing requirements and validation)

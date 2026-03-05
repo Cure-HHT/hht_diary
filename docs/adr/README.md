@@ -142,7 +142,7 @@ Once the decision is made:
 5. **Link ADR to implementation**:
    - Reference ADR in commit messages: `"Implement multi-language support per ADR-XXX"`
    - Add ADR reference to code comments where relevant
-   - Link requirements if applicable (see spec/requirements-format.md)
+   - Link requirements if applicable (see spec/requirements-spec.md)
 
 6. **Commit ADR with implementation**: ADR and code go together
    ```bash
@@ -246,5 +246,5 @@ Not every ADR needs formal requirements:
 
 - [Documenting Architecture Decisions by Michael Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
 - [ADR GitHub Organization](https://adr.github.io/)
-- **Requirements format**: `../spec/requirements-format.md`
+- **Requirements format**: `../spec/requirements-spec.md`
 - **Requirement traceability**: `../spec/README.md` and `CLAUDE.md`

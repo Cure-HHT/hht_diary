@@ -371,7 +371,7 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 **2. validate-code-headers**
 
 - Checks SQL and Dart files for requirement headers
-- Validates header format per `spec/requirements-format.md`
+- Validates header format per `spec/requirements-spec.md`
 - **Blocking**: NO (warning only)
 
 **3. validate-migrations**
@@ -763,7 +763,7 @@ grep -A 5 "REQ-p00001" spec/prd-*.md
 **Resolution**:
 
 1. Review error output for specific requirement ID
-2. Check `spec/requirements-format.md` for correct format
+2. Check `spec/requirements-spec.md` for correct format
 3. Ensure "Implements" field references existing requirement
 4. Fix requirement format and re-run validation
 
@@ -1035,7 +1035,7 @@ This CI/CD system has been validated per:
 
 ## Related Documents
 
-- **Requirements Format**: `spec/requirements-format.md`
+- **Requirements Format**: `spec/requirements-spec.md`
 - **Pre-commit Hook**: `.githooks/README.md`
 - **elspais Tool**: `pip install elspais` (preferred for local validation)
 - **Legacy Validation Tool**: `tools/requirements/validate_requirements.py`

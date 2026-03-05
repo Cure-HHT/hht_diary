@@ -182,15 +182,9 @@ setup_plugins() {
     fi
 
     if $check_only; then
-        # Check if marketplace is registered
-        if grep -q "anspar-cc-plugins" "$settings_file" 2>/dev/null; then
-            ok "Plugin marketplace registered"
-        else
-            fail "Plugin marketplace not registered"
-        fi
+        ok "Plugin settings check skipped (plugins managed externally)"
     else
-        anspar-wf plugins register --project-dir "$REPO_ROOT"
-        ok "Plugin marketplace registered"
+        ok "Plugin registration skipped (plugins managed externally)"
     fi
 }
 

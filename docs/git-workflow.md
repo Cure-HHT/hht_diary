@@ -111,7 +111,6 @@ Before starting work on a ticket, you must claim it using the workflow plugin.
 
 **Command**:
 ```bash
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh <TICKET-ID> [AGENT-TYPE] [SPONSOR]
 ```
 
@@ -331,7 +330,6 @@ Implements: REQ-x00001  ❌ Type 'x' is invalid (must be p, o, d)
 If unsure which requirements to reference, get suggestions:
 
 ```bash
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/suggest-req.sh
 
 # Output:
@@ -464,7 +462,6 @@ Two git hooks enforce requirement traceability:
 ❌ ERROR: No active ticket claimed for this worktree
 
 Before committing, claim a ticket:
-  cd tools/anspar-cc-plugins/plugins/workflow
   ./scripts/claim-ticket.sh <TICKET-ID>
 ```
 
@@ -526,8 +523,8 @@ cat -n spec/INDEX.md
 
 **Get requirement details**:
 ```bash
-# Using simple-requirements plugin (if available)
-python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/get-requirement.py REQ-d00027
+# Search for requirement in spec/ directory
+grep -r "REQ-d00027" spec/
 ```
 
 ---
@@ -600,10 +597,10 @@ git commit -m "Work\n\nImplements: REQ-d00027"  # ✅ Succeeds (CUR-263 active)
 cd ../diary-worktrees/feature-b
 
 # Check active ticket
-./tools/anspar-cc-plugins/plugins/workflow/scripts/get-active-ticket.sh --format=human
+./scripts/get-active-ticket.sh --format=human
 
 # Switch tickets (pauses current, claims new)
-./tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh CUR-265 "Need to prioritize blocker"
+./scripts/switch-ticket.sh CUR-265 "Need to prioritize blocker"
 ```
 
 ### Deleting Worktrees
@@ -754,11 +751,9 @@ git pull origin main
 git checkout -b feature/CUR-262-offline-sync
 
 # 2. Claim ticket for this worktree
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh CUR-262
 
 # 3. Make changes and commits
-cd /path/to/repo
 # ... edit files ...
 git add .
 git commit -m "Add offline sync
@@ -771,7 +766,6 @@ gh pr create --title "[CUR-262] Add offline sync" \
   --body "## Summary\nImplements offline-first sync\n\nImplements: REQ-p00006"
 
 # 5. After merge, release ticket
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/release-ticket.sh "Work complete - merged"
 ```
 
@@ -784,7 +778,6 @@ git pull origin main
 git checkout -b fix/CUR-270-auth-crash
 
 # 2. Claim ticket
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh CUR-270
 
 # 3. Debug and fix issue
@@ -896,15 +889,10 @@ git rebase origin/main
 
 - **CLAUDE.md**: Project-wide instructions
 - **Branch Protection**: CLAUDE.md "Critical Rules" section
-- **Requirement Format**: `spec/requirements-format.md`
+- **Requirement Format**: `spec/requirements-spec.md`
 - **Requirement Index**: `spec/INDEX.md` (complete list of all REQ-xxx)
 - **Development Guide**: `spec/dev-requirements-management.md`
 - **ADR Process**: `docs/adr/README.md`
-
-### Tools and Plugins
-
-- **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md`
-- **Requirement Tracking**: `tools/anspar-cc-plugins/plugins/simple-requirements/TRACKING-WORKFLOW.md`
 
 ### External Resources
 
@@ -929,7 +917,6 @@ git rebase origin/main
 
 **Solution**:
 ```bash
-cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh <TICKET-ID>
 ```
 

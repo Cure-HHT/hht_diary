@@ -154,7 +154,7 @@
 | REQ-o00009 | Portal Deployment Per Sponsor                     | ops-deployment.md                      | 79fba7ec |
 | REQ-o00010 | Mobile App Release Process                        | ops-deployment.md                      | c3b108f5 |
 | REQ-o00011 | Multi-Site Data Configuration Per Sponsor         | ops-database-setup.md                  | 529b59ce |
-| REQ-o00013 | Requirements Format Validation                    | ops-requirements-management.md         | 73eb4415 |
+| REQ-o00013 | Requirements Format Validation                    | ops-requirements-management.md         | d97cfb59 |
 | REQ-o00014 | Top-Down Requirement Cascade                      | ops-requirements-management.md         | 68a8deeb |
 | REQ-o00015 | Documentation Structure Enforcement               | ops-requirements-management.md         | bafe78ff |
 | REQ-o00016 | Architecture Decision Process                     | ops-requirements-management.md         | d2bf6cb2 |
@@ -229,9 +229,9 @@
 | REQ-d00010 | Data Encryption Implementation                     | dev-security.md                                      | be1c205f |
 | REQ-d00011 | Multi-Site Schema Implementation                   | dev-database.md                                      | 982caeb9 |
 | REQ-d00013 | Application Instance UUID Generation               | dev-app.md                                           | 5a81d46b |
-| REQ-d00014 | Requirement Validation Tooling                     | dev-requirements-management.md                       | ed143a48 |
+| REQ-d00014 | Requirement Validation Tooling                     | dev-requirements-management.md                       | 9a39788e |
 | REQ-d00015 | Traceability Matrix Auto-Generation                | dev-requirements-management.md                       | 235c988e |
-| REQ-d00016 | Code-to-Requirement Linking                        | dev-requirements-management.md                       | 7723f737 |
+| REQ-d00016 | Code-to-Requirement Linking                        | dev-requirements-management.md                       | ac179cb6 |
 | REQ-d00017 | ADR Template and Lifecycle Tooling                 | dev-requirements-management.md                       | 4fa259a5 |
 | REQ-d00018 | Git Hook Implementation                            | dev-requirements-management.md                       | fcfe6de1 |
 | REQ-d00019 | Patient Data Isolation RLS Implementation          | dev-security-RLS.md                                  | f3cbf5fe |
@@ -253,11 +253,7 @@
 | REQ-d00061 | Automated QA Workflow                              | dev-environment.md                                   | 75dfd6e6 |
 | REQ-d00062 | Environment Validation & Change Control            | dev-environment.md                                   | edff16ee |
 | REQ-d00063 | Shared Workspace and File Exchange                 | dev-environment.md                                   | 8a68ffca |
-| REQ-d00064 | Plugin JSON Validation Tooling                     | dev-ai-claude.md                                     | ade1a4f4 |
-| REQ-d00065 | Plugin Path Validation                             | dev-ai-claude.md                                     | 09911117 |
 | REQ-d00066 | Plugin-Specific Permission Management              | dev-marketplace-permissions.md                       | 03045719 |
-| REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md                                     | f6d9e288 |
-| REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md                                     | 951ecf65 |
 | REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md                                     | 7adcbff1 |
 | REQ-d00078 | Linking Code Validation                            | dev-linking.md                                       | 8cc744c2 |
 | REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                                       | f5e20cde |

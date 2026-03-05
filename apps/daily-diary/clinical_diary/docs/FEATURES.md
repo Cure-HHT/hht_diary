@@ -952,11 +952,6 @@ Local enforcement of code quality before commits and pushes reach CI/CD.
    - Skips `untracked-notes/` directory
    - Skips if markdownlint not installed (with warning)
 
-8. **Plugin Hooks**
-   - Auto-discovers and executes hooks from
-     `tools/anspar-cc-plugins/plugins/*/hooks/pre-commit`
-   - Includes REQ traceability validation
-
 ---
 
 #### `commit-msg` - Commit Message Validation

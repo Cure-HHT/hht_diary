@@ -22,7 +22,6 @@ All hooks are managed through **plugin hooks** that delegate to specialized Clau
 ```
 .githooks/pre-commit (orchestrator)
   ├── workflow/hooks/pre-commit (ticket validation, secret scanning)
-  ├── simple-requirements/hooks/pre-commit-requirement-validation (format validation)
   ├── spec-compliance/hooks/pre-commit-spec-compliance (audience scope enforcement)
   └── traceability-matrix/hooks/pre-commit-traceability-matrix (matrix regeneration)
 
@@ -57,19 +56,13 @@ All hooks are managed through **plugin hooks** that delegate to specialized Clau
    - Blocks commits without claimed ticket
    - Blocks commits that expose API keys, passwords, or credentials
 
-3. **Requirement Validation** (simple-requirements plugin)
-   - Validates requirement format: `REQ-{type}{number}` (e.g., `REQ-d00027`)
-   - Ensures requirement ID uniqueness across all spec/ files
-   - Verifies "Implements" parent requirements exist
-   - Detects orphaned requirements (no implementations)
-
-4. **Specification Compliance** (spec-compliance plugin)
+3. **Specification Compliance** (spec-compliance plugin)
    - Validates file naming: `{audience}-{topic}.md`
    - Enforces audience scope rules (PRD cannot contain code)
    - Checks requirement metadata presence and format
    - Validates hierarchical requirement cascade
 
-5. **Traceability Matrix Regeneration** (traceability-matrix plugin)
+4. **Traceability Matrix Regeneration** (traceability-matrix plugin)
    - Auto-regenerates `traceability_matrix.md` and `traceability_matrix.html`
    - Only runs when spec/ files change
    - Stages updated matrices for commit
@@ -181,18 +174,7 @@ The hooks themselves are already in the repository and ready to use - this just 
 
 If `git config` doesn't work (rare edge cases), you can manually copy hooks:
 
-### Step 1: Make Plugin Hooks Executable
-
-```bash
-# Make all plugin hooks executable
-chmod +x tools/anspar-cc-plugins/plugins/*/hooks/*
-chmod +x tools/anspar-cc-plugins/plugins/*/hooks/pre-commit
-
-# Verify they're executable
-ls -la tools/anspar-cc-plugins/plugins/*/hooks/ | grep -E 'pre-commit|commit-msg|post-commit'
-```
-
-### Step 2: Copy Orchestrator Hooks to .git/hooks/
+### Step 1: Copy Orchestrator Hooks to .git/hooks/
 
 ```bash
 # Create .git/hooks directory if needed (usually exists)
@@ -212,7 +194,7 @@ chmod +x .git/hooks/post-commit
 ls -la .git/hooks/ | grep -E 'pre-commit|commit-msg|post-commit'
 ```
 
-### Step 3: Verify Installation
+### Step 2: Verify Installation
 
 ```bash
 # Test with a dry-run commit
@@ -416,9 +398,6 @@ chmod +x .githooks/post-commit
    # Index validation (using elspais)
    elspais index validate
 
-   # Spec compliance
-   ./tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
-
    # Traceability matrix generation
    elspais trace --format markdown
    ```
@@ -440,11 +419,9 @@ chmod +x .githooks/post-commit
 ```bash
 # Make all hooks executable
 chmod +x .githooks/*
-chmod +x tools/anspar-cc-plugins/plugins/*/hooks/*
 
 # Verify
 ls -la .githooks/ | head
-ls -la tools/anspar-cc-plugins/plugins/*/hooks/ | grep -E 'pre-commit|commit-msg|post-commit'
 ```
 
 ### Validation Passes Locally But Fails in CI
@@ -462,18 +439,8 @@ ls -la tools/anspar-cc-plugins/plugins/*/hooks/ | grep -E 'pre-commit|commit-msg
 # Check elspais version
 elspais --version
 
-# Ensure plugin scripts are committed
-git status tools/anspar-cc-plugins/
-
 # Run validation manually (using elspais)
 elspais validate
-
-# Commit any updated scripts
-git add tools/anspar-cc-plugins/
-git commit -m "Update validation scripts
-
-Implements: REQ-xxx
-"
 ```
 
 ### Workflow State File Issues
@@ -489,7 +456,7 @@ cat .git/WORKFLOW_STATE | python3 -m json.tool
 
 # If corrupted, backup and recreate
 mv .git/WORKFLOW_STATE .git/WORKFLOW_STATE.bak
-./tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh <TICKET-ID>
+./scripts/claim-ticket.sh <TICKET-ID>
 
 # Verify new state
 cat .git/WORKFLOW_STATE | python3 -m json.tool
@@ -504,10 +471,10 @@ cat .git/WORKFLOW_STATE | python3 -m json.tool
 **Solution**:
 ```bash
 # Claim a ticket
-./tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-262
+./scripts/claim-ticket.sh CUR-262
 
 # Or check if already claimed
-./tools/anspar-cc-plugins/plugins/workflow/scripts/get-active-ticket.sh --format=human
+./scripts/get-active-ticket.sh --format=human
 ```
 
 ### Gitleaks Not Installed
@@ -602,100 +569,11 @@ git commit -m "Update requirements\n\nImplements: REQ-p00042, REQ-d00027"
 
 The matrices are automatically staged and included in your commit.
 
-## Plugin Hook Orchestration
-
-### How Plugins Are Discovered
-
-The main pre-commit hook auto-discovers and executes all plugin hooks:
-
-```bash
-# Discovery process:
-# 1. Scan tools/anspar-cc-plugins/plugins/*/hooks/pre-commit
-# 2. Find all matching files
-# 3. Execute in alphabetical order
-# 4. Stop on first failure
-
-# Example discovery:
-find tools/anspar-cc-plugins/plugins -type f -path "*/hooks/pre-commit" | sort
-# tools/anspar-cc-plugins/plugins/simple-requirements/hooks/pre-commit-requirement-validation
-# tools/anspar-cc-plugins/plugins/spec-compliance/hooks/pre-commit-spec-compliance
-# tools/anspar-cc-plugins/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix
-# tools/anspar-cc-plugins/plugins/workflow/hooks/pre-commit
-```
-
-### Adding New Plugin Hooks
-
-To add a new plugin hook:
-
-1. Create hook file in plugin's hooks directory:
-   ```bash
-   touch tools/anspar-cc-plugins/plugins/myplugin/hooks/pre-commit
-   ```
-
-2. Make it executable:
-   ```bash
-   chmod +x tools/anspar-cc-plugins/plugins/myplugin/hooks/pre-commit
-   ```
-
-3. Implement validation logic (should exit 0 on success, 1 on failure)
-
-4. Test with dry-run:
-   ```bash
-   git commit -m "test" --dry-run
-   ```
-
-The orchestrator hook will automatically discover and execute it.
-
-### Removing Plugin Hooks
-
-To disable a plugin hook:
-
-1. **Option 1**: Rename the hook file:
-   ```bash
-   mv tools/anspar-cc-plugins/plugins/myplugin/hooks/pre-commit \
-      tools/anspar-cc-plugins/plugins/myplugin/hooks/pre-commit.disabled
-   ```
-
-2. **Option 2**: Remove the plugin entirely:
-   ```bash
-   rm -rf tools/anspar-cc-plugins/plugins/myplugin
-   ```
-
-3. **Option 3**: Edit orchestrator hook to skip plugin:
-   ```bash
-   # Edit .githooks/pre-commit to add conditional logic
-   ```
-
 ## References
-
-### Plugin Documentation
-
-- **workflow** - Ticket management and traceability
-  - Path: `tools/anspar-cc-plugins/plugins/workflow/README.md`
-  - Enforces: Active ticket requirement, REQ references, secret scanning
-  - Hooks: `pre-commit`, `commit-msg`, `post-commit`
-
-- **simple-requirements** - Requirement validation
-  - Path: `tools/anspar-cc-plugins/plugins/simple-requirements/README.md`
-  - Enforces: Requirement format, uniqueness, parent references
-  - Hooks: `pre-commit-requirement-validation`
-
-- **spec-compliance** - Specification compliance
-  - Path: `tools/anspar-cc-plugins/plugins/spec-compliance/README.md`
-  - Enforces: File naming, audience scope, requirement hierarchy
-  - Hooks: `pre-commit-spec-compliance`
-
-- **traceability-matrix** - Matrix generation
-  - Path: `tools/anspar-cc-plugins/plugins/traceability-matrix/README.md`
-  - Generates: `traceability_matrix.md` and `.html`
-  - Hooks: `pre-commit-traceability-matrix`
-
-### Other Documentation
 
 - **Project Instructions**: `CLAUDE.md` - Requirement traceability rules
 - **Spec Directory**: `spec/README.md` - How to structure requirements
-- **Requirement Format**: `spec/requirements-format.md` - Requirement syntax
-- **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md` - Full workflow details
+- **Requirement Format**: `spec/requirements-spec.md` - Requirement syntax
 - **Git Hooks Directory**: `.githooks/README.md` - Original hooks overview
 
 ## Summary
@@ -713,4 +591,4 @@ To enable hooks: `git config core.hooksPath .githooks`
 
 Hooks are non-bypassing in CI/CD, so fix issues locally rather than deferring to CI validation.
 
-For detailed information about any hook, see the plugin documentation in `tools/anspar-cc-plugins/plugins/`.
+For detailed information about any hook, see the `.githooks/` directory.

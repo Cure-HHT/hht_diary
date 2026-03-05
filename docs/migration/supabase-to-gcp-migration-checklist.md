@@ -379,7 +379,7 @@ If critical issues arise during migration:
 | 2025-11-24 | 1.3 | Completed dev-architecture-multi-sponsor.md, ops-operations.md | Claude |
 | 2025-11-24 | 1.4 | Completed dev-core-practices.md, dev-compliance-practices.md, ops-deployment-checklist.md, prd-portal.md | Claude |
 | 2025-11-24 | 1.5 | Completed dev-app.md, ops-deployment-automation.md, dev-database-reference.md | Claude |
-| 2025-11-24 | 1.6 | Completed RLS files, prd-security-RBAC.md, ops-github-access-control.md, ops-security-tamper-proofing.md, INDEX.md, requirements-format.md | Claude |
+| 2025-11-24 | 1.6 | Completed RLS files, prd-security-RBAC.md, ops-github-access-control.md, ops-security-tamper-proofing.md, INDEX.md, requirements-spec.md | Claude |
 | 2025-11-24 | 1.7 | Completed dev-portal.md - comprehensive rewrite (Firebase Auth, Cloud Run deployment, application-set RLS policies) | Claude |
 | 2025-11-24 | 1.8 | **Phase 1 Complete**: All PRD, DEV, and OPS spec files verified - no remaining Supabase references (except historical changelog entries) | Claude |
 | 2025-11-25 | 2.0 | **Phase 2 Complete**: Created GCP documentation (project-structure, cloud-sql-setup, cloud-run-deployment, identity-platform-setup) and Terraform gcp-sponsor-project module. Secrets decision: Hybrid (Doppler dev/test/uat, Secret Manager prod) | Claude |

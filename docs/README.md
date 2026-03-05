@@ -171,7 +171,7 @@ When adding documentation:
 
 ## References
 
-- **Requirement format**: `spec/requirements-format.md`
+- **Requirement format**: `spec/requirements-spec.md`
 - **Spec directory**: `spec/README.md`
 - **ADR process**: `adr/README.md`
 - **Project instructions**: `CLAUDE.md`

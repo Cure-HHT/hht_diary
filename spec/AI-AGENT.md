@@ -7,7 +7,7 @@ AI agents modifying or generating requirements MUST follow these rules.
 
 Before writing or editing requirements, read:
 1. `spec/requirements-spec.md` — authoritative grammar and rules
-2. `spec/requirements-template.md` — required structure
+2. `spec/EXAMPLE-requirement.md` — example structure
 3. Relevant `prd-*.md`, `dev-*.md`, or `ops-*.md` files
 
 Do not infer rules from examples alone.

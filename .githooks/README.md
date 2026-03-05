@@ -184,7 +184,7 @@ chmod +x tools/claude-marketplace/*/hooks/*
 Plugins call validation scripts via elspais. If validation fails:
 
 1. Read the error message carefully
-2. See `spec/requirements-format.md` for format rules
+2. See `spec/requirements-spec.md` for format rules
 3. Run validation manually to see full output:
    ```bash
    elspais validate
@@ -229,5 +229,5 @@ See plugin documentation for detailed troubleshooting:
 ## Related Documentation
 
 - **Marketplace Overview**: `tools/claude-marketplace/README.md`
-- **Requirement format**: `spec/requirements-format.md`
+- **Requirement format**: `spec/requirements-spec.md`
 - **Project instructions**: `CLAUDE.md`

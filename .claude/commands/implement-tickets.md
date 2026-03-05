@@ -15,12 +15,9 @@ This project uses formal requirement traceability with Linear tickets. Each tick
 
 ## Phase 1: Ticket Selection
 
-1. **Fetch actionable tickets**:
-```bash
-export LINEAR_API_TOKEN="<token>"
-cd tools/linear-cli
-node fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json > /tmp/tickets.json
-```
+1. **Fetch actionable tickets** using the Linear MCP:
+   - Use `list_issues` to find Todo/In Progress tickets
+   - Filter by priority and labels
 
 2. **Analyze and filter tickets**:
    - Priority: Focus on P0 (Urgent) and P1 (High) first
@@ -147,7 +144,6 @@ After implementing 5 tickets:
 ### High-Priority Implementable Tickets:
 
 **Tier 1: Can implement immediately**
-- Requirement validation tooling (Python scripts)
 - Git hooks (Bash scripts)
 - ADR templates (Markdown)
 - Database schema definitions (SQL - design only, not deployment)
@@ -179,37 +175,13 @@ After implementing 5 tickets:
 | Config templates | YAML/JSON/ENV | `config/`, docs |
 | Dev environment | Shell scripts, docs | `tools/setup/`, docs |
 
-## Linear API Helpers
+## Linear Integration
 
-**Update ticket description**:
-```bash
-node tools/linear-cli/update-ticket-with-requirement.js \
-  --token=$LINEAR_API_TOKEN \
-  --ticket-id=<UUID> \
-  --req-id=<REQ-xxx>
-```
-
-**Fetch ticket details**:
-```bash
-node tools/linear-cli/fetch-tickets.js \
-  --token=$LINEAR_API_TOKEN \
-  --format=json | jq '.viewer.assignedIssues.nodes[] | select(.identifier=="CUR-XXX")'
-```
-
-**Create blocker ticket** (use GraphQL mutation via Linear API):
-```graphql
-mutation CreateBlocker {
-  issueCreate(input: {
-    teamId: "<team-id>"
-    title: "Blocker: <description>"
-    description: "Blocks CUR-XXX\n\n<details>"
-    priority: 1
-  }) {
-    success
-    issue { id, identifier }
-  }
-}
-```
+Use the Linear MCP tools for all ticket operations:
+- `list_issues` — fetch and filter tickets
+- `get_issue` — get ticket details
+- `save_issue` — update ticket state, description, or create new tickets
+- `save_comment` — add progress comments to tickets
 
 ## Notes
 

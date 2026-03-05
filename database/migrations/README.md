@@ -1315,7 +1315,7 @@ database/migrations/
 ## References
 
 - **[docs/ops-database-deployment.md](/home/mclew/dev24/diary-worktrees/clean-docs/docs/ops-database-deployment.md)** - Complete operational deployment procedures, testing, and monitoring
-- **[spec/requirements-format.md](/home/mclew/dev24/diary-worktrees/clean-docs/spec/requirements-format.md)** - Requirement traceability format for implementation files
+- **[spec/requirements-spec.md](/home/mclew/dev24/diary-worktrees/clean-docs/spec/requirements-spec.md)** - Requirement traceability format for implementation files
 - **[database/schema.sql](/home/mclew/dev24/diary-worktrees/clean-docs/database/schema.sql)** - Implementation file with requirement headers
 - **[spec/MIGRATION_STRATEGY.md](/home/mclew/dev24/diary-worktrees/clean-docs/spec/MIGRATION_STRATEGY.md)** - High-level migration strategy (if exists)
 

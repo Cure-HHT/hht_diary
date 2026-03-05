@@ -54,8 +54,8 @@ repo_pattern = "hht_diary_{sponsor-name}"
 [spec]
 index_file = "INDEX.md"
 readme_file = "README.md"
-format_guide = "requirements-format.md"
-skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
+format_guide = "requirements-spec.md"
+skip_files = ["README.md", "requirements-spec.md", "INDEX.md"]
 skip_dirs = ["roadmap", "regulations/fda/reference"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"

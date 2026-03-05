@@ -69,7 +69,7 @@ export function loadRequirementsFromSpec(specPath: string): Map<string, Requirem
 
         // Read all .md files in spec directory
         const files = fs.readdirSync(specPath)
-            .filter(file => file.endsWith('.md') && file !== 'requirements-format.md')
+            .filter(file => file.endsWith('.md') && file !== 'requirements-spec.md')
             .map(file => path.join(specPath, file));
 
         // Parse requirements from each file

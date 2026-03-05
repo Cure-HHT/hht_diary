@@ -1172,10 +1172,6 @@ doppler secrets list --token $DOPPLER_TOKEN_CORE
   - Setup: `tools/vscode-linear-req-inserter/README.md`
   - Get Linear API token via this guide
 
-- **Workflow Plugin**: Enforces requirement traceability
-  - Documentation: `tools/anspar-cc-plugins/plugins/workflow/README.md`
-  - Includes secret detection via gitleaks
-
 ---
 
 ## Contact and Support

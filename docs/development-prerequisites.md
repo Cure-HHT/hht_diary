@@ -959,11 +959,6 @@ Used by Linear API plugin for ticket operations.
 export LINEAR_API_TOKEN="lin_api_xxxxx"
 ```
 
-**Verification**:
-```bash
-node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js
-```
-
 #### LINEAR_TEAM_ID
 
 Team ID for Linear workspace (auto-discovered if not set).
@@ -1172,9 +1167,6 @@ ls -la .githooks/
 chmod +x .githooks/*
 
 # Test by attempting commit without ticket
-cd tools/anspar-cc-plugins/plugins/workflow
-./scripts/claim-ticket.sh TEST-001
-cd /path/to/repo
 git add README.md
 git commit -m "Test"  # Should fail if no REQ reference
 ```
@@ -1244,21 +1236,17 @@ sudo apt-get install -y lcov
 **Solution**:
 ```bash
 # Make scripts executable
-chmod +x tools/anspar-cc-plugins/plugins/workflow/scripts/*.sh
 chmod +x .githooks/*
 
 # Verify
 ls -la .githooks/
-ls -la tools/anspar-cc-plugins/plugins/workflow/scripts/
 ```
 
 ## References
 
 - **Project CLAUDE.md**: `/CLAUDE.md` - Project-specific instructions
 - **Spec Directory**: `spec/README.md` - Requirement structure and format
-- **Requirements Format**: `spec/requirements-format.md` - Detailed requirement syntax
-- **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md` - Ticket workflow enforcement
-- **Linear API Plugin**: `tools/anspar-cc-plugins/plugins/linear-api/README.md` - Linear integration
+- **Requirements Format**: `spec/requirements-spec.md` - Detailed requirement syntax
 - **Dev Environment**: `tools/dev-env/docker/base.Dockerfile` - Container tool specifications
 - **VS Code Dev Containers**: https://code.visualstudio.com/docs/devcontainers/containers
 - **Docker Desktop**: https://www.docker.com/products/docker-desktop

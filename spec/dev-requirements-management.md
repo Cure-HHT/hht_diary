@@ -62,7 +62,7 @@ L. The elspais CLI SHALL be installed and available in PATH.
 
 M. The elspais validate command SHALL scan all .md files in the spec/ directory recursively.
 
-N. The system SHALL validate requirement format matches the spec/requirements-format.md specification.
+N. The system SHALL validate requirement format matches the spec/requirements-spec.md specification.
 
 O. The system SHALL output summary statistics including total requirements, counts by level, and counts by status.
 
@@ -74,7 +74,7 @@ R. The fallback Python script SHALL be executable via python3 tools/requirements
 
 S. The system SHALL integrate requirement validation into git hooks to prevent invalid requirements from entering the codebase.
 
-*End* *Requirement Validation Tooling* | **Hash**: ed143a48
+*End* *Requirement Validation Tooling* | **Hash**: 9a39788e
 ---
 
 # REQ-d00015: Traceability Matrix Auto-Generation
@@ -158,9 +158,9 @@ E. Requirement IDs in header comments SHALL be listed in ascending order.
 
 F. Header comments SHALL be placed before the first functional code (after imports/declarations).
 
-G. The header comment format SHALL be documented in spec/requirements-format.md.
+G. The header comment format SHALL be documented in spec/requirements-spec.md.
 
-H. The documentation in spec/requirements-format.md SHALL include examples for SQL, Dart, TypeScript, and Python.
+H. The documentation in spec/requirements-spec.md SHALL include examples for SQL, Dart, TypeScript, and Python.
 
 I. The documentation SHALL provide examples showing the format 'IMPLEMENTS REQUIREMENTS: REQ-p00xxx, REQ-o00yyy, REQ-d00zzz'.
 
@@ -182,7 +182,7 @@ Q. The documentation SHALL include examples from test files.
 
 R. CLAUDE.md SHALL document the requirement for header comments in implementation files.
 
-*End* *Code-to-Requirement Linking* | **Hash**: 7723f737
+*End* *Code-to-Requirement Linking* | **Hash**: ac179cb6
 ---
 
 # REQ-d00017: ADR Template and Lifecycle Tooling
@@ -455,7 +455,7 @@ export class RequirementValidator {
 
 - **Product Requirements**: prd-requirements-management.md
 - **Operations Procedures**: ops-requirements-management.md
-- **Format Specification**: requirements-format.md
+- **Format Specification**: requirements-spec.md
 - **Tool Documentation**: tools/requirements/README.md
 - **ADR Process**: docs/adr/README.md
 - **Hook Configuration**: .githooks/README.md

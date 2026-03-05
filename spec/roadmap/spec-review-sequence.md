@@ -5,7 +5,7 @@ Phase 1: PRD Files (Product Requirements) - Read First
 1.1 Foundation & Glossary
 
 1. spec/README.md - Naming conventions and scope definitions
-2. spec/requirements-format.md - Requirement format specification
+2. spec/requirements-spec.md - Requirement format specification
 3. spec/prd-glossary.md - Term definitions
 4. spec/prd-epistaxis-terminology.md - Domain-specific terminology
 5. spec/prd-standards.md - Reference standards

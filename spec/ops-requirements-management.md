@@ -7,7 +7,7 @@
 
 > **See**: prd-requirements-management.md for business/regulatory requirements
 > **See**: dev-requirements-management.md for tooling implementation
-> **See**: spec/requirements-format.md for detailed format specification
+> **See**: spec/requirements-spec.md for detailed format specification
 
 ---
 
@@ -27,7 +27,7 @@ Standardized requirement formats enable automated validation and traceability ma
 
 ## Assertions
 
-A. Requirements SHALL follow the standardized format defined in spec/requirements-format.md.
+A. Requirements SHALL follow the standardized format defined in spec/requirements-spec.md.
 
 B. The system SHALL perform automatic format validation before commits via pre-commit hooks.
 
@@ -59,7 +59,7 @@ O. Generated matrices SHALL be viewable in markdown format for documentation pur
 
 P. Generated matrices SHALL be viewable in HTML format for interactive browsing.
 
-*End* *Requirements Format Validation* | **Hash**: 73eb4415
+*End* *Requirements Format Validation* | **Hash**: d97cfb59
 ---
 
 # REQ-o00014: Top-Down Requirement Cascade
@@ -316,7 +316,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 - **Product Requirements**: prd-requirements-management.md
 - **Development Implementation**: dev-requirements-management.md
-- **Format Specification**: requirements-format.md
+- **Format Specification**: requirements-spec.md
 - **ADR Process**: docs/adr/README.md
 - **Pre-commit Hook**: .githooks/README.md
 
