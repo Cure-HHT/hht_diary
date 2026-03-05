@@ -570,8 +570,7 @@ class _ManageQuestionnairesDialogState
             side: BorderSide(color: theme.colorScheme.error),
             visualDensity: VisualDensity.compact,
           ),
-          //REQ-CAL-p00023-C: "a trash icon SHALL appear as the action to delete the questionnaire"
-          child: const Icon(Icons.delete_outline_sharp, color: Colors.red),
+          child: const Text('Revoke'),
         );
       case 'in_progress':
         return Text(
