@@ -57,7 +57,7 @@ Concrete example of a versioned questionnaire response event (see `dev-data-mode
       {
         "question_id": "notes",
         "response_canonical": "Occurred during exercise",
-        "response_displayed": "Ocurrio durante el ejercicio",
+        "response_displayed": "Ocurrió durante el ejercicio",
         "translation_method": "auto"
       }
     ],
