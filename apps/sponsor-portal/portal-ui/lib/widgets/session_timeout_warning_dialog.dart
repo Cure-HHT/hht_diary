@@ -30,10 +30,13 @@ class _SessionTimeoutWarningDialogState
     super.initState();
     _secondsLeft = widget.countdownSeconds;
     // REQ-p01044-H: dialog shows countdown timer
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
-        if (_secondsLeft > 0) _secondsLeft--;
+        if (_secondsLeft > 0) {
+          _secondsLeft--;
+          if (_secondsLeft == 0) timer.cancel();
+        }
       });
     });
   }

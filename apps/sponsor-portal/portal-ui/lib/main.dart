@@ -128,7 +128,7 @@ void main() async {
 
   // REQ-d00080-G: beforeunload handler, REQ-d00080-K: visibilitychange handler,
   // REQ-p01044-D: terminate session on tab/window close.
-  // No-op on non-web platforms via conditional import.
+  // Web-only: browser_lifecycle_service.dart uses dart:js_interop.
   final lifecycleService = BrowserLifecycleService()..register(authService);
 
   runApp(

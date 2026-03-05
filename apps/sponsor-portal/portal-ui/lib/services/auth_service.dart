@@ -229,9 +229,9 @@ Future<void> _noopStorage() async {}
 class AuthService extends ChangeNotifier {
   /// Create AuthService with optional dependencies for testing.
   ///
-  /// [inactivityTimeout] controls how long without an API call before the user
-  /// is automatically signed out. Defaults to 15 minutes. Pass a shorter
-  /// duration in tests to avoid sleeping.
+  /// [inactivityTimeout] controls how long without activity before the user
+  /// is automatically signed out. Defaults to 2 minutes (REQ-p01044-B). Pass a
+  /// shorter duration in tests to avoid sleeping.
   AuthService({
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
@@ -389,9 +389,14 @@ class AuthService extends ChangeNotifier {
         // User signed in - fetch portal user info
         await _fetchPortalUser();
       } else {
-        // User signed out — cancel any pending inactivity timer
+        // User signed out externally (e.g. token expiry, Firebase forced logout).
+        // Cancel both timers and clear the warning flag so UserActivityListener
+        // does not attempt to dismiss a dialog that may no longer exist.
         _inactivityTimer?.cancel();
         _inactivityTimer = null;
+        _warningTimer?.cancel();
+        _warningTimer = null;
+        _isWarning = false;
         _currentUser = null;
         notifyListeners();
       }
