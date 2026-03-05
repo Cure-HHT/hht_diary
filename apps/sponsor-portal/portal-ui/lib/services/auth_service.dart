@@ -221,6 +221,10 @@ class PortalUser {
   }
 }
 
+// No-op storage clear used on non-web platforms and in unit tests.
+// main.dart injects the real browser implementation on web.
+Future<void> _noopStorage() async {}
+
 /// Authentication service using Firebase Auth and portal API
 class AuthService extends ChangeNotifier {
   /// Create AuthService with optional dependencies for testing.
@@ -231,16 +235,22 @@ class AuthService extends ChangeNotifier {
   AuthService({
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
-    Duration inactivityTimeout = const Duration(minutes: 15),
+    Duration inactivityTimeout = const Duration(minutes: 2),
     bool enableInactivityTimer = true,
+    Future<void> Function()? clearStorage,
   }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout,
-       _enableInactivityTimer = enableInactivityTimer {
+       _enableInactivityTimer = enableInactivityTimer,
+       // REQ-d00083-A..E, REQ-p01044-J..M: default is a no-op; main.dart injects
+       // the real browser implementation on web.
+       _clearStorage = clearStorage ?? _noopStorage {
     _init();
   }
 
   final bool _enableInactivityTimer;
+  // REQ-d00083-A..E, REQ-p01044-J..M: injectable for testing, web impl by default
+  final Future<void> Function() _clearStorage;
   final FirebaseAuth _auth;
   final http.Client _httpClient;
   final Duration _inactivityTimeout;
@@ -252,14 +262,34 @@ class AuthService extends ChangeNotifier {
   /// Inactivity timer — fires [_inactivityTimeout] after the last activity.
   Timer? _inactivityTimer;
 
+  /// Warning timer — fires [_warningLeadTime] before the inactivity timeout.
+  Timer? _warningTimer;
+
+  /// How long before timeout to show the warning dialog (30 seconds).
+  static const Duration _warningLeadTime = Duration(seconds: 30);
+
   /// True when the session was ended due to inactivity (not an explicit sign-out).
   bool _timedOut = false;
+
+  /// True when the inactivity warning dialog should be shown.
+  // REQ-d00080-D, REQ-p01044-G: warn user before session timeout
+  bool _isWarning = false;
 
   /// Whether the previous session ended because of inactivity.
   bool get isTimedOut => _timedOut;
 
+  /// Whether the inactivity warning dialog is currently active.
+  bool get isWarning => _isWarning;
+
   void setIsTimedOut(bool value) {
     _timedOut = value;
+    notifyListeners();
+  }
+
+  /// Test-only helper — directly set the warning flag without a timer.
+  @visibleForTesting
+  void debugSetWarning(bool value) {
+    _isWarning = value;
     notifyListeners();
   }
 
@@ -306,16 +336,43 @@ class AuthService extends ChangeNotifier {
   String? get maskedEmail => _maskedEmail;
 
   // REQ-d00080-C: reset inactivity timer on any tracked user interaction
+  // REQ-d00080-E, REQ-p01044-I: resetting also dismisses the warning dialog
   void resetInactivityTimer() {
     if (!_enableInactivityTimer) return;
     _inactivityTimer?.cancel();
+    _warningTimer?.cancel();
+
+    // Dismiss any active warning
+    if (_isWarning) {
+      _isWarning = false;
+      notifyListeners();
+    }
+
+    // Schedule warning before the main timeout.
+    // If timeout <= _warningLeadTime, warn at the halfway point instead.
+    final warningDelay = _inactivityTimeout > _warningLeadTime
+        ? _inactivityTimeout - _warningLeadTime
+        : _inactivityTimeout ~/ 2;
+
+    _warningTimer = Timer(warningDelay, _onInactivityWarning);
     _inactivityTimer = Timer(_inactivityTimeout, _onInactivityTimeout);
+  }
+
+  /// Called when the warning timer fires — show the countdown dialog.
+  // REQ-d00080-D, REQ-p01044-G/H: warn user with dialog showing countdown
+  void _onInactivityWarning() {
+    _warningTimer = null;
+    _isWarning = true;
+    notifyListeners();
   }
 
   /// Called when the inactivity timer fires.
   // REQ-d00080-F: terminate session when inactivity timeout expires without user extension
   void _onInactivityTimeout() async {
     _inactivityTimer = null;
+    _warningTimer?.cancel();
+    _warningTimer = null;
+    _isWarning = false;
     _timedOut = true;
 
     try {
@@ -500,6 +557,8 @@ class AuthService extends ChangeNotifier {
   void dispose() {
     _inactivityTimer?.cancel();
     _inactivityTimer = null;
+    _warningTimer?.cancel();
+    _warningTimer = null;
     super.dispose();
   }
 
@@ -618,14 +677,22 @@ class AuthService extends ChangeNotifier {
 
   /// Sign out
   Future<void> signOut({bool fromInactivity = false}) async {
-    // Cancel inactivity timer before signing out so it doesn't fire after.
+    // Cancel both timers before signing out so they don't fire after.
     _inactivityTimer?.cancel();
     _inactivityTimer = null;
+    _warningTimer?.cancel();
+    _warningTimer = null;
+    _isWarning = false;
     if (fromInactivity) {
       _timedOut = true;
     } else {
       _timedOut = false;
     }
+
+    // REQ-d00083-A..E, REQ-p01044-J..M: clear all client-side storage so no
+    // patient data remains recoverable after logout or session timeout.
+    await _clearStorage();
+
     await _auth.signOut();
     _currentUser = null;
     _emailOtpRequired = false;

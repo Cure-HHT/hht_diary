@@ -654,5 +654,199 @@ void main() {
         });
       },
     );
+
+    // REQ-d00080-D, REQ-p01044-G: isWarning becomes true before timeout fires
+    test('isWarning becomes true before inactivity timeout', () {
+      fakeAsync((fake) {
+        // Use a 200ms timeout with a 30s warning lead time. Since 200ms < 30s,
+        // the warning fires at timeout/2 = 100ms.
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        expect(authService.isWarning, isFalse);
+
+        // Advance to just past the warning point (100ms) but before timeout (200ms)
+        fake.elapse(const Duration(milliseconds: 110));
+
+        // REQ-p01044-G: warning should now be active
+        expect(authService.isWarning, isTrue);
+        expect(authService.isAuthenticated, isTrue); // Not timed out yet
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00080-E, REQ-p01044-I: resetInactivityTimer dismisses the warning
+    test('resetInactivityTimer clears isWarning', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        // Trigger the warning (fires at 100ms for a 200ms timeout)
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        // User clicks "Stay Logged In" — resets timer
+        authService.resetInactivityTimer();
+
+        // Warning should be cleared immediately
+        expect(authService.isWarning, isFalse);
+        expect(authService.isAuthenticated, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00080-F: timeout still fires even if warning was shown
+    test('inactivity timeout fires after warning if not reset', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        // Advance past warning point
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        // Advance past the full timeout without resetting
+        fake.elapse(const Duration(milliseconds: 100));
+        fake.flushMicrotasks();
+
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+        expect(authService.isWarning, isFalse); // cleared on sign-out
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00083-A..E, REQ-p01044-J..M: clearStorage called on explicit logout
+    test('clearStorage is called on explicit signOut', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final mockUser = MockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(milliseconds: 200),
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+        );
+        authService.signIn('test@example.com', 'password');
+        fake.flushMicrotasks();
+
+        authService.signOut();
+        fake.flushMicrotasks();
+
+        expect(clearStorageCalled, isTrue);
+      });
+    });
+
+    // REQ-d00083-F..J: clearStorage also called when session times out
+    test('clearStorage is called on inactivity timeout', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final mockUser = MockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(milliseconds: 100),
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+        );
+        authService.signIn('test@example.com', 'password');
+        fake.flushMicrotasks();
+
+        // Let the inactivity timer fire
+        fake.elapse(const Duration(milliseconds: 200));
+        fake.flushMicrotasks();
+
+        expect(clearStorageCalled, isTrue);
+        expect(authService.isTimedOut, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // signOut clears isWarning
+    test('signOut clears isWarning flag', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+
+        expect(authService.isWarning, isFalse);
+      });
+    });
   });
 }
