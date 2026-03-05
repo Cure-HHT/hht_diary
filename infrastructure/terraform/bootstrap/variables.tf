@@ -10,22 +10,22 @@
 # Required Variables
 # -----------------------------------------------------------------------------
 
-variable "sponsor" {
+variable "SPONSOR" {
   description = "Sponsor name (lowercase alphanumeric with hyphens)"
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]*$", var.sponsor)) && length(var.sponsor) <= 20
+    condition     = can(regex("^[a-z][a-z0-9-]*$", var.SPONSOR)) && length(var.SPONSOR) <= 20
     error_message = "Sponsor must be lowercase, start with letter, alphanumeric/hyphens only, max 20 chars."
   }
 }
 
-variable "sponsor_id" {
+variable "SPONSOR_ID" {
   description = "Unique sponsor ID for VPC CIDR allocation (1-254)"
   type        = number
 
   validation {
-    condition     = var.sponsor_id >= 1 && var.sponsor_id <= 254
+    condition     = var.SPONSOR_ID >= 1 && var.SPONSOR_ID <= 254
     error_message = "Sponsor ID must be between 1 and 254."
   }
 }

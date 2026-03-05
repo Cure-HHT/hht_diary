@@ -177,7 +177,9 @@ resource "google_sql_database_instance" "main" {
     }
   }
 
-  depends_on = [var.private_vpc_connection]
+  depends_on = [
+    var.private_vpc_connection,
+  ]
 
   lifecycle {
     prevent_destroy = false
@@ -208,4 +210,15 @@ resource "google_sql_user" "app_user" {
   type     = "BUILT_IN"
 
   deletion_policy = "ABANDON"
+}
+
+# -----------------------------------------------------------------------------
+# Compute Service Account IAM (Cloud SQL Client)
+# -----------------------------------------------------------------------------
+
+resource "google_project_iam_member" "compute_cloudsql_client" {
+  count   = var.compute_service_account_email != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${var.compute_service_account_email}"
 }

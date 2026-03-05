@@ -9,12 +9,12 @@
 # -----------------------------------------------------------------------------
 
 # Sponsor name (lowercase, alphanumeric with hyphens, max 20 chars)
-sponsor = "example"
+SPONSOR = "example"
 
 # Unique sponsor ID for VPC CIDR allocation (1-254)
 # IMPORTANT: Must be unique across all sponsors!
 # See CONVERSION-PLAN.md for assigned IDs
-sponsor_id = 99
+SPONSOR_ID = 99
 
 # -----------------------------------------------------------------------------
 # Required: GCP Organization & Billing (via Doppler)

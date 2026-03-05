@@ -55,3 +55,15 @@ variable "cors_origins" {
   type        = list(string)
   default     = ["*"]
 }
+
+variable "enable_compute_sa_access" {
+  description = "Whether to grant storage.objectUser to the compute service account"
+  type        = bool
+  default     = false
+}
+
+variable "compute_service_account_email" {
+  description = "Compute service account email to grant storage.objectUser on buckets"
+  type        = string
+  default     = ""
+}

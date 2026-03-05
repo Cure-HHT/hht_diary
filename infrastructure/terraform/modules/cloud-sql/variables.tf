@@ -135,6 +135,16 @@ variable "maintenance_window_hour" {
 # Disk Auto-resize
 # -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Compute Service Account
+# -----------------------------------------------------------------------------
+
+variable "compute_service_account_email" {
+  description = "Compute service account email to grant roles/cloudsql.client (empty = skip)"
+  type        = string
+  default     = ""
+}
+
 variable "disk_autoresize_limit_override" {
   description = "Override disk auto-resize limit in GB (0 = use environment default: prod=500, uat=100, dev/qa=50)"
   type        = number

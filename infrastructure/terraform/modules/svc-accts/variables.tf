@@ -1,10 +1,15 @@
 # modules/svc-accts/variables.tf
 #
-# Input variables for cross-project service account IAM bindings
+# Input variables for compute service account and cross-project IAM bindings
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: IaC for portal deployment
 #   REQ-d00009: Role-Based Permission Enforcement Implementation
+
+variable "project_id" {
+  description = "GCP project ID for the compute service account and IAM bindings"
+  type        = string
+}
 
 variable "admin_project_id" {
   description = "GCP project ID where the Gmail service account lives (e.g., cure-hht-admin)"
@@ -16,7 +21,8 @@ variable "gmail_service_account_email" {
   type        = string
 }
 
-variable "impersonating_service_account_email" {
-  description = "Email of the sponsor's service account that needs to impersonate the Gmail SA (e.g., 123456-compute@developer.gserviceaccount.com)"
-  type        = string
+variable "enable_gmail_impersonation" {
+  description = "Whether to grant cross-project Gmail SA impersonation (requires admin-project IAM access)"
+  type        = bool
+  default     = false
 }

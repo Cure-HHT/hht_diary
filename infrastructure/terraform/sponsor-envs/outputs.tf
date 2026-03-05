@@ -106,10 +106,10 @@ output "budget_alert_topic" {
 # Storage
 # -----------------------------------------------------------------------------
 
-# output "backup_bucket" {
-#   description = "Backup bucket name"
-#   value       = module.storage.backup_bucket_name
-# }
+output "backup_bucket" {
+  description = "Backup bucket name"
+  value       = module.storage.backup_bucket_name
+}
 
 # -----------------------------------------------------------------------------
 # Container Images (via Artifact Registry GHCR proxy)
@@ -128,6 +128,11 @@ output "budget_alert_topic" {
 # -----------------------------------------------------------------------------
 # Service Accounts
 # -----------------------------------------------------------------------------
+
+output "compute_service_account_email" {
+  description = "Compute service account email for Cloud Run services"
+  value       = local.compute_service_account_email
+}
 
 # output "portal_server_service_account_email" {
 #   description = "Portal server Cloud Run service account email (add to admin-project for Gmail SA impersonation)"

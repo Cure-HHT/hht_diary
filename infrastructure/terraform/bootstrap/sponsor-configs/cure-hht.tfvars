@@ -6,8 +6,8 @@
 # Sponsor Identity
 # -----------------------------------------------------------------------------
 
-sponsor    = "cure-hht"
-sponsor_id = 2 # VPC CIDR: 10.2.0.0/16
+SPONSOR    = "cure-hht"
+SPONSOR_ID = 2 # VPC CIDR: 10.2.0.0/16
 
 # -----------------------------------------------------------------------------
 # Project Configuration

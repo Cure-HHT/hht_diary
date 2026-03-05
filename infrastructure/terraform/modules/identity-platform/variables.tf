@@ -142,3 +142,13 @@ variable "refresh_token_rotation" {
   type        = bool
   default     = true
 }
+
+# -----------------------------------------------------------------------------
+# Compute Service Account
+# -----------------------------------------------------------------------------
+
+variable "compute_service_account_email" {
+  description = "Compute service account email to grant roles/identityplatform.admin (empty = skip)"
+  type        = string
+  default     = ""
+}

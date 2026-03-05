@@ -48,6 +48,9 @@ locals {
     managed_by  = "terraform"
     compliance  = "fda-21-cfr-part-11"
   }
+
+  # Compute SA email — deterministic from project_id (created by bootstrap)
+  compute_service_account_email = "${var.project_id}-compute-sa@${var.project_id}.iam.gserviceaccount.com"
 }
 
 # -----------------------------------------------------------------------------
@@ -106,34 +109,7 @@ resource "google_secret_manager_secret_version" "doppler_token" {
   secret_data = var.DOPPLER_TOKEN
 }
 
-# Grant Compute Engine default service account read access to Doppler token
-# Required for Cloud Run services to fetch secrets at runtime
-resource "google_secret_manager_secret_iam_member" "doppler_token_compute_accessor" {
-  count     = var.compute_service_account != "" ? 1 : 0
-  secret_id = google_secret_manager_secret.doppler_token.secret_id
-  project   = var.project_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.compute_service_account}"
-}
-
-# Grant Compute Engine default service account Identity Platform admin access
-# Required for deploy-db job to batch-delete and seed Identity Platform users
-# via Identity Toolkit REST API and seed_identity_users.js
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00031: Identity Platform Integration (user seeding)
-resource "google_project_iam_member" "compute_sa_identity_platform_admin" {
-  count   = var.compute_service_account != "" ? 1 : 0
-  project = var.project_id
-  role    = "roles/identityplatform.admin"
-  member  = "serviceAccount:${var.compute_service_account}"
-}
-
-resource "google_project_iam_member" "compute_sa_service_usage_consumer" {
-  count   = var.compute_service_account != "" ? 1 : 0
-  project = var.project_id
-  role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${var.compute_service_account}"
-}
+# Compute SA created by bootstrap; doppler accessor binding is below (compute_doppler_accessor)
 
 # -----------------------------------------------------------------------------
 # Audit Logs (FDA Compliant)
@@ -183,6 +159,9 @@ module "database" {
   # Maintenance window: Sunday 05:00 UTC = 06:00 CET
   maintenance_window_day  = 7
   maintenance_window_hour = 5
+
+  # Compute SA needs Cloud SQL Client role
+  compute_service_account_email = local.compute_service_account_email
 }
 
 # -----------------------------------------------------------------------------
@@ -225,14 +204,16 @@ module "database" {
 # Storage Buckets
 # -----------------------------------------------------------------------------
 
-# module "storage" {
-#   source = "../modules/storage-buckets"
+module "storage" {
+  source = "../modules/storage-buckets"
 
-#   project_id    = var.project_id
-#   sponsor       = var.sponsor
-#   environment   = var.environment
-#   region        = var.region
-# }
+  project_id                    = var.project_id
+  sponsor                       = var.sponsor
+  environment                   = var.environment
+  region                        = var.region
+  enable_compute_sa_access      = true
+  compute_service_account_email = local.compute_service_account_email
+}
 
 # -----------------------------------------------------------------------------
 # Monitoring Alerts
@@ -345,6 +326,9 @@ module "identity_platform" {
   # Session settings
   session_duration_minutes = var.identity_platform_session_duration
 
+  # Compute SA needs Identity Platform admin role
+  compute_service_account_email = local.compute_service_account_email
+
   # depends_on = [module.cloud_run]
 }
 
@@ -370,18 +354,28 @@ module "identity_platform" {
 # }
 
 # -----------------------------------------------------------------------------
-# Service Account IAM (Cross-Project Gmail SA Impersonation)
+# Compute SA IAM Bindings (SA created by bootstrap, bindings here)
 # -----------------------------------------------------------------------------
 #
-# The Gmail service account for email OTP and activation codes is managed
-# centrally in the cure-hht-admin project (infrastructure/terraform/admin-project/).
-#
-# To enable email sending for this sponsor/environment:
-# 1. Add the Cloud Run service account to the admin project's
-#    sponsor_cloud_run_service_accounts variable
-# 2. Store the Gmail SA key in Doppler for this environment
-#
-# Cloud Run service account: ${module.cloud_run.portal_server_service_account_email}
+# The compute SA is created by bootstrap/main.tf via module "svc_accts".
+# Bindings that depend on resources in this root module are granted inline here.
+
+# Grant Secret Manager read access to Doppler token
+resource "google_secret_manager_secret_iam_member" "compute_doppler_accessor" {
+  secret_id = google_secret_manager_secret.doppler_token.secret_id
+  project   = var.project_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${local.compute_service_account_email}"
+}
+
+# Grant serviceAccountUser on cloud-run-mailer SA
+# Enables the compute SA to impersonate the mailer identity for email sending
+resource "google_service_account_iam_member" "compute_mailer_user" {
+  count              = var.enable_gmail_api ? 1 : 0
+  service_account_id = google_service_account.cloud_run_mailer[0].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${local.compute_service_account_email}"
+}
 
 # -----------------------------------------------------------------------------
 # Gmail API for Email Sending (OTP, activation codes, notifications)
@@ -412,14 +406,7 @@ resource "google_service_account" "cloud_run_mailer" {
   project      = var.project_id
 }
 
-# Allow the default Compute service account to impersonate the mailer SA
-# This enables Cloud Run services (which run as the compute SA) to use the mailer identity
-resource "google_service_account_iam_member" "cloud_run_mailer_user" {
-  count              = var.enable_gmail_api && var.compute_service_account != "" ? 1 : 0
-  service_account_id = google_service_account.cloud_run_mailer[0].name
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${var.compute_service_account}"
-}
+# Compute SA mailer impersonation granted inline above (compute_mailer_user)
 
 # -----------------------------------------------------------------------------
 # GitHub Actions Service Account IAM (Cross-Project Cloud Run Deployment)

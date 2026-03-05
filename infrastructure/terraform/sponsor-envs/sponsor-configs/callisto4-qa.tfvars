@@ -150,7 +150,6 @@ budget_amount = 5000 # Monthly budget in USD
 # Optional: Email
 # -----------------------------------------------------------------------------
 enable_gmail_api = true
-impersonating_service_account_email = "421945483876-compute@callisto-4-qa.iam.gserviceaccount.com"
 
 enable_cost_controls = true
 threshold_cutoff = 0.50 # 50% of budget - adjust as needed
@@ -161,12 +160,6 @@ threshold_cutoff = 0.50 # 50% of budget - adjust as needed
 
 github_actions_sa = "github-actions-sa@cure-hht-admin.iam.gserviceaccount.com"
 
-
-# -----------------------------------------------------------------------------
-# Compute Service Account (Secret Manager Access)
-# -----------------------------------------------------------------------------
-
-compute_service_account = "768644809588-compute@developer.gserviceaccount.com"
 
 # -----------------------------------------------------------------------------
 # VPC Network (migrated from bootstrap)

@@ -267,28 +267,6 @@ variable "enable_cloud_build_triggers" {
 }
 
 # -----------------------------------------------------------------------------
-# Optional: Cross-Project Gmail SA Impersonation
-# -----------------------------------------------------------------------------
-
-variable "admin_project_id" {
-  description = "GCP project ID of the admin project (for cross-project Gmail SA impersonation)"
-  type        = string
-  default     = "cure-hht-admin"
-}
-
-variable "gmail_service_account_email" {
-  description = "Email of the org-wide Gmail service account in the admin project"
-  type        = string
-  default     = "org-gmail-sender@cure-hht-admin.iam.gserviceaccount.com"
-}
-
-variable "impersonating_service_account_email" {
-  description = "Email of this sponsor's service account that needs Gmail SA impersonation (empty = skip)"
-  type        = string
-  default     = ""
-}
-
-# -----------------------------------------------------------------------------
 # Optional: Container Images (via Artifact Registry GHCR proxy)
 # -----------------------------------------------------------------------------
 
@@ -504,12 +482,6 @@ variable "SLACK_INCIDENT_WEBHOOK_URL" {
 
 variable "github_actions_sa" {
   description = "GitHub Actions service account email from admin project (for cross-project Cloud Run deployments)"
-  type        = string
-  default     = ""
-}
-
-variable "compute_service_account" {
-  description = "Compute Engine default service account email (for Secret Manager access)"
   type        = string
   default     = ""
 }

@@ -122,3 +122,21 @@ resource "google_storage_bucket" "app_data" {
     }
   }
 }
+
+# -----------------------------------------------------------------------------
+# Compute Service Account IAM (Storage Object User)
+# -----------------------------------------------------------------------------
+
+resource "google_storage_bucket_iam_member" "compute_backups_object_user" {
+  count  = var.enable_compute_sa_access ? 1 : 0
+  bucket = google_storage_bucket.backups.name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${var.compute_service_account_email}"
+}
+
+resource "google_storage_bucket_iam_member" "compute_app_data_object_user" {
+  count  = var.enable_compute_sa_access && var.create_app_data_bucket ? 1 : 0
+  bucket = google_storage_bucket.app_data[0].name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${var.compute_service_account_email}"
+}

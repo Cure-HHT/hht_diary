@@ -38,13 +38,13 @@ locals {
   # Project IDs - just sponsor-env (e.g., callisto-dev, cure-hht-prod)
   project_ids = {
     for env in local.environments :
-    env => "${var.sponsor}-${env}"
+    env => "${var.SPONSOR}-${env}"
   }
 
   # Project display names
   project_names = {
     for env in local.environments :
-    env => "${title(var.sponsor)} ${upper(env)}"
+    env => "${title(var.SPONSOR)} ${upper(env)}"
   }
 
 }
@@ -62,11 +62,11 @@ module "projects" {
   org_id               = var.GCP_ORG_ID
   folder_id            = var.folder_id
   billing_account_id   = local.billing_accounts[each.key]
-  sponsor              = var.sponsor
+  sponsor              = var.SPONSOR
   environment          = each.key
 
   labels = {
-    sponsor_id = tostring(var.sponsor_id)
+    sponsor_id = tostring(var.SPONSOR_ID)
   }
 }
 
@@ -92,7 +92,7 @@ module "projects" {
 module "cicd" {
   source = "../modules/cicd-service-account"
 
-  sponsor                  = var.sponsor
+  sponsor                  = var.SPONSOR
   host_project_id          = module.projects["dev"].project_id
   host_project_number      = module.projects["dev"].project_number
   target_project_ids       = [for env in local.environments : module.projects[env].project_id]
@@ -122,8 +122,8 @@ resource "google_service_account" "tf_env" {
   for_each = toset(local.environments)
 
   account_id   = "terraform-sa"
-  display_name = "Terraform SA - ${var.sponsor} ${upper(each.key)}"
-  description  = "Service account for Terraform deployments to ${var.sponsor} ${each.key}"
+  display_name = "Terraform SA - ${var.SPONSOR} ${upper(each.key)}"
+  description  = "Service account for Terraform deployments to ${var.SPONSOR} ${each.key}"
   project      = module.projects[each.key].project_id
 
   depends_on = [module.projects]
@@ -232,6 +232,39 @@ resource "google_storage_bucket_iam_member" "tf_env_token_creator_state_access" 
 # -----------------------------------------------------------------------------
 # Cloud SQL Database — MIGRATED to sponsor-envs/main.tf
 # State migrated via scripts/migrate-db-to-sponsor-envs.sh
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Compute Service Accounts (one per environment)
+# Creates a dedicated compute SA for Cloud Run services and grants
+# foundational roles. Cross-project Gmail SA impersonation is handled here
+# because bootstrap has admin-project IAM access.
+# -----------------------------------------------------------------------------
+
+module "svc_accts" {
+  source   = "../modules/svc-accts"
+  for_each = toset(local.environments)
+
+  project_id                  = module.projects[each.key].project_id
+  admin_project_id            = "${var.project_prefix}-admin"
+  gmail_service_account_email = "org-gmail-sender@${var.project_prefix}-admin.iam.gserviceaccount.com"
+  enable_gmail_impersonation  = true
+
+  depends_on = [module.projects]
+}
+
+# Grant Artifact Registry Reader to compute SAs
+# Required for Cloud Run to pull container images from the project's registry
+resource "google_project_iam_member" "compute_artifact_registry_reader" {
+  for_each = toset(local.environments)
+
+  project = module.projects[each.key].project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${module.svc_accts[each.key].compute_service_account_email}"
+}
+
+# -----------------------------------------------------------------------------
+# API Enablement (per-environment)
 # -----------------------------------------------------------------------------
 
 resource "google_project_service" "gmail_api" {

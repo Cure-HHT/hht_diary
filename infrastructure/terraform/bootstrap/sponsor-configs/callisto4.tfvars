@@ -6,8 +6,8 @@
 # Sponsor Identity
 # -----------------------------------------------------------------------------
 
-sponsor    = "callisto4" # Must match infrastructure/terraform/sponsor-envs/sponsor-configs/callisto2-dev.tfvars
-sponsor_id = 4           # VPC CIDR: 10.1.0.0/16
+SPONSOR    = "callisto4" # Must match infrastructure/terraform/sponsor-envs/sponsor-configs/callisto2-dev.tfvars
+SPONSOR_ID = 4           # VPC CIDR: 10.4.0.0/16
 
 # Sensitive values should be provided via Doppler environment variables:
 # - TF_VAR_GCP_ORG_ID

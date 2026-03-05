@@ -146,11 +146,6 @@ audit_retention_years = 25
 # Billing budget (migrated from bootstrap)
 budget_amount = 500 # Monthly budget in USD
 
-# -----------------------------------------------------------------------------
-# Optional: Email
-# -----------------------------------------------------------------------------
-impersonating_service_account_email = "1012274191696-compute@developer.gserviceaccount.com"
-
 enable_cost_controls = false
 
 # -----------------------------------------------------------------------------

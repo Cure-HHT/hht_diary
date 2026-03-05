@@ -146,7 +146,17 @@ resource "google_identity_platform_config" "main" {
 # Our audit-logs module captures these in the compliance bucket
 # -----------------------------------------------------------------------------
 
-# Additional IAM for Identity Platform service account if needed
+# Grant Identity Platform admin to compute SA
+# Required for deploy-db job to batch-delete and seed Identity Platform users
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00031: Identity Platform Integration (user seeding)
+resource "google_project_iam_member" "compute_identity_platform_admin" {
+  count   = var.compute_service_account_email != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/identityplatform.admin"
+  member  = "serviceAccount:${var.compute_service_account_email}"
+}
+
 data "google_project" "current" {
   project_id = var.project_id
 }

@@ -8,12 +8,12 @@
 
 output "sponsor" {
   description = "Sponsor name"
-  value       = var.sponsor
+  value       = var.SPONSOR
 }
 
 output "sponsor_id" {
   description = "Sponsor ID for VPC CIDR allocation"
-  value       = var.sponsor_id
+  value       = var.SPONSOR_ID
 }
 
 output "project_prefix" {
@@ -106,6 +106,18 @@ output "tf_env_service_account_ids" {
 }
 
 # -----------------------------------------------------------------------------
+# Compute Service Accounts
+# -----------------------------------------------------------------------------
+
+output "compute_service_account_emails" {
+  description = "Map of environment to compute service account email"
+  value = {
+    for env in local.environments :
+    env => module.svc_accts[env].compute_service_account_email
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Audit Log Configuration — MIGRATED to sponsor-envs
 # Audit log outputs now come from each per-environment sponsor-envs state
 # -----------------------------------------------------------------------------
@@ -134,7 +146,7 @@ output "next_steps" {
   value       = <<-EOT
 
     ============================================================
-    Bootstrap Complete for: ${var.sponsor}
+    Bootstrap Complete for: ${var.SPONSOR}
     ============================================================
 
     Projects Created:
@@ -153,14 +165,14 @@ output "next_steps" {
     Next Steps:
     1. Create sponsor-envs tfvars for each environment:
        cd ../sponsor-envs
-       cp sponsor-configs/example-dev.tfvars sponsor-configs/${var.sponsor}-dev.tfvars
+       cp sponsor-configs/example-dev.tfvars sponsor-configs/${var.SPONSOR}-dev.tfvars
        # Edit and repeat for qa, uat, prod
 
     2. Deploy each environment:
-       ../scripts/deploy-environment.sh ${var.sponsor} dev --apply
-       ../scripts/deploy-environment.sh ${var.sponsor} qa --apply
-       ../scripts/deploy-environment.sh ${var.sponsor} uat --apply
-       ../scripts/deploy-environment.sh ${var.sponsor} prod --apply
+       ../scripts/deploy-environment.sh ${var.SPONSOR} dev --apply
+       ../scripts/deploy-environment.sh ${var.SPONSOR} qa --apply
+       ../scripts/deploy-environment.sh ${var.SPONSOR} uat --apply
+       ../scripts/deploy-environment.sh ${var.SPONSOR} prod --apply
 
     3. Configure GitHub Actions secrets:
        GCP_WORKLOAD_IDENTITY_PROVIDER: module.cicd.github_actions_provider
@@ -168,13 +180,13 @@ output "next_steps" {
 
     4. Initialize databases (run schema deployment jobs):
        # For each environment, execute the schema job:
-       gcloud run jobs execute ${var.sponsor}-dev-db-schema --project=${var.sponsor}-dev --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-qa-db-schema --project=${var.sponsor}-qa --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-uat-db-schema --project=${var.sponsor}-uat --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-prod-db-schema --project=${var.sponsor}-prod --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.SPONSOR}-dev-db-schema --project=${var.SPONSOR}-dev --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.SPONSOR}-qa-db-schema --project=${var.SPONSOR}-qa --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.SPONSOR}-uat-db-schema --project=${var.SPONSOR}-uat --region=${var.default_region} --wait
+       gcloud run jobs execute ${var.SPONSOR}-prod-db-schema --project=${var.SPONSOR}-prod --region=${var.default_region} --wait
 
     5. Verify audit log compliance (after deploy-environment.sh):
-       ../scripts/verify-audit-compliance.sh ${var.sponsor}
+       ../scripts/verify-audit-compliance.sh ${var.SPONSOR}
 
   EOT
 }
