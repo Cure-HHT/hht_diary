@@ -11,8 +11,6 @@ import 'package:url_launcher/url_launcher.dart';
 /// Asset paths for bundled license PDFs (stable, no external URLs).
 const String _gnuAgplAsset =
     'assets/licenses/GNU Affero General Public License - GNU Project - Free Software Foundation.pdf';
-const String _silOflAsset =
-    'assets/licenses/SIL Open Font License Official Text.pdf';
 
 class LicensesDialog extends StatelessWidget {
   const LicensesDialog({super.key});
@@ -31,11 +29,6 @@ class LicensesDialog extends StatelessWidget {
         'title': 'GNU AGPL v3 License',
         'subtitle': 'gnu.org official license text',
         'asset': _gnuAgplAsset,
-      },
-      {
-        'title': 'SIL Open Font License (Atkinson Hyperlegible)',
-        'subtitle': 'SIL OFL official text',
-        'asset': _silOflAsset,
       },
     ];
 
