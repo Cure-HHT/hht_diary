@@ -146,6 +146,27 @@ void main() {
 
         expect(find.byIcon(Icons.person_outline), findsOneWidget);
       });
+
+      testWidgets('user menu contains Profile item (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Profile (patient info) remains — it's not the removed login/account screens
+        expect(find.text('Profile'), findsOneWidget);
+      });
     });
 
     // Record Display tests moved to integration_test/home_screen_integration_test.dart
@@ -214,6 +235,48 @@ void main() {
 
         // Login option is hidden - linking code is the authentication mechanism
         expect(find.text('Login'), findsNothing);
+      });
+
+      testWidgets('does not show logout option (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Logout was removed along with the login/account screens (CUR-628)
+        expect(find.text('Logout'), findsNothing);
+      });
+
+      testWidgets('does not show account option (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Account profile screen was removed (CUR-628)
+        expect(find.text('Account'), findsNothing);
       });
 
       testWidgets('shows accessibility option', (tester) async {
