@@ -1,74 +1,41 @@
 # Questionnaire Versioning Implementation Guide
 
-**Version**: 1.0
-**Last Updated**: 2025-01-15
+**Version**: 2.0
+**Last Updated**: 2026-03-04
 **Status**: Draft
 
 ## Related Requirements
 
-This document provides implementation details for:
-- **REQ-p01051**: Questionnaire Versioning Model
+This document provides implementation guidance not covered by the requirement assertions:
+
+- **REQ-p01051**: Questionnaire Versioning Model (three-layer model, immutability)
 - **REQ-p01052**: Questionnaire Localization and Translation Tracking
 - **REQ-p01053**: Sponsor Questionnaire Eligibility Configuration
+- **REQ-d00107**: Questionnaire Response Collection and Storage
+- **REQ-d80064**: Questionnaire Version Integrity Enforcement
+
+> For the normative requirements (what the system SHALL do), see the REQs above.
+> This document provides implementation guidance -- architectural patterns, data formats, and
+> workflow suggestions. It is not prescriptive: alternative approaches that satisfy the
+> referenced requirements are equally valid.
 
 ---
 
-## Overview
+## Version Dimension Ownership
 
-The questionnaire versioning system uses a three-layer model where schema, content, and presentation evolve independently. This enables clinical teams to refine question wording, UX teams to improve presentation, and engineering to modify data structures—all without forcing unnecessary changes to the other layers.
+Each versioning dimension has a different owner and change cadence:
 
----
-
-## Three-Layer Version Model
-
-### Layer Definitions
-
-| Layer | Purpose | Changes When | Owner |
-| ----- | ------- | ------------ | ----- |
-| **Schema Version** | JSONB structure, field types, validation | Fields added/removed, types changed | Engineering |
-| **Content Version** | Question text, labels, help text, scoring | Wording clarified, questions refined | Clinical/Scientific |
-| **GUI Version** | Presentation, layout, widgets, UX | UI redesigned, accessibility improved | Product/UX |
-
-### Version Independence Examples
-
-**Scenario 1: Wording Clarification**
-```
-Before: content_version: "2.1.2"
-Change: "How severe was your nosebleed?" → "Rate the severity (1-6 scale)"
-After:  content_version: "2.1.3"
-
-Schema: unchanged
-GUI: unchanged
-Migration: none required
-```
-
-**Scenario 2: UI Redesign**
-```
-Before: gui_version: "2.0"
-Change: Complete visual overhaul for accessibility
-After:  gui_version: "3.0"
-
-Schema: unchanged
-Content: unchanged
-Migration: none required
-```
-
-**Scenario 3: Add Optional Field**
-```
-Before: schema nose-hht-v2.1
-Change: Add optional "treatment_used" field
-After:  schema nose-hht-v2.2
-
-Content: may need update for new question
-GUI: may need update for new field
-Migration: backward compatible (field optional)
-```
+| Layer | Owner | Typical Change Trigger |
+| ----- | ----- | ---------------------- |
+| **Schema** | Engineering | Fields added/removed, types changed |
+| **Content** | Clinical/Scientific | Wording clarified, questions refined |
+| **GUI** | Product/UX | UI redesigned, accessibility improved |
 
 ---
 
-## Data Model
+## Response Storage Format
 
-### Response Storage Structure
+Concrete example of a versioned questionnaire response event (see `dev-data-models-jsonb.md` for the base `EventRecord` structure):
 
 ```json
 {
@@ -99,7 +66,7 @@ Migration: backward compatible (field optional)
 }
 ```
 
-### Field Definitions
+### Response Field Reference
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
@@ -109,76 +76,17 @@ Migration: backward compatible (field optional)
 | `localization.language` | string | Yes | BCP 47 language tag (e.g., "es-MX") |
 | `localization.translation_version` | string | Yes | Translation version for that language |
 | `responses[].question_id` | string | Yes | Stable question identifier |
-| `responses[].response_canonical` | any | Yes | Normalized value for analysis |
-| `responses[].response_displayed` | any | No | Value as shown to patient (if different) |
-| `responses[].translation_method` | string | No | "auto", "manual", or "verified" |
+| `responses[].response_canonical` | any | Yes | Normalized value for analysis (REQ-p01052-F) |
+| `responses[].response_displayed` | any | No | Value as shown to patient (REQ-p01052-E) |
+| `responses[].translation_method` | string | No | "auto", "manual", or "verified" (REQ-p01052-G) |
+
+Values must be human-readable strings, not numeric codes (REQ-d00107-L).
 
 ---
 
-## Localization Model
+## Sponsor Configuration Format
 
-### Version Hierarchy
-
-```
-Schema: nose-hht-v2.1
-    │
-Content: 2.1.3 (English source)
-    │
-    ├── Translation: en-US v1.0 (source)
-    ├── Translation: es-MX v1.2
-    ├── Translation: fr-FR v1.1
-    └── Translation: de-DE v1.0
-```
-
-### Translation Independence
-
-Translations version independently from the source content:
-
-```yaml
-# Source content updated
-content_version: "2.1.3" → "2.1.4"  # English wording improved
-
-# Translations may lag behind
-translations:
-  en-US: "1.0"      # Updated with source
-  es-MX: "1.2"      # Still based on 2.1.3, update pending
-  fr-FR: "1.2"      # Updated to match 2.1.4
-```
-
-### Response Types
-
-**Enum/Choice Questions**
-```json
-{
-  "question_id": "severity",
-  "response_canonical": "moderate",
-  "response_displayed": "moderada"
-}
-```
-
-**Free-Text Questions**
-```json
-{
-  "question_id": "notes",
-  "response_canonical": "Occurred during exercise",
-  "response_displayed": "Ocurrió durante el ejercicio",
-  "translation_method": "auto"
-}
-```
-
-**Translation Methods**
-
-| Method | Description |
-| ------ | ----------- |
-| `auto` | Machine translated, not verified |
-| `manual` | Human translated |
-| `verified` | Machine translated, human verified |
-
----
-
-## Sponsor Configuration Schema
-
-### Configuration File Structure
+Sponsors pin all three version dimensions plus language settings (REQ-p01053):
 
 ```yaml
 # sponsor/{sponsor-id}/config/questionnaires.yaml
@@ -220,29 +128,28 @@ enabled_questionnaires:
         translation_version: "1.1"
         is_source: false
 
-# Free-text handling configuration
 free_text_handling:
   store_original: true
   auto_translate: true
   require_verification: false
 ```
 
-### Configuration Field Definitions
+### Configuration Field Reference
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
 | `id` | string | Yes | Unique questionnaire identifier |
 | `display_name` | string | Yes | Human-readable name |
-| `schema_version` | string | Yes | Current schema version for new entries |
-| `min_schema_version` | string | No | Minimum acceptable version for historical data |
+| `schema_version` | string | Yes | Current schema version for new entries (REQ-p01053-D) |
+| `min_schema_version` | string | No | Minimum acceptable version for historical data (REQ-p01053-E) |
 | `content_version` | string | Yes | Current content version |
 | `gui_version` | string | Yes | Current GUI version |
 | `frequency` | enum | Yes | "daily", "weekly", "on_demand" |
 | `required` | boolean | Yes | Whether completion is mandatory |
-| `enabled_languages` | array | Yes | Available language configurations |
+| `enabled_languages` | array | Yes | Available language configurations (REQ-p01053-C) |
 | `enabled_languages[].language` | string | Yes | BCP 47 language tag |
 | `enabled_languages[].translation_version` | string | Yes | Translation version |
-| `enabled_languages[].is_source` | boolean | Yes | Whether this is the source language |
+| `enabled_languages[].is_source` | boolean | Yes | Whether this is the source language (REQ-p01052-D) |
 
 ---
 
@@ -256,15 +163,17 @@ free_text_handling:
 4. Download GUI assets for configured gui_versions
 5. Cache translation resources for enabled languages
 
+All definitions and assets must be available offline after startup (REQ-p00006-E).
+
 ### New Entry Creation
 
 1. User selects entry type (e.g., epistaxis diary)
-2. App looks up current versions from sponsor config
-3. App determines user's language preference
+2. App looks up current versions from sponsor config (REQ-p01053-H)
+3. App determines user's language preference (REQ-p01052-I)
 4. Load questionnaire definition for content_version
 5. Load translation for user's language and translation_version
 6. Render using specified gui_version
-7. On save, record all version identifiers
+7. On save, record all version identifiers (REQ-p01051-J/K/L)
 
 ### Viewing Historical Entries
 
@@ -273,75 +182,163 @@ free_text_handling:
 3. If content_version older: load archived definition for display
 4. Render using appropriate GUI (current or compatible)
 
----
-
-## Validation Rules
-
-### Schema Validation
-
-- `versioned_type` must exist in event type registry
-- `versioned_type` must be within sponsor's min/max version range
-- All required fields present per schema definition
-- Field types match schema specification
-
-### Content Validation
-
-- `content_version` must exist for this questionnaire type
-- All responses have valid `question_id` per content definition
-- Enum responses match allowed values for that content version
-
-### Localization Validation
-
-- `language` must be in sponsor's enabled languages
-- `translation_version` must exist for that language
-- `response_displayed` present when language differs from source
+This enables the reconstruction guarantees in REQ-p01051-M/N.
 
 ---
 
-## Migration Considerations
+## GUI Version Code Organization
 
-### Schema Migrations
+REQ-p01065-B requires questionnaires to be coded Flutter components. REQ-p01051-T requires deployed versions to be immutable. Together these mean GUI versions are frozen widget snapshots organized as isolated directory trees.
 
-Required when:
-- Adding required fields
-- Changing field types
-- Restructuring data
+### Directory Structure
 
-Not required when:
-- Adding optional fields
-- Changing content/wording only
-- Changing GUI only
+```text
+questionnaire/
+  der/                          # Daily Epistaxis Record
+    gui/
+      v1_0/
+        der_page.dart           # Original layout
+        der_widgets.dart
+      v1_1/
+        der_page.dart           # Redesigned layout
+        der_widgets.dart
+    der_factory.dart            # Picks version from sponsor config
+```
 
-### Backward Compatibility
+A factory reads the sponsor's pinned GUI version (REQ-p01053-D) and returns the corresponding widget tree. Old versions are never modified -- they are frozen artifacts. New versions are created by copying and modifying the prior version.
 
-- Old schema versions remain valid for historical data
-- New entries use current schema version
-- Reading old data: validate against stored version's rules
-- Queries may need version-aware logic
+### Shared Infrastructure Boundary
+
+Not everything is versioned. The boundary:
+
+| Versioned (inside `gui/vX_Y/`) | Unversioned (outside) |
+| --- | --- |
+| Widget layout and composition | Navigation flow |
+| Visual styling and spacing | Submission pipeline |
+| Interaction patterns (tap targets, gestures) | Accessibility infrastructure |
+| Version-specific animations | Error handling |
+
+Shared infrastructure lives outside the versioned directories so that bug fixes and platform updates apply to all versions without modifying frozen artifacts.
+
+### Self-Containment at Lock Time
+
+When a GUI version is locked, its dependency on shared code must be managed:
+
+- **Option A: Copy in.** Copy any shared utilities into the version directory at lock time. Full isolation -- the hash covers everything the version needs.
+- **Option B: Semver boundary.** Shared infrastructure maintains its own semver contract with tests. Locked versions depend on a stable API rather than specific code.
+
+Option A is safer for regulatory purposes (the locked hash covers the complete artifact). Option B is more practical for shared infrastructure that evolves frequently. The choice should be made per-component based on how tightly coupled it is to the versioned presentation.
 
 ---
 
-## ALCOA+ Compliance
+## Version Locking System
 
-| Principle | Implementation |
-| --------- | -------------- |
-| **Attributable** | Patient ID, device ID, timestamps |
-| **Legible** | `response_displayed` preserves what patient saw |
-| **Contemporaneous** | `completedAt` captures entry time |
-| **Original** | Original response stored, not just canonical |
-| **Accurate** | Validation enforces data quality |
-| **Complete** | All version identifiers stored |
-| **Consistent** | Translation versions ensure consistent presentation |
-| **Enduring** | Immutable audit trail in event store |
-| **Available** | All versions archived, reconstructable |
+REQ-d80064 assertions E-L define what the locking system must do. This section describes how.
+
+### Lifecycle
+
+```text
+Development          Locking              Post-Lock
++-----------+       +-----------+        +-----------+
+| Edit code |       | GH Action |        | CI rejects|
+| freely    | ----> | computes  | -----> | any change|
+| no hash   |       | hash, adds|        | to locked |
+|           |       | to table  |        | version   |
++-----------+       +-----------+        +-----------+
+```
+
+### Lock Table Format
+
+A single append-only file (`questionnaire-locks.json`) at the repository root:
+
+```json
+{
+  "locks": [
+    {
+      "questionnaire": "der",
+      "dimension": "gui",
+      "version": "1.0",
+      "hash": "sha256:a1b2c3d4...",
+      "locked_at": "2026-03-04T12:00:00Z",
+      "locked_by": "CUR-1057",
+      "paths": [
+        "apps/questionnaire/der/gui/v1_0/**"
+      ]
+    },
+    {
+      "questionnaire": "der",
+      "dimension": "content",
+      "version": "1.0",
+      "hash": "sha256:e5f6a7b8...",
+      "locked_at": "2026-03-04T12:00:00Z",
+      "locked_by": "CUR-1057",
+      "paths": [
+        "apps/questionnaire/der/content/v1_0.yaml"
+      ]
+    }
+  ]
+}
+```
+
+Fields map to REQ-d80064 assertion K: questionnaire type, dimension, version identifier, hash, and covered paths. The `locked_at` and `locked_by` fields provide audit context.
+
+### Hash Algorithm
+
+The hash must be deterministic and reproducible on any checkout:
+
+1. Expand the glob patterns in `paths`
+2. Sort the resulting file list lexicographically
+3. For each file: `sha256(relative_path + "\0" + file_contents)`
+4. Concatenate all per-file hashes in sorted order
+5. `sha256(concatenated)` = the lock hash
+
+Including the relative path in each per-file hash means renaming a file breaks the lock (desired behavior). The Merkle-style structure allows pinpointing which file changed when a lock check fails.
+
+### CI Validation: Two-Check Structure
+
+**Check 1: Locked content integrity** (implements REQ-d80064-F).
+For each entry in `questionnaire-locks.json`, recompute the hash from the files on disk. If the hash differs from the recorded value, fail with a message directing the developer to create a new version instead.
+
+**Check 2: Lock table is append-only** (implements REQ-d80064-G/H/I/J).
+Compare `questionnaire-locks.json` in the PR against the same file on the base branch (main). Reject the PR if any existing entry is modified or removed. Only appending new entries is permitted. Branch protection on main is the trust anchor.
+
+### Locking GitHub Action
+
+A GitHub Action (triggered via `workflow_dispatch`) performs the locking:
+
+1. Accept inputs: `questionnaire`, `dimension` (gui/content/schema), `version`, `ticket`
+2. Validate that the version directory/files exist
+3. Compute the hash using the algorithm above
+4. Verify the version is not already locked (fail if so)
+5. Append the new entry to `questionnaire-locks.json`
+6. Open a PR for review of the new lock entry
+
+### Handling Bugs in Locked Versions
+
+A locked version is never unlocked or modified. If a bug is found:
+
+1. Create a new version (e.g., v1.0.1) with the fix
+2. Update the sponsor configuration to point to the new version (REQ-p01053-D)
+3. Lock the new version
+4. The old lock entry remains as a historical record
+
+This preserves REQ-p01051-T (deployed versions are immutable).
+
+### Schema Dimension Specifics
+
+For the schema dimension, the locked artifact includes:
+
+- The JSON Schema definition for that version's JSONB structure
+- The migration function from the prior version (REQ-d80064-L)
+
+The migration function is part of the locked contract. Changing how v1-to-v2 migrates after locking would silently alter how historical data is interpreted, violating the reconstruction guarantees in REQ-p01051-M/N.
 
 ---
 
 ## References
 
-- **REQ-p01050**: Event Type Registry
-- **REQ-p01051**: Questionnaire Versioning Model
-- **REQ-p01052**: Questionnaire Localization and Translation Tracking
-- **REQ-p01053**: Sponsor Questionnaire Eligibility Configuration
-- **spec/dev-data-models-jsonb.md**: JSONB schema documentation
-- **spec/prd-event-sourcing-system.md**: Event sourcing requirements
+- **spec/dev-data-models-jsonb.md**: JSONB schema documentation (base EventRecord structure)
+- **spec/prd-event-sourcing-system.md**: REQ-p01051 (Versioning Model), REQ-p01052 (Localization)
+- **spec/prd-questionnaire-system.md**: REQ-p01065 (Clinical Questionnaire System)
+- **spec/dev-questionnaire.md**: REQ-d80064 (Version Integrity Enforcement)
+- **spec/dev-diary-app-linking.md**: REQ-d00107 (Response Collection and Storage)

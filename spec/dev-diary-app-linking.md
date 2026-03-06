@@ -550,7 +550,7 @@ M. The system SHALL allow sponsors to configure alternative Study Start question
 
 # REQ-d00107: Questionnaire Response Collection and Storage
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01066, REQ-p00004
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01066, REQ-p00004, REQ-p00011-E, REQ-p00011-F
 
 ## Rationale
 
@@ -580,7 +580,9 @@ J. The system SHALL maintain referential integrity between questionnaire instanc
 
 K. The system SHALL encrypt stored questionnaire responses using the same encryption as diary entries.
 
-*End* *Questionnaire Response Collection and Storage* | **Hash**: 888d43b7
+L. Questionnaire response values SHALL be stored as human-readable strings rather than numeric codes, such that stored data is interpretable without external reference tables (per REQ-p00011-E).
+
+*End* *Questionnaire Response Collection and Storage* | **Hash**: c2019383
 
 ---
 

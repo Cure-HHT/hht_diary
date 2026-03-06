@@ -595,6 +595,8 @@ P. The system SHALL support sponsor-specific type enablement configurable per te
 
 Clinical questionnaires evolve across multiple independent dimensions. Structural changes add or remove data fields requiring database schema updates. Content changes refine question wording to improve clarity or address translation issues without altering the underlying data structure. Presentation changes enhance user experience through visual redesign without modifying what questions are asked. Conflating these three evolution paths into a single version number creates unnecessary coupling: wording improvements would trigger schema migrations, UI redesigns would invalidate validated instrument versions, and the audit trail would obscure which dimension actually changed. By tracking schema, content, and GUI versions independently, clinical teams can refine instrument language without engineering involvement, UX teams can improve presentation without affecting clinical validation, and regulatory audits can reconstruct the exact patient experience across all three dimensions.
 
+Once a version is deployed and used to capture patient data, it becomes an immutable artifact. Modifying a deployed version would silently alter the instrument for patients already using it, breaking the ability to reconstruct what the patient experienced (assertions M, N) and severing audit traceability (assertion S). Any change -- whether bug fix or improvement -- must produce a new version. The prior version remains frozen and available for sponsors that have not opted into the update. This immutability applies to all three dimensions independently: a GUI can be frozen at v1.0 for one sponsor while another adopts v1.1, without affecting the content or schema versions either sponsor uses.
+
 ## Assertions
 
 A. The platform SHALL support independent versioning of questionnaire schema, content, and presentation.
@@ -625,25 +627,19 @@ M. The system SHALL enable complete reconstruction of what the patient saw using
 
 N. The system SHALL enable complete reconstruction of how the data was captured using the recorded version identifiers.
 
-O. The system SHALL track schema version via the versioned_type field.
+O. Wording changes SHALL create a new content version without requiring schema migration.
 
-P. The system SHALL record content version in event_data for each response.
+P. UI redesigns SHALL create a new GUI version without requiring content version changes.
 
-Q. The system SHALL record GUI version in event_data for each response.
+Q. UI redesigns SHALL create a new GUI version without requiring schema version changes.
 
-R. Wording changes SHALL create a new content version without requiring schema migration.
+R. The system SHALL enable retrieval of historical responses with exact version context for all three version dimensions.
 
-S. UI redesigns SHALL create a new GUI version without requiring content version changes.
+S. The platform SHALL maintain complete audit traceability across all three versioning dimensions.
 
-T. UI redesigns SHALL create a new GUI version without requiring schema version changes.
+T. Once a questionnaire version has been used to capture patient data, that version SHALL be immutable.
 
-U. The system SHALL enable retrieval of historical responses with exact version context for all three version dimensions.
-
-V. Version relationships SHALL be documented in the questionnaire registry.
-
-W. The platform SHALL maintain complete audit traceability across all three versioning dimensions.
-
-*End* *Questionnaire Versioning Model* | **Hash**: e311e5fc
+*End* *Questionnaire Versioning Model* | **Hash**: 6d08845d
 
 ---
 
