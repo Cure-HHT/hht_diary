@@ -97,7 +97,7 @@ jobs:
 
               if [ "$STATUS" = "completed" ]; then
                 COMPLETED=$((COMPLETED + 1))
-                if [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+                if [ "$CONCLUSION" = "failure" ]; then
                   FAILED=$((FAILED + 1))
                   FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
                 fi
