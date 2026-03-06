@@ -725,7 +725,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onUpdateUserName: (name) {
             // TODO: Implement username update
           },
-          enrollmentCode: enrollment?.patientId,
+          enrollmentCode: enrollment?.linkingCode,
           enrollmentDateTime: enrollment?.enrolledAt,
           siteName: _siteName,
           sitePhoneNumber: _sitePhoneNumber,

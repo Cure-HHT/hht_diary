@@ -14,9 +14,17 @@ import 'dart:convert';
 
 import 'package:shelf/shelf.dart';
 
+import 'package:meta/meta.dart';
+
 import 'database.dart';
 import 'feature_flags.dart';
 import 'identity_platform.dart';
+
+/// Test-only: Override [requirePortalAuth] to bypass Identity Platform
+/// token verification and database lookup for unit testing.
+/// Set to null to restore production behavior.
+@visibleForTesting
+Future<PortalUser?> Function(Request request)? requirePortalAuthOverride;
 
 /// Portal user information from database
 /// Supports multiple roles per user with active role selection
@@ -299,6 +307,11 @@ Future<PortalUser?> requirePortalAuth(
   Request request, [
   List<String>? allowedRoles,
 ]) async {
+  // Test override: bypass Identity Platform + DB lookup
+  if (requirePortalAuthOverride != null) {
+    return requirePortalAuthOverride!(request);
+  }
+
   final token = extractBearerToken(request.headers['authorization']);
   if (token == null) {
     return null;
