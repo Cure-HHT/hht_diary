@@ -572,7 +572,7 @@ E. When the patient is already linked to a study (status "Linked - Awaiting Star
 
 ## Rationale
 
-The User Profile screen provides a dedicated space for account management and clinical trial status. Displaying the Participation Status Badge here gives patients a clear view of their study enrollment without cluttering the main screen. The "Join the Study" shortcut is repeated here to provide a direct path from the profile context, reducing navigation friction for patients ready to enroll.
+The User Profile screen provides a dedicated space for account management and clinical trial status. Displaying the Participation Status Badge here gives patients a clear view of their study linking status without cluttering the main screen. The "Join the Study" shortcut is repeated here to provide a direct path from the profile context, reducing navigation friction for patients ready to link to a study.
 
 ## Assertions
 
@@ -588,9 +588,9 @@ E. The User Profile screen SHALL display a "Clinical Trial" section below the me
 
 F. The "Clinical Trial" section SHALL display the Participation Status Badge (REQ-p00076) reflecting the patient's current study participation status.
 
-G. When the patient is not enrolled in any clinical trial, the "Clinical Trial" section SHALL display the message: "You are not currently enrolled in a clinical trial. To join, click 'Join the Study' in the menu above."
+G. When the patient is not linked to any clinical trial, the "Clinical Trial" section SHALL display the message: "You are not currently linked to a clinical trial. To join, click 'Join the Study' in the menu above."
 
-*End* *User Profile Screen* | **Hash**: 5fef4776
+*End* *User Profile Screen* | **Hash**: ebc06ec6
 
 ---
 

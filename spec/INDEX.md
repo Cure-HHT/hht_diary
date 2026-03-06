@@ -119,7 +119,7 @@
 | REQ-p01074 | User-Facing State Change Communication                              | prd-system.md                             | ec6b0b1d |
 | REQ-p01075 | Top Navigation Bar                                                  | prd-diary-app.md                          | 027debad |
 | REQ-p01076 | User Menu                                                           | prd-diary-app.md                          | 1ee94575 |
-| REQ-p01077 | User Profile Screen                                                 | prd-diary-app.md                          | 5fef4776 |
+| REQ-p01077 | User Profile Screen                                                 | prd-diary-app.md                          | ebc06ec6 |
 | REQ-p01078 | App Menu                                                            | prd-diary-app.md                          | f21a6017 |
 | REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | ab1e5121 |
 | REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 290ca25c |
