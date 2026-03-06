@@ -18,7 +18,7 @@
 
 ## Rationale
 
-The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Enrolled use mode enables cloud synchronization for clinical trials and observational studies while maintaining FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through enrollment-based configuration.
+The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through link-based configuration.
 
 ## Assertions
 
@@ -32,7 +32,7 @@ D. The system SHALL support local-first data entry for all diary operations as s
 
 E. The system SHALL support personal use mode with local-only storage.
 
-F. The system SHALL support enrolled use mode with cloud synchronization to study database.
+F. The system SHALL support linked use mode with cloud synchronization to study database.
 
 G. The system SHALL NOT require account creation for personal use mode.
 
@@ -40,21 +40,21 @@ H. The system SHALL store all personal use mode data locally on device only.
 
 I. The system SHALL NOT transmit personal use mode data over network for storage purposes.
 
-J. The system SHALL enable enrollment via sponsor-provided enrollment link.
+J. The system SHALL enable linking via sponsor-provided linking code.
 
-K. The system SHALL automatically synchronize enrolled user data to study database when online.
+K. The system SHALL automatically synchronize linked user data to study database when online.
 
-L. The system SHALL support multi-sponsor deployments with automatic configuration based on enrollment link.
+L. The system SHALL support multi-sponsor deployments with automatic configuration based on linking code.
 
-M. The system SHALL apply sponsor-specific branding for enrolled users based on their enrollment.
+M. The system SHALL apply sponsor-specific branding for linked users based on their linking.
 
-N. The system SHALL apply sponsor-specific customization for enrolled users based on their enrollment.
+N. The system SHALL apply sponsor-specific customization for linked users based on their linking.
 
-O. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for enrolled users.
+O. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for linked users.
 
 P. The system SHALL NOT maintain audit trails for personal use mode users.
 
-Q. The system SHALL synchronize existing local data to study database upon user enrollment.
+Q. The system SHALL synchronize existing local data to study database upon user linking.
 
 R. The system SHALL maintain complete data isolation between sponsors.
 
@@ -64,9 +64,9 @@ T. The system SHALL be available via Android app store.
 
 U. The system SHALL support offline operation for core diary operations in personal use mode.
 
-V. The system SHALL support offline operation for core diary operations in enrolled use mode.
+V. The system SHALL support offline operation for core diary operations in linked use mode.
 
-*End* *Diary Mobile Application* | **Hash**: d5bc3ef8
+*End* *Diary Mobile Application* | **Hash**: 16a36106
 ---
 
 ## Local Data Storage
@@ -77,7 +77,7 @@ V. The system SHALL support offline operation for core diary operations in enrol
 
 ## Rationale
 
-This requirement establishes a privacy-first architecture where patient data remains exclusively on the user's device during personal use, eliminating the need for user accounts, authentication systems, or cloud infrastructure. This approach minimizes privacy risks and regulatory complexity for casual users while providing an optional upgrade path through study enrollment for users who desire data backup and recovery. The design acknowledges the trade-off between privacy and data durability, ensuring users make informed decisions about their data storage preferences.
+This requirement establishes a privacy-first architecture where patient data remains exclusively on the user's device during personal use, eliminating the need for user accounts, authentication systems, or cloud infrastructure. This approach minimizes privacy risks and regulatory complexity for casual users while providing an optional upgrade path through study linking for users who desire data backup and recovery. The design acknowledges the trade-off between privacy and data durability, ensuring users make informed decisions about their data storage preferences.
 
 ## Assertions
 
@@ -91,7 +91,7 @@ D. The system SHALL NOT require cloud backup for personal use.
 
 E. The system SHALL store all diary entries locally on the device immediately upon creation.
 
-F. The system SHALL NOT perform cloud synchronization until the user enrolls in a study.
+F. The system SHALL NOT perform cloud synchronization until the user links to a study.
 
 G. The system SHALL support single device usage only in personal use mode.
 
@@ -111,19 +111,19 @@ N. The system SHALL persist data across app restarts.
 
 O. The system SHALL persist data across app updates.
 
-P. The system SHALL provide users the option to enroll in a Cure HHT program to enable cloud backup.
+P. The system SHALL provide users the option to link to a Cure HHT program to enable cloud backup.
 
-Q. The system SHALL provide users the option to enroll in clinical trials via enrollment link.
+Q. The system SHALL provide users the option to link to clinical trials via linking code.
 
-R. The system SHALL synchronize existing local data to the study database after user enrollment.
+R. The system SHALL synchronize existing local data to the study database after user linking.
 
-S. The system SHALL NOT automatically enroll users in any study.
+S. The system SHALL NOT automatically link users to any study.
 
-T. The system SHALL require user-initiated action for study enrollment.
+T. The system SHALL require user-initiated action for study linking.
 
-U. The system SHALL back up enrolled users' data through study database synchronization.
+U. The system SHALL back up linked users' data through study database synchronization.
 
-*End* *Local Data Storage* | **Hash**: ab1e5121
+*End* *Local Data Storage* | **Hash**: f74d92a4
 ---
 
 ## Executive Summary
@@ -132,16 +132,16 @@ The Diary mobile application is a smartphone app for iOS and Android that allows
 
 **Personal Use**: Download and use immediately with no account required. All data stored locally on device. Ideal for personal health tracking.
 
-**Enrolled Use**: Join a Cure HHT program to gain cloud backup and contribute to research. Automatic synchronization keeps data safe.
+**Linked Use**: Join a Cure HHT program to gain cloud backup and contribute to research. Automatic synchronization keeps data safe.
 
 **Key Benefits**:
 
 - Works without internet connection (both modes)
 - No account required for personal use
-- Cloud backup available through study enrollment
+- Cloud backup available through study linking
 - Single app serves all clinical trial sponsors
-- Secure and compliant with FDA regulations (enrolled users)
-- Personalized with sponsor branding (enrolled users)
+- Secure and compliant with FDA regulations (linked users)
+- Personalized with sponsor branding (linked users)
 
 ---
 
@@ -153,35 +153,35 @@ The Diary mobile application is a smartphone app for iOS and Android that allows
 
 ## Rationale
 
-This requirement simplifies patient enrollment and prevents enrollment errors by automating sponsor and study configuration. Patients should not need to understand technical concepts like 'sponsor' or navigate complex study selection menus. Automatic configuration based on enrollment link ensures patients always connect to the correct study while maintaining sponsor isolation as required by REQ-p00001. The enrollment link serves as the single source of truth for patient-sponsor-study binding, eliminating manual selection errors and ensuring proper sponsor isolation from the patient's first interaction with the app.
+This requirement simplifies patient linking and prevents linking errors by automating sponsor and study configuration. Patients should not need to understand technical concepts like 'sponsor' or navigate complex study selection menus. Automatic configuration based on linking code ensures patients always connect to the correct study while maintaining sponsor isolation as required by REQ-p00001. The linking code serves as the single source of truth for patient-sponsor-study binding, eliminating manual selection errors and ensuring proper sponsor isolation from the patient's first interaction with the app.
 
 ## Assertions
 
-A. The app SHALL automatically configure sponsor and study settings based on the enrollment link provided to the patient.
+A. The app SHALL automatically configure sponsor and study settings based on the linking code provided to the patient.
 
-B. The enrollment link SHALL contain sponsor and study identification information.
+B. The linking code SHALL contain sponsor and study identification information.
 
-C. The app SHALL read enrollment information from the link and connect to the correct sponsor system.
+C. The app SHALL read linking information from the code and connect to the correct sponsor system.
 
-D. The app SHALL load sponsor branding and configuration automatically upon enrollment.
+D. The app SHALL load sponsor branding and configuration automatically upon linking.
 
 E. The app SHALL NOT require patients to manually select a sponsor from a list.
 
-F. The app SHALL NOT provide any mechanism for patients to enroll in an incorrect study.
+F. The app SHALL NOT provide any mechanism for patients to link to an incorrect study.
 
-G. Each patient SHALL receive a single unique enrollment link or QR code.
+G. Each patient SHALL receive a single unique linking code or QR code.
 
-H. The app SHALL determine sponsor and study configuration from the enrollment link alone without additional patient input.
+H. The app SHALL determine sponsor and study configuration from the linking code alone without additional patient input.
 
-I. The app SHALL display the correct sponsor branding immediately after processing the enrollment link.
+I. The app SHALL display the correct sponsor branding immediately after processing the linking code.
 
-J. The app SHALL NOT allow patients to switch to a different sponsor after enrollment is completed.
+J. The app SHALL NOT allow patients to switch to a different sponsor after linking is completed.
 
-K. The app SHALL reject invalid enrollment links with a clear error message.
+K. The app SHALL reject invalid linking codes with a clear error message.
 
-L. The app SHALL reject expired enrollment links with a clear error message.
+L. The app SHALL reject expired linking codes with a clear error message.
 
-*End* *Automatic Sponsor Configuration* | **Hash**: 504e360e
+*End* *Automatic Sponsor Configuration* | **Hash**: 3896c05a
 ---
 
 TODO - this needs another spec #
@@ -221,7 +221,7 @@ TODO - this needs another spec #
 
 ## Rationale
 
-Offline-first architecture ensures reliable data collection regardless of network conditions, a critical requirement for patient-facing clinical trial applications. All users benefit from local storage for immediate, reliable data entry. For patients enrolled in clinical trials or observational studies, automatic synchronization provides cloud backup and enables remote monitoring while maintaining the offline-first user experience. Personal use patients operate in a purely local mode with no cloud synchronization.
+Offline-first architecture ensures reliable data collection regardless of network conditions, a critical requirement for patient-facing clinical trial applications. All users benefit from local storage for immediate, reliable data entry. For patients linked to clinical trials or observational studies, automatic synchronization provides cloud backup and enables remote monitoring while maintaining the offline-first user experience. Personal use patients operate in a purely local mode with no cloud synchronization.
 
 ## Assertions
 
@@ -237,17 +237,17 @@ E. The system SHALL provide full core diary functionality without internet acces
 
 F. The system SHALL preserve all diary entries if the app closes unexpectedly.
 
-G. The system SHALL clearly indicate to enrolled patients which entries have not yet synchronized to the study database.
+G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to the study database.
 
-H. The system SHALL automatically synchronize unsynchronized entries to the study database when network connectivity becomes available for enrolled users.
+H. The system SHALL automatically synchronize unsynchronized entries to the study database when network connectivity becomes available for linked users.
 
 I. The system SHALL preserve all unsynchronized entries if the app closes before synchronization completes.
 
-J. The system SHALL NOT synchronize diary entries to any study database for patients not enrolled in a study.
+J. The system SHALL NOT synchronize diary entries to any study database for patients not linked to a study.
 
-K. The system SHALL activate synchronization only after a user enrolls in a study as defined in REQ-p70000.
+K. The system SHALL activate synchronization only after a user links to a study as defined in REQ-p70000.
 
-*End* *Offline-First Data Entry* | **Hash**: 2224fecf
+*End* *Offline-First Data Entry* | **Hash**: b0555756
 ---
 
 ## Multi-Sponsor Support
@@ -258,7 +258,7 @@ A single "Clinical Diary" app on app stores or one web url serves all pharmaceut
 
 **Benefits for Patients**:
 
-- Simple enrollment - just one app to find and download, only one web url
+- Simple linking - just one app to find and download, only one web url
 - Consistent user experience across studies
 - Automatic updates and improvements 
 
@@ -396,7 +396,7 @@ E. The system SHALL NOT allow the start day to be set earlier than 365 days befo
 
 F. The system SHALL persist the start day across app sessions in the local database.
 
-G. The system SHALL sync the start day to the study database for enrolled users.
+G. The system SHALL sync the start day to the study database for linked users.
 
 H. The system SHALL automatically update the start day when a user creates an entry for a date before the current start day.
 
@@ -410,13 +410,13 @@ L. The system SHALL render dates before the start day as visually distinct but s
 
 M. The system SHALL display an error message if a user attempts to create an entry beyond the 365-day limit.
 
-N. The system SHALL restore the start day correctly after app reinstallation for enrolled users from cloud backup.
+N. The system SHALL restore the start day correctly after app reinstallation for linked users from cloud backup.
 
 O. The system SHALL NOT provide cloud backup of the start day for personal use mode.
 
 P. The system SHALL NOT explicitly prompt users to set the start day during onboarding.
 
-*End* *Diary Start Day Definition* | **Hash**: acabeeb1
+*End* *Diary Start Day Definition* | **Hash**: 33ea4793
 
 ---
 
@@ -507,152 +507,6 @@ I. Each linking history entry SHALL display the current link status (e.g., activ
 J. The system SHALL support sponsor configuration of which linking history fields are visible to patients.
 
 *End* *Mobile App Linking Status and History* | **Hash**: cf32de6c
-
----
-
-## Top Navigation Bar
-
-# REQ-p01075: Top Navigation Bar
-
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
-
-## Rationale
-
-A consistent, always-visible navigation bar gives patients reliable access to both application-level and account-level functions. Separating app concerns from user concerns into two distinct menus reduces cognitive load and follows standard mobile UI conventions (hamburger menu for app features, person icon for account features).
-
-## Assertions
-
-A. The mobile app SHALL display a fixed top navigation bar containing a hamburger menu icon (three horizontal lines) on the left side, opening the App Menu.
-
-B. The top navigation bar SHALL contain the sponsor/app logo in the center.
-
-C. The top navigation bar SHALL contain a person icon on the right side, opening the User Menu.
-
-D. The top navigation bar SHALL remain visible on the main screen at all times.
-
-E. Tapping anywhere outside an open menu SHALL dismiss it.
-
-F. Only one menu SHALL be open at a time. Opening one menu SHALL close the other if it is open.
-
-*End* *Top Navigation Bar* | **Hash**: 027debad
-
----
-
-## User Menu
-
-# REQ-p01076: User Menu
-
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
-
-## Rationale
-
-The User Menu groups account and study-related actions under the person icon, which is the standard location patients expect for personal settings. Placing "Join the Study" prominently as the first item ensures discoverability for patients who need to link to a clinical trial. The Help Center provides a self-service support path.
-
-## Assertions
-
-A. The User Menu SHALL be accessed by tapping the person icon on the right side of the top navigation bar.
-
-B. The User Menu SHALL display a dropdown/popover with the heading "User Settings".
-
-C. The User Menu SHALL contain exactly the following items, in order: Join the Study (navigates to the linking code entry screen, REQ-p00078), User Profile (navigates to the User Profile screen, REQ-p01077), Help Center (navigates to the Help Center screen).
-
-D. Each menu item SHALL display an appropriate icon to the left of its label.
-
-E. When the patient is already linked to a study (status "Linked - Awaiting Start", "Trial Active", or "Disconnected"), the "Join the Study" item SHALL remain visible but its behavior MAY change to show participation status rather than the code entry screen.
-
-*End* *User Menu* | **Hash**: 1ee94575
-
----
-
-## User Profile Screen
-
-# REQ-p01077: User Profile Screen
-
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
-
-## Rationale
-
-The User Profile screen provides a dedicated space for account management and clinical trial status. Displaying the Participation Status Badge here gives patients a clear view of their study linking status without cluttering the main screen. The "Join the Study" shortcut is repeated here to provide a direct path from the profile context, reducing navigation friction for patients ready to link to a study.
-
-## Assertions
-
-A. The User Profile screen SHALL be accessed from the User Menu (REQ-p01076).
-
-B. The User Profile screen SHALL display the sponsor/app logo at the top.
-
-C. The User Profile screen SHALL display a back arrow in the top-left corner that returns the patient to the previous screen.
-
-D. The User Profile screen SHALL contain exactly the following items, in order: Account Settings (navigates to account settings including password, email, and preferences), Join the Study (navigates to the linking code entry screen, REQ-p00078).
-
-E. The User Profile screen SHALL display a "Clinical Trial" section below the menu items.
-
-F. The "Clinical Trial" section SHALL display the Participation Status Badge (REQ-p00076) reflecting the patient's current study participation status.
-
-G. When the patient is not linked to any clinical trial, the "Clinical Trial" section SHALL display the message: "You are not currently linked to a clinical trial. To join, click 'Join the Study' in the menu above."
-
-*End* *User Profile Screen* | **Hash**: ebc06ec6
-
----
-
-## App Menu
-
-# REQ-p01078: App Menu
-
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
-
-## Rationale
-
-The App Menu groups application-level functions that are not specific to the patient's account or study participation. Data Export empowers patients with access to their own health data, supporting transparency and patient rights. Policies and Licenses provides a standard location for legal and compliance documents, which is expected by app store review guidelines and regulatory requirements.
-
-## Assertions
-
-A. The App Menu SHALL be accessed by tapping the hamburger menu icon (three horizontal lines) on the left side of the top navigation bar.
-
-B. The App Menu SHALL display a dropdown/popover or slide-out panel.
-
-C. The App Menu SHALL contain exactly the following items, in order: Data Export (allows the patient to export their diary data), Policies (displays legal policies, privacy policy, and terms of use), Licenses (navigates to the Licenses screen, REQ-p01079).
-
-D. Each menu item SHALL display an appropriate icon to the left of its label.
-
-E. The Licenses item SHALL appear above the app version indicator at the bottom of the menu.
-
-*End* *App Menu* | **Hash**: e8873801
-
----
-
-## Licenses Screen
-
-# REQ-p01079: Licenses Screen
-
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01041
-
-## Rationale
-
-Open-source license compliance and font license attribution are legal requirements for app distribution. Displaying the AGPL license and the Atkinson Hyperlegible font license in a dedicated screen ensures the app meets its obligations under both licenses and satisfies app store review requirements. The sponsor portal requires the same AGPL license display but does not use the Atkinson font, so it omits the font license.
-
-## Assertions
-
-A. The mobile app SHALL provide a Licenses screen accessible from the App Menu (REQ-p01078).
-
-B. The Licenses screen SHALL display the full text of the GNU Affero General Public License version 3 (AGPL-3.0).
-
-C. The Licenses screen SHALL display the full text of the Atkinson Hyperlegible font license from the Braille Institute.
-
-D. The AGPL-3.0 license text SHALL appear before the Atkinson Hyperlegible font license text.
-
-E. Each license SHALL be clearly labeled with its name and the software or asset it applies to.
-
-F. The Licenses screen SHALL be scrollable to allow reading the full text of all licenses.
-
-G. The Licenses screen SHALL display a back arrow or close button that returns the patient to the previous screen.
-
-H. The sponsor portal SHALL provide a Licenses page accessible from its navigation or footer.
-
-I. The sponsor portal Licenses page SHALL display the full text of the AGPL-3.0 license.
-
-J. The sponsor portal Licenses page SHALL NOT display the Atkinson Hyperlegible font license.
-
-*End* *Licenses Screen* | **Hash**: ea3ebe5e
 
 ---
 
