@@ -139,14 +139,17 @@ jobs:
                   elif [ -n "$FAILED_STEPS" ]; then
                     FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
                   fi
-                  SUMMARY_ROWS="${SUMMARY_ROWS}\n| :x: [${NAME}](${HTML_URL}) | Failed | ${FAIL_DETAIL} |"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}| :x: [${NAME}](${HTML_URL}) | Failed | ${FAIL_DETAIL} |
+"
                 else
                   COMPLETED=$((COMPLETED + 1))
-                  SUMMARY_ROWS="${SUMMARY_ROWS}\n| :white_check_mark: ${NAME} | ${CONCLUSION^} | |"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}| :white_check_mark: ${NAME} | ${CONCLUSION^} | |
+"
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
-                SUMMARY_ROWS="${SUMMARY_ROWS}\n| :hourglass: ${NAME} | ${STATUS} | |"
+                SUMMARY_ROWS="${SUMMARY_ROWS}| :hourglass: ${NAME} | ${STATUS} | |
+"
               fi
             done <<< "$CHECKS"
 
@@ -164,7 +167,7 @@ jobs:
                   echo ""
                   echo "| Check | Status | Details |"
                   echo "|-------|--------|---------|"
-                  echo -e "$SUMMARY_ROWS"
+                  echo "$SUMMARY_ROWS"
                 } >> "$GITHUB_STEP_SUMMARY"
                 # Also emit ::error:: annotation for the checks list view
                 ANNOTATION=$(echo -e "CI Gate: ${FAILED} check(s) failed:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
@@ -178,7 +181,7 @@ jobs:
 
             # Still waiting — show what's pending
             if [ -n "$PENDING_NAMES" ]; then
-              echo "  Waiting on:$PENDING_NAMES" | head -5
+              echo -e "  Waiting on:$PENDING_NAMES" | head -5
             fi
 
             sleep 30
@@ -195,7 +198,7 @@ jobs:
             echo ""
             echo "| Check | Status | Details |"
             echo "|-------|--------|---------|"
-            echo -e "$SUMMARY_ROWS"
+            echo "$SUMMARY_ROWS"
           } >> "$GITHUB_STEP_SUMMARY"
           ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
           echo "::error::${ANNOTATION}"
