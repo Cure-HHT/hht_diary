@@ -90,11 +90,7 @@ class _LogoMenuState extends State<LogoMenu> {
                         );
                       },
                     )
-                  : Image.asset(
-                      'assets/images/generic_company_logo.png',
-                      height: 40,
-                      width: 120,
-                    )
+                  : const SizedBox()
             else
               ColorFiltered(
                 colorFilter: ColorFilter.mode(
