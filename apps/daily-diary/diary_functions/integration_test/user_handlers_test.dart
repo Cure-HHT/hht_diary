@@ -237,6 +237,13 @@ void main() {
           parameters: {'patientId': testPatientId, 'siteId': testSiteId},
         );
 
+        // Create test portal user for generated_by FK
+        await Database.instance.execute('''
+          INSERT INTO portal_users (id, email, name, status)
+          VALUES ('00000000-0000-0000-0000-000000001049', 'test-1049@example.com', 'Test Investigator', 'active')
+          ON CONFLICT (id) DO NOTHING
+        ''');
+
         // Create test linking code (hash it like the handler does)
         final codeHash = sha256.convert(utf8.encode(testCode)).toString();
         await Database.instance.execute(
@@ -247,7 +254,7 @@ void main() {
           )
           VALUES (
             @patientId, @code, @codeHash,
-            '00000000-0000-0000-0000-000000000000',
+            '00000000-0000-0000-0000-000000001049',
             now(), now() + interval '24 hours'
           )
         ''',
