@@ -126,17 +126,17 @@ jobs:
                       FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
                     fi
                   fi
-                  SUMMARY_ROWS="${SUMMARY_ROWS}| :x: [${NAME}](${HTML_URL}) | Failed | ${FAIL_DETAIL} |
-"
+                  printf -v _row '| :x: [%s](%s) | Failed | %s |\n' "$NAME" "$HTML_URL" "$FAIL_DETAIL"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
                 else
                   COMPLETED=$((COMPLETED + 1))
-                  SUMMARY_ROWS="${SUMMARY_ROWS}| :white_check_mark: ${NAME} | ${CONCLUSION^} | |
-"
+                  printf -v _row '| :white_check_mark: %s | %s | |\n' "$NAME" "${CONCLUSION^}"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
-                SUMMARY_ROWS="${SUMMARY_ROWS}| :hourglass: ${NAME} | ${STATUS} | |
-"
+                printf -v _row '| :hourglass: %s | %s | |\n' "$NAME" "$STATUS"
+                SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
               fi
             done <<< "$CHECKS"
 
@@ -148,11 +148,7 @@ jobs:
                 echo ""
                 echo "FAILED: ${FAILED} check(s) failed (see PR comment for details)"
                 # Write step summary with full check status table
-                SUMMARY_BODY="## CI Gate: ${FAILED} of ${TOTAL} check(s) failed
-
-| Check | Status | Details |
-|-------|--------|---------|
-${SUMMARY_ROWS}"
+                printf -v SUMMARY_BODY '## CI Gate: %d of %d check(s) failed\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$FAILED" "$TOTAL" "$SUMMARY_ROWS"
                 echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
                 # Save for the PR comment step
                 echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
@@ -185,13 +181,7 @@ ${SUMMARY_ROWS}"
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
-          SUMMARY_BODY="## CI Gate: Timed out
-
-${COMPLETED} of ${TOTAL} checks completed. ${FAILED} failed.
-
-| Check | Status | Details |
-|-------|--------|---------|
-${SUMMARY_ROWS}"
+          printf -v SUMMARY_BODY '## CI Gate: Timed out\n\n%d of %d checks completed. %d failed.\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$COMPLETED" "$TOTAL" "$FAILED" "$SUMMARY_ROWS"
           echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
           echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
           ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
@@ -211,10 +201,9 @@ ${SUMMARY_ROWS}"
           fi
 
           MARKER="<!-- ci-gate-summary -->"
-          BODY="${MARKER}
-          $(cat /tmp/ci-gate-summary.md)
-
-          *Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
+          SUMMARY_CONTENT=$(cat /tmp/ci-gate-summary.md)
+          UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
+          printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
 
           # Find existing CI Gate comment to update (avoid spam on re-runs)
           EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
