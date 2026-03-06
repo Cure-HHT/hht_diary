@@ -72,6 +72,11 @@ jobs:
             # Fetch all check runs for this commit
             CHECKS=$(fetch_checks) || { echo "  Skipping poll (API error), will retry..."; sleep 30; continue; }
 
+            # Deduplicate check runs by name, keeping only the most recent (first) occurrence.
+            # The GitHub API returns check runs newest-first, so when a workflow is
+            # superseded (cancelled) and re-run, we only see the latest result.
+            CHECKS=$(echo "$CHECKS" | jq -sc 'group_by(.name) | map(.[0])[]')
+
             # Count statuses (exclude ourselves)
             TOTAL=0
             COMPLETED=0
