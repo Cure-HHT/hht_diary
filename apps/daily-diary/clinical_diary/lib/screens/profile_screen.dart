@@ -380,11 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   )
                 else
-                  Image.asset(
-                    'assets/images/generic_company_logo.png',
-                    height: 40,
-                    width: 120,
-                  ),
+                  const SizedBox(),
                 const SizedBox(height: 12),
 
                 const SizedBox(height: 8),

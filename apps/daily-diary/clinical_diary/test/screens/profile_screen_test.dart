@@ -392,33 +392,6 @@ void main() {
       );
 
       testWidgets(
-        'shows generic sponsor logo when sponsorLogo is null in active state',
-        (tester) async {
-          await tester.pumpWidget(
-            buildProfileScreen(
-              isEnrolledInTrial: true,
-              isDisconnected: false,
-              sponsorLogo: null,
-            ),
-          );
-
-          await tester.pumpAndSettle();
-
-          final imageFinder = find.byType(Image);
-          expect(imageFinder, findsWidgets);
-
-          final image = tester.widget<Image>(imageFinder.last);
-          expect(image.image, isA<AssetImage>());
-
-          final assetImage = image.image as AssetImage;
-          expect(
-            assetImage.assetName,
-            'assets/images/generic_company_logo.png',
-          );
-        },
-      );
-
-      testWidgets(
         'shows network sponsor logo when sponsorLogo is provided in disconnected state',
         (tester) async {
           await mockNetworkImages(() async {
@@ -437,34 +410,6 @@ void main() {
             final image = tester.widget<Image>(find.byType(Image).first);
             expect(image.image, isA<AssetImage>());
           });
-        },
-      );
-
-      testWidgets(
-        'shows generic sponsor logo when sponsorLogo is null in disconnected state',
-        (tester) async {
-          await tester.pumpWidget(
-            buildProfileScreen(
-              isEnrolledInTrial: true,
-              isDisconnected: true,
-              sponsorLogo: null,
-            ),
-          );
-
-          await tester.pumpAndSettle();
-
-          final imageFinder = find.byType(Image);
-          expect(imageFinder, findsWidgets);
-
-          final image = tester.widget<Image>(imageFinder.last);
-          expect(image.image, isA<AssetImage>());
-
-          final assetImage = image.image as AssetImage;
-
-          expect(
-            assetImage.assetName,
-            'assets/images/generic_company_logo.png',
-          );
         },
       );
     });
