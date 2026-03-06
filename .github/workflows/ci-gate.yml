@@ -47,7 +47,7 @@ jobs:
             for i in $(seq 1 $retries); do
               RESULT=$(gh api "repos/${REPO}/commits/${SHA}/check-runs" \
                 --paginate \
-                --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}' 2>&1) && {
+                --jq '.check_runs[] | {id: .id, name: .name, status: .status, conclusion: .conclusion, html_url: .html_url}' 2>&1) && {
                 echo "$RESULT"
                 return 0
               }
@@ -89,6 +89,8 @@ jobs:
               NAME=$(echo "$check" | jq -r '.name')
               STATUS=$(echo "$check" | jq -r '.status')
               CONCLUSION=$(echo "$check" | jq -r '.conclusion')
+              CHECK_ID=$(echo "$check" | jq -r '.id')
+              HTML_URL=$(echo "$check" | jq -r '.html_url // empty')
 
               # Skip our own check
               [ "$NAME" = "CI Gate" ] && continue
@@ -102,7 +104,33 @@ jobs:
                 elif [ "$CONCLUSION" = "failure" ]; then
                   COMPLETED=$((COMPLETED + 1))
                   FAILED=$((FAILED + 1))
-                  FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
+                  DETAIL="${NAME}"
+                  [ -n "$HTML_URL" ] && DETAIL="${DETAIL}\n    ${HTML_URL}"
+
+                  # Fetch annotations from the failed check run for detailed error messages
+                  ANNOTATIONS=$(gh api "repos/${REPO}/check-runs/${CHECK_ID}/annotations" \
+                    --jq '[.[] | select(.annotation_level == "failure") | .message] | unique | .[]' 2>/dev/null || true)
+                  HAS_DETAIL=false
+                  if [ -n "$ANNOTATIONS" ]; then
+                    while IFS= read -r ann; do
+                      # Skip generic "Process completed with exit code" messages
+                      if echo "$ann" | grep -q "Process completed with exit code"; then
+                        continue
+                      fi
+                      DETAIL="${DETAIL}\n    >> ${ann}"
+                      HAS_DETAIL=true
+                    done <<< "$ANNOTATIONS"
+                  fi
+
+                  # Fallback: if no meaningful annotations, check which job step(s) failed
+                  if [ "$HAS_DETAIL" = false ]; then
+                    FAILED_STEPS=$(gh api "repos/${REPO}/actions/jobs/${CHECK_ID}" \
+                      --jq '[.steps[] | select(.conclusion == "failure") | .name] | join(", ")' 2>/dev/null || true)
+                    if [ -n "$FAILED_STEPS" ]; then
+                      DETAIL="${DETAIL}\n    >> Failed step(s): ${FAILED_STEPS}"
+                    fi
+                  fi
+                  FAILED_NAMES="${FAILED_NAMES}\n  - ${DETAIL}"
                 else
                   COMPLETED=$((COMPLETED + 1))
                 fi
@@ -118,6 +146,9 @@ jobs:
               echo ""
               echo "FAILED: ${FAILED} check(s) failed:"
               echo -e "$FAILED_NAMES"
+              # Format annotation: GitHub annotations use %0A for newlines
+              ANNOTATION=$(echo -e "CI Gate failed: ${FAILED} check(s) did not pass:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+              echo "::error::${ANNOTATION}"
               exit 1
             fi
 
@@ -140,4 +171,6 @@ jobs:
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
+          ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+          echo "::error::${ANNOTATION}"
           exit 1
