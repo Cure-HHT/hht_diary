@@ -24,6 +24,7 @@ permissions:
   checks: read
   statuses: read
   actions: read
+  pull-requests: write
 
 jobs:
   gate:
@@ -32,10 +33,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Wait for all checks and aggregate results
+        id: gate
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "CI Gate: Waiting for all checks on commit ${SHA:0:7}"
           echo ""
@@ -162,13 +165,14 @@ jobs:
                 echo "FAILED: ${FAILED} check(s) failed:"
                 echo -e "$FAILED_NAMES"
                 # Write step summary with full check status table
-                {
-                  echo "## CI Gate: ${FAILED} of ${TOTAL} check(s) failed"
-                  echo ""
-                  echo "| Check | Status | Details |"
-                  echo "|-------|--------|---------|"
-                  echo "$SUMMARY_ROWS"
-                } >> "$GITHUB_STEP_SUMMARY"
+                SUMMARY_BODY="## CI Gate: ${FAILED} of ${TOTAL} check(s) failed
+
+| Check | Status | Details |
+|-------|--------|---------|
+${SUMMARY_ROWS}"
+                echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
+                # Save for the PR comment step
+                echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
                 # Also emit ::error:: annotation for the checks list view
                 ANNOTATION=$(echo -e "CI Gate: ${FAILED} check(s) failed:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
                 echo "::error::${ANNOTATION}"
@@ -176,6 +180,14 @@ jobs:
               fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
+              # Clean up any previous failure comment
+              MARKER="<!-- ci-gate-summary -->"
+              EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+                --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+                gh api "repos/${REPO}/issues/comments/${EXISTING}" -X DELETE > /dev/null 2>&1 || true
+                echo "Cleaned up previous CI Gate failure comment"
+              fi
               exit 0
             fi
 
@@ -191,15 +203,47 @@ jobs:
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
-          {
-            echo "## CI Gate: Timed out"
-            echo ""
-            echo "${COMPLETED} of ${TOTAL} checks completed. ${FAILED} failed."
-            echo ""
-            echo "| Check | Status | Details |"
-            echo "|-------|--------|---------|"
-            echo "$SUMMARY_ROWS"
-          } >> "$GITHUB_STEP_SUMMARY"
+          SUMMARY_BODY="## CI Gate: Timed out
+
+${COMPLETED} of ${TOTAL} checks completed. ${FAILED} failed.
+
+| Check | Status | Details |
+|-------|--------|---------|
+${SUMMARY_ROWS}"
+          echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
+          echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
           ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
           echo "::error::${ANNOTATION}"
           exit 1
+
+      - name: Comment on PR with failure details
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f /tmp/ci-gate-summary.md ]; then
+            echo "No summary file found, skipping comment"
+            exit 0
+          fi
+
+          MARKER="<!-- ci-gate-summary -->"
+          BODY="${MARKER}
+          $(cat /tmp/ci-gate-summary.md)
+
+          *Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
+
+          # Find existing CI Gate comment to update (avoid spam on re-runs)
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            gh api "repos/${REPO}/issues/comments/${EXISTING}" \
+              -X PATCH -f body="$BODY" > /dev/null
+            echo "Updated existing CI Gate comment"
+          else
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY" > /dev/null
+            echo "Posted new CI Gate comment"
+          fi
