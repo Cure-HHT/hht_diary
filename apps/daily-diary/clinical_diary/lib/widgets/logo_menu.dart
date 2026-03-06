@@ -17,6 +17,8 @@ class LogoMenu extends StatefulWidget {
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
+    this.isEnrolled,
+    this.sponsorLogo,
     super.key,
   });
 
@@ -26,6 +28,8 @@ class LogoMenu extends StatefulWidget {
   final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+  final bool? isEnrolled;
+  final String? sponsorLogo;
 
   /// Whether to show developer tools (Reset All Data, Import/Export Data, Feature Flags).
   /// Should be false in production and UAT environments.
@@ -159,18 +163,36 @@ class _LogoMenuState extends State<LogoMenu> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Colors.grey.withValues(alpha: 0.5),
-                BlendMode.srcATop,
+            if (widget.isEnrolled ?? false)
+              (widget.sponsorLogo != null)
+                  ? Image.network(
+                      widget.sponsorLogo!,
+                      height: 40,
+                      width: 120,
+                      errorBuilder: (context, _, _) {
+                        return const SizedBox(
+                          height: 40,
+                          width: 120,
+                          child: Center(
+                            child: Icon(Icons.broken_image_outlined, size: 32),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox()
+            else
+              ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  Colors.grey.withValues(alpha: 0.5),
+                  BlendMode.srcATop,
+                ),
+                child: Image.asset(
+                  'assets/images/cure-hht-grey.png',
+                  width: 100,
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
               ),
-              child: Image.asset(
-                'assets/images/cure-hht-grey.png',
-                width: 100,
-                height: 40,
-                fit: BoxFit.contain,
-              ),
-            ),
             // Update indicator dot
             if (_hasUpdate)
               Positioned(
