@@ -12,8 +12,8 @@
 | REQ-p00003 | Separate Database Per Sponsor                                       | prd-database.md                           | 08e74590 |
 | REQ-p00004 | Immutable Audit Trail via Event Sourcing                            | prd-database.md                           | 4353a766 |
 | REQ-p00005 | Role-Based Access Control                                           | prd-security-RBAC.md                      | 83e3e545 |
-| REQ-p00006 | Offline-First Data Entry                                            | prd-diary-app.md                          | 2224fecf |
-| REQ-p00007 | Automatic Sponsor Configuration                                     | prd-diary-app.md                          | 504e360e |
+| REQ-p00006 | Offline-First Data Entry                                            | prd-diary-app.md                          | b0555756 |
+| REQ-p00007 | Automatic Sponsor Configuration                                     | prd-diary-app.md                          | 3896c05a |
 | REQ-p00008 | Single Mobile App for All Sponsors                                  | prd-architecture-multi-sponsor.md         | 3fe1fad0 |
 | REQ-p00009 | Sponsor-Specific Portals                                            | prd-architecture-multi-sponsor.md         | e26dfd95 |
 | REQ-p00010 | FDA 21 CFR Part 11 Compliance                                       | prd-clinical-trials.md                    | 20c0e7bc |
@@ -36,7 +36,7 @@
 | REQ-p00039 | Administrator Access with Audit Trail                               | prd-security-RLS.md                       | 5082758c |
 | REQ-p00040 | Event Sourcing State Protection                                     | prd-security-RLS.md                       | 1694c31b |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                                 | prd-epistaxis-terminology.md              | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                                            | prd-diary-app.md                          | d5bc3ef8 |
+| REQ-p00043 | Diary Mobile Application                                            | prd-diary-app.md                          | 16a36106 |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform                             | prd-system.md                             | 0919ad00 |
 | REQ-p00045 | Regulatory Compliance Framework                                     | prd-clinical-trials.md                    | c4fa27f7 |
 | REQ-p00046 | Clinical Data Storage System                                        | prd-database.md                           | 75ec9efe |
@@ -44,6 +44,7 @@
 | REQ-p00048 | Platform Operations and Monitoring                                  | prd-devops.md                             | af349286 |
 | REQ-p00049 | Ancillary Platform Services                                         | prd-services.md                           | ff326529 |
 | REQ-p00050 | Temporal Entry Validation                                           | prd-diary-app.md                          | 7b918745 |
+| REQ-p00076 | Participation Status Badge                                          | prd-diary-gui.md                          | 852e6036 |
 | REQ-p01000 | Event Sourcing Client Interface                                     | prd-event-sourcing-system.md              | c289ba20 |
 | REQ-p01001 | Offline Event Queue with Automatic Synchronization                  | prd-event-sourcing-system.md              | 192df7e9 |
 | REQ-p01002 | Optimistic Concurrency Control                                      | prd-event-sourcing-system.md              | dd66beb1 |
@@ -82,7 +83,7 @@
 | REQ-p01036 | Data Recovery Guarantee                                             | prd-SLA.md                                | 5909fb2b |
 | REQ-p01037 | Chronic Failure Escalation                                          | prd-SLA.md                                | 63205737 |
 | REQ-p01038 | Regulatory Event Support                                            | prd-SLA.md                                | f62f5e4d |
-| REQ-p01039 | Diary Start Day Definition                                          | prd-diary-app.md                          | acabeeb1 |
+| REQ-p01039 | Diary Start Day Definition                                          | prd-diary-app.md                          | 33ea4793 |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status                         | prd-diary-app.md                          | e4e1c4c2 |
 | REQ-p01041 | Open Source Licensing                                               | prd-system.md                             | 7e6b1e00 |
 | REQ-p01042 | Web Diary Application                                               | prd-diary-web.md                          | a19f716f |
@@ -117,7 +118,17 @@
 | REQ-p01072 | Mobile App Linking Status and History                               | prd-diary-app.md                          | cf32de6c |
 | REQ-p01073 | Questionnaire Session Management                                    | prd-questionnaire-session.md              | a101e60e |
 | REQ-p01074 | User-Facing State Change Communication                              | prd-system.md                             | ec6b0b1d |
-| REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | ab1e5121 |
+| REQ-p01075 | Top Navigation Bar                                                  | prd-diary-gui.md                          | 027debad |
+| REQ-p01076 | User Menu                                                           | prd-diary-gui.md                          | 9c51b097 |
+| REQ-p01077 | User Profile Screen                                                 | prd-diary-gui.md                          | fc061bcc |
+| REQ-p01078 | App Menu                                                            | prd-diary-gui.md                          | 115fd33c |
+| REQ-p01079 | License Display                                                     | prd-system.md                             | 0a061e18 |
+| REQ-p01080 | Policies Screen                                                     | prd-diary-gui.md                          | 0962c04b |
+| REQ-p01081 | Help Center Screen                                                  | prd-diary-gui.md                          | f5ecea75 |
+| REQ-p01082 | Join Study Screen                                                   | prd-diary-gui.md                          | 8eb89d10 |
+| REQ-p01083 | Account Settings Screen                                             | prd-diary-gui.md                          | 63efe18c |
+| REQ-p01084 | Diary App Licenses Screen                                           | prd-diary-gui.md                          | 621882cb |
+| REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | f74d92a4 |
 | REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 290ca25c |
 | REQ-p70005 | Customizable Role-Based Access Control                              | prd-portal.md                             | d0617ddb |
 | REQ-p70006 | Comprehensive Audit Trail                                           | prd-portal.md                             | e3ed7b52 |
