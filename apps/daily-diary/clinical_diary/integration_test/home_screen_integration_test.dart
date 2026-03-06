@@ -39,7 +39,6 @@ import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -72,7 +71,6 @@ void main() {
 
   group('HomeScreen Integration Tests', () {
     late EnrollmentService enrollmentService;
-    late AuthService authService;
     late PreferencesService preferencesService;
     late NosebleedService nosebleedService;
     late Directory tempDir;
@@ -103,7 +101,6 @@ void main() {
       );
 
       enrollmentService = EnrollmentService(httpClient: mockHttpClient);
-      authService = AuthService(httpClient: mockHttpClient);
       preferencesService = PreferencesService();
       nosebleedService = NosebleedService(
         enrollmentService: enrollmentService,
@@ -136,7 +133,6 @@ void main() {
         home: HomeScreen(
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
-          authService: authService,
           taskService: TaskService(),
           preferencesService: preferencesService,
           onLocaleChanged: (_) {},
