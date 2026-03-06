@@ -113,8 +113,8 @@ jobs:
                   HAS_DETAIL=false
                   if [ -n "$ANNOTATIONS" ]; then
                     while IFS= read -r ann; do
-                      # Skip generic "Process completed with exit code" messages
-                      if echo "$ann" | grep -q "Process completed with exit code"; then
+                      # Skip noise: generic GitHub messages and ERR trap output
+                      if echo "$ann" | grep -qE "Process completed with exit code|^Unexpected failure|^Failed during:"; then
                         continue
                       fi
                       DETAIL="${DETAIL}\n    >> ${ann}"
@@ -139,21 +139,19 @@ jobs:
               fi
             done <<< "$CHECKS"
 
-            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMPLETED}/${TOTAL} checks completed"
+            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMPLETED}/${TOTAL} checks completed ($FAILED failed)"
 
-            # If any check has already failed, fail fast
-            if [ $FAILED -gt 0 ]; then
-              echo ""
-              echo "FAILED: ${FAILED} check(s) failed:"
-              echo -e "$FAILED_NAMES"
-              # Format annotation: GitHub annotations use %0A for newlines
-              ANNOTATION=$(echo -e "CI Gate failed: ${FAILED} check(s) did not pass:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
-              echo "::error::${ANNOTATION}"
-              exit 1
-            fi
-
-            # All checks completed successfully (or skipped)
+            # All checks completed — report results
             if [ $TOTAL -gt 0 ] && [ $COMPLETED -eq $TOTAL ]; then
+              if [ $FAILED -gt 0 ]; then
+                echo ""
+                echo "FAILED: ${FAILED} check(s) failed:"
+                echo -e "$FAILED_NAMES"
+                # Format annotation: GitHub annotations use %0A for newlines
+                ANNOTATION=$(echo -e "CI Gate failed: ${FAILED} check(s) did not pass:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+                echo "::error::${ANNOTATION}"
+                exit 1
+              fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
               exit 0

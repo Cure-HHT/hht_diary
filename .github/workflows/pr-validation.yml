@@ -118,10 +118,13 @@ jobs:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run validation
+        id: validation
         working-directory: tools/dev-env
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          # Capture output and exit code; tee to stdout so ::group:: still works
+          set +e
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
             -e PR_TITLE="$PR_TITLE" \
             -e PR_NUMBER="${{ github.event.pull_request.number }}" \
@@ -131,7 +134,24 @@ jobs:
             -e BASE_REF="${{ github.base_ref }}" \
             -e EVENT_NAME="${{ github.event_name }}" \
             -e GITHUB_ENV="/workspace/src/.ci-github-env" \
-            ci bash -c "cd /workspace/src && .github/scripts/validate-pr.sh"
+            ci bash -c "cd /workspace/src && .github/scripts/validate-pr.sh" 2>&1 | tee /tmp/validation-output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Extract ::error:: lines (the real errors) for the job summary
+            ERRORS=$(grep '::error::' /tmp/validation-output.log | sed 's/::error:://' | grep -vE 'Process completed|^Unexpected failure|^Failed during:' || true)
+            if [ -n "$ERRORS" ]; then
+              {
+                echo "## PR Validation Failed"
+                echo ""
+                echo "$ERRORS" | while IFS= read -r line; do
+                  echo "- $line"
+                done
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit $EXIT_CODE
+          fi
 
       - name: Restore workspace ownership
         if: always()
