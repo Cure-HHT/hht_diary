@@ -72,6 +72,11 @@ jobs:
             # Fetch all check runs for this commit
             CHECKS=$(fetch_checks) || { echo "  Skipping poll (API error), will retry..."; sleep 30; continue; }
 
+            # Deduplicate check runs by name, keeping only the most recent (first) occurrence.
+            # The GitHub API returns check runs newest-first, so when a workflow is
+            # superseded (cancelled) and re-run, we only see the latest result.
+            CHECKS=$(echo "$CHECKS" | jq -sc 'group_by(.name) | map(.[0])[]')
+
             # Count statuses (exclude ourselves)
             TOTAL=0
             COMPLETED=0
@@ -91,10 +96,15 @@ jobs:
               TOTAL=$((TOTAL + 1))
 
               if [ "$STATUS" = "completed" ]; then
-                COMPLETED=$((COMPLETED + 1))
-                if [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+                if [ "$CONCLUSION" = "cancelled" ]; then
+                  # Treat cancelled as pending — gate waits for a re-run
+                  PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (cancelled, awaiting re-run)"
+                elif [ "$CONCLUSION" = "failure" ]; then
+                  COMPLETED=$((COMPLETED + 1))
                   FAILED=$((FAILED + 1))
                   FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
+                else
+                  COMPLETED=$((COMPLETED + 1))
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
