@@ -63,9 +63,33 @@ C. Platform documentation SHALL be distributed under an open documentation licen
 
 ---
 
+# REQ-p01079: License Display
+
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01041
+
+## Rationale
+
+Open-source license compliance requires that applications display the full text of all applicable licenses to end users. This platform-wide requirement ensures every application in the system provides a dedicated location for license viewing, regardless of the specific deployment target.
+
+## Assertions
+
+A. Each application SHALL display the full text of the license for any included code or content.
+
+B. Each application SHALL NOT fetch license content from external URLs at runtime.
+
+C. Each license SHALL be clearly labeled with its name and the software or asset it applies to.
+
+D. The license display SHALL scroll license text when necessary to allow viewing of the full license.
+
+E. The license display SHALL provide a way to return to the previous screen or page.
+
+*End* *License Display* | **Hash**: 0a061e18
+
+---
+
 # REQ-p01074: User-Facing State Change Communication
 
-**Level**: PRD  **Status**: Draft  **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00044
 
 ## Rationale
 
