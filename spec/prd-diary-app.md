@@ -610,11 +610,49 @@ A. The App Menu SHALL be accessed by tapping the hamburger menu icon (three hori
 
 B. The App Menu SHALL display a dropdown/popover or slide-out panel.
 
-C. The App Menu SHALL contain exactly the following items, in order: Data Export (allows the patient to export their diary data), Policies and Licenses (displays legal policies, privacy policy, terms of use, and open-source licenses).
+C. The App Menu SHALL contain exactly the following items, in order: Data Export (allows the patient to export their diary data), Policies (displays legal policies, privacy policy, and terms of use), Licenses (navigates to the Licenses screen, REQ-p01079).
 
 D. Each menu item SHALL display an appropriate icon to the left of its label.
 
-*End* *App Menu* | **Hash**: f21a6017
+E. The Licenses item SHALL appear above the app version indicator at the bottom of the menu.
+
+*End* *App Menu* | **Hash**: e8873801
+
+---
+
+## Licenses Screen
+
+# REQ-p01079: Licenses Screen
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+
+## Rationale
+
+Open-source license compliance and font license attribution are legal requirements for app distribution. Displaying the AGPL license and the Atkinson Hyperlegible font license in a dedicated screen ensures the app meets its obligations under both licenses and satisfies app store review requirements. The sponsor portal requires the same AGPL license display but does not use the Atkinson font, so it omits the font license.
+
+## Assertions
+
+A. The mobile app SHALL provide a Licenses screen accessible from the App Menu (REQ-p01078).
+
+B. The Licenses screen SHALL display the full text of the GNU Affero General Public License version 3 (AGPL-3.0).
+
+C. The Licenses screen SHALL display the full text of the Atkinson Hyperlegible font license from the Braille Institute.
+
+D. The AGPL-3.0 license text SHALL appear before the Atkinson Hyperlegible font license text.
+
+E. Each license SHALL be clearly labeled with its name and the software or asset it applies to.
+
+F. The Licenses screen SHALL be scrollable to allow reading the full text of all licenses.
+
+G. The Licenses screen SHALL display a back arrow or close button that returns the patient to the previous screen.
+
+H. The sponsor portal SHALL provide a Licenses page accessible from its navigation or footer.
+
+I. The sponsor portal Licenses page SHALL display the full text of the AGPL-3.0 license.
+
+J. The sponsor portal Licenses page SHALL NOT display the Atkinson Hyperlegible font license.
+
+*End* *Licenses Screen* | **Hash**: ea3ebe5e
 
 ---
 

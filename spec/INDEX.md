@@ -120,7 +120,8 @@
 | REQ-p01075 | Top Navigation Bar                                                  | prd-diary-app.md                          | 027debad |
 | REQ-p01076 | User Menu                                                           | prd-diary-app.md                          | 1ee94575 |
 | REQ-p01077 | User Profile Screen                                                 | prd-diary-app.md                          | ebc06ec6 |
-| REQ-p01078 | App Menu                                                            | prd-diary-app.md                          | f21a6017 |
+| REQ-p01078 | App Menu                                                            | prd-diary-app.md                          | e8873801 |
+| REQ-p01079 | Licenses Screen                                                     | prd-diary-app.md                          | ea3ebe5e |
 | REQ-p70000 | Local Data Storage                                                  | prd-diary-app.md                          | ab1e5121 |
 | REQ-p70001 | Sponsor Portal Application                                          | prd-portal.md                             | 290ca25c |
 | REQ-p70005 | Customizable Role-Based Access Control                              | prd-portal.md                             | d0617ddb |
