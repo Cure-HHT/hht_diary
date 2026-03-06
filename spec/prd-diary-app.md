@@ -510,6 +510,114 @@ J. The system SHALL support sponsor configuration of which linking history field
 
 ---
 
+## Top Navigation Bar
+
+# REQ-p01075: Top Navigation Bar
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+
+## Rationale
+
+A consistent, always-visible navigation bar gives patients reliable access to both application-level and account-level functions. Separating app concerns from user concerns into two distinct menus reduces cognitive load and follows standard mobile UI conventions (hamburger menu for app features, person icon for account features).
+
+## Assertions
+
+A. The mobile app SHALL display a fixed top navigation bar containing a hamburger menu icon (three horizontal lines) on the left side, opening the App Menu.
+
+B. The top navigation bar SHALL contain the sponsor/app logo in the center.
+
+C. The top navigation bar SHALL contain a person icon on the right side, opening the User Menu.
+
+D. The top navigation bar SHALL remain visible on the main screen at all times.
+
+E. Tapping anywhere outside an open menu SHALL dismiss it.
+
+F. Only one menu SHALL be open at a time. Opening one menu SHALL close the other if it is open.
+
+*End* *Top Navigation Bar* | **Hash**: 027debad
+
+---
+
+## User Menu
+
+# REQ-p01076: User Menu
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+
+## Rationale
+
+The User Menu groups account and study-related actions under the person icon, which is the standard location patients expect for personal settings. Placing "Join the Study" prominently as the first item ensures discoverability for patients who need to link to a clinical trial. The Help Center provides a self-service support path.
+
+## Assertions
+
+A. The User Menu SHALL be accessed by tapping the person icon on the right side of the top navigation bar.
+
+B. The User Menu SHALL display a dropdown/popover with the heading "User Settings".
+
+C. The User Menu SHALL contain exactly the following items, in order: Join the Study (navigates to the linking code entry screen, REQ-p00078), User Profile (navigates to the User Profile screen, REQ-p01077), Help Center (navigates to the Help Center screen).
+
+D. Each menu item SHALL display an appropriate icon to the left of its label.
+
+E. When the patient is already linked to a study (status "Linked - Awaiting Start", "Trial Active", or "Disconnected"), the "Join the Study" item SHALL remain visible but its behavior MAY change to show participation status rather than the code entry screen.
+
+*End* *User Menu* | **Hash**: 1ee94575
+
+---
+
+## User Profile Screen
+
+# REQ-p01077: User Profile Screen
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+
+## Rationale
+
+The User Profile screen provides a dedicated space for account management and clinical trial status. Displaying the Participation Status Badge here gives patients a clear view of their study enrollment without cluttering the main screen. The "Join the Study" shortcut is repeated here to provide a direct path from the profile context, reducing navigation friction for patients ready to enroll.
+
+## Assertions
+
+A. The User Profile screen SHALL be accessed from the User Menu (REQ-p01076).
+
+B. The User Profile screen SHALL display the sponsor/app logo at the top.
+
+C. The User Profile screen SHALL display a back arrow in the top-left corner that returns the patient to the previous screen.
+
+D. The User Profile screen SHALL contain exactly the following items, in order: Account Settings (navigates to account settings including password, email, and preferences), Join the Study (navigates to the linking code entry screen, REQ-p00078).
+
+E. The User Profile screen SHALL display a "Clinical Trial" section below the menu items.
+
+F. The "Clinical Trial" section SHALL display the Participation Status Badge (REQ-p00076) reflecting the patient's current study participation status.
+
+G. When the patient is not enrolled in any clinical trial, the "Clinical Trial" section SHALL display the message: "You are not currently enrolled in a clinical trial. To join, click 'Join the Study' in the menu above."
+
+*End* *User Profile Screen* | **Hash**: 5fef4776
+
+---
+
+## App Menu
+
+# REQ-p01078: App Menu
+
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+
+## Rationale
+
+The App Menu groups application-level functions that are not specific to the patient's account or study participation. Data Export empowers patients with access to their own health data, supporting transparency and patient rights. Policies and Licenses provides a standard location for legal and compliance documents, which is expected by app store review guidelines and regulatory requirements.
+
+## Assertions
+
+A. The App Menu SHALL be accessed by tapping the hamburger menu icon (three horizontal lines) on the left side of the top navigation bar.
+
+B. The App Menu SHALL display a dropdown/popover or slide-out panel.
+
+C. The App Menu SHALL contain exactly the following items, in order: Data Export (allows the patient to export their diary data), Policies and Licenses (displays legal policies, privacy policy, terms of use, and open-source licenses).
+
+D. Each menu item SHALL display an appropriate icon to the left of its label.
+
+*End* *App Menu* | **Hash**: f21a6017
+
+---
+
 ## References
 
 - **Platform**: prd-system.md
