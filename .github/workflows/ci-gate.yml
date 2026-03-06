@@ -96,10 +96,15 @@ jobs:
               TOTAL=$((TOTAL + 1))
 
               if [ "$STATUS" = "completed" ]; then
-                COMPLETED=$((COMPLETED + 1))
-                if [ "$CONCLUSION" = "failure" ]; then
+                if [ "$CONCLUSION" = "cancelled" ]; then
+                  # Treat cancelled as pending — gate waits for a re-run
+                  PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (cancelled, awaiting re-run)"
+                elif [ "$CONCLUSION" = "failure" ]; then
+                  COMPLETED=$((COMPLETED + 1))
                   FAILED=$((FAILED + 1))
                   FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
+                else
+                  COMPLETED=$((COMPLETED + 1))
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
