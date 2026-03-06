@@ -624,7 +624,7 @@ E. The Licenses item SHALL appear above the app version indicator at the bottom 
 
 # REQ-p01079: Licenses Screen
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00011
+**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01041
 
 ## Rationale
 
