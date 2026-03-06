@@ -83,6 +83,7 @@ jobs:
             FAILED=0
             FAILED_NAMES=""
             PENDING_NAMES=""
+            SUMMARY_ROWS=""
 
             while IFS= read -r check; do
               [ -z "$check" ] && continue
@@ -131,11 +132,21 @@ jobs:
                     fi
                   fi
                   FAILED_NAMES="${FAILED_NAMES}\n  - ${DETAIL}"
+                  # Build summary row with failure details
+                  FAIL_DETAIL=""
+                  if [ "$HAS_DETAIL" = true ] && [ -n "$ANNOTATIONS" ]; then
+                    FAIL_DETAIL=$(echo -e "$ANNOTATIONS" | grep -vE "Process completed with exit code|^Unexpected failure|^Failed during:" | head -3 | tr '\n' '; ' | sed 's/; $//')
+                  elif [ -n "$FAILED_STEPS" ]; then
+                    FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
+                  fi
+                  SUMMARY_ROWS="${SUMMARY_ROWS}\n| :x: [${NAME}](${HTML_URL}) | Failed | ${FAIL_DETAIL} |"
                 else
                   COMPLETED=$((COMPLETED + 1))
+                  SUMMARY_ROWS="${SUMMARY_ROWS}\n| :white_check_mark: ${NAME} | ${CONCLUSION^} | |"
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
+                SUMMARY_ROWS="${SUMMARY_ROWS}\n| :hourglass: ${NAME} | ${STATUS} | |"
               fi
             done <<< "$CHECKS"
 
@@ -147,8 +158,16 @@ jobs:
                 echo ""
                 echo "FAILED: ${FAILED} check(s) failed:"
                 echo -e "$FAILED_NAMES"
-                # Format annotation: GitHub annotations use %0A for newlines
-                ANNOTATION=$(echo -e "CI Gate failed: ${FAILED} check(s) did not pass:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+                # Write step summary with full check status table
+                {
+                  echo "## CI Gate: ${FAILED} of ${TOTAL} check(s) failed"
+                  echo ""
+                  echo "| Check | Status | Details |"
+                  echo "|-------|--------|---------|"
+                  echo -e "$SUMMARY_ROWS"
+                } >> "$GITHUB_STEP_SUMMARY"
+                # Also emit ::error:: annotation for the checks list view
+                ANNOTATION=$(echo -e "CI Gate: ${FAILED} check(s) failed:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
                 echo "::error::${ANNOTATION}"
                 exit 1
               fi
@@ -169,6 +188,15 @@ jobs:
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
+          {
+            echo "## CI Gate: Timed out"
+            echo ""
+            echo "${COMPLETED} of ${TOTAL} checks completed. ${FAILED} failed."
+            echo ""
+            echo "| Check | Status | Details |"
+            echo "|-------|--------|---------|"
+            echo -e "$SUMMARY_ROWS"
+          } >> "$GITHUB_STEP_SUMMARY"
           ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
           echo "::error::${ANNOTATION}"
           exit 1
