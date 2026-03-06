@@ -84,7 +84,7 @@ jobs:
             TOTAL=0
             COMPLETED=0
             FAILED=0
-            FAILED_NAMES=""
+            FAILED_CHECK_NAMES=""
             PENDING_NAMES=""
             SUMMARY_ROWS=""
 
@@ -108,39 +108,23 @@ jobs:
                 elif [ "$CONCLUSION" = "failure" ]; then
                   COMPLETED=$((COMPLETED + 1))
                   FAILED=$((FAILED + 1))
-                  DETAIL="${NAME}"
-                  [ -n "$HTML_URL" ] && DETAIL="${DETAIL}\n    ${HTML_URL}"
+                  FAILED_CHECK_NAMES="${FAILED_CHECK_NAMES}, ${NAME}"
 
                   # Fetch annotations from the failed check run for detailed error messages
                   ANNOTATIONS=$(gh api "repos/${REPO}/check-runs/${CHECK_ID}/annotations" \
                     --jq '[.[] | select(.annotation_level == "failure") | .message] | unique | .[]' 2>/dev/null || true)
-                  HAS_DETAIL=false
+                  FAIL_DETAIL=""
                   if [ -n "$ANNOTATIONS" ]; then
-                    while IFS= read -r ann; do
-                      # Skip noise: generic GitHub messages and ERR trap output
-                      if echo "$ann" | grep -qE "Process completed with exit code|^Unexpected failure|^Failed during:"; then
-                        continue
-                      fi
-                      DETAIL="${DETAIL}\n    >> ${ann}"
-                      HAS_DETAIL=true
-                    done <<< "$ANNOTATIONS"
+                    FAIL_DETAIL=$(echo "$ANNOTATIONS" | grep -vE "Process completed with exit code|^Unexpected failure|^Failed during:" | head -3 | tr '\n' '; ' | sed 's/; $//')
                   fi
 
                   # Fallback: if no meaningful annotations, check which job step(s) failed
-                  if [ "$HAS_DETAIL" = false ]; then
+                  if [ -z "$FAIL_DETAIL" ]; then
                     FAILED_STEPS=$(gh api "repos/${REPO}/actions/jobs/${CHECK_ID}" \
                       --jq '[.steps[] | select(.conclusion == "failure") | .name] | join(", ")' 2>/dev/null || true)
                     if [ -n "$FAILED_STEPS" ]; then
-                      DETAIL="${DETAIL}\n    >> Failed step(s): ${FAILED_STEPS}"
+                      FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
                     fi
-                  fi
-                  FAILED_NAMES="${FAILED_NAMES}\n  - ${DETAIL}"
-                  # Build summary row with failure details
-                  FAIL_DETAIL=""
-                  if [ "$HAS_DETAIL" = true ] && [ -n "$ANNOTATIONS" ]; then
-                    FAIL_DETAIL=$(echo -e "$ANNOTATIONS" | grep -vE "Process completed with exit code|^Unexpected failure|^Failed during:" | head -3 | tr '\n' '; ' | sed 's/; $//')
-                  elif [ -n "$FAILED_STEPS" ]; then
-                    FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
                   fi
                   SUMMARY_ROWS="${SUMMARY_ROWS}| :x: [${NAME}](${HTML_URL}) | Failed | ${FAIL_DETAIL} |
 "
@@ -162,8 +146,7 @@ jobs:
             if [ $TOTAL -gt 0 ] && [ $COMPLETED -eq $TOTAL ]; then
               if [ $FAILED -gt 0 ]; then
                 echo ""
-                echo "FAILED: ${FAILED} check(s) failed:"
-                echo -e "$FAILED_NAMES"
+                echo "FAILED: ${FAILED} check(s) failed (see PR comment for details)"
                 # Write step summary with full check status table
                 SUMMARY_BODY="## CI Gate: ${FAILED} of ${TOTAL} check(s) failed
 
@@ -173,9 +156,8 @@ ${SUMMARY_ROWS}"
                 echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
                 # Save for the PR comment step
                 echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
-                # Also emit ::error:: annotation for the checks list view
-                ANNOTATION=$(echo -e "CI Gate: ${FAILED} check(s) failed:\n${FAILED_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
-                echo "::error::${ANNOTATION}"
+                # Emit ::error:: annotation (visible in checks list)
+                echo "::error::CI Gate: ${FAILED} check(s) failed:${FAILED_CHECK_NAMES}"
                 exit 1
               fi
               echo ""
