@@ -231,7 +231,7 @@ void main() {
         await Database.instance.execute(
           '''
           INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
-          VALUES (@patientId, @siteId, 'EDC-SUBJ-1049', 'code_generated', now(), now())
+          VALUES (@patientId, @siteId, 'EDC-SUBJ-1049', 'not_connected', now(), now())
           ON CONFLICT (patient_id) DO NOTHING
         ''',
           parameters: {'patientId': testPatientId, 'siteId': testSiteId},
