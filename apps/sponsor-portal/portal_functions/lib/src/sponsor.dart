@@ -93,7 +93,7 @@ final _sponsorConfigs = <String, SponsorFeatureFlags>{
     enableLongDurationConfirmation: true,
     longDurationThresholdMinutes: 60,
     availableFonts: ['Roboto', 'OpenDyslexic', 'AtkinsonHyperlegible'],
-    inactivityTimeoutMinutes: 5, // callisto uses a 5-minute timeout
+    inactivityTimeoutMinutes: 30,
   ),
 };
 

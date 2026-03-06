@@ -4,6 +4,8 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00044: Password Reset
 //   REQ-d00031: Identity Platform Integration
+//   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
+//   REQ-d00080-A: client-side session management with configurable inactivity timeout
 
 import 'dart:convert';
 
@@ -846,6 +848,183 @@ void main() {
         fake.flushMicrotasks();
 
         expect(authService.isWarning, isFalse);
+      });
+    });
+  });
+
+  // REQ-p01044-C, REQ-d00080-A: sponsor-configurable inactivity timeout
+  group('Sponsor-configurable timeout', () {
+    /// Build a signed-in AuthService where the sponsor config endpoint returns
+    /// [sponsorTimeoutMinutes] (null = 404, simulating failure).
+    AuthService buildWithSponsorConfig(
+      FakeAsync fake, {
+      int? sponsorTimeoutMinutes,
+      Duration inactivityTimeout = const Duration(milliseconds: 500),
+    }) {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (request.url.path == '/api/v1/sponsor/config') {
+          if (sponsorTimeoutMinutes == null) {
+            return http.Response('Not found', 404);
+          }
+          return http.Response(
+            jsonEncode({
+              'sponsorId': 'callisto',
+              'flags': {
+                'inactivityTimeoutMinutes': sponsorTimeoutMinutes,
+                'useReviewScreen': false,
+                'useAnimations': true,
+              },
+              'isDefault': false,
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        inactivityTimeout: inactivityTimeout,
+      );
+      authService.signIn('test@example.com', 'password');
+      fake.flushMicrotasks();
+      return authService;
+    }
+
+    test('applies sponsor timeout from config API after login', () {
+      fakeAsync((fake) {
+        // Sponsor config returns 30 minutes; default is 500ms
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 30,
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Timeout should now be 30 minutes from sponsor config
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 30),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('falls back to default timeout when sponsor config API fails', () {
+      fakeAsync((fake) {
+        // null → config endpoint returns 404
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: null,
+          inactivityTimeout: const Duration(milliseconds: 500),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Timeout should remain at the injected default
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(milliseconds: 500),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('clamps timeout below 1 minute to 1 minute', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 0, // out of range
+        );
+
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 1),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('clamps timeout above 30 minutes to 30 minutes', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 60, // out of range
+        );
+
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 30),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('updateInactivityTimeout restarts live timer with new duration', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: null, // use injected default
+          inactivityTimeout: const Duration(milliseconds: 300),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Advance past the sponsor-fetch microtasks so timer is running
+        fake.elapse(const Duration(milliseconds: 50));
+
+        // Now update to a longer timeout while session is live
+        authService.updateInactivityTimeout(const Duration(milliseconds: 600));
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(milliseconds: 600),
+        );
+
+        // The old 300ms timer would have fired by now (50+300=350ms total),
+        // but it was replaced — session should still be alive
+        fake.elapse(const Duration(milliseconds: 400));
+        expect(authService.isAuthenticated, isTrue);
+        expect(authService.isTimedOut, isFalse);
+
+        // Advance past the new 600ms timeout — should now sign out
+        fake.elapse(const Duration(milliseconds: 300));
+        fake.flushMicrotasks();
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+
+        authService.signOut();
+        fake.flushMicrotasks();
       });
     });
   });

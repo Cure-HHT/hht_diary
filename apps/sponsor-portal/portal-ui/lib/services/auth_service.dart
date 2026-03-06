@@ -4,6 +4,8 @@
 //   REQ-d00032: Role-Based Access Control Implementation
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
+//   REQ-d00080-A: client-side session management with configurable inactivity timeout
 //
 // Portal authentication service using Firebase Auth (Identity Platform)
 // Supports both TOTP (for Developer Admin) and Email OTP (for other users)
@@ -253,7 +255,8 @@ class AuthService extends ChangeNotifier {
   final Future<void> Function() _clearStorage;
   final FirebaseAuth _auth;
   final http.Client _httpClient;
-  final Duration _inactivityTimeout;
+  // REQ-p01044-C: mutable so sponsor config can override after login
+  Duration _inactivityTimeout;
 
   PortalUser? _currentUser;
   bool _isLoading = false;
@@ -291,6 +294,22 @@ class AuthService extends ChangeNotifier {
   void debugSetWarning(bool value) {
     _isWarning = value;
     notifyListeners();
+  }
+
+  // Exposes the current inactivity timeout for testing.
+  @visibleForTesting
+  Duration get currentInactivityTimeout => _inactivityTimeout;
+
+  /// Update the inactivity timeout.
+  ///
+  /// REQ-p01044-C: allows sponsor config to override the default timeout.
+  /// If a session timer is already running, it is restarted with the new duration.
+  void updateInactivityTimeout(Duration newTimeout) {
+    _inactivityTimeout = newTimeout;
+    // Only reset if a timer is actively running (i.e. session is live)
+    if (_inactivityTimer != null && _enableInactivityTimer) {
+      resetInactivityTimer();
+    }
   }
 
   /// MFA state - resolver for completing MFA challenge (TOTP)
@@ -739,6 +758,8 @@ class AuthService extends ChangeNotifier {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _currentUser = PortalUser.fromJson(data);
         notifyListeners();
+        // REQ-p01044-C: apply sponsor-configurable inactivity timeout
+        await _fetchSponsorTimeout();
         return true;
       } else if (response.statusCode == 403) {
         // User not authorized for portal access
@@ -757,6 +778,37 @@ class AuthService extends ChangeNotifier {
       debugPrint('Error fetching portal user: $e');
       _error = 'Failed to connect to server';
       return false;
+    }
+  }
+
+  /// Fetch the sponsor-configurable inactivity timeout and apply it.
+  ///
+  /// REQ-p01044-C: sponsors can configure inactivity timeout (1–30 minutes).
+  /// Silently falls back to the current timeout on any error.
+  Future<void> _fetchSponsorTimeout() async {
+    try {
+      // Sponsor config is a public endpoint — no auth token required.
+      // sponsorId is hardcoded to 'callisto' for now (same as user_management_tab).
+      final response = await _httpClient.get(
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=callisto'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final flags = data['flags'] as Map<String, dynamic>?;
+        final minutes = flags?['inactivityTimeoutMinutes'] as int?;
+        debugPrint('Fetched sponsor inactivity timeout: $minutes minutes');
+        if (minutes != null) {
+          // Clamp to the valid 1–30 minute range (REQ-p01044-C)
+          final clamped = minutes.clamp(1, 30);
+          updateInactivityTimeout(Duration(minutes: clamped));
+          debugPrint('[AuthService] Sponsor timeout applied: $clamped min');
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        '[AuthService] Failed to fetch sponsor timeout, using default: $e',
+      );
     }
   }
 
