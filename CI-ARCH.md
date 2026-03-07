@@ -111,7 +111,7 @@ This document covers workflows that run tests and validation inside the CI conta
 
 - **Build/publish**: `build-ghcr-containers`, `build-dart-base`, `build-flutter-base`, `build-portal-server`, `build-diary-server`
 - **Deploy**: `deploy-run-service`, `reset-db-gcp`, `android-dev-deploy`
-- **Compliance/Ops**: `claim-requirement-number`, `tag-production-candidate`, `maintenance-check`, `alert-workflow-changes`, `validate-bot-commits`
+- **Compliance/Ops**: `tag-production-candidate`, `maintenance-check`, `alert-workflow-changes`
 - **Archival**: `archive-audit-trail`, `archive-artifacts`, `archive-deployment-logs`, `verify-archive-integrity`
 - **Other**: `codespaces-prebuild`, `test-gcp-auth`
 
