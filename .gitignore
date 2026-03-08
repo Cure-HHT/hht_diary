@@ -252,6 +252,6 @@ qwert.sh
 WORKFLOW_STATE.md
 MASTER_PLAN*.md
 TODO.md
-
+/apps/coverage/*.info
 # Implementation plans (ephemeral, session-specific)
 docs/plans/

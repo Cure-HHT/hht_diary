@@ -94,6 +94,21 @@ class DatabaseConfig {
   }
 }
 
+/// Test-only: Override all [Database.executeWithContext] calls.
+/// When set, queries delegate to this function instead of PostgreSQL.
+/// Set to null to restore production behavior.
+///
+/// The function receives the SQL query, parameters, and user context,
+/// and should return a list of rows (each row is a list of column values).
+/// An empty list represents an empty result set.
+@visibleForTesting
+Future<List<List<dynamic>>> Function(
+  String query, {
+  Map<String, dynamic>? parameters,
+  required UserContext context,
+})?
+databaseQueryOverride;
+
 /// Database connection pool singleton
 class Database {
   static Database? _instance;
@@ -156,6 +171,16 @@ class Database {
     Map<String, dynamic>? parameters,
     required UserContext context,
   }) async {
+    // Test override: return fake results without PostgreSQL
+    if (databaseQueryOverride != null) {
+      final rows = await databaseQueryOverride!(
+        query,
+        parameters: parameters,
+        context: context,
+      );
+      return _FakeResult(rows);
+    }
+
     if (_pool == null) {
       throw StateError('Database not initialized. Call initialize() first.');
     }
@@ -250,4 +275,14 @@ class Database {
     await _pool?.close();
     _pool = null;
   }
+}
+
+/// Lightweight Result implementation for [databaseQueryOverride].
+/// Wraps raw row data in proper [Result]/[ResultRow] objects.
+Result _FakeResult(List<List<dynamic>> rows) {
+  final schema = ResultSchema([]);
+  final resultRows = rows
+      .map((r) => ResultRow(values: r.cast<Object?>(), schema: schema))
+      .toList();
+  return Result(rows: resultRows, affectedRows: rows.length, schema: schema);
 }

@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>org.anspar.curehht.app.dev</string>
+	<string>org.anspar.curehht.app.qa</string>
 	<key>PROJECT_ID</key>
 	<string>cure-hht-admin</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:149504828360:ios:d8d2aedc76b7a6934616fd</string>
+	<string>1:149504828360:ios:49eee7fb7c956be34616fd</string>
 </dict>
 </plist>

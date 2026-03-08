@@ -353,11 +353,27 @@ class _TimePickerDialState extends State<TimePickerDial> {
       return displayNameToIana[tzInput]!;
     }
 
+    // Handle numeric UTC offset formats like "+00", "-05", "+0530", "+05:30"
+    // Some platforms return these from DateTime.now().timeZoneName
+    final offsetMatch = RegExp(
+      r'^([+-])(\d{2}):?(\d{2})?$',
+    ).firstMatch(tzInput);
+    if (offsetMatch != null) {
+      final sign = offsetMatch.group(1) == '+' ? 1 : -1;
+      final hours = int.parse(offsetMatch.group(2)!);
+      final minutes = int.parse(offsetMatch.group(3) ?? '0');
+      final totalMinutes = sign * (hours * 60 + minutes);
+      final match = commonTimezones
+          .where((tz) => tz.utcOffsetMinutes == totalMinutes)
+          .firstOrNull;
+      if (match != null) {
+        return match.ianaId;
+      }
+    }
+
     // Default to UTC if unknown
-    debugPrint(
-      'Unknown timezone format: $tzInput, defaulting to America/New_York',
-    );
-    return 'America/New_York';
+    debugPrint('Unknown timezone format: $tzInput, defaulting to Etc/UTC');
+    return 'Etc/UTC';
   }
 
   @override

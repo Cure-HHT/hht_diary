@@ -151,8 +151,7 @@ if [ "$WITH_COVERAGE" = true ]; then
     mkdir -p coverage
 fi
 
-UNIT_PASSED=true
-INTEGRATION_PASSED=true
+# No PASSED tracking needed — set -e stops on first failure
 
 # Cleanup function for stopping services
 cleanup() {
@@ -449,12 +448,7 @@ if [ "$RUN_UNIT" = true ]; then
     echo "   Concurrency: $CONCURRENCY"
     echo ""
 
-    if $TEST_CMD test/; then
-        echo "Unit tests passed!"
-    else
-        echo "Unit tests failed!"
-        UNIT_PASSED=false
-    fi
+    $TEST_CMD test/
 
     # Rename coverage file for clarity when combining
     if [ "$WITH_COVERAGE" = true ] && [ -f "coverage/lcov.info" ]; then
@@ -544,18 +538,11 @@ if [ "$RUN_INTEGRATION" = true ]; then
             echo "----------------------------------------------"
             echo "Running $API_TEST_FILES API integration test files..."
             echo "----------------------------------------------"
-            if $INTEGRATION_TEST_CMD integration_test/api/; then
-                echo ""
-                echo "----------------------------------------------"
-                echo "API Integration Tests: PASSED ($API_TEST_FILES files)"
-                echo "----------------------------------------------"
-            else
-                echo ""
-                echo "----------------------------------------------"
-                echo "API Integration Tests: FAILED"
-                echo "----------------------------------------------"
-                INTEGRATION_PASSED=false
-            fi
+            $INTEGRATION_TEST_CMD integration_test/api/
+            echo ""
+            echo "----------------------------------------------"
+            echo "API Integration Tests: PASSED ($API_TEST_FILES files)"
+            echo "----------------------------------------------"
         fi
 
         # Run Flutter UI integration tests (in root of integration_test/)
@@ -600,7 +587,6 @@ if [ "$RUN_INTEGRATION" = true ]; then
             esac
             echo "   Target device: $UI_DEVICE"
 
-            UI_INTEGRATION_FAILED=false
             UI_FILE_INDEX=0
 
             # Run each UI test file individually (like clinical_diary)
@@ -611,18 +597,13 @@ if [ "$RUN_INTEGRATION" = true ]; then
                     UI_FILE_INDEX=$((UI_FILE_INDEX + 1))
 
                     if [ "$WITH_COVERAGE" = true ]; then
-                        if $XVFB_PREFIX flutter test "$test_file" -d "$UI_DEVICE" --coverage; then
-                            if [ -f "coverage/lcov.info" ]; then
-                                mv coverage/lcov.info "coverage/lcov-ui-integration-$UI_FILE_INDEX.info"
-                                echo "   Coverage saved: coverage/lcov-ui-integration-$UI_FILE_INDEX.info"
-                            fi
-                        else
-                            UI_INTEGRATION_FAILED=true
+                        $XVFB_PREFIX flutter test "$test_file" -d "$UI_DEVICE" --coverage
+                        if [ -f "coverage/lcov.info" ]; then
+                            mv coverage/lcov.info "coverage/lcov-ui-integration-$UI_FILE_INDEX.info"
+                            echo "   Coverage saved: coverage/lcov-ui-integration-$UI_FILE_INDEX.info"
                         fi
                     else
-                        if ! $XVFB_PREFIX flutter test "$test_file" -d "$UI_DEVICE"; then
-                            UI_INTEGRATION_FAILED=true
-                        fi
+                        $XVFB_PREFIX flutter test "$test_file" -d "$UI_DEVICE"
                     fi
                 fi
             done
@@ -647,18 +628,10 @@ if [ "$RUN_INTEGRATION" = true ]; then
                 fi
             fi
 
-            if [ "$UI_INTEGRATION_FAILED" = true ]; then
-                echo ""
-                echo "----------------------------------------------"
-                echo "Flutter UI Integration Tests: FAILED"
-                echo "----------------------------------------------"
-                INTEGRATION_PASSED=false
-            else
-                echo ""
-                echo "----------------------------------------------"
-                echo "Flutter UI Integration Tests: PASSED ($UI_FILE_INDEX files)"
-                echo "----------------------------------------------"
-            fi
+            echo ""
+            echo "----------------------------------------------"
+            echo "Flutter UI Integration Tests: PASSED ($UI_FILE_INDEX files)"
+            echo "----------------------------------------------"
         fi
 
         # Generate lcov report for integration tests
@@ -753,30 +726,14 @@ if [ "$WITH_COVERAGE" = true ]; then
     fi
 fi
 
+# If we get here, all tests passed (set -e would have stopped us)
+
 echo ""
 echo "=============================================="
-echo "Summary"
+echo "All tests passed!"
 echo "=============================================="
 
 EXIT_CODE=0
-
-if [ "$RUN_UNIT" = true ]; then
-    if [ "$UNIT_PASSED" = true ]; then
-        echo "Unit Tests: PASSED"
-    else
-        echo "Unit Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
-
-if [ "$RUN_INTEGRATION" = true ]; then
-    if [ "$INTEGRATION_PASSED" = true ]; then
-        echo "Integration Tests: PASSED"
-    else
-        echo "Integration Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
 
 # Coverage summary and threshold check
 if [ "$WITH_COVERAGE" = true ]; then
@@ -852,14 +809,6 @@ if [ "$WITH_COVERAGE" = true ]; then
             EXIT_CODE=1
         fi
     fi
-fi
-
-if [ $EXIT_CODE -eq 0 ]; then
-    echo ""
-    echo "All checks passed!"
-else
-    echo ""
-    echo "Some checks failed!"
 fi
 
 exit $EXIT_CODE
