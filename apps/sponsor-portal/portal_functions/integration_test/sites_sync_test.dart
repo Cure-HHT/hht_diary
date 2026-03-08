@@ -378,7 +378,10 @@ void main() {
     });
 
     test('getRecentSyncEvents returns events in descending order', () async {
-      // Log multiple events
+      // Note: edc_sync_log is append-only (DELETE rule does nothing),
+      // so the table accumulates events across all test runs.
+      // Use unique content_hash to identify our events.
+      final tag = DateTime.now().millisecondsSinceEpoch;
       for (var i = 0; i < 3; i++) {
         await logSyncEvent(
           sourceSystem: 'RAVE',
@@ -389,20 +392,28 @@ void main() {
             sitesDeactivated: 0,
             syncedAt: DateTime.now().toUtc(),
           ),
-          contentHash: 'hash-$i',
+          contentHash: 'order-test-$tag-$i',
           durationMs: 100 * i,
         );
         // Small delay to ensure different timestamps
         await Future.delayed(const Duration(milliseconds: 10));
       }
 
-      final events = await getRecentSyncEvents(limit: 3);
-      expect(events.length, equals(3));
+      // Fetch enough events to include ours (table has accumulated events)
+      final events = await getRecentSyncEvents(limit: 10);
+      expect(events.length, greaterThanOrEqualTo(3));
 
-      // Most recent should be first (sites_created = 2)
-      expect(events[0]['sites_created'], equals(2));
-      expect(events[1]['sites_created'], equals(1));
-      expect(events[2]['sites_created'], equals(0));
+      // Our 3 events should be the most recent (highest sync_ids)
+      // and in descending order: sites_created = 2, 1, 0
+      final ourEvents = events
+          .where(
+            (e) => (e['content_hash'] as String).startsWith('order-test-$tag-'),
+          )
+          .toList();
+      expect(ourEvents.length, equals(3));
+      expect(ourEvents[0]['sites_created'], equals(2));
+      expect(ourEvents[1]['sites_created'], equals(1));
+      expect(ourEvents[2]['sites_created'], equals(0));
     });
 
     test('getRecentSyncEvents respects limit', () async {
@@ -435,23 +446,14 @@ void main() {
       }
     });
 
-    tearDown(() async {
-      // Clean up test sync logs
-      final db = Database.instance;
-      await db.execute(
-        "DELETE FROM edc_sync_log WHERE content_hash LIKE 'abc%' OR content_hash LIKE 'hash-%' OR content_hash = 'no-content' OR content_hash = 'other-hash'",
-      );
-    });
+    // Note: no tearDown needed — edc_sync_log is append-only
+    // (DELETE rule does nothing). Tests use unique content_hash values
+    // and don't assume a clean table.
   });
 
   group('Chain Integrity (Non-Repudiation)', () {
-    setUp(() async {
-      // Clean up any existing test chain entries
-      final db = Database.instance;
-      await db.execute(
-        "DELETE FROM edc_sync_log WHERE content_hash LIKE 'chain-test-%'",
-      );
-    });
+    // Note: no setUp cleanup — edc_sync_log is append-only (DELETE rule
+    // does nothing). Tests use unique content_hash values instead.
 
     test('chain_hash is automatically computed on insert', () async {
       await logSyncEvent(
@@ -506,9 +508,9 @@ void main() {
       );
 
       final events = await getRecentSyncEvents(limit: 2);
-      expect(events.length, equals(2));
+      expect(events.length, greaterThanOrEqualTo(2));
 
-      // Chain hashes should be different (each depends on the previous)
+      // The two most recent events are ours; chain hashes should differ
       expect(events[0]['chain_hash'], isNot(equals(events[1]['chain_hash'])));
     });
 

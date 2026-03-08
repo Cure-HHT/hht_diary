@@ -92,11 +92,9 @@ if [ "$WITH_COVERAGE" = true ]; then
     mkdir -p coverage
 fi
 
-UNIT_PASSED=true
-INTEGRATION_PASSED=true
+# No PASSED tracking needed — set -e stops on first failure
 UNIT_COVERAGE=false
 INTEGRATION_COVERAGE=false
-EXIT_CODE=0
 
 # Build test command based on coverage flag
 if [ "$WITH_COVERAGE" = true ]; then
@@ -112,13 +110,7 @@ if [ "$RUN_UNIT" = true ]; then
     echo "   Concurrency: $CONCURRENCY"
     echo ""
 
-    if $FLUTTER_TEST_CMD --concurrency="$CONCURRENCY"; then
-        echo "Unit tests passed!"
-    else
-        echo "Unit tests failed!"
-        UNIT_PASSED=false
-        EXIT_CODE=1
-    fi
+    $FLUTTER_TEST_CMD --concurrency="$CONCURRENCY"
 
     # Handle coverage file if generated
     if [ "$WITH_COVERAGE" = true ] && [ -f "coverage/lcov.info" ]; then
@@ -171,7 +163,6 @@ if [ "$RUN_INTEGRATION" = true ]; then
     echo "   Target device: $DEVICE"
 
     if [ -d "integration_test" ]; then
-        INTEGRATION_FAILED=false
         INTEGRATION_COVERAGE_FILES=""
         FILE_INDEX=0
 
@@ -182,29 +173,18 @@ if [ "$RUN_INTEGRATION" = true ]; then
                 FILE_INDEX=$((FILE_INDEX + 1))
 
                 if [ "$WITH_COVERAGE" = true ]; then
-                    if $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage; then
-                        if [ -f "coverage/lcov.info" ]; then
-                            mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
-                            INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
-                        fi
-                    else
-                        INTEGRATION_FAILED=true
+                    $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage
+                    if [ -f "coverage/lcov.info" ]; then
+                        mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
+                        INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
                     fi
                 else
-                    if ! $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"; then
-                        INTEGRATION_FAILED=true
-                    fi
+                    $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"
                 fi
             fi
         done
 
-        if [ "$INTEGRATION_FAILED" = true ]; then
-            echo "Integration tests failed!"
-            INTEGRATION_PASSED=false
-            EXIT_CODE=1
-        else
-            echo "Integration tests passed!"
-        fi
+        echo "Integration tests passed!"
 
         # Combine integration coverage files if lcov is available
         if [ "$WITH_COVERAGE" = true ] && [ -n "$INTEGRATION_COVERAGE_FILES" ] && command -v lcov &> /dev/null; then
@@ -271,26 +251,14 @@ if [ "$WITH_COVERAGE" = true ]; then
     fi
 fi
 
+# If we get here, all tests passed (set -e would have stopped us)
+
 echo ""
 echo "=============================================="
-echo "Summary"
+echo "All tests passed!"
 echo "=============================================="
 
-if [ "$RUN_UNIT" = true ]; then
-    if [ "$UNIT_PASSED" = true ]; then
-        echo "Unit Tests: PASSED"
-    else
-        echo "Unit Tests: FAILED"
-    fi
-fi
-
-if [ "$RUN_INTEGRATION" = true ]; then
-    if [ "$INTEGRATION_PASSED" = true ]; then
-        echo "Integration Tests: PASSED"
-    else
-        echo "Integration Tests: FAILED"
-    fi
-fi
+EXIT_CODE=0
 
 # Coverage summary and threshold check
 if [ "$WITH_COVERAGE" = true ]; then
@@ -357,14 +325,6 @@ if [ "$WITH_COVERAGE" = true ]; then
             EXIT_CODE=1
         fi
     fi
-fi
-
-if [ $EXIT_CODE -eq 0 ]; then
-    echo ""
-    echo "All checks passed!"
-else
-    echo ""
-    echo "Some checks failed!"
 fi
 
 exit $EXIT_CODE

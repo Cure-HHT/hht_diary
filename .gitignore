@@ -252,3 +252,7 @@ qwert.sh
 WORKFLOW_STATE.md
 MASTER_PLAN*.md
 TODO.md
+/apps/coverage/lcov-common-dart-append_only_datastore.info
+/apps/coverage/lcov-common-dart-trial_data_types.info
+/apps/coverage/lcov-daily-diary-diary_functions.info
+/apps/coverage/lcov-daily-diary-diary_server.info

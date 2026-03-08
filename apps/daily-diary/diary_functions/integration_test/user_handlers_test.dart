@@ -214,27 +214,31 @@ void main() {
       late String testSiteId;
 
       setUpAll(() async {
-        testSiteId = 'SITE_CUR1049_${DateTime.now().millisecondsSinceEpoch}';
-        testPatientId = 'PAT_CUR1049_${DateTime.now().millisecondsSinceEpoch}';
+        final ts = DateTime.now().millisecondsSinceEpoch;
+        testSiteId = 'SITE_CUR1049_$ts';
+        testPatientId = 'PAT_CUR1049_$ts';
+        final testSiteNumber = 'T1049-$ts';
 
         // Create test site
         await Database.instance.execute(
           '''
           INSERT INTO sites (site_id, site_name, site_number, is_active, contact_info)
-          VALUES (@siteId, 'CUR-1049 Test Site', 'TEST-1049', true, '{"phone": "+15551049"}')
-          ON CONFLICT (site_id) DO NOTHING
+          VALUES (@siteId, 'CUR-1049 Test Site', @siteNumber, true, '{"phone": "+15551049"}')
         ''',
-          parameters: {'siteId': testSiteId},
+          parameters: {'siteId': testSiteId, 'siteNumber': testSiteNumber},
         );
 
         // Create test patient
         await Database.instance.execute(
           '''
           INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
-          VALUES (@patientId, @siteId, 'EDC-SUBJ-1049', 'not_connected', now(), now())
-          ON CONFLICT (patient_id) DO NOTHING
+          VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
         ''',
-          parameters: {'patientId': testPatientId, 'siteId': testSiteId},
+          parameters: {
+            'patientId': testPatientId,
+            'siteId': testSiteId,
+            'edcKey': 'EDC-SUBJ-1049-$ts',
+          },
         );
 
         // Create test portal user for generated_by FK
@@ -267,25 +271,32 @@ void main() {
       });
 
       tearDownAll(() async {
-        // Clean up app_users created during linking
+        // Collect user IDs before deleting linking codes
         final linkedCodes = await Database.instance.execute(
           'SELECT used_by_user_id FROM patient_linking_codes WHERE patient_id = @patientId',
           parameters: {'patientId': testPatientId},
         );
-        for (final row in linkedCodes) {
-          final uid = row[0];
-          if (uid != null) {
-            await Database.instance.execute(
-              'DELETE FROM app_users WHERE user_id = @userId',
-              parameters: {'userId': uid},
-            );
-          }
-        }
-        // Clean up in reverse dependency order
+        final userIds = linkedCodes
+            .map((row) => row[0])
+            .where((uid) => uid != null)
+            .toList();
+
+        // Clean up in reverse dependency order: linking codes first, then app_users
+        // Delete ALL linking codes referencing these users (not just our test patient)
         await Database.instance.execute(
           'DELETE FROM patient_linking_codes WHERE patient_id = @patientId',
           parameters: {'patientId': testPatientId},
         );
+        for (final uid in userIds) {
+          await Database.instance.execute(
+            'DELETE FROM patient_linking_codes WHERE used_by_user_id = @userId',
+            parameters: {'userId': uid},
+          );
+          await Database.instance.execute(
+            'DELETE FROM app_users WHERE user_id = @userId',
+            parameters: {'userId': uid},
+          );
+        }
         await Database.instance.execute(
           'DELETE FROM patients WHERE patient_id = @patientId',
           parameters: {'patientId': testPatientId},
