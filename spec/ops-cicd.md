@@ -144,7 +144,7 @@ E. The CI pipeline SHALL complete all validation jobs and produce a consolidated
 
 ## Rationale
 
-Squash-merge workflows use the PR title as the final commit message on protected branches. Validating traceability references (Linear ticket and requirement IDs) on every push to a PR — not just at PR creation — ensures developers receive early feedback while references are still fixable. Post-merge detective controls catch anything that bypasses branch protection (e.g., admin overrides) by creating compliance tickets for remediation. Bot commit scope validation prevents automated processes from making unauthorized changes.
+Squash-merge workflows use the PR title as the final commit message on protected branches. Validating traceability references (Linear ticket and requirement IDs) on every push to a PR — not just at PR creation — ensures developers receive early feedback while references are still fixable. Post-merge detective controls catch anything that bypasses branch protection (e.g., admin overrides) by creating compliance tickets for remediation.
 
 ## Assertions
 
@@ -154,13 +154,11 @@ B. The CI pipeline SHALL validate on every push to a pull request (including the
 
 C. The CI pipeline SHALL create a compliance ticket when a commit to a protected branch is found to be missing required references, as a safety net for cases that bypass branch protection.
 
-D. Each automated process that commits directly to protected branches SHALL have a documented and limited scope of files it is authorized to modify, and the CI pipeline SHALL detect and alert when a bot commit modifies files outside its authorized scope.
+D. The CI pipeline SHALL block merge when PR title validation fails.
 
-E. The CI pipeline SHALL block merge when PR title validation fails.
+E. The CI pipeline SHALL provide clear error messages indicating which references are missing and the required format.
 
-F. The CI pipeline SHALL provide clear error messages indicating which references are missing and the required format.
-
-*End* *Commit and PR Traceability Enforcement* | **Hash**: cc298537
+*End* *Commit and PR Traceability Enforcement* | **Hash**: 999c8473
 ---
 
 # REQ-o00080: Secret and Vulnerability Scanning
