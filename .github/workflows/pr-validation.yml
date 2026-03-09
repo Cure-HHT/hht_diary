@@ -59,7 +59,7 @@ jobs:
       #             REQ-o00080-C (IaC misconfig scan),
       #             REQ-o00080-A (secret scan)
       - name: Run Trivy security scanner (vulnerabilities + misconfigurations)
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
