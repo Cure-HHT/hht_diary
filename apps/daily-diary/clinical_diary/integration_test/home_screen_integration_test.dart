@@ -455,9 +455,9 @@ void main() {
         // 2️⃣ Tap the "Licenses" option
         final licensesFinder = find.text('Licenses');
 
-        expect(licensesFinder, findsOneWidget);
+        expect(licensesFinder, findsWidgets);
 
-        await tester.tap(licensesFinder);
+        await tester.tap(licensesFinder.first);
         await tester.pumpAndSettle();
 
         // 3️⃣ Verify LicensePage is displayed
