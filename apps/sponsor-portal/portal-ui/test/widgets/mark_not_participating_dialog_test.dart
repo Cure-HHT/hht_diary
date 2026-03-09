@@ -1,9 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00077: Disconnection Notification
 //
-// Widget tests for DisconnectPatientDialog confirm/success/error/retry states.
+// Widget tests for MarkNotParticipatingDialog confirm/success/error/retry states.
 
 import 'dart:convert';
 
@@ -14,7 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/disconnect_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/mark_not_participating_dialog.dart';
 
 MockClient _createMockHttpClient({bool shouldFail = false}) {
   return MockClient((request) async {
@@ -39,21 +38,17 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
       );
     }
 
-    // POST /disconnect
-    if (path.contains('/disconnect') && request.method == 'POST') {
+    // POST /not-participating
+    if (path.contains('/not-participating') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not in connected state'}),
+          jsonEncode({'error': 'Patient not in valid state'}),
           400,
           headers: {'content-type': 'application/json'},
         );
       }
       return http.Response(
-        jsonEncode({
-          'success': true,
-          'status': 'disconnected',
-          'codes_revoked': 2,
-        }),
+        jsonEncode({'success': true, 'status': 'not_participating'}),
         200,
         headers: {'content-type': 'application/json'},
       );
@@ -80,7 +75,6 @@ Future<ApiClient> _createMockApiClient({bool shouldFail = false}) async {
 }
 
 Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
-  // Use a large surface to avoid dialog overflow in tests
   tester.view.physicalSize = const Size(800, 1200);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -97,7 +91,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => DisconnectPatientDialog(
+                builder: (_) => MarkNotParticipatingDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -116,124 +110,113 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 }
 
 void main() {
-  group('DisconnectReason enum', () {
+  group('NotParticipatingReason enum', () {
+    test('has exactly 4 values', () {
+      expect(NotParticipatingReason.values.length, 4);
+    });
+
     test('has correct labels', () {
-      expect(DisconnectReason.deviceIssues.label, 'Device Issues');
-      expect(DisconnectReason.technicalIssues.label, 'Technical Issues');
-      expect(DisconnectReason.other.label, 'Other');
+      expect(
+        NotParticipatingReason.subjectWithdrawal.label,
+        'Subject Withdrawal',
+      );
+      expect(NotParticipatingReason.death.label, 'Death');
+      expect(
+        NotParticipatingReason.protocolComplete.label,
+        'Protocol treatment/study complete',
+      );
+      expect(NotParticipatingReason.other.label, 'Other');
     });
 
     test('has correct descriptions', () {
       expect(
-        DisconnectReason.deviceIssues.description,
-        'Lost, stolen, or damaged device',
+        NotParticipatingReason.subjectWithdrawal.description,
+        'Patient chose to leave the study',
+      );
+      expect(NotParticipatingReason.death.description, 'Patient is deceased');
+      expect(
+        NotParticipatingReason.protocolComplete.description,
+        'Patient completed all trial requirements',
       );
       expect(
-        DisconnectReason.technicalIssues.description,
-        'App not working, sync problems',
+        NotParticipatingReason.other.description,
+        'Specify reason in notes',
       );
-      expect(DisconnectReason.other.description, 'Specify reason in notes');
-    });
-
-    test('has exactly 3 values matching spec', () {
-      expect(DisconnectReason.values.length, 3);
-      expect(
-        DisconnectReason.values.map((r) => r.label).toList(),
-        containsAll(['Device Issues', 'Technical Issues', 'Other']),
-      );
-    });
-
-    test('reason labels match backend validDisconnectReasons', () {
-      expect(DisconnectReason.deviceIssues.label, 'Device Issues');
-      expect(DisconnectReason.technicalIssues.label, 'Technical Issues');
-      expect(DisconnectReason.other.label, 'Other');
     });
   });
 
-  group('DisconnectPatientDialog widget', () {
-    testWidgets('confirm state shows patient ID and Disconnect button', (
+  group('MarkNotParticipatingDialog widget', () {
+    testWidgets('confirm state shows patient ID and action button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Disconnect Patient'), findsOneWidget);
+      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
       expect(find.textContaining('999-002-320'), findsOneWidget);
-      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Mark as Not Participating'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
-      expect(find.byIcon(Icons.link_off), findsWidgets);
+      expect(find.byIcon(Icons.person_off), findsWidgets);
     });
 
-    testWidgets('confirm state shows reason dropdown and notes field', (
+    testWidgets('confirm state shows warning and reason dropdown', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reason for disconnection *'), findsOneWidget);
-      expect(find.text('Select a reason'), findsOneWidget);
-      expect(find.textContaining('Additional notes'), findsOneWidget);
-    });
-
-    testWidgets('confirm state shows warning message', (tester) async {
-      final apiClient = await _createMockApiClient();
-
-      await _pumpDialog(tester, apiClient);
-
-      expect(
-        find.textContaining('revoke all active linking codes'),
-        findsOneWidget,
-      );
+      expect(find.text('Warning:'), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber), findsOneWidget);
+      expect(find.text('Reason *'), findsOneWidget);
+      expect(find.text('Select a reason'), findsOneWidget);
+      expect(find.textContaining('Completed the trial'), findsOneWidget);
+      expect(find.textContaining('Withdrawn consent'), findsOneWidget);
     });
 
-    testWidgets('Disconnect button has no effect without reason selected', (
+    testWidgets('action button has no effect without reason selected', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      // Tap Disconnect without selecting a reason — should remain in confirm
-      await tester.tap(find.text('Disconnect'));
+      // Tap button without selecting reason — should remain in confirm
+      await tester.tap(find.text('Mark as Not Participating'));
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Disconnect Patient'), findsOneWidget);
+      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
       expect(find.text('Select a reason'), findsOneWidget);
     });
 
-    testWidgets('selecting reason and tapping Disconnect shows success', (
+    testWidgets('selecting reason enables button and tapping shows success', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      // Open dropdown and select 'Device Issues'
+      // Open dropdown and select 'Subject Withdrawal'
       await tester.tap(find.text('Select a reason'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Device Issues').last);
+      await tester.tap(find.text('Subject Withdrawal').last);
       await tester.pumpAndSettle();
 
-      // Tap Disconnect
-      await tester.tap(find.text('Disconnect'));
+      // Tap action button
+      await tester.tap(find.text('Mark as Not Participating'));
       await tester.pumpAndSettle();
 
       // Success state
-      expect(find.text('Patient Disconnected'), findsOneWidget);
+      expect(find.text('Status Updated'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      expect(find.textContaining('has been disconnected'), findsOneWidget);
-      expect(find.text('Done'), findsOneWidget);
-      expect(find.textContaining('Linking codes revoked'), findsOneWidget);
-      expect(find.text('Reason'), findsOneWidget);
-      expect(find.text('Device Issues'), findsOneWidget);
       expect(
-        find.textContaining('generate a new linking code'),
+        find.textContaining('marked as not participating'),
         findsOneWidget,
       );
+      expect(find.text('Done'), findsOneWidget);
+      expect(find.textContaining('Sponsor-specific rules'), findsOneWidget);
     });
 
     testWidgets('error state shows error message and Try Again', (
@@ -243,20 +226,18 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      // Select reason
+      // Select reason and submit
       await tester.tap(find.text('Select a reason'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Device Issues').last);
+      await tester.tap(find.text('Subject Withdrawal').last);
       await tester.pumpAndSettle();
-
-      // Tap Disconnect
-      await tester.tap(find.text('Disconnect'));
+      await tester.tap(find.text('Mark as Not Participating'));
       await tester.pumpAndSettle();
 
       // Error state
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not in connected state'), findsOneWidget);
+      expect(find.text('Patient not in valid state'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });
@@ -266,20 +247,20 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      // Select reason and submit
+      // Select reason, submit, get error
       await tester.tap(find.text('Select a reason'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Device Issues').last);
+      await tester.tap(find.text('Subject Withdrawal').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Disconnect'));
+      await tester.tap(find.text('Mark as Not Participating'));
       await tester.pumpAndSettle();
 
       // Tap Try Again
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Disconnect Patient'), findsOneWidget);
-      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(find.text('Mark as Not Participating'), findsOneWidget);
     });
 
     testWidgets('Cancel button closes dialog', (tester) async {
@@ -290,7 +271,26 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Disconnect Patient'), findsNothing);
+      expect(find.text('Mark Patient as Not Participating'), findsNothing);
+    });
+
+    testWidgets('success state shows reason details', (tester) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient);
+
+      // Select 'Subject Withdrawal' reason and submit
+      await tester.tap(find.text('Select a reason'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Subject Withdrawal').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mark as Not Participating'));
+      await tester.pumpAndSettle();
+
+      // Success state should show reason info
+      expect(find.text('Reason'), findsOneWidget);
+      expect(find.text('Subject Withdrawal'), findsOneWidget);
+      expect(find.textContaining('re-enroll'), findsOneWidget);
     });
   });
 }

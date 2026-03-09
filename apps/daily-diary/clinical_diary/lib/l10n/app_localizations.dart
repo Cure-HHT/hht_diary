@@ -429,7 +429,7 @@ class AppLocalizations {
       'currentVersionLabel': 'Current version:',
       'requiredVersionLabel': 'Required version:',
       'whatsNew': "What's New",
-      'checkForUpdates': 'Check for updates',
+      'licenses': 'Licenses',
       'youAreUpToDate': 'You are up to date',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
@@ -2096,6 +2096,7 @@ class AppLocalizations {
   String get requiredVersionLabel => translate('requiredVersionLabel');
   String get whatsNew => translate('whatsNew');
   String get checkForUpdates => translate('checkForUpdates');
+  String get licenses => translate('licenses');
   String get youAreUpToDate => translate('youAreUpToDate');
 
   // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)

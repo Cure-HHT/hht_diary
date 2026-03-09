@@ -1,9 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00021: Patient Reconnection Workflow
-//   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Widget tests for ReconnectPatientDialog confirm/success/error/retry states.
+// Widget tests for ReactivatePatientDialog confirm/success/error/retry states.
 
 import 'dart:convert';
 
@@ -14,7 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/reconnect_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/reactivate_patient_dialog.dart';
 
 MockClient _createMockHttpClient({bool shouldFail = false}) {
   return MockClient((request) async {
@@ -39,27 +38,17 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
       );
     }
 
-    // POST /link-code (reconnect endpoint)
-    if (path.contains('/link-code') && request.method == 'POST') {
+    // POST /reactivate
+    if (path.contains('/reactivate') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not found'}),
-          404,
+          jsonEncode({'error': 'Patient not in not_participating state'}),
+          400,
           headers: {'content-type': 'application/json'},
         );
       }
       return http.Response(
-        jsonEncode({
-          'success': true,
-          'patient_id': 'PAT-TEST-001',
-          'site_name': 'Site Alpha',
-          'code': 'CAXXX-XXXXX',
-          'code_raw': 'CAXXXXXXXX',
-          'expires_at': DateTime.now()
-              .add(const Duration(hours: 72))
-              .toIso8601String(),
-          'expires_in_hours': 72,
-        }),
+        jsonEncode({'success': true, 'status': 'disconnected'}),
         200,
         headers: {'content-type': 'application/json'},
       );
@@ -102,7 +91,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => ReconnectPatientDialog(
+                builder: (_) => ReactivatePatientDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -121,52 +110,55 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 }
 
 void main() {
-  group('ReconnectPatientDialog widget', () {
-    testWidgets('confirm state shows patient ID and Reconnect button', (
+  group('ReactivatePatientDialog widget', () {
+    testWidgets('confirm state shows patient ID and Reactivate button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reactivate Patient'), findsOneWidget);
       expect(find.textContaining('999-002-320'), findsOneWidget);
-      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Reactivate'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
-      expect(find.byIcon(Icons.link), findsWidgets);
+      expect(find.byIcon(Icons.refresh), findsWidgets);
     });
 
-    testWidgets('confirm state shows mandatory reason field', (tester) async {
+    testWidgets('confirm state shows mandatory reason field and info', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reason for reconnection *'), findsOneWidget);
-      expect(find.text('Enter reason for reconnection...'), findsOneWidget);
+      expect(find.text('Reason for reactivation *'), findsOneWidget);
+      expect(find.text('Enter reason for reactivation...'), findsOneWidget);
       expect(
-        find.textContaining('new linking code will be generated'),
+        find.textContaining('moved to "disconnected" status'),
         findsOneWidget,
       );
+      expect(find.byIcon(Icons.info_outline), findsOneWidget);
     });
 
-    testWidgets('Reconnect button has no effect when reason empty', (
+    testWidgets('Reactivate button has no effect when reason empty', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      // Tap Reconnect without entering a reason — should remain in confirm
-      await tester.tap(find.text('Reconnect'));
+      // Tap Reactivate without entering a reason — should remain in confirm
+      await tester.tap(find.text('Reactivate'));
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Reconnect Patient'), findsOneWidget);
-      expect(find.text('Reason for reconnection *'), findsOneWidget);
+      expect(find.text('Reactivate Patient'), findsOneWidget);
+      expect(find.text('Reason for reactivation *'), findsOneWidget);
     });
 
     testWidgets(
-      'entering reason enables Reconnect and tapping shows success with code',
+      'entering reason enables Reactivate and tapping shows success',
       (tester) async {
         final apiClient = await _createMockApiClient();
 
@@ -175,22 +167,25 @@ void main() {
         // Enter reason
         await tester.enterText(
           find.byType(TextField),
-          'Patient got new device',
+          'Patient wants to re-enroll',
         );
         await tester.pump();
 
-        // Tap Reconnect
-        await tester.tap(find.text('Reconnect'));
+        // Tap Reactivate
+        await tester.tap(find.text('Reactivate'));
         await tester.pumpAndSettle();
 
         // Success state
-        expect(find.text('Linking Code Generated'), findsOneWidget);
+        expect(find.text('Patient Reactivated'), findsOneWidget);
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
-        expect(find.textContaining('Site Alpha'), findsOneWidget);
-        expect(find.textContaining('999-002-320'), findsOneWidget);
-        expect(find.textContaining('Patient got new device'), findsOneWidget);
+        expect(find.textContaining('has been reactivated'), findsOneWidget);
+        expect(find.text('Disconnected'), findsOneWidget);
+        expect(
+          find.textContaining('Patient wants to re-enroll'),
+          findsOneWidget,
+        );
         expect(find.text('Done'), findsOneWidget);
-        expect(find.textContaining('Expires in'), findsOneWidget);
+        expect(find.textContaining('Reconnect'), findsWidgets);
       },
     );
 
@@ -204,13 +199,16 @@ void main() {
       // Enter reason and submit
       await tester.enterText(find.byType(TextField), 'Test reason');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reconnect'));
+      await tester.tap(find.text('Reactivate'));
       await tester.pumpAndSettle();
 
       // Error state
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not found'), findsOneWidget);
+      expect(
+        find.text('Patient not in not_participating state'),
+        findsOneWidget,
+      );
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });
@@ -223,15 +221,15 @@ void main() {
       // Enter reason, submit, get error
       await tester.enterText(find.byType(TextField), 'Test reason');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reconnect'));
+      await tester.tap(find.text('Reactivate'));
       await tester.pumpAndSettle();
 
       // Tap Try Again
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reconnect Patient'), findsOneWidget);
-      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Reactivate Patient'), findsOneWidget);
+      expect(find.text('Reactivate'), findsOneWidget);
     });
 
     testWidgets('Cancel button closes dialog', (tester) async {
@@ -242,7 +240,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reconnect Patient'), findsNothing);
+      expect(find.text('Reactivate Patient'), findsNothing);
     });
   });
 }

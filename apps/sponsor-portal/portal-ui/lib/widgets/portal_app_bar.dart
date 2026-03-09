@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 
 import '../flavors.dart';
 import '../services/auth_service.dart';
+import 'license_dialog.dart';
 import 'role_badge.dart';
 
 /// App bar widget for the portal with user info, role switcher, and logout
@@ -103,6 +104,25 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Version ${F.version}', style: theme.textTheme.bodyLarge),
+
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (_) => const LicensesDialog(),
+                );
+              },
+              child: Text(
+                'Licenses',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  decorationColor: Colors.blueAccent,
+                  color: Colors.blueAccent,
+                  decorationStyle: TextDecorationStyle.solid,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
             if (F.showDevTools) ...[
               const SizedBox(height: 8),
               Text(

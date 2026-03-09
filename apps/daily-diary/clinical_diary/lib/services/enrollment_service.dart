@@ -162,6 +162,7 @@ class EnrollmentService {
       }
 
       final patientId = responseBody['patientId'] as String?;
+      final linkingCode = responseBody['linkingCode'] as String?;
       final siteId = responseBody['siteId'] as String?;
       final siteName = responseBody['siteName'] as String?;
       final sitePhoneNumber = responseBody['sitePhoneNumber'] as String?;
@@ -183,6 +184,7 @@ class EnrollmentService {
         sponsorId: sponsor?.id,
         backendUrl: backendUrl,
         patientId: patientId,
+        linkingCode: linkingCode,
         siteId: siteId,
         siteName: siteName,
         sitePhoneNumber: sitePhoneNumber,
