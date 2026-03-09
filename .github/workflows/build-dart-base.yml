@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           # Use **docker** driver for PR builds to enable docker load/image sharing between jobs
           # Use **docker-container** driver (default) for main builds to support provenance/SBOM
