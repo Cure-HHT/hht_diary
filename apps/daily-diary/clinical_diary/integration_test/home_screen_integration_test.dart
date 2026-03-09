@@ -169,6 +169,7 @@ void main() {
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
         );
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         await tester.pumpWidget(buildHomeScreen());
         await tester.pumpAndSettle();
