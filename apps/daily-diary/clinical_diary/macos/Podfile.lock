@@ -1195,6 +1195,7 @@ PODS:
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
   - cloud_firestore (6.1.2):
+  - cloud_firestore (6.1.2):
     - Firebase/CoreOnly (~> 12.8.0)
     - Firebase/Firestore (~> 12.8.0)
     - firebase_core
