@@ -118,6 +118,7 @@ jobs:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run validation
+        id: validation
         working-directory: tools/dev-env
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -131,7 +132,22 @@ jobs:
             -e BASE_REF="${{ github.base_ref }}" \
             -e EVENT_NAME="${{ github.event_name }}" \
             -e GITHUB_ENV="/workspace/src/.ci-github-env" \
+            -e FAILURE_SUMMARY_FILE="/tmp/ci-failure-summary" \
             ci bash -c "cd /workspace/src && .github/scripts/validate-pr.sh"
+
+      - name: Write failure summary
+        if: failure() && steps.validation.outcome == 'failure'
+        working-directory: tools/dev-env
+        run: |
+          # Copy failure summary from container (written to /tmp inside container)
+          SUMMARY=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci cat /tmp/ci-failure-summary 2>/dev/null || true)
+          if [ -n "$SUMMARY" ]; then
+            {
+              echo "## PR Validation Failed"
+              echo ""
+              echo "$SUMMARY"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Restore workspace ownership
         if: always()

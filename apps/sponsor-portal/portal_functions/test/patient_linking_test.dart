@@ -18,7 +18,78 @@ import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
+import 'package:portal_functions/src/database.dart';
+import 'package:portal_functions/src/notification_service.dart';
 import 'package:portal_functions/src/patient_linking.dart';
+import 'package:portal_functions/src/portal_auth.dart';
+
+/// Test constants
+const _testPatientId = 'patient-001';
+const _testSiteId = 'site-001';
+const _testUserId = 'user-001';
+
+/// Create a test PortalUser with Investigator role and site access.
+PortalUser _investigator({
+  String? activeRole,
+  List<Map<String, dynamic>>? sites,
+}) {
+  return PortalUser(
+    id: _testUserId,
+    firebaseUid: 'firebase-001',
+    email: 'investigator@example.com',
+    name: 'Dr. Test',
+    roles: [activeRole ?? 'Investigator'],
+    activeRole: activeRole ?? 'Investigator',
+    status: 'active',
+    sites:
+        sites ??
+        [
+          {
+            'site_id': _testSiteId,
+            'site_name': 'Test Site',
+            'site_number': 'S001',
+          },
+        ],
+  );
+}
+
+/// Standard patient row: [patient_id, site_id, linking_status, site_name]
+List<dynamic> _patientRow({
+  String status = 'not_connected',
+  String siteId = _testSiteId,
+}) {
+  // 4-column version for generate/get/disconnect/notparticipating/reactivate
+  return [_testPatientId, siteId, status, 'Test Site'];
+}
+
+/// Patient row for startTrial: [patient_id, site_id, linking_status, trial_started, site_name]
+List<dynamic> _patientRowForTrial({
+  String status = 'connected',
+  String siteId = _testSiteId,
+  bool trialStarted = false,
+}) {
+  return [_testPatientId, siteId, status, trialStarted, 'Test Site'];
+}
+
+/// Build a shelf Request with optional body and headers.
+Request _request(
+  String method,
+  String path, {
+  String? body,
+  Map<String, String>? headers,
+}) {
+  return Request(
+    method,
+    Uri.parse('http://localhost$path'),
+    body: body,
+    headers: {'authorization': 'Bearer test-token', ...?headers},
+  );
+}
+
+/// Decode a Response body as JSON.
+Future<Map<String, dynamic>> _json(Response response) async {
+  return jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+}
 
 void main() {
   group('generatePatientLinkingCodeHandler', () {
@@ -877,6 +948,1033 @@ void main() {
       expect(actionDetails['trial_started_at'], isA<String>());
       expect(actionDetails['started_by_email'], isA<String>());
       expect(actionDetails['started_by_name'], isA<String>());
+    });
+  });
+
+  // ==================================================================
+  // Handler-level tests (using auth + DB overrides)
+  // ==================================================================
+  group('handler tests with overrides', () {
+    setUp(() {
+      requirePortalAuthOverride = (_) async => _investigator();
+      NotificationService.resetForTesting();
+      NotificationService.instance.initialize(
+        NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+        ),
+      );
+    });
+
+    tearDown(() {
+      requirePortalAuthOverride = null;
+      databaseQueryOverride = null;
+      NotificationService.resetForTesting();
+    });
+
+    // ================================================================
+    // generatePatientLinkingCodeHandler
+    // ================================================================
+    group('generatePatientLinkingCodeHandler handler', () {
+      test('generates code successfully for not_connected patient', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'not_connected')];
+          }
+          if (query.contains('UPDATE patient_linking_codes') &&
+              query.contains('revoked_at')) {
+            return []; // No codes to revoke
+          }
+          if (query.contains('INSERT INTO patient_linking_codes')) {
+            return [];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['patient_id'], _testPatientId);
+        expect(body['code'], contains('-'));
+        expect(body['code_raw'], hasLength(10));
+        expect(body['expires_in_hours'], 72);
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Auditor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+        final body = await _json(response);
+        expect(body['error'], contains('Investigator'));
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/nonexistent/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          'nonexistent',
+        );
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(siteId: 'other-site')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+        final body = await _json(response);
+        expect(body['error'], contains('site'));
+      });
+
+      test('returns 409 when patient is already connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('connected'));
+      });
+
+      test('revokes existing codes when generating new one', () async {
+        var revokedCodes = false;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'linking_in_progress')];
+          }
+          if (query.contains('UPDATE patient_linking_codes') &&
+              query.contains('revoked_at')) {
+            revokedCodes = true;
+            return [
+              ['code-id-1'],
+            ]; // One code revoked
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO patient_linking_codes')) {
+            return [];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        expect(revokedCodes, isTrue);
+      });
+
+      test('handles reconnection with reconnect_reason', () async {
+        var capturedActionType = '';
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'disconnected')];
+          }
+          if (query.contains('UPDATE patient_linking_codes') &&
+              query.contains('revoked_at')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO patient_linking_codes')) {
+            return [];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            if (parameters != null && parameters.containsKey('actionType')) {
+              capturedActionType = parameters['actionType'] as String;
+            }
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+          body: jsonEncode({'reconnect_reason': 'New device'}),
+        );
+
+        final response = await generatePatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        expect(capturedActionType, 'RECONNECT_PATIENT');
+      });
+    });
+
+    // ================================================================
+    // getPatientLinkingCodeHandler
+    // ================================================================
+    group('getPatientLinkingCodeHandler handler', () {
+      test('returns active code when one exists', () async {
+        final expiresAt = DateTime.now().add(const Duration(hours: 48));
+        final generatedAt = DateTime.now().subtract(const Duration(hours: 24));
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [
+              [_testPatientId, _testSiteId, 'linking_in_progress'],
+            ];
+          }
+          if (query.contains('FROM patient_linking_codes')) {
+            return [
+              ['CAABCDEFGH', expiresAt, generatedAt],
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await getPatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['has_active_code'], true);
+        expect(body['code'], contains('-'));
+        expect(body['code_raw'], 'CAABCDEFGH');
+      });
+
+      test('returns no active code when none exist', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [
+              [_testPatientId, _testSiteId, 'not_connected'],
+            ];
+          }
+          if (query.contains('FROM patient_linking_codes')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await getPatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['has_active_code'], false);
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Sponsor');
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await getPatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/patients/nonexistent/link-code',
+        );
+
+        final response = await getPatientLinkingCodeHandler(
+          request,
+          'nonexistent',
+        );
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [
+              [_testPatientId, 'other-site', 'not_connected'],
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/patients/$_testPatientId/link-code',
+        );
+
+        final response = await getPatientLinkingCodeHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+    });
+
+    // ================================================================
+    // disconnectPatientHandler
+    // ================================================================
+    group('disconnectPatientHandler handler', () {
+      test('disconnects connected patient with valid reason', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'connected')];
+          }
+          if (query.contains('UPDATE patient_linking_codes')) {
+            return []; // No codes to revoke
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'connected');
+        expect(body['new_status'], 'disconnected');
+        expect(body['reason'], 'Device Issues');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Analyst');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 when reason is missing', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('reason'));
+      });
+
+      test('returns 400 for invalid reason value', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Not a valid reason'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('Invalid reason'));
+      });
+
+      test('returns 400 when Other reason has no notes', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Other'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('Notes'));
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/nonexistent/disconnect',
+          body: jsonEncode({'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectPatientHandler(request, 'nonexistent');
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(siteId: 'other-site', status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when patient is not connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'disconnected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: jsonEncode({'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('not in "connected"'));
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          body: 'not json',
+        );
+
+        final response = await disconnectPatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+      });
+    });
+
+    // ================================================================
+    // markPatientNotParticipatingHandler
+    // ================================================================
+    group('markPatientNotParticipatingHandler handler', () {
+      test('marks disconnected patient as not participating', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'disconnected')];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Subject Withdrawal'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'disconnected');
+        expect(body['new_status'], 'not_participating');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Sponsor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Death'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 for invalid reason', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Invalid reason'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+      });
+
+      test('returns 400 when Other reason has no notes', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Other'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('Notes'));
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/nonexistent/not-participating',
+          body: jsonEncode({'reason': 'Death'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          'nonexistent',
+        );
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(siteId: 'other-site', status: 'disconnected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Death'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when patient is not disconnected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: jsonEncode({'reason': 'Subject Withdrawal'}),
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          body: 'not json',
+        );
+
+        final response = await markPatientNotParticipatingHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+      });
+    });
+
+    // ================================================================
+    // reactivatePatientHandler
+    // ================================================================
+    group('reactivatePatientHandler handler', () {
+      test('reactivates not_participating patient', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'not_participating')];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: jsonEncode({'reason': 'Patient changed mind'}),
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'not_participating');
+        expect(body['new_status'], 'disconnected');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Auditor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: jsonEncode({'reason': 'Changed mind'}),
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 when reason is missing', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: jsonEncode({}),
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/nonexistent/reactivate',
+          body: jsonEncode({'reason': 'Test'}),
+        );
+
+        final response = await reactivatePatientHandler(request, 'nonexistent');
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [
+              _patientRow(siteId: 'other-site', status: 'not_participating'),
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: jsonEncode({'reason': 'Test'}),
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when patient is not not_participating', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: jsonEncode({'reason': 'Test'}),
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          body: 'not json',
+        );
+
+        final response = await reactivatePatientHandler(
+          request,
+          _testPatientId,
+        );
+
+        expect(response.statusCode, 400);
+      });
+    });
+
+    // ================================================================
+    // startTrialHandler
+    // ================================================================
+    group('startTrialHandler handler', () {
+      test('starts trial for connected patient', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRowForTrial()];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              ['eq-instance-001'],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['trial_started'], true);
+        expect(body['eq_instance_id'], 'eq-instance-001');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Administrator');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 404 when patient not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/nonexistent/start-trial',
+        );
+
+        final response = await startTrialHandler(request, 'nonexistent');
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRowForTrial(siteId: 'other-site')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when patient is not connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRowForTrial(status: 'disconnected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 409 when trial already started', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRowForTrial(trialStarted: true)];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('already'));
+      });
+
+      test('sends FCM when patient has token', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRowForTrial()];
+          }
+          if (query.contains('UPDATE patients')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              ['eq-instance-001'],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-12345678901234567890'],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/start-trial',
+        );
+
+        final response = await startTrialHandler(request, _testPatientId);
+
+        expect(response.statusCode, 200);
+      });
     });
   });
 }

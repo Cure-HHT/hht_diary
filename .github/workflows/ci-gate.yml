@@ -24,6 +24,7 @@ permissions:
   checks: read
   statuses: read
   actions: read
+  pull-requests: write
 
 jobs:
   gate:
@@ -32,10 +33,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Wait for all checks and aggregate results
+        id: gate
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "CI Gate: Waiting for all checks on commit ${SHA:0:7}"
           echo ""
@@ -47,7 +50,7 @@ jobs:
             for i in $(seq 1 $retries); do
               RESULT=$(gh api "repos/${REPO}/commits/${SHA}/check-runs" \
                 --paginate \
-                --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}' 2>&1) && {
+                --jq '.check_runs[] | {id: .id, name: .name, status: .status, conclusion: .conclusion, html_url: .html_url}' 2>&1) && {
                 echo "$RESULT"
                 return 0
               }
@@ -72,18 +75,26 @@ jobs:
             # Fetch all check runs for this commit
             CHECKS=$(fetch_checks) || { echo "  Skipping poll (API error), will retry..."; sleep 30; continue; }
 
+            # Deduplicate check runs by name, keeping only the most recent (first) occurrence.
+            # The GitHub API returns check runs newest-first, so when a workflow is
+            # superseded (cancelled) and re-run, we only see the latest result.
+            CHECKS=$(echo "$CHECKS" | jq -sc 'group_by(.name) | map(.[0])[]')
+
             # Count statuses (exclude ourselves)
             TOTAL=0
             COMPLETED=0
             FAILED=0
-            FAILED_NAMES=""
+            FAILED_CHECK_NAMES=""
             PENDING_NAMES=""
+            SUMMARY_ROWS=""
 
             while IFS= read -r check; do
               [ -z "$check" ] && continue
               NAME=$(echo "$check" | jq -r '.name')
               STATUS=$(echo "$check" | jq -r '.status')
               CONCLUSION=$(echo "$check" | jq -r '.conclusion')
+              CHECK_ID=$(echo "$check" | jq -r '.id')
+              HTML_URL=$(echo "$check" | jq -r '.html_url // empty')
 
               # Skip our own check
               [ "$NAME" = "CI Gate" ] && continue
@@ -91,36 +102,76 @@ jobs:
               TOTAL=$((TOTAL + 1))
 
               if [ "$STATUS" = "completed" ]; then
-                COMPLETED=$((COMPLETED + 1))
-                if [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+                if [ "$CONCLUSION" = "cancelled" ]; then
+                  # Treat cancelled as pending — gate waits for a re-run
+                  PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (cancelled, awaiting re-run)"
+                elif [ "$CONCLUSION" = "failure" ]; then
+                  COMPLETED=$((COMPLETED + 1))
                   FAILED=$((FAILED + 1))
-                  FAILED_NAMES="${FAILED_NAMES}\n  - ${NAME} (${CONCLUSION})"
+                  FAILED_CHECK_NAMES="${FAILED_CHECK_NAMES}, ${NAME}"
+
+                  # Fetch annotations from the failed check run for detailed error messages
+                  ANNOTATIONS=$(gh api "repos/${REPO}/check-runs/${CHECK_ID}/annotations" \
+                    --jq '[.[] | select(.annotation_level == "failure") | .message] | unique | .[]' 2>/dev/null || true)
+                  FAIL_DETAIL=""
+                  if [ -n "$ANNOTATIONS" ]; then
+                    FAIL_DETAIL=$(echo "$ANNOTATIONS" | grep -vE "Process completed with exit code|^Unexpected failure|^Failed during:" | head -3 | tr '\n' '; ' | sed 's/; $//')
+                  fi
+
+                  # Fallback: if no meaningful annotations, check which job step(s) failed
+                  if [ -z "$FAIL_DETAIL" ]; then
+                    FAILED_STEPS=$(gh api "repos/${REPO}/actions/jobs/${CHECK_ID}" \
+                      --jq '[.steps[] | select(.conclusion == "failure") | .name] | join(", ")' 2>/dev/null || true)
+                    if [ -n "$FAILED_STEPS" ]; then
+                      FAIL_DETAIL="Failed step(s): ${FAILED_STEPS}"
+                    fi
+                  fi
+                  printf -v _row '| :x: [%s](%s) | Failed | %s |\n' "$NAME" "$HTML_URL" "$FAIL_DETAIL"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
+                else
+                  COMPLETED=$((COMPLETED + 1))
+                  printf -v _row '| :white_check_mark: %s | %s | |\n' "$NAME" "${CONCLUSION^}"
+                  SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
                 fi
               else
                 PENDING_NAMES="${PENDING_NAMES}\n  - ${NAME} (${STATUS})"
+                printf -v _row '| :hourglass: %s | %s | |\n' "$NAME" "$STATUS"
+                SUMMARY_ROWS="${SUMMARY_ROWS}${_row}"
               fi
             done <<< "$CHECKS"
 
-            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMPLETED}/${TOTAL} checks completed"
+            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMPLETED}/${TOTAL} checks completed ($FAILED failed)"
 
-            # If any check has already failed, fail fast
-            if [ $FAILED -gt 0 ]; then
-              echo ""
-              echo "FAILED: ${FAILED} check(s) failed:"
-              echo -e "$FAILED_NAMES"
-              exit 1
-            fi
-
-            # All checks completed successfully (or skipped)
+            # All checks completed — report results
             if [ $TOTAL -gt 0 ] && [ $COMPLETED -eq $TOTAL ]; then
+              if [ $FAILED -gt 0 ]; then
+                echo ""
+                echo "FAILED: ${FAILED} check(s) failed (see PR comment for details)"
+                # Write step summary with full check status table
+                printf -v SUMMARY_BODY '## CI Gate: %d of %d check(s) failed\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$FAILED" "$TOTAL" "$SUMMARY_ROWS"
+                echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
+                # Save for the PR comment step
+                echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
+                # Emit ::error:: annotation (visible in checks list)
+                echo "::error::CI Gate: ${FAILED} check(s) failed:${FAILED_CHECK_NAMES}"
+                exit 1
+              fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
+              # Clean up any previous failure comment
+              MARKER="<!-- ci-gate-summary -->"
+              EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+                --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+                gh api "repos/${REPO}/issues/comments/${EXISTING}" -X DELETE > /dev/null 2>&1 || true
+                echo "Cleaned up previous CI Gate failure comment"
+              fi
               exit 0
             fi
 
             # Still waiting — show what's pending
             if [ -n "$PENDING_NAMES" ]; then
-              echo "  Waiting on:$PENDING_NAMES" | head -5
+              echo -e "  Waiting on:$PENDING_NAMES" | head -5
             fi
 
             sleep 30
@@ -130,4 +181,40 @@ jobs:
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
+          printf -v SUMMARY_BODY '## CI Gate: Timed out\n\n%d of %d checks completed. %d failed.\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$COMPLETED" "$TOTAL" "$FAILED" "$SUMMARY_ROWS"
+          echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
+          echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
+          ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+          echo "::error::${ANNOTATION}"
           exit 1
+
+      - name: Comment on PR with failure details
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f /tmp/ci-gate-summary.md ]; then
+            echo "No summary file found, skipping comment"
+            exit 0
+          fi
+
+          MARKER="<!-- ci-gate-summary -->"
+          SUMMARY_CONTENT=$(cat /tmp/ci-gate-summary.md)
+          UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
+          printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
+
+          # Find existing CI Gate comment to update (avoid spam on re-runs)
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            gh api "repos/${REPO}/issues/comments/${EXISTING}" \
+              -X PATCH -f body="$BODY" > /dev/null
+            echo "Updated existing CI Gate comment"
+          else
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY" > /dev/null
+            echo "Posted new CI Gate comment"
+          fi
