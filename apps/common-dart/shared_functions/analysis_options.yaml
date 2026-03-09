@@ -1,0 +1,28 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # Treat warnings as errors for production medical software
+    missing_required_param: error
+    missing_return: error
+    parameter_assignments: error
+
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+
+linter:
+  rules:
+    - always_use_package_imports
+    - always_declare_return_types
+    - prefer_single_quotes
+    - prefer_const_constructors
+    - prefer_final_fields
+    - prefer_final_locals
+    - require_trailing_commas
+    - eol_at_end_of_file

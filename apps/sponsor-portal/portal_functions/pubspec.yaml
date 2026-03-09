@@ -32,6 +32,10 @@ dependencies:
   googleapis: ^15.0.0
   googleapis_auth: ^2.0.0
 
+  # Shared server-side utilities
+  shared_functions:
+    path: ../../common-dart/shared_functions
+
   # EDC Integration (RAVE)
   rave_integration:
     path: ../../edc/rave-integration
