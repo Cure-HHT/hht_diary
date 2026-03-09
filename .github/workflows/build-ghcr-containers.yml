@@ -121,7 +121,7 @@ jobs:
 
       - name: Build and push CI image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/ci.Dockerfile
@@ -193,7 +193,7 @@ jobs:
 
       - name: Build and push DevOps image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/devops.Dockerfile
@@ -257,7 +257,7 @@ jobs:
 
       - name: Build and push Audit image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/audit.Dockerfile
