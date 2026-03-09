@@ -39,7 +39,7 @@ When enabled, workflow protection monitors and alerts on changes to:
 3. **CODEOWNERS** (`.github/CODEOWNERS`)
    - Controls who can approve sensitive changes
 
-4. **Security Documentation** (`.github/BOT_SECURITY.md`)
+4. **Security Documentation**
    - Security policies and procedures
 
 ## Enabling Workflow Protection
@@ -140,7 +140,7 @@ Recommended: Limit to repository admins only via GitHub role settings.
 
 **When Activated**: CODEOWNERS rules apply
 - Changes to `.github/workflows/` require `@Cure-HHT/admins` approval
-- Changes to `.github/BOT_SECURITY.md` require `@Cure-HHT/admins` approval
+- Changes to `.github/WORKFLOW_PROTECTION.md` require `@Cure-HHT/admins` approval
 
 ## Security Model
 
@@ -156,11 +156,6 @@ Workflow protection is one layer in a multi-layer security model:
    - Automated detection and alerting
    - Security review checklists
    - Transparent monitoring
-
-3. **Bot Validation** (Always active)
-   - Validates bot commits only modify authorized files
-   - Runs after every bot commit
-   - Independent of workflow protection flag
 
 ### Why a Feature Flag?
 
@@ -227,15 +222,12 @@ This condition:
 
 - `.github/workflows/alert-workflow-changes.yml`: Added feature flag condition
 - `.github/CODEOWNERS-PRE-PRODUCTION`: Inactive (requires rename to activate)
-- `.github/BOT_SECURITY.md`: Updated with protection toggle documentation
 - `.github/WORKFLOW_PROTECTION.md`: Complete documentation on activation
 
 ## References
 
 - [GitHub Repository Variables Documentation](https://docs.github.com/en/actions/learn-github-actions/variables)
 - [CODEOWNERS Documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
-- See `.github/BOT_SECURITY.md` for complete security model
-
 ## Changelog
 
 - 2025-11-07: Initial implementation with feature flag (CUR-331)

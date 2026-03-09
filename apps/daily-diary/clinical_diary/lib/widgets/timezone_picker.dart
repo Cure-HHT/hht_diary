@@ -732,6 +732,25 @@ String normalizeDeviceTimezone(String deviceTzName) {
     return deviceTzName;
   }
 
+  // Handle numeric UTC offset formats like "+00", "-05", "+0530", "+05:30"
+  // Some platforms return these from DateTime.now().timeZoneName
+  final offsetMatch = RegExp(
+    r'^([+-])(\d{2}):?(\d{2})?$',
+  ).firstMatch(deviceTzName);
+  if (offsetMatch != null) {
+    final sign = offsetMatch.group(1) == '+' ? 1 : -1;
+    final hours = int.parse(offsetMatch.group(2)!);
+    final minutes = int.parse(offsetMatch.group(3) ?? '0');
+    final totalMinutes = sign * (hours * 60 + minutes);
+    final match = commonTimezones
+        .where((tz) => tz.utcOffsetMinutes == totalMinutes)
+        .firstOrNull;
+    if (match != null) {
+      return match.abbreviation;
+    }
+    if (totalMinutes == 0) return 'UTC';
+  }
+
   // If already short (e.g., "PST", "CET"), return as-is
   if (deviceTzName.length <= 5 && deviceTzName == deviceTzName.toUpperCase()) {
     return deviceTzName;

@@ -11,6 +11,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
@@ -202,6 +203,140 @@ void main() {
 
       final json = await getResponseJson(response);
       expect(json['error'], contains('Invalid linking code'));
+    });
+
+    // CUR-1049: Successful link response must include the linking code
+    group('successful link returns linking code (CUR-1049)', () {
+      final testCode =
+          'CA${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase().padLeft(8, 'X')}'
+              .substring(0, 10);
+      late String testPatientId;
+      late String testSiteId;
+
+      setUpAll(() async {
+        final ts = DateTime.now().millisecondsSinceEpoch;
+        testSiteId = 'SITE_CUR1049_$ts';
+        testPatientId = 'PAT_CUR1049_$ts';
+        final testSiteNumber = 'T1049-$ts';
+
+        // Create test site
+        await Database.instance.execute(
+          '''
+          INSERT INTO sites (site_id, site_name, site_number, is_active, contact_info)
+          VALUES (@siteId, 'CUR-1049 Test Site', @siteNumber, true, '{"phone": "+15551049"}')
+        ''',
+          parameters: {'siteId': testSiteId, 'siteNumber': testSiteNumber},
+        );
+
+        // Create test patient
+        await Database.instance.execute(
+          '''
+          INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
+          VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
+        ''',
+          parameters: {
+            'patientId': testPatientId,
+            'siteId': testSiteId,
+            'edcKey': 'EDC-SUBJ-1049-$ts',
+          },
+        );
+
+        // Create test portal user for generated_by FK
+        await Database.instance.execute('''
+          INSERT INTO portal_users (id, email, name, status)
+          VALUES ('00000000-0000-0000-0000-000000001049', 'test-1049@example.com', 'Test Investigator', 'active')
+          ON CONFLICT (id) DO NOTHING
+        ''');
+
+        // Create test linking code (hash it like the handler does)
+        final codeHash = sha256.convert(utf8.encode(testCode)).toString();
+        await Database.instance.execute(
+          '''
+          INSERT INTO patient_linking_codes (
+            patient_id, code, code_hash, generated_by,
+            generated_at, expires_at
+          )
+          VALUES (
+            @patientId, @code, @codeHash,
+            '00000000-0000-0000-0000-000000001049',
+            now(), now() + interval '24 hours'
+          )
+        ''',
+          parameters: {
+            'patientId': testPatientId,
+            'code': testCode,
+            'codeHash': codeHash,
+          },
+        );
+      });
+
+      tearDownAll(() async {
+        // Collect user IDs before deleting linking codes
+        final linkedCodes = await Database.instance.execute(
+          'SELECT used_by_user_id FROM patient_linking_codes WHERE patient_id = @patientId',
+          parameters: {'patientId': testPatientId},
+        );
+        final userIds = linkedCodes
+            .map((row) => row[0])
+            .where((uid) => uid != null)
+            .toList();
+
+        // Clean up in reverse dependency order: linking codes first, then app_users
+        // Delete ALL linking codes referencing these users (not just our test patient)
+        await Database.instance.execute(
+          'DELETE FROM patient_linking_codes WHERE patient_id = @patientId',
+          parameters: {'patientId': testPatientId},
+        );
+        for (final uid in userIds) {
+          await Database.instance.execute(
+            'DELETE FROM patient_linking_codes WHERE used_by_user_id = @userId',
+            parameters: {'userId': uid},
+          );
+          await Database.instance.execute(
+            'DELETE FROM app_users WHERE user_id = @userId',
+            parameters: {'userId': uid},
+          );
+        }
+        await Database.instance.execute(
+          'DELETE FROM patients WHERE patient_id = @patientId',
+          parameters: {'patientId': testPatientId},
+        );
+        await Database.instance.execute(
+          'DELETE FROM sites WHERE site_id = @siteId',
+          parameters: {'siteId': testSiteId},
+        );
+      });
+
+      test(
+        'response includes linkingCode distinct from patientId (CUR-1049)',
+        () async {
+          final request = createPostRequest('/api/v1/user/link', {
+            'code': testCode,
+            'appUuid': 'test-app-cur1049',
+          });
+
+          final response = await linkHandler(request);
+          expect(response.statusCode, equals(200));
+
+          final json = await getResponseJson(response);
+          expect(json['success'], isTrue);
+
+          // CUR-1049: The response MUST include the linking code
+          expect(
+            json['linkingCode'],
+            isNotNull,
+            reason: 'Response must include linkingCode field (CUR-1049)',
+          );
+          expect(json['linkingCode'], equals(testCode));
+
+          // patientId and linkingCode must be different identifiers
+          expect(
+            json['patientId'],
+            isNot(equals(json['linkingCode'])),
+            reason: 'patientId and linkingCode are different identifiers',
+          );
+        },
+      );
     });
   });
 

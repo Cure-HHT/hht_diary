@@ -193,7 +193,6 @@ When implementing code:
 ## Important Notes
 
 - The workflow plugin provides proactive task-switching detection via UserPromptSubmit hooks
-- All new requirement IDs generated via GitHub Actions to prevent conflicts
 - PR validation runs automatically and blocks merge on validation failures
 
 # External Resources

@@ -187,6 +187,34 @@ L. The system SHALL NOT delete historical data when revoking tokens; revocation 
 
 ---
 
+## Section 5: Sync Request Device Binding
+
+# REQ-d00114: Sync Request Device Binding Verification
+
+**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01030
+
+## Rationale
+
+Server-side verification that the device UUID presented in each sync request matches the device UUID registered at enrollment. This enforcement is the technical mechanism that makes device UUID binding an effective identity assurance control per REQ-p01030-L. Without server-side verification, the UUID is informational only and provides no authentication value. The device UUID is already generated client-side (REQ-d00013) and recorded at enrollment (REQ-d00109); this requirement closes the loop by mandating server-side verification on every subsequent sync request.
+
+## Assertions
+
+A. The server SHALL verify that the device UUID included in each sync request matches the device UUID recorded at enrollment for the presenting token.
+
+B. The server SHALL reject sync requests where the device UUID does not match the enrolled device UUID.
+
+C. The server SHALL return HTTP 403 with error code `DEVICE_MISMATCH` for rejected device UUID mismatch requests.
+
+D. The server SHALL NOT disclose the expected device UUID in the error response.
+
+E. The server SHALL log all device UUID mismatch events to the audit trail, including the presented device UUID, the expected device UUID, the token identifier, and the request timestamp.
+
+F. The server SHALL enforce device UUID verification independently of token validity checks.
+
+*End* *Sync Request Device Binding Verification* | **Hash**: b1a11feb
+
+---
+
 ## References
 
 - **Portal Requirements**: prd-portal.md (REQ-p70007, REQ-p70009, REQ-p70010, REQ-p70011)
@@ -194,6 +222,7 @@ L. The system SHALL NOT delete historical data when revoking tokens; revocation 
 - **Mobile App Client**: dev-diary-app-linking.md (REQ-d00094-d00108)
 - **FDA Compliance**: prd-clinical-trials.md (REQ-p00010)
 - **Data Retention**: prd-clinical-trials.md (REQ-p00012)
+- **Patient Authentication**: prd-evidence-records.md (REQ-p01030)
 
 ---
 
@@ -203,6 +232,7 @@ L. The system SHALL NOT delete historical data when revoking tokens; revocation 
 | --- | --- | --- | --- |
 | 1.0 | 2026-01-30 | Initial Portal Linking API specification | CUR-774 |
 | 1.1 | 2026-02-02 | Added perpetual token policy (REQ-d00109 O-Q), token revocation (REQ-d00112) | CUR-495 |
+| 1.2 | 2026-02-28 | Added sync request device binding verification (REQ-d00114) | CUR-113 |
 
 ---
 
