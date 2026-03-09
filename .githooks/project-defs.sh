@@ -12,19 +12,24 @@
 # Each entry: name|pubspec_path|trigger_paths (space-separated)
 # Trigger paths include transitive dependencies so that a change
 # in a dependency triggers tests and bumps in dependents.
-# e.g., a change in trial_data_types tests and bumps clinical_diary.
+# e.g., a change in trial_data_types/lib/ tests and bumps clinical_diary.
+#
+# IMPORTANT: Dependency trigger paths use lib/ suffixes to avoid false
+# version bumps from non-API changes (test/, tool/, etc.).
+# Only the project's own directory uses the full path (has_code_changes
+# handles own-dir filtering separately).
 
 PROJECT_DEFS=(
     # Deployable apps
-    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/ apps/common-dart/trial_data_types/ apps/common-dart/append_only_datastore/ apps/daily-diary/diary_functions/ apps/common-flutter/eq/ .github/workflows/deploy-run-service.yml"
-    "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/ apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/ apps/sponsor-portal/portal-container/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
-    "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/ apps/daily-diary/diary_functions/ apps/common-dart/trial_data_types/ database/ apps/daily-diary/diary-server-container/ .github/workflows/build-diary-server.yml .github/workflows/deploy-run-service.yml tools/build/"
-    "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/ apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/ database/ apps/sponsor-portal/portal-container/ apps/edc/rave-integration/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
+    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/ apps/common-dart/trial_data_types/lib/ apps/common-dart/append_only_datastore/lib/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/ .github/workflows/deploy-run-service.yml"
+    "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/sponsor-portal/portal-container/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
+    "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/ apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ database/ apps/daily-diary/diary-server-container/ .github/workflows/build-diary-server.yml .github/workflows/deploy-run-service.yml tools/build/"
+    "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ database/ apps/sponsor-portal/portal-container/ apps/edc/rave-integration/lib/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/"
     "append_only_datastore|apps/common-dart/append_only_datastore/pubspec.yaml|apps/common-dart/append_only_datastore/"
-    "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/ apps/common-dart/trial_data_types/"
-    "portal_functions|apps/sponsor-portal/portal_functions/pubspec.yaml|apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/"
-    "eq|apps/common-flutter/eq/pubspec.yaml|apps/common-flutter/eq/ apps/common-dart/trial_data_types/"
+    "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/ apps/common-dart/trial_data_types/lib/"
+    "portal_functions|apps/sponsor-portal/portal_functions/pubspec.yaml|apps/sponsor-portal/portal_functions/ apps/common-dart/trial_data_types/lib/"
+    "eq|apps/common-flutter/eq/pubspec.yaml|apps/common-flutter/eq/ apps/common-dart/trial_data_types/lib/"
     "rave-integration|apps/edc/rave-integration/pubspec.yaml|apps/edc/rave-integration/"
 )
