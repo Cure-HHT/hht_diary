@@ -14,8 +14,8 @@ void main() {
     test('loadConfig returns null when config file does not exist', () {
       // Without a valid sponsor-content directory on disk, loadConfig
       // cannot find sponsor-config.json
-      final config = SponsorBranding.loadConfig('dummy-sponsor');
-      expect(config, isNull);
+      const branding = SponsorBranding('dummy-sponsor');
+      expect(branding.loadConfig(), isNull);
     });
   });
 

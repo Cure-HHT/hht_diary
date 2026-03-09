@@ -27,6 +27,10 @@ dependencies:
   trial_data_types:
     path: ../../common-dart/trial_data_types
 
+  # Shared server-side utilities
+  shared_functions:
+    path: ../../common-dart/shared_functions
+
 dev_dependencies:
   test: ^1.25.15
   mocktail: ^1.0.4
