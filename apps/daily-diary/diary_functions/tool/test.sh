@@ -5,29 +5,45 @@
 #
 # Test script for diary_functions
 # Runs Dart unit tests and integration tests against PostgreSQL
+# Optionally generates coverage reports
 
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+# Coverage threshold (percentage)
+MIN_COVERAGE=70
+
 # Parse command line arguments
 RUN_UNIT=false
 RUN_INTEGRATION=false
 START_DB=false
 STOP_DB=false
+WITH_COVERAGE=false
+CHECK_THRESHOLDS=true
+USE_DEV_MODE=false
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -u, --unit           Run unit tests only"
-    echo "  -i, --integration    Run integration tests only (requires PostgreSQL)"
-    echo "  --start-db           Start local PostgreSQL container before tests"
+    echo "  -i, --integration    Run integration tests (auto-starts PostgreSQL)"
+    echo "  -c, --coverage       Run with coverage collection and reporting"
+    echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
+    echo "  --start-db           Start local PostgreSQL container (happens auto with -i)"
     echo "  --stop-db            Stop local PostgreSQL container after tests"
+    echo "  --dev                Use GCP Identity Platform instead of Firebase emulator"
     echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no flags are specified, unit tests are run."
+    echo "If no test flags (-u/-i) are specified, both unit and integration tests are run."
+    echo ""
+    echo "Coverage Threshold: ${MIN_COVERAGE}%"
+    echo ""
+    echo "Services auto-started for integration tests:"
+    echo "  - PostgreSQL (via docker compose + Doppler)"
+    echo "  - Database schema is applied/updated automatically"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -40,12 +56,24 @@ while [[ $# -gt 0 ]]; do
       RUN_INTEGRATION=true
       shift
       ;;
+    -c|--coverage)
+      WITH_COVERAGE=true
+      shift
+      ;;
+    --no-threshold)
+      CHECK_THRESHOLDS=false
+      shift
+      ;;
     --start-db)
       START_DB=true
       shift
       ;;
     --stop-db)
       STOP_DB=true
+      shift
+      ;;
+    --dev)
+      USE_DEV_MODE=true
       shift
       ;;
     -h|--help)
@@ -60,47 +88,86 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run unit tests only
+# Default: run both unit and integration tests
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
     RUN_UNIT=true
+    RUN_INTEGRATION=true
 fi
 
 echo "=============================================="
-echo "Diary Functions Test Suite"
+if [ "$WITH_COVERAGE" = true ]; then
+    echo "Diary Functions Test Suite (with Coverage)"
+else
+    echo "Diary Functions Test Suite"
+fi
 echo "=============================================="
 
-UNIT_PASSED=true
-INTEGRATION_PASSED=true
+# Clean up coverage directory if running with coverage
+if [ "$WITH_COVERAGE" = true ]; then
+    rm -rf coverage
+    mkdir -p coverage
+fi
 
-# Start database if requested
-if [ "$START_DB" = true ]; then
-    echo ""
-    echo "Starting PostgreSQL container..."
+# No PASSED tracking needed — set -e stops on first failure
+
+# Start database if requested OR if running integration tests
+if [ "$START_DB" = true ] || [ "$RUN_INTEGRATION" = true ]; then
     COMPOSE_FILE="$(cd "$SCRIPT_DIR/../../../tools/dev-env" && pwd)/docker-compose.db.yml"
+    DATABASE_DIR="$SCRIPT_DIR/../../../database"
 
-    if [ -f "$COMPOSE_FILE" ]; then
-        (cd "$(dirname "$COMPOSE_FILE")" && doppler run -- docker compose -f docker-compose.db.yml up -d)
+    # Check if PostgreSQL is already running
+    if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+        echo ""
+        echo "PostgreSQL already running"
+    else
+        echo ""
+        echo "Starting PostgreSQL container..."
 
-        # Wait for database to be ready
-        echo "Waiting for PostgreSQL to be ready..."
-        TIMEOUT=30
-        ELAPSED=0
-        while [ $ELAPSED -lt $TIMEOUT ]; do
-            if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
-                echo "PostgreSQL is ready!"
-                break
+        if [ -f "$COMPOSE_FILE" ]; then
+            (cd "$(dirname "$COMPOSE_FILE")" && doppler run -- docker compose -f docker-compose.db.yml up -d)
+
+            # Wait for database to be ready
+            echo "Waiting for PostgreSQL to be ready..."
+            TIMEOUT=30
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+                    echo "PostgreSQL is ready!"
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+            done
+
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Timeout waiting for PostgreSQL"
+                exit 1
             fi
-            sleep 1
-            ELAPSED=$((ELAPSED + 1))
-        done
-
-        if [ $ELAPSED -ge $TIMEOUT ]; then
-            echo "Timeout waiting for PostgreSQL"
+        else
+            echo "Error: docker-compose.db.yml not found at $COMPOSE_FILE"
             exit 1
         fi
+    fi
+
+    # Always apply schema to ensure it's up to date
+    # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
+    # Use docker exec since psql may not be installed on the host
+    echo ""
+    echo "Applying database schema..."
+    if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+        if docker exec -w /database sponsor-portal-postgres psql -U postgres -d sponsor_portal -f init.sql; then
+            echo "Schema applied successfully"
+        else
+            echo "Warning: Schema application had errors (may be OK if tables exist)"
+        fi
+        # Apply test fixtures
+        if docker exec -w /database sponsor-portal-postgres psql -U postgres -d sponsor_portal -f init_test.sql; then
+            echo "Test fixtures applied successfully"
+        else
+            echo "Warning: Test fixtures had errors"
+        fi
     else
-        echo "Error: docker-compose.db.yml not found at $COMPOSE_FILE"
-        exit 1
+        echo "Warning: PostgreSQL container not ready, skipping schema update"
     fi
 fi
 
@@ -109,17 +176,32 @@ echo ""
 echo "Checking dependencies..."
 dart pub get
 
+# Build test command based on coverage flag
+if [ "$WITH_COVERAGE" = true ]; then
+    TEST_CMD="dart test --coverage=coverage"
+else
+    TEST_CMD="dart test"
+fi
+
 # Run unit tests
 if [ "$RUN_UNIT" = true ]; then
     echo ""
     echo "Running unit tests..."
     echo ""
 
-    if dart test test/; then
-        echo "Unit tests passed!"
-    else
-        echo "Unit tests failed!"
-        UNIT_PASSED=false
+    $TEST_CMD test/
+
+    # Generate lcov report for unit tests
+    if [ "$WITH_COVERAGE" = true ] && [ -d "coverage" ]; then
+        echo ""
+        echo "Generating unit test lcov report..."
+        dart pub global activate coverage 2>/dev/null || true
+        dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage \
+            --out=coverage/lcov-unit.info \
+            --report-on=lib \
+            --packages=.dart_tool/package_config.json 2>/dev/null || echo "Warning: Could not generate lcov report"
     fi
 fi
 
@@ -138,22 +220,35 @@ if [ "$RUN_INTEGRATION" = true ]; then
         fi
     fi
 
-    # Use doppler run to inject DB credentials if LOCAL_DB_PASSWORD is not already set
-    if [ -z "$LOCAL_DB_PASSWORD" ] && command -v doppler &> /dev/null; then
-        echo "Using Doppler for database credentials..."
-        if doppler run -- dart test integration_test/; then
-            echo "Integration tests passed!"
-        else
-            echo "Integration tests failed!"
-            INTEGRATION_PASSED=false
-        fi
-    else
-        if dart test integration_test/; then
-            echo "Integration tests passed!"
-        else
-            echo "Integration tests failed!"
-            INTEGRATION_PASSED=false
-        fi
+    # Set environment for local integration tests
+    # Override Doppler's remote DB vars to point at the local container
+    export DB_HOST="localhost"
+    export DB_PORT="5432"
+    export DB_NAME="sponsor_portal"
+    export DB_USER="postgres"
+    export DB_SSL="false"
+
+    # Always use local DB password (Doppler's DB_PASSWORD is for the remote DB)
+    LOCAL_PW=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+    export DB_PASSWORD="${LOCAL_PW:-${DB_PASSWORD}}"
+
+    if [ "$USE_DEV_MODE" = true ]; then
+        # Use GCP Identity Platform (--dev mode)
+        echo "Running with GCP Identity Platform..."
+    fi
+
+    $TEST_CMD integration_test/
+
+    # Generate lcov report for integration tests
+    if [ "$WITH_COVERAGE" = true ] && [ -d "coverage" ]; then
+        echo ""
+        echo "Generating integration test lcov report..."
+        dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage \
+            --out=coverage/lcov-integration.info \
+            --report-on=lib \
+            --packages=.dart_tool/package_config.json 2>/dev/null || echo "Warning: Could not generate lcov report"
     fi
 fi
 
@@ -168,37 +263,98 @@ if [ "$STOP_DB" = true ]; then
     fi
 fi
 
+# Coverage report generation and threshold checking
+if [ "$WITH_COVERAGE" = true ]; then
+    # Combine coverage reports if both exist
+    if [ -f "coverage/lcov-unit.info" ] && [ -f "coverage/lcov-integration.info" ]; then
+        if command -v lcov &> /dev/null; then
+            echo ""
+            echo "Combining coverage reports..."
+            lcov -a coverage/lcov-unit.info -a coverage/lcov-integration.info \
+                -o coverage/lcov.info --ignore-errors unused 2>/dev/null || true
+        fi
+    elif [ -f "coverage/lcov-unit.info" ]; then
+        cp coverage/lcov-unit.info coverage/lcov.info 2>/dev/null || true
+    elif [ -f "coverage/lcov-integration.info" ]; then
+        cp coverage/lcov-integration.info coverage/lcov.info 2>/dev/null || true
+    fi
+
+    # Generate HTML report if genhtml is available
+    if [ -f "coverage/lcov.info" ] && command -v genhtml &> /dev/null; then
+        echo ""
+        echo "Generating HTML report..."
+        genhtml coverage/lcov.info -o coverage/html 2>/dev/null || echo "Warning: Could not generate HTML report"
+        if [ -f "coverage/html/index.html" ]; then
+            echo "HTML report: coverage/html/index.html"
+        fi
+    fi
+fi
+
+# If we get here, all tests passed (set -e would have stopped us)
+
 echo ""
 echo "=============================================="
-echo "Summary"
+echo "All tests passed!"
 echo "=============================================="
 
 EXIT_CODE=0
 
-if [ "$RUN_UNIT" = true ]; then
-    if [ "$UNIT_PASSED" = true ]; then
-        echo "Unit Tests: PASSED"
-    else
-        echo "Unit Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
+# Coverage summary and threshold check
+if [ "$WITH_COVERAGE" = true ]; then
+    # Calculate coverage percentage
+    get_coverage_percentage() {
+        local lcov_file="$1"
+        if [ ! -f "$lcov_file" ]; then
+            echo "0"
+            return
+        fi
 
-if [ "$RUN_INTEGRATION" = true ]; then
-    if [ "$INTEGRATION_PASSED" = true ]; then
-        echo "Integration Tests: PASSED"
-    else
-        echo "Integration Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
+        local lines_found
+        local lines_hit
+        lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null) || lines_found=0
+        lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -cv ",0$") || lines_hit=0
 
-if [ $EXIT_CODE -eq 0 ]; then
+        lines_found=$(echo "$lines_found" | tr -d '[:space:]')
+        lines_hit=$(echo "$lines_hit" | tr -d '[:space:]')
+
+        lines_found=${lines_found:-0}
+        lines_hit=${lines_hit:-0}
+
+        if [ "$lines_found" -eq 0 ] 2>/dev/null; then
+            echo "0"
+        else
+            awk "BEGIN {printf \"%.1f\", ($lines_hit/$lines_found)*100}"
+        fi
+    }
+
     echo ""
-    echo "All tests passed!"
-else
-    echo ""
-    echo "Some tests failed!"
+    echo "=============================================="
+    echo "Coverage Summary"
+    echo "=============================================="
+
+    COVERAGE_PCT="0"
+    if [ -f "coverage/lcov.info" ]; then
+        COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov.info")
+        echo ""
+        echo "Total Coverage: ${COVERAGE_PCT}%"
+        echo "Report: coverage/lcov.info"
+    fi
+
+    # Check coverage thresholds
+    if [ "$CHECK_THRESHOLDS" = true ] && [ -f "coverage/lcov.info" ]; then
+        echo ""
+        echo "=============================================="
+        echo "Coverage Threshold Check"
+        echo "=============================================="
+
+        PASSES=$(echo "$COVERAGE_PCT $MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
+        if [ "$PASSES" = "1" ]; then
+            echo "PASS: ${COVERAGE_PCT}% >= ${MIN_COVERAGE}%"
+        else
+            echo "FAIL: ${COVERAGE_PCT}% < ${MIN_COVERAGE}%"
+            EXIT_CODE=1
+        fi
+    fi
 fi
 
 exit $EXIT_CODE

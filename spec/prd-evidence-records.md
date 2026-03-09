@@ -274,7 +274,7 @@ I. Auditors SHALL be able to verify fingerprint consistency across a patient's s
 
 ## Rationale
 
-This requirement establishes the authentication framework for attributing clinical trial data to the correct enrolled patient. In a bring-your-own-device (BYOD) clinical trial context, the patient's personal device with an active lock screen provides the strongest available authentication mechanism. By verifying privileged access to the enrolled device, the system creates reasonable assurance that data entries originate from the enrolled patient rather than an unauthorized user. This approach balances FDA 21 CFR Part 11 identity verification requirements with the practical constraints of mobile clinical trials. The fallback PIN mechanism ensures authentication is possible even when patients choose not to enable device-level security, while the PIN reset workflow maintains security without creating support burden for site staff.
+This requirement establishes the authentication framework for attributing clinical trial data to the correct enrolled patient. In a bring-your-own-device (BYOD) clinical trial context, the patient's personal device with an active lock screen provides the strongest available authentication mechanism. By verifying privileged access to the enrolled device, the system creates reasonable assurance that data entries originate from the enrolled patient rather than an unauthorized user. This approach balances FDA 21 CFR Part 11 identity verification requirements with the practical constraints of mobile clinical trials. The fallback PIN mechanism ensures authentication is possible even when patients choose not to enable device-level security, while the PIN reset workflow maintains security without creating support burden for site staff. For the full regulatory rationale supporting the risk-based authentication design, see [docs/position-app-auth.md](../docs/position-app-auth.md).
 
 ## Assertions
 
@@ -282,7 +282,7 @@ A. The system SHALL authenticate patients before data entry to establish privile
 
 B. The system SHALL use the device's native lock screen as the primary authentication mechanism.
 
-C. The system SHALL require an in-app PIN as a fallback authentication mechanism when the device lock screen is not enabled.
+C. When enabled by Sponsor configuration, the system SHALL require an in-app PIN as a fallback authentication mechanism when the device lock screen is not enabled.
 
 D. The system SHALL detect whether the device has a lock screen enabled.
 
@@ -290,17 +290,21 @@ E. The system SHALL detect device lock screen status at patient enrollment.
 
 F. The system SHALL periodically detect device lock screen status after enrollment.
 
-G. The system SHALL prompt patients to set an in-app PIN when the device lock screen is not enabled.
+G. When the in-app PIN fallback is enabled, the system SHALL prompt patients to set a PIN when the device lock screen is not enabled.
 
-H. The system SHALL allow Site Coordinators to send PIN reset notifications to patients.
+H. When the in-app PIN fallback is enabled, the system SHALL allow Site Coordinators to send PIN reset notifications to patients.
 
-I. The system SHALL NOT allow Site Coordinators to view patient PINs.
+I. When the in-app PIN fallback is enabled, the system SHALL NOT allow Site Coordinators to view patient PINs.
 
 J. The system SHALL record authentication status with each data submission.
 
 K. The system SHALL log failed authentication attempts for audit purposes.
 
-*End* *Patient Authentication for Data Attribution* | **Hash**: da907239
+L. The system SHALL use device-specific UUID binding as an identity assurance control, establishing a controlled association between the enrolled patient and registered application instances.
+
+M. The system SHALL treat the combination of mandatory device-level lock screen authentication and device UUID binding as equivalent to application-level login credentials for the purpose of patient identity assurance during data submission.
+
+*End* *Patient Authentication for Data Attribution* | **Hash**: fc02cd59
 ---
 
 ---

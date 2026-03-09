@@ -279,6 +279,7 @@ Future<Response> linkHandler(Request request) async {
       'jwt': jwtToken,
       'userId': userId,
       'patientId': patientId,
+      'linkingCode': code,
       'siteId': siteId,
       'siteName': siteName,
       'siteNumber': siteNumber,
