@@ -1,11 +1,11 @@
-# common-config/
+# apps/common-config/
 
 Shared configuration assets used across multiple containers in this repository.
 
 ## Structure
 
 ```
-common-config/
+apps/common-config/
 └── nginx/
     ├── common-http.conf       # Shared http { } level directives
     └── common-locations.conf  # Shared server { } location blocks

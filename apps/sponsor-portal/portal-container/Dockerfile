@@ -148,9 +148,9 @@ COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
 # Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
 COPY sponsor-content/ /app/sponsor-content/
 
-# Copy shared nginx configuration includes (from common-config/)
-COPY common-config/nginx/common-http.conf /etc/nginx/common-http.conf
-COPY common-config/nginx/common-locations.conf /etc/nginx/common-locations.conf
+# Copy shared nginx configuration includes (from apps/common-config/)
+COPY apps/common-config/nginx/common-http.conf /etc/nginx/common-http.conf
+COPY apps/common-config/nginx/common-locations.conf /etc/nginx/common-locations.conf
 # Copy portal-specific nginx configuration
 COPY apps/sponsor-portal/portal-container/nginx.conf /etc/nginx/nginx.conf
 
