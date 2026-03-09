@@ -46,7 +46,7 @@ docker build -f apps/daily-diary/diary-server-container/Dockerfile -t diary-test
 ## Related files
 
 | File | Purpose |
-|------|---------|
+| ------ | ------- |
 | `apps/sponsor-portal/portal-container/nginx.conf` | Portal-specific: listen 8080, /health + /api/ proxy |
 | `apps/daily-diary/diary-server-container/nginx.conf` | Diary-specific: listen 8081, static assets only |
 | `apps/sponsor-portal/portal-container/Dockerfile` | COPYs common-http.conf + common-locations.conf |
