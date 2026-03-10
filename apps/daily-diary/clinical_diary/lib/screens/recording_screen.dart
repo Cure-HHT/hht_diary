@@ -3,6 +3,13 @@
 //   REQ-CAL-p00001: Old Entry Modification Justification
 //   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
 //   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
+//   REQ-p01066-A: Capture nosebleed start time as a required field
+//   REQ-p01066-B: Capture nosebleed end time as an optional field
+//   REQ-p01066-H: Validate that end time is after start time
+//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
+//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01069-A: Provide an intuitive time picker for start and end times
+//   REQ-p01069-E: Support editing of records regardless of completion state
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -399,7 +406,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   /// Saves the record and returns the record ID, or null if save failed.
-  Future<String?> _saveRecord() async {
+  Future<String?> _saveRecord({bool fromBack = false}) async {
     debugPrint(
       '[RecordingScreen] _saveRecord: start=$_startDateTime, '
       'intensity=$_intensity, end=$_endDateTime',
@@ -410,6 +417,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final shouldProceed = await _runValidationChecks();
     debugPrint('[RecordingScreen] _saveRecord: shouldProceed=$shouldProceed');
     if (!shouldProceed) {
+      return null;
+    }
+    final overlapping = _getOverlappingEvents();
+
+    if (overlapping.isNotEmpty) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+
+        if (!fromBack) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.overlappingRecordNotAllowed),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
       return null;
     }
 
@@ -487,6 +511,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   /// CUR-583: Handle start time confirmation with future time validation
+  // Implements: REQ-p01066-K — reject start times that resolve to the future
+  // after timezone conversion (e.g., a displayed time in a timezone behind the
+  // device that converts to a future UTC moment).
+  // Implements: REQ-p01066-L — convert displayed (wall-clock) time to stored
+  // UTC-equivalent using the patient's selected timezone.
   void _handleStartTimeConfirm(DateTime displayedTime) {
     // Convert displayed time to stored DateTime using selected timezone
     final storedStartTime = TimezoneConverter.toStoredDateTime(
@@ -524,6 +553,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
+  // Implements: REQ-p01066-H — validate end time is after start time.
+  // Implements: REQ-p01066-K — reject end times that resolve to the future.
+  // Implements: REQ-p01066-L — convert wall-clock display time to stored
+  // representation using the patient's selected timezone.
   Future<void> _handleEndTimeConfirm(DateTime displayedTime) async {
     // CUR-583: Convert displayed time to stored DateTime using selected timezone
     final storedEndTime = TimezoneConverter.toStoredDateTime(
@@ -616,7 +649,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
       // Auto-save the partial record without prompting
       debugPrint('[RecordingScreen] _handleExit: calling _saveRecord()');
-      final recordId = await _saveRecord();
+      final recordId = await _saveRecord(fromBack: true);
       if (recordId == null) {
         if (mounted) {
           final l10n = AppLocalizations.of(context);
@@ -918,7 +951,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onTimeChanged: _setStartDateTime,
           onTimezoneChanged: _handleStartTimezoneChanged,
           confirmLabel: l10n.setStartTime,
-          maxDateTime: DateTime.now(),
         );
 
       case RecordingStep.intensity:
@@ -944,7 +976,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onTimeChanged: _setEndDateTime,
           onTimezoneChanged: _handleEndTimezoneChanged,
           confirmLabel: l10n.setEndTime,
-          maxDateTime: DateTime.now(),
         );
 
       // CUR-408: Notes case removed from recording flow - TODO PUT BACK
