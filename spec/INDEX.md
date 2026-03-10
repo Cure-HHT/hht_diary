@@ -95,7 +95,7 @@
 | REQ-p01048 | Web Diary Login Interface                                           | prd-diary-web.md                          | d643690a |
 | REQ-p01049 | Web Diary Lost Credential Recovery                                  | prd-diary-web.md                          | 0af0c79c |
 | REQ-p01050 | Event Type Registry                                                 | prd-event-sourcing-system.md              | 52464e42 |
-| REQ-p01051 | Questionnaire Versioning Model                                      | prd-event-sourcing-system.md              | e311e5fc |
+| REQ-p01051 | Questionnaire Versioning Model                                      | prd-event-sourcing-system.md              | 6d08845d |
 | REQ-p01052 | Questionnaire Localization and Translation Tracking                 | prd-event-sourcing-system.md              | 4218237c |
 | REQ-p01053 | Sponsor Questionnaire Eligibility Configuration                     | prd-event-sourcing-system.md              | 3bc66244 |
 | REQ-p01054 | Complete Infrastructure Isolation Per Sponsor                       | prd-architecture-multi-sponsor.md         | 5f9f93ed |
@@ -299,7 +299,7 @@
 | REQ-d00104 | Contact Study Coordinator Screen                   | dev-diary-app-linking.md                             | 9e53fe8a |
 | REQ-d00105 | Reconnection Recovery Path                         | dev-diary-app-linking.md                             | 01389d10 |
 | REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md                             | 60f1a652 |
-| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md                             | 888d43b7 |
+| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md                             | c2019383 |
 | REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md                             | b9a8f91b |
 | REQ-d00109 | Portal Linking Code Validation Endpoint            | dev-portal-api.md                                    | bac91a72 |
 | REQ-d00110 | Linking API Error Response Strategy                | dev-portal-api.md                                    | 39ae2a18 |
@@ -316,6 +316,7 @@
 | REQ-d80061 | System Validation Controls                         | regulations/fda/dev-fda-part11-technical-controls.md | 08ae9589 |
 | REQ-d80062 | IT Service Provider and Cloud System Controls      | regulations/fda/dev-fda-part11-technical-controls.md | e5b6cafb |
 | REQ-d80063 | Digital Health Technology Data Capture             | regulations/fda/dev-fda-part11-technical-controls.md | 151b3a71 |
+| REQ-d80064 | Questionnaire Version Integrity Enforcement        | dev-questionnaire.md                                 | dd2e9ea1 |
 
 ## User Journeys (JNY)
 
