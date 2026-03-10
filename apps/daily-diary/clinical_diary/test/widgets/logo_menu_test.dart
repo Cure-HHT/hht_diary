@@ -479,6 +479,30 @@ void main() {
       expect(called, true);
     });
 
+    testWidgets('does not show Check for updates option (CUR-990)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      // Check for updates was removed — app updates are handled via app stores (CUR-990)
+      expect(find.text('Check for updates'), findsNothing);
+    });
+
     testWidgets('menu closes after selecting an option', (tester) async {
       var called = false;
 
