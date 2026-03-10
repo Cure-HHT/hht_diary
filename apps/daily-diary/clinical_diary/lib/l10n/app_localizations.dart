@@ -55,6 +55,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Record Nosebleed',
+      'overlappingRecordNotAllowed':
+          'This entry overlaps an existing record. Please modify the time range.',
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
@@ -464,6 +466,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Registrar Hemorragia Nasal',
+      'overlappingRecordNotAllowed':
+          'Esta entrada se superpone con un registro existente. Por favor, modifique el rango de tiempo.',
       'noEventsToday': 'sin eventos hoy',
       'noEventsYesterday': 'sin eventos ayer',
       'incompleteRecords': 'Registros Incompletos',
@@ -881,6 +885,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Enregistrer un Saignement',
+      'overlappingRecordNotAllowed':
+          'Cette entrée chevauche un enregistrement existant. Veuillez modifier la plage horaire.',
       'noEventsToday': "pas d'evenements aujourd'hui",
       'noEventsYesterday': "pas d'evenements hier",
       'incompleteRecords': 'Enregistrements Incomplets',
@@ -1309,6 +1315,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Nasenbluten erfassen',
+      'overlappingRecordNotAllowed':
+          'Dieser Eintrag überschneidet sich mit einem bestehenden Datensatz. Bitte passen Sie den Zeitraum an.',
       'noEventsToday': 'keine Ereignisse heute',
       'noEventsYesterday': 'keine Ereignisse gestern',
       'incompleteRecords': 'Unvollstandige Eintrage',
@@ -1807,6 +1815,8 @@ class AppLocalizations {
   String get reenterPassword => translate('reenterPassword');
   String get noAccountCreate => translate('noAccountCreate');
   String get hasAccountLogin => translate('hasAccountLogin');
+  String get overlappingRecordNotAllowed =>
+      translate('overlappingRecordNotAllowed');
   String minimumCharacters(int count) =>
       translateWithParams('minimumCharacters', [count]);
 

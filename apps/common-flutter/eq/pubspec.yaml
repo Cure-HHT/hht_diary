@@ -1,7 +1,6 @@
 name: eq
-description: "Questionnaire UI widgets for clinical diary - REQ-p01070, REQ-p01071"
-version: 0.0.1+8
-publish_to: none
+description: "A new Flutter package project."
+version: 0.0.2+9
 homepage:
 
 environment:
