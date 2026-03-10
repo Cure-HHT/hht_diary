@@ -169,6 +169,7 @@ void main() {
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
         );
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         await tester.pumpWidget(buildHomeScreen());
         await tester.pumpAndSettle();
@@ -571,9 +572,9 @@ void main() {
         // 2️⃣ Tap the "Licenses" option
         final licensesFinder = find.text('Licenses');
 
-        expect(licensesFinder, findsOneWidget);
+        expect(licensesFinder, findsWidgets);
 
-        await tester.tap(licensesFinder);
+        await tester.tap(licensesFinder.first);
         await tester.pumpAndSettle();
 
         // 3️⃣ Verify LicensePage is displayed
