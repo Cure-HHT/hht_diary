@@ -3,155 +3,246 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Tests for ReconnectPatientDialog widget
+// Widget tests for ReconnectPatientDialog confirm/success/error/retry states.
 
+import 'dart:convert';
+
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:sponsor_portal_ui/services/api_client.dart';
+import 'package:sponsor_portal_ui/services/auth_service.dart';
+import 'package:sponsor_portal_ui/widgets/reconnect_patient_dialog.dart';
+
+MockClient _createMockHttpClient({bool shouldFail = false}) {
+  return MockClient((request) async {
+    final path = request.url.path;
+
+    // GET /api/v1/portal/me
+    if (path == '/api/v1/portal/me' && request.method == 'GET') {
+      return http.Response(
+        jsonEncode({
+          'id': 'user-001',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'status': 'active',
+          'roles': ['Investigator'],
+          'active_role': 'Investigator',
+          'mfa_type': 'email_otp',
+          'email_otp_required': true,
+          'sites': [],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    // POST /link-code (reconnect endpoint)
+    if (path.contains('/link-code') && request.method == 'POST') {
+      if (shouldFail) {
+        return http.Response(
+          jsonEncode({'error': 'Patient not found'}),
+          404,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'patient_id': 'PAT-TEST-001',
+          'site_name': 'Site Alpha',
+          'code': 'CAXXX-XXXXX',
+          'code_raw': 'CAXXXXXXXX',
+          'expires_at': DateTime.now()
+              .add(const Duration(hours: 72))
+              .toIso8601String(),
+          'expires_in_hours': 72,
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    return http.Response('Not found', 404);
+  });
+}
+
+Future<ApiClient> _createMockApiClient({bool shouldFail = false}) async {
+  final mockUser = MockUser(
+    uid: 'test-uid',
+    email: 'test@example.com',
+    displayName: 'Test User',
+  );
+  final mockFirebaseAuth = MockFirebaseAuth(mockUser: mockUser, signedIn: true);
+  final mockHttpClient = _createMockHttpClient(shouldFail: shouldFail);
+  final authService = AuthService(
+    firebaseAuth: mockFirebaseAuth,
+    httpClient: mockHttpClient,
+  );
+  await authService.signIn('test@example.com', 'password');
+  return ApiClient(authService, httpClient: mockHttpClient);
+}
+
+Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => ReconnectPatientDialog(
+                  patientId: 'PAT-TEST-001',
+                  patientDisplayId: '999-002-320',
+                  apiClient: apiClient,
+                ),
+              );
+            });
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump();
+  await tester.pumpAndSettle();
+}
 
 void main() {
-  group('ReconnectPatientDialog requirements', () {
-    test('Reconnection requires mandatory reason field (REQ-CAL-p00066)', () {
-      // The dialog enforces that a reason must be provided before
-      // the Reconnect button is enabled. This is implemented via
-      // the _canSubmit getter checking _reasonController.text.trim().isNotEmpty
-      //
-      // Acceptance criteria:
-      // - Reason field is mandatory (cannot reconnect without reason)
-      // - Reason is sent to backend for audit logging
-      // - Reason is displayed in success state for confirmation
-      expect(true, isTrue, reason: 'Reason field is required for reconnection');
+  group('ReconnectPatientDialog widget', () {
+    testWidgets('confirm state shows patient ID and Reconnect button', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient);
+
+      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.textContaining('999-002-320'), findsOneWidget);
+      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.byIcon(Icons.link), findsWidgets);
     });
 
-    test('Reconnection sends reconnect_reason to backend', () {
-      // The dialog sends a POST request to:
-      // /api/v1/portal/patients/{patientId}/link-code
-      // with body: { "reconnect_reason": "user-entered reason" }
-      //
-      // This allows the backend to:
-      // 1. Detect this is a reconnection (not a standard link)
-      // 2. Log RECONNECT_PATIENT action type instead of GENERATE_LINKING_CODE
-      // 3. Include the reason in the audit trail
+    testWidgets('confirm state shows mandatory reason field', (tester) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient);
+
+      expect(find.text('Reason for reconnection *'), findsOneWidget);
+      expect(find.text('Enter reason for reconnection...'), findsOneWidget);
       expect(
-        true,
-        isTrue,
-        reason: 'Backend receives reconnect_reason in request body',
+        find.textContaining('new linking code will be generated'),
+        findsOneWidget,
       );
     });
 
-    test('Reconnection dialog has correct states', () {
-      // The dialog has 4 states matching the pattern from LinkPatientDialog:
-      // 1. confirm - Initial state with reason field
-      // 2. loading - While API call is in progress
-      // 3. success - After successful reconnection, shows linking code
-      // 4. error - If API call fails, with "Try Again" option
-      final states = ['confirm', 'loading', 'success', 'error'];
-      expect(states.length, 4);
+    testWidgets('Reconnect button has no effect when reason empty', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient);
+
+      // Tap Reconnect without entering a reason — should remain in confirm
+      await tester.tap(find.text('Reconnect'));
+      await tester.pumpAndSettle();
+
+      // Still in confirm state
+      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reason for reconnection *'), findsOneWidget);
     });
 
-    test('Success state displays generated linking code', () {
-      // After successful reconnection, the dialog should display:
-      // - Site name
-      // - Patient ID
-      // - The reason that was entered
-      // - The generated linking code with copy functionality
-      // - Expiration time
-      // - "Done" button to close
-      expect(true, isTrue, reason: 'Success state shows linking code details');
+    testWidgets(
+      'entering reason enables Reconnect and tapping shows success with code',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
+
+        await _pumpDialog(tester, apiClient);
+
+        // Enter reason
+        await tester.enterText(
+          find.byType(TextField),
+          'Patient got new device',
+        );
+        await tester.pump();
+
+        // Tap Reconnect
+        await tester.tap(find.text('Reconnect'));
+        await tester.pumpAndSettle();
+
+        // Success state
+        expect(find.text('Linking Code Generated'), findsOneWidget);
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+        expect(find.textContaining('Site Alpha'), findsOneWidget);
+        expect(find.textContaining('999-002-320'), findsOneWidget);
+        expect(find.textContaining('Patient got new device'), findsOneWidget);
+        expect(find.text('Done'), findsOneWidget);
+        expect(find.textContaining('Expires in'), findsOneWidget);
+      },
+    );
+
+    testWidgets('error state shows error message and Try Again', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient(shouldFail: true);
+
+      await _pumpDialog(tester, apiClient);
+
+      // Enter reason and submit
+      await tester.enterText(find.byType(TextField), 'Test reason');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reconnect'));
+      await tester.pumpAndSettle();
+
+      // Error state
+      expect(find.text('Error'), findsOneWidget);
+      expect(find.byIcon(Icons.error), findsOneWidget);
+      expect(find.text('Patient not found'), findsOneWidget);
+      expect(find.text('Try Again'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
     });
 
-    test('Linking code format matches REQ-d00079', () {
-      // The linking code displayed should match the format:
-      // {SS}{XXX}-{XXXXX} where SS is sponsor prefix
-      // The dash is for readability only
-      const exampleCode = 'CAXXX-XXXXX';
-      expect(exampleCode.contains('-'), isTrue);
-      expect(exampleCode.length, 11); // 10 chars + 1 dash
+    testWidgets('Try Again returns to confirm state', (tester) async {
+      final apiClient = await _createMockApiClient(shouldFail: true);
+
+      await _pumpDialog(tester, apiClient);
+
+      // Enter reason, submit, get error
+      await tester.enterText(find.byType(TextField), 'Test reason');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reconnect'));
+      await tester.pumpAndSettle();
+
+      // Tap Try Again
+      await tester.tap(find.text('Try Again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reconnect'), findsOneWidget);
     });
 
-    test('Reconnect button disabled when reason empty', () {
-      // The _canSubmit getter returns false when:
-      // _reasonController.text.trim().isEmpty
-      //
-      // This prevents submitting without a reason
-      final emptyReasons = ['', '   ', '\n', '\t'];
-      for (final reason in emptyReasons) {
-        expect(reason.trim().isEmpty, isTrue);
-      }
-    });
+    testWidgets('Cancel button closes dialog', (tester) async {
+      final apiClient = await _createMockApiClient();
 
-    test('Reconnect button enabled when reason provided', () {
-      // The _canSubmit getter returns true when:
-      // _reasonController.text.trim().isNotEmpty
-      final validReasons = [
-        'Patient got new device',
-        'Previous device was lost',
-        'Technical issue resolved',
-      ];
-      for (final reason in validReasons) {
-        expect(reason.trim().isNotEmpty, isTrue);
-      }
-    });
+      await _pumpDialog(tester, apiClient);
 
-    test('Dialog can be cancelled without making API call', () {
-      // The Cancel button should:
-      // 1. Be available in confirm and error states
-      // 2. Close the dialog with result = false
-      // 3. Not trigger any API call
-      expect(true, isTrue, reason: 'Cancel closes dialog without API call');
-    });
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
 
-    test('Error state allows retry', () {
-      // When an API call fails, the dialog shows:
-      // 1. Error message from the API response
-      // 2. "Cancel" button to close dialog
-      // 3. "Try Again" button to return to confirm state
-      //
-      // The "Try Again" button preserves the entered reason
-      expect(true, isTrue, reason: 'Try Again button returns to confirm state');
-    });
-
-    test('Backend logs RECONNECT_PATIENT action for disconnected patients', () {
-      // When a patient with status 'disconnected' is reconnected:
-      // 1. The backend receives reconnect_reason in the request body
-      // 2. The action_type logged is 'RECONNECT_PATIENT' (not 'GENERATE_LINKING_CODE')
-      // 3. The action_details includes:
-      //    - previous_status: 'disconnected'
-      //    - reconnect_reason: <the reason provided>
-      //    - all other standard fields (patient_id, site, coordinator info, etc.)
-      expect(true, isTrue, reason: 'RECONNECT_PATIENT logged with reason');
-    });
-  });
-
-  group('ReconnectPatientDialog API contract', () {
-    test('Request body structure', () {
-      // POST /api/v1/portal/patients/{patientId}/link-code
-      // Body: { "reconnect_reason": "..." }
-      final requestBody = {'reconnect_reason': 'Patient got new device'};
-      expect(requestBody.containsKey('reconnect_reason'), isTrue);
-      expect(requestBody['reconnect_reason'], isA<String>());
-      expect(requestBody['reconnect_reason'], isNotEmpty);
-    });
-
-    test('Success response structure', () {
-      // Expected success response
-      final successResponse = {
-        'success': true,
-        'patient_id': 'patient-123',
-        'site_name': 'Site A',
-        'code': 'CAXXX-XXXXX',
-        'code_raw': 'CAXXXXXXXX',
-        'expires_at': '2024-01-01T00:00:00.000Z',
-        'expires_in_hours': 72,
-      };
-
-      expect(successResponse['success'], isTrue);
-      expect(successResponse['code'], contains('-'));
-      expect(successResponse['expires_in_hours'], 72);
-    });
-
-    test('Error response structure', () {
-      final errorResponse = {'error': 'Patient not found'};
-      expect(errorResponse.containsKey('error'), isTrue);
-      expect(errorResponse['error'], isA<String>());
+      expect(find.text('Reconnect Patient'), findsNothing);
     });
   });
 }

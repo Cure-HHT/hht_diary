@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # Coverage threshold (percentage)
-MIN_COVERAGE=60
+MIN_COVERAGE=80
 
 # Parse command line arguments
 RUN_UNIT=false
@@ -110,8 +110,7 @@ if [ "$WITH_COVERAGE" = true ]; then
     mkdir -p coverage
 fi
 
-UNIT_PASSED=true
-INTEGRATION_PASSED=true
+# No PASSED tracking needed — set -e stops on first failure
 
 # Start database if requested OR if running integration tests
 if [ "$START_DB" = true ] || [ "$RUN_INTEGRATION" = true ]; then
@@ -233,12 +232,7 @@ if [ "$RUN_UNIT" = true ]; then
     echo "Running unit tests..."
     echo ""
 
-    if $TEST_CMD test/; then
-        echo "Unit tests passed!"
-    else
-        echo "Unit tests failed!"
-        UNIT_PASSED=false
-    fi
+    $TEST_CMD test/
 
     # Generate lcov report for unit tests
     if [ "$WITH_COVERAGE" = true ] && [ -d "coverage" ]; then
@@ -309,12 +303,7 @@ if [ "$RUN_INTEGRATION" = true ]; then
         export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
     fi
 
-    if $TEST_CMD integration_test/; then
-        echo "Integration tests passed!"
-    else
-        echo "Integration tests failed!"
-        INTEGRATION_PASSED=false
-    fi
+    $TEST_CMD integration_test/
 
     # Unset auth config for subsequent operations
     unset FIREBASE_AUTH_EMULATOR_HOST
@@ -382,30 +371,14 @@ if [ "$WITH_COVERAGE" = true ]; then
     fi
 fi
 
+# If we get here, all tests passed (set -e would have stopped us)
+
 echo ""
 echo "=============================================="
-echo "Summary"
+echo "All tests passed!"
 echo "=============================================="
 
 EXIT_CODE=0
-
-if [ "$RUN_UNIT" = true ]; then
-    if [ "$UNIT_PASSED" = true ]; then
-        echo "Unit Tests: PASSED"
-    else
-        echo "Unit Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
-
-if [ "$RUN_INTEGRATION" = true ]; then
-    if [ "$INTEGRATION_PASSED" = true ]; then
-        echo "Integration Tests: PASSED"
-    else
-        echo "Integration Tests: FAILED"
-        EXIT_CODE=1
-    fi
-fi
 
 # Coverage summary and threshold check
 if [ "$WITH_COVERAGE" = true ]; then
@@ -463,14 +436,6 @@ if [ "$WITH_COVERAGE" = true ]; then
             EXIT_CODE=1
         fi
     fi
-fi
-
-if [ $EXIT_CODE -eq 0 ]; then
-    echo ""
-    echo "All checks passed!"
-else
-    echo ""
-    echo "Some checks failed!"
 fi
 
 exit $EXIT_CODE

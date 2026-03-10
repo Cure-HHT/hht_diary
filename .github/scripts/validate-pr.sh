@@ -20,11 +20,20 @@
 #   EVENT_NAME - GitHub event name ("pull_request" or "push")
 set -euo pipefail
 
+# Summary file for surfacing errors outside collapsed log groups
+FAILURE_SUMMARY="${FAILURE_SUMMARY_FILE:-/dev/null}"
+
 # Close any open ::group:: and emit ::error:: on unhandled failures (set -e)
 CURRENT_GROUP=""
 begin_group() { CURRENT_GROUP="$1"; echo "::group::$1"; }
 end_group()   { echo "::endgroup::"; CURRENT_GROUP=""; }
 trap 'exit_code=$?; echo ""; echo "::error::Unexpected failure (exit code ${exit_code}) at line ${LINENO}: ${BASH_COMMAND}"; if [ -n "$CURRENT_GROUP" ]; then echo "::error::Failed during: ${CURRENT_GROUP}"; echo "::endgroup::"; fi' ERR
+
+# Write an error to both ::error:: annotation and the failure summary file
+report_error() {
+  echo "::error::$1"
+  echo "- $1" >> "$FAILURE_SUMMARY"
+}
 
 source .github/versions.env
 
@@ -50,7 +59,7 @@ echo ""
 if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
   echo "PR title contains Linear ticket reference"
 else
-  echo "::error::PR title missing [CUR-XXX] reference"
+  report_error "PR title missing [CUR-XXX] reference"
   echo ""
   echo "PR TITLE VALIDATION FAILED"
   echo ""
@@ -144,7 +153,7 @@ gitleaks version
 if gitleaks detect --verbose --no-banner --redact --log-level info; then
   echo "No secrets detected by gitleaks"
 else
-  echo "::error::Gitleaks detected secrets in the repository"
+  report_error "Gitleaks detected secrets in the repository"
   echo ""
   echo "SECRET SCANNING FAILED"
   echo ""
@@ -200,9 +209,9 @@ for project_def in "${PROJECT_DEFS[@]}"; do
     if ! verify_version_bumped "$pr_ver" "$main_ver" "$code_changed"; then
       expected=$(compute_new_version "$pr_ver" "$main_ver" "$code_changed")
       if [ "$code_changed" = true ]; then
-        echo "::error::${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
+        report_error "${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
       else
-        echo "::error::${name} build number not bumped (trigger change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
+        report_error "${name} build number not bumped (trigger change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
       fi
       VERSION_FAILED=true
     else
@@ -274,7 +283,7 @@ if [ "$DB_CHANGED" = "true" ]; then
   shopt -u nullglob
 
   if [ ${#INVALID_MIGRATIONS[@]} -gt 0 ]; then
-    echo "::error::Migration files have invalid headers:"
+    report_error "Migration files have invalid headers:"
     for file in "${INVALID_MIGRATIONS[@]}"; do
       echo "::error file=$file::Missing required migration header fields"
     done

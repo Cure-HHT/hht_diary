@@ -19,6 +19,7 @@ class UserEnrollment {
     this.siteName,
     this.sitePhoneNumber,
     this.studyPatientId,
+    this.linkingCode,
   });
 
   /// Create from JSON
@@ -34,6 +35,7 @@ class UserEnrollment {
       siteName: json['siteName'] as String?,
       sitePhoneNumber: json['sitePhoneNumber'] as String?,
       studyPatientId: json['studyPatientId'] as String?,
+      linkingCode: json['linkingCode'] as String?,
     );
   }
 
@@ -64,6 +66,10 @@ class UserEnrollment {
   /// De-identified patient ID for the study (from EDC)
   final String? studyPatientId;
 
+  /// The linking code used to connect this device (CUR-1049)
+  /// Distinct from patientId — this is what the user sees on the profile screen
+  final String? linkingCode;
+
   /// Whether this enrollment includes clinical trial linking
   bool get isLinkedToClinicalTrial => patientId != null && siteId != null;
 
@@ -80,6 +86,7 @@ class UserEnrollment {
       if (siteName != null) 'siteName': siteName,
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
       if (studyPatientId != null) 'studyPatientId': studyPatientId,
+      if (linkingCode != null) 'linkingCode': linkingCode,
     };
   }
 }
