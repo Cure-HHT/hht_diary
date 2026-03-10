@@ -432,8 +432,6 @@ class AppLocalizations {
       'requiredVersionLabel': 'Required version:',
       'whatsNew': "What's New",
       'licenses': 'Licenses',
-      'checkForUpdates': 'Check for Updates',
-      'youAreUpToDate': 'You are up to date',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Disconnected from Study',
@@ -846,8 +844,6 @@ class AppLocalizations {
       'requiredVersionLabel': 'Version requerida:',
       'whatsNew': 'Novedades',
       'licenses': 'Licencias',
-      'checkForUpdates': 'Buscar actualizaciones',
-      'youAreUpToDate': 'Esta actualizado',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Desconectado del Estudio',
@@ -1271,8 +1267,6 @@ class AppLocalizations {
       'requiredVersionLabel': 'Version requise:',
       'whatsNew': 'Nouveautes',
       'licenses': 'Licences',
-      'checkForUpdates': 'Rechercher des mises a jour',
-      'youAreUpToDate': 'Vous etes a jour',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': "Deconnecte de l'Etude",
@@ -1689,8 +1683,6 @@ class AppLocalizations {
       'requiredVersionLabel': 'Erforderliche Version:',
       'whatsNew': 'Was ist neu',
       'licenses': 'Lizenzen',
-      'checkForUpdates': 'Nach Updates suchen',
-      'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
       'disconnectedFromStudy': 'Von der Studie getrennt',
@@ -2109,9 +2101,7 @@ class AppLocalizations {
   String get currentVersionLabel => translate('currentVersionLabel');
   String get requiredVersionLabel => translate('requiredVersionLabel');
   String get whatsNew => translate('whatsNew');
-  String get checkForUpdates => translate('checkForUpdates');
   String get licenses => translate('licenses');
-  String get youAreUpToDate => translate('youAreUpToDate');
 
   // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
   String get disconnectedFromStudy => translate('disconnectedFromStudy');
