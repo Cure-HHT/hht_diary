@@ -169,6 +169,7 @@ void main() {
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
         );
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         await tester.pumpWidget(buildHomeScreen());
         await tester.pumpAndSettle();
@@ -426,6 +427,123 @@ void main() {
         // Both records should show warning icons
         expect(find.byIcon(Icons.warning_amber_rounded), findsNWidgets(2));
       });
+      testWidgets('prevents saving when new record overlaps existing record', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final existingStart = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          DateTime.now().hour,
+          DateTime.now().minute - 5,
+        );
+        final existingEnd = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          DateTime.now().hour,
+          DateTime.now().minute + 5,
+        );
+
+        await nosebleedService.addRecord(
+          startTime: existingStart,
+          endTime: existingEnd,
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        final initialRecords = await nosebleedService
+            .getLocalMaterializedRecords();
+        expect(initialRecords.length, 1);
+
+        String? popResult;
+        final records = await nosebleedService.getLocalMaterializedRecords();
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () async {
+                    popResult = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecordingScreen(
+                          nosebleedService: nosebleedService,
+                          enrollmentService: enrollmentService,
+                          preferencesService: preferencesService,
+                          allRecords: records,
+                          diaryEntryDate: DateTime(
+                            DateTime.now().year,
+                            DateTime.now().month,
+                            DateTime.now().day,
+                            DateTime.now().hour,
+                            DateTime.now().minute,
+                          ),
+
+                          // overlaps
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('-1'));
+        await tester.tap(find.text('-1'));
+        await tester.tap(find.text('-1'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('+1'));
+        await tester.tap(find.text('+1'));
+        await tester.tap(find.text('+1'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        expect(
+          find.textContaining('overlaps'),
+          findsWidgets,
+          reason: 'Should show overlap snackbar',
+        );
+
+        expect(popResult, isNull);
+
+        final finalRecords = await nosebleedService
+            .getLocalMaterializedRecords();
+
+        expect(
+          finalRecords.length,
+          1,
+          reason: 'Overlapping record should NOT be saved',
+        );
+      });
     });
     group('License Navigation', () {
       testWidgets('opens license page when tapping logo then Licenses', (
@@ -454,9 +572,9 @@ void main() {
         // 2️⃣ Tap the "Licenses" option
         final licensesFinder = find.text('Licenses');
 
-        expect(licensesFinder, findsOneWidget);
+        expect(licensesFinder, findsWidgets);
 
-        await tester.tap(licensesFinder);
+        await tester.tap(licensesFinder.first);
         await tester.pumpAndSettle();
 
         // 3️⃣ Verify LicensePage is displayed

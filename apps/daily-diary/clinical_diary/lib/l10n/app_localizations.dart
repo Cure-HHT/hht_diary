@@ -55,6 +55,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Record Nosebleed',
+      'overlappingRecordNotAllowed':
+          'This entry overlaps an existing record. Please modify the time range.',
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
@@ -348,6 +350,10 @@ class AppLocalizations {
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Old Entry Modification',
+      'gnuAgplTitle': 'GNU AGPL v3 License',
+      'gnuAgplDescription': 'gnu.org official license text',
+      'atkinsonTitle': 'Atkinson Hyperlegible Font License',
+      'atkinsonDescription': 'SIL Open Font License 1.1',
       'oldEntryJustificationPrompt':
           'This is an event more than one day old. Please explain why you are adding/changing it now:',
       'justificationPaperRecords': 'Entered from paper records',
@@ -431,6 +437,7 @@ class AppLocalizations {
       'requiredVersionLabel': 'Required version:',
       'whatsNew': "What's New",
       'licenses': 'Licenses',
+      'checkForUpdates': 'Check for Updates',
       'youAreUpToDate': 'You are up to date',
 
       // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
@@ -459,6 +466,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Registrar Hemorragia Nasal',
+      'overlappingRecordNotAllowed':
+          'Esta entrada se superpone con un registro existente. Por favor, modifique el rango de tiempo.',
       'noEventsToday': 'sin eventos hoy',
       'noEventsYesterday': 'sin eventos ayer',
       'incompleteRecords': 'Registros Incompletos',
@@ -758,6 +767,10 @@ class AppLocalizations {
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Modificacion de Entrada Antigua',
+      'gnuAgplTitle': 'Licencia GNU AGPL v3',
+      'gnuAgplDescription': 'Texto oficial de la licencia en gnu.org',
+      'atkinsonTitle': 'Licencia de Fuente Atkinson Hyperlegible',
+      'atkinsonDescription': 'Licencia SIL Open Font 1.1',
       'oldEntryJustificationPrompt':
           'Este es un evento de hace mas de un dia. Por favor explica por que lo estas agregando/cambiando ahora:',
       'justificationPaperRecords': 'Ingresado desde registros en papel',
@@ -842,6 +855,7 @@ class AppLocalizations {
       'currentVersionLabel': 'Version actual:',
       'requiredVersionLabel': 'Version requerida:',
       'whatsNew': 'Novedades',
+      'licenses': 'Licencias',
       'checkForUpdates': 'Buscar actualizaciones',
       'youAreUpToDate': 'Esta actualizado',
 
@@ -871,6 +885,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Enregistrer un Saignement',
+      'overlappingRecordNotAllowed':
+          'Cette entrée chevauche un enregistrement existant. Veuillez modifier la plage horaire.',
       'noEventsToday': "pas d'evenements aujourd'hui",
       'noEventsYesterday': "pas d'evenements hier",
       'incompleteRecords': 'Enregistrements Incomplets',
@@ -1180,6 +1196,10 @@ class AppLocalizations {
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': "Modification d'une Ancienne Entree",
+      'gnuAgplTitle': 'Licence GNU AGPL v3',
+      'gnuAgplDescription': 'Texte officiel de la licence sur gnu.org',
+      'atkinsonTitle': 'Licence de police Atkinson Hyperlegible',
+      'atkinsonDescription': 'Licence SIL Open Font 1.1',
       'oldEntryJustificationPrompt':
           "Cet evenement date de plus d'un jour. Veuillez expliquer pourquoi vous l'ajoutez/modifiez maintenant:",
       'justificationPaperRecords': 'Saisi a partir de dossiers papier',
@@ -1265,6 +1285,7 @@ class AppLocalizations {
       'currentVersionLabel': 'Version actuelle:',
       'requiredVersionLabel': 'Version requise:',
       'whatsNew': 'Nouveautes',
+      'licenses': 'Licences',
       'checkForUpdates': 'Rechercher des mises a jour',
       'youAreUpToDate': 'Vous etes a jour',
 
@@ -1294,6 +1315,8 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Nasenbluten erfassen',
+      'overlappingRecordNotAllowed':
+          'Dieser Eintrag überschneidet sich mit einem bestehenden Datensatz. Bitte passen Sie den Zeitraum an.',
       'noEventsToday': 'keine Ereignisse heute',
       'noEventsYesterday': 'keine Ereignisse gestern',
       'incompleteRecords': 'Unvollstandige Eintrage',
@@ -1597,6 +1620,10 @@ class AppLocalizations {
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Alte Eintrag Anderung',
+      'gnuAgplTitle': 'GNU AGPL v3 Lizenz',
+      'gnuAgplDescription': 'Offizieller Lizenztext auf gnu.org',
+      'atkinsonTitle': 'Atkinson Hyperlegible Schriftlizenz',
+      'atkinsonDescription': 'SIL Open Font Lizenz 1.1',
       'oldEntryJustificationPrompt':
           'Dieses Ereignis ist mehr als einen Tag alt. Bitte erklaren Sie, warum Sie es jetzt hinzufugen/andern:',
       'justificationPaperRecords': 'Aus Papierunterlagen eingetragen',
@@ -1681,6 +1708,7 @@ class AppLocalizations {
       'currentVersionLabel': 'Aktuelle Version:',
       'requiredVersionLabel': 'Erforderliche Version:',
       'whatsNew': 'Was ist neu',
+      'licenses': 'Lizenzen',
       'checkForUpdates': 'Nach Updates suchen',
       'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
 
@@ -1787,6 +1815,8 @@ class AppLocalizations {
   String get reenterPassword => translate('reenterPassword');
   String get noAccountCreate => translate('noAccountCreate');
   String get hasAccountLogin => translate('hasAccountLogin');
+  String get overlappingRecordNotAllowed =>
+      translate('overlappingRecordNotAllowed');
   String minimumCharacters(int count) =>
       translateWithParams('minimumCharacters', [count]);
 
@@ -1888,6 +1918,10 @@ class AppLocalizations {
 
   // Intensity
   String get spotting => translate('spotting');
+  String get gnuAgplTitle => translate('gnuAgplTitle');
+  String get gnuAgplDescription => translate('gnuAgplDescription');
+  String get atkinsonTitle => translate('atkinsonTitle');
+  String get atkinsonDescription => translate('atkinsonDescription');
   String get dripping => translate('dripping');
   String get drippingQuickly => translate('drippingQuickly');
   String get steadyStream => translate('steadyStream');

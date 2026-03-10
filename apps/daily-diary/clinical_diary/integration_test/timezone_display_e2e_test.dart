@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
+//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
+//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
 
 // CUR-543: End-to-end integration test for timezone display
 // Uses the actual ClinicalDiaryApp to test real app behavior
@@ -13,9 +15,11 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/main.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // CET timezone offset in minutes (UTC+1 = 60 minutes)
@@ -1728,6 +1732,148 @@ void main() {
         );
 
         debugPrint('CUR-492 negative duration test passed!');
+      },
+    );
+  });
+
+  // Implements: REQ-p01066-K — verify the future-time constraint is applied
+  // correctly: enforced when a limit is set, but not applied stale when the
+  // end-time picker loses its maxDateTime (fixing positive increment buttons).
+  group('REQ-p01066-K: TimePickerDial seconds & maxDateTime behavior', () {
+    late Directory tempDir;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to CET for consistent test behavior
+      TimezoneConverter.testDeviceOffsetMinutes = cetOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'Europe/Paris';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('cur_983_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'cur_983_test.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    testWidgets(
+      'REQ-p01066-K: quick adjust buttons zero out seconds in onTimeChanged callback',
+      (tester) async {
+        await initializeDateFormatting();
+
+        // Use an initial time with non-zero seconds to exercise normalization.
+        final initial = DateTime.now()
+            .subtract(const Duration(minutes: 30))
+            .copyWith(second: 37, millisecond: 5, microsecond: 123);
+
+        final changedTimes = <DateTime>[];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TimePickerDial(
+                title: 'Test Dial',
+                initialTime: initial,
+                onConfirm: (_) {},
+                onTimeChanged: changedTimes.add,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap +5 to trigger _adjustMinutes and onTimeChanged.
+        final plus5Button = find.text('+5');
+        expect(plus5Button, findsOneWidget);
+        await tester.tap(plus5Button);
+        await tester.pumpAndSettle();
+
+        expect(
+          changedTimes,
+          isNotEmpty,
+          reason: 'onTimeChanged should be called after tapping +5',
+        );
+
+        final newTime = changedTimes.last;
+        // Seconds (and sub-second fields) should be normalized to zero.
+        expect(newTime.second, equals(0));
+        expect(newTime.millisecond, equals(0));
+        expect(newTime.microsecond, equals(0));
+      },
+    );
+
+    testWidgets(
+      'REQ-p01066-K: end time picker does not receive a maxDateTime (avoids stale max bug)',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the full app so we exercise RecordingScreen wiring.
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // Navigate: Record Nosebleed -> Set Start Time -> pick intensity -> End Time step.
+        final recordButton = find.text('Record Nosebleed');
+        expect(recordButton, findsOneWidget);
+        await tester.tap(recordButton);
+        await tester.pumpAndSettle();
+
+        final setStartTimeButton = find.text('Set Start Time');
+        expect(setStartTimeButton, findsOneWidget);
+        await tester.tap(setStartTimeButton);
+        await tester.pumpAndSettle();
+
+        final dripping = find.text('Dripping');
+        expect(dripping, findsOneWidget);
+        await tester.tap(dripping);
+        await tester.pumpAndSettle();
+
+        // We should now be on the end time picker, identified by its ValueKey.
+        final endDialFinder = find.byKey(const ValueKey('end_time_picker'));
+        expect(
+          endDialFinder,
+          findsOneWidget,
+          reason: 'End time TimePickerDial should be present',
+        );
+
+        final endDial = tester.widget<TimePickerDial>(endDialFinder);
+
+        // The bug was caused by passing a stale maxDateTime from the parent.
+        // This test enforces that the endTime picker no longer receives maxDateTime.
+        expect(
+          endDial.maxDateTime,
+          isNull,
+          reason:
+              'End time TimePickerDial should not receive maxDateTime to avoid stale max bug',
+        );
       },
     );
   });

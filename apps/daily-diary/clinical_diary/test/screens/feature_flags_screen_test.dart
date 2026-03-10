@@ -199,9 +199,19 @@ void main() {
         await tester.tap(find.byIcon(Icons.restore));
         await tester.pumpAndSettle();
 
-        // Should have TextButton (Cancel) and FilledButton (Reset)
-        expect(find.byType(TextButton), findsOneWidget);
-        expect(find.byType(FilledButton), findsOneWidget);
+        // Should have TextButton (Cancel) and FilledButton (Reset) in the dialog
+        final dialogFinder = find.byType(AlertDialog);
+        expect(
+          find.descendant(of: dialogFinder, matching: find.byType(TextButton)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: dialogFinder,
+            matching: find.byType(FilledButton),
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('tapping cancel closes dialog without resetting', (
@@ -242,8 +252,13 @@ void main() {
         await tester.tap(find.byIcon(Icons.restore));
         await tester.pumpAndSettle();
 
-        // Confirm reset
-        await tester.tap(find.byType(FilledButton));
+        // Confirm reset (scope to dialog to avoid matching the Load button)
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(FilledButton),
+          ),
+        );
         await tester.pumpAndSettle();
 
         // Values should be back to defaults
@@ -265,8 +280,13 @@ void main() {
         await tester.tap(find.byIcon(Icons.restore));
         await tester.pumpAndSettle();
 
-        // Confirm reset
-        await tester.tap(find.byType(FilledButton));
+        // Confirm reset (scope to dialog to avoid matching the Load button)
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(FilledButton),
+          ),
+        );
         await tester.pumpAndSettle();
 
         // Snackbar should appear

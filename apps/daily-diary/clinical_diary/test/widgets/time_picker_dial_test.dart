@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -105,6 +107,17 @@ void main() {
     });
 
     group('maxDateTime parameter (CUR-447)', () {
+      setUp(() {
+        // Use UTC timezone to avoid DST-related discrepancies between
+        // commonTimezones static offsets and actual device timezone offset.
+        TimezoneConverter.testDeviceOffsetMinutes = 0;
+        TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
+      });
+      tearDown(() {
+        TimezoneConverter.testDeviceOffsetMinutes = null;
+        TimezoneService.instance.testTimezoneOverride = null;
+      });
+
       testWidgets(
         'allows any time on past date when maxDateTime is set to end-of-day',
         (tester) async {
@@ -893,6 +906,17 @@ void main() {
     // CUR-447: Cross-day validation with maxDateTime regression tests
     // =========================================================================
     group('CUR-447: Cross-day maxDateTime validation', () {
+      setUp(() {
+        // Use UTC timezone to avoid DST-related discrepancies between
+        // commonTimezones static offsets and actual device timezone offset.
+        TimezoneConverter.testDeviceOffsetMinutes = 0;
+        TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
+      });
+      tearDown(() {
+        TimezoneConverter.testDeviceOffsetMinutes = null;
+        TimezoneService.instance.testTimezoneOverride = null;
+      });
+
       testWidgets(
         'allows 11 PM on yesterday when maxDateTime is end-of-yesterday',
         (tester) async {
