@@ -5,6 +5,11 @@ import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
+//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01069-A: Provide an intuitive time picker for start and end times
+
 /// Time picker widget with a dial-style interface
 class TimePickerDial extends StatefulWidget {
   const TimePickerDial({
@@ -52,7 +57,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
   @override
   void initState() {
     super.initState();
-    // CUR-564: Initialize timezone FIRST, before clamping time.
+    // REQ-p01066-K: Initialize timezone FIRST, before clamping time.
     // _clampToMaxIfNeeded now uses timezone for validation.
     // Use initial timezone or detect from device, then normalize to IANA format.
     // Check TimezoneService.testTimezoneOverride first for consistent test behavior.
@@ -77,8 +82,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
     super.didUpdateWidget(oldWidget);
     // When maxDateTime changes (e.g., user selected a different date),
     // we need to re-validate the selected time against the new max.
-    // CUR-447: This ensures past dates allow full 24-hour selection.
-    // CUR-583: Only re-clamp if maxDateTime changed significantly (>1 sec) to avoid
+    // REQ-p01066-K: This ensures past dates allow full 24-hour selection.
+    // REQ-p01066-K: Only re-clamp if maxDateTime changed significantly (>1 sec) to avoid
     // unnecessary re-clamping when parent rebuilds with DateTime.now().
     // CRITICAL: Don't re-clamp when timezone changes, since the time itself hasn't
     // changed - only the timezone interpretation. The user's selected time should
@@ -90,15 +95,21 @@ class _TimePickerDialState extends State<TimePickerDial> {
         oldWidget.maxDateTime != null &&
         widget.maxDateTime!.difference(oldWidget.maxDateTime!).inSeconds.abs() >
             1;
-    final maxDateTimeNewOrRemoved =
-        (widget.maxDateTime == null) != (oldWidget.maxDateTime == null);
+    // REQ-p01066-K: Only treat maxDateTime changes as meaningful when it becomes
+    // newly non-null (i.e., constraints get stricter). When maxDateTime is
+    // removed (non-null -> null), do NOT re-clamp to avoid unexpected jumps
+    // in existing selections (e.g., end time picker dropping stale maxDateTime).
+    // Implements: REQ-p01066-K — enforce the future-time constraint only when
+    // a genuine limit is being applied, not when the constraint is lifted.
+    final maxDateTimeBecameNonNull =
+        widget.maxDateTime != null && oldWidget.maxDateTime == null;
     // Only re-clamp if time/max changed AND timezone is NOT changing
     // When timezone changes, the selected time stays the same - we just interpret
     // it differently. The confirm button will validate using the new timezone.
     final shouldReclamp =
         !timezoneChanging &&
         (maxDateTimeChangedSignificantly ||
-            maxDateTimeNewOrRemoved ||
+            maxDateTimeBecameNonNull ||
             widget.initialTime != oldWidget.initialTime);
     if (shouldReclamp) {
       // Re-clamp the selected time with the new maxDateTime
@@ -114,7 +125,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
   /// Uses maxDateTime if provided, otherwise DateTime.now().
   DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
 
-  /// CUR-564: Convert displayed time to comparable time (device timezone).
+  /// REQ-p01066-K: Convert displayed time to comparable time (device timezone).
   /// When a timezone is selected, the displayed time represents a moment in
   /// that timezone. To validate against DateTime.now() (device time), we must
   /// first convert the displayed time to device timezone.
@@ -129,7 +140,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
     return TimezoneConverter.toStoredDateTime(displayedTime, _selectedTimezone);
   }
 
-  /// CUR-564: Check if a displayed time would be in the future when
+  /// REQ-p01066-K: Check if a displayed time would be in the future when
   /// properly converted to device timezone.
   bool _isDisplayedTimeInFuture(DateTime displayedTime) {
     if (widget.allowFutureTimes) return false;
@@ -139,29 +150,40 @@ class _TimePickerDialState extends State<TimePickerDial> {
   }
 
   /// Clamps the given time to the effective max if future times are not allowed.
-  /// CUR-564: Uses timezone-aware comparison to properly handle cross-timezone times.
+  /// REQ-p01066-K: Uses timezone-aware comparison to properly handle cross-timezone times.
   /// When displaying 4:34 PM EST (which equals 1:34 PM PST), we need to convert
   /// to device time before comparing against DateTime.now().
   DateTime _clampToMaxIfNeeded(DateTime time) {
-    // CUR-564: Use timezone-aware check instead of raw DateTime comparison
-    if (_isDisplayedTimeInFuture(time)) {
+    // REQ-p01066-K: Use timezone-aware check instead of raw DateTime comparison
+    final normalizedTime = time.copyWith(
+      second: 0,
+      millisecond: 0,
+      microsecond: 0,
+    );
+
+    if (_isDisplayedTimeInFuture(normalizedTime)) {
       // Return a clamped time that represents "now" in the display timezone
       // Convert _effectiveMaxDateTime (device time) to display timezone
       return TimezoneConverter.toDisplayedDateTime(
         _effectiveMaxDateTime,
         _selectedTimezone,
-      );
+      ).copyWith(second: 0, millisecond: 0, microsecond: 0);
     }
-    return time;
+    return normalizedTime;
   }
 
   // Track which button should show error flash
   int? _errorButtonDelta;
 
+  // Implements: REQ-p01066-K — reject any minute adjustment that would push
+  // the selected time into the future, using timezone-aware comparison.
   void _adjustMinutes(int delta) {
-    final newTime = _selectedTime.add(Duration(minutes: delta));
+    final newTime = _selectedTime
+        .copyWith(second: 0, millisecond: 0, microsecond: 0)
+        .add(Duration(minutes: delta));
 
-    // CUR-564: Check if this would exceed the max time, considering timezone
+    // REQ-p01066-K: Check if this would exceed the max time, considering timezone
+
     if (_isDisplayedTimeInFuture(newTime)) {
       // Show error flash on the button
       setState(() => _errorButtonDelta = delta);
@@ -192,7 +214,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
         picked.hour,
         picked.minute,
       );
-      // CUR-564: Don't allow times past the max unless explicitly permitted.
+      // REQ-p01066-K: Don't allow times past the max unless explicitly permitted.
       // Use timezone-aware validation.
       if (_isDisplayedTimeInFuture(newTime)) {
         // Show feedback that the time was rejected
@@ -569,7 +591,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                // CUR-583: Show error for future times instead of silently clamping
+                // REQ-p01066-K: Show error for future times instead of silently clamping
                 // This can happen when timezone conversion shifts the time forward
                 // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
                 if (_isDisplayedTimeInFuture(_selectedTime)) {
