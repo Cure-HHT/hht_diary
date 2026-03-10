@@ -29,6 +29,7 @@ class SponsorInfo {
 
   final String id;
   final String name;
+  String get logo => 'assets/sponsor-content/status_badge.png';
 }
 
 /// Registry of sponsors and their linking code prefixes.
