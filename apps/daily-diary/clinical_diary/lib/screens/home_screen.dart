@@ -12,17 +12,14 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
-import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
-import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
@@ -49,7 +46,6 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.nosebleedService,
     required this.enrollmentService,
-    required this.authService,
     required this.taskService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
@@ -61,7 +57,6 @@ class HomeScreen extends StatefulWidget {
   });
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
-  final AuthService authService;
   // REQ-CAL-p00081: Task service for questionnaire task management
   final TaskService taskService;
   final ValueChanged<String> onLocaleChanged;
@@ -84,8 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
-  // ignore: unused_field
-  bool _isLoggedIn = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
 
@@ -105,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadRecords();
     _loadPreferences();
     _checkEnrollmentStatus();
-    _checkLoginStatus();
     _checkDisconnectionStatus();
     // REQ-CAL-p00077: Reset banner dismissed state on app start
     widget.enrollmentService.resetDisconnectionBannerDismissed();
@@ -126,21 +118,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await widget.authService.isLoggedIn();
-    if (mounted) {
-      setState(() => _isLoggedIn = isLoggedIn);
-    }
-  }
-
-  /// Sync records from cloud and reload local records
-  Future<void> _syncFromCloudAndReload() async {
-    await widget.nosebleedService.fetchRecordsFromCloud();
-    await _loadRecords();
-    // REQ-CAL-p00077: Check disconnection status after sync
-    await _checkDisconnectionStatus();
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -516,161 +493,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleLogin() async {
-    await Navigator.push(
-      context,
-      AppPageRoute<void>(
-        builder: (context) => LoginScreen(
-          authService: widget.authService,
-          onLoginSuccess: () {
-            unawaited(_checkLoginStatus());
-            // Fetch user's synced data from cloud after login
-            unawaited(_syncFromCloudAndReload());
-          },
-        ),
-      ),
-    );
-    unawaited(_checkLoginStatus());
-  }
-
-  Future<void> _handleLogout() async {
-    // Check if user has stored credentials to remind them
-    final hasCredentials = await widget.authService.hasStoredCredentials();
-
-    if (!mounted) return;
-
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.logout),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.savedCredentialsQuestion),
-            const SizedBox(height: 16),
-            if (hasCredentials)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.orange.shade800,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.credentialsAvailableInAccount,
-                        style: TextStyle(
-                          color: Colors.orange.shade900,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.yesLogout),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed ?? false) {
-      // Show syncing progress dialog (fire-and-forget, closed after sync)
-      if (mounted) {
-        unawaited(
-          showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              content: Row(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(width: 24),
-                  Text(AppLocalizations.of(context).syncingData),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-
-      // Sync records before logout
-      final syncResult = await widget.nosebleedService
-          .syncAllRecordsWithResult();
-
-      // Close progress dialog
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (!syncResult.isSuccess) {
-        // Sync failed - show error and don't logout
-        if (mounted) {
-          final l10nError = AppLocalizations.of(context);
-          await showDialog<void>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(l10nError.syncFailed),
-              content: Text(
-                '${l10nError.syncFailedMessage}\n\n'
-                'Error: ${syncResult.errorMessage}',
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10nError.ok),
-                ),
-              ],
-            ),
-          );
-        }
-        return; // Don't logout
-      }
-
-      // Sync succeeded - proceed with logout
-      await widget.authService.logout();
-      unawaited(_checkLoginStatus());
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).loggedOut),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleShowAccountProfile() async {
-    await Navigator.push(
-      context,
-      AppPageRoute<void>(
-        builder: (context) =>
-            AccountProfileScreen(authService: widget.authService),
-      ),
-    );
-  }
-
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
   Future<void> _handleShowProfile() async {
     final enrollment = await widget.enrollmentService.getEnrollment();
@@ -1020,14 +842,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: const Icon(Icons.person_outline),
                     tooltip: AppLocalizations.of(context).userMenu,
                     onSelected: (value) async {
-                      if (value == 'login') {
-                        await _handleLogin();
-                      } else if (value == 'logout') {
-                        await _handleLogout();
-                      } else if (value == 'profile') {
+                      if (value == 'profile') {
                         await _handleShowProfile();
-                      } else if (value == 'account') {
-                        await _handleShowAccountProfile();
                       } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
@@ -1078,20 +894,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // Login option hidden - linking code is the auth mechanism
-                        // Account/Logout only shown if enrolled (linked to patient)
-                        if (_isEnrolled) ...[
-                          PopupMenuItem(
-                            value: 'account',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.account_circle, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.account),
-                              ],
-                            ),
-                          ),
-                        ],
                         PopupMenuItem(
                           value: 'accessibility',
                           child: Row(

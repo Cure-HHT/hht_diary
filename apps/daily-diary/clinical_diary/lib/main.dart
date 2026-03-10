@@ -18,7 +18,6 @@ import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
@@ -254,7 +253,6 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   final EnrollmentService _enrollmentService = EnrollmentService();
-  final AuthService _authService = AuthService();
   final TaskService _taskService = TaskService();
   late final NosebleedService _nosebleedService;
   MobileNotificationService? _notificationService;
@@ -424,7 +422,6 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
       child: HomeScreen(
         nosebleedService: _nosebleedService,
         enrollmentService: _enrollmentService,
-        authService: _authService,
         taskService: _taskService,
         onLocaleChanged: widget.onLocaleChanged,
         onThemeModeChanged: widget.onThemeModeChanged,
