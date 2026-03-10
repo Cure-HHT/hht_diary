@@ -1,8 +1,8 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
-publish_to: 'none'
+publish_to: "none"
 
-version: 0.9.3+14
+version: 0.9.4+15
 
 environment:
   sdk: ^3.10.7
@@ -31,6 +31,7 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   package_info_plus: ^9.0.0
+  pdfx: ^2.9.2
   shared_preferences: ^2.5.3
   sugar: ^4.0.0
   table_calendar: ^3.2.0
@@ -39,7 +40,7 @@ dependencies:
   file_picker: ^8.1.7
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
-  web: ^1.1.0  # For web-specific cache clearing in version updates
+  web: ^1.1.0 # For web-specific cache clearing in version updates
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +64,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/licenses/
 
   fonts:
     - family: OpenDyslexic

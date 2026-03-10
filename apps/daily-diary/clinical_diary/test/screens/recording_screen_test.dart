@@ -10,6 +10,8 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -29,6 +31,13 @@ void main() {
     late Directory tempDir;
 
     setUp(() async {
+      // Use UTC timezone to avoid DST-related discrepancies between
+      // commonTimezones static offsets and actual device timezone offset.
+      // Without this, CDT (UTC-5) maps to America/Chicago which has CST (UTC-6)
+      // in commonTimezones, causing startDiffersFromDevice=true and layout overflow.
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
+
       SharedPreferences.setMockInitialValues({});
       mockEnrollment = MockEnrollmentService();
       preferencesService = PreferencesService();
@@ -60,6 +69,9 @@ void main() {
     });
 
     tearDown(() async {
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
       nosebleedService.dispose();
       // Clean up datastore after each test
       if (Datastore.isInitialized) {
