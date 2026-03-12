@@ -417,6 +417,7 @@ class _StudyCoordinatorPatientsTabState
         child: SizedBox(
           width: double.infinity,
           child: DataTable(
+            showCheckboxColumn: false,
             headingRowColor: WidgetStateProperty.all(
               theme.colorScheme.surfaceContainerHighest,
             ),
@@ -467,7 +468,16 @@ class _StudyCoordinatorPatientsTabState
   }
 
   DataRow _buildPatientRow(_PatientData patient, ThemeData theme) {
+    final authService = context.read<AuthService>();
+    final apiClient = ApiClient(authService);
+
     return DataRow(
+      // REQ-CAL-p00073-C: Connected patients (Trial Active / Linked - Awaiting
+      // Start) need access to additional actions (View Linking Code, Disconnect)
+      // via the PatientActionsDialog opened by tapping the row.
+      onSelectChanged: patient.mobileLinkingStatus == 'connected'
+          ? (_) => _openPatientActions(patient, apiClient)
+          : null,
       cells: [
         // Patient ID
         DataCell(
