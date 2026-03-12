@@ -103,7 +103,16 @@ enum UserRole {
   }
 
   /// Default display name (can be overridden by sponsor mapping)
-  String get displayName => systemName;
+  String get displayName {
+    switch (this) {
+      case UserRole.investigator:
+        return 'Study Coordinator / PI';
+      case UserRole.auditor:
+        return 'CRA';
+      default:
+        return systemName;
+    }
+  }
 
   bool get isAdmin =>
       this == UserRole.administrator || this == UserRole.developerAdmin;

@@ -261,9 +261,9 @@ class _RoleOption extends StatelessWidget {
       case UserRole.administrator:
         return 'User management and portal administration';
       case UserRole.investigator:
-        return 'Patient enrollment and monitoring';
+        return 'Patient management and questionnaire workflows';
       case UserRole.auditor:
-        return 'Audit trails and compliance review';
+        return 'Audit trails and compliance review (monitoring and oversight)';
       case UserRole.sponsor:
         return 'Study oversight and reporting';
       case UserRole.analyst:

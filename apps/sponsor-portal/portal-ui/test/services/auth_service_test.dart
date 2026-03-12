@@ -48,9 +48,9 @@ void main() {
 
     group('displayName', () {
       test('returns correct display names', () {
-        expect(UserRole.investigator.displayName, 'Investigator');
+        expect(UserRole.investigator.displayName, 'Study Coordinator / PI');
         expect(UserRole.sponsor.displayName, 'Sponsor');
-        expect(UserRole.auditor.displayName, 'Auditor');
+        expect(UserRole.auditor.displayName, 'CRA');
         expect(UserRole.analyst.displayName, 'Analyst');
         expect(UserRole.administrator.displayName, 'Administrator');
         expect(UserRole.developerAdmin.displayName, 'Developer Admin');
