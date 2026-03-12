@@ -259,5 +259,133 @@ void main() {
         expect(token, isNotNull);
       });
     });
+
+    // ===== CUR-982: Cross-Session Auth Collision Tests =====
+
+    group('cross-session auth collision (CUR-982)', () {
+      test('detects user identity change and clears state', () async {
+        // Scenario: User A is signed in, then Firebase auth state changes
+        // to User B (e.g., another tab signed in as different user).
+        // AuthService should detect the UID mismatch and sign out.
+
+        final adminUser = MockUser(
+          uid: 'admin-uid-001',
+          email: 'admin@example.com',
+          displayName: 'Admin User',
+        );
+        final adminAuth = MockFirebaseAuth(mockUser: adminUser);
+
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'admin-123',
+                'email': 'admin@example.com',
+                'name': 'Admin User',
+                'roles': ['Administrator'],
+                'active_role': 'Administrator',
+                'status': 'active',
+                'sites': [],
+              }),
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final authService = AuthService(
+          firebaseAuth: adminAuth,
+          httpClient: mockHttpClient,
+        );
+
+        // Sign in as Admin
+        await authService.signIn('admin@example.com', 'password123');
+        expect(authService.isAuthenticated, isTrue);
+        expect(authService.currentUser?.activeRole, UserRole.administrator);
+
+        // Verify that the service tracks the last known UID
+        // (This tests the new _lastKnownUid field)
+        expect(authService.lastKnownUid, 'admin-uid-001');
+      });
+
+      test(
+        'role matches API response after sign-in, not stale state',
+        () async {
+          // Scenario: Ensure that after signIn(), the currentUser's role
+          // comes from the API response, not from any previously cached state.
+
+          final scUser = MockUser(
+            uid: 'sc-uid-002',
+            email: 'coordinator@example.com',
+            displayName: 'Study Coordinator',
+          );
+          final scAuth = MockFirebaseAuth(mockUser: scUser);
+
+          final mockHttpClient = MockClient((request) async {
+            if (request.url.path == '/api/v1/portal/me') {
+              return http.Response(
+                jsonEncode({
+                  'id': 'sc-123',
+                  'email': 'coordinator@example.com',
+                  'name': 'Study Coordinator',
+                  'roles': ['Investigator'],
+                  'active_role': 'Investigator',
+                  'status': 'active',
+                  'sites': [
+                    {'site_id': 'site-1', 'site_name': 'Test Site'},
+                  ],
+                }),
+                200,
+              );
+            }
+            return http.Response('Not Found', 404);
+          });
+
+          final authService = AuthService(
+            firebaseAuth: scAuth,
+            httpClient: mockHttpClient,
+          );
+
+          // Sign in as Study Coordinator
+          await authService.signIn('coordinator@example.com', 'password123');
+
+          // The role must match what the API returned, not something stale
+          expect(authService.isAuthenticated, isTrue);
+          expect(authService.currentUser?.activeRole, UserRole.investigator);
+          expect(authService.currentUser?.name, 'Study Coordinator');
+          // UID tracking must reflect the current user
+          expect(authService.lastKnownUid, 'sc-uid-002');
+        },
+      );
+
+      test('sign out clears last known UID', () async {
+        final mockHttpClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-123',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'roles': ['Administrator'],
+              'active_role': 'Administrator',
+              'status': 'active',
+              'sites': [],
+            }),
+            200,
+          );
+        });
+
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+        );
+
+        await authService.signIn('test@example.com', 'password123');
+        expect(authService.lastKnownUid, isNotNull);
+
+        await authService.signOut();
+        expect(authService.lastKnownUid, isNull);
+        expect(authService.currentUser, isNull);
+      });
+    });
   });
 }

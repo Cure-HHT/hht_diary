@@ -235,6 +235,13 @@ class AuthService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  /// Track last known Firebase UID to detect cross-session identity changes
+  /// (CUR-982: prevents role display mismatch when another tab signs in)
+  String? _lastKnownUid;
+
+  /// Guard against concurrent _fetchPortalUser() calls from _init() and signIn()
+  bool _isFetchingUser = false;
+
   /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
   bool _mfaRequired = false;
@@ -265,6 +272,9 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
 
+  /// Last known Firebase UID (for cross-session collision detection)
+  String? get lastKnownUid => _lastKnownUid;
+
   /// Whether TOTP MFA verification is required to complete sign-in
   bool get mfaRequired => _mfaRequired;
 
@@ -278,13 +288,32 @@ class AuthService extends ChangeNotifier {
   String? get maskedEmail => _maskedEmail;
 
   /// Initialize auth state listener
+  ///
+  /// CUR-982: Tracks Firebase UID to detect cross-session identity changes.
+  /// If a different user's auth state appears (e.g., another tab signed in),
+  /// we sign out rather than silently adopting the new identity.
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
       if (user != null) {
+        // Detect cross-session identity change: different UID than expected
+        if (_lastKnownUid != null && user.uid != _lastKnownUid) {
+          debugPrint(
+            'CUR-982: Auth identity changed from $_lastKnownUid to ${user.uid}. '
+            'Signing out to prevent role mismatch.',
+          );
+          await signOut();
+          return;
+        }
+
+        // Skip if signIn() is already handling the fetch
+        if (_isFetchingUser) return;
+
         // User signed in - fetch portal user info
+        _lastKnownUid = user.uid;
         await _fetchPortalUser();
       } else {
         // User signed out
+        _lastKnownUid = null;
         _currentUser = null;
         notifyListeners();
       }
@@ -305,11 +334,18 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Guard: prevent _init() listener from racing with this fetch
+      _isFetchingUser = true;
+
       // Sign in with Firebase Auth
       await _auth.signInWithEmailAndPassword(email: email, password: password);
 
+      // Track the new Firebase UID (CUR-982)
+      _lastKnownUid = _auth.currentUser?.uid;
+
       // Fetch portal user info
       final success = await _fetchPortalUser();
+      _isFetchingUser = false;
       if (!success) {
         // User authenticated but not authorized for portal
         await _auth.signOut();
@@ -329,6 +365,7 @@ class AuthService extends ChangeNotifier {
       return true;
     } on FirebaseAuthMultiFactorException catch (e) {
       // TOTP MFA required - store resolver for completing the challenge
+      _isFetchingUser = false;
       _mfaResolver = e.resolver;
       _mfaRequired = true;
       _isLoading = false;
@@ -338,10 +375,12 @@ class AuthService extends ChangeNotifier {
       );
       return true; // Return true to indicate credentials were valid
     } on FirebaseAuthException catch (e) {
+      _isFetchingUser = false;
       _error = _mapFirebaseError(e.code);
       debugPrint('Firebase auth error: ${e.code} - ${e.message}');
       return false;
     } catch (e) {
+      _isFetchingUser = false;
       _error = 'Authentication failed. Please try again.';
       debugPrint('Sign in error: $e');
       return false;
@@ -553,6 +592,8 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     _currentUser = null;
+    _lastKnownUid = null;
+    _isFetchingUser = false;
     _emailOtpRequired = false;
     _maskedEmail = null;
     _mfaRequired = false;
