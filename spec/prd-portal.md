@@ -194,7 +194,7 @@ The patient's trial data is secured from unauthorized access on the lost device.
 
 # REQ-p70007: Linking Code Lifecycle Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: p70001
+**Level**: PRD | **Status**: Draft | **Refines**: p70001-D
 
 ## Rationale
 
@@ -230,6 +230,7 @@ K. The system SHALL log all linking code generation, usage attempts, and validat
 # REQ-p70001: Sponsor Portal Application
 
 **Level**: PRD | **Status**: Draft | **Refines**: p00044-D
+**Satisfies**: p80001
 
 ## Rationale
 
@@ -268,7 +269,7 @@ M. The Sponsor Portal SHALL implement web application session management per REQ
 
 # REQ-p70005: Customizable Role-Based Access Control
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00018
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00018-D+E
 
 ## Rationale
 
@@ -295,7 +296,7 @@ G. Role definitions SHALL be isolated per sponsor.
 
 # REQ-p70006: Comprehensive Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00004, p00011, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O, p80030-A+G
 
 ## Rationale
 
@@ -324,7 +325,7 @@ H. Audit log visibility SHALL be configurable per role.
 
 # REQ-p70008: Sponsor-Specific Role Mapping
 
-**Level**: PRD | **Status**: Draft | **Implements**: p70001, p70005
+**Level**: PRD | **Status**: Draft | **Refines**: p70001-C, p70005-A+G
 
 ## Rationale
 
@@ -354,7 +355,7 @@ H. Role mapping changes SHALL be logged in the audit trail.
 
 # REQ-p70009: Link New Patient Workflow
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
 
 ## Rationale
 
@@ -384,7 +385,7 @@ G. The system SHALL support sponsor configuration of additional Mobile Linking S
 
 # REQ-p70010: Patient Disconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
 
 ## Rationale
 
@@ -421,7 +422,7 @@ K. The system SHALL support sponsor configuration of additional disconnection-re
 
 # REQ-p70012: Portal Data Acceptance and Rejection
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-H+I+O, p00004-A+C+D
 
 ## Rationale
 
@@ -469,7 +470,7 @@ The version of the Questionnaire and Questionnaire GUI is included in the Questi
 
 # REQ-p70011: Patient Reconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p00004
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
 
 ## Rationale
 
