@@ -863,6 +863,47 @@ void main() {
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
+
+      // CUR-560: After intensity is set, modifying start time should skip
+      // intensity and go directly to end time step.
+      testWidgets(
+        'skips intensity and advances to end time when intensity already set',
+        (tester) async {
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Step 1: Confirm start time → goes to intensity
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pumpAndSettle();
+          expect(find.text('Spotting'), findsOneWidget);
+
+          // Step 2: Select intensity → goes to end time
+          await tester.tap(find.text('Dripping'));
+          await tester.pumpAndSettle();
+          expect(find.text('Nosebleed End Time'), findsOneWidget);
+
+          // Step 3: Go back to start time via summary bar
+          await tester.tap(find.text('Start'));
+          await tester.pumpAndSettle();
+          expect(find.text('Nosebleed Start'), findsOneWidget);
+
+          // Step 4: Confirm start time again → should skip intensity
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pumpAndSettle();
+
+          // Should show end time picker, NOT intensity picker
+          expect(find.text('Nosebleed End Time'), findsOneWidget);
+          expect(find.text('Spotting'), findsNothing);
+        },
+      );
     });
 
     group('End Time Validation', () {
