@@ -30,7 +30,7 @@ This document defines the **standard terminology and data capture format** for e
 
 # REQ-p00042: HHT Epistaxis Data Capture Standard
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-A+C
 
 ## Rationale
 

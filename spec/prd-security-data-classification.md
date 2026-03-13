@@ -60,7 +60,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 # REQ-p00016: Separation of Identity and Clinical Data
 
-**Level**: PRD | **Status**: Draft | **Implements**: p80050
+**Level**: PRD | **Status**: Draft | **Refines**: p80050-A
 
 ## Rationale
 
@@ -101,7 +101,7 @@ N. A data breach of the clinical database SHALL NOT expose patient identities.
 
 # REQ-p00017: Data Encryption
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00016
+**Level**: PRD | **Status**: Draft | **Refines**: p00016-A+N
 
 ## Rationale
 

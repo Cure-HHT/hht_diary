@@ -129,7 +129,7 @@ All questionnaire data follows the event sourcing model:
 
 # REQ-p01065: Clinical Questionnaire System
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00044
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p00044-C
 
 Addresses: JNY-Study-Start-01
 

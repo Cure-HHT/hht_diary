@@ -147,7 +147,7 @@ Each category uses a 5-point scale (scored 0–4) with category-specific labels:
 
 # REQ-p01067: NOSE HHT Questionnaire
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A
 
 Addresses: JNY-NOSE-HHT-01
 
@@ -179,7 +179,7 @@ I. The system SHALL record the exact response value (0-4) for each answered ques
 
 # REQ-p01070: NOSE HHT User Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01067
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01067-A
 
 Addresses: JNY-NOSE-HHT-01
 

@@ -83,7 +83,7 @@ All questions use a single 5-point frequency scale (scored 0–4):
 
 # REQ-p01068: HHT Quality of Life Questionnaire
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A
 
 Addresses: JNY-HHT-QoL-01
 
@@ -114,7 +114,7 @@ H. The system SHALL record the exact response value (0-4) for each answered ques
 
 # REQ-p01071: HHT Quality of Life User Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01068
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01068-A
 
 Addresses: JNY-HHT-QoL-01
 

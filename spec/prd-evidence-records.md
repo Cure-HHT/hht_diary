@@ -91,7 +91,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 # REQ-p01025: Third-Party Timestamp Attestation Capability
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-D+G, p80030-A
 
 ## Rationale
 
@@ -130,7 +130,7 @@ L. Timestamp proof files SHALL be portable for regulatory review.
 
 # REQ-p01026: Bitcoin-Based Timestamp Implementation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-A+B+F
 
 ## Rationale
 
@@ -165,7 +165,7 @@ J. Timestamp proof files SHALL be portable for independent regulatory verificati
 
 # REQ-p01027: Timestamp Verification Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-H+K
 
 ## Rationale
 
@@ -202,7 +202,7 @@ K. The system SHALL clearly indicate the reason for failure when verification fa
 
 # REQ-p01028: Timestamp Proof Archival
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025, p00012
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-G, p00012-C+E+F
 
 ## Rationale
 
@@ -237,7 +237,7 @@ J. The system SHALL document the timestamp proof format to enable long-term inte
 
 # REQ-p01029: Device Fingerprinting
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-B
 
 ## Rationale
 
@@ -270,7 +270,7 @@ I. Auditors SHALL be able to verify fingerprint consistency across a patient's s
 
 # REQ-p01030: Patient Authentication for Data Attribution
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-B
 
 ## Rationale
 
@@ -311,7 +311,7 @@ M. The system SHALL treat the combination of mandatory device-level lock screen 
 
 # REQ-p01031: Optional Geolocation Tagging
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-B
 
 ## Rationale
 
@@ -354,7 +354,7 @@ N. Geolocation collection settings SHALL be configurable at the Sponsor level.
 
 # REQ-p01032: Hashed Email Identity Verification
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01025
+**Level**: PRD | **Status**: Draft | **Refines**: p01025-B
 
 ## Rationale
 

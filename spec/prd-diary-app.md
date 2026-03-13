@@ -14,7 +14,7 @@
 
 # REQ-p00043: Diary Mobile Application
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044-C
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-C
 **Satisfies**: p80001
 
 ## Rationale

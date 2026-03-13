@@ -15,7 +15,7 @@
 
 # REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Status**: Draft | **Implements**: p80010
+**Level**: PRD | **Status**: Draft | **Refines**: p80010-A+B
 
 ## Rationale
 
@@ -64,7 +64,7 @@ FDA compliant record keeping.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00004, p00011, p80030, p80040
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O, p80030-A, p80040-A
 
 ## Rationale
 
@@ -114,7 +114,7 @@ Q. Change history records SHALL include why the change was made.
 
 # REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-A
 
 ## Rationale
 
@@ -155,7 +155,7 @@ M. Query execution SHALL NOT span multiple sponsor databases.
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-O, p80030-A
 
 ## Rationale
 

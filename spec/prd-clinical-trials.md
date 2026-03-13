@@ -50,7 +50,7 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 # REQ-p00045: Regulatory Compliance Framework
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044, p80002
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-E, p80002-A
 
 ## Rationale
 
@@ -71,7 +71,7 @@ D. The system SHALL support audit and inspection activities by regulatory author
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: p80001
+**Level**: PRD | **Status**: Draft | **Refines**: p80001-A
 
 ## Rationale
 
@@ -92,7 +92,7 @@ C. The system SHALL include a complete validation documentation package.
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010, p80005-A, p80010
+**Level**: PRD | **Status**: Draft | **Refines**: p80005-A, p00010-A, p80010-A
 
 ## Rationale
 
@@ -135,7 +135,7 @@ O. The system SHALL maintain a complete audit trail for the entire data lifecycl
 
 # REQ-p00012: Clinical Data Retention Requirements
 
-**Level**: PRD | **Status**: Draft | **Implements**: p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p80030-B
 
 ## Rationale
 
@@ -180,7 +180,7 @@ P. The system SHALL maintain data integrity throughout the retention period.
 
 # REQ-p01061: EU GDPR
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00045
+**Level**: PRD | **Status**: Draft | **Refines**: p00045-B
 
 ## Rationale
 
@@ -227,7 +227,7 @@ Q. The system SHALL implement exceptions to these rules as applicable to GCP and
 
 # REQ-p01062: GDPR Data Portability
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01061
+**Level**: PRD | **Status**: Draft | **Refines**: p01061-F
 
 ## Rationale
 

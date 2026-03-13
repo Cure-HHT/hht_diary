@@ -122,7 +122,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 # REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+F
 
 ## Rationale
 
@@ -167,7 +167,7 @@ O. The interface SHALL support custom event types via extension.
 
 # REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+B
 
 ## Rationale
 
@@ -210,7 +210,7 @@ N. The module SHALL NOT lose data even if the application is force-closed.
 
 # REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+B
 
 ## Rationale
 
@@ -245,7 +245,7 @@ J. The event log SHALL retain all conflicting events without deletion or modific
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+B+H, p80030-A+G
 
 ## Rationale
 
@@ -286,7 +286,7 @@ M. Materialized views SHALL always remain consistent with the event log.
 
 # REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+F
 
 ## Rationale
 
@@ -323,7 +323,7 @@ K. The system SHALL display clear upgrade instructions to users when version inc
 
 # REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -362,7 +362,7 @@ L. The system SHALL prevent memory leaks by ensuring proper disposal of subscrip
 
 # REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+F
 
 ## Rationale
 
@@ -405,7 +405,7 @@ N. Query interfaces SHALL support ordering of results by specified fields.
 
 # REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-B
 
 ## Rationale
 
@@ -440,7 +440,7 @@ I. The module SHALL provide a debug mode that logs all state transitions.
 
 # REQ-p01008: Event Replay and Time Travel Debugging
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-F
 
 ## Rationale
 
@@ -473,7 +473,7 @@ I. The system SHALL implement efficient replay using snapshots combined with inc
 
 # REQ-p01009: Encryption at Rest for Offline Queue
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-H
 
 ## Rationale
 
@@ -504,7 +504,7 @@ H. The system SHALL support automatic rotation of encryption keys without data l
 
 # REQ-p01010: Multi-tenancy Support
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043
+**Level**: PRD | **Status**: Draft | **Refines**: p00043-L
 
 ## Rationale
 
@@ -541,7 +541,7 @@ K. The offline synchronization system SHALL maintain queue isolation per tenant 
 
 # REQ-p01050: Event Type Registry
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -589,7 +589,7 @@ P. The system SHALL support sponsor-specific type enablement configurable per te
 
 # REQ-p01051: Questionnaire Versioning Model
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01050
+**Level**: PRD | **Status**: Draft | **Refines**: p01050-A+C
 
 ## Rationale
 
@@ -651,7 +651,7 @@ W. The platform SHALL maintain complete audit traceability across all three vers
 
 # REQ-p01052: Questionnaire Localization and Translation Tracking
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01051
+**Level**: PRD | **Status**: Draft | **Refines**: p01051-A+F+G
 
 ## Rationale
 
@@ -691,7 +691,7 @@ L. The system SHALL support management of translation versions independently of 
 
 # REQ-p01053: Sponsor Questionnaire Eligibility Configuration
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01050, p01051
+**Level**: PRD | **Status**: Draft | **Refines**: p01050-P, p01051-A
 
 ## Rationale
 
@@ -735,7 +735,7 @@ N. The system SHALL support addition of new questionnaire types without requirin
 
 # REQ-p01011: Event Transformation and Migration
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01050
+**Level**: PRD | **Status**: Draft | **Refines**: p01050-A+C
 
 ## Rationale
 
@@ -768,7 +768,7 @@ I. Migration test framework SHALL validate that transformations do not lose data
 
 # REQ-p01012: Batch Event Operations
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -801,7 +801,7 @@ H. The system SHALL provide error handling for partial batch failures.
 
 # REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-B
 
 ## Rationale
 
@@ -834,7 +834,7 @@ I. The distributed tracing system SHALL propagate context through event flows.
 
 # REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -869,7 +869,7 @@ J. The module SHALL include example test suites demonstrating usage.
 
 # REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -904,7 +904,7 @@ J. The system SHALL provide profiling guides for optimizing specific performance
 
 # REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 
@@ -937,7 +937,7 @@ I. The system SHALL include automated compatibility tests that verify compatibil
 
 # REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-H
 
 ## Rationale
 
@@ -1094,7 +1094,7 @@ This module differs by:
 
 # REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00046
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A
 
 ## Rationale
 

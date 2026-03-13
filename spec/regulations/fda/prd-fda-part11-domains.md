@@ -1,6 +1,6 @@
 # REQ-p80010: Electronic Records Controls
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00002, p00003, p00004
+**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A+E, p00004-A+E
 
 ## Rationale
 
@@ -26,7 +26,7 @@ D. The system SHALL generate accurate and complete copies of records in both hum
 
 # REQ-p80020: Electronic Signatures
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00002, p00003
+**Level**: PRD | **Status**: Draft | **Refines**: p00002-A+D+E, p00003-A+H
 
 ## Rationale
 
@@ -55,7 +55,7 @@ E. The system SHALL employ electronic signatures based upon at least two distinc
 
 # REQ-p80030: Audit Trail Requirements
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00002, p00003, p00004, p00005
+**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A, p00004-A+B+E, p00005-A+I
 
 ## Rationale
 
@@ -90,7 +90,7 @@ G. The system SHALL ensure audit trails cannot be disabled, overwritten, or alte
 
 # REQ-p80040: Data Correction Controls
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00004, p00005
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+C+E+I, p00005-A+I
 
 ## Rationale
 
@@ -128,7 +128,7 @@ H. The system SHALL preserve the ability to view both the original value and the
 
 # REQ-p80050: System Access and Security Controls
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00002, p00003
+**Level**: PRD | **Status**: Draft | **Refines**: p00002-A+D+E+J, p00003-A+F
 
 ## Rationale
 
@@ -163,7 +163,7 @@ G. The system SHALL implement procedures for electronically deauthorizing lost, 
 
 # REQ-p80060: Closed and Open System Controls
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00002, p00003
+**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A+D
 
 ## Rationale
 

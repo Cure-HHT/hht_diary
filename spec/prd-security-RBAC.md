@@ -36,7 +36,7 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 # REQ-p00005: Role-Based Access Control
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00011, p80050
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p80050-C
 
 ## Rationale
 
@@ -71,7 +71,7 @@ K. The system SHALL NOT allow role permissions to be bypassed.
 
 # REQ-p00014: Least Privilege Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p80050
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+F+G, p80050-C
 
 ## Rationale
 

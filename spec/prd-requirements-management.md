@@ -34,7 +34,7 @@ Without formal requirements and traceability, a clinical trial system cannot be 
 
 # REQ-p00020: System Validation and Traceability
 
-**Level**: PRD | **Status**: Draft | **Implements**: p80060
+**Level**: PRD | **Status**: Draft | **Refines**: p80060-D
 
 ## Rationale
 
@@ -81,7 +81,7 @@ Q. OPS requirements SHALL NOT drive PRD requirements.
 
 # REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00048
+**Level**: PRD | **Status**: Draft | **Refines**: p00048-M
 
 ## Rationale
 

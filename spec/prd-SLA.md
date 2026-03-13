@@ -40,7 +40,7 @@ This document defines the Service Level Agreement (SLA) commitments provided to 
 
 # REQ-p01021: Service Availability Commitment
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00048
+**Level**: PRD | **Status**: Draft | **Refines**: p00048-G+H
 
 ## Rationale
 
@@ -83,7 +83,7 @@ O. Historical uptime data SHALL be retained for 2 years.
 
 # REQ-p01022: Incident Severity Classification
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00048
+**Level**: PRD | **Status**: Draft | **Refines**: p00048-E+F
 
 ## Rationale
 
@@ -126,7 +126,7 @@ O. The system SHALL allow severity levels to be downgraded with documented justi
 
 # REQ-p01023: Incident Response Times
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01022
+**Level**: PRD | **Status**: Draft | **Refines**: p01022-A+K
 
 ## Rationale
 
@@ -179,7 +179,7 @@ T. The system SHALL trigger escalation when approaching response or resolution d
 
 # REQ-p01024: Disaster Recovery Objectives
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00012
+**Level**: PRD | **Status**: Draft | **Refines**: p00012-A+C
 
 ## Rationale
 
@@ -216,7 +216,7 @@ L. The platform SHALL notify sponsors within 1 hour of disaster declaration.
 
 # REQ-p01033: Customer Incident Notification
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01022
+**Level**: PRD | **Status**: Draft | **Refines**: p01022-M
 
 ## Rationale
 
@@ -267,7 +267,7 @@ S. The system SHALL provide subscriber management functionality for status updat
 
 # REQ-p01034: Root Cause Analysis
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01023
+**Level**: PRD | **Status**: Draft | **Refines**: p01023-N+O
 
 ## Rationale
 
@@ -310,7 +310,7 @@ O. The system SHALL archive RCAs for 7 years.
 
 # REQ-p01035: Corrective and Preventive Action
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01034, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p01034-I+J, p80030-D+E
 
 ## Rationale
 
@@ -355,7 +355,7 @@ P. The system SHALL perform an annual CAPA effectiveness review.
 
 # REQ-p01036: Data Recovery Guarantee
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01024
+**Level**: PRD | **Status**: Draft | **Refines**: p01024-A+B+C
 
 ## Rationale
 
@@ -394,7 +394,7 @@ M. Recovery documentation SHALL be suitable for regulatory submission.
 
 # REQ-p01037: Chronic Failure Escalation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01021
+**Level**: PRD | **Status**: Draft | **Refines**: p01021-A
 
 ## Rationale
 
@@ -429,7 +429,7 @@ K. The platform SHALL provide service remedies when uptime commitments are not m
 
 # REQ-p01038: Regulatory Event Support
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01034, p80030
+**Level**: PRD | **Status**: Draft | **Refines**: p01034-A+B, p80030-C
 
 ## Rationale
 

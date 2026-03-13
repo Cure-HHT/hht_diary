@@ -111,7 +111,7 @@ Patients may edit their answers at any time before finalization. Study coordinat
 
 # REQ-p01064: Investigator Questionnaire Approval Workflow
 
-**Level**: PRD | **Status**: Draft | **Implements**: p70001, p01051
+**Level**: PRD | **Status**: Draft | **Refines**: p70001-F, p01051-A
 
 ## Rationale
 

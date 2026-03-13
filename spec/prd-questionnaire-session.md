@@ -66,7 +66,7 @@ This specification defines session management for clinical questionnaires, ensur
 
 # REQ-p01073: Questionnaire Session Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-G
 
 Addresses: JNY-Questionnaire-Session-01, JNY-Questionnaire-Session-02
 

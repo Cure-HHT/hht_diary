@@ -35,7 +35,7 @@ The Clinical Diary platform enables multiple pharmaceutical sponsors to conduct 
 
 # REQ-p00008: Single Mobile App for All Sponsors
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00001
+**Level**: PRD | **Status**: Draft | **Refines**: p00001-A+G+J
 
 ## Rationale
 
@@ -72,7 +72,7 @@ L. The system SHALL NOT allow configuration or data from one sponsor to be acces
 
 # REQ-p00009: Sponsor-Specific Portals
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00001
+**Level**: PRD | **Status**: Draft | **Refines**: p00001-A+B+F
 
 ## Rationale
 
@@ -101,7 +101,7 @@ H. The portal SHALL NOT be capable of querying database records belonging to oth
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Status**: Draft | **Implements**: p70001
+**Level**: PRD | **Status**: Draft | **Refines**: p70001-D+E
 
 ## Rationale
 
@@ -144,7 +144,7 @@ N. The system SHALL include site information in data exports for regulatory subm
 
 # REQ-p01054: Complete Infrastructure Isolation Per Sponsor
 
-**Level**: PRD | **Status**: Active | **Implements**: p00001
+**Level**: PRD | **Status**: Active | **Refines**: p00001-A+B+D
 
 ## Rationale
 
@@ -179,7 +179,7 @@ J. The platform SHALL implement network isolation to prevent cross-sponsor traff
 
 # REQ-p01057: Mono Repository with Sponsor Repositories
 
-**Level**: PRD | **Status**: Active | **Implements**: p00009
+**Level**: PRD | **Status**: Active | **Refines**: p00009-G
 
 ## Rationale
 
@@ -218,7 +218,7 @@ M. Access control mechanisms SHALL enforce sponsor repository isolation.
 
 # REQ-p01058: Unified App Deployment
 
-**Level**: PRD | **Status**: Active | **Implements**: p00008
+**Level**: PRD | **Status**: Active | **Refines**: p00008-J
 
 ## Rationale
 
@@ -249,7 +249,7 @@ I. The release process SHALL document approval status from all active Sponsors f
 
 # REQ-p01060: UX Changes During Trials
 
-**Level**: PRD | **Status**: Active | **Implements**: p80010
+**Level**: PRD | **Status**: Active | **Refines**: p80010-C
 
 ## Rationale
 
@@ -276,7 +276,7 @@ F. The system SHALL capture all approved UX changes during active trials in the 
 
 # REQ-p01059: Customization Policy
 
-**Level**: PRD | **Status**: Active | **Implements**: p00001
+**Level**: PRD | **Status**: Active | **Refines**: p00001-A
 
 ## Rationale
 
@@ -313,7 +313,7 @@ K. The system SHALL document custom features in the sponsor repository.
 
 # REQ-p01055: Sponsor Confidentiality
 
-**Level**: PRD | **Status**: Active | **Implements**: p00001
+**Level**: PRD | **Status**: Active | **Refines**: p00001-A+J
 
 ## Rationale
 
@@ -350,7 +350,7 @@ L. The system SHALL require valid enrollment credentials for configuration downl
 
 # REQ-p01056: Confidentiality Sufficiency
 
-**Level**: PRD | **Status**: Active | **Implements**: p01055
+**Level**: PRD | **Status**: Active | **Refines**: p01055-A+B
 
 ## Rationale
 

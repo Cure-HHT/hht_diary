@@ -18,7 +18,7 @@ Privacy regulations such as GDPR and HIPAA mandate transparent disclosure of dat
 
 # REQ-p01020: Privacy Policy and Regulatory Compliance Documentation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00010
+**Level**: PRD | **Status**: Draft | **Refines**: p00010-A
 
 ## Rationale
 

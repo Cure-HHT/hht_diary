@@ -25,7 +25,7 @@ D. The system SHALL conform to FDA guidance on use of electronic records, electr
 
 # REQ-p80002: 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-A
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-A
 
 ## Rationale
 
@@ -163,7 +163,7 @@ PC-G. The system SHALL be validated to ensure accuracy, reliability, consistent 
 
 # REQ-p80003: FDA Guidance on Electronic Records in Clinical Investigations
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-D
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-D
 
 ## Rationale
 
@@ -460,7 +460,7 @@ PC-W. Before or at the same time a person uses an electronic signature in an ele
 
 # REQ-p80004: GCP Data Requirements for Audit Trails and Data Corrections
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-C
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-C
 
 ## Rationale
 
@@ -681,7 +681,7 @@ PC-B. The system SHOULD retain the audit trail in a format that is searchable an
 
 # REQ-p80005: GCP Consolidated Requirements for Audit Trails and Data Corrections
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-B
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-B
 
 ## Rationale
 

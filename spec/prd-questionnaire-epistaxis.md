@@ -116,7 +116,7 @@ This specification defines the Daily Epistaxis Record Questionnaire, the primary
 
 # REQ-p01066: Daily Epistaxis Record Questionnaire
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065, REQ-p00042
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A, REQ-p00042-A
 
 Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
 
@@ -161,7 +161,7 @@ M. This Questionnaire SHALL support Study Start gating.
 
 # REQ-p01069: Daily Epistaxis Record User Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01066
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01066-A
 
 Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
 

@@ -89,7 +89,7 @@ E. The license display SHALL provide a way to return to the previous screen or p
 
 # REQ-p01074: User-Facing State Change Communication
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p00044
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p00044-A
 
 ## Rationale
 
