@@ -472,10 +472,11 @@ class _StudyCoordinatorPatientsTabState
     final apiClient = ApiClient(authService);
 
     return DataRow(
-      // REQ-CAL-p00073-C: Connected patients (Trial Active / Linked - Awaiting
-      // Start) need access to additional actions (View Linking Code, Disconnect)
-      // via the PatientActionsDialog opened by tapping the row.
-      onSelectChanged: patient.mobileLinkingStatus == 'connected'
+      // REQ-CAL-p00073-C: Connected and disconnected patients have multiple
+      // actions available via the PatientActionsDialog opened by tapping the row.
+      onSelectChanged:
+          (patient.mobileLinkingStatus == 'connected' ||
+              patient.mobileLinkingStatus == 'disconnected')
           ? (_) => _openPatientActions(patient, apiClient)
           : null,
       cells: [
