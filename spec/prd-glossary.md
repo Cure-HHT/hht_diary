@@ -11,7 +11,7 @@
 
 # REQ-p01020: Privacy Policy and Regulatory Compliance Documentation
 
-**Level**: PRD | **Status**: Draft | **Refines**: p80050-A
+**Level**: PRD | **Status**: Draft
 
 ## Rationale
 

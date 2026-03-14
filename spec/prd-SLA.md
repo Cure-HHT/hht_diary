@@ -310,7 +310,7 @@ O. The system SHALL archive RCAs for 7 years.
 
 # REQ-p01035: Corrective and Preventive Action
 
-**Level**: PRD | **Status**: Draft | **Refines**: p01034-I+J, p80030-D+E
+**Level**: PRD | **Status**: Draft | **Refines**: p01034-I+J
 
 ## Rationale
 
@@ -429,7 +429,7 @@ K. The platform SHALL provide service remedies when uptime commitments are not m
 
 # REQ-p01038: Regulatory Event Support
 
-**Level**: PRD | **Status**: Draft | **Refines**: p01034-A+B, p80030-C
+**Level**: PRD | **Status**: Draft | **Refines**: p01034-A+B
 
 ## Rationale
 

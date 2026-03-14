@@ -1,6 +1,14 @@
+> **DEPRECATED**: The requirements in this file have been superseded by the three-layer architecture:
+> - Layer 1 Foundation: `dev-fda-part11-foundation.md` (REQ-d80101 through REQ-d80110)
+> - Layer 2 Action Templates: `dev-fda-part11-action-templates.md` (REQ-d80201 through REQ-d80203)
+> - Layer 3 Domain Overlays: `dev-fda-part11-domain-overlays.md` (REQ-d80301 through REQ-d80305)
+> - OPS reclassifications: `ops-fda-part11-SOPs.md` (REQ-o80040, REQ-o80050)
+>
+> These requirements are retained for historical reference only. Do not implement against them.
+
 # REQ-d80011: ALCOA++ Data Integrity Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00010
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 
@@ -44,7 +52,7 @@ J. The system SHALL maintain traceability of data from source through all transf
 
 # REQ-d80021: Electronic Signature Technical Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00020
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 
@@ -85,7 +93,7 @@ I. For biometric-based electronic signatures, the system SHALL be designed to en
 
 # REQ-d80031: Audit Trail Technical Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p80030
+**Level**: Dev | **Status**: Deprecated | **Implements**: p80030
 
 ## Rationale
 
@@ -123,7 +131,7 @@ H. The system SHALL audit all access to audit trail data itself.
 
 # REQ-d80041: Data Correction Technical Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00040
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 
@@ -158,7 +166,7 @@ G. The system SHALL differentiate between initial data entry and subsequent corr
 
 # REQ-d80051: Authentication and Authorization Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00050
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 
@@ -214,7 +222,7 @@ N. The system SHALL verify the identity of an individual before establishing, as
 
 # REQ-d80052: User Account Management
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00050
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 
@@ -255,7 +263,7 @@ I. The system SHALL enforce separation of duties between user account administra
 
 # REQ-d80061: System Validation Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p80060
+**Level**: Dev | **Status**: Deprecated | **Implements**: p80060
 
 ## Rationale
 
@@ -290,7 +298,7 @@ G. The system SHALL maintain validation documentation for the lifetime of the sy
 
 # REQ-d80062: IT Service Provider and Cloud System Controls
 
-**Level**: Dev | **Status**: Draft | **Implements**: p80060
+**Level**: Dev | **Status**: Deprecated | **Implements**: p80060
 
 ## Rationale
 
@@ -328,7 +336,7 @@ H. The system SHALL implement data backup and disaster recovery procedures that 
 
 # REQ-d80063: Digital Health Technology Data Capture
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00010, p00030
+**Level**: Dev | **Status**: Deprecated
 
 ## Rationale
 

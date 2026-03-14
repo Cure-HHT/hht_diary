@@ -60,7 +60,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 # REQ-p00016: Separation of Identity and Clinical Data
 
-**Level**: PRD | **Status**: Draft | **Refines**: p80050-A
+**Level**: PRD | **Status**: Draft
 
 ## Rationale
 

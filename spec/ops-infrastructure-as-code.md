@@ -17,7 +17,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 # REQ-o00041: Infrastructure as Code for Cloud Resources
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00010, p80060, o80030
+**Level**: Ops | **Status**: Draft | **Implements**: p00010, o80030
 
 ## Rationale
 
@@ -48,7 +48,7 @@ I. Infrastructure provisioning SHALL complete in less than 1 hour during perform
 
 # REQ-o00042: Infrastructure Change Control
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00041, p80060
+**Level**: Ops | **Status**: Draft | **Implements**: o00041
 
 ## Rationale
 

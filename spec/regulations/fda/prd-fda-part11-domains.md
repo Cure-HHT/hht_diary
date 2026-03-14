@@ -1,6 +1,13 @@
+> **DEPRECATED**: The requirements in this file have been superseded by the three-layer architecture:
+> - Layer 1 Foundation: `dev-fda-part11-foundation.md` (REQ-d80101 through REQ-d80110)
+> - Layer 2 Action Templates: `dev-fda-part11-action-templates.md` (REQ-d80201 through REQ-d80203)
+> - Layer 3 Domain Overlays: `dev-fda-part11-domain-overlays.md` (REQ-d80301 through REQ-d80305)
+>
+> These requirements are retained for historical reference only. Do not implement against them.
+
 # REQ-p80010: Electronic Records Controls
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A+E, p00004-A+E
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 
@@ -26,7 +33,7 @@ D. The system SHALL generate accurate and complete copies of records in both hum
 
 # REQ-p80020: Electronic Signatures
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00002-A+D+E, p00003-A+H
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 
@@ -55,7 +62,7 @@ E. The system SHALL employ electronic signatures based upon at least two distinc
 
 # REQ-p80030: Audit Trail Requirements
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A, p00004-A+B+E, p00005-A+I
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 
@@ -90,7 +97,7 @@ G. The system SHALL ensure audit trails cannot be disabled, overwritten, or alte
 
 # REQ-p80040: Data Correction Controls
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+C+E+I, p00005-A+I
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 
@@ -128,7 +135,7 @@ H. The system SHALL preserve the ability to view both the original value and the
 
 # REQ-p80050: System Access and Security Controls
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00002-A+D+E+J, p00003-A+F
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 
@@ -163,7 +170,7 @@ G. The system SHALL implement procedures for electronically deauthorizing lost, 
 
 # REQ-p80060: Closed and Open System Controls
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00002-A, p00003-A+D
+**Level**: PRD | **Status**: Deprecated
 
 ## Rationale
 

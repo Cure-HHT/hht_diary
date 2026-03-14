@@ -30,7 +30,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 # REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 
@@ -63,7 +63,7 @@ J. The CI/CD validation workflow SHALL complete execution within 10 minutes.
 
 # REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80060
+**Level**: Ops | **Status**: Draft | **Implements**: o00052
 
 ## Rationale
 
@@ -90,7 +90,7 @@ G. The system SHALL create an audit trail entry when administrators override bra
 
 # REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80030
+**Level**: Ops | **Status**: Draft | **Implements**: o00052
 
 ## Rationale
 
@@ -117,7 +117,7 @@ G. The system SHALL make artifacts downloadable to authorized personnel.
 
 # REQ-o00078: Change-Appropriate CI Validation
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 
@@ -140,7 +140,7 @@ E. The CI pipeline SHALL complete all validation jobs and produce a consolidated
 
 # REQ-o00079: Commit and PR Traceability Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 
@@ -163,7 +163,7 @@ E. The CI pipeline SHALL provide clear error messages indicating which reference
 
 # REQ-o00080: Secret and Vulnerability Scanning
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060, p01018
+**Level**: Ops | **Status**: Draft | **Implements**: p01018
 
 ## Rationale
 
@@ -186,7 +186,7 @@ E. Secret detection failures SHALL block merge to protected branches.
 
 # REQ-o00081: Code Quality and Static Analysis
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 
@@ -209,7 +209,7 @@ E. Code formatting violations SHALL block merge to protected branches.
 
 # REQ-o00082: Automated Test Execution
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 
@@ -234,7 +234,7 @@ F. Unit and integration test failures SHALL block merge to protected branches.
 
 # REQ-o00083: QA Promotion Gate
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: Ops | **Status**: Draft
 
 ## Rationale
 

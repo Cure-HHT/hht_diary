@@ -245,7 +245,7 @@ J. The event log SHALL retain all conflicting events without deletion or modific
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+B+H, p80030-A+G
+**Level**: PRD | **Status**: Draft | **Refines**: p00046-A+B+H
 
 ## Rationale
 
