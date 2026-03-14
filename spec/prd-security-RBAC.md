@@ -79,8 +79,6 @@ Least privilege access is a fundamental security principle that minimizes the ri
 
 A. The system SHALL grant users the minimum permissions necessary to perform their assigned job functions.
 
-B. The system SHALL NOT grant users access beyond their role requirements.
-
 C. The system SHALL assign permissions based on specific job function rather than user preference.
 
 D. The system SHALL prevent users from accessing data outside their assigned scope.
@@ -101,7 +99,7 @@ K. The system SHALL capture all permission grant events in the audit log.
 
 L. The system SHALL capture all permission revoke events in the audit log.
 
-*End* *Least Privilege Access* | **Hash**: 6b0df135
+*End* *Least Privilege Access* | **Hash**: 5cecbe76
 ---
 
 ### RBAC Principles

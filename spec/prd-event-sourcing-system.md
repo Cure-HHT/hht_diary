@@ -518,13 +518,11 @@ G. The system SHALL support tenant-specific schema versions independently manage
 
 H. The system SHALL propagate tenant context through all database operations.
 
-I. The system SHALL NOT allow data leakage between tenants under any circumstances.
-
 J. The configuration system SHALL support definitions for multiple tenants.
 
 K. The offline synchronization system SHALL maintain queue isolation per tenant with no cross-tenant queue access.
 
-*End* *Multi-tenancy Support* | **Hash**: 46265e7f
+*End* *Multi-tenancy Support* | **Hash**: b7a09f00
 ---
 
 ---

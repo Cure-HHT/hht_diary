@@ -54,13 +54,11 @@ F. The system SHALL NOT allow database queries to return records from other spon
 
 G. Authentication tokens SHALL be scoped to a single sponsor.
 
-H. Encryption keys SHALL NOT be shared between sponsors.
-
 I. Administrative access SHALL be limited to a single sponsor.
 
 J. The system architecture SHALL make cross-sponsor access technically impossible.
 
-*End* *Complete Multi-Sponsor Data Separation* | **Hash**: 57702900
+*End* *Complete Multi-Sponsor Data Separation* | **Hash**: d01b64d9
 ---
 
 ## User Authentication

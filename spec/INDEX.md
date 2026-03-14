@@ -6,14 +6,12 @@
 
 ## PRD
 
-### hht-diary/spec
-
 | ID         | Title                                                  | File                                | Hash     |
 | ---------- | ------------------------------------------------------ | ----------------------------------- | -------- |
-| REQ-p00001 | Complete Multi-Sponsor Data Separation                 | prd-security.md                     | 57702900 |
+| REQ-p00001 | Complete Multi-Sponsor Data Separation                 | prd-security.md                     | d01b64d9 |
 | REQ-p00002 | Multi-Factor Authentication for Staff                  | prd-security.md                     | b014564d |
-| REQ-p00003 | Separate Database Per Sponsor                          | prd-database.md                     | 08e74590 |
-| REQ-p00004 | Immutable Audit Trail via Event Sourcing               | prd-database.md                     | 1a5361d5 |
+| REQ-p00003 | Separate Database Per Sponsor                          | prd-database.md                     | b265d8bb |
+| REQ-p00004 | Immutable Audit Trail via Event Sourcing               | prd-database.md                     | 59a44de8 |
 | REQ-p00005 | Role-Based Access Control                              | prd-security-RBAC.md                | d5129b08 |
 | REQ-p00006 | Offline-First Data Entry                               | prd-diary-app.md                    | b0555756 |
 | REQ-p00007 | Automatic Sponsor Configuration                        | prd-diary-app.md                    | 3896c05a |
@@ -22,8 +20,8 @@
 | REQ-p00010 | FDA 21 CFR Part 11 Compliance                          | prd-clinical-trials.md              | 39aa8ddd |
 | REQ-p00011 | ALCOA+ Data Integrity Principles                       | prd-clinical-trials.md              | 6697108e |
 | REQ-p00012 | Clinical Data Retention Requirements                   | prd-clinical-trials.md              | 095cb350 |
-| REQ-p00013 | Complete Data Change History                           | prd-database.md                     | 36c01fca |
-| REQ-p00014 | Least Privilege Access                                 | prd-security-RBAC.md                | 6b0df135 |
+| REQ-p00013 | Complete Data Change History                           | prd-database.md                     | 893afe9e |
+| REQ-p00014 | Least Privilege Access                                 | prd-security-RBAC.md                | 5cecbe76 |
 | REQ-p00015 | Database-Level Access Enforcement                      | prd-security-RLS.md                 | e0b19391 |
 | REQ-p00016 | Separation of Identity and Clinical Data               | prd-security-data-classification.md | 4a8b2335 |
 | REQ-p00017 | Data Encryption                                        | prd-security-data-classification.md | 55d8aea3 |
@@ -37,12 +35,12 @@
 | REQ-p00037 | Investigator Annotation Restrictions                   | prd-security-RLS.md                 | 18789c92 |
 | REQ-p00038 | Auditor Compliance Access                              | prd-security-RLS.md                 | b5c84953 |
 | REQ-p00039 | Administrator Access with Audit Trail                  | prd-security-RLS.md                 | 5082758c |
-| REQ-p00040 | Event Sourcing State Protection                        | prd-security-RLS.md                 | 1694c31b |
+| REQ-p00040 | Event Sourcing State Protection                        | prd-security-RLS.md                 | 2067e3e6 |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                    | prd-epistaxis-terminology.md        | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                               | prd-diary-app.md                    | 4aeb188b |
+| REQ-p00043 | Diary Mobile Application                               | prd-diary-app.md                    | 8651c82b |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform                | prd-system.md                       | 0919ad00 |
 | REQ-p00045 | Regulatory Compliance Framework                        | prd-clinical-trials.md              | 36578817 |
-| REQ-p00046 | Clinical Data Storage System                           | prd-database.md                     | 31d1e36b |
+| REQ-p00046 | Clinical Data Storage System                           | prd-database.md                     | b5144a76 |
 | REQ-p00047 | Data Backup and Archival                               | prd-backup.md                       | 4e9501e4 |
 | REQ-p00048 | Platform Operations and Monitoring                     | prd-devops.md                       | af349286 |
 | REQ-p00049 | Ancillary Platform Services                            | prd-services.md                     | ff326529 |
@@ -58,7 +56,7 @@
 | REQ-p01007 | Error Handling and Diagnostics                         | prd-event-sourcing-system.md        | 142a4821 |
 | REQ-p01008 | Event Replay and Time Travel Debugging                 | prd-event-sourcing-system.md        | cef615c5 |
 | REQ-p01009 | Encryption at Rest for Offline Queue                   | prd-event-sourcing-system.md        | c6c8ad62 |
-| REQ-p01010 | Multi-tenancy Support                                  | prd-event-sourcing-system.md        | 46265e7f |
+| REQ-p01010 | Multi-tenancy Support                                  | prd-event-sourcing-system.md        | b7a09f00 |
 | REQ-p01011 | Event Transformation and Migration                     | prd-event-sourcing-system.md        | e1fbce81 |
 | REQ-p01012 | Batch Event Operations                                 | prd-event-sourcing-system.md        | 5cf4df20 |
 | REQ-p01014 | Observability and Monitoring                           | prd-event-sourcing-system.md        | ad6ebb22 |
@@ -89,19 +87,11 @@
 | REQ-p01039 | Diary Start Day Definition                             | prd-diary-app.md                    | 33ea4793 |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status            | prd-diary-app.md                    | e4e1c4c2 |
 | REQ-p01041 | Open Source Licensing                                  | prd-system.md                       | 7e6b1e00 |
-| REQ-p01042 | Web Diary Application                                  | prd-diary-web.md                    | a19f716f |
-| REQ-p01043 | Web Diary Authentication via Linking Code              | prd-diary-web.md                    | 8c7d6240 |
-| REQ-p01044 | Web Application Session Management                     | prd-diary-web.md                    | 8264ceb9 |
-| REQ-p01045 | Web Diary Privacy Protection                           | prd-diary-web.md                    | 58e010cd |
-| REQ-p01046 | Web Diary Account Creation                             | prd-diary-web.md                    | 8d39c8e6 |
-| REQ-p01047 | Web Diary User Profile                                 | prd-diary-web.md                    | c132adc2 |
-| REQ-p01048 | Web Diary Login Interface                              | prd-diary-web.md                    | d643690a |
-| REQ-p01049 | Web Diary Lost Credential Recovery                     | prd-diary-web.md                    | 0af0c79c |
 | REQ-p01050 | Event Type Registry                                    | prd-event-sourcing-system.md        | 52464e42 |
 | REQ-p01051 | Questionnaire Versioning Model                         | prd-event-sourcing-system.md        | e311e5fc |
 | REQ-p01052 | Questionnaire Localization and Translation Tracking    | prd-event-sourcing-system.md        | 4218237c |
 | REQ-p01053 | Sponsor Questionnaire Eligibility Configuration        | prd-event-sourcing-system.md        | 3bc66244 |
-| REQ-p01054 | Complete Infrastructure Isolation Per Sponsor          | prd-architecture-multi-sponsor.md   | 5f9f93ed |
+| REQ-p01054 | Complete Infrastructure Isolation Per Sponsor          | prd-architecture-multi-sponsor.md   | dae0f167 |
 | REQ-p01055 | Sponsor Confidentiality                                | prd-architecture-multi-sponsor.md   | 364675e2 |
 | REQ-p01056 | Confidentiality Sufficiency                            | prd-architecture-multi-sponsor.md   | f29524ee |
 | REQ-p01057 | Mono Repository with Sponsor Repositories              | prd-architecture-multi-sponsor.md   | a54d5ad6 |
@@ -132,7 +122,7 @@
 | REQ-p01083 | Account Settings Screen                                | prd-diary-gui.md                    | 63efe18c |
 | REQ-p01084 | Diary App Licenses Screen                              | prd-diary-gui.md                    | 621882cb |
 | REQ-p70000 | Local Data Storage                                     | prd-diary-app.md                    | f74d92a4 |
-| REQ-p70001 | Sponsor Portal Application                             | prd-portal.md                       | 290ca25c |
+| REQ-p70001 | Sponsor Portal Application                             | prd-portal.md                       | 08b8f03a |
 | REQ-p70005 | Customizable Role-Based Access Control                 | prd-portal.md                       | d0617ddb |
 | REQ-p70006 | Comprehensive Audit Trail                              | prd-portal.md                       | c3ec2048 |
 | REQ-p70007 | Linking Code Lifecycle Management                      | prd-portal.md                       | c0a77938 |
@@ -142,27 +132,7 @@
 | REQ-p70011 | Patient Reconnection Workflow                          | prd-portal.md                       | c386824f |
 | REQ-p70012 | Portal Data Acceptance and Rejection                   | prd-portal.md                       | 2f615ddb |
 
-### hht-diary/spec/regulations/fda
-
-| ID                     | Title                                                               | File                      | Hash     |
-| ---------------------- | ------------------------------------------------------------------- | ------------------------- | -------- |
-| REQ-p00043::REQ-p80001 | FDA 21 CFR Part 11 Compliance                                       | prd-fda-21-cfr-11.md      | 54daf3d2 |
-| REQ-p70001::REQ-p80001 | FDA 21 CFR Part 11 Compliance                                       | prd-fda-21-cfr-11.md      | 54daf3d2 |
-| REQ-p80001             | FDA 21 CFR Part 11 Compliance                                       | prd-fda-21-cfr-11.md      | 54daf3d2 |
-| REQ-p80002             | 21 CFR Part 11 Compliance                                           | prd-fda-21-cfr-11.md      | a5d5da23 |
-| REQ-p80003             | FDA Guidance on Electronic Records in Clinical Investigations       | prd-fda-21-cfr-11.md      | 7330eda3 |
-| REQ-p80004             | GCP Data Requirements for Audit Trails and Data Corrections         | prd-fda-21-cfr-11.md      | 52eb4a31 |
-| REQ-p80005             | GCP Consolidated Requirements for Audit Trails and Data Corrections | prd-fda-21-cfr-11.md      | 70cb1b59 |
-| REQ-p80010             | Electronic Records Controls                                         | prd-fda-part11-domains.md | 6d82267c |
-| REQ-p80020             | Electronic Signatures                                               | prd-fda-part11-domains.md | 5eb03a00 |
-| REQ-p80030             | Audit Trail Requirements                                            | prd-fda-part11-domains.md | 2070327e |
-| REQ-p80040             | Data Correction Controls                                            | prd-fda-part11-domains.md | a4ce844c |
-| REQ-p80050             | System Access and Security Controls                                 | prd-fda-part11-domains.md | c9937e50 |
-| REQ-p80060             | Closed and Open System Controls                                     | prd-fda-part11-domains.md | 20d10fe8 |
-
 ## OPS
-
-### hht-diary/spec
 
 | ID         | Title                                             | File                            | Hash     |
 | ---------- | ------------------------------------------------- | ------------------------------- | -------- |
@@ -233,17 +203,7 @@
 | REQ-o00082 | Automated Test Execution                          | ops-cicd.md                     | 63cc8fe6 |
 | REQ-o00083 | QA Promotion Gate                                 | ops-cicd.md                     | dd06f8de |
 
-### hht-diary/spec/regulations/fda
-
-| ID         | Title                                | File                   | Hash     |
-| ---------- | ------------------------------------ | ---------------------- | -------- |
-| REQ-o80010 | Training and Personnel Qualification | ops-fda-part11-SOPs.md | 53e1ba24 |
-| REQ-o80020 | Record Retention and Archival        | ops-fda-part11-SOPs.md | 9fcd1947 |
-| REQ-o80030 | Standard Operating Procedures        | ops-fda-part11-SOPs.md | 50d11093 |
-
 ## DEV
-
-### hht-diary/spec
 
 | ID         | Title                                              | File                           | Hash     |
 | ---------- | -------------------------------------------------- | ------------------------------ | -------- |
@@ -288,14 +248,9 @@
 | REQ-d00066 | Plugin-Specific Permission Management              | dev-marketplace-permissions.md | 03045719 |
 | REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md               | f6d9e288 |
 | REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md               | 951ecf65 |
-| REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md               | 7adcbff1 |
 | REQ-d00078 | Linking Code Validation                            | dev-linking.md                 | 8cc744c2 |
 | REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                 | f5e20cde |
-| REQ-d00080 | Web Session Management Implementation              | dev-diary-web.md               | 482b7002 |
 | REQ-d00081 | Linked Device Records                              | dev-linking.md                 | 16853ebd |
-| REQ-d00082 | Password Hashing Implementation                    | dev-diary-web.md               | 1174dead |
-| REQ-d00083 | Browser Storage Clearing                           | dev-diary-web.md               | dd80cdb0 |
-| REQ-d00084 | Sponsor Configuration Loading                      | dev-diary-web.md               | b8eb0a19 |
 | REQ-d00085 | Local Database Export and Import                   | dev-app.md                     | eaa18d27 |
 | REQ-d00086 | Sponsor Repository Structure Template              | dev-sponsor-repos.md           | 0ede3cec |
 | REQ-d00087 | Core Repo Reference Configuration                  | dev-sponsor-repos.md           | 2f2f7a26 |
@@ -326,20 +281,6 @@
 | REQ-d00112 | Enrollment Token Revocation                        | dev-portal-api.md              | e8863441 |
 | REQ-d00113 | Deleted Questionnaire Submission Handling          | dev-questionnaire.md           | 6aaa85fd |
 | REQ-d00114 | Sync Request Device Binding Verification           | dev-portal-api.md              | b1a11feb |
-
-### hht-diary/spec/regulations/fda
-
-| ID         | Title                                         | File                                 | Hash     |
-| ---------- | --------------------------------------------- | ------------------------------------ | -------- |
-| REQ-d80011 | ALCOA++ Data Integrity Implementation         | dev-fda-part11-technical-controls.md | 9bbe74ec |
-| REQ-d80021 | Electronic Signature Technical Controls       | dev-fda-part11-technical-controls.md | dd16ae7a |
-| REQ-d80031 | Audit Trail Technical Implementation          | dev-fda-part11-technical-controls.md | 5e69b0c1 |
-| REQ-d80041 | Data Correction Technical Implementation      | dev-fda-part11-technical-controls.md | 78ef7572 |
-| REQ-d80051 | Authentication and Authorization Controls     | dev-fda-part11-technical-controls.md | a72beb36 |
-| REQ-d80052 | User Account Management                       | dev-fda-part11-technical-controls.md | 95f45277 |
-| REQ-d80061 | System Validation Controls                    | dev-fda-part11-technical-controls.md | 08ae9589 |
-| REQ-d80062 | IT Service Provider and Cloud System Controls | dev-fda-part11-technical-controls.md | e5b6cafb |
-| REQ-d80063 | Digital Health Technology Data Capture        | dev-fda-part11-technical-controls.md | 151b3a71 |
 
 ## User Journeys
 

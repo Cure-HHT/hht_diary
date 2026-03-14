@@ -168,11 +168,9 @@ G. The platform SHALL NOT share storage resources between sponsors.
 
 H. Serverless functions SHALL NOT access resources belonging to other sponsors.
 
-I. Database connections SHALL be scoped to a single sponsor.
-
 J. The platform SHALL implement network isolation to prevent cross-sponsor traffic.
 
-*End* *Complete Infrastructure Isolation Per Sponsor* | **Hash**: 5f9f93ed
+*End* *Complete Infrastructure Isolation Per Sponsor* | **Hash**: dae0f167
 ---
 
 ## Repository and Deployment
@@ -249,7 +247,7 @@ I. The release process SHALL document approval status from all active Sponsors f
 
 # REQ-p01060: UX Changes During Trials
 
-**Level**: PRD | **Status**: Active | **Refines**: p80010-C
+**Level**: PRD | **Status**: Active
 
 ## Rationale
 

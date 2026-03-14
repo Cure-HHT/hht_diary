@@ -27,13 +27,11 @@ A. The system SHALL use event sourcing to store all clinical trial data changes 
 
 B. The system SHALL provide a separate database instance for each sponsor.
 
-C. The system SHALL enforce sponsor isolation to prevent cross-sponsor data access.
-
 D. The system SHALL implement row-level security for access control.
 
 E. The system SHALL enable reconstruction of complete data history at any point in time from stored events.
 
-*End* *Clinical Data Storage System* | **Hash**: 31d1e36b
+*End* *Clinical Data Storage System* | **Hash**: b5144a76
 
 ---
 
@@ -76,9 +74,7 @@ D. The system SHALL record session information for each change.
 
 E. The system SHALL store all modifications as separate historical records.
 
-F. The system SHALL enable reconstruction of the complete timeline from history.
-
-*End* *Complete Data Change History* | **Hash**: 36c01fca
+*End* *Complete Data Change History* | **Hash**: 893afe9e
 
 ---
 
@@ -112,15 +108,11 @@ H. Database connections SHALL be scoped to a single sponsor.
 
 I. The system SHALL NOT create foreign keys that reference across sponsor databases.
 
-J. The system SHALL NOT create database references that span across sponsor databases.
-
 K. Backup operations SHALL be scoped to a single sponsor database.
 
 L. Restore operations SHALL be scoped to a single sponsor database.
 
-M. Query execution SHALL NOT span multiple sponsor databases.
-
-*End* *Separate Database Per Sponsor* | **Hash**: 08e74590
+*End* *Separate Database Per Sponsor* | **Hash**: b265d8bb
 ---
 
 ## Event Sourcing Architecture
@@ -149,17 +141,11 @@ F. The system SHALL NOT use direct UPDATE operations to modify clinical trial da
 
 G. The system SHALL NOT use direct DELETE operations to remove clinical trial data.
 
-H. The system SHALL enable reconstruction of data state at any point in time by replaying events up to that point.
-
 I. The system SHALL prevent tampering with events through database constraints.
-
-J. The event store SHALL use append-only storage that grows over time.
-
-K. The system SHALL maintain a current view of data that is automatically calculated from events.
 
 L. The system SHALL update the current view automatically when new events are created.
 
-*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 1a5361d5
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 59a44de8
 
 ---
 

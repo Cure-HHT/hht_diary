@@ -55,8 +55,6 @@ O. The system SHALL NOT maintain audit trails for personal use mode users.
 
 P. The system SHALL synchronize existing local data to study database upon user linking.
 
-Q. The system SHALL maintain complete data isolation between sponsors.
-
 R. The system SHALL be available via iOS app store.
 
 S. The system SHALL be available via Android app store.
@@ -65,7 +63,7 @@ T. The system SHALL support offline operation for core diary operations in perso
 
 U. The system SHALL support offline operation for core diary operations in linked use mode.
 
-*End* *Diary Mobile Application* | **Hash**: 4aeb188b
+*End* *Diary Mobile Application* | **Hash**: 8651c82b
 ---
 
 ## Local Data Storage

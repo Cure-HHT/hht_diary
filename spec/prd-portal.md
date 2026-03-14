@@ -211,11 +211,7 @@ J. The Sponsor Portal SHALL provide real-time patient engagement monitoring.
 
 K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the interface.
 
-L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
-
-M. The Sponsor Portal SHALL implement web application session management per REQ-p01044.
-
-*End* *Sponsor Portal Application* | **Hash**: 290ca25c
+*End* *Sponsor Portal Application* | **Hash**: 08b8f03a
 ---
 
 # REQ-p70005: Customizable Role-Based Access Control

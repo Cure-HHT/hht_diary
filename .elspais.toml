@@ -9,7 +9,7 @@ project = { name = "hht-diary", type = "core" }
 validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
 
 [directories]
-spec = ["spec", "spec/regulations/fda"]
+spec = ["spec"]
 docs = "docs"
 database = "database"
 code = ["apps", "packages", "server", "tools"]
@@ -56,7 +56,7 @@ index_file = "INDEX.md"
 readme_file = "README.md"
 format_guide = "requirements-format.md"
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap", "regulations/fda/reference"]
+skip_dirs = ["roadmap", "regulations/fda", "regulations/fda/reference"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"
 "dev-*.md" = "dev"
@@ -75,7 +75,7 @@ allow_orphans = true
 require_hash = true
 require_rationale = false
 require_status = true
-allowed_statuses = ["Active", "Draft", "Deprecated", "Superseded"]
+allowed_statuses = ["Active", "Proposed", "Draft", "Deprecated", "Superseded"]
 require_assertions = false
 acceptance_criteria = "error"
 require_shall = false

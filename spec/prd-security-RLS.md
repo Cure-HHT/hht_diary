@@ -363,8 +363,6 @@ B. The system SHALL prohibit direct modification of derived clinical data state 
 
 C. The system SHALL require all clinical data changes to be written as events to the audit trail.
 
-D. The system SHALL automatically update derived state from audit events.
-
 E. The system SHALL maintain event sourcing integrity at the data layer.
 
 F. The system SHALL prevent tampering with derived state through access controls.
@@ -373,7 +371,7 @@ G. The system SHALL return permission denied for any attempts to directly modify
 
 H. The system SHALL enforce the event sourcing pattern at the data layer.
 
-*End* *Event Sourcing State Protection* | **Hash**: 1694c31b
+*End* *Event Sourcing State Protection* | **Hash**: 2067e3e6
 ---
 
 ### Policy Implementation Details
