@@ -15,7 +15,7 @@
 
 # REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Status**: Draft | **Refines**: p80010-A+B
+**Level**: PRD | **Status**: Draft
 
 ## Rationale
 
@@ -56,7 +56,7 @@ FDA compliant record keeping.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O, p80030-A, p80040-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O
 
 ## Rationale
 
@@ -119,7 +119,7 @@ L. Restore operations SHALL be scoped to a single sponsor database.
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-O, p80030-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00011-O
 
 ## Rationale
 

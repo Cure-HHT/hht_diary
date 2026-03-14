@@ -243,7 +243,7 @@ G. Role definitions SHALL be isolated per sponsor.
 
 # REQ-p70006: Comprehensive Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O, p80030-A+G
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O
 
 ## Rationale
 
