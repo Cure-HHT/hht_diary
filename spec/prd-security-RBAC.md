@@ -62,11 +62,9 @@ H. The system SHALL require a privileged account to make role assignment changes
 
 I. The system SHALL include role context in the audit log for all data access events.
 
-J. The system SHALL deny unauthorized access attempts.
+J. The system SHALL NOT allow role permissions to be bypassed.
 
-K. The system SHALL NOT allow role permissions to be bypassed.
-
-*End* *Role-Based Access Control* | **Hash**: 83e3e545
+*End* *Role-Based Access Control* | **Hash**: d5129b08
 ---
 
 # REQ-p00014: Least Privilege Access

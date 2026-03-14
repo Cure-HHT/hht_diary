@@ -253,33 +253,23 @@ FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trail
 
 ## Assertions
 
-A. The system SHALL store all events as immutable, append-only records.
+A. The system SHALL enforce event immutability through database constraints.
 
-B. The system SHALL NOT allow modification of events after creation.
+B. Each event record SHALL include an event type.
 
-C. The system SHALL NOT allow deletion of events after creation.
+C. Each event record SHALL include a data payload.
 
-D. The system SHALL enforce event immutability through database constraints.
+D. Each event record SHALL include a causation ID.
 
-E. Each event record SHALL include a timestamp.
+E. The system SHALL cryptographically sign or hash each event for tamper detection.
 
-F. Each event record SHALL include a user ID.
+F. The system SHALL guarantee event sequence ordering via database sequence numbers or equivalent constraints.
 
-G. Each event record SHALL include an event type.
+G. The system SHALL derive current state by replaying events through materialized views.
 
-H. Each event record SHALL include a data payload.
+H. Materialized views SHALL always remain consistent with the event log.
 
-I. Each event record SHALL include a causation ID.
-
-J. The system SHALL cryptographically sign or hash each event for tamper detection.
-
-K. The system SHALL guarantee event sequence ordering via database sequence numbers or equivalent constraints.
-
-L. The system SHALL derive current state by replaying events through materialized views.
-
-M. Materialized views SHALL always remain consistent with the event log.
-
-*End* *Immutable Event Storage with Audit Trail* | **Hash**: db231d89
+*End* *Immutable Event Storage with Audit Trail* | **Hash**: ec106ced
 ---
 
 ---

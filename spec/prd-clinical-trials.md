@@ -58,15 +58,13 @@ Clinical trial systems must comply with multiple regulatory frameworks depending
 
 ## Assertions
 
-A. The system SHALL satisfy FDA 21 CFR Part 11 requirements for electronic records and electronic signatures.
+A. The system SHALL satisfy EU General Data Protection Regulation (GDPR) requirements for personal data protection.
 
-B. The system SHALL satisfy EU General Data Protection Regulation (GDPR) requirements for personal data protection.
+B. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
 
-C. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
+C. The system SHALL support audit and inspection activities by regulatory authorities.
 
-D. The system SHALL support audit and inspection activities by regulatory authorities.
-
-*End* *Regulatory Compliance Framework* | **Hash**: c4fa27f7
+*End* *Regulatory Compliance Framework* | **Hash**: 36578817
 ---
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
@@ -81,13 +79,11 @@ The detailed FDA regulatory requirements are defined in the FDA regulations spec
 
 ## Assertions
 
-A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures as defined in REQ-p80001 and its child requirements.
+A. The system SHALL provide validation documentation demonstrating that the system performs as intended.
 
-B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
+B. The system SHALL include a complete validation documentation package.
 
-C. The system SHALL include a complete validation documentation package.
-
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 20c0e7bc
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 39aa8ddd
 ---
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
@@ -100,37 +96,13 @@ ALCOA+ principles are internationally recognized data integrity standards requir
 
 ## Assertions
 
-A. All clinical trial data SHALL adhere to ALCOA+ principles throughout the data lifecycle.
+A. Every data entry SHALL include creator identification.
 
-B. Data SHALL be attributable by being clearly linked to the person who created it.
+B. Every data entry SHALL include a timestamp.
 
-C. Every data entry SHALL include creator identification.
+C. Data SHALL be readable without requiring special tools or decoding.
 
-D. Every data entry SHALL include a timestamp.
-
-E. Data SHALL be legible by being readable and understandable without obscuration.
-
-F. Data SHALL be readable without requiring special tools or decoding.
-
-G. Data SHALL be contemporaneous by being recorded at or near the time of observation.
-
-H. Data SHALL be original by representing the first recording or a certified true copy.
-
-I. Original values SHALL be preserved when data is modified.
-
-J. Data SHALL be accurate by being free from errors, complete, and correct.
-
-K. Data SHALL be complete with all data captured and nothing missing.
-
-L. Data SHALL be consistent by being performed in the same manner over time.
-
-M. Data SHALL be enduring by being preserved for the entire retention period.
-
-N. Data SHALL be available by being accessible for review and audit when needed.
-
-O. The system SHALL maintain a complete audit trail for the entire data lifecycle.
-
-*End* *ALCOA+ Data Integrity Principles* | **Hash**: 54818734
+*End* *ALCOA+ Data Integrity Principles* | **Hash**: 6697108e
 ---
 
 # REQ-p00012: Clinical Data Retention Requirements
@@ -143,39 +115,27 @@ Regulatory agencies require long-term retention of clinical trial data to suppor
 
 ## Assertions
 
-A. The system SHALL retain clinical trial data for the minimum period required by applicable regulations.
+A. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
 
-B. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
+B. The system SHALL provide export capability for regulatory submission.
 
-C. The system SHALL preserve all clinical trial records for the required retention period.
+C. The system SHALL provide export capability for archival purposes.
 
-D. The system SHALL retain audit trails with their associated clinical data for the entire retention period.
+D. The system SHALL track the retention period per study.
 
-E. The system SHALL ensure data remains readable throughout the retention period.
+E. The system SHALL enforce the retention period per study.
 
-F. The system SHALL ensure data remains accessible throughout the retention period.
+F. The retention period SHALL be configurable per study.
 
-G. The system SHALL provide export capability for regulatory submission.
+G. The retention period SHALL be configurable per jurisdiction.
 
-H. The system SHALL provide export capability for archival purposes.
+H. Data export SHALL include the complete audit trail.
 
-I. The system SHALL track the retention period per study.
+I. Exported data SHALL be readable without proprietary systems.
 
-J. The system SHALL enforce the retention period per study.
+J. The system SHALL prevent premature deletion by enforcing retention period requirements.
 
-K. The retention period SHALL be configurable per study.
-
-L. The retention period SHALL be configurable per jurisdiction.
-
-M. Data export SHALL include the complete audit trail.
-
-N. Exported data SHALL be readable without proprietary systems.
-
-O. The system SHALL prevent premature deletion by enforcing retention period requirements.
-
-P. The system SHALL maintain data integrity throughout the retention period.
-
-*End* *Clinical Data Retention Requirements* | **Hash**: 42ddd27b
+*End* *Clinical Data Retention Requirements* | **Hash**: 095cb350
 ---
 
 # REQ-p01061: EU GDPR

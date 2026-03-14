@@ -51,23 +51,21 @@ M. The system SHALL apply sponsor-specific branding for linked users based on th
 
 N. The system SHALL apply sponsor-specific customization for linked users based on their linking.
 
-O. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for linked users.
+O. The system SHALL NOT maintain audit trails for personal use mode users.
 
-P. The system SHALL NOT maintain audit trails for personal use mode users.
+P. The system SHALL synchronize existing local data to study database upon user linking.
 
-Q. The system SHALL synchronize existing local data to study database upon user linking.
+Q. The system SHALL maintain complete data isolation between sponsors.
 
-R. The system SHALL maintain complete data isolation between sponsors.
+R. The system SHALL be available via iOS app store.
 
-S. The system SHALL be available via iOS app store.
+S. The system SHALL be available via Android app store.
 
-T. The system SHALL be available via Android app store.
+T. The system SHALL support offline operation for core diary operations in personal use mode.
 
-U. The system SHALL support offline operation for core diary operations in personal use mode.
+U. The system SHALL support offline operation for core diary operations in linked use mode.
 
-V. The system SHALL support offline operation for core diary operations in linked use mode.
-
-*End* *Diary Mobile Application* | **Hash**: 16a36106
+*End* *Diary Mobile Application* | **Hash**: 4aeb188b
 ---
 
 ## Local Data Storage

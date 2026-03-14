@@ -4,7 +4,7 @@
 
 # Requirements Index
 
-## Product Requirement
+## PRD
 
 ### hht-diary/spec
 
@@ -13,16 +13,16 @@
 | REQ-p00001 | Complete Multi-Sponsor Data Separation                 | prd-security.md                     | 57702900 |
 | REQ-p00002 | Multi-Factor Authentication for Staff                  | prd-security.md                     | b014564d |
 | REQ-p00003 | Separate Database Per Sponsor                          | prd-database.md                     | 08e74590 |
-| REQ-p00004 | Immutable Audit Trail via Event Sourcing               | prd-database.md                     | 4353a766 |
-| REQ-p00005 | Role-Based Access Control                              | prd-security-RBAC.md                | 83e3e545 |
+| REQ-p00004 | Immutable Audit Trail via Event Sourcing               | prd-database.md                     | 1a5361d5 |
+| REQ-p00005 | Role-Based Access Control                              | prd-security-RBAC.md                | d5129b08 |
 | REQ-p00006 | Offline-First Data Entry                               | prd-diary-app.md                    | b0555756 |
 | REQ-p00007 | Automatic Sponsor Configuration                        | prd-diary-app.md                    | 3896c05a |
 | REQ-p00008 | Single Mobile App for All Sponsors                     | prd-architecture-multi-sponsor.md   | 3fe1fad0 |
 | REQ-p00009 | Sponsor-Specific Portals                               | prd-architecture-multi-sponsor.md   | e26dfd95 |
-| REQ-p00010 | FDA 21 CFR Part 11 Compliance                          | prd-clinical-trials.md              | 20c0e7bc |
-| REQ-p00011 | ALCOA+ Data Integrity Principles                       | prd-clinical-trials.md              | 54818734 |
-| REQ-p00012 | Clinical Data Retention Requirements                   | prd-clinical-trials.md              | 42ddd27b |
-| REQ-p00013 | Complete Data Change History                           | prd-database.md                     | a5e8ac78 |
+| REQ-p00010 | FDA 21 CFR Part 11 Compliance                          | prd-clinical-trials.md              | 39aa8ddd |
+| REQ-p00011 | ALCOA+ Data Integrity Principles                       | prd-clinical-trials.md              | 6697108e |
+| REQ-p00012 | Clinical Data Retention Requirements                   | prd-clinical-trials.md              | 095cb350 |
+| REQ-p00013 | Complete Data Change History                           | prd-database.md                     | 36c01fca |
 | REQ-p00014 | Least Privilege Access                                 | prd-security-RBAC.md                | 6b0df135 |
 | REQ-p00015 | Database-Level Access Enforcement                      | prd-security-RLS.md                 | e0b19391 |
 | REQ-p00016 | Separation of Identity and Clinical Data               | prd-security-data-classification.md | 4a8b2335 |
@@ -39,10 +39,10 @@
 | REQ-p00039 | Administrator Access with Audit Trail                  | prd-security-RLS.md                 | 5082758c |
 | REQ-p00040 | Event Sourcing State Protection                        | prd-security-RLS.md                 | 1694c31b |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                    | prd-epistaxis-terminology.md        | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                               | prd-diary-app.md                    | 16a36106 |
+| REQ-p00043 | Diary Mobile Application                               | prd-diary-app.md                    | 4aeb188b |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform                | prd-system.md                       | 0919ad00 |
-| REQ-p00045 | Regulatory Compliance Framework                        | prd-clinical-trials.md              | c4fa27f7 |
-| REQ-p00046 | Clinical Data Storage System                           | prd-database.md                     | 75ec9efe |
+| REQ-p00045 | Regulatory Compliance Framework                        | prd-clinical-trials.md              | 36578817 |
+| REQ-p00046 | Clinical Data Storage System                           | prd-database.md                     | 31d1e36b |
 | REQ-p00047 | Data Backup and Archival                               | prd-backup.md                       | 4e9501e4 |
 | REQ-p00048 | Platform Operations and Monitoring                     | prd-devops.md                       | af349286 |
 | REQ-p00049 | Ancillary Platform Services                            | prd-services.md                     | ff326529 |
@@ -51,7 +51,7 @@
 | REQ-p01000 | Event Sourcing Client Interface                        | prd-event-sourcing-system.md        | c289ba20 |
 | REQ-p01001 | Offline Event Queue with Automatic Synchronization     | prd-event-sourcing-system.md        | 192df7e9 |
 | REQ-p01002 | Optimistic Concurrency Control                         | prd-event-sourcing-system.md        | dd66beb1 |
-| REQ-p01003 | Immutable Event Storage with Audit Trail               | prd-event-sourcing-system.md        | db231d89 |
+| REQ-p01003 | Immutable Event Storage with Audit Trail               | prd-event-sourcing-system.md        | ec106ced |
 | REQ-p01004 | Schema Version Management                              | prd-event-sourcing-system.md        | 94c032f0 |
 | REQ-p01005 | Real-time Event Subscription                           | prd-event-sourcing-system.md        | 61d80d18 |
 | REQ-p01006 | Type-Safe Materialized View Queries                    | prd-event-sourcing-system.md        | 0ca0d9ae |
@@ -134,7 +134,7 @@
 | REQ-p70000 | Local Data Storage                                     | prd-diary-app.md                    | f74d92a4 |
 | REQ-p70001 | Sponsor Portal Application                             | prd-portal.md                       | 290ca25c |
 | REQ-p70005 | Customizable Role-Based Access Control                 | prd-portal.md                       | d0617ddb |
-| REQ-p70006 | Comprehensive Audit Trail                              | prd-portal.md                       | e3ed7b52 |
+| REQ-p70006 | Comprehensive Audit Trail                              | prd-portal.md                       | c3ec2048 |
 | REQ-p70007 | Linking Code Lifecycle Management                      | prd-portal.md                       | c0a77938 |
 | REQ-p70008 | Sponsor-Specific Role Mapping                          | prd-portal.md                       | 9b56c1c9 |
 | REQ-p70009 | Link New Patient Workflow                              | prd-portal.md                       | 84d192e7 |
@@ -160,7 +160,7 @@
 | REQ-p80050             | System Access and Security Controls                                 | prd-fda-part11-domains.md | c9937e50 |
 | REQ-p80060             | Closed and Open System Controls                                     | prd-fda-part11-domains.md | 20d10fe8 |
 
-## Operations Requirement
+## OPS
 
 ### hht-diary/spec
 
@@ -241,7 +241,7 @@
 | REQ-o80020 | Record Retention and Archival        | ops-fda-part11-SOPs.md | 9fcd1947 |
 | REQ-o80030 | Standard Operating Procedures        | ops-fda-part11-SOPs.md | 50d11093 |
 
-## Development Requirement
+## DEV
 
 ### hht-diary/spec
 

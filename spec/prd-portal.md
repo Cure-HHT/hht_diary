@@ -304,23 +304,11 @@ Regulatory compliance (FDA 21 CFR Part 11, GCP) requires complete audit trails f
 
 ## Assertions
 
-A. The system SHALL maintain an immutable audit trail of all user actions.
+A. The audit trail SHALL include action target for each action.
 
-B. The audit trail SHALL include timestamp for each action.
+B. Audit log visibility SHALL be configurable per role.
 
-C. The audit trail SHALL include username for each action.
-
-D. The audit trail SHALL include action type for each action.
-
-E. The audit trail SHALL include action target for each action.
-
-F. Audit logs SHALL NOT be editable.
-
-G. Audit logs SHALL NOT be deletable.
-
-H. Audit log visibility SHALL be configurable per role.
-
-*End* *Comprehensive Audit Trail* | **Hash**: e3ed7b52
+*End* *Comprehensive Audit Trail* | **Hash**: c3ec2048
 ---
 
 # REQ-p70008: Sponsor-Specific Role Mapping
