@@ -343,16 +343,16 @@
 
 ## User Journeys
 
-| ID                           | Title                                     | Actor                             | File                           |
-| ---------------------------- | ----------------------------------------- | --------------------------------- | ------------------------------ |
-| JNY-Epistaxis-Diary-01       | Recording a Nosebleed Event               | James (Patient)                   | prd-questionnaire-epistaxis.md |
-| JNY-Epistaxis-Diary-02       | Recording a Day Without Nosebleeds        | James (Patient)                   | prd-questionnaire-epistaxis.md |
-| JNY-Epistaxis-Diary-03       | Recording When Memory Is Uncertain        | Sarah (Patient)                   | prd-questionnaire-epistaxis.md |
-| JNY-Epistaxis-Diary-04       | Editing a Previous Record                 | James (Patient)                   | prd-questionnaire-epistaxis.md |
-| JNY-HHT-QoL-01               | Completing the Quality of Life Assessment | Sarah (Patient)                   | prd-questionnaire-qol.md       |
-| JNY-NOSE-HHT-01              | Completing the NOSE HHT Assessment        | Maria (Patient)                   | prd-questionnaire-nose-hht.md  |
-| JNY-Portal-Linking-01        | Link New Patient                          | Dr. Sarah Mitchell (Investigator) | prd-portal.md                  |
-| JNY-Portal-Linking-02        | Lost Mobile Phone Recovery                | Dr. Sarah Mitchell (Investigator) | prd-portal.md                  |
-| JNY-Questionnaire-Session-01 | Deferring a Questionnaire                 | Maria (Patient)                   | prd-questionnaire-session.md   |
-| JNY-Questionnaire-Session-02 | Session Expiry After Interruption         | Maria (Patient)                   | prd-questionnaire-session.md   |
-| JNY-Study-Start-01           | Enrolling in a Clinical Trial             | Maria (Patient)                   | prd-questionnaire-system.md    |
+| ID                           | Title                                     | Actor                             | File                                   |
+| ---------------------------- | ----------------------------------------- | --------------------------------- | -------------------------------------- |
+| JNY-Epistaxis-Diary-01       | Recording a Nosebleed Event               | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-02       | Recording a Day Without Nosebleeds        | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-03       | Recording When Memory Is Uncertain        | Sarah (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-04       | Editing a Previous Record                 | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-HHT-QoL-01               | Completing the Quality of Life Assessment | Sarah (Patient)                   | quality-of-life-assessment-journeys.md |
+| JNY-NOSE-HHT-01              | Completing the NOSE HHT Assessment        | Maria (Patient)                   | nose-hht-assessment-journeys.md        |
+| JNY-Portal-Linking-01        | Link New Patient                          | Dr. Sarah Mitchell (Investigator) | portal-linking-journeys.md             |
+| JNY-Portal-Linking-02        | Lost Mobile Phone Recovery                | Dr. Sarah Mitchell (Investigator) | portal-linking-journeys.md             |
+| JNY-Questionnaire-Session-01 | Deferring a Questionnaire                 | Maria (Patient)                   | questionnaire-session-journeys.md      |
+| JNY-Questionnaire-Session-02 | Session Expiry After Interruption         | Maria (Patient)                   | questionnaire-session-journeys.md      |
+| JNY-Study-Start-01           | Enrolling in a Clinical Trial             | Maria (Patient)                   | clinical-trial-enrollment-journeys.md  |
