@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-Clinical trial systems must comply with strict regulations to ensure data integrity and patient safety. This system meets all requirements for electronic clinical trial data collection in the United States and European Union.
+Clinical trial systems must comply with strict regulations to ensure data integrity and patient safety. This system is designed to meet all requirements for electronic clinical trial data collection in the United States and European Union.
 
 **Primary Regulations**:
 
@@ -36,13 +36,12 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 - Required for regulatory submission
 - Reduces risk of study rejection
-- Protects company reputation
 
 **For Patients**:
 
-- Guarantees their data is handled properly
-- Ensures privacy protection
-- Maintains trust in clinical research
+- Defines how to properly handle their data
+- Provides privacy protection
+- Basis of trust in clinical research
 
 ---
 
@@ -361,27 +360,6 @@ The detailed FDA regulatory requirements in `spec/regulations/fda/` are derived 
 | **FDA Guidance for Industry: Part 11 Scope and Application** | FDA guidance on interpretation and enforcement priorities | REQ-p80203, REQ-p80303, REQ-p80403 |
 | **ICH E6(R2) GCP Consolidated Guideline** | International standards for clinical trial conduct | REQ-p80005 |
 | **ICH E6(R2) GCP Detailed Requirements** | Specific requirements for electronic systems in clinical trials | REQ-p80204, REQ-p80304, REQ-p80404 |
-
-### Traceability Chain
-
-The regulatory compliance hierarchy follows this structure:
-
-```
-REQ-p00044 (Platform) - Top-level system definition
-    └── REQ-p00045 (Regulatory Compliance Framework)
-            ├── REQ-p80001 (US FDA 21 CFR Part 11)
-            │       ├── REQ-p00010 (FDA 21 CFR Part 11 Compliance) - platform commitment
-            │       ├── REQ-p80010 (Electronic Records Controls)
-            │       │       └── p00011 (ALCOA+), p00046, p01060
-            │       ├── REQ-p80030 (Audit Trail Requirements)
-            │       │       └── p00012, p01025, p01035, p01038, o00005, o00049, o00054, o00067
-            │       ├── REQ-p80050 (System Access and Security Controls)
-            │       │       └── p00014, p00016, p01020, o00066, o00075
-            │       └── REQ-p80060 (Closed and Open System Controls)
-            │               └── p00020, o00041, o00042, o00051, o00052, o00053, d00062
-            └── REQ-p01061 (EU GDPR)
-                    └── REQ-p01062 (Data Portability)
-```
 
 REQ-p80001 provides the authoritative regulatory source documentation. Platform requirements implement specific FDA domains (p80010-p80060) rather than the umbrella REQ-p00010.
 
