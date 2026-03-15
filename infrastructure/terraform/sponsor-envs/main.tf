@@ -165,40 +165,66 @@ module "database" {
 }
 
 # -----------------------------------------------------------------------------
+# Database Password Secret (for Cloud Run services)
+# -----------------------------------------------------------------------------
+
+resource "google_secret_manager_secret" "db_password" {
+  count     = var.enable_cloud_run ? 1 : 0
+  secret_id = "DB_PASSWORD"
+  project   = var.project_id
+
+  labels = local.common_labels
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "db_password" {
+  count       = var.enable_cloud_run ? 1 : 0
+  secret      = google_secret_manager_secret.db_password[0].id
+  secret_data = var.DB_PASSWORD
+}
+
+# -----------------------------------------------------------------------------
 # Cloud Run Services
 # -----------------------------------------------------------------------------
-# TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
-# module "cloud_run" {
-#   source = "../modules/cloud-run"
 
-#   project_id       = var.project_id
-#   sponsor          = var.sponsor
-#   environment      = var.environment
-#   region           = var.region
-#   vpc_connector_id = module.vpc.connector_id
+module "cloud_run" {
+  source = "../modules/cloud-run"
+  count  = var.enable_cloud_run ? 1 : 0
 
-#   # Container images (via Artifact Registry GHCR proxy)
-#   diary_server_image  = var.diary_server_image
-#   portal_server_image = var.portal_server_image
+  project_id       = var.project_id
+  sponsor          = var.sponsor
+  environment      = var.environment
+  region           = var.region
+  vpc_connector_id = module.network.connector_id
 
-#   db_host               = module.cloud_sql.private_ip_address
-#   db_name               = module.cloud_sql.database_name
-#   db_user               = module.cloud_sql.database_user
-#   db_password_secret_id = google_secret_manager_secret.db_password.secret_id
+  # Container images (via Artifact Registry GHCR proxy)
+  diary_server_image  = var.diary_server_image
+  portal_server_image = var.portal_server_image
 
-#   min_instances    = var.min_instances
-#   max_instances    = var.max_instances
-#   container_memory = var.container_memory
-#   container_cpu    = var.container_cpu
+  # Database connection
+  db_host               = module.database.private_ip_address
+  db_name               = module.database.database_name
+  db_user               = module.database.database_user
+  db_password_secret_id = google_secret_manager_secret.db_password[0].secret_id
 
-#   allow_public_access = var.allow_public_access
+  # Scaling configuration
+  min_instances    = var.min_instances
+  max_instances    = var.max_instances
+  container_memory = var.container_memory
+  container_cpu    = var.container_cpu
 
-#   depends_on = [
-#     module.vpc,
-#     module.cloud_sql,
-#     google_secret_manager_secret_version.db_password,
-#   ]
-# }
+  # Access control
+  allow_public_access = var.allow_public_access
+
+  depends_on = [
+    module.network,
+    module.database,
+    google_secret_manager_secret_version.db_password,
+  ]
+}
 
 # -----------------------------------------------------------------------------
 # Storage Buckets
@@ -213,6 +239,13 @@ module "storage" {
   region                        = var.region
   enable_compute_sa_access      = true
   compute_service_account_email = local.compute_service_account_email
+
+  # Schema file upload configuration
+  schema_prefix            = var.schema_prefix
+  schema_file_name         = var.schema_file_name
+  schema_file_source       = var.schema_file_source
+  sponsor_data_file_name   = var.sponsor_data_file_name
+  sponsor_data_file_source = var.sponsor_data_file_source
 }
 
 # -----------------------------------------------------------------------------

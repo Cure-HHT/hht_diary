@@ -101,13 +101,14 @@ resource "google_service_account_iam_member" "cloud_run_impersonate" {
 #
 # Each sponsor project's Cloud Run Service Agent needs permission to pull
 # container images from this admin project's Artifact Registry (ghcr-remote).
+# The Service Agent format is: service-{PROJECT_NUMBER}@serverless-robot-prod.iam.gserviceaccount.com
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00043: Automated Deployment Pipeline
 #   REQ-o00001: Separate GCP Projects Per Sponsor
 
-resource "google_project_iam_member" "cloudrun_service_acct_artifact_reader" {
-  for_each = toset(var.sponsor_cloud_run_service_accounts)
+resource "google_project_iam_member" "cloudrun_service_agent_artifact_reader" {
+  for_each = toset(var.sponsor_cloud_run_service_agents)
 
   project = var.project_id
   role    = "roles/artifactregistry.reader"

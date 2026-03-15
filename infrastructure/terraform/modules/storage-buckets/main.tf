@@ -140,3 +140,36 @@ resource "google_storage_bucket_iam_member" "compute_app_data_object_user" {
   role   = "roles/storage.objectUser"
   member = "serviceAccount:${var.compute_service_account_email}"
 }
+
+# -----------------------------------------------------------------------------
+# Schema Files Upload (for db-schema-job)
+# -----------------------------------------------------------------------------
+#
+# Uploads consolidated schema and sponsor data files to the app_data bucket
+# under the db-schema/ prefix for use by the database deployment job.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00057: Automated database schema deployment
+#   REQ-o00004: Database Schema Deployment
+
+# Upload consolidated schema file
+resource "google_storage_bucket_object" "schema_file" {
+  count  = var.create_app_data_bucket && var.schema_file_source != "" ? 1 : 0
+  name   = "${var.schema_prefix}/${var.schema_file_name}"
+  bucket = google_storage_bucket.app_data[0].name
+  source = var.schema_file_source
+
+  # Detect changes via content hash
+  content_type = "application/sql"
+}
+
+# Upload sponsor data file
+resource "google_storage_bucket_object" "sponsor_data_file" {
+  count  = var.create_app_data_bucket && var.sponsor_data_file_source != "" ? 1 : 0
+  name   = "${var.schema_prefix}/${var.sponsor_data_file_name}"
+  bucket = google_storage_bucket.app_data[0].name
+  source = var.sponsor_data_file_source
+
+  # Detect changes via content hash
+  content_type = "application/sql"
+}

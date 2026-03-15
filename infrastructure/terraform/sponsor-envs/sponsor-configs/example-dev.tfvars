@@ -59,8 +59,16 @@ container_cpu    = "1"
 github_org  = "Cure-HHT"
 github_repo = "hht_diary"
 
-# Enable Cloud Build triggers
-enable_cloud_build_triggers = true
+# Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
+enable_cloud_build_triggers = false
+
+# Enable Cloud Run services (diary-server, portal-server)
+# Set to true when container images are ready in Artifact Registry
+enable_cloud_run = false
+
+# Container Images (via Artifact Registry GHCR proxy in admin project)
+# diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+# portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -119,6 +127,16 @@ audit_retention_years = 25
 
 # Billing budget (migrated from bootstrap)
 budget_amount = 500 # Monthly budget in USD
+
+# -----------------------------------------------------------------------------
+# Optional: Schema File Upload (for db-schema-job)
+# -----------------------------------------------------------------------------
+# Files are uploaded to GCS for the database deployment job.
+# Run ./database/tool/consolidate-schema.sh before terraform apply.
+#
+# schema_file_source       = "../../../../database/init-consolidated.sql"
+# sponsor_data_file_name   = "seed_example_dev.sql"
+# sponsor_data_file_source = "../../../../database/seed_example_dev.sql"
 
 # -----------------------------------------------------------------------------
 # Optional: VPC Network

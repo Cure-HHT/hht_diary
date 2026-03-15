@@ -128,6 +128,16 @@ variable "terraform_state_bucket" {
   default     = "cure-hht-terraform-state"
 }
 
+# -----------------------------------------------------------------------------
+# Admin Project Configuration
+# -----------------------------------------------------------------------------
+
+variable "admin_project_id" {
+  description = "Admin project ID containing shared Artifact Registry (ghcr-remote)"
+  type        = string
+  default     = "cure-hht-admin"
+}
+
 variable "tf_env_token_creators" {
   description = "Email addresses granted roles/iam.serviceAccountTokenCreator on per-environment Terraform SAs"
   type        = list(string)

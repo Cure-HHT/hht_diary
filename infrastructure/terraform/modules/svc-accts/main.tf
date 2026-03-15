@@ -63,3 +63,19 @@ resource "google_project_iam_member" "compute_service_usage_consumer" {
   role    = "roles/serviceusage.serviceUsageConsumer"
   member  = "serviceAccount:${google_service_account.compute.email}"
 }
+
+# Grant VPC Access User
+# Required for Cloud Run services to use VPC Access connectors
+resource "google_project_iam_member" "compute_vpcaccess_user" {
+  project = var.project_id
+  role    = "roles/vpcaccess.user"
+  member  = "serviceAccount:${google_service_account.compute.email}"
+}
+
+# Grant Compute Network User
+# Required for Cloud Run services to access VPC networks and subnets
+resource "google_project_iam_member" "compute_network_user" {
+  project = var.project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:${google_service_account.compute.email}"
+}

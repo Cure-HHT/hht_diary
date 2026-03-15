@@ -72,8 +72,12 @@ enable_cloud_build_triggers = false
 diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
 portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
-# Disable public access due to organization policy restrictions
-allow_public_access = false
+# Enable Cloud Run services (diary-server, portal-server)
+# Set to true when container images are ready in Artifact Registry
+enable_cloud_run = false
+
+# Allow unauthenticated access (app handles its own authentication)
+allow_public_access = true
 
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
@@ -130,3 +134,13 @@ workforce_identity_enabled = false
 audit_retention_years = 25
 # Note: lock_retention_policy is automatically set based on environment
 # (true for prod, false for dev/qa/uat)
+
+# -----------------------------------------------------------------------------
+# Optional: Schema File Upload (for db-schema-job)
+# -----------------------------------------------------------------------------
+# Files are uploaded to GCS for the database deployment job.
+# Run ./database/tool/consolidate-schema.sh before terraform apply.
+#
+# schema_file_source       = "../../../../database/init-consolidated.sql"
+# sponsor_data_file_name   = "seed_cure_hht_dev.sql"
+# sponsor_data_file_source = "../../../../database/seed_cure_hht_dev.sql"

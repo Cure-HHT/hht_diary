@@ -52,9 +52,29 @@ gmail_sender_email = "support@anspar.org"
 # (e.g., github-actions-sa service account).
 
 # Add Cloud Run service account emails here after deploying sponsor-envs
+# These are the identities your containers run as (for Gmail impersonation)
 sponsor_cloud_run_service_accounts = [
-  "service-768644809588@serverless-robot-prod.iam.gserviceaccount.com",  # Cloud Run Service Agent (Artifact Registry pull)
-  "768644809588-compute@developer.gserviceaccount.com"                   # callisto4-uat default compute SA (Gmail signJwt)
+  "callisto4-uat-run-sa@callisto4-uat.iam.gserviceaccount.com",   # callisto4-uat Cloud Run SA
+  "callisto4-prod-run-sa@callisto4-prod.iam.gserviceaccount.com"  # callisto4-prod Cloud Run SA
+]
+
+# -----------------------------------------------------------------------------
+# Sponsor Cloud Run Service Agents (for Artifact Registry access)
+# -----------------------------------------------------------------------------
+#
+# Add each sponsor project's Cloud Run Service Agent here to allow pulling
+# container images from the admin project's Artifact Registry (ghcr-remote).
+#
+# Format: service-{PROJECT_NUMBER}@serverless-robot-prod.iam.gserviceaccount.com
+#
+# Get the project number:
+#   gcloud projects describe {PROJECT_ID} --format='value(projectNumber)'
+
+sponsor_cloud_run_service_agents = [
+  "service-1012274191696@serverless-robot-prod.iam.gserviceaccount.com",  # callisto4-dev
+  "service-421945483876@serverless-robot-prod.iam.gserviceaccount.com",   # callisto4-qa
+  "service-768644809588@serverless-robot-prod.iam.gserviceaccount.com",   # callisto4-uat
+  "service-163292813995@serverless-robot-prod.iam.gserviceaccount.com"    # callisto4-prod
 ]
 
 # Add the Compute Engine default service account for each sponsor/environment here to allow read access to the schema bucket for migrations/resets.

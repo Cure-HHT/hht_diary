@@ -30,15 +30,25 @@ output "region" {
 # Cloud Run URLs
 # -----------------------------------------------------------------------------
 
-# output "diary_server_url" {
-#   description = "Diary server URL"
-#   value       = module.cloud_run.diary_server_url
-# }
+output "cloud_run_enabled" {
+  description = "Whether Cloud Run services are enabled"
+  value       = var.enable_cloud_run
+}
 
-# output "portal_server_url" {
-#   description = "Portal server URL"
-#   value       = module.cloud_run.portal_server_url
-# }
+output "diary_server_url" {
+  description = "Diary server URL"
+  value       = var.enable_cloud_run ? module.cloud_run[0].diary_server_url : null
+}
+
+output "portal_server_url" {
+  description = "Portal server URL"
+  value       = var.enable_cloud_run ? module.cloud_run[0].portal_server_url : null
+}
+
+output "cloud_run_service_account_email" {
+  description = "Cloud Run service account email"
+  value       = var.enable_cloud_run ? module.cloud_run[0].service_account_email : null
+}
 
 # -----------------------------------------------------------------------------
 # Database
@@ -223,9 +233,10 @@ output "summary" {
     Project:     ${var.project_id}
     Region:      ${var.region}
 
-    URLs:
-      portal:      ${var.portal_server_url}
-      API:         ${var.diary_server_url}
+    Cloud Run:
+      Enabled:     ${var.enable_cloud_run}
+      Portal URL:  ${var.enable_cloud_run ? module.cloud_run[0].portal_server_url : "N/A"}
+      API URL:     ${var.enable_cloud_run ? module.cloud_run[0].diary_server_url : "N/A"}
 
     VPC Network: ${module.network.network_name}
 

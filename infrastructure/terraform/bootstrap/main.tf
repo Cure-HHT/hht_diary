@@ -264,6 +264,29 @@ resource "google_project_iam_member" "compute_artifact_registry_reader" {
 }
 
 # -----------------------------------------------------------------------------
+# Cross-Project: Cloud Run Service Agent Access to Admin Project Artifact Registry
+# -----------------------------------------------------------------------------
+#
+# Cloud Run Service Agents need to pull container images from the admin project's
+# Artifact Registry (ghcr-remote). The Service Agent is automatically created when
+# Cloud Run API is enabled and has format:
+#   service-{PROJECT_NUMBER}@serverless-robot-prod.iam.gserviceaccount.com
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00001: Separate GCP Projects Per Sponsor
+
+resource "google_project_iam_member" "cloudrun_service_agent_admin_artifact_reader" {
+  for_each = toset(local.environments)
+
+  project = var.admin_project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:service-${module.projects[each.key].project_number}@serverless-robot-prod.iam.gserviceaccount.com"
+
+  depends_on = [module.projects]
+}
+
+# -----------------------------------------------------------------------------
 # API Enablement (per-environment)
 # -----------------------------------------------------------------------------
 
