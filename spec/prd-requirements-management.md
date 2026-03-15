@@ -1,7 +1,7 @@
 ## REQ-p00020: System Validation and Traceability
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00045-B
+**Refines**: p01085-A
 
 ## Assertions
 
