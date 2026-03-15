@@ -1,66 +1,7 @@
-# Clinical Trial Database Architecture
+## REQ-p00013: Complete Data Change History
 
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-12-02
-**Status**: Draft
-
-> **See**: prd-system.md for platform overview
-> **See**: prd-event-sourcing-system.md for generic event sourcing architecture
-> **See**: dev-database.md for implementation details
-> **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture
-> **See**: prd-clinical-trials.md for compliance requirements
-
----
-
-# REQ-p00046: Clinical Data Storage System
-
-**Level**: PRD | **Status**: Draft
-
-## Rationale
-
-This requirement defines the foundational data persistence layer for all clinical trial information. FDA 21 CFR Part 11 mandates that electronic records used in clinical trials maintain complete, tamper-evident audit trails and secure access controls. Event sourcing architecture ensures all data modifications are captured as immutable events, enabling reconstruction of complete data history at any point in time. Sponsor isolation through separate database instances protects data integrity across independent trials and prevents unauthorized cross-sponsor data access. Long-term retention capabilities ensure compliance with regulatory requirements for preserving clinical trial records.
-
-## Assertions
-
-A. The system SHALL use event sourcing to store all clinical trial data changes as immutable events.
-
-B. The system SHALL provide a separate database instance for each sponsor.
-
-D. The system SHALL implement row-level security for access control.
-
-E. The system SHALL enable reconstruction of complete data history at any point in time from stored events.
-
-*End* *Clinical Data Storage System* | **Hash**: b5144a76
-
----
-
-## Overview
-
-This document describes the diary-specific implementation and refinement of the event-sourcing system.
-
----
-
-## Executive Summary
-
-The database stores patient diary entries with complete history of all changes for regulatory compliance.
-Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
-FDA compliant record keeping.
-
----
-
-## What Data Is Stored
-
-- Daily nosebleed reports
-- Questionnaire responses
-
-# REQ-p00013: Complete Data Change History
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O
-
-## Rationale
-
-FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for all clinical data modifications in electronic records. This requirement ensures that original values are permanently preserved to prove data integrity and enable detection of improper modifications. The change history supports regulatory inspections by providing a complete timeline of who made what changes, when, why, and from which device. This implements the event sourcing architecture pattern where all changes are captured as immutable events rather than overwriting existing data.
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p00004-A, p00004-E
 
 ## Assertions
 
@@ -74,19 +15,16 @@ D. The system SHALL record session information for each change.
 
 E. The system SHALL store all modifications as separate historical records.
 
-*End* *Complete Data Change History* | **Hash**: 893afe9e
-
----
-
-## Data Isolation Between Sponsors
-
-# REQ-p00003: Separate Database Per Sponsor
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-A
-
 ## Rationale
 
-This requirement extends the multi-sponsor isolation principle (REQ-p00001) to the database infrastructure layer. Physical database separation is necessary for regulatory compliance in independent clinical trials, ensuring that each pharmaceutical sponsor's trial data is completely isolated from other sponsors. This architecture eliminates any technical possibility of data cross-contamination, provides clear audit boundaries for FDA 21 CFR Part 11 compliance, and ensures that database-level operations (queries, backups, recovery) cannot accidentally or intentionally access another sponsor's data. The physical separation also provides independent operational control and supports sponsor-specific compliance requirements.
+FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for all clinical data modifications in electronic records. This requirement ensures that original values are permanently preserved to prove data integrity and enable detection of improper modifications. The change history supports regulatory inspections by providing a complete timeline of who made what changes, when, why, and from which device. This implements the event sourcing architecture pattern where all changes are captured as immutable events rather than overwriting existing data.
+
+*End* *Complete Data Change History* | **Hash**: 893afe9e
+---
+## REQ-p00003: Separate Database Per Sponsor
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p00001
 
 ## Assertions
 
@@ -112,18 +50,16 @@ K. Backup operations SHALL be scoped to a single sponsor database.
 
 L. Restore operations SHALL be scoped to a single sponsor database.
 
-*End* *Separate Database Per Sponsor* | **Hash**: b265d8bb
----
-
-## Event Sourcing Architecture
-
-# REQ-p00004: Immutable Audit Trail via Event Sourcing
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-O
-
 ## Rationale
 
-FDA 21 CFR Part 11 requires complete audit trails for electronic records in clinical trials. Event sourcing is the architectural approach that makes audit trails automatic and tamper-proof by design - it is impossible to modify data without creating an event, and events cannot be altered after creation. This directly supports ALCOA+ principles (Attributable, Legible, Contemporaneous, Original, Accurate) by ensuring every data change is recorded with full context. Unlike traditional database updates that overwrite values and lose history, event sourcing preserves the complete chronological sequence of all changes, enabling time-travel queries to reconstruct data state at any point and providing tamper evidence through the immutable event log.
+This requirement extends the multi-sponsor isolation principle (REQ-p00001) to the database infrastructure layer. Physical database separation is necessary for regulatory compliance in independent clinical trials, ensuring that each pharmaceutical sponsor's trial data is completely isolated from other sponsors. This architecture eliminates any technical possibility of data cross-contamination, provides clear audit boundaries for FDA 21 CFR Part 11 compliance, and ensures that database-level operations (queries, backups, recovery) cannot accidentally or intentionally access another sponsor's data. The physical separation also provides independent operational control and supports sponsor-specific compliance requirements.
+
+*End* *Separate Database Per Sponsor* | **Hash**: b265d8bb
+---
+## REQ-p00004: Immutable Audit Trail via Event Sourcing
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p01085
 
 ## Assertions
 
@@ -145,7 +81,57 @@ I. The system SHALL prevent tampering with events through database constraints.
 
 L. The system SHALL update the current view automatically when new events are created.
 
+## Rationale
+
+FDA 21 CFR Part 11 requires complete audit trails for electronic records in clinical trials. Event sourcing is the architectural approach that makes audit trails automatic and tamper-proof by design - it is impossible to modify data without creating an event, and events cannot be altered after creation. This directly supports ALCOA+ principles (Attributable, Legible, Contemporaneous, Original, Accurate) by ensuring every data change is recorded with full context. Unlike traditional database updates that overwrite values and lose history, event sourcing preserves the complete chronological sequence of all changes, enabling time-travel queries to reconstruct data state at any point and providing tamper evidence through the immutable event log.
+
 *End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 59a44de8
+---
+# Clinical Trial Database Architecture
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: 2025-12-02
+**Status**: Draft
+
+> **See**: prd-system.md for platform overview
+> **See**: prd-event-sourcing-system.md for generic event sourcing architecture
+> **See**: dev-database.md for implementation details
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture
+> **See**: prd-clinical-trials.md for compliance requirements
+
+---
+
+
+---
+
+## Overview
+
+This document describes the diary-specific implementation and refinement of the event-sourcing system.
+
+---
+
+## Executive Summary
+
+The database stores patient diary entries with complete history of all changes for regulatory compliance.
+Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
+FDA compliant record keeping.
+
+---
+
+## What Data Is Stored
+
+- Daily nosebleed reports
+- Questionnaire responses
+
+
+---
+
+## Data Isolation Between Sponsors
+
+
+## Event Sourcing Architecture
+
 
 ---
 

@@ -1,40 +1,9 @@
-# HHT Epistaxis Data Capture Terminology
+## REQ-p00042: HHT Epistaxis Data Capture Standard
 
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-11-28
-**Status**: Draft
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01065-D
 
-> **Scope**: Standard terminology for epistaxis (nosebleed) data capture in HHT clinical studies
->
-> **See**: prd-clinical-trials.md for FDA compliance requirements
-> **See**: prd-standards.md for CDISC standards compliance
-> **See**: dev-CDISC.md for CDISC field mapping implementation
-
----
-
-## Executive Summary
-
-This document defines the **standard terminology and data capture format** for epistaxis events in HHT (Hereditary Hemorrhagic Telangiectasia) clinical studies. The terminology was developed specifically for HHT patient populations and uses descriptive, patient-friendly language that accurately captures the clinical severity of nosebleed events.
-
-**Key Principles**:
-
-- Patient-friendly descriptive terminology for intensity/severity
-- Precise temporal data with timezone awareness
-- Sponsor-configurable notes to prevent unblinding and PII exposure
-- ALCOA+ compliant data capture
-
----
-
-## Epistaxis Event Data Model
-
-# REQ-p00042: HHT Epistaxis Data Capture Standard
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00044-A+C
-
-## Rationale
-
-This requirement establishes the HHT-specific data capture standard for epistaxis (nosebleed) events in clinical trials. The six-level intensity scale uses patient-friendly language that maps to clinical severity while remaining intuitive for self-reporting, reducing inter-patient variability compared to numeric scales. Timezone-aware timestamps enable accurate duration calculation for patients who travel or experience daylight saving time changes during events. The three-state daily status model (had nosebleed, no nosebleed, don't remember) supports ALCOA+ principles by allowing honest uncertainty rather than forcing fabricated data. This standard was developed specifically for HHT clinical studies to ensure consistent, accurate data collection across all participating sites.
+**Refines**: REQ-p01085
 
 ## Assertions
 
@@ -90,7 +59,42 @@ Y. The system SHALL store date_recorded as a system-generated timestamp in UTC f
 
 Z. The system SHALL display the actual user-entered timezone when loading stored data, not just the timezone offset.
 
+## Rationale
+
+This requirement establishes the HHT-specific data capture standard for epistaxis (nosebleed) events in clinical trials. The six-level intensity scale uses patient-friendly language that maps to clinical severity while remaining intuitive for self-reporting, reducing inter-patient variability compared to numeric scales. Timezone-aware timestamps enable accurate duration calculation for patients who travel or experience daylight saving time changes during events. The three-state daily status model (had nosebleed, no nosebleed, don't remember) supports ALCOA+ principles by allowing honest uncertainty rather than forcing fabricated data. This standard was developed specifically for HHT clinical studies to ensure consistent, accurate data collection across all participating sites.
+
 *End* *HHT Epistaxis Data Capture Standard* | **Hash**: 36dc9faf
+---
+# HHT Epistaxis Data Capture Terminology
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: 2025-11-28
+**Status**: Draft
+
+> **Scope**: Standard terminology for epistaxis (nosebleed) data capture in HHT clinical studies
+>
+> **See**: prd-clinical-trials.md for FDA compliance requirements
+> **See**: prd-standards.md for CDISC standards compliance
+> **See**: dev-CDISC.md for CDISC field mapping implementation
+
+---
+
+## Executive Summary
+
+This document defines the **standard terminology and data capture format** for epistaxis events in HHT (Hereditary Hemorrhagic Telangiectasia) clinical studies. The terminology was developed specifically for HHT patient populations and uses descriptive, patient-friendly language that accurately captures the clinical severity of nosebleed events.
+
+**Key Principles**:
+
+- Patient-friendly descriptive terminology for intensity/severity
+- Precise temporal data with timezone awareness
+- Sponsor-configurable notes to prevent unblinding and PII exposure
+- ALCOA+ compliant data capture
+
+---
+
+## Epistaxis Event Data Model
+
 
 ---
 

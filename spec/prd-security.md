@@ -1,3 +1,75 @@
+## REQ-p00001: Complete Multi-Sponsor Data Separation
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p01085
+
+## Assertions
+
+A. The system SHALL ensure complete data isolation between pharmaceutical sponsors such that no user, administrator, or automated process can access data belonging to a different sponsor.
+
+B. Each sponsor SHALL operate with a dedicated database instance.
+
+C. Each sponsor SHALL operate with a separate authentication system.
+
+D. Each sponsor SHALL operate with independent encryption keys.
+
+E. Each sponsor SHALL operate with isolated user accounts.
+
+F. The system SHALL NOT allow database queries to return records from other sponsors.
+
+G. Authentication tokens SHALL be scoped to a single sponsor.
+
+I. Administrative access SHALL be limited to a single sponsor.
+
+J. The system architecture SHALL make cross-sponsor access technically impossible.
+
+## Rationale
+
+This requirement establishes complete data isolation between pharmaceutical sponsors to eliminate any possibility of accidental data mixing or unauthorized cross-sponsor access. Multi-sponsor platforms face unique regulatory and competitive challenges where data breaches between sponsors could violate FDA compliance, compromise competitive confidentiality, and undermine sponsor trust. By enforcing architectural isolation at multiple layers (database, authentication, encryption, and user management), the system ensures that cross-sponsor access becomes technically impossible rather than merely administratively prohibited.
+
+*End* *Complete Multi-Sponsor Data Separation* | **Hash**: d01b64d9
+---
+## REQ-p00002: Multi-Factor Authentication for Staff
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p01018
+
+## Assertions
+
+A. The system SHALL require multi-factor authentication (MFA) for all clinical staff accessing the system.
+
+B. The system SHALL require multi-factor authentication (MFA) for all administrators accessing the system.
+
+C. The system SHALL require multi-factor authentication (MFA) for all sponsor personnel accessing the system.
+
+D. MFA SHALL consist of something the user knows (password) as the first factor.
+
+E. MFA SHALL consist of something the user has (time-based code from authenticator app or SMS) as the second factor.
+
+F. The system SHALL NOT allow staff access without successful MFA completion.
+
+G. The system SHALL NOT allow administrator access without successful MFA completion.
+
+H. The system SHALL require all clinical staff accounts to complete MFA enrollment before first use.
+
+I. The system SHALL NOT allow administrator accounts to be created without MFA.
+
+J. The system SHALL perform MFA verification at each login session.
+
+K. The system SHALL allow users to configure TOTP authenticator apps for MFA.
+
+L. The system SHALL allow users to configure SMS as a backup MFA method.
+
+M. The system SHALL log all MFA authentication attempts including successes.
+
+N. The system SHALL log all MFA authentication attempts including failures.
+
+## Rationale
+
+Clinical trial data is highly sensitive and subject to FDA 21 CFR Part 11 regulations, which mandate controls to ensure that only authorized individuals can access electronic records and electronic signatures. Multi-factor authentication significantly reduces the risk of unauthorized access via compromised credentials by requiring both knowledge-based and possession-based authentication factors. This requirement applies to all clinical staff, administrators, and sponsor personnel who have elevated privileges to access, modify, or manage clinical trial data. Patients may optionally use MFA but are not required due to accessibility concerns and the lower risk profile of patient-only access.
+
+*End* *Multi-Factor Authentication for Staff* | **Hash**: b014564d
+---
 # Security Architecture
 
 **Version**: 1.0
@@ -30,79 +102,9 @@ The system protects clinical trial data through multiple layers of security, ens
 
 ## Multi-Sponsor Data Isolation
 
-# REQ-p00001: Complete Multi-Sponsor Data Separation
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00044-B
-
-## Rationale
-
-This requirement establishes complete data isolation between pharmaceutical sponsors to eliminate any possibility of accidental data mixing or unauthorized cross-sponsor access. Multi-sponsor platforms face unique regulatory and competitive challenges where data breaches between sponsors could violate FDA compliance, compromise competitive confidentiality, and undermine sponsor trust. By enforcing architectural isolation at multiple layers (database, authentication, encryption, and user management), the system ensures that cross-sponsor access becomes technically impossible rather than merely administratively prohibited.
-
-## Assertions
-
-A. The system SHALL ensure complete data isolation between pharmaceutical sponsors such that no user, administrator, or automated process can access data belonging to a different sponsor.
-
-B. Each sponsor SHALL operate with a dedicated database instance.
-
-C. Each sponsor SHALL operate with a separate authentication system.
-
-D. Each sponsor SHALL operate with independent encryption keys.
-
-E. Each sponsor SHALL operate with isolated user accounts.
-
-F. The system SHALL NOT allow database queries to return records from other sponsors.
-
-G. Authentication tokens SHALL be scoped to a single sponsor.
-
-I. Administrative access SHALL be limited to a single sponsor.
-
-J. The system architecture SHALL make cross-sponsor access technically impossible.
-
-*End* *Complete Multi-Sponsor Data Separation* | **Hash**: d01b64d9
----
 
 ## User Authentication
 
-# REQ-p00002: Multi-Factor Authentication for Staff
-
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+G+O
-
-## Rationale
-
-Clinical trial data is highly sensitive and subject to FDA 21 CFR Part 11 regulations, which mandate controls to ensure that only authorized individuals can access electronic records and electronic signatures. Multi-factor authentication significantly reduces the risk of unauthorized access via compromised credentials by requiring both knowledge-based and possession-based authentication factors. This requirement applies to all clinical staff, administrators, and sponsor personnel who have elevated privileges to access, modify, or manage clinical trial data. Patients may optionally use MFA but are not required due to accessibility concerns and the lower risk profile of patient-only access.
-
-## Assertions
-
-A. The system SHALL require multi-factor authentication (MFA) for all clinical staff accessing the system.
-
-B. The system SHALL require multi-factor authentication (MFA) for all administrators accessing the system.
-
-C. The system SHALL require multi-factor authentication (MFA) for all sponsor personnel accessing the system.
-
-D. MFA SHALL consist of something the user knows (password) as the first factor.
-
-E. MFA SHALL consist of something the user has (time-based code from authenticator app or SMS) as the second factor.
-
-F. The system SHALL NOT allow staff access without successful MFA completion.
-
-G. The system SHALL NOT allow administrator access without successful MFA completion.
-
-H. The system SHALL require all clinical staff accounts to complete MFA enrollment before first use.
-
-I. The system SHALL NOT allow administrator accounts to be created without MFA.
-
-J. The system SHALL perform MFA verification at each login session.
-
-K. The system SHALL allow users to configure TOTP authenticator apps for MFA.
-
-L. The system SHALL allow users to configure SMS as a backup MFA method.
-
-M. The system SHALL log all MFA authentication attempts including successes.
-
-N. The system SHALL log all MFA authentication attempts including failures.
-
-*End* *Multi-Factor Authentication for Staff* | **Hash**: b014564d
----
 
 ### How Users Log In
 

@@ -6,131 +6,126 @@
 
 ## PRD
 
-| ID         | Title                                                  | File                                | Hash     |
-| ---------- | ------------------------------------------------------ | ----------------------------------- | -------- |
-| REQ-p00001 | Complete Multi-Sponsor Data Separation                 | prd-security.md                     | d01b64d9 |
-| REQ-p00002 | Multi-Factor Authentication for Staff                  | prd-security.md                     | b014564d |
-| REQ-p00003 | Separate Database Per Sponsor                          | prd-database.md                     | b265d8bb |
-| REQ-p00004 | Immutable Audit Trail via Event Sourcing               | prd-database.md                     | 59a44de8 |
-| REQ-p00005 | Role-Based Access Control                              | prd-security-RBAC.md                | d5129b08 |
-| REQ-p00006 | Offline-First Data Entry                               | prd-diary-app.md                    | b0555756 |
-| REQ-p00007 | Automatic Sponsor Configuration                        | prd-diary-app.md                    | 3896c05a |
-| REQ-p00008 | Single Mobile App for All Sponsors                     | prd-architecture-multi-sponsor.md   | 3fe1fad0 |
-| REQ-p00009 | Sponsor-Specific Portals                               | prd-architecture-multi-sponsor.md   | e26dfd95 |
-| REQ-p00010 | FDA 21 CFR Part 11 Compliance                          | prd-clinical-trials.md              | 39aa8ddd |
-| REQ-p00011 | ALCOA+ Data Integrity Principles                       | prd-clinical-trials.md              | 6697108e |
-| REQ-p00012 | Clinical Data Retention Requirements                   | prd-clinical-trials.md              | 095cb350 |
-| REQ-p00013 | Complete Data Change History                           | prd-database.md                     | 893afe9e |
-| REQ-p00014 | Least Privilege Access                                 | prd-security-RBAC.md                | 5cecbe76 |
-| REQ-p00015 | Database-Level Access Enforcement                      | prd-security-RLS.md                 | e0b19391 |
-| REQ-p00016 | Separation of Identity and Clinical Data               | prd-security-data-classification.md | 4a8b2335 |
-| REQ-p00017 | Data Encryption                                        | prd-security-data-classification.md | 55d8aea3 |
-| REQ-p00018 | Multi-Site Support Per Sponsor                         | prd-architecture-multi-sponsor.md   | c4d7df6f |
-| REQ-p00020 | System Validation and Traceability                     | prd-requirements-management.md      | 7d81caf7 |
-| REQ-p00021 | Architecture Decision Documentation                    | prd-requirements-management.md      | 76c82ce6 |
-| REQ-p00022 | Analyst Read-Only Access                               | prd-security-RLS.md                 | f6c37670 |
-| REQ-p00023 | Sponsor Global Data Access                             | prd-security-RLS.md                 | de7caa72 |
-| REQ-p00035 | Patient Data Isolation                                 | prd-security-RLS.md                 | d519a005 |
-| REQ-p00036 | Investigator Site-Scoped Access                        | prd-security-RLS.md                 | 8cba2876 |
-| REQ-p00037 | Investigator Annotation Restrictions                   | prd-security-RLS.md                 | 18789c92 |
-| REQ-p00038 | Auditor Compliance Access                              | prd-security-RLS.md                 | b5c84953 |
-| REQ-p00039 | Administrator Access with Audit Trail                  | prd-security-RLS.md                 | 5082758c |
-| REQ-p00040 | Event Sourcing State Protection                        | prd-security-RLS.md                 | 2067e3e6 |
-| REQ-p00042 | HHT Epistaxis Data Capture Standard                    | prd-epistaxis-terminology.md        | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                               | prd-diary-app.md                    | 8651c82b |
-| REQ-p00044 | Clinical Trial Compliant Diary Platform                | prd-system.md                       | 0919ad00 |
-| REQ-p00045 | Regulatory Compliance Framework                        | prd-clinical-trials.md              | 36578817 |
-| REQ-p00046 | Clinical Data Storage System                           | prd-database.md                     | b5144a76 |
-| REQ-p00047 | Data Backup and Archival                               | prd-backup.md                       | 4e9501e4 |
-| REQ-p00048 | Platform Operations and Monitoring                     | prd-devops.md                       | af349286 |
-| REQ-p00049 | Ancillary Platform Services                            | prd-services.md                     | ff326529 |
-| REQ-p00050 | Temporal Entry Validation                              | prd-diary-app.md                    | 7b918745 |
-| REQ-p00076 | Participation Status Badge                             | prd-diary-gui.md                    | 852e6036 |
-| REQ-p01000 | Event Sourcing Client Interface                        | prd-event-sourcing-system.md        | c289ba20 |
-| REQ-p01001 | Offline Event Queue with Automatic Synchronization     | prd-event-sourcing-system.md        | 192df7e9 |
-| REQ-p01002 | Optimistic Concurrency Control                         | prd-event-sourcing-system.md        | dd66beb1 |
-| REQ-p01003 | Immutable Event Storage with Audit Trail               | prd-event-sourcing-system.md        | ec106ced |
-| REQ-p01004 | Schema Version Management                              | prd-event-sourcing-system.md        | 94c032f0 |
-| REQ-p01005 | Real-time Event Subscription                           | prd-event-sourcing-system.md        | 61d80d18 |
-| REQ-p01006 | Type-Safe Materialized View Queries                    | prd-event-sourcing-system.md        | 0ca0d9ae |
-| REQ-p01007 | Error Handling and Diagnostics                         | prd-event-sourcing-system.md        | 142a4821 |
-| REQ-p01008 | Event Replay and Time Travel Debugging                 | prd-event-sourcing-system.md        | cef615c5 |
-| REQ-p01009 | Encryption at Rest for Offline Queue                   | prd-event-sourcing-system.md        | c6c8ad62 |
-| REQ-p01010 | Multi-tenancy Support                                  | prd-event-sourcing-system.md        | b7a09f00 |
-| REQ-p01011 | Event Transformation and Migration                     | prd-event-sourcing-system.md        | e1fbce81 |
-| REQ-p01012 | Batch Event Operations                                 | prd-event-sourcing-system.md        | 5cf4df20 |
-| REQ-p01014 | Observability and Monitoring                           | prd-event-sourcing-system.md        | ad6ebb22 |
-| REQ-p01015 | Automated Testing Support                              | prd-event-sourcing-system.md        | f15b2c58 |
-| REQ-p01016 | Performance Benchmarking                               | prd-event-sourcing-system.md        | 5f5f0fe9 |
-| REQ-p01017 | Backward Compatibility Guarantees                      | prd-event-sourcing-system.md        | 68686f0b |
-| REQ-p01018 | Security Audit and Compliance                          | prd-event-sourcing-system.md        | ae8f6e49 |
-| REQ-p01019 | Phased Implementation                                  | prd-event-sourcing-system.md        | 42cdad57 |
-| REQ-p01020 | Privacy Policy and Regulatory Compliance Documentation | prd-privacy-policy.md               | 93b12550 |
-| REQ-p01021 | Service Availability Commitment                        | prd-SLA.md                          | d39861a9 |
-| REQ-p01022 | Incident Severity Classification                       | prd-SLA.md                          | d1734735 |
-| REQ-p01023 | Incident Response Times                                | prd-SLA.md                          | 40fb577e |
-| REQ-p01024 | Disaster Recovery Objectives                           | prd-SLA.md                          | 6b076a50 |
-| REQ-p01025 | Third-Party Timestamp Attestation Capability           | prd-evidence-records.md             | f2ab1f17 |
-| REQ-p01026 | Bitcoin-Based Timestamp Implementation                 | prd-evidence-records.md             | 94499ad5 |
-| REQ-p01027 | Timestamp Verification Interface                       | prd-evidence-records.md             | 9956bd94 |
-| REQ-p01028 | Timestamp Proof Archival                               | prd-evidence-records.md             | 69a49395 |
-| REQ-p01029 | Device Fingerprinting                                  | prd-evidence-records.md             | 8e10b85a |
-| REQ-p01030 | Patient Authentication for Data Attribution            | prd-evidence-records.md             | fc02cd59 |
-| REQ-p01031 | Optional Geolocation Tagging                           | prd-evidence-records.md             | f9a69607 |
-| REQ-p01032 | Hashed Email Identity Verification                     | prd-evidence-records.md             | 0ba2d208 |
-| REQ-p01033 | Customer Incident Notification                         | prd-SLA.md                          | 3ca3df0f |
-| REQ-p01034 | Root Cause Analysis                                    | prd-SLA.md                          | 0778e3bb |
-| REQ-p01035 | Corrective and Preventive Action                       | prd-SLA.md                          | f2c78d76 |
-| REQ-p01036 | Data Recovery Guarantee                                | prd-SLA.md                          | 5909fb2b |
-| REQ-p01037 | Chronic Failure Escalation                             | prd-SLA.md                          | 63205737 |
-| REQ-p01038 | Regulatory Event Support                               | prd-SLA.md                          | f62f5e4d |
-| REQ-p01039 | Diary Start Day Definition                             | prd-diary-app.md                    | 33ea4793 |
-| REQ-p01040 | Calendar Visual Indicators for Entry Status            | prd-diary-app.md                    | e4e1c4c2 |
-| REQ-p01041 | Open Source Licensing                                  | prd-system.md                       | 7e6b1e00 |
-| REQ-p01050 | Event Type Registry                                    | prd-event-sourcing-system.md        | 52464e42 |
-| REQ-p01051 | Questionnaire Versioning Model                         | prd-event-sourcing-system.md        | e311e5fc |
-| REQ-p01052 | Questionnaire Localization and Translation Tracking    | prd-event-sourcing-system.md        | 4218237c |
-| REQ-p01053 | Sponsor Questionnaire Eligibility Configuration        | prd-event-sourcing-system.md        | 3bc66244 |
-| REQ-p01054 | Complete Infrastructure Isolation Per Sponsor          | prd-architecture-multi-sponsor.md   | dae0f167 |
-| REQ-p01055 | Sponsor Confidentiality                                | prd-architecture-multi-sponsor.md   | 364675e2 |
-| REQ-p01056 | Confidentiality Sufficiency                            | prd-architecture-multi-sponsor.md   | f29524ee |
-| REQ-p01057 | Mono Repository with Sponsor Repositories              | prd-architecture-multi-sponsor.md   | a54d5ad6 |
-| REQ-p01058 | Unified App Deployment                                 | prd-architecture-multi-sponsor.md   | c22435c6 |
-| REQ-p01059 | Customization Policy                                   | prd-architecture-multi-sponsor.md   | bf7c7b8e |
-| REQ-p01060 | UX Changes During Trials                               | prd-architecture-multi-sponsor.md   | fadb4f60 |
-| REQ-p01061 | EU GDPR                                                | prd-clinical-trials.md              | ebe9e2ad |
-| REQ-p01062 | GDPR Data Portability                                  | prd-clinical-trials.md              | 30b27336 |
-| REQ-p01064 | Investigator Questionnaire Approval Workflow           | prd-questionnaire-approval.md       | 735ee5a6 |
-| REQ-p01065 | Clinical Questionnaire System                          | prd-questionnaire-system.md         | 0a439bc2 |
-| REQ-p01066 | Daily Epistaxis Record Questionnaire                   | prd-questionnaire-epistaxis.md      | 29498f8f |
-| REQ-p01067 | NOSE HHT Questionnaire                                 | prd-questionnaire-nose-hht.md       | 23b411c6 |
-| REQ-p01068 | HHT Quality of Life Questionnaire                      | prd-questionnaire-qol.md            | d3970cea |
-| REQ-p01069 | Daily Epistaxis Record User Interface                  | prd-questionnaire-epistaxis.md      | 0efa31a6 |
-| REQ-p01070 | NOSE HHT User Interface                                | prd-questionnaire-nose-hht.md       | 84fa171d |
-| REQ-p01071 | HHT Quality of Life User Interface                     | prd-questionnaire-qol.md            | a231a942 |
-| REQ-p01072 | Mobile App Linking Status and History                  | prd-diary-app.md                    | cf32de6c |
-| REQ-p01073 | Questionnaire Session Management                       | prd-questionnaire-session.md        | a101e60e |
-| REQ-p01074 | User-Facing State Change Communication                 | prd-system.md                       | ec6b0b1d |
-| REQ-p01075 | Top Navigation Bar                                     | prd-diary-gui.md                    | 027debad |
-| REQ-p01076 | User Menu                                              | prd-diary-gui.md                    | 9c51b097 |
-| REQ-p01077 | User Profile Screen                                    | prd-diary-gui.md                    | fc061bcc |
-| REQ-p01078 | App Menu                                               | prd-diary-gui.md                    | 115fd33c |
-| REQ-p01079 | License Display                                        | prd-system.md                       | 0a061e18 |
-| REQ-p01080 | Policies Screen                                        | prd-diary-gui.md                    | 0962c04b |
-| REQ-p01081 | Help Center Screen                                     | prd-diary-gui.md                    | f5ecea75 |
-| REQ-p01082 | Join Study Screen                                      | prd-diary-gui.md                    | 8eb89d10 |
-| REQ-p01083 | Account Settings Screen                                | prd-diary-gui.md                    | 63efe18c |
-| REQ-p01084 | Diary App Licenses Screen                              | prd-diary-gui.md                    | 621882cb |
-| REQ-p70000 | Local Data Storage                                     | prd-diary-app.md                    | f74d92a4 |
-| REQ-p70001 | Sponsor Portal Application                             | prd-portal.md                       | 08b8f03a |
-| REQ-p70005 | Customizable Role-Based Access Control                 | prd-portal.md                       | d0617ddb |
-| REQ-p70006 | Comprehensive Audit Trail                              | prd-portal.md                       | c3ec2048 |
-| REQ-p70007 | Linking Code Lifecycle Management                      | prd-portal.md                       | c0a77938 |
-| REQ-p70008 | Sponsor-Specific Role Mapping                          | prd-portal.md                       | 9b56c1c9 |
-| REQ-p70009 | Link New Patient Workflow                              | prd-portal.md                       | 84d192e7 |
-| REQ-p70010 | Patient Disconnection Workflow                         | prd-portal.md                       | 79bc39eb |
-| REQ-p70011 | Patient Reconnection Workflow                          | prd-portal.md                       | c386824f |
-| REQ-p70012 | Portal Data Acceptance and Rejection                   | prd-portal.md                       | 2f615ddb |
+| ID         | Title                                               | File                                | Hash     |
+| ---------- | --------------------------------------------------- | ----------------------------------- | -------- |
+| REQ-p00001 | Complete Multi-Sponsor Data Separation              | prd-security.md                     | d01b64d9 |
+| REQ-p00002 | Multi-Factor Authentication for Staff               | prd-security.md                     | b014564d |
+| REQ-p00003 | Separate Database Per Sponsor                       | prd-database.md                     | b265d8bb |
+| REQ-p00004 | Immutable Audit Trail via Event Sourcing            | prd-database.md                     | 59a44de8 |
+| REQ-p00005 | Role-Based Access Control                           | prd-security-RBAC.md                | d5129b08 |
+| REQ-p00006 | Offline-First Data Entry                            | prd-diary-app.md                    | b0555756 |
+| REQ-p00007 | Automatic Sponsor Configuration                     | prd-diary-app.md                    | 3896c05a |
+| REQ-p00008 | Single Mobile App for All Sponsors                  | prd-architecture-multi-sponsor.md   | 3fe1fad0 |
+| REQ-p00009 | Sponsor-Specific Portals                            | prd-architecture-multi-sponsor.md   | e26dfd95 |
+| REQ-p00012 | Clinical Data Retention Requirements                | prd-clinical-trials.md              | 095cb350 |
+| REQ-p00013 | Complete Data Change History                        | prd-database.md                     | 893afe9e |
+| REQ-p00014 | Least Privilege Access                              | prd-security-RBAC.md                | 5cecbe76 |
+| REQ-p00015 | Database-Level Access Enforcement                   | prd-security-RLS.md                 | e0b19391 |
+| REQ-p00016 | Separation of Identity and Clinical Data            | prd-security-data-classification.md | 4a8b2335 |
+| REQ-p00017 | Data Encryption                                     | prd-security-data-classification.md | 55d8aea3 |
+| REQ-p00018 | Multi-Site Support Per Sponsor                      | prd-architecture-multi-sponsor.md   | c4d7df6f |
+| REQ-p00020 | System Validation and Traceability                  | prd-requirements-management.md      | 7d81caf7 |
+| REQ-p00021 | Architecture Decision Documentation                 | prd-requirements-management.md      | 76c82ce6 |
+| REQ-p00022 | Analyst Read-Only Access                            | prd-security-RLS.md                 | f6c37670 |
+| REQ-p00023 | Sponsor Global Data Access                          | prd-security-RLS.md                 | de7caa72 |
+| REQ-p00035 | Patient Data Isolation                              | prd-security-RLS.md                 | d519a005 |
+| REQ-p00036 | Investigator Site-Scoped Access                     | prd-security-RLS.md                 | 8cba2876 |
+| REQ-p00037 | Investigator Annotation Restrictions                | prd-security-RLS.md                 | 18789c92 |
+| REQ-p00038 | Auditor Compliance Access                           | prd-security-RLS.md                 | b5c84953 |
+| REQ-p00039 | Administrator Access with Audit Trail               | prd-security-RLS.md                 | 5082758c |
+| REQ-p00040 | Event Sourcing State Protection                     | prd-security-RLS.md                 | 2067e3e6 |
+| REQ-p00042 | HHT Epistaxis Data Capture Standard                 | prd-epistaxis-terminology.md        | 36dc9faf |
+| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 8651c82b |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform             | prd-system.md                       | 0919ad00 |
+| REQ-p00045 | Design Patterns                                     | prd-clinical-trials.md              | a451a0b8 |
+| REQ-p00047 | Data Backup and Archival                            | prd-backup.md                       | 4e9501e4 |
+| REQ-p00048 | Platform Operations and Monitoring                  | prd-devops.md                       | af349286 |
+| REQ-p00049 | Ancillary Platform Services                         | prd-services.md                     | ff326529 |
+| REQ-p00050 | Temporal Entry Validation                           | prd-diary-app.md                    | 7b918745 |
+| REQ-p00076 | Participation Status Badge                          | prd-diary-gui.md                    | 852e6036 |
+| REQ-p01000 | Event Sourcing Client Interface                     | prd-event-sourcing-system.md        | c289ba20 |
+| REQ-p01001 | Offline Event Queue with Automatic Synchronization  | prd-event-sourcing-system.md        | 192df7e9 |
+| REQ-p01002 | Optimistic Concurrency Control                      | prd-event-sourcing-system.md        | dd66beb1 |
+| REQ-p01003 | Immutable Event Storage with Audit Trail            | prd-event-sourcing-system.md        | ec106ced |
+| REQ-p01004 | Schema Version Management                           | prd-event-sourcing-system.md        | 94c032f0 |
+| REQ-p01005 | Real-time Event Subscription                        | prd-event-sourcing-system.md        | 61d80d18 |
+| REQ-p01006 | Type-Safe Materialized View Queries                 | prd-event-sourcing-system.md        | 0ca0d9ae |
+| REQ-p01007 | Error Handling and Diagnostics                      | prd-event-sourcing-system.md        | 142a4821 |
+| REQ-p01008 | Event Replay and Time Travel Debugging              | prd-event-sourcing-system.md        | cef615c5 |
+| REQ-p01009 | Encryption at Rest for Offline Queue                | prd-event-sourcing-system.md        | c6c8ad62 |
+| REQ-p01010 | Multi-tenancy Support                               | prd-event-sourcing-system.md        | b7a09f00 |
+| REQ-p01011 | Event Transformation and Migration                  | prd-event-sourcing-system.md        | e1fbce81 |
+| REQ-p01012 | Batch Event Operations                              | prd-event-sourcing-system.md        | 5cf4df20 |
+| REQ-p01014 | Observability and Monitoring                        | prd-event-sourcing-system.md        | ad6ebb22 |
+| REQ-p01015 | Automated Testing Support                           | prd-event-sourcing-system.md        | f15b2c58 |
+| REQ-p01016 | Performance Benchmarking                            | prd-event-sourcing-system.md        | 5f5f0fe9 |
+| REQ-p01017 | Backward Compatibility Guarantees                   | prd-event-sourcing-system.md        | 68686f0b |
+| REQ-p01018 | Security Audit and Compliance                       | prd-event-sourcing-system.md        | ae8f6e49 |
+| REQ-p01019 | Phased Implementation                               | prd-event-sourcing-system.md        | 42cdad57 |
+| REQ-p01021 | Service Availability Commitment                     | prd-SLA.md                          | d39861a9 |
+| REQ-p01022 | Incident Severity Classification                    | prd-SLA.md                          | d1734735 |
+| REQ-p01023 | Incident Response Times                             | prd-SLA.md                          | 40fb577e |
+| REQ-p01024 | Disaster Recovery Objectives                        | prd-SLA.md                          | 6b076a50 |
+| REQ-p01025 | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md             | f2ab1f17 |
+| REQ-p01026 | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md             | 94499ad5 |
+| REQ-p01027 | Timestamp Verification Interface                    | prd-evidence-records.md             | 9956bd94 |
+| REQ-p01028 | Timestamp Proof Archival                            | prd-evidence-records.md             | 69a49395 |
+| REQ-p01029 | Device Fingerprinting                               | prd-evidence-records.md             | 8e10b85a |
+| REQ-p01030 | Patient Authentication for Data Attribution         | prd-evidence-records.md             | fc02cd59 |
+| REQ-p01031 | Optional Geolocation Tagging                        | prd-evidence-records.md             | f9a69607 |
+| REQ-p01032 | Hashed Email Identity Verification                  | prd-evidence-records.md             | 0ba2d208 |
+| REQ-p01033 | Customer Incident Notification                      | prd-SLA.md                          | 3ca3df0f |
+| REQ-p01034 | Root Cause Analysis                                 | prd-SLA.md                          | 0778e3bb |
+| REQ-p01035 | Corrective and Preventive Action                    | prd-SLA.md                          | f2c78d76 |
+| REQ-p01036 | Data Recovery Guarantee                             | prd-SLA.md                          | 5909fb2b |
+| REQ-p01037 | Chronic Failure Escalation                          | prd-SLA.md                          | 63205737 |
+| REQ-p01038 | Regulatory Event Support                            | prd-SLA.md                          | f62f5e4d |
+| REQ-p01039 | Diary Start Day Definition                          | prd-diary-app.md                    | 33ea4793 |
+| REQ-p01040 | Calendar Visual Indicators for Entry Status         | prd-diary-app.md                    | e4e1c4c2 |
+| REQ-p01041 | Open Source Licensing                               | prd-system.md                       | 7e6b1e00 |
+| REQ-p01050 | Event Type Registry                                 | prd-event-sourcing-system.md        | 52464e42 |
+| REQ-p01051 | Questionnaire Versioning Model                      | prd-event-sourcing-system.md        | e311e5fc |
+| REQ-p01052 | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md        | 4218237c |
+| REQ-p01053 | Sponsor Questionnaire Eligibility Configuration     | prd-event-sourcing-system.md        | 3bc66244 |
+| REQ-p01054 | Complete Infrastructure Isolation Per Sponsor       | prd-architecture-multi-sponsor.md   | dae0f167 |
+| REQ-p01055 | Sponsor Confidentiality                             | prd-architecture-multi-sponsor.md   | 364675e2 |
+| REQ-p01056 | Confidentiality Sufficiency                         | prd-architecture-multi-sponsor.md   | f29524ee |
+| REQ-p01057 | Mono Repository with Sponsor Repositories           | prd-architecture-multi-sponsor.md   | a54d5ad6 |
+| REQ-p01058 | Unified App Deployment                              | prd-architecture-multi-sponsor.md   | c22435c6 |
+| REQ-p01059 | Customization Policy                                | prd-architecture-multi-sponsor.md   | bf7c7b8e |
+| REQ-p01060 | UX Changes During Trials                            | prd-architecture-multi-sponsor.md   | 2f531460 |
+| REQ-p01064 | Investigator Questionnaire Approval Workflow        | prd-questionnaire-approval.md       | 735ee5a6 |
+| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | 0a439bc2 |
+| REQ-p01066 | Daily Epistaxis Record Questionnaire                | prd-questionnaire-epistaxis.md      | 29498f8f |
+| REQ-p01067 | NOSE HHT Questionnaire                              | prd-questionnaire-nose-hht.md       | 23b411c6 |
+| REQ-p01068 | HHT Quality of Life Questionnaire                   | prd-questionnaire-qol.md            | d3970cea |
+| REQ-p01069 | Daily Epistaxis Record User Interface               | prd-questionnaire-epistaxis.md      | 0efa31a6 |
+| REQ-p01070 | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md       | 84fa171d |
+| REQ-p01071 | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md            | a231a942 |
+| REQ-p01072 | Mobile App Linking Status and History               | prd-diary-app.md                    | cf32de6c |
+| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | a101e60e |
+| REQ-p01074 | User-Facing State Change Communication              | prd-system.md                       | ec6b0b1d |
+| REQ-p01075 | Top Navigation Bar                                  | prd-diary-gui.md                    | 027debad |
+| REQ-p01076 | User Menu                                           | prd-diary-gui.md                    | 9c51b097 |
+| REQ-p01077 | User Profile Screen                                 | prd-diary-gui.md                    | fc061bcc |
+| REQ-p01078 | App Menu                                            | prd-diary-gui.md                    | 115fd33c |
+| REQ-p01079 | License Display                                     | prd-system.md                       | 0a061e18 |
+| REQ-p01080 | Policies Screen                                     | prd-diary-gui.md                    | 0962c04b |
+| REQ-p01081 | Help Center Screen                                  | prd-diary-gui.md                    | f5ecea75 |
+| REQ-p01082 | Join Study Screen                                   | prd-diary-gui.md                    | 8eb89d10 |
+| REQ-p01083 | Account Settings Screen                             | prd-diary-gui.md                    | 63efe18c |
+| REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
+| REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | 418d48b6 |
+| REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | f74d92a4 |
+| REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
+| REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
+| REQ-p70006 | Comprehensive Audit Trail                           | prd-portal.md                       | c3ec2048 |
+| REQ-p70007 | Linking Code Lifecycle Management                   | prd-portal.md                       | c0a77938 |
+| REQ-p70008 | Sponsor-Specific Role Mapping                       | prd-portal.md                       | 9b56c1c9 |
+| REQ-p70009 | Link New Patient Workflow                           | prd-portal.md                       | 84d192e7 |
+| REQ-p70010 | Patient Disconnection Workflow                      | prd-portal.md                       | 79bc39eb |
+| REQ-p70011 | Patient Reconnection Workflow                       | prd-portal.md                       | c386824f |
+| REQ-p70012 | Portal Data Acceptance and Rejection                | prd-portal.md                       | 2f615ddb |
 
 ## OPS
 
