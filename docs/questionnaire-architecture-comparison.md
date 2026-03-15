@@ -1,19 +1,23 @@
 # Questionnaire Architecture Comparison
 
 **Date**: 2026-03-15
-**Purpose**: Compare the current monolithic questionnaire architecture with the proposed separate-repo-per-questionnaire approach.
+**Version**: 2.0
+**Purpose**: Compare the current monolithic questionnaire architecture with the proposed widget/data split approach.
 
 ---
 
 ## Architecture Overview
 
-| Aspect | Current (Monolithic) | Proposed (Separate Repos) |
-|--------|---------------------|--------------------------|
-| **Where definitions live** | Single `questionnaires.json` bundled as an app asset | Each questionnaire is an independent Dart package in its own Git repo |
-| **How they get into the app** | Hard-coded JSON loaded at runtime by `QuestionnaireService` | Declared as `pubspec.yaml` dependencies, compiled in at build time |
-| **How versions are tracked** | Three-layer model (schema/content/GUI) as metadata in the JSON file + versioning doc | Three-layer model preserved inside each package; package semver used for dependency management |
-| **How sponsors configure** | `sponsor/{id}/config/questionnaires.yaml` (planned, not yet implemented) | Same sponsor config concept, but version pinning happens in `pubspec.yaml` instead of config |
-| **How new questionnaires are added** | Add definition to `questionnaires.json`, add UI code to `apps/common-flutter/eq/`, update `QuestionnaireType` enum | Create new repo, `pub` package, add one line to `pubspec.yaml`, register in `main.dart` |
+| Aspect | Current (Monolithic) | Proposed (Widget/Data Split) |
+|--------|---------------------|------------------------------|
+| **Where UI code lives** | Shared Flutter screens in `apps/common-flutter/eq/` | Each questionnaire is a separate widget package in its own Git repo |
+| **Where content lives** | Single `questionnaires.json` bundled as an app asset | Served at runtime by the sponsor's portal (already a separate binary per sponsor) |
+| **How UI gets into the app** | Hard-coded screens compiled into the monorepo | Widget packages declared in `pubspec.yaml`, compiled into a single binary |
+| **How content gets into the app** | Bundled JSON loaded at runtime by `QuestionnaireService` | Fetched from sponsor portal after sponsor selection |
+| **How versions are tracked** | Three-layer model (schema/content/GUI) as metadata in the JSON file | Schema + GUI versions in compiled widget; content version in portal-served data |
+| **How sponsors configure** | `sponsor/{id}/config/questionnaires.yaml` (planned, not yet implemented) | Portal serves only enabled questionnaires with approved content in the correct language |
+| **How content updates deploy** | Modify `questionnaires.json`, rebuild app, app store release | Update portal data, deploy portal — no app store release needed |
+| **How new questionnaires are added** | Add to `questionnaires.json`, add UI code, update `QuestionnaireType` enum | Create widget package repo, add to `pubspec.yaml`, deploy data to portal |
 
 ---
 
@@ -28,41 +32,46 @@
 - Service: `apps/daily-diary/clinical_diary/lib/services/questionnaire_service.dart`
 - Type enum: `apps/common-dart/trial_data_types/lib/src/questionnaire_type.dart`
 
-Adding or modifying a questionnaire touches files in 3-5 different directories within the monorepo.
+Adding or modifying a questionnaire touches files in 3-5 different directories within the monorepo. Content and code are interleaved in the same repo.
 
-**Proposed**: Each questionnaire is self-contained in its own package:
-- Definition, version constants, scorer, and (optionally) custom UI all live in one repo
-- Shared UI flow screen remains in the core platform
-- Adding a questionnaire = creating one new repo + one `pubspec.yaml` line
+**Proposed**: Clean separation across three locations:
+- **Widget package** (own repo): Schema, scoring, UI — compiled into app
+- **Portal data** (sponsor portal repo): Question text, labels, translations — served at runtime
+- **Core platform** (main repo): Shared flow screen, registry, data-fetch logic
+
+Content changes happen in the portal. Code changes happen in widget repos. The diary app repo only changes when adding a new questionnaire or updating widget versions.
 
 ### 2. Versioning & Change Control
 
 **Current**:
-- Three independent version numbers (schema, content, GUI) managed manually
+- Three independent version numbers (schema, content, GUI) managed manually in one place
 - All three must be coordinated — there's no single "questionnaire version" for dependency resolution
-- A content-only change (wording fix) still requires updating the monorepo, even though no code changed
+- A content-only change (typo fix) requires updating `questionnaires.json`, rebuilding the app, and an app store release
 - No built-in mechanism to pin "which exact questionnaire version does this app build contain?"
 
 **Proposed**:
-- Single semver package version drives dependency resolution
-- Three-layer versions preserved as internal metadata for traceability
-- `pubspec.lock` provides deterministic, reproducible builds — you always know exactly which questionnaire versions are in a given binary
-- Content changes are isolated PRs in the questionnaire repo, then an explicit version bump in the app repo
-- Git tags on questionnaire repos provide precise audit trail
+- Three-layer versioning is preserved but split by ownership:
+  - Schema + GUI versions → in widget package (semver, `pubspec.lock`)
+  - Content version → in portal data manifest (semver, portal audit trail)
+- Content-only changes (wording, translations) deploy through the portal — no app release
+- `pubspec.lock` pins widget versions deterministically
+- Portal manifests pin content versions with clinical approval metadata
+- Every response records all three layers, proving exactly what the patient saw
 
 ### 3. Release Independence
 
 **Current**:
 - All questionnaires are versioned together in the monorepo
-- A change to NOSE HHT question wording requires a commit to the main repo
+- A change to NOSE HHT question wording requires a commit to the main repo, rebuild, and app store release
 - No way to release-manage questionnaires independently
 - Changelog for questionnaire changes is mixed in with platform changes
 
 **Proposed**:
-- Each questionnaire has its own release cycle, CHANGELOG, and git tags
-- Clinical team can own a questionnaire repo's content changes without touching platform code
-- NOSE HHT can be at v2.1.4 while QoL is at v1.3.0 — versions are independent
-- The diary app explicitly opts in to each version bump
+- **Content changes don't require app releases.** The portal is deployed independently.
+- Widget packages have their own release cycles, CHANGELOGs, and git tags
+- Clinical team can update question wording or add translations through the portal without touching app code
+- A Spanish translation can go live the same day it's approved — no app review queue
+- Schema/UI changes still require an app release, but these are rare compared to content changes
 
 ### 4. Testing
 
@@ -83,37 +92,44 @@ Adding or modifying a questionnaire touches files in 3-5 different directories w
 - Everyone works in the same monorepo
 - Questionnaire content changes go through the same PR process as platform features
 - Clinical team changes are interleaved with engineering changes in the commit history
+- A wording fix requires a developer to modify JSON, open a PR, wait for CI, merge, build, release
 
 **Proposed**:
-- Questionnaire repos can have different access controls and review requirements
-- Clinical team can have write access to questionnaire repos without needing full platform repo access
-- Content reviews (clinical) and code reviews (engineering) happen in separate PRs in separate repos
-- Clear ownership boundaries
+- Three distinct workflows with clear ownership:
+  - **Clinical team** owns portal content — question text, translations, approval
+  - **Questionnaire developers** own widget packages — UI, scoring, schema
+  - **Platform team** owns the diary app — registry, data-fetch, integration
+- Content reviews (clinical) and code reviews (engineering) are separate processes
+- Clinical team can deploy content changes through the portal without developer involvement
+- The portal already has its own access controls per sponsor
 
-### 6. Binary Size & Compilation
+### 6. Binary Size & Content Delivery
 
 **Current**:
-- All questionnaire JSON definitions bundled in the asset directory
+- All questionnaire JSON (text, labels, translations for all questionnaires) bundled in the app asset
 - JSON is loaded and parsed at runtime
 - Minimal impact on binary size (JSON is small)
+- Every language for every questionnaire ships in every binary
 
 **Proposed**:
-- All questionnaire Dart code compiled into the binary
-- Slightly larger binary (compiled Dart vs. JSON), but still negligible
-- No runtime JSON parsing — definitions are compile-time constants
-- All questionnaires ship in every binary regardless of sponsor (accepted trade-off)
+- Widget packages (Dart code only, no text content) compiled into the binary — even smaller per-questionnaire footprint
+- Content downloaded from portal only for the questionnaires and languages the sponsor needs
+- A Spanish-only deployment never downloads English content; a sponsor using only EQ never receives NOSE HHT text
+- Widgets without matching portal data are inert — no UI, no entry points
 
-### 7. Sponsor Configuration
+### 7. Sponsor Configuration & Language Delivery
 
 **Current** (as designed, not yet implemented):
-- `questionnaires.yaml` per sponsor declares enabled questionnaires with specific schema, content, and GUI versions
-- Config includes version constraints (`min_schema_version`)
-- App fetches definitions for the configured versions
+- `questionnaires.yaml` per sponsor declares enabled questionnaires with specific versions
+- All languages for all questionnaires ship in the binary
+- Language selection is a client-side concern
 
 **Proposed**:
-- Sponsor config is simpler — it only controls enablement and behavioral settings (frequency, timeout, languages)
-- Version pinning happens in `pubspec.yaml` / `pubspec.lock`, not in sponsor config
-- No version mismatch risk between what the config requests and what's compiled in
+- The sponsor portal is the single authority for "what questionnaires are enabled" and "what languages are available"
+- The portal serves content in the requested language — the approved, audited translation
+- Adding a new language = deploying a new JSON file to the portal. No app release.
+- Version management is split: widget versions in `pubspec.lock`, content versions in portal manifests
+- No version mismatch possible — the widget validates the portal data's schema version at fetch time
 
 ---
 
@@ -121,39 +137,53 @@ Adding or modifying a questionnaire touches files in 3-5 different directories w
 
 | Risk | Current | Proposed |
 |------|---------|----------|
-| **Version drift** | Three independent versions can get out of sync; no single source of truth | Single package version is the source of truth; three-layer versions are derived metadata |
-| **Accidental breakage across questionnaires** | One bad commit can break all questionnaires | Isolation — each repo has independent CI |
-| **Stale definitions** | JSON definitions can diverge from code expectations | Definition and code are in the same package — they must be consistent |
-| **Reproducibility** | Requires tracking three version numbers per questionnaire per build | `pubspec.lock` captures everything deterministically |
-| **Operational complexity** | One repo to manage | Multiple repos to manage (mitigated by automation and clear conventions) |
-| **All questionnaires in binary** | Same — JSON for all questionnaires is bundled | Same — Dart code for all questionnaires is compiled in |
-| **Dependency coordination** | N/A — everything is in-tree | Version bumps in `pubspec.yaml` are explicit but add a step |
+| **Version drift** | Three independent versions managed manually; can get out of sync | Schema+GUI pinned in `pubspec.lock`; content version pinned in portal manifest; natural separation |
+| **Content-code mismatch** | JSON content and Dart code can diverge silently | Widget validates portal data against its schema version at fetch time — mismatches caught immediately |
+| **Accidental breakage across questionnaires** | One bad commit can break all questionnaires | Isolation — each widget repo has independent CI; portal data is per-questionnaire |
+| **Stale content** | JSON bundled at build time; typo fix requires app release | Portal serves current content; updates deploy independently of app store cycle |
+| **Reproducibility** | Requires tracking three version numbers per questionnaire per build | `pubspec.lock` for widgets + portal manifest versions for content; response records prove both |
+| **Operational complexity** | One repo to manage | Multiple widget repos + portal data management (mitigated by clear conventions) |
+| **Requires network** | Content available offline (bundled) | Requires initial portal fetch; cached after that for offline use |
+| **Portal availability** | N/A — no portal dependency for content | If portal is unreachable and no cache exists, questionnaire cannot launch (mitigated by caching) |
 
 ---
 
 ## What Stays the Same
 
-Both architectures share these fundamentals — they are not affected by the repo structure choice:
+Both architectures share these fundamentals — they are not affected by the architecture choice:
 
 - **FDA compliance model** — event sourcing, ALCOA+, audit trails
-- **Response storage format** — JSONB with version metadata
 - **Three-layer version traceability** — schema, content, GUI versions stored with every response
 - **Questionnaire lifecycle** — Not Sent → Sent → In Progress → Ready to Review → Finalized
 - **Investigator approval workflow** — unchanged
 - **Session management** — readiness gate, timeouts
-- **Sponsor config concept** — config determines which questionnaires are active
 - **Single store listing** — one app binary on each platform
 - **RLS-based access control** — database policies unchanged
 - **Soft-delete pattern** — unchanged
+- **Scoring algorithms** — same logic, just lives in the widget package instead of shared code
+
+---
+
+## What Changes for the Better
+
+The widget/data split specifically improves on pain points in the current architecture:
+
+| Pain Point | Current | Proposed |
+|------------|---------|----------|
+| Typo in question text | Modify JSON → rebuild → app store release (days/weeks) | Update portal data → deploy portal (minutes/hours) |
+| Add Spanish translation | Add to bundled JSON → rebuild → release | Add `es-MX.json` to portal → deploy |
+| Clinical team wants to review wording | Must access monorepo, find JSON file | Reviews content in portal context, familiar tooling |
+| "Which version did this patient see?" | Hope the three version numbers were updated correctly | Response records widget version + content version + language; each is independently auditable |
+| New sponsor needs subset of questionnaires | Build contains all content for all sponsors | Portal serves only what that sponsor needs; widgets without data are inert |
 
 ---
 
 ## Recommendation
 
-The separate-repo architecture is better suited for this project's trajectory because:
+The widget/data split with separate repos is better suited for this project because:
 
-1. **Questionnaires are the primary unit of change** in a clinical diary platform. Isolating them reflects how changes actually happen.
-2. **Clinical content changes should not require platform PRs.** Separating repos enables clinical teams to own their instruments.
-3. **Reproducibility via `pubspec.lock`** is simpler and more robust than manually coordinating three version numbers.
-4. **The cost is manageable** — a handful of small repos with clear conventions and automated CI.
-5. **Migration is non-disruptive** — response format doesn't change, no database migration needed, and the transition can be done one questionnaire at a time.
+1. **Content is the most frequent change.** Wording fixes, translations, and clinical revisions should not require app store releases.
+2. **The sponsor portal already exists as the right delivery vehicle.** It's already per-sponsor, already manages config, already has access controls.
+3. **The three-layer versioning model becomes natural** — schema+GUI live in compiled code, content lives in served data. The split matches how the layers actually evolve.
+4. **Clinical teams can own content directly** through the portal, without needing monorepo access or developer involvement for text changes.
+5. **Migration is non-disruptive** — response format adds fields but is backward compatible, no database migration needed, and the transition can be done one questionnaire at a time.
