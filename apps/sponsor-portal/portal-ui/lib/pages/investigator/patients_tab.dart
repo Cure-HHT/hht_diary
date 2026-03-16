@@ -47,6 +47,7 @@ class _PatientData {
   final String siteName;
   final String siteNumber;
   final bool trialStarted;
+  final bool hasActiveLinkingCode;
 
   _PatientData({
     required this.patientId,
@@ -57,6 +58,7 @@ class _PatientData {
     required this.siteName,
     required this.siteNumber,
     required this.trialStarted,
+    required this.hasActiveLinkingCode,
   });
 
   factory _PatientData.fromJson(Map<String, dynamic> json) {
@@ -71,6 +73,7 @@ class _PatientData {
       siteName: json['site_name'] as String,
       siteNumber: json['site_number'] as String,
       trialStarted: json['trial_started'] as bool? ?? false,
+      hasActiveLinkingCode: json['has_active_linking_code'] as bool? ?? false,
     );
   }
 
@@ -496,11 +499,10 @@ class _StudyCoordinatorPatientsTabState
                 theme.colorScheme.tertiary,
                 Icons.hourglass_top,
               ),
-      'linking_in_progress' => (
-        'Pending',
-        theme.colorScheme.tertiary,
-        Icons.hourglass_top,
-      ),
+      'linking_in_progress' =>
+        patient.hasActiveLinkingCode
+            ? ('Pending', theme.colorScheme.tertiary, Icons.hourglass_top)
+            : ('Expired', theme.colorScheme.error, Icons.schedule),
       'disconnected' => (
         'Disconnected',
         theme.colorScheme.error,
@@ -540,10 +542,18 @@ class _StudyCoordinatorPatientsTabState
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'linking_in_progress':
+        if (patient.hasActiveLinkingCode) {
+          return TextButton.icon(
+            onPressed: () => _showLinkingCode(patient, apiClient),
+            icon: const Icon(Icons.qr_code, size: 16),
+            label: const Text('Show Code'),
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+          );
+        }
         return TextButton.icon(
-          onPressed: () => _showLinkingCode(patient, apiClient),
-          icon: const Icon(Icons.qr_code, size: 16),
-          label: const Text('Show Code'),
+          onPressed: () => _linkPatient(patient, apiClient),
+          icon: const Icon(Icons.refresh, size: 16),
+          label: const Text('Generate New Code'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'connected':
