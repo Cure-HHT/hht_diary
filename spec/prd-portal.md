@@ -145,7 +145,8 @@ All user actions are logged for regulatory compliance:
 
 # REQ-p70007: Linking Code Lifecycle Management
 
-**Level**: PRD | **Status**: Draft | **Refines**: p70001-D
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p70001-D
 
 ## Rationale
 
@@ -180,7 +181,8 @@ K. The system SHALL log all linking code generation, usage attempts, and validat
 
 # REQ-p70001: Sponsor Portal Application
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00044-D
+**Level**: prd | **Status**: Proposed | **Implements**: -
+**Refines**: REQ-p00044-D
 
 ## Rationale
 
@@ -215,7 +217,8 @@ K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the inter
 
 # REQ-p70005: Customizable Role-Based Access Control
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00018-D+E
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00018-D, REQ-p00018-E
 
 ## Rationale
 
@@ -242,7 +245,8 @@ G. Role definitions SHALL be isolated per sponsor.
 
 # REQ-p70006: Comprehensive Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004-A, REQ-p00004-E
 
 ## Rationale
 
@@ -259,7 +263,8 @@ B. Audit log visibility SHALL be configurable per role.
 
 # REQ-p70008: Sponsor-Specific Role Mapping
 
-**Level**: PRD | **Status**: Draft | **Refines**: p70001-C, p70005-A+G
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p70001-C, REQ-p70005-A, REQ-p70005-G
 
 ## Rationale
 
@@ -289,7 +294,8 @@ H. Role mapping changes SHALL be logged in the audit trail.
 
 # REQ-p70009: Link New Patient Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004-A
 
 ## Rationale
 
@@ -319,7 +325,8 @@ G. The system SHALL support sponsor configuration of additional Mobile Linking S
 
 # REQ-p70010: Patient Disconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004-A
 
 ## Rationale
 
@@ -356,7 +363,8 @@ K. The system SHALL support sponsor configuration of additional disconnection-re
 
 # REQ-p70012: Portal Data Acceptance and Rejection
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+C+D
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004-A, REQ-p00004-C, REQ-p00004-D
 
 ## Rationale
 
@@ -395,16 +403,17 @@ I. Upon reconnection with a new valid token, the portal SHALL accept all re-sync
 
 J. Upon reconnection with a new valid token, the portal SHALL accept metadata from the mobile app regarding which settings which, at the time of reconnection, differed from those settings specified in the Sponsor rules.
 
-
 ## Notes about Moble App behavior
-The version of the Questionnaire and Questionnaire GUI is included in the Questionnaire data, regardless of participation in a study. As such, when disconntected data was entered via a different form of a Questionnaire, that will be visible to the Sponsor. 
+
+The version of the Questionnaire and Questionnaire GUI is included in the Questionnaire data, regardless of participation in a study. As such, when disconntected data was entered via a different form of a Questionnaire, that will be visible to the Sponsor.
 
 *End* *Portal Data Acceptance and Rejection* | **Hash**: 2f615ddb
 ---
 
 # REQ-p70011: Patient Reconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004-A
 
 ## Rationale
 

@@ -14,7 +14,8 @@
 
 # REQ-p00043: Diary Mobile Application
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00044-C
+**Level**: prd | **Status**: Proposed | **Implements**: -
+**Refines**: REQ-p00044-C
 
 ## Rationale
 
@@ -69,7 +70,8 @@ U. The system SHALL support offline operation for core diary operations in linke
 
 # REQ-p70000: Local Data Storage
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-D+E+H
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p00043-H
 
 ## Rationale
 
@@ -145,7 +147,8 @@ The Diary mobile application is a smartphone app for iOS and Android that allows
 
 # REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-J+L+M+N, p00001-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00001-A, REQ-p00043-J, REQ-p00043-L, REQ-p00043-M, REQ-p00043-N
 
 ## Rationale
 
@@ -213,7 +216,8 @@ TODO - this needs another spec #
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-D+U, p70000-A+E+L
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-D, REQ-p00043-U, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
 
 ## Rationale
 
@@ -314,7 +318,8 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 # REQ-p00050: Temporal Entry Validation
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-C
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C
 
 ## Rationale
 
@@ -372,7 +377,8 @@ U. The system SHALL require confirmation when creating entries less than 2 minut
 
 # REQ-p01039: Diary Start Day Definition
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-C, p00050-J+K
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C, REQ-p00050-J, REQ-p00050-K
 
 ## Rationale
 
@@ -420,7 +426,8 @@ P. The system SHALL NOT explicitly prompt users to set the start day during onbo
 
 # REQ-p01040: Calendar Visual Indicators for Entry Status
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-C, p01039-L
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C, REQ-p01039-L
 
 ## Rationale
 
@@ -474,7 +481,8 @@ S. The system SHALL allow users to select accessible fonts via user preferences.
 
 # REQ-p01072: Mobile App Linking Status and History
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-F+J
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-F, REQ-p00043-J
 
 ## Rationale
 
