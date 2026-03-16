@@ -978,7 +978,14 @@ Future<Response> getPortalPatientsHandler(Request request) async {
         p.edc_synced_at,
         s.site_name,
         s.site_number,
-        p.trial_started
+        p.trial_started,
+        EXISTS (
+          SELECT 1 FROM patient_linking_codes plc
+          WHERE plc.patient_id = p.patient_id
+            AND plc.used_at IS NULL
+            AND plc.revoked_at IS NULL
+            AND plc.expires_at > now()
+        ) AS has_active_linking_code
       FROM patients p
       JOIN sites s ON p.site_id = s.site_id
       WHERE p.site_id = ANY(@siteIds)
@@ -1001,7 +1008,14 @@ Future<Response> getPortalPatientsHandler(Request request) async {
         p.edc_synced_at,
         s.site_name,
         s.site_number,
-        p.trial_started
+        p.trial_started,
+        EXISTS (
+          SELECT 1 FROM patient_linking_codes plc
+          WHERE plc.patient_id = p.patient_id
+            AND plc.used_at IS NULL
+            AND plc.revoked_at IS NULL
+            AND plc.expires_at > now()
+        ) AS has_active_linking_code
       FROM patients p
       JOIN sites s ON p.site_id = s.site_id
       ORDER BY p.patient_id
@@ -1018,6 +1032,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
       'site_name': r[5] as String,
       'site_number': r[6] as String,
       'trial_started': r[7] as bool,
+      'has_active_linking_code': r[8] as bool,
     };
   }).toList();
 
