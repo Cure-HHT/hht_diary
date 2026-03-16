@@ -93,6 +93,11 @@ void main() async {
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // CUR-982: Use session persistence to isolate auth state per browser tab.
+  // Default (LOCAL) shares auth across all tabs, causing role display mismatch
+  // when different users log in from separate windows of the same browser.
+  await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+
   // Connect to Firebase Emulator only for local flavor (if emulator is running)
   if (F.useEmulator) {
     const emulatorHost = String.fromEnvironment(
