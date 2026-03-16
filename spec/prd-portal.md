@@ -215,7 +215,7 @@ K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the inter
 
 # REQ-p70005: Customizable Role-Based Access Control
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00018-D+E
+**Level**: PRD | **Status**: Draft | **Refines**: p00018-D+E
 
 ## Rationale
 
@@ -242,7 +242,7 @@ G. Role definitions SHALL be isolated per sponsor.
 
 # REQ-p70006: Comprehensive Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E, p00011-O
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+E
 
 ## Rationale
 
@@ -289,7 +289,7 @@ H. Role mapping changes SHALL be logged in the audit trail.
 
 # REQ-p70009: Link New Patient Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
 
 ## Rationale
 
@@ -319,7 +319,7 @@ G. The system SHALL support sponsor configuration of additional Mobile Linking S
 
 # REQ-p70010: Patient Disconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
 
 ## Rationale
 
@@ -356,7 +356,7 @@ K. The system SHALL support sponsor configuration of additional disconnection-re
 
 # REQ-p70012: Portal Data Acceptance and Rejection
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-H+I+O, p00004-A+C+D
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+C+D
 
 ## Rationale
 
@@ -404,7 +404,7 @@ The version of the Questionnaire and Questionnaire GUI is included in the Questi
 
 # REQ-p70011: Patient Reconnection Workflow
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00011-B+O, p00004-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A
 
 ## Rationale
 

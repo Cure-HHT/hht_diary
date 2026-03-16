@@ -213,7 +213,7 @@ TODO - this needs another spec #
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00043-D+U+V, p70000-A+E+L
+**Level**: PRD | **Status**: Draft | **Refines**: p00043-D+U, p70000-A+E+L
 
 ## Rationale
 

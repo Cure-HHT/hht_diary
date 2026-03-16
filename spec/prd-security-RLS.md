@@ -58,7 +58,7 @@ Sponsor A                          Sponsor B
 
 # REQ-p00015: Database-Level Access Enforcement
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+G+K, p00014-D
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+G, p00014-D
 
 ## Rationale
 
@@ -182,7 +182,7 @@ G. Site assignments SHALL determine the complete scope of data visibility for ea
 
 # REQ-p00037: Investigator Annotation Restrictions
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+C, p00014-A+B
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+C, p00014-A
 
 ## Rationale
 
@@ -246,7 +246,7 @@ I. The system SHALL log all analyst data access events in the audit trail.
 
 # REQ-p00023: Sponsor Global Data Access
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+D, p00014-A+B
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+D, p00014-A
 
 ## Rationale
 
@@ -279,7 +279,7 @@ J. The system SHALL NOT allow sponsors to modify audit records.
 
 # REQ-p00038: Auditor Compliance Access
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+I, p00010-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+I
 
 ## Rationale
 
@@ -314,7 +314,7 @@ K. The system SHALL enforce quarterly access reviews for all auditor accounts.
 
 # REQ-p00039: Administrator Access with Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+E+H, p00010-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+E+H
 
 ## Rationale
 
@@ -349,7 +349,7 @@ K. The system SHALL record the results of quarterly access reviews in the audit 
 
 # REQ-p00040: Event Sourcing State Protection
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+B+C+L+M+O, p00010-A
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+B+C+L
 
 ## Rationale
 

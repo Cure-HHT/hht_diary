@@ -1,0 +1,394 @@
+{
+  "healthy": true,
+  "summary": {
+    "passed": 1,
+    "failed": 0,
+    "warnings": 0
+  },
+  "checks": [
+    {
+      "name": "code.coverage",
+      "passed": true,
+      "message": "0/6 requirements have code references (0.0%) [23 deprecated, 248 draft excluded]",
+      "category": "code",
+      "severity": "info",
+      "details": {
+        "code_nodes": 384,
+        "requirements_with_code": 0,
+        "total_requirements": 6,
+        "coverage_percent": 0.0
+      },
+      "findings": []
+    },
+    {
+      "name": "code.unlinked",
+      "passed": false,
+      "message": "48 code references not linked to any requirement",
+      "category": "code",
+      "severity": "info",
+      "details": {
+        "count": 48,
+        "unlinked": [
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/tool/testNotification.sh:6",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/dart_test.yaml:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task_type.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/services/task_service_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/widgetbook/main.dart:4",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/lib/src/tasks.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/test/tasks_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/activation_flow_test.dart:1",
+          "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/api/journey_00_first_admin_activation_test.dart:1"
+        ]
+      },
+      "findings": [
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/tool/testNotification.sh:6",
+          "file_path": "apps/sponsor-portal/tool/testNotification.sh",
+          "line": 6,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/tool/testNotification.sh:6",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/dart_test.yaml:1",
+          "file_path": "apps/sponsor-portal/portal-ui/dart_test.yaml",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/dart_test.yaml:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart:1",
+          "file_path": "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task.dart:1",
+          "file_path": "apps/common-dart/trial_data_types/lib/src/task.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task_type.dart:1",
+          "file_path": "apps/common-dart/trial_data_types/lib/src/task_type.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/common-dart/trial_data_types/lib/src/task_type.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/services/task_service_test.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/test/services/task_service_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/services/task_service_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart:1",
+          "file_path": "apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/widgetbook/main.dart:4",
+          "file_path": "apps/daily-diary/clinical_diary/widgetbook/main.dart",
+          "line": 4,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/clinical_diary/widgetbook/main.dart:4",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/lib/src/tasks.dart:1",
+          "file_path": "apps/daily-diary/diary_functions/lib/src/tasks.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/lib/src/tasks.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/test/tasks_test.dart:1",
+          "file_path": "apps/daily-diary/diary_functions/test/tasks_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/daily-diary/diary_functions/test/tasks_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/activation_flow_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/integration_test/activation_flow_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/activation_flow_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/api/journey_00_first_admin_activation_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/integration_test/api/journey_00_first_admin_activation_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/api/journey_00_first_admin_activation_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/api/journey_01_admin_creates_user_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/integration_test/api/journey_01_admin_creates_user_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/integration_test/api/journey_01_admin_creates_user_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/pages/admin/patients_overview_tab.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/pages/admin/patients_overview_tab.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/pages/admin/patients_overview_tab.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/activation_code_display.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/activation_code_display.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/activation_code_display.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/disconnect_patient_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/disconnect_patient_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/disconnect_patient_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/manage_questionnaires_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/manage_questionnaires_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/manage_questionnaires_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/mark_not_participating_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/mark_not_participating_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/mark_not_participating_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/patient_actions_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/patient_actions_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/patient_actions_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/reactivate_patient_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/reactivate_patient_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/reactivate_patient_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/reconnect_patient_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/reconnect_patient_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/reconnect_patient_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/start_trial_dialog.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/lib/widgets/start_trial_dialog.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/lib/widgets/start_trial_dialog.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/pages/investigator/patients_tab_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/pages/investigator/patients_tab_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/pages/investigator/patients_tab_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/activation_code_display_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/activation_code_display_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/activation_code_display_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/disconnect_patient_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/disconnect_patient_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/disconnect_patient_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/manage_questionnaires_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/manage_questionnaires_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/manage_questionnaires_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/mark_not_participating_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/mark_not_participating_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/mark_not_participating_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/patient_actions_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/patient_actions_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/patient_actions_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/reactivate_patient_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/reactivate_patient_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/reactivate_patient_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/reconnect_patient_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/reconnect_patient_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/reconnect_patient_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/start_trial_dialog_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal-ui/test/widgets/start_trial_dialog_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal-ui/test/widgets/start_trial_dialog_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/integration_test/patients_sync_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/integration_test/patients_sync_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/integration_test/patients_sync_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/integration_test/sites_sync_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/integration_test/sites_sync_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/integration_test/sites_sync_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/patients_sync.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/lib/src/patients_sync.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/patients_sync.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/questionnaire.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/lib/src/questionnaire.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/questionnaire.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/sites_sync.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/lib/src/sites_sync.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/lib/src/sites_sync.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/patients_sync_test.dart:3",
+          "file_path": "apps/sponsor-portal/portal_functions/test/patients_sync_test.dart",
+          "line": 3,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/patients_sync_test.dart:3",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/portal_user_edit_test.dart:3",
+          "file_path": "apps/sponsor-portal/portal_functions/test/portal_user_edit_test.dart",
+          "line": 3,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/portal_user_edit_test.dart:3",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/questionnaire_unlock_finalize_test.dart:1",
+          "file_path": "apps/sponsor-portal/portal_functions/test/questionnaire_unlock_finalize_test.dart",
+          "line": 1,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/questionnaire_unlock_finalize_test.dart:1",
+          "related": []
+        },
+        {
+          "message": "Unlinked code: code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/sites_sync_test.dart:3",
+          "file_path": "apps/sponsor-portal/portal_functions/test/sites_sync_test.dart",
+          "line": 3,
+          "node_id": "code:/home/metagamer/cure-hht/hht_diary-worktrees/app-spec-refactor/apps/sponsor-portal/portal_functions/test/sites_sync_test.dart:3",
+          "related": []
+        }
+      ]
+    }
+  ]
+}
