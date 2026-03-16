@@ -164,6 +164,27 @@ void main() {
       );
     });
 
+    // CUR-1054: Connected patients need Show Linking Code + Disconnect
+    // REQ-CAL-p00073-C: Connected patients (both Linked - Awaiting Start
+    // and Trial Active) need access to Show Linking Code and Disconnect.
+    testWidgets(
+      'connected status shows Show Linking Code and Disconnect Patient',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
+
+        await _pumpDialog(tester, apiClient, 'connected');
+
+        expect(find.text('Show Linking Code'), findsOneWidget);
+        expect(find.text('Disconnect Patient'), findsOneWidget);
+        expect(find.byIcon(Icons.visibility), findsOneWidget);
+        expect(find.byIcon(Icons.link_off), findsOneWidget);
+
+        // Should NOT show actions from other statuses
+        expect(find.text('Reconnect Patient'), findsNothing);
+        expect(find.text('Mark as Not Participating'), findsNothing);
+      },
+    );
+
     testWidgets('Close button dismisses dialog', (tester) async {
       final apiClient = await _createMockApiClient();
 

@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
+import 'disconnect_patient_dialog.dart';
 import 'link_patient_dialog.dart';
 import 'mark_not_participating_dialog.dart';
 import 'reconnect_patient_dialog.dart';
@@ -168,6 +169,51 @@ class PatientActionsDialog extends StatelessWidget {
             titleColor: theme.colorScheme.error,
             onTap: () async {
               final success = await MarkNotParticipatingDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(
+                  success
+                      ? PatientActionResult.actionTaken
+                      : PatientActionResult.cancelled,
+                );
+              }
+            },
+          ),
+        ];
+
+      // REQ-CAL-p00073-C: Connected patients (both Linked - Awaiting Start
+      // and Trial Active) need access to Show Linking Code and Disconnect.
+      // The primary action (Start Trial / Manage Questionnaires) is shown
+      // in the table's Actions column; this dialog provides the rest.
+      case 'connected':
+        return [
+          _ActionTile(
+            icon: Icons.visibility,
+            title: 'Show Linking Code',
+            description: 'View active linking code for this patient',
+            onTap: () async {
+              Navigator.of(context).pop(PatientActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.link_off,
+            title: 'Disconnect Patient',
+            description: 'Disconnect patient from mobile app',
+            iconColor: theme.colorScheme.error,
+            titleColor: theme.colorScheme.error,
+            onTap: () async {
+              final success = await DisconnectPatientDialog.show(
                 context: context,
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
