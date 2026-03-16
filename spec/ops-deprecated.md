@@ -12,9 +12,13 @@
 **Level**: Ops | **Status**: Deprecated
 **Refines**: p01086
 
+## Assertions
+
+A. This requirement has been deprecated and SHALL NOT be implemented.
+
 This requirement was removed.
 
-*End* *Language Configuration Management* | **Hash**: 00000000
+*End* *Language Configuration Management* | **Hash**: 844d559c
 ---
 
 # REQ-o00049: Artifact Retention and Archival
@@ -22,9 +26,13 @@ This requirement was removed.
 **Level**: Ops | **Status**: Deprecated
 **Refines**: p01086
 
+## Assertions
+
+A. This requirement has been deprecated and SHALL NOT be implemented.
+
 This requirement was removed. See spec/roadmap/ops-compliance-operations.md.
 
-*End* *Artifact Retention and Archival* | **Hash**: 00000000
+*End* *Artifact Retention and Archival* | **Hash**: 844d559c
 ---
 
 # REQ-o00051: Change Control and Audit Trail
@@ -32,6 +40,10 @@ This requirement was removed. See spec/roadmap/ops-compliance-operations.md.
 **Level**: Ops | **Status**: Deprecated
 **Refines**: p01086
 
+## Assertions
+
+A. This requirement has been deprecated and SHALL NOT be implemented.
+
 This requirement was removed. See spec/roadmap/ops-compliance-operations.md.
 
-*End* *Change Control and Audit Trail* | **Hash**: 00000000
+*End* *Change Control and Audit Trail* | **Hash**: 844d559c
