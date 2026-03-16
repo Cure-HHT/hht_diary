@@ -88,15 +88,12 @@ void main() {
         );
       });
 
-      testWidgets('displays sharing agreement checkboxes', (tester) async {
+      testWidgets('displays sharing agreement checkbox', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.byType(Checkbox), findsNWidgets(2));
-        expect(
-          find.text('Share data prior to enrollment (optional)'),
-          findsOneWidget,
-        );
+        // Only one checkbox remains after removing the optional share-prior-to-enrollment one
+        expect(find.byType(Checkbox), findsOneWidget);
         expect(
           find.textContaining(
             'I have read, understand, and consent to the sharing agreement',
@@ -104,6 +101,20 @@ void main() {
           findsOneWidget,
         );
       });
+
+      testWidgets(
+        'does not show Share data prior to enrollment checkbox (CUR-990)',
+        (tester) async {
+          await tester.pumpWidget(buildScreen());
+          await tester.pumpAndSettle();
+
+          // Optional checkbox was removed — enrollment requires only the mandatory consent
+          expect(
+            find.text('Share data prior to enrollment (optional)'),
+            findsNothing,
+          );
+        },
+      );
 
       testWidgets('displays enroll button', (tester) async {
         await tester.pumpWidget(buildScreen());
@@ -197,10 +208,10 @@ void main() {
         await tester.tap(requiredCheckbox);
         await tester.pump();
 
-        // Second checkbox should be checked
+        // The only checkbox should now be checked
         final checkboxes = find.byType(Checkbox);
-        final secondCheckbox = tester.widget<Checkbox>(checkboxes.at(1));
-        expect(secondCheckbox.value, isTrue);
+        final consentCheckbox = tester.widget<Checkbox>(checkboxes.first);
+        expect(consentCheckbox.value, isTrue);
       });
     });
 
