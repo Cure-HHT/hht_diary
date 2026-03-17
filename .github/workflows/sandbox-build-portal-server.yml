@@ -53,9 +53,7 @@ env:
 
 permissions:
   contents: read
-  packages: read
-  id-token: read
-  actions: read
+  
 
 jobs:
   build-portal-server:
