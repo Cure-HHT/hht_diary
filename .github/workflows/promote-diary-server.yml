@@ -1,0 +1,86 @@
+name: Promote diary-server
+
+on:
+  workflow_dispatch:
+    inputs:
+      sponsor-env:
+        description: "Callisto environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+        default: dev
+      version:
+        description: "Optional version label"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+  actions: write
+
+jobs:
+  resolve-and-deploy:
+    name: Resolve release digest and deploy
+    runs-on: ubuntu-latest
+
+    outputs:
+      selected_digest: ${{ steps.select-digest.outputs.digest }}
+
+    steps:
+      - name: Validate release variable on qa/uat
+        if: ${{ inputs.sponsor-env != 'dev' && vars.DIARY_SERVER_RELEASE_DIGEST == '' }}
+        run: |
+          echo "::error::DIARY_SERVER_RELEASE_DIGEST is not set. Run this workflow for dev first to start a release sequence."
+          exit 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve current main-latest digest
+        id: resolve-latest
+        if: ${{ inputs.sponsor-env == 'dev' }}
+        run: |
+          RAW="$(docker buildx imagetools inspect ghcr.io/cure-hht/diary-server:main-latest --raw)"
+          DIGEST="$(printf '%s' "$RAW" | sha256sum | awk '{print $1}')"
+          echo "digest=sha256:${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Resolved latest digest: sha256:${DIGEST}"
+
+      - name: Select digest for this deployment
+        id: select-digest
+        run: |
+          if [ "${{ inputs.sponsor-env }}" = "dev" ]; then
+            DIGEST="${{ steps.resolve-latest.outputs.digest }}"
+          else
+            DIGEST="${{ vars.DIARY_SERVER_RELEASE_DIGEST }}"
+          fi
+
+          if [ -z "$DIGEST" ]; then
+            echo "::error::No digest selected."
+            exit 1
+          fi
+
+          echo "Using digest: $DIGEST"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Save release digest for this sequence
+        if: ${{ inputs.sponsor-env == 'dev' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh variable set DIARY_SERVER_RELEASE_DIGEST --body "${{ steps.select-digest.outputs.digest }}"
+          echo "Saved DIARY_SERVER_RELEASE_DIGEST=${{ steps.select-digest.outputs.digest }}"
+
+  deploy:
+    name: Deploy diary-server to selected environment
+    needs: [resolve-and-deploy]
+    uses: ./.github/workflows/deploy-run-service.yml
+    with:
+      service-name: diary-server
+      sponsor-env: ${{ inputs.sponsor-env }}
+      image_path: ghcr.io/cure-hht/diary-server@${{ needs.resolve-and-deploy.outputs.selected_digest }}
+      version: ${{ inputs.version }}
+    secrets: inherit
