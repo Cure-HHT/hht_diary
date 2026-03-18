@@ -86,7 +86,7 @@ jobs:
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
             --config ${{ inputs.flavor }} \
-            -- bash ./tool/build_android_${{ inputs.flavor }}.sh
+            -- bash ./tool/build_android_${{ inputs.flavor }}_signed.sh
 
       - name: Determine artifact path
         id: artifact
