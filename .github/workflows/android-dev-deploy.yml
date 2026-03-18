@@ -45,7 +45,7 @@ jobs:
             ~/.pub-cache
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: flutter-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.lock') }}
+          key: flutter-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
           restore-keys: |
             flutter-${{ runner.os }}-
 
