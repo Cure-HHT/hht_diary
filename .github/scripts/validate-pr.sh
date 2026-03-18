@@ -250,6 +250,11 @@ if [ "$SPEC_CHANGED" = "true" ]; then
 
   elspais health
 
+  # Generate traceability matrix for PR comment and artifact upload
+  mkdir -p build-reports/combined/traceability
+  elspais summary trace --format markdown \
+    -o build-reports/combined/traceability/traceability_matrix.md
+
   echo "Requirement validation passed"
 else
   echo "Skipped - no spec/ changes [Passed]"
