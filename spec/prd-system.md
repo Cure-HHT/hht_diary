@@ -44,8 +44,6 @@ closed proprietary forks of the core platform while preserving sponsor IP bounda
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01041
 
-**Refines**: REQ-p01041
-
 ## Assertions
 
 A. Each application SHALL display the full text of the license for any included code or content.
@@ -67,8 +65,6 @@ Open-source license compliance requires that applications display the full text 
 ## REQ-p01074: User-Facing State Change Communication
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p01085
-
 **Refines**: REQ-p01085
 
 ## Assertions

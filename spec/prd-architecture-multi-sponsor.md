@@ -1,11 +1,7 @@
 ## REQ-p00008: Single Mobile App for All Sponsors
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-G, REQ-p00001-J
-
-**Refines**: REQ-p00001-A, REQ-p00001-G, REQ-p00001-J
-
-**Refines**: p00001-A, p00001-G, p00001-J
+**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-G, REQ-p00001-J
 
 ## Assertions
 
@@ -42,11 +38,7 @@ This requirement establishes a unified mobile application architecture that simp
 ## REQ-p00009: Sponsor-Specific Portals
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001
-
-**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-B
-
-**Refines**: p00001-A, p00001-B, p00001-F
+**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-B, REQ-p00001-F
 
 ## Assertions
 
@@ -76,10 +68,6 @@ Web portals serve clinical staff and require strong isolation guarantees beyond 
 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p70001-D, REQ-p70001-E
-
-**Refines**: REQ-p70001-D, REQ-p70001-E
-
-**Refines**: p70001-D, p70001-E
 
 ## Assertions
 
@@ -119,12 +107,8 @@ Clinical trials typically involve multiple sites (hospitals, clinics, research c
 ---
 ## REQ-p01054: Complete Infrastructure Isolation Per Sponsor
 
-**Level**: prd | **Status**: Active | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-D
-
-**Refines**: REQ-p00001-A, REQ-p00001-B, REQ-p00001-D
-
-**Refines**: p00001-A, p00001-B, p00001-D
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-B, REQ-p00001-D
 
 ## Assertions
 
@@ -154,12 +138,8 @@ Complete infrastructure isolation ensures data security, regulatory compliance, 
 ---
 ## REQ-p01057: Mono Repository with Sponsor Repositories
 
-**Level**: prd | **Status**: Active | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009-G
-
-**Refines**: REQ-p00009-G
-
-**Refines**: p00009-G
 
 ## Assertions
 
@@ -197,12 +177,8 @@ This requirement establishes a mono repository architecture that balances centra
 ---
 ## REQ-p01058: Unified App Deployment
 
-**Level**: prd | **Status**: Active | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00008-J
-
-**Refines**: REQ-p00008-J
-
-**Refines**: p00008-J
 
 ## Assertions
 
@@ -235,10 +211,6 @@ The unified deployment model requires that all sponsors share the same productio
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00045-A
 
-**Refines**: REQ-p00045-C
-
-**Refines**: p00045-C
-
 ## Assertions
 
 A. The system SHALL NOT permit changes to patient application logic during the active trial period for users enrolled in that trial without documented justification and approval.
@@ -259,12 +231,8 @@ Changes to the patient user experience during active trials can affect the data 
 ---
 ## REQ-p01059: Customization Policy
 
-**Level**: prd | **Status**: Active | **Implements**: -
-**Refines**: REQ-p00001
-
-**Refines**: REQ-p00001-A
-
-**Refines**: p00001-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00001, REQ-p00001-A
 
 ## Assertions
 
@@ -298,12 +266,8 @@ Minimizing customization reduces maintenance burden and code divergence as spons
 ---
 ## REQ-p01055: Sponsor Confidentiality
 
-**Level**: prd | **Status**: Active | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-J
-
-**Refines**: REQ-p00001-A, REQ-p00001-J
-
-**Refines**: p00001-A, p00001-J
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-J
 
 ## Assertions
 
@@ -339,12 +303,8 @@ Clinical trial activity is proprietary business information. Using a shared mult
 ---
 ## REQ-p01056: Confidentiality Sufficiency
 
-**Level**: prd | **Status**: Active | **Implements**: -
-**Refines**: REQ-p01055
-
-**Refines**: REQ-p01055-A, REQ-p01055-B
-
-**Refines**: p01055-A, p01055-B
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01055, REQ-p01055-A, REQ-p01055-B
 
 ## Assertions
 

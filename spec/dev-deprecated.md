@@ -18,7 +18,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Event sourcing implementation* | **Hash**: 844d559c
+*End* *Event sourcing implementation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00029: Portal UI Design System
@@ -32,7 +32,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Portal UI Design System* | **Hash**: 844d559c
+*End* *Portal UI Design System* | **Hash**: 93a09d35
 ---
 
 # REQ-d00030: Portal Routing and Navigation
@@ -46,7 +46,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Portal Routing and Navigation* | **Hash**: 844d559c
+*End* *Portal Routing and Navigation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00031: Identity Platform Integration
@@ -60,7 +60,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Identity Platform Integration* | **Hash**: 844d559c
+*End* *Identity Platform Integration* | **Hash**: 93a09d35
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
@@ -74,7 +74,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Role-Based Access Control Implementation* | **Hash**: 844d559c
+*End* *Role-Based Access Control Implementation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00033: Site-Based Data Isolation
@@ -88,7 +88,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Site-Based Data Isolation* | **Hash**: 844d559c
+*End* *Site-Based Data Isolation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00034: Login Page Implementation
@@ -102,7 +102,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Login Page Implementation* | **Hash**: 844d559c
+*End* *Login Page Implementation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00035: Admin Dashboard Implementation
@@ -116,7 +116,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Admin Dashboard Implementation* | **Hash**: 844d559c
+*End* *Admin Dashboard Implementation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00036: Create User Dialog Implementation
@@ -130,7 +130,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Create User Dialog Implementation* | **Hash**: 844d559c
+*End* *Create User Dialog Implementation* | **Hash**: 93a09d35
 ---
 
 # REQ-d00039: Portal Users Table Schema
@@ -144,7 +144,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Portal Users Table Schema* | **Hash**: 844d559c
+*End* *Portal Users Table Schema* | **Hash**: 93a09d35
 ---
 
 # REQ-d00040: User Site Access Table Schema
@@ -158,7 +158,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *User Site Access Table Schema* | **Hash**: 844d559c
+*End* *User Site Access Table Schema* | **Hash**: 93a09d35
 ---
 
 # REQ-d00041: Patients Table Extensions for Portal
@@ -172,7 +172,7 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Patients Table Extensions for Portal* | **Hash**: 844d559c
+*End* *Patients Table Extensions for Portal* | **Hash**: 93a09d35
 ---
 
 # REQ-d00072: ODM-XML Export Implementation
@@ -186,4 +186,4 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed. See spec/roadmap/dev-CDISC.md.
 
-*End* *ODM-XML Export Implementation* | **Hash**: 844d559c
+*End* *ODM-XML Export Implementation* | **Hash**: fc88846e

@@ -1,11 +1,7 @@
 ## REQ-p00045: Design Patterns
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00044
-
-**Refines**: REQ-p00044-E
-
-**Refines**: p00044-E
+**Refines**: REQ-p00044, REQ-p00044-E
 
 ## Assertions
 
@@ -21,10 +17,6 @@ Clinical trial systems must comply with multiple regulatory frameworks depending
 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00048
-
-**Refines**: REQ-p00048
-
-**Refines**: p00048
 
 ## Assertions
 
@@ -57,11 +49,7 @@ Regulatory agencies require long-term retention of clinical trial data to suppor
 ## REQ-p01085: Compliance Systems
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00044-E
-
-**Refines**: REQ-p00044-E
-
-**Refines**: p00045
+**Refines**: REQ-p00044-E, REQ-p00045
 
 ## Assertions
 

@@ -10,6 +10,8 @@
 **Goal**: Link a new patient's mobile app to the sponsor portal, enabling data synchronization
 **Context**: A patient has been enrolled in the trial by the sponsor. Dr. Mitchell needs to generate a Mobile Linking Code so the patient can connect their mobile app.
 
+Validates: REQ-d00094, REQ-d00099, REQ-d00101, REQ-d00109
+
 ## Steps
 
 1. Dr. Mitchell opens the Sponsor Portal and navigates to patient linking
@@ -34,6 +36,8 @@ The patient's mobile app is successfully linked to the portal. Their data syncs 
 **Actor**: Dr. Sarah Mitchell (Investigator)
 **Goal**: Secure a patient's trial data after they report a lost phone and restore their access on a new device
 **Context**: A patient contacts Dr. Mitchell to report their phone was lost. The patient has obtained a new phone and wants to continue participating in the trial.
+
+Validates: REQ-d00101, REQ-d00105
 
 ## Steps
 

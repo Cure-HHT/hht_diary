@@ -10,6 +10,8 @@
 **Goal**: Complete the HHT Quality of Life questionnaire to report how HHT has affected her daily life
 **Context**: Sarah is participating in an HHT clinical trial. Her investigator has triggered the HHT Quality of Life questionnaire as part of her monthly assessment. Sarah has four weeks of experience to reflect on.
 
+Validates: REQ-p01068, REQ-p01071
+
 ## Steps
 
 1. Sarah opens the Diary app and sees the pending HHT QoL questionnaire

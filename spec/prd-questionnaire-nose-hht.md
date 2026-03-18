@@ -127,8 +127,6 @@ Each category uses a 5-point scale (scored 0–4) with category-specific labels:
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A
 
-Addresses: JNY-NOSE-HHT-01
-
 ## Rationale
 
 NOSE HHT is a validated patient-reported outcome measure specifically designed for assessing the impact of epistaxis in HHT patients. The three-domain structure (physical, functional, emotional) provides comprehensive assessment of nosebleed burden. The platform implements this standard instrument faithfully. Patients must answer all questions before submission, consistent with paper-based administration where all fields must be completed.
@@ -158,8 +156,6 @@ I. The system SHALL record the exact response value (0-4) for each answered ques
 # REQ-p01070: NOSE HHT User Interface
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01067-A
-
-Addresses: JNY-NOSE-HHT-01
 
 ## Rationale
 

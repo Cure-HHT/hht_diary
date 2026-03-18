@@ -10,6 +10,8 @@
 **Goal**: Complete the Study Start questionnaire to officially begin participating in the clinical trial
 **Context**: Maria has been diagnosed with HHT and has been invited to participate in a clinical trial. Her physician has enrolled her and she has installed the Diary app on her phone. She receives a notification that she needs to complete the Study Start questionnaire before her data can be synced to the trial.
 
+Validates: REQ-p01065, REQ-d00106, REQ-d00108
+
 ## Steps
 
 1. Maria opens the Diary app and sees a prompt for the Study Start questionnaire

@@ -28,8 +28,6 @@ This specification defines the Daily Epistaxis Record Questionnaire, the primary
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A, REQ-p00042-A
 
-Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
-
 ## Rationale
 
 Daily epistaxis recording is the core data collection activity for HHT clinical trials. The questionnaire must capture event timing, duration, and severity while supporting patients who had no nosebleeds or cannot recall.
@@ -72,8 +70,6 @@ M. This Questionnaire SHALL support Study Start gating.
 # REQ-p01069: Daily Epistaxis Record User Interface
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01066-A
-
-Addresses: JNY-Epistaxis-Diary-01, JNY-Epistaxis-Diary-02, JNY-Epistaxis-Diary-03, JNY-Epistaxis-Diary-04
 
 ## Rationale
 

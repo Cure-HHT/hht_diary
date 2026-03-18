@@ -24,17 +24,14 @@ This specification defines session management for clinical questionnaires, ensur
 
 # REQ-p01073: Questionnaire Session Management
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-G
-
-Addresses: JNY-Questionnaire-Session-01, JNY-Questionnaire-Session-02
+**Level**: prd | **Status**: Proposed | **Implements**: -
+**Refines**: REQ-p01065-G
 
 ## Rationale
 
 Validated clinical instruments require uninterrupted completion to ensure response consistency and data quality. Patients who are interrupted for extended periods may experience changes in context, mood, or recall that compromise the validity of partially-completed responses. A configurable session management framework allows each questionnaire to enforce appropriate completion constraints based on its length and clinical requirements.
 
 ## Assertions
-
-### Readiness Gate
 
 A. When a questionnaire is configured with a readiness check, the system SHALL display a readiness screen before the instrument preamble, informing the patient of the estimated completion time.
 
@@ -80,7 +77,7 @@ P. Questionnaires without session management configuration SHALL preserve and re
 
 Q. When the app is resumed after being closed by the OS, if a questionnaire is in progress and has not timed out, the app SHALL open to the questionnaire for completion.
 
-*End* *Questionnaire Session Management* | **Hash**: a101e60e
+*End* *Questionnaire Session Management* | **Hash**: cd9c12a5
 
 ---
 

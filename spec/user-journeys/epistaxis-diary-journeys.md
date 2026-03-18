@@ -10,6 +10,8 @@
 **Goal**: Record a nosebleed event that just occurred
 **Context**: James is enrolled in an HHT clinical trial and uses the Diary app daily. He just had a nosebleed and wants to record it while the details are fresh.
 
+Validates: REQ-p01066, REQ-p01069
+
 ## Steps
 
 1. James opens the Diary app
@@ -35,6 +37,8 @@ James successfully records his nosebleed with accurate timing and intensity. The
 **Goal**: Record that he had no nosebleeds today
 **Context**: James has had a good day with no nosebleed episodes. He wants to record this in his diary before going to bed.
 
+Validates: REQ-p01066, REQ-p01069
+
 ## Steps
 
 1. James opens the Diary app
@@ -57,6 +61,8 @@ James successfully records a "No nosebleeds" entry for the day, which is capture
 **Goal**: Record her nosebleed history when she cannot clearly recall the day's events
 **Context**: Sarah is completing her diary at the end of a busy day and cannot remember if she had any minor nosebleeds.
 
+Validates: REQ-p01066, REQ-p01069
+
 ## Steps
 
 1. Sarah opens the Diary app
@@ -78,6 +84,8 @@ Sarah honestly records her uncertainty rather than guessing, maintaining data in
 **Actor**: James (Patient)
 **Goal**: Correct a nosebleed record he entered earlier with the wrong end time
 **Context**: James recorded a nosebleed earlier but accidentally entered the wrong end time. He realizes the mistake and wants to correct it.
+
+Validates: REQ-p01066, REQ-p01069
 
 ## Steps
 

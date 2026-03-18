@@ -10,6 +10,8 @@
 **Goal**: Complete the NOSE HHT questionnaire to assess how nosebleeds have impacted her life
 **Context**: Maria is participating in an HHT clinical trial. Her investigator has triggered the NOSE HHT questionnaire as part of her scheduled assessment. Maria receives a notification to complete it.
 
+Validates: REQ-p01067, REQ-p01070
+
 ## Steps
 
 1. Maria opens the Diary app and sees the pending NOSE HHT questionnaire

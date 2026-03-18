@@ -10,6 +10,8 @@
 **Goal**: Defer a questionnaire she is not ready to complete right now
 **Context**: Maria has been asked to complete the NOSE HHT questionnaire. She opens the app and sees the pending task, but she only has a few minutes before a meeting.
 
+Validates: REQ-p01073
+
 ## Steps
 
 1. Maria taps the questionnaire task notification
@@ -31,6 +33,8 @@ Maria defers the questionnaire without penalty. The deferral is logged. She can 
 **Actor**: Maria (Patient)
 **Goal**: Resume a questionnaire after being interrupted
 **Context**: Maria started the NOSE HHT questionnaire and answered 15 of 29 questions. She received a phone call and locked her phone. Over 30 minutes pass before she returns to the app.
+
+Validates: REQ-p01073
 
 ## Steps
 

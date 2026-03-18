@@ -63,8 +63,6 @@ All questions use a single 5-point frequency scale (scored 0–4):
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A
 
-Addresses: JNY-HHT-QoL-01
-
 ## Rationale
 
 The HHT Quality of Life questionnaire provides a brief, focused assessment of how HHT symptoms impact patients' daily activities and social life. The 4-question format minimizes patient burden while capturing key domains: work/school interruption, social interruption, social avoidance, and non-epistaxis HHT impact. The 4-week recall window aligns with typical clinical visit intervals. The platform implements this standard instrument faithfully. Patients must answer all questions before submission, consistent with paper-based administration where all fields must be completed.
@@ -93,8 +91,6 @@ H. The system SHALL record the exact response value (0-4) for each answered ques
 # REQ-p01071: HHT Quality of Life User Interface
 
 **Level**: PRD | **Status**: Draft | **Refines**: REQ-p01068-A
-
-Addresses: JNY-HHT-QoL-01
 
 ## Rationale
 

@@ -9,8 +9,8 @@
 
 ## REQ-p01086: Deprecated Requirements Registry
 
-**Level**: PRD | **Status**: Active | **Implements**: -
-**Refines**: p01085
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01085
 
 ## Assertions
 
@@ -23,8 +23,8 @@ B. Each deprecated requirement SHALL state its removal status and point to any r
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -32,13 +32,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed. See spec/regulations/fda/ for the replacement regulatory framework.
 
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 844d559c
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 291855cf
 ---
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -46,13 +46,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed. See spec/regulations/fda/ for the replacement regulatory framework.
 
-*End* *ALCOA+ Data Integrity Principles* | **Hash**: 844d559c
+*End* *ALCOA+ Data Integrity Principles* | **Hash**: 291855cf
 ---
 
 # REQ-p00024: Portal User Roles and Permissions
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -60,13 +60,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Portal User Roles and Permissions* | **Hash**: 844d559c
+*End* *Portal User Roles and Permissions* | **Hash**: 93a09d35
 ---
 
 # REQ-p00028: Token Revocation and Access Control
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -74,13 +74,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Token Revocation and Access Control* | **Hash**: 844d559c
+*End* *Token Revocation and Access Control* | **Hash**: 93a09d35
 ---
 
 # REQ-p00071: Password Complexity
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -88,13 +88,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed.
 
-*End* *Password Complexity* | **Hash**: 844d559c
+*End* *Password Complexity* | **Hash**: 93a09d35
 ---
 
 # REQ-p01043: Web Diary Authentication via Linking Code
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -102,13 +102,13 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed. See spec/roadmap/prd-diary-web.md.
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: 844d559c
+*End* *Web Diary Authentication via Linking Code* | **Hash**: 7cf5512f
 ---
 
 # REQ-p01062: GDPR Data Portability
 
-**Level**: PRD | **Status**: Deprecated
-**Refines**: p01086
+**Level**: prd | **Status**: Deprecated | **Implements**: -
+**Refines**: REQ-p01086
 
 ## Assertions
 
@@ -116,4 +116,4 @@ A. This requirement has been deprecated and SHALL NOT be implemented.
 
 This requirement was removed. See spec/roadmap/prd-gdpr.md.
 
-*End* *GDPR Data Portability* | **Hash**: 844d559c
+*End* *GDPR Data Portability* | **Hash**: 37ef744e
