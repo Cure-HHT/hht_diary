@@ -248,15 +248,7 @@ if [ "$SPEC_CHANGED" = "true" ]; then
   export PATH="$HOME/.local/bin:$PATH"
   elspais --version
 
-  elspais validate --mode core
-  elspais index validate --mode core
-
-  # Verify requirement hash freshness (CUR-1013)
-  if elspais hash verify 2>/dev/null; then
-    echo "Requirement hashes are up to date"
-  else
-    echo "::warning::Requirement hash verification returned non-zero (may not be supported in this elspais version)"
-  fi
+  elspais health
 
   echo "Requirement validation passed"
 else
