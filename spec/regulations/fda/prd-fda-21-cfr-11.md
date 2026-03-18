@@ -1,6 +1,6 @@
 # REQ-p80001: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Refines**: p00044-A
+**Level**: PRD | **Status**: Draft
 
 ## Rationale
 
@@ -9,23 +9,23 @@ This is the top-level requirement establishing compliance obligations for electr
 ## Assertions
 
 A. The system SHALL comply with FDA 21 CFR Part 11 requirements for electronic records and electronic signatures.
-   *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf*
+   *Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, pp. 1-6*
 
 B. The system SHALL implement audit trail and data correction controls as specified in Good Clinical Practice consolidated requirements.
-   *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
+   *Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, pp. 1-3*
 
 C. The system SHALL satisfy the detailed audit trail and data correction requirements derived from ICH E6(R3), ISO 14155, EMA guidelines, and FDA guidance documents.
-   *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
+   *Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, pp. 1-18*
 
 D. The system SHALL conform to FDA guidance on use of electronic records, electronic signatures, and electronic systems in clinical investigations.
-   *Source: 2024 10 FDA Guidance on electronic storage.pdf*
+   *Source: 2024 10 FDA Guidance on electronic storage.pdf, pp. 1-24*
 
 *End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 54daf3d2
 ---
 
 # REQ-p80002: 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-A
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-A
 
 ## Rationale
 
@@ -36,95 +36,95 @@ This requirement establishes compliance with FDA 21 CFR Part 11, the federal reg
 ### Controls for Closed Systems (11.10)
 
 A. The system SHALL generate accurate and complete copies of records in both human readable and electronic form suitable for inspection, review, and copying by the agency.
-   *Reference: 21 CFR 11.10(b)*
+   *Reference: 21 CFR 11.10(b), p. 4*
 
 B. The system SHALL protect records to enable their accurate and ready retrieval throughout the records retention period.
-   *Reference: 21 CFR 11.10(c)*
+   *Reference: 21 CFR 11.10(c), p. 4*
 
 C. The system SHALL limit system access to authorized individuals.
-   *Reference: 21 CFR 11.10(d)*
+   *Reference: 21 CFR 11.10(d), p. 4*
 
 D. The system SHALL use secure, computer-generated, time-stamped audit trails to independently record the date and time of operator entries and actions that create, modify, or delete electronic records.
-   *Reference: 21 CFR 11.10(e)*
+   *Reference: 21 CFR 11.10(e), p. 4*
 
 E. The system SHALL ensure that record changes do not obscure previously recorded information.
-   *Reference: 21 CFR 11.10(e)*
+   *Reference: 21 CFR 11.10(e), p. 4*
 
 F. The system SHALL retain audit trail documentation for a period at least as long as that required for the subject electronic records and make it available for agency review and copying.
-   *Reference: 21 CFR 11.10(e)*
+   *Reference: 21 CFR 11.10(e), p. 4*
 
 G. The system SHALL use operational system checks to enforce permitted sequencing of steps and events, as appropriate.
-   *Reference: 21 CFR 11.10(f)*
+   *Reference: 21 CFR 11.10(f), p. 4*
 
 H. The system SHALL use authority checks to ensure that only authorized individuals can use the system, electronically sign a record, access the operation or computer system input or output device, alter a record, or perform the operation at hand.
-   *Reference: 21 CFR 11.10(g)*
+   *Reference: 21 CFR 11.10(g), p. 4*
 
 I. The system SHALL use device checks to determine, as appropriate, the validity of the source of data input or operational instruction.
-   *Reference: 21 CFR 11.10(h)*
+   *Reference: 21 CFR 11.10(h), p. 4*
 
 J. The system SHALL implement adequate controls over the distribution of, access to, and use of documentation for system operation and maintenance.
-   *Reference: 21 CFR 11.10(k)(1)*
+   *Reference: 21 CFR 11.10(k)(1), p. 5*
 
 K. The system SHALL implement revision and change control procedures to maintain an audit trail that documents time-sequenced development and modification of systems documentation.
-   *Reference: 21 CFR 11.10(k)(2)*
+   *Reference: 21 CFR 11.10(k)(2), p. 5*
 
 ### Signature Manifestations (11.50)
 
 L. Signed electronic records SHALL contain information associated with the signing that clearly indicates the printed name of the signer.
-   *Reference: 21 CFR 11.50(a)(1)*
+   *Reference: 21 CFR 11.50(a)(1), p. 5*
 
 M. Signed electronic records SHALL contain information associated with the signing that clearly indicates the date and time when the signature was executed.
-   *Reference: 21 CFR 11.50(a)(2)*
+   *Reference: 21 CFR 11.50(a)(2), p. 5*
 
 N. Signed electronic records SHALL contain information associated with the signing that clearly indicates the meaning (such as review, approval, responsibility, or authorship) associated with the signature.
-   *Reference: 21 CFR 11.50(a)(3)*
+   *Reference: 21 CFR 11.50(a)(3), p. 5*
 
 O. The signer name, signature date/time, and signature meaning SHALL be subject to the same controls as for electronic records and SHALL be included as part of any human readable form of the electronic record (such as electronic display or printout).
-   *Reference: 21 CFR 11.50(b)*
+   *Reference: 21 CFR 11.50(b), p. 5*
 
 ### Signature/Record Linking (11.70)
 
 P. Electronic signatures and handwritten signatures executed to electronic records SHALL be linked to their respective electronic records to ensure that the signatures cannot be excised, copied, or otherwise transferred to falsify an electronic record by ordinary means.
-   *Reference: 21 CFR 11.70*
+   *Reference: 21 CFR 11.70, p. 5*
 
 ### Electronic Signature Uniqueness (11.100)
 
 Q. Each electronic signature SHALL be unique to one individual and SHALL NOT be reused by, or reassigned to, anyone else.
-   *Reference: 21 CFR 11.100(a)*
+   *Reference: 21 CFR 11.100(a), p. 5*
 
 ### Signature Components and Controls (11.200)
 
 R. Electronic signatures that are not based upon biometrics SHALL employ at least two distinct identification components such as an identification code and password.
-   *Reference: 21 CFR 11.200(a)(1)*
+   *Reference: 21 CFR 11.200(a)(1), p. 6*
 
 S. When an individual executes a series of signings during a single, continuous period of controlled system access, the first signing SHALL be executed using all electronic signature components; subsequent signings SHALL be executed using at least one electronic signature component that is only executable by, and designed to be used only by, the individual.
-   *Reference: 21 CFR 11.200(a)(1)(i)*
+   *Reference: 21 CFR 11.200(a)(1)(i), p. 6*
 
 T. When an individual executes one or more signings not performed during a single, continuous period of controlled system access, each signing SHALL be executed using all of the electronic signature components.
-   *Reference: 21 CFR 11.200(a)(1)(ii)*
+   *Reference: 21 CFR 11.200(a)(1)(ii), p. 6*
 
 U. Electronic signatures SHALL be administered and executed to ensure that attempted use of an individual's electronic signature by anyone other than its genuine owner requires collaboration of two or more individuals.
-   *Reference: 21 CFR 11.200(a)(3)*
+   *Reference: 21 CFR 11.200(a)(3), p. 6*
 
 V. Electronic signatures based upon biometrics SHALL be designed to ensure that they cannot be used by anyone other than their genuine owners.
-   *Reference: 21 CFR 11.200(b)*
+   *Reference: 21 CFR 11.200(b), p. 6*
 
 ### Controls for Identification Codes/Passwords (11.300)
 
 W. The system SHALL maintain the uniqueness of each combined identification code and password, such that no two individuals have the same combination of identification code and password.
-   *Reference: 21 CFR 11.300(a)*
+   *Reference: 21 CFR 11.300(a), p. 6*
 
 X. The system SHALL ensure that identification code and password issuances are periodically checked, recalled, or revised (e.g., to cover such events as password aging).
-   *Reference: 21 CFR 11.300(b)*
+   *Reference: 21 CFR 11.300(b), p. 6*
 
 Y. The system SHALL follow loss management procedures to electronically deauthorize lost, stolen, missing, or otherwise potentially compromised tokens, cards, and other devices that bear or generate identification code or password information, and to issue temporary or permanent replacements using suitable, rigorous controls.
-   *Reference: 21 CFR 11.300(c)*
+   *Reference: 21 CFR 11.300(c), p. 6*
 
 Z. The system SHALL use transaction safeguards to prevent unauthorized use of passwords and/or identification codes, and to detect and report in an immediate and urgent manner any attempts at their unauthorized use to the system security unit, and, as appropriate, to organizational management.
-   *Reference: 21 CFR 11.300(d)*
+   *Reference: 21 CFR 11.300(d), p. 6*
 
 AA. The system SHALL support initial and periodic testing of devices, such as tokens or cards, that bear or generate identification code or password information to ensure that they function properly and have not been altered in an unauthorized manner.
-    *Reference: 21 CFR 11.300(e)*
+    *Reference: 21 CFR 11.300(e), p. 6*
 
 ---
 
@@ -133,29 +133,29 @@ AA. The system SHALL support initial and periodic testing of devices, such as to
 > These requirements represent organizational, policy, or procedural obligations that cannot be verified through automated system testing.
 
 PC-A. The organization SHALL ensure that persons who develop, maintain, or use electronic record/electronic signature systems have the education, training, and experience to perform their assigned tasks.
-     *Reference: 21 CFR 11.10(i)*
+     *Reference: 21 CFR 11.10(i), p. 4*
 
 PC-B. The organization SHALL establish and adhere to written policies that hold individuals accountable and responsible for actions initiated under their electronic signatures, in order to deter record and signature falsification.
-     *Reference: 21 CFR 11.10(j)*
+     *Reference: 21 CFR 11.10(j), p. 4*
 
 PC-C. The organization SHALL verify the identity of an individual before establishing, assigning, certifying, or otherwise sanctioning that individual's electronic signature, or any element of such electronic signature.
-     *Reference: 21 CFR 11.100(b)*
+     *Reference: 21 CFR 11.100(b), p. 5*
 
 PC-D. Persons using electronic signatures SHALL certify to the agency that the electronic signatures in their system are intended to be the legally binding equivalent of traditional handwritten signatures.
-     *Reference: 21 CFR 11.100(c)*
+     *Reference: 21 CFR 11.100(c), p. 5*
 
 PC-E. Electronic signatures SHALL be used only by their genuine owners.
-     *Reference: 21 CFR 11.200(a)(2)*
+     *Reference: 21 CFR 11.200(a)(2), p. 6*
 
 PC-F. Computer systems (including hardware and software), controls, and attendant documentation maintained under this part SHALL be readily available for, and subject to, FDA inspection.
-     *Reference: 21 CFR 11.1(e)*
+     *Reference: 21 CFR 11.1(e), p. 2*
 
 PC-G. The system SHALL be validated to ensure accuracy, reliability, consistent intended performance, and the ability to discern invalid or altered records.
-     *Reference: 21 CFR 11.10(a)*
+     *Reference: 21 CFR 11.10(a), p. 4*
 
 ---
 
-*Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf*
+*Source: 21 CFR Part 11 (up to date as of 1-22-2026).pdf, pp. 1-6*
 
 *End* *21 CFR Part 11 Compliance* | **Hash**: a5d5da23
 
@@ -163,7 +163,7 @@ PC-G. The system SHALL be validated to ensure accuracy, reliability, consistent 
 
 # REQ-p80003: FDA Guidance on Electronic Records in Clinical Investigations
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-D
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-D
 
 ## Rationale
 
@@ -453,14 +453,14 @@ PC-W. Before or at the same time a person uses an electronic signature in an ele
 
 ---
 
-*Source: 2024 10 FDA Guidance on electronic storage.pdf*
+*Source: 2024 10 FDA Guidance on electronic storage.pdf, pp. 1-24*
 
 *End* *FDA Guidance on Electronic Records in Clinical Investigations* | **Hash**: 7330eda3
 ---
 
 # REQ-p80004: GCP Data Requirements for Audit Trails and Data Corrections
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-C
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-C
 
 ## Rationale
 
@@ -471,189 +471,189 @@ This requirement establishes detailed audit trail and data correction requiremen
 ### ICH E6(R3) - Core Audit Trail Requirements
 
 A. The system SHALL ensure that changes to source records are traceable, do not obscure the original entry, and are explained if necessary via an audit trail.
-   *Reference: ICH E6(R3) Section 2.12.2*
+   *Reference: ICH E6(R3) Section 2.12.2, p. 1*
 
 B. The system SHALL ensure that changes or corrections in reported data are traceable, explained (if necessary), and do not obscure the original entry.
-   *Reference: ICH E6(R3) Section 2.12.6*
+   *Reference: ICH E6(R3) Section 2.12.6, p. 1*
 
 C. The system SHALL ensure that corrections, additions, or deletions to source records and/or data acquisition tools are dated, explained (if necessary), and that approval of the change is properly documented.
-   *Reference: ICH E6(R3) Section 3.11.4.5.1(c)*
+   *Reference: ICH E6(R3) Section 3.11.4.5.1(c), p. 1*
 
 D. The system SHALL allow correction of errors to data, including data entered by participants, where requested by investigators/participants, with such corrections justified and supported by source records around the time of original entry.
-   *Reference: ICH E6(R3) Section 3.16.1(j)*
+   *Reference: ICH E6(R3) Section 3.16.1(j), p. 1*
 
 ### ICH E6(R3) - System Logging Requirements
 
 E. The system SHALL maintain logs of user account creation, changes to user roles and permissions, and user access.
-   *Reference: ICH E6(R3) Section 4.2.2(a)(i)*
+   *Reference: ICH E6(R3) Section 4.2.2(a)(i), p. 2*
 
 F. The system SHALL be designed to permit data changes in such a way that the initial data entry and any subsequent changes or deletions are documented, including, where appropriate, the reason for the change.
-   *Reference: ICH E6(R3) Section 4.2.2(a)(ii)*
+   *Reference: ICH E6(R3) Section 4.2.2(a)(ii), p. 3*
 
 G. The system SHALL record and maintain workflow actions in addition to direct data entry/changes into the system.
-   *Reference: ICH E6(R3) Section 4.2.2(a)(iii)*
+   *Reference: ICH E6(R3) Section 4.2.2(a)(iii), p. 3*
 
 H. The system SHALL ensure that audit trails, reports, and logs are not disabled, and that audit trails are not modified except in rare circumstances (e.g., when a participant's personal information is inadvertently included) and only if a log of such action and justification is maintained.
-   *Reference: ICH E6(R3) Section 4.2.2(b)*
+   *Reference: ICH E6(R3) Section 4.2.2(b), p. 3*
 
 I. The system SHALL ensure that audit trails and logs are interpretable and can support review.
-   *Reference: ICH E6(R3) Section 4.2.2(c)*
+   *Reference: ICH E6(R3) Section 4.2.2(c), p. 3*
 
 J. The system SHALL ensure that automatic capture of date and time of data entries or transfers are unambiguous (e.g., coordinated universal time (UTC)).
-   *Reference: ICH E6(R3) Section 4.2.2(d)*
+   *Reference: ICH E6(R3) Section 4.2.2(d), p. 3*
 
 ### ICH E6(R3) - Data Correction Attribution
 
 K. The system SHALL attribute data corrections to the person or computerised system making the correction, with corrections justified and supported by source records around the time of original entry and performed in a timely manner.
-   *Reference: ICH E6(R3) Section 4.2.4*
+   *Reference: ICH E6(R3) Section 4.2.4, p. 3*
 
 L. The system SHALL ensure that data changes made after trial unblinding are clearly documented, justified, authorized by the investigator, and reflected in an audit trail.
-   *Reference: ICH E6(R3) Section 3.16.2(e)*
+   *Reference: ICH E6(R3) Section 3.16.2(e), p. 2*
 
 M. The audit trail SHALL show activities, initial entry, and changes to data fields or records, by whom, when, and where applicable, why; in computerised systems, the audit trail SHALL be secure, computer-generated, and time stamped.
-   *Reference: ICH E6(R3) Glossary - Audit Trail*
+   *Reference: ICH E6(R3) Glossary - Audit Trail, p. 3*
 
 ### ISO 14155 - CRF Audit Trail Requirements
 
 N. The system SHALL maintain an audit trail for any change or correction to data reported on a CRF, which shall be dated, initialled, and explained if necessary, and shall not obscure the original entry; this applies to both written and electronic changes or corrections.
-   *Reference: ISO 14155 Section 7.8.2*
+   *Reference: ISO 14155 Section 7.8.2, p. 4*
 
 O. The system SHALL ensure that data changes are documented and that there is no deletion of entered data, maintaining an audit trail, data trail, and edit trail.
-   *Reference: ISO 14155 Section 7.8.3(f)*
+   *Reference: ISO 14155 Section 7.8.3(f), p. 4*
 
 P. The system SHALL ensure that corrections, additions, or deletions made to CRFs are dated, explained if necessary, and initialled by the principal investigator or authorized designee; monitors shall not make corrections, additions, or deletions to the CRFs.
-   *Reference: ISO 14155 Section 9.2.4.5(i)*
+   *Reference: ISO 14155 Section 9.2.4.5(i), pp. 4-5*
 
 ### EMA Guideline - Core Audit Trail Definition
 
 Q. The system SHALL provide a secure, computer-generated, time-stamped electronic audit trail that allows reconstruction of events relating to the creation, modification, or deletion of an electronic record.
-   *Reference: EMA Guideline Section Glossary - Audit Trail*
+   *Reference: EMA Guideline Section Glossary - Audit Trail, p. 6*
 
 ### EMA Guideline - ALCOA++ Data Integrity
 
 R. The system SHALL ensure that data are collected, accessed, and maintained in a secure manner to fulfill the ALCOA++ principles (attributable, legible, contemporaneous, original, accurate, complete, consistent, enduring, available when needed, and traceable).
-   *Reference: EMA Guideline Section 4.1*
+   *Reference: EMA Guideline Section 4.1, p. 6*
 
 ### EMA Guideline - Timestamp and Traceability
 
 S. The system SHALL capture the time point of observation and the time point of storage as part of metadata, including the audit trail, with accurate date and time information automatically captured and linked to an external standard.
-   *Reference: EMA Guideline Section 4.5 - Contemporaneous*
+   *Reference: EMA Guideline Section 4.5 - Contemporaneous, p. 7*
 
 T. The system SHALL ensure that any changes to data or context/metadata are traceable, do not obscure the original information, and are explained if necessary, with changes documented as part of the metadata (e.g., audit trail).
-   *Reference: EMA Guideline Section 4.5 - Traceable*
+   *Reference: EMA Guideline Section 4.5 - Traceable, p. 7*
 
 ### EMA Guideline - Audit Trail Protection and Storage
 
 U. The system SHALL enable audit trails for the original creation and subsequent modification of all electronic data, with audit trails being robust such that normal users cannot deactivate them; if admin users can deactivate audit trails, this SHALL automatically create an entry into a log file.
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 V. The system SHALL protect audit trail entries against change, deletion, and access modification (e.g., edit rights, visibility rights), and store the audit trail within the system itself.
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 ### EMA Guideline - Audit Trail Content and Export
 
 W. The audit trail SHALL be visible at data-point level in the live system, and it SHALL be possible to export the entire audit trail as a dynamic data file to allow identification of systematic patterns or concerns in data across trial participants, sites, etc.
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 X. The audit trail SHALL show the initial entry and the changes (value - previous and current) specifying what was changed (field, data identifiers), by whom (username, role, organisation), when (date/timestamp), and where applicable, why (reason for change).
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 Y. The system SHALL record all changes made as a result of data queries or a clarification process in the audit trail; changes to data shall only be performed when justified, and justification shall be documented.
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 Z. The system SHALL capture changes in data entry per field and not per page (e.g., eCRF page).
-   *Reference: EMA Guideline Section 6.2.1*
+   *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 AA. The system SHALL record the timestamp of data entry in the capture tool and timestamp of data saved to a hard drive as part of metadata, with the duration between initial capture and upload to a central server being short and traceable.
-    *Reference: EMA Guideline Section 6.2.1*
+    *Reference: EMA Guideline Section 6.2.1, p. 8*
 
 ### EMA Guideline - Access and Inspection
 
 AB. The system SHALL ensure that electronic source data, including the audit trail, is directly accessible by investigators, monitors, auditors, and inspectors without compromising the confidentiality of participants' identities.
-    *Reference: EMA Guideline Section 6*
+    *Reference: EMA Guideline Section 6, p. 7*
 
 AC. The system SHALL provide monitors, auditors, and inspectors access to trial participants (including potential participants screened but not enrolled) with access to audit trails.
-    *Reference: EMA Guideline Section A6.8*
+    *Reference: EMA Guideline Section A6.8, p. 13*
 
 ### EMA Guideline - Data Migration and Decommissioning
 
 AD. The system SHALL ensure that data, contextual information, and the audit trail are not separated during data migration; arrangements shall ensure that the link between data and metadata can be established.
-    *Reference: EMA Guideline Section 6.10*
+    *Reference: EMA Guideline Section 6.10, pp. 10-11*
 
 AE. The system SHALL ensure that upon database decommissioning, archived formats provide the possibility to restore the database(s), including the restoration of dynamic functionality and all relevant metadata (audit trail, event logs, implemented edit checks, queries, user logs, etc.).
-    *Reference: EMA Guideline Section 6.12*
+    *Reference: EMA Guideline Section 6.12, p. 11*
 
 ### EMA Guideline - Blinding Protection
 
 AF. The system SHALL ensure that care is taken so that information jeopardizing the blinding does not appear in the audit trail accessible to blinded users.
-    *Reference: EMA Guideline Section 6.2.1*
+    *Reference: EMA Guideline Section 6.2.1, p. 9*
 
 AG. The system SHALL ensure access logs, including username and user role, are available, particularly for systems that contain critical unblinded data.
-    *Reference: EMA Guideline Section 6.2.1*
+    *Reference: EMA Guideline Section 6.2.1, p. 9*
 
 ### EMA Guideline - ePRO and eConsent Specific
 
 AH. For ePRO systems designed to allow data correction, the system SHALL document data corrections and the audit trail SHALL record if data saved on the device are changed before the data are submitted.
-    *Reference: EMA Guideline Section A5.1.1.2*
+    *Reference: EMA Guideline Section A5.1.1.2, p. 11*
 
 AI. For electronic informed consent, the system SHALL use timestamps for the audit trail for signing actions by trial participants and investigators, which cannot be manipulated by system settings; any alterations to the document shall invalidate the electronic signature.
-    *Reference: EMA Guideline Section A5.3.2*
+    *Reference: EMA Guideline Section A5.3.2, p. 12*
 
 ### FDA Electronic Source Data (2013)
 
 AJ. The system SHALL ensure that modified and/or corrected data elements have data element identifiers that reflect the date, time, originator, and reason for the change, and must not obscure previous entries.
-    *Reference: FDA Electronic Source Data Guidance Section III.A.4, referencing 21 CFR 11.10(e)*
+    *Reference: FDA Electronic Source Data Guidance Section III.A.4, referencing 21 CFR 11.10(e), p. 14*
 
 AK. The system SHALL provide a field allowing originators to describe the reason for the change (e.g., transcription error); automatic transmissions shall have traceability and controls via the audit trail to reflect the reason for the change.
-    *Reference: FDA Electronic Source Data Guidance Section III.A.4*
+    *Reference: FDA Electronic Source Data Guidance Section III.A.4, p. 14*
 
 AL. The system SHALL ensure that if changes are made to the eCRF after the clinical investigator has already signed, the changes are reviewed and electronically signed by the clinical investigator.
-    *Reference: FDA Electronic Source Data Guidance Section III.B.2*
+    *Reference: FDA Electronic Source Data Guidance Section III.B.2, p. 14*
 
 ### FDA Q&A Guidance (2024)
 
 AM. The system SHALL ensure that all records and data needed to reconstruct a clinical investigation, including associated metadata and audit trails, are available for FDA inspection.
-    *Reference: FDA Q&A Guidance Q5*
+    *Reference: FDA Q&A Guidance Q5, p. 15*
 
 AN. The system SHALL provide copies of records (e.g., screenshots or paper printouts) and data in a human-readable form that include metadata and audit trail information.
-    *Reference: FDA Q&A Guidance Q5*
+    *Reference: FDA Q&A Guidance Q5, p. 15*
 
 AO. The system SHALL ensure that audit trails capture electronic record activities including all changes made to the electronic record, the individuals making the changes, the date and time of the changes, and should include the reasons for the changes.
-    *Reference: FDA Q&A Guidance Q12*
+    *Reference: FDA Q&A Guidance Q12, pp. 15-16*
 
 AP. The system SHALL protect audit trails from modification and from being disabled.
-    *Reference: FDA Q&A Guidance Q12*
+    *Reference: FDA Q&A Guidance Q12, pp. 15-16*
 
 AQ. The system SHALL ensure that record changes do not obscure previously recorded information.
-    *Reference: FDA Q&A Guidance Q12*
+    *Reference: FDA Q&A Guidance Q12, pp. 15-16*
 
 AR. Audit trail components SHALL include: (1) the date and time the data element or information was entered or modified, (2) the individual making the change (e.g., user ID and user role), and (3) the old value and the new value.
-    *Reference: FDA Q&A Guidance Q12*
+    *Reference: FDA Q&A Guidance Q12, p. 16*
 
 AS. The system SHALL record deliberate actions that a user takes to create, modify, or delete electronic records (e.g., save or submit) in the audit trail; any edits to completed fields shall be captured in the audit trail.
-    *Reference: FDA Q&A Guidance Q13*
+    *Reference: FDA Q&A Guidance Q13, p. 16*
 
 AT. The system SHALL ensure that if an edit check exists for submitted data and prompts the user to make a correction, the audit trail includes the original response, the fact that the edit check prompted a correction, and any change made in response.
-    *Reference: FDA Q&A Guidance Q13*
+    *Reference: FDA Q&A Guidance Q13, p. 16*
 
 AU. The system SHALL ensure that any changes made to the record, including those subsequent to the electronic signature, are reflected in the audit trail.
-    *Reference: FDA Q&A Guidance Section E*
+    *Reference: FDA Q&A Guidance Section E, p. 17*
 
 ### FDA Q&A Guidance - DHT Requirements
 
 AV. The system SHALL associate each electronic data element with an authorized data originator as part of an audit trail; the data originator may be a person, a computer system, a DHT, or an EHR authorized to enter, change, or transmit data elements.
-    *Reference: FDA Q&A Guidance Q20*
+    *Reference: FDA Q&A Guidance Q20, p. 17*
 
 AW. The system SHALL include the date and time data are transferred from a DHT to the electronic data repository in the audit trail.
-    *Reference: FDA Q&A Guidance Q22*
+    *Reference: FDA Q&A Guidance Q22, p. 17*
 
 ### FDA PRO Guidance (2009)
 
 AX. The system SHALL NOT permit direct PRO data transmission from the PRO data collection device to the sponsor, clinical investigator, or other third party without an electronic audit trail that documents all changes to the data after it leaves the PRO data collection device.
-    *Reference: FDA PRO Guidance Section F*
+    *Reference: FDA PRO Guidance Section F, p. 18*
 
 AY. The system SHALL maintain an audit trail to capture any changes made to electronic PRO data at any point in time after it leaves the patient's electronic device, enabling the clinical investigator to maintain and confirm electronic PRO data accuracy.
-    *Reference: FDA PRO Guidance Section F*
+    *Reference: FDA PRO Guidance Section F, p. 18*
 
 ---
 
@@ -664,16 +664,16 @@ AY. The system SHALL maintain an audit trail to capture any changes made to elec
 ### Written Procedures
 
 PC-A. The sponsor SHALL have written procedures to ensure that changes or corrections in CRFs are documented, are necessary, are legible and traceable, and are endorsed by the principal investigator or authorized designee; records of the changes and corrections shall be maintained.
-     *Reference: ISO 14155 Section 7.8.2(a)*
+     *Reference: ISO 14155 Section 7.8.2(a), p. 4*
 
 ### Audit Trail Retention Format
 
 PC-B. The system SHOULD retain the audit trail in a format that is searchable and sortable; if not practical, audit trail files should be retained in a static format (e.g., PDFs) and clearly correspond to the respective data elements and/or records.
-     *Reference: FDA Q&A Guidance Q12*
+     *Reference: FDA Q&A Guidance Q12, pp. 15-16*
 
 ---
 
-*Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
+*Source: GCP Data - Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, pp. 1-18*
 
 *End* *GCP Data Requirements for Audit Trails and Data Corrections* | **Hash**: 52eb4a31
 
@@ -681,7 +681,7 @@ PC-B. The system SHOULD retain the audit trail in a format that is searchable an
 
 # REQ-p80005: GCP Consolidated Requirements for Audit Trails and Data Corrections
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p80001-B
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p80001-B
 
 ## Rationale
 
@@ -692,101 +692,101 @@ This requirement derives from the Good Clinical Practice consolidated requiremen
 ### ALCOA+ Principles and Data Integrity
 
 A. The system SHALL ensure that source records, including audit trails, follow ALCOA+ principles (Attributable, Legible, Contemporaneous, Original, Accurate, Complete, Consistent, Enduring, Available).
-   *Reference: Consolidated Requirement 1; ICH E6 (R3) 2.12.2; ISO 14155 7.8.2 a), 10.6 j); EMA/INS/GCP/112288/2023 4.1, 4.4, 4.5*
+   *Reference: Consolidated Requirement 1, p. 1; ICH E6 (R3) 2.12.2; ISO 14155 7.8.2 a), 10.6 j); EMA/INS/GCP/112288/2023 4.1, 4.4, 4.5*
 
 B. The system SHALL ensure that relevant metadata, including audit trails, supplies identification of and context to data and is considered as part of the original record.
-   *Reference: Consolidated Requirement 10; ICH E6 (R3) 4.2.2; EMA/INS/GCP/112288/2023 4.3, 4.4, 4.5; eSource Data III-A-4; eSys/eRec/eSig B-Q5*
+   *Reference: Consolidated Requirement 10, p. 1; ICH E6 (R3) 4.2.2; EMA/INS/GCP/112288/2023 4.3, 4.4, 4.5; eSource Data III-A-4; eSys/eRec/eSig B-Q5*
 
 ### Change Traceability and Attribution
 
 C. The system SHALL ensure that all changes to data are traceable to the individual making the change.
-   *Reference: Consolidated Requirement 2; ICH E6 (R3) 2.12.2, 12.2.6; EMA/INS/GCP/112288/2023 4.1, 4.5, 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
+   *Reference: Consolidated Requirement 2, p. 1; ICH E6 (R3) 2.12.2, 12.2.6; EMA/INS/GCP/112288/2023 4.1, 4.5, 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
 
 D. The system SHALL ensure that changes do not obscure original data or previous entries, maintaining visibility of the complete data history.
-   *Reference: Consolidated Requirement 3; ICH E6 (R3) 2.12.2, 2.12.6, 4.2.2(a)(ii); ISO 14155 7.8.2; EMA/INS/GCP/112288/2023 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
+   *Reference: Consolidated Requirement 3, p. 1; ICH E6 (R3) 2.12.2, 2.12.6, 4.2.2(a)(ii); ISO 14155 7.8.2; EMA/INS/GCP/112288/2023 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
 
 E. The system SHALL capture the reason for the change when changes are made to data, where necessary or required.
-   *Reference: Consolidated Requirement 4; ICH E6 (R3) 2.12.2, 2.12.6, 4.2.2(a)(ii); ISO 14155 7.8.2; EMA/INS/GCP/112288/2023 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
+   *Reference: Consolidated Requirement 4, p. 1; ICH E6 (R3) 2.12.2, 2.12.6, 4.2.2(a)(ii); ISO 14155 7.8.2; EMA/INS/GCP/112288/2023 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12*
 
 ### Data Corrections Process
 
 F. The system SHALL ensure that corrections, additions, or deletions to source data are dated and explained when necessary.
-   *Reference: Consolidated Requirement 5; ICH E6 (R3) 3.11.4.5.1(c), 3.16.1(i); EMA/INS/GCP/112288/2023 4.4, 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12; PRO Guidance F*
+   *Reference: Consolidated Requirement 5, p. 1; ICH E6 (R3) 3.11.4.5.1(c), 3.16.1(i); EMA/INS/GCP/112288/2023 4.4, 6.2.1; eSource Data III-A-4, III-B-2; eSys/eRec/eSig B-Q12; PRO Guidance F*
 
 G. The system SHALL properly document approval of data changes, including investigator sign-off of data where required.
-   *Reference: Consolidated Requirement 6; ICH E6 (R3) 3.11.4.5.1; EMA/INS/GCP/112288/2023 6.3; eSource Data III-B-2*
+   *Reference: Consolidated Requirement 6, p. 1; ICH E6 (R3) 3.11.4.5.1; EMA/INS/GCP/112288/2023 6.3; eSource Data III-B-2*
 
 H. The system SHALL ensure that data corrections are attributable, justified, and supported by source records.
-   *Reference: Consolidated Requirement 16; ICH E6 (R3) 4.2.4; ISO 14155 7.8.2*
+   *Reference: Consolidated Requirement 16, p. 2; ICH E6 (R3) 4.2.4; ISO 14155 7.8.2*
 
 ### Audit Trail Functionality and Security
 
 I. The system SHALL implement appropriate audit trail functionality requirements for computerized systems.
-   *Reference: Consolidated Requirement 7; ICH E6 (R3) 3.16.1(ii); ISO 14155 7.8.3; PRO Guidance F*
+   *Reference: Consolidated Requirement 7, p. 1; ICH E6 (R3) 3.16.1(ii); ISO 14155 7.8.3; PRO Guidance F*
 
 J. The system SHALL ensure that audit trails, reports, and logs are not disabled and are not capable of being deactivated by normal users.
-   *Reference: Consolidated Requirement 11; ICH E6 (R3) 4.2.2(b); EMA/INS/GCP/112288/2023 6.2.1, A3.3; eSys/eRec/eSig B-Q12*
+   *Reference: Consolidated Requirement 11, p. 1; ICH E6 (R3) 4.2.2(b); EMA/INS/GCP/112288/2023 6.2.1, A3.3; eSys/eRec/eSig B-Q12*
 
 K. The system SHALL ensure that audit trails and logs are interpretable and reviewable, including by monitors.
-   *Reference: Consolidated Requirement 12; ICH E6 (R3) 4.2.2(c); ISO 14155 9.2.4.5; PRO Guidance F*
+   *Reference: Consolidated Requirement 12, p. 1; ICH E6 (R3) 4.2.2(c); ISO 14155 9.2.4.5; PRO Guidance F*
 
 L. The system SHALL enable reconstruction of the sequence of events through the audit trail.
-   *Reference: Consolidated Requirement 17; ISO 14155 3.4; eSys/eRec/eSig B-Q5*
+   *Reference: Consolidated Requirement 17, p. 2; ISO 14155 3.4; eSys/eRec/eSig B-Q5*
 
 M. The system SHALL ensure no deletion of entered data and that audit trails are secure.
-   *Reference: Consolidated Requirement 18; ISO 14155 7.8.3 f); EMA/INS/GCP/112288/2023 4.1*
+   *Reference: Consolidated Requirement 18, p. 2; ISO 14155 7.8.3 f); EMA/INS/GCP/112288/2023 4.1*
 
 N. The system SHALL store audit trails within the computer system.
-   *Reference: Consolidated Requirement 24; EMA/INS/GCP/112288/2023 6.2.1*
+   *Reference: Consolidated Requirement 24, p. 2; EMA/INS/GCP/112288/2023 6.2.1*
 
 ### Date/Time and Automatic Capture
 
 O. The system SHALL automatically capture the date and time of data entries, data transfers, and electronic signatures in an unambiguous format.
-   *Reference: Consolidated Requirement 13; ICH E6 (R3) 4.2.2(d); EMA/INS/GCP/112288/2023 4.5, 6.2.1, A5.3.2; eSys/eRec/eSig D-Q22, E, Glossary; PRO Guidance F*
+   *Reference: Consolidated Requirement 13, p. 1; ICH E6 (R3) 4.2.2(d); EMA/INS/GCP/112288/2023 4.5, 6.2.1, A5.3.2; eSys/eRec/eSig D-Q22, E, Glossary; PRO Guidance F*
 
 ### Access and Review
 
 P. The system SHALL provide direct access to source records, including audit trails, as agreed to and required for sponsor access.
-   *Reference: Consolidated Requirement 9; ICH E6 (R3) 3.16.4; EMA/INS/GCP/112288/2023 6, 6.1.2, 6.6, A6.8*
+   *Reference: Consolidated Requirement 9, p. 1; ICH E6 (R3) 3.16.4; EMA/INS/GCP/112288/2023 6, 6.1.2, 6.6, A6.8*
 
 ### Data Governance
 
 Q. The system SHALL support data governance that includes control over intentional and unintentional changes to data.
-   *Reference: Consolidated Requirement 21; EMA/INS/GCP/112288/2023 4.1*
+   *Reference: Consolidated Requirement 21, p. 2; EMA/INS/GCP/112288/2023 4.1*
 
 ### Data Transfers
 
 R. The system SHALL ensure that data transfers are pre-planned, validated, include audit trails, and are conducted in such a way that data is continuously accessible.
-   *Reference: Consolidated Requirement 23; EMA/INS/GCP/112288/2023 6.1.2, 6.10; eSys/eRec/eSig D-Q20, D-Q22; PRO Guidance F*
+   *Reference: Consolidated Requirement 23, p. 2; EMA/INS/GCP/112288/2023 6.1.2, 6.10; eSys/eRec/eSig D-Q20, D-Q22; PRO Guidance F*
 
 ### Blinding Protection
 
 S. The system SHALL prevent access to audit trail information that might unblind the data for blinded users, ensuring access controls prevent unblinding.
-   *Reference: Consolidated Requirement 25; EMA/INS/GCP/112288/2023 6.2.1*
+   *Reference: Consolidated Requirement 25, p. 2; EMA/INS/GCP/112288/2023 6.2.1*
 
 T. The system SHALL retain individual system access information (audit trails) throughout the study for systems containing unblinding information.
-   *Reference: Consolidated Requirement 30; eSys/eRec/eSig B-Q12*
+   *Reference: Consolidated Requirement 30, p. 3; eSys/eRec/eSig B-Q12*
 
 ### Retention and Decommissioning
 
 U. The system SHALL allow for retention of data, including audit trails and metadata, for the required retention period during decommissioning of systems and databases.
-   *Reference: Consolidated Requirement 26; EMA/INS/GCP/112288/2023 6.12; eSys/eRec/eSig B-Q5*
+   *Reference: Consolidated Requirement 26, p. 2; EMA/INS/GCP/112288/2023 6.12; eSys/eRec/eSig B-Q5*
 
 V. The system SHALL retain data, including audit trails, in a manner that allows for inspection and the generation of copies for regulatory agencies.
-   *Reference: Consolidated Requirement 29; eSys/eRec/eSig B-Q5, B-Q12; PRO Guidance F*
+   *Reference: Consolidated Requirement 29, p. 2; eSys/eRec/eSig B-Q5, B-Q12; PRO Guidance F*
 
 ### ePRO and eCRF Specific Requirements
 
 W. The system SHALL capture changes to saved ePRO data prior to data submission in an audit trail, if such changes are permitted.
-   *Reference: Consolidated Requirement 27; EMA/INS/GCP/112288/2023 A5.1.1.2, A5.1.1.4*
+   *Reference: Consolidated Requirement 27, p. 2; EMA/INS/GCP/112288/2023 A5.1.1.2, A5.1.1.4*
 
 X. The system SHALL limit the ability to change eCRF data to the investigator or delegated clinical study staff only.
-   *Reference: Consolidated Requirement 28; eSource Data III-A-4*
+   *Reference: Consolidated Requirement 28, p. 2; eSource Data III-A-4*
 
 ### Edit Check Audit Trailing
 
 Y. The system SHOULD capture edit checks which prompt a data correction by the user in the audit trail, applied on a risk basis.
-   *Reference: Consolidated Requirement 31; eSys/eRec/eSig B-Q13*
+   *Reference: Consolidated Requirement 31, p. 3; eSys/eRec/eSig B-Q13*
 
 ---
 
@@ -797,34 +797,34 @@ Y. The system SHOULD capture edit checks which prompt a data correction by the u
 ### Validation and Fit-for-Purpose
 
 PC-A. The system SHALL be assessed for appropriate "fit for purpose" before use in clinical trials, including validation of audit trail functionality.
-     *Reference: Consolidated Requirement 8; ICH E6 (R3) 3.16.1(vi), 3.16.1(viii); ISO 14155 7.8.3; EMA/INS/GCP/112288/2023 4.4, A6.1-2; eSys/eRec/eSig B-Q8*
+     *Reference: Consolidated Requirement 8, p. 1; ICH E6 (R3) 3.16.1(vi), 3.16.1(viii); ISO 14155 7.8.3; EMA/INS/GCP/112288/2023 4.4, A6.1-2; eSys/eRec/eSig B-Q8*
      *Note: Validation is a documented process assessment, not an automated test.*
 
 ### Documented Procedures
 
 PC-B. The system SHALL support documented procedures for the data correction process, including training requirements.
-     *Reference: Consolidated Requirement 19; ISO 14155 J.2; EMA/INS/GCP/112288/2023 A5.1.1.4; eSys/eRec/eSig B-Q15*
+     *Reference: Consolidated Requirement 19, p. 2; ISO 14155 J.2; EMA/INS/GCP/112288/2023 A5.1.1.4; eSys/eRec/eSig B-Q15*
 
 ### Audit Evaluation
 
 PC-C. The system SHALL support audits that evaluate the data correction process.
-     *Reference: Consolidated Requirement 20; ISO 14155 J.3*
+     *Reference: Consolidated Requirement 20, p. 2; ISO 14155 J.3*
 
 ### Audit Trail Review Planning
 
 PC-D. The system SHALL support determination of which audit trails and metadata require review and retention.
-     *Reference: Consolidated Requirement 14; ICH E6 (R3) 4.2.2(e); eSys/eRec/eSig B-Q12*
+     *Reference: Consolidated Requirement 14, p. 2; ICH E6 (R3) 4.2.2(e); eSys/eRec/eSig B-Q12*
 
 PC-E. The system SHALL support planned, risk-based review of audit trails procedures.
-     *Reference: Consolidated Requirement 15; ICH E6 (R3) 4.2.3; EMA/INS/GCP/112288/2023 6.2.2; eSys/eRec/eSig B-Q8, B-Q12*
+     *Reference: Consolidated Requirement 15, p. 2; ICH E6 (R3) 4.2.3; EMA/INS/GCP/112288/2023 6.2.2; eSys/eRec/eSig B-Q8, B-Q12*
 
 ### Working Environment
 
 PC-F. The system SHOULD support a working environment that encourages reporting of omissions and erroneous results through data governance systems.
-     *Reference: Consolidated Requirement 22; EMA/INS/GCP/112288/2023 4.1*
+     *Reference: Consolidated Requirement 22, p. 2; EMA/INS/GCP/112288/2023 4.1*
 
 ---
 
-*Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf*
+*Source: GCP Data - Consolidated Requirements for Audit Trails & Data Corrections - 02Sept2025.pdf, pp. 1-3*
 
 *End* *GCP Consolidated Requirements for Audit Trails and Data Corrections* | **Hash**: 70cb1b59

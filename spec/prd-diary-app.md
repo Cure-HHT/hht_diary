@@ -14,7 +14,8 @@
 
 # REQ-p00043: Diary Mobile Application
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044-C
+**Level**: prd | **Status**: Proposed | **Implements**: -
+**Refines**: REQ-p00044-C
 
 ## Rationale
 
@@ -50,30 +51,27 @@ M. The system SHALL apply sponsor-specific branding for linked users based on th
 
 N. The system SHALL apply sponsor-specific customization for linked users based on their linking.
 
-O. The system SHALL maintain FDA 21 CFR Part 11 compliant audit trails for linked users.
+O. The system SHALL NOT maintain audit trails for personal use mode users.
 
-P. The system SHALL NOT maintain audit trails for personal use mode users.
+P. The system SHALL synchronize existing local data to study database upon user linking.
 
-Q. The system SHALL synchronize existing local data to study database upon user linking.
+R. The system SHALL be available via iOS app store.
 
-R. The system SHALL maintain complete data isolation between sponsors.
+S. The system SHALL be available via Android app store.
 
-S. The system SHALL be available via iOS app store.
+T. The system SHALL support offline operation for core diary operations in personal use mode.
 
-T. The system SHALL be available via Android app store.
+U. The system SHALL support offline operation for core diary operations in linked use mode.
 
-U. The system SHALL support offline operation for core diary operations in personal use mode.
-
-V. The system SHALL support offline operation for core diary operations in linked use mode.
-
-*End* *Diary Mobile Application* | **Hash**: 16a36106
+*End* *Diary Mobile Application* | **Hash**: 8651c82b
 ---
 
 ## Local Data Storage
 
 # REQ-p70000: Local Data Storage
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p00043-H
 
 ## Rationale
 
@@ -149,7 +147,8 @@ The Diary mobile application is a smartphone app for iOS and Android that allows
 
 # REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043, p00001
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00001-A, REQ-p00043-J, REQ-p00043-L, REQ-p00043-M, REQ-p00043-N
 
 ## Rationale
 
@@ -217,7 +216,8 @@ TODO - this needs another spec #
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043, p70000
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-D, REQ-p00043-U, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
 
 ## Rationale
 
@@ -318,7 +318,8 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 # REQ-p00050: Temporal Entry Validation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C
 
 ## Rationale
 
@@ -376,7 +377,8 @@ U. The system SHALL require confirmation when creating entries less than 2 minut
 
 # REQ-p01039: Diary Start Day Definition
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043, p00050
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C, REQ-p00050-J, REQ-p00050-K
 
 ## Rationale
 
@@ -424,7 +426,8 @@ P. The system SHALL NOT explicitly prompt users to set the start day during onbo
 
 # REQ-p01040: Calendar Visual Indicators for Entry Status
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043, p01039
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-C, REQ-p01039-L
 
 ## Rationale
 
@@ -478,7 +481,8 @@ S. The system SHALL allow users to select accessible fonts via user preferences.
 
 # REQ-p01072: Mobile App Linking Status and History
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043-F, REQ-p00043-J
 
 ## Rationale
 

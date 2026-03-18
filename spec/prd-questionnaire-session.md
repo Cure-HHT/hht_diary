@@ -10,49 +10,7 @@
 
 ## User Journeys
 
-# JNY-Questionnaire-Session-01: Deferring a Questionnaire
-
-**Actor**: Maria (Patient)
-**Goal**: Defer a questionnaire she is not ready to complete right now
-**Context**: Maria has been asked to complete the NOSE HHT questionnaire. She opens the app and sees the pending task, but she only has a few minutes before a meeting.
-
-## Steps
-
-1. Maria taps the questionnaire task notification
-2. Maria sees a readiness screen: "This questionnaire takes about 10-12 minutes. Please ensure you have enough uninterrupted time to complete it."
-3. Maria selects "Not now"
-4. Maria is returned to the home screen
-5. The questionnaire task remains visible for later completion
-
-## Expected Outcome
-
-Maria defers the questionnaire without penalty. The deferral is logged. She can start the questionnaire at a time that works for her.
-
-*End* *Deferring a Questionnaire*
-
----
-
-# JNY-Questionnaire-Session-02: Session Expiry After Interruption
-
-**Actor**: Maria (Patient)
-**Goal**: Resume a questionnaire after being interrupted
-**Context**: Maria started the NOSE HHT questionnaire and answered 15 of 29 questions. She received a phone call and locked her phone. Over 30 minutes pass before she returns to the app.
-
-## Steps
-
-1. Maria reopens the Diary app
-2. The app detects the questionnaire session has exceeded the 30-minute timeout
-3. Maria sees a message: "Questionnaire Expired. Please redo."
-4. Maria's partial responses are discarded
-5. Maria taps the questionnaire task to begin again
-6. Maria sees the readiness screen again and confirms she is ready
-7. Maria completes the questionnaire from the beginning
-
-## Expected Outcome
-
-Maria's expired session is recorded for audit purposes. She restarts the questionnaire fresh and completes it in a single sitting.
-
-*End* *Session Expiry After Interruption*
+> **See**: [user-journeys/questionnaire-session-journeys.md](user-journeys/questionnaire-session-journeys.md)
 
 ---
 
@@ -66,17 +24,14 @@ This specification defines session management for clinical questionnaires, ensur
 
 # REQ-p01073: Questionnaire Session Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
-
-Addresses: JNY-Questionnaire-Session-01, JNY-Questionnaire-Session-02
+**Level**: prd | **Status**: Proposed | **Implements**: -
+**Refines**: REQ-p01065-G
 
 ## Rationale
 
 Validated clinical instruments require uninterrupted completion to ensure response consistency and data quality. Patients who are interrupted for extended periods may experience changes in context, mood, or recall that compromise the validity of partially-completed responses. A configurable session management framework allows each questionnaire to enforce appropriate completion constraints based on its length and clinical requirements.
 
 ## Assertions
-
-### Readiness Gate
 
 A. When a questionnaire is configured with a readiness check, the system SHALL display a readiness screen before the instrument preamble, informing the patient of the estimated completion time.
 
@@ -122,7 +77,7 @@ P. Questionnaires without session management configuration SHALL preserve and re
 
 Q. When the app is resumed after being closed by the OS, if a questionnaire is in progress and has not timed out, the app SHALL open to the questionnaire for completion.
 
-*End* *Questionnaire Session Management* | **Hash**: a101e60e
+*End* *Questionnaire Session Management* | **Hash**: cd9c12a5
 
 ---
 

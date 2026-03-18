@@ -248,7 +248,7 @@ C. The Help Center Screen SHALL display a back arrow or close button that return
 
 # REQ-p01084: Diary App Licenses Screen
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01079
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01079-A
 
 ## Rationale
 
