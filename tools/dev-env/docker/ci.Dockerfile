@@ -249,7 +249,7 @@ RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
     gitleaks version
 
 # elspais (requirement validation and traceability)
-RUN pip3 install --no-cache-dir "elspais==${ELSPAIS_VERSION}" && \
+RUN pip3 install --no-cache-dir --break-system-packages "elspais==${ELSPAIS_VERSION}" && \
     elspais version
 
 # markdownlint-cli (documentation linting)
