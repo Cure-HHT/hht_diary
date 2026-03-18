@@ -51,7 +51,7 @@ jobs:
         run: |
           SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           if [ ! -d "$SDK/cmake/3.22.1" ]; then
-            sdkmanager --install "cmake;3.22.1" > /dev/null 2>&1
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.22.1" > /dev/null 2>&1
           else
             echo "CMake 3.22.1 already installed, skipping."
           fi
