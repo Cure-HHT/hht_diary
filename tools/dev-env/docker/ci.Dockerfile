@@ -239,12 +239,22 @@ RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION
 FROM ci-cloud-tools AS ci-test-tools
 
 ARG GITLEAKS_VERSION=8.29.0
+ARG ELSPAIS_VERSION=0.104.43
+ARG MARKDOWNLINT_CLI_VERSION=0.46.0
 
 # Gitleaks (secret scanning)
 RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
     tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz -C /usr/local/bin && \
     rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
     gitleaks version
+
+# elspais (requirement validation and traceability)
+RUN pip3 install --no-cache-dir "elspais==${ELSPAIS_VERSION}" && \
+    elspais version
+
+# markdownlint-cli (documentation linting)
+RUN npm install -g "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" && \
+    markdownlint --version
 
 # Playwright (latest + browsers + system deps)
 RUN npm install -g playwright && \
@@ -306,5 +316,5 @@ LABEL org.opencontainers.image.source="https://github.com/cure-hht/clinical-diar
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL com.clinical-diary.role="ci"
 LABEL com.clinical-diary.version="2.0.0"
-LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc,firebase-cli,lcov"
+LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc,firebase-cli,lcov,elspais,markdownlint-cli"
 LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00059,REQ-d00030"
