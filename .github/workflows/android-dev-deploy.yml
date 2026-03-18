@@ -37,7 +37,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.7'
+          flutter-version: "3.38.7"
           cache: true
 
       - name: Cache pub dependencies
@@ -49,8 +49,11 @@ jobs:
 
       - name: Pre-install CMake
         run: |
-          if [ ! -d "$ANDROID_SDK_ROOT/cmake/3.22.1" ]; then
-            yes | sdkmanager "cmake;3.22.1" > /dev/null 2>&1 || true
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          if [ ! -d "$SDK/cmake/3.22.1" ]; then
+            sdkmanager --install "cmake;3.22.1" > /dev/null 2>&1
+          else
+            echo "CMake 3.22.1 already installed, skipping."
           fi
 
       - name: Install Flutter dependencies
