@@ -68,15 +68,14 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "App version: $VERSION"
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
       - name: Build signed Android ${{ inputs.flavor }}
         working-directory: apps/daily-diary/clinical_diary
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
-          # Install Doppler CLI
-          curl -sL https://cli.doppler.com/install.sh | sh
-
-          # Run the build script with Doppler secrets
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
             --config ${{ inputs.flavor }} \
