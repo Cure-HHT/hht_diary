@@ -264,7 +264,9 @@ void main() {
       expect(find.text('Not Sent'), findsNWidgets(2));
     });
 
-    testWidgets('shows Revoke button for sent status', (tester) async {
+    testWidgets('shows delete icon button for sent status (CUR-1037)', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient(
         noseStatus: 'sent',
         noseId: 'nose-instance-1',
@@ -272,7 +274,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Revoke'), findsOneWidget);
+      expect(find.byIcon(Icons.delete), findsOneWidget);
       expect(find.text('Sent'), findsOneWidget);
       // QoL is still not_sent
       expect(find.text('Send'), findsOneWidget);
@@ -337,7 +339,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      await tester.tap(find.text('Revoke'));
+      await tester.tap(find.byIcon(Icons.delete));
       await tester.pumpAndSettle();
 
       // Confirmation dialog should appear
@@ -358,15 +360,15 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      await tester.tap(find.text('Revoke'));
+      await tester.tap(find.byIcon(Icons.delete));
       await tester.pumpAndSettle();
 
       // Cancel the confirmation
       await tester.tap(find.text('Cancel').last);
       await tester.pumpAndSettle();
 
-      // Should still show Revoke button (not revoked)
-      expect(find.text('Revoke'), findsOneWidget);
+      // Should still show delete icon button (not revoked)
+      expect(find.byIcon(Icons.delete), findsOneWidget);
     });
 
     testWidgets('Finalize shows confirmation dialog', (tester) async {
