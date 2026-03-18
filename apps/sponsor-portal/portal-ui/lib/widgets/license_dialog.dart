@@ -1,12 +1,24 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//
+// Licenses are bundled as stable PDF assets in assets/licenses/ to avoid
+// 404 risks and support offline use in regulated environments.
+// On web, the browser opens the bundled PDF natively — no CDN or pdfjs required.
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+/// Asset paths for bundled license PDFs (stable, no external URLs).
+const String _gnuAgplAsset =
+    'assets/licenses/GNU Affero General Public License - GNU Project - Free Software Foundation.pdf';
 
 class LicensesDialog extends StatelessWidget {
   const LicensesDialog({super.key});
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-
+  Future<void> _openPdf(String assetPath) async {
+    // Flutter web serves assets relative to the app base URL.
+    // Uri.encodeFull preserves slashes while encoding spaces in the filename.
+    final uri = Uri.parse(Uri.encodeFull(assetPath));
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -16,7 +28,7 @@ class LicensesDialog extends StatelessWidget {
       {
         'title': 'GNU AGPL v3 License',
         'subtitle': 'gnu.org official license text',
-        'url': 'https://www.gnu.org/licenses/agpl-3.0.en.html',
+        'asset': _gnuAgplAsset,
       },
     ];
 
@@ -55,14 +67,11 @@ class LicensesDialog extends StatelessWidget {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final item = licenses[index];
-
                   return ListTile(
-                    leading: const Icon(Icons.open_in_new),
+                    leading: const Icon(Icons.description),
                     title: Text(item['title']!),
                     subtitle: Text(item['subtitle']!),
-                    onTap: () {
-                      _openUrl(item['url']!);
-                    },
+                    onTap: () => _openPdf(item['asset']!),
                   );
                 },
               ),

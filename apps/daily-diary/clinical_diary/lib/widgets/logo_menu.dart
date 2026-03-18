@@ -4,7 +4,6 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
-import 'package:clinical_diary/services/version_check_service.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -38,16 +37,11 @@ class LogoMenu extends StatefulWidget {
 
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
-  bool _hasUpdate = false;
-  bool _isCheckingForUpdates = false;
-  late final VersionCheckService _versionService;
 
   @override
   void initState() {
     super.initState();
-    _versionService = VersionCheckService();
     _loadVersion();
-    _checkForUpdates();
   }
 
   Future<void> _loadVersion() async {
@@ -63,90 +57,6 @@ class _LogoMenuState extends State<LogoMenu> {
       }
     } catch (e) {
       debugPrint('PackageInfo error: $e');
-    }
-  }
-
-  Future<void> _checkForUpdates() async {
-    try {
-      // Check if we should check (respects 24-hour interval)
-      final shouldCheck = await _versionService.shouldCheckForUpdate();
-      if (!shouldCheck) return;
-
-      final result = await _versionService.checkForUpdate();
-
-      // Don't show update indicator if local version is '0.0.0' (dev mode)
-      // or if this version was dismissed
-      if (result.hasUpdate &&
-          result.remoteVersion != null &&
-          result.localVersion != '0.0.0') {
-        final wasDismissed = await _versionService.isVersionDismissed(
-          result.remoteVersion!,
-        );
-        if (mounted && !wasDismissed) {
-          setState(() {
-            _hasUpdate = true;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Update check error: $e');
-    }
-  }
-
-  /// Manually check for updates (bypasses 24-hour interval)
-  Future<void> _manualCheckForUpdates(BuildContext context) async {
-    if (_isCheckingForUpdates) return;
-
-    // Capture these before any async gaps
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    setState(() {
-      _isCheckingForUpdates = true;
-    });
-
-    try {
-      final result = await _versionService.checkForUpdate();
-      await _versionService.recordCheckTime();
-
-      if (!mounted) return;
-
-      if (result.hasUpdate &&
-          result.remoteVersion != null &&
-          result.localVersion != '0.0.0') {
-        // Clear any previous dismissal so the update shows
-        await _versionService.clearDismissedVersion();
-        if (!mounted) return;
-        setState(() {
-          _hasUpdate = true;
-        });
-        // Show snackbar that update is available
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.newVersionAvailable(result.remoteVersion!)),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        setState(() {
-          _hasUpdate = false;
-        });
-        // Show snackbar that no update is available
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.youAreUpToDate),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Manual update check error: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCheckingForUpdates = false;
-        });
-      }
     }
   }
 
@@ -172,27 +82,6 @@ class _LogoMenuState extends State<LogoMenu> {
                 fit: BoxFit.contain,
               ),
             ),
-            // Update indicator dot
-            if (_hasUpdate)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Tooltip(
-                  message: l10n.updateAvailable,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.surface,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -210,10 +99,7 @@ class _LogoMenuState extends State<LogoMenu> {
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
             widget.onInstructionsAndFeedback();
-          case 'check_for_updates':
-            _manualCheckForUpdates(context);
           case 'licenses':
-            // CUR-543: Must pass onDelete callback when existingRecord is non-null.
             Navigator.push<dynamic>(
               context,
               MaterialPageRoute(builder: (context) => const LicensesPage()),
@@ -349,53 +235,6 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // Version info at bottom
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'check_for_updates',
-          child: Row(
-            children: [
-              if (_isCheckingForUpdates)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                )
-              else
-                Icon(
-                  _hasUpdate ? Icons.system_update : Icons.refresh,
-                  size: 20,
-                  color: _hasUpdate
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface,
-                ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  l10n.checkForUpdates,
-                  style: _hasUpdate
-                      ? TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        )
-                      : null,
-                ),
-              ),
-              if (_hasUpdate) ...[
-                const SizedBox(width: 8),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
         PopupMenuItem<String>(
           value: 'licenses',
           child: Row(
