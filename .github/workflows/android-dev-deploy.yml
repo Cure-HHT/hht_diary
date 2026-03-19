@@ -204,6 +204,13 @@ jobs:
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: apps/daily-diary/clinical_diary/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
       - name: Install CocoaPods dependencies
         working-directory: apps/daily-diary/clinical_diary/ios
         run: pod install
