@@ -233,7 +233,7 @@ jobs:
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config ops \
+            --config dev \
             -- bundle exec fastlane build_${{ inputs.flavor }}
 
       - name: Upload IPA artifact
