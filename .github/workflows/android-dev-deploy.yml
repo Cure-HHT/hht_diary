@@ -15,9 +15,18 @@ on:
           - dev
           - qa
           - prod
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+      status:
+        description: "Release status for Google Play"
+        required: true
+        default: "draft"
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build:
@@ -107,14 +116,42 @@ jobs:
           path: ${{ steps.artifact.outputs.path }}
           retention-days: 90
 
+      - name: Determine package name
+        id: package
+        run: |
+          if [ "${{ inputs.flavor }}" = "prod" ]; then
+            echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=org.anspar.curehht.app.${{ inputs.flavor }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+          create_credentials_file: true
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          packageName: ${{ steps.package.outputs.name }}
+          releaseFiles: ${{ steps.artifact.outputs.path }}
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
+
       - name: Build summary
         run: |
-          echo "### Android Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "### Android Build & Play Store Upload Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package** | ${{ steps.package.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Artifact** | ${{ steps.artifact.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Play Store** | ${{ inputs.track }} track (${{ inputs.status }}) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
