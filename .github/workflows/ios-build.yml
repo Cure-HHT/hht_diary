@@ -1,0 +1,103 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
+#   REQ-o00043: Automated Deployment Pipeline
+
+name: iOS Build & Store Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Build flavor"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: apps/daily-diary/clinical_diary/ios
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.7"
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Install Flutter dependencies
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        working-directory: apps/daily-diary/clinical_diary/ios
+        run: pod install
+
+      - name: Run Flutter analyze
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter test
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION"
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Build iOS ${{ inputs.flavor }} with Fastlane
+        working-directory: apps/daily-diary/clinical_diary/ios
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          doppler run \
+            --project ${{ secrets.DOPPLER_PROJECT }} \
+            --config ops \
+            -- bundle exec fastlane build_${{ inputs.flavor }}
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}-${{ github.sha }}.ipa
+          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ inputs.flavor }}.ipa
+          retention-days: 90
+
+      - name: Build summary
+        run: |
+          echo "### iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
