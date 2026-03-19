@@ -213,7 +213,7 @@ jobs:
 
       - name: Install CocoaPods dependencies
         working-directory: apps/daily-diary/clinical_diary/ios
-        run: pod install
+        run: bundle exec pod install
 
       - name: Run Flutter analyze
         working-directory: apps/daily-diary/clinical_diary
