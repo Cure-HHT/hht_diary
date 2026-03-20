@@ -14,56 +14,56 @@
 
 # REQ-p00043: Diary Mobile Application
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 **Refines**: REQ-p00044-C
 
 ## Rationale
 
-The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through link-based configuration.
+The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining compliance with applicable regulations, such a FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through dynamic configuration.
 
 ## Assertions
 
-A. The system SHALL provide a smartphone application for iOS platforms.
+A. The system SHALL provide a smartphone application for iOS platforms, available via the iOS app store.
 
-B. The system SHALL provide a smartphone application for Android platforms.
+B. The system SHALL provide a smartphone application for Android platforms, available via the Android app store.
+
+### Core Functionality
 
 C. The system SHALL enable users to record daily health observations.
 
-D. The system SHALL support local-first data entry for all diary operations as specified in REQ-p70000.
+D. The system SHALL treat local data storage as the primary location for locally-entered data.
 
-E. The system SHALL support personal use mode with local-only storage.
+E. The system SHALL support offline operation for core diary operations in both personal use mode and linked use mode.
 
-F. The system SHALL support linked use mode with cloud synchronization to study database.
+### Data Sovereignty
 
-G. The system SHALL NOT require account creation for personal use mode.
+F. The system SHALL store all locally-entered data on device as the authoritative source.
 
-H. The system SHALL store all personal use mode data locally on device only.
+G. The system SHALL provide full functionality in personal use mode using local storage alone.
 
-I. The system SHALL NOT transmit personal use mode data over network for storage purposes.
+H. The user SHALL retain control over locally-entered data, including the right to delete it from the device.
 
-J. The system SHALL enable linking via sponsor-provided linking code.
+### Personal Use Mode
 
-K. The system SHALL automatically synchronize linked user data to study database when online.
+I. The system SHALL NOT require account creation for personal use mode.
 
-L. The system SHALL support multi-sponsor deployments with automatic configuration based on linking code.
+J. deprecated: The system SHALL NOT maintain audit trails for personal use mode users.
 
-M. The system SHALL apply sponsor-specific branding for linked users based on their linking.
+### Linked Use Mode
 
-N. The system SHALL apply sponsor-specific customization for linked users based on their linking.
+K. The system SHALL support linked use mode with cloud synchronization to remote systems.
 
-O. The system SHALL NOT maintain audit trails for personal use mode users.
+L. The system SHALL enable linking via sponsor-provided linking code.
 
-P. The system SHALL synchronize existing local data to study database upon user linking.
+M. The system SHALL automatically synchronize linked-mode diary data to remote systems when online.
 
-R. The system SHALL be available via iOS app store.
+N. The system SHALL support multi-sponsor deployments with dynamic configuration based on linking code.
 
-S. The system SHALL be available via Android app store.
+O. The system SHALL apply sponsor-specific branding and customization for linked users based on their linking code.
 
-T. The system SHALL support offline operation for core diary operations in personal use mode.
+P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
-U. The system SHALL support offline operation for core diary operations in linked use mode.
-
-*End* *Diary Mobile Application* | **Hash**: 8651c82b
+*End* *Diary Mobile Application* | **Hash**: 74be613b
 ---
 
 ## Local Data Storage
