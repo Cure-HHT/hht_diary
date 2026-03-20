@@ -24,7 +24,7 @@ This specification defines session management for clinical questionnaires, ensur
 
 # REQ-p01073: Questionnaire Session Management
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 **Refines**: REQ-p01065-G
 
 ## Rationale
@@ -77,7 +77,7 @@ P. Questionnaires without session management configuration SHALL preserve and re
 
 Q. When the app is resumed after being closed by the OS, if a questionnaire is in progress and has not timed out, the app SHALL open to the questionnaire for completion.
 
-*End* *Questionnaire Session Management* | **Hash**: cd9c12a5
+*End* *Questionnaire Session Management* | **Hash**: 3ab0f2f1
 
 ---
 

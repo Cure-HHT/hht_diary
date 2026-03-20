@@ -14,7 +14,7 @@
 
 # REQ-p00043: Diary Mobile Application
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 **Refines**: REQ-p00044-C
 
 ## Rationale
@@ -63,7 +63,7 @@ O. The system SHALL apply sponsor-specific branding and customization for linked
 
 P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
-*End* *Diary Mobile Application* | **Hash**: 8651c82b
+*End* *Diary Mobile Application* | **Hash**: 74be613b
 ---
 
 ## Local Data Storage

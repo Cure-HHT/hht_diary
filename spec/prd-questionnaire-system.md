@@ -107,7 +107,7 @@ All questionnaire data follows the event sourcing model:
 
 # REQ-p01065: Clinical Questionnaire System
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 **Refines**: REQ-p00044-C
 
 ## Rationale
@@ -138,7 +138,7 @@ I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study 
 
 J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-*End* *Clinical Questionnaire System* | **Hash**: 0a439bc2
+*End* *Clinical Questionnaire System* | **Hash**: 7379bdac
 ---
 
 ## Child Requirements
