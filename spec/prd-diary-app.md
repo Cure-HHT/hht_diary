@@ -19,51 +19,51 @@
 
 ## Rationale
 
-The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through link-based configuration.
+The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining compliance with applicable regulations. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through dynamic configuration.
 
 ## Assertions
 
-A. The system SHALL provide a smartphone application for iOS platforms.
+A. The system SHALL provide a smartphone application for iOS platforms, available via the iOS app store.
 
-B. The system SHALL provide a smartphone application for Android platforms.
+B. The system SHALL provide a smartphone application for Android platforms, available via the Android app store.
+
+**Core Functionality**
 
 C. The system SHALL enable users to record daily health observations.
 
-D. The system SHALL support local-first data entry for all diary operations as specified in REQ-p70000.
+D. The system SHALL treat local data storage as the primary location for locally-entered data.
 
-E. The system SHALL support personal use mode with local-only storage.
+E. The system SHALL support offline operation for core diary operations in both personal use mode and linked use mode.
 
-F. The system SHALL support linked use mode with cloud synchronization to study database.
+**Data Sovereignty**
 
-G. The system SHALL NOT require account creation for personal use mode.
+F. The system SHALL store all locally-entered data on device as the authoritative source.
 
-H. The system SHALL store all personal use mode data locally on device only.
+G. The system SHALL provide full functionality in personal use mode using local storage alone.
 
-I. The system SHALL NOT transmit personal use mode data over network for storage purposes.
+H. The user SHALL retain control over locally-entered data, including the right to delete it from the device.
 
-J. The system SHALL enable linking via sponsor-provided linking code.
+**Personal Use Mode**
 
-K. The system SHALL automatically synchronize linked user data to study database when online.
+I. The system SHALL NOT require account creation for personal use mode.
 
-L. The system SHALL support multi-sponsor deployments with automatic configuration based on linking code.
+J. deprecated: The system SHALL NOT maintain audit trails for personal use mode users.
 
-M. The system SHALL apply sponsor-specific branding for linked users based on their linking.
+**Linked Use Mode**
 
-N. The system SHALL apply sponsor-specific customization for linked users based on their linking.
+K. The system SHALL support linked use mode with cloud synchronization to remote systems.
 
-O. The system SHALL NOT maintain audit trails for personal use mode users.
+L. The system SHALL enable linking via sponsor-provided linking code.
 
-P. The system SHALL synchronize existing local data to study database upon user linking.
+M. The system SHALL automatically synchronize linked-mode diary data to remote systems when online.
 
-R. The system SHALL be available via iOS app store.
+N. The system SHALL support multi-sponsor deployments with dynamic configuration based on linking code.
 
-S. The system SHALL be available via Android app store.
+O. The system SHALL apply sponsor-specific branding and customization for linked users based on their linking code.
 
-T. The system SHALL support offline operation for core diary operations in personal use mode.
+P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
-U. The system SHALL support offline operation for core diary operations in linked use mode.
-
-*End* *Diary Mobile Application* | **Hash**: 8651c82b
+*End* *Diary Mobile Application* | **Hash**: 96e7be97
 ---
 
 ## Local Data Storage
@@ -113,15 +113,15 @@ P. The system SHALL provide users the option to link to a Cure HHT program to en
 
 Q. The system SHALL provide users the option to link to clinical trials via linking code.
 
-R. The system SHALL synchronize existing local data to the study database after user linking.
+R. The system SHALL synchronize existing local data to remote systems after user linking.
 
 S. The system SHALL NOT automatically link users to any study.
 
 T. The system SHALL require user-initiated action for study linking.
 
-U. The system SHALL back up linked users' data through study database synchronization.
+U. The system SHALL back up linked users' data through remote systems synchronization.
 
-*End* *Local Data Storage* | **Hash**: f74d92a4
+*End* *Local Data Storage* | **Hash**: 937511be
 ---
 
 ## Executive Summary
@@ -217,7 +217,7 @@ TODO - this needs another spec #
 # REQ-p00006: Offline-First Data Entry
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00043-D, REQ-p00043-U, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
+**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
 
 ## Rationale
 
@@ -237,17 +237,17 @@ E. The system SHALL provide full core diary functionality without internet acces
 
 F. The system SHALL preserve all diary entries if the app closes unexpectedly.
 
-G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to the study database.
+G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to remote systems.
 
-H. The system SHALL automatically synchronize unsynchronized entries to the study database when network connectivity becomes available for linked users.
+H. The system SHALL automatically synchronize unsynchronized entries to remote systems when network connectivity becomes available for linked users.
 
 I. The system SHALL preserve all unsynchronized entries if the app closes before synchronization completes.
 
-J. The system SHALL NOT synchronize diary entries to any study database for patients not linked to a study.
+J. The system SHALL NOT synchronize diary entries to any remote systems for patients not linked to a study.
 
 K. The system SHALL activate synchronization only after a user links to a study as defined in REQ-p70000.
 
-*End* *Offline-First Data Entry* | **Hash**: b0555756
+*End* *Offline-First Data Entry* | **Hash**: a6c45a31
 ---
 
 ## Multi-Sponsor Support
@@ -398,7 +398,7 @@ E. The system SHALL NOT allow the start day to be set earlier than 365 days befo
 
 F. The system SHALL persist the start day across app sessions in the local database.
 
-G. The system SHALL sync the start day to the study database for linked users.
+G. The system SHALL sync the start day to remote systems for linked users.
 
 H. The system SHALL automatically update the start day when a user creates an entry for a date before the current start day.
 
@@ -418,7 +418,7 @@ O. The system SHALL NOT provide cloud backup of the start day for personal use m
 
 P. The system SHALL NOT explicitly prompt users to set the start day during onboarding.
 
-*End* *Diary Start Day Definition* | **Hash**: 33ea4793
+*End* *Diary Start Day Definition* | **Hash**: a53d579f
 
 ---
 

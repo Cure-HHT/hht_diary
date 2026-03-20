@@ -4,7 +4,7 @@
 
 # Requirements Index
 
-## PRD
+## PRODUCT
 
 | ID         | Title                                               | File                                | Hash     |
 | ---------- | --------------------------------------------------- | ----------------------------------- | -------- |
@@ -13,7 +13,7 @@
 | REQ-p00003 | Separate Database Per Sponsor                       | prd-database.md                     | b265d8bb |
 | REQ-p00004 | Immutable Audit Trail via Event Sourcing            | prd-database.md                     | 59a44de8 |
 | REQ-p00005 | Role-Based Access Control                           | prd-security-RBAC.md                | d5129b08 |
-| REQ-p00006 | Offline-First Data Entry                            | prd-diary-app.md                    | b0555756 |
+| REQ-p00006 | Offline-First Data Entry                            | prd-diary-app.md                    | a6c45a31 |
 | REQ-p00007 | Automatic Sponsor Configuration                     | prd-diary-app.md                    | 3896c05a |
 | REQ-p00008 | Single Mobile App for All Sponsors                  | prd-architecture-multi-sponsor.md   | 3fe1fad0 |
 | REQ-p00009 | Sponsor-Specific Portals                            | prd-architecture-multi-sponsor.md   | e26dfd95 |
@@ -39,7 +39,7 @@
 | REQ-p00039 | Administrator Access with Audit Trail               | prd-security-RLS.md                 | 5082758c |
 | REQ-p00040 | Event Sourcing State Protection                     | prd-security-RLS.md                 | 2067e3e6 |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                 | prd-epistaxis-terminology.md        | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 8651c82b |
+| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 96e7be97 |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform             | prd-system.md                       | 0919ad00 |
 | REQ-p00045 | Design Patterns                                     | prd-clinical-trials.md              | a451a0b8 |
 | REQ-p00047 | Data Backup and Archival                            | prd-backup.md                       | 4e9501e4 |
@@ -85,7 +85,7 @@
 | REQ-p01036 | Data Recovery Guarantee                             | prd-SLA.md                          | 5909fb2b |
 | REQ-p01037 | Chronic Failure Escalation                          | prd-SLA.md                          | 63205737 |
 | REQ-p01038 | Regulatory Event Support                            | prd-SLA.md                          | f62f5e4d |
-| REQ-p01039 | Diary Start Day Definition                          | prd-diary-app.md                    | 33ea4793 |
+| REQ-p01039 | Diary Start Day Definition                          | prd-diary-app.md                    | a53d579f |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status         | prd-diary-app.md                    | e4e1c4c2 |
 | REQ-p01041 | Open Source Licensing                               | prd-system.md                       | 7e6b1e00 |
 | REQ-p01043 | Web Diary Authentication via Linking Code           | prd-deprecated.md                   | 7cf5512f |
@@ -124,7 +124,7 @@
 | REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
 | REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | 418d48b6 |
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
-| REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | f74d92a4 |
+| REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
 | REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
 | REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
 | REQ-p70006 | Comprehensive Audit Trail                           | prd-portal.md                       | c3ec2048 |
@@ -135,7 +135,7 @@
 | REQ-p70011 | Patient Reconnection Workflow                       | prd-portal.md                       | c386824f |
 | REQ-p70012 | Portal Data Acceptance and Rejection                | prd-portal.md                       | 2f615ddb |
 
-## OPS
+## OPERATIONS
 
 | ID         | Title                                             | File                            | Hash     |
 | ---------- | ------------------------------------------------- | ------------------------------- | -------- |
@@ -205,7 +205,7 @@
 | REQ-o00082 | Automated Test Execution                          | ops-cicd.md                     | 63cc8fe6 |
 | REQ-o00083 | QA Promotion Gate                                 | ops-cicd.md                     | dd06f8de |
 
-## DEV
+## DEVELOPMENT
 
 | ID         | Title                                              | File                           | Hash     |
 | ---------- | -------------------------------------------------- | ------------------------------ | -------- |
