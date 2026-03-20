@@ -4,15 +4,15 @@
 
 ## Assertions
 
-A. The system SHALL provide a platform for collecting patient-reported clinical diary data for regulated clinical trials.
+A. The system SHALL deploy a digital health technology (DHT) mobile app that allows the patient to collect and track information for their own use.
 
-B. The system SHALL support multiple independent pharmaceutical sponsors within a single platform.
+B. The system SHALL provide a platform for collecting patient-reported clinical diary data for regulated clinical trials.
 
-C. The system SHALL enable patient data entry via mobile applications.
+C. The system SHALL support multiple independent pharmaceutical sponsors within a single platform.
 
-D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
+D. The system SHALL enable sponsor access to trial data via web-based interfaces.
 
-E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
+E. The system SHALL operate in a manner compliant with applicable regulations.
 
 ## Rationale
 
