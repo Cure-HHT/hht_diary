@@ -39,8 +39,8 @@
 | REQ-p00039 | Administrator Access with Audit Trail               | prd-security-RLS.md                 | 5082758c |
 | REQ-p00040 | Event Sourcing State Protection                     | prd-security-RLS.md                 | 2067e3e6 |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard                 | prd-epistaxis-terminology.md        | 36dc9faf |
-| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 8651c82b |
-| REQ-p00044 | Clinical Trial Compliant Diary Platform             | prd-system.md                       | 0919ad00 |
+| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 74be613b |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform             | prd-system.md                       | 94b86e26 |
 | REQ-p00045 | Design Patterns                                     | prd-clinical-trials.md              | a451a0b8 |
 | REQ-p00047 | Data Backup and Archival                            | prd-backup.md                       | 4e9501e4 |
 | REQ-p00048 | Platform Operations and Monitoring                  | prd-devops.md                       | af349286 |
@@ -102,7 +102,7 @@
 | REQ-p01060 | UX Changes During Trials                            | prd-architecture-multi-sponsor.md   | 2f531460 |
 | REQ-p01062 | GDPR Data Portability                               | prd-deprecated.md                   | 37ef744e |
 | REQ-p01064 | Investigator Questionnaire Approval Workflow        | prd-questionnaire-approval.md       | 735ee5a6 |
-| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | 0a439bc2 |
+| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | 7379bdac |
 | REQ-p01066 | Daily Epistaxis Record Questionnaire                | prd-questionnaire-epistaxis.md      | 29498f8f |
 | REQ-p01067 | NOSE HHT Questionnaire                              | prd-questionnaire-nose-hht.md       | 23b411c6 |
 | REQ-p01068 | HHT Quality of Life Questionnaire                   | prd-questionnaire-qol.md            | d3970cea |
@@ -110,7 +110,7 @@
 | REQ-p01070 | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md       | 84fa171d |
 | REQ-p01071 | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md            | a231a942 |
 | REQ-p01072 | Mobile App Linking Status and History               | prd-diary-app.md                    | cf32de6c |
-| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | cd9c12a5 |
+| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 3ab0f2f1 |
 | REQ-p01074 | User-Facing State Change Communication              | prd-system.md                       | ec6b0b1d |
 | REQ-p01075 | Top Navigation Bar                                  | prd-diary-gui.md                    | 027debad |
 | REQ-p01076 | User Menu                                           | prd-diary-gui.md                    | 9c51b097 |

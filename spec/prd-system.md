@@ -1,6 +1,6 @@
 ## REQ-p00044: Clinical Trial Compliant Diary Platform
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 
 ## Assertions
 
@@ -18,7 +18,7 @@ E. The system SHALL operate in a manner compliant with applicable regulations.
 
 This requirement defines the existence, scope, and regulatory nature of the platform without constraining internal design or implementation mechanisms.
 
-*End* *Clinical Trial Compliant Diary Platform* | **Hash**: 0919ad00
+*End* *Clinical Trial Compliant Diary Platform* | **Hash**: 94b86e26
 ---
 ## REQ-p01041: Open Source Licensing
 
