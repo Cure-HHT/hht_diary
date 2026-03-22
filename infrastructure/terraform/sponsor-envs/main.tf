@@ -162,35 +162,50 @@ module "database" {
 # Cloud Run Services
 # -----------------------------------------------------------------------------
 # TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+#
+# The cloud-run module creates:
+#   - Dedicated runtime SA ({sponsor}-{env}-run-sa) with least-privilege roles
+#   - diary-server Cloud Run service (Dart backend)
+#   - portal-server Cloud Run service (Flutter web)
+#   - IAM bindings for public access (if enabled)
+#
+# Secrets flow: Doppler token in Secret Manager → app fetches all secrets from Doppler at runtime
+# Container images: CI/CD updates via gcloud; Terraform ignores image changes (lifecycle.ignore_changes)
+#
 # module "cloud_run" {
 #   source = "../modules/cloud-run"
-
+#
 #   project_id       = var.project_id
 #   sponsor          = var.sponsor
 #   environment      = var.environment
 #   region           = var.region
 #   vpc_connector_id = module.vpc.connector_id
-
+#
 #   # Container images (via Artifact Registry GHCR proxy)
 #   diary_server_image  = var.diary_server_image
 #   portal_server_image = var.portal_server_image
-
-#   db_host               = module.cloud_sql.private_ip_address
-#   db_name               = module.cloud_sql.database_name
-#   db_user               = module.cloud_sql.database_user
-#   db_password_secret_id = google_secret_manager_secret.db_password.secret_id
-
+#
+#   # Database connection (private IP, no public access)
+#   db_host = module.database.private_ip_address
+#   db_name = module.database.database_name
+#   db_user = module.database.database_user
+#
+#   # Doppler runtime secret fetching (replaces direct Secret Manager refs)
+#   doppler_project_id      = "hht-diary"
+#   doppler_config_name     = var.environment
+#   doppler_token_secret_id = google_secret_manager_secret.doppler_token.secret_id
+#
 #   min_instances    = var.min_instances
 #   max_instances    = var.max_instances
 #   container_memory = var.container_memory
 #   container_cpu    = var.container_cpu
-
+#
 #   allow_public_access = var.allow_public_access
-
+#
 #   depends_on = [
 #     module.vpc,
-#     module.cloud_sql,
-#     google_secret_manager_secret_version.db_password,
+#     module.database,
+#     google_secret_manager_secret_version.doppler_token,
 #   ]
 # }
 
