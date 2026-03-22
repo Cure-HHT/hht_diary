@@ -17,7 +17,8 @@ void main() {
     test('replaces multiple string literals', () {
       expect(
         sanitizeSql(
-            "INSERT INTO users (name, email) VALUES ('Jane', 'jane@test.com')"),
+          "INSERT INTO users (name, email) VALUES ('Jane', 'jane@test.com')",
+        ),
         equals("INSERT INTO users (name, email) VALUES ('?', '?')"),
       );
     });

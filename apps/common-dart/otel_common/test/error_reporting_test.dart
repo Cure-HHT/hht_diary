@@ -16,17 +16,11 @@ void main() {
     test('scrubs JWT tokens', () {
       final jwt =
           'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456';
-      expect(
-        scrubPii('Invalid token: $jwt'),
-        equals('Invalid token: [JWT]'),
-      );
+      expect(scrubPii('Invalid token: $jwt'), equals('Invalid token: [JWT]'));
     });
 
     test('scrubs phone numbers', () {
-      expect(
-        scrubPii('Contact at 555-123-4567'),
-        equals('Contact at [PHONE]'),
-      );
+      expect(scrubPii('Contact at 555-123-4567'), equals('Contact at [PHONE]'));
     });
 
     test('scrubs multiple PII types', () {

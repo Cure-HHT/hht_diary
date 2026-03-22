@@ -13,8 +13,7 @@ import 'package:shelf/shelf.dart';
 Middleware otelMiddleware({String tracerName = 'http.server'}) {
   return (Handler innerHandler) {
     return (Request request) async {
-      final tracer =
-          OTel.tracerProvider().getTracer(tracerName);
+      final tracer = OTel.tracerProvider().getTracer(tracerName);
 
       // Extract parent context from incoming W3C traceparent header.
       final parentContext = _extractContext(request);
@@ -44,7 +43,9 @@ Middleware otelMiddleware({String tracerName = 'http.server'}) {
       final contentLength = request.headers['content-length'];
       if (contentLength != null) {
         span.setIntAttribute(
-            'http.request.body.size', int.tryParse(contentLength) ?? 0);
+          'http.request.body.size',
+          int.tryParse(contentLength) ?? 0,
+        );
       }
 
       try {
@@ -54,8 +55,7 @@ Middleware otelMiddleware({String tracerName = 'http.server'}) {
         span.setIntAttribute('http.response.status_code', response.statusCode);
 
         if (response.statusCode >= 500) {
-          span.setStatus(SpanStatusCode.Error,
-              'HTTP ${response.statusCode}');
+          span.setStatus(SpanStatusCode.Error, 'HTTP ${response.statusCode}');
         } else {
           span.setStatus(SpanStatusCode.Ok);
         }
@@ -64,10 +64,9 @@ Middleware otelMiddleware({String tracerName = 'http.server'}) {
         final traceId = span.spanContext.traceId.toString();
         final spanId = span.spanContext.spanId.toString();
 
-        return response.change(headers: {
-          'x-trace-id': traceId,
-          'x-span-id': spanId,
-        });
+        return response.change(
+          headers: {'x-trace-id': traceId, 'x-span-id': spanId},
+        );
       } catch (e, st) {
         span.recordException(e, stackTrace: st);
         span.setStatus(SpanStatusCode.Error, e.toString());
@@ -84,9 +83,7 @@ Context? _extractContext(Request request) {
   final traceparent = request.headers['traceparent'];
   if (traceparent == null) return null;
 
-  final carrier = <String, String>{
-    'traceparent': traceparent,
-  };
+  final carrier = <String, String>{'traceparent': traceparent};
   final tracestate = request.headers['tracestate'];
   if (tracestate != null) {
     carrier['tracestate'] = tracestate;
@@ -94,11 +91,7 @@ Context? _extractContext(Request request) {
 
   final propagator = W3CTraceContextPropagator();
   final getter = _MapGetter(carrier);
-  return propagator.extract(
-    OTel.context(),
-    carrier,
-    getter,
-  );
+  return propagator.extract(OTel.context(), carrier, getter);
 }
 
 /// Getter that reads from a carrier map by key.
