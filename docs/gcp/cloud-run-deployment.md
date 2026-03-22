@@ -5,7 +5,7 @@
 **Updated**: 2026-03-22
 **Created**: 2025-11-25
 
-> **Purpose**: Authoritative guide for how Cloud Run services are deployed, managed, and secured in the Clinical Trial Diary Platform. Describes the **correct Terraform ↔ CI/CD ↔ GCP** division of responsibility.
+> **Purpose**: Authoritative guide for how Cloud Run services are deployed, managed, and secured in the Clinical Trial Diary Platform. Describes the correct Terraform ↔ GitHub ↔ GCP division of responsibility.
 
 ---
 
@@ -18,13 +18,13 @@ The Clinical Trial Diary Platform deploys two Cloud Run services per sponsor:
 
 **Ownership model**:
 
-| Concern | Owner | How |
-|---------|-------|-----|
-| Service shape (CPU, memory, SA, probes, VPC) | **Terraform** | `modules/cloud-run` |
-| Container image (version, tag) | **CI/CD** | `deploy-run-service.yml` via `gcloud run deploy --image` |
-| Secrets (DB password, API keys) | **Doppler** | Runtime fetch via Doppler SDK / `doppler run --` |
-| Doppler service token | **Terraform → Secret Manager** | Single bootstrap secret per project |
-| Database user/password | **Terraform** | `modules/cloud-sql` creates user; password from Doppler via `TF_VAR_DB_PASSWORD` |
+| Concern                                      | Owner                          | How                                                                              |
+|----------------------------------------------|--------------------------------|----------------------------------------------------------------------------------|
+| Service shape (CPU, memory, SA, probes, VPC) | **Terraform**                  | `modules/cloud-run`                                                              |
+| Container image (version, tag)               | **CI/CD**                      | `deploy-run-service.yml` via `gcloud run deploy --image`                         |
+| Secrets (DB password, API keys)              | **Doppler**                    | Runtime fetch via Doppler SDK / `doppler run --`                                 |
+| Doppler service token                        | **Terraform → Secret Manager** | Single bootstrap secret per project                                              |
+| Database user/password                       | **Terraform**                  | `modules/cloud-sql` creates user; password from Doppler via `TF_VAR_DB_PASSWORD` |
 
 Terraform explicitly **ignores container image changes** (`lifecycle.ignore_changes`) so CI/CD can update images without Terraform drift.
 
