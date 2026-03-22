@@ -15,10 +15,7 @@ import 'package:logging/logging.dart';
 ///
 /// Cloud Logging uses `logging.googleapis.com/trace` and
 /// `logging.googleapis.com/spanId` to link log entries to traces.
-void configureTracedLogging({
-  Level level = Level.INFO,
-  String? gcpProjectId,
-}) {
+void configureTracedLogging({Level level = Level.INFO, String? gcpProjectId}) {
   Logger.root.level = level;
   Logger.root.onRecord.listen((record) {
     final entry = _buildLogEntry(record, gcpProjectId: gcpProjectId);
@@ -55,10 +52,7 @@ void logWithTrace(
   stderr.writeln(jsonEncode(logEntry));
 }
 
-Map<String, dynamic> _buildLogEntry(
-  LogRecord record, {
-  String? gcpProjectId,
-}) {
+Map<String, dynamic> _buildLogEntry(LogRecord record, {String? gcpProjectId}) {
   final tracerProvider = OTel.tracerProvider();
   final tracer = tracerProvider.getTracer('logging');
   final currentSpan = tracer.currentSpan;

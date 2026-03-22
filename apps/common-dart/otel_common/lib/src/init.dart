@@ -16,11 +16,10 @@ Future<void> initializeOTel({
   required String serviceVersion,
   Map<String, String>? additionalAttributes,
 }) async {
-  final environment =
-      Platform.environment['ENVIRONMENT'] ?? 'development';
-  final revision =
-      Platform.environment['K_REVISION'] ?? 'unknown';
-  final endpoint = Platform.environment['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
+  final environment = Platform.environment['ENVIRONMENT'] ?? 'development';
+  final revision = Platform.environment['K_REVISION'] ?? 'unknown';
+  final endpoint =
+      Platform.environment['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
       'http://localhost:4317';
   final secure = endpoint.startsWith('https');
 
@@ -52,8 +51,7 @@ Future<void> initializeOTel({
 /// Development: always-on for full visibility.
 Sampler _buildSampler(String environment) {
   if (environment == 'production' || environment == 'prod') {
-    final ratioStr =
-        Platform.environment['OTEL_TRACES_SAMPLER_ARG'] ?? '0.1';
+    final ratioStr = Platform.environment['OTEL_TRACES_SAMPLER_ARG'] ?? '0.1';
     final ratio = double.tryParse(ratioStr) ?? 0.1;
     return ParentBasedSampler(TraceIdRatioSampler(ratio));
   }

@@ -30,10 +30,10 @@ void reportError(
     '@type':
         'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',
     'serviceContext': {
-      'service': serviceName ??
-          Platform.environment['OTEL_SERVICE_NAME'] ?? 'unknown',
-      'version': serviceVersion ??
-          Platform.environment['K_REVISION'] ?? 'unknown',
+      'service':
+          serviceName ?? Platform.environment['OTEL_SERVICE_NAME'] ?? 'unknown',
+      'version':
+          serviceVersion ?? Platform.environment['K_REVISION'] ?? 'unknown',
     },
     'time': DateTime.now().toUtc().toIso8601String(),
   };
@@ -45,10 +45,8 @@ void reportError(
   if (currentSpan != null) {
     try {
       final spanContext = (currentSpan as dynamic).spanContext;
-      entry['logging.googleapis.com/trace'] =
-          spanContext.traceId.toString();
-      entry['logging.googleapis.com/spanId'] =
-          spanContext.spanId.toString();
+      entry['logging.googleapis.com/trace'] = spanContext.traceId.toString();
+      entry['logging.googleapis.com/spanId'] = spanContext.spanId.toString();
     } catch (_) {
       // No active span context; skip trace linkage.
     }
@@ -74,10 +72,11 @@ void reportAndRecordError(
   final currentSpan = tracer.currentSpan;
   if (currentSpan != null) {
     try {
-      (currentSpan as dynamic)
-          .recordException(error, stackTrace: stackTrace);
-      (currentSpan as dynamic)
-          .setStatus(SpanStatusCode.Error, scrubPii(error.toString()));
+      (currentSpan as dynamic).recordException(error, stackTrace: stackTrace);
+      (currentSpan as dynamic).setStatus(
+        SpanStatusCode.Error,
+        scrubPii(error.toString()),
+      );
     } catch (_) {
       // Best-effort span recording.
     }
@@ -101,17 +100,19 @@ String scrubPii(String message) {
   var scrubbed = message;
 
   // Email addresses
-  scrubbed =
-      scrubbed.replaceAll(RegExp(r'[\w.+-]+@[\w-]+\.[\w.]+'), '[EMAIL]');
+  scrubbed = scrubbed.replaceAll(RegExp(r'[\w.+-]+@[\w-]+\.[\w.]+'), '[EMAIL]');
 
   // JWT tokens (three base64 segments separated by dots)
   scrubbed = scrubbed.replaceAll(
-      RegExp(r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
-      '[JWT]');
+    RegExp(r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
+    '[JWT]',
+  );
 
   // Phone numbers (US format)
   scrubbed = scrubbed.replaceAll(
-      RegExp(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'), '[PHONE]');
+    RegExp(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'),
+    '[PHONE]',
+  );
 
   return scrubbed;
 }
