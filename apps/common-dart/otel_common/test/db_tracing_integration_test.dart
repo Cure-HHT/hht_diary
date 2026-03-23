@@ -64,7 +64,9 @@ void main() {
         () async {},
       );
 
-      final statement = exporter.spans.first.attributes.getString('db.statement');
+      final statement = exporter.spans.first.attributes.getString(
+        'db.statement',
+      );
       expect(statement, isNotNull);
       // Literal values should be sanitized
       expect(statement, isNot(contains('john@test.com')));
@@ -80,27 +82,21 @@ void main() {
         () async {},
       );
 
-      final statement = exporter.spans.first.attributes.getString('db.statement');
+      final statement = exporter.spans.first.attributes.getString(
+        'db.statement',
+      );
       expect(statement, contains('@userId'));
       expect(statement, contains('@siteId'));
     });
 
     test('sets span kind as client', () async {
-      await tracedQuery<void>(
-        'SELECT',
-        'SELECT 1',
-        () async {},
-      );
+      await tracedQuery<void>('SELECT', 'SELECT 1', () async {});
 
       expect(exporter.spans.first.kind, equals(SpanKind.client));
     });
 
     test('sets OK status on successful query', () async {
-      await tracedQuery<void>(
-        'SELECT',
-        'SELECT 1',
-        () async {},
-      );
+      await tracedQuery<void>('SELECT', 'SELECT 1', () async {});
 
       expect(exporter.spans.first.status, equals(SpanStatusCode.Ok));
     });

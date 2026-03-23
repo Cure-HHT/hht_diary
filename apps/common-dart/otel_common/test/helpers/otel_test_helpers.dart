@@ -78,10 +78,7 @@ Future<void> tearDownOTel() async {
 /// Captures stderr output during a synchronous callback.
 String captureStderrSync(void Function() fn) {
   final buffer = StringBuffer();
-  IOOverrides.runZoned(
-    fn,
-    stderr: () => _BufferedStderr(buffer),
-  );
+  IOOverrides.runZoned(fn, stderr: () => _BufferedStderr(buffer));
   return buffer.toString();
 }
 
