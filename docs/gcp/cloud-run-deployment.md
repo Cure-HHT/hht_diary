@@ -146,7 +146,7 @@ resource "google_secret_manager_secret" "doppler_token" {
 The consultant's original design stored `DB_PASSWORD` directly in Secret Manager and referenced it via `secret_key_ref` in the Cloud Run module. This was replaced with the Doppler-first approach for these reasons:
 
 | Concern | Doppler-Only | Secret Manager for All | Hybrid (Doppler+SM) |
-|---------|-------------|----------------------|---------------------|
+| ------- | ------------ | ---------------------- | ------------------- |
 | **Systems to secure** | 1 (Doppler) | 1 (Secret Manager) | 2 (both) |
 | **Attack surface** | Doppler API | GCP IAM | Both surfaces |
 | **Developer experience** | `doppler run --` | `gcloud secrets...` + setup | Mixed |
@@ -291,7 +291,7 @@ The `modules/cloud-run` module is ready but needs two fixes before uncommenting:
 State is stored in GCS bucket `cure-hht-terraform-state`:
 
 | Workspace | Prefix | Backend |
-|-----------|--------|---------|
+| --------- | ------ | ------- |
 | bootstrap | `bootstrap/{sponsor}` | `gcs {}` (configured via `-backend-config`) |
 | admin-project | `admin-project` | `gcs { bucket = "cure-hht-terraform-state" }` |
 | sponsor-envs | varies | `gcs {}` (configured via `-backend-config`) |
@@ -321,7 +321,7 @@ The `-backend-config` approach allows the same Terraform code to be used across 
 ### Service Account Risks
 
 | Risk | Mitigation |
-|------|-----------|
+| ---- | ---------- |
 | Default Compute SA has `roles/editor` | Dedicated runtime SA with 5 specific roles |
 | Deployment SA could be over-privileged | Scoped to run.admin + sa.user per project |
 | SA key leakage | No keys — WIF for CI/CD, SA impersonation for Terraform |
@@ -330,7 +330,7 @@ The `-backend-config` approach allows the same Terraform code to be used across 
 ### Secrets Risks
 
 | Risk | Mitigation |
-|------|-----------|
+| ---- | ---------- |
 | Doppler outage at cold start | Cloud Run retries with backoff; min_instances=1 for prod |
 | DOPPLER_TOKEN leaked | Stored in Secret Manager with IAM-scoped access |
 | DB password in Terraform state | State in GCS with encryption; consider state encryption |
@@ -514,6 +514,6 @@ gcloud artifacts repositories create ghcr-remote \
 ## Change Log
 
 | Date | Version | Changes | Author |
-|------|---------|---------|--------|
+| ---- | ------- | ------- | ------ |
 | 2025-11-25 | 1.0 | Initial Cloud Run deployment guide | Claude |
 | 2026-03-22 | 2.0 | Complete rewrite: correct Terraform↔CI/CD ownership model, Doppler-first secrets architecture, dedicated runtime SA documentation, gcloud scripts moved to appendix, security implications added, removed outdated Secret Manager patterns | Claude |
