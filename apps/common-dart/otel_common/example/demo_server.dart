@@ -124,6 +124,8 @@ Future<Response> _handleSlow(Request request) async {
     },
     table: 'large_table',
   );
-  return Response.ok('{"status": "done"}',
-      headers: {'content-type': 'application/json'});
+  return Response.ok(
+    '{"status": "done"}',
+    headers: {'content-type': 'application/json'},
+  );
 }
