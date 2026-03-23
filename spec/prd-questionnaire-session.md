@@ -37,7 +37,7 @@ A. When a questionnaire is configured with a readiness check, the system SHALL d
 
 B. The readiness screen SHALL offer the patient a choice to proceed or defer the questionnaire.
 
-C. If the patient defers, the system SHALL record a session-deferred event with the questionnaire instance UUID.
+C. If the patient defers, the system SHALL record a questionnaire-deferred event with the questionnaire instance UUID.
 
 D. If the patient defers, the system SHALL return the patient to the previous screen.
 

@@ -120,9 +120,9 @@ Clinical trials require structured data collection instruments that ensure data 
 
 A. The system SHALL support multiple questionnaire types, each implemented as individual coded components.
 
-B. Each questionnaire SHALL be implemented as custom Flutter components with questionnaire-specific GUI/UX.
+B. The GUI of each questionnaire SHALL NOT change unless approved by the Sponsor.
 
-C. Each questionnaire SHALL have custom user interface optimized for its specific content and response types.
+C. Each questionnaire SHALL have a user-experience that is optimized for that specific questionnaire.
 
 D. Questionnaires SHALL support versioning.
 
@@ -132,7 +132,7 @@ F. Questionnaire data SHALL be stored as immutable events per the event sourcing
 
 G. The system SHALL track completion status for each questionnaire instance.
 
-H. The system SHALL support sponsor-configurable "Study Start" questionnaire that gates patient enrollment.
+H. The system shall support sponsor configurable study start date.
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 

@@ -19,7 +19,7 @@
 
 ## Rationale
 
-The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining compliance with applicable regulations. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through dynamic configuration.
+The mobile application serves dual purposes: personal health tracking for individual users and compliant data capture for clinical trials. Personal use mode prioritizes privacy and simplicity by requiring no account and storing data locally only. Linked use mode enables cloud synchronization for clinical trials and observational studies while maintaining compliance with applicable regulations, such a FDA 21 CFR Part 11 compliance. The single-app multi-sponsor architecture simplifies distribution through public app stores while ensuring complete data isolation between sponsors through dynamic configuration.
 
 ## Assertions
 
@@ -27,7 +27,7 @@ A. The system SHALL provide a smartphone application for iOS platforms, availabl
 
 B. The system SHALL provide a smartphone application for Android platforms, available via the Android app store.
 
-**Core Functionality**
+### Core Functionality
 
 C. The system SHALL enable users to record daily health observations.
 
@@ -35,7 +35,7 @@ D. The system SHALL treat local data storage as the primary location for locally
 
 E. The system SHALL support offline operation for core diary operations in both personal use mode and linked use mode.
 
-**Data Sovereignty**
+### Data Sovereignty
 
 F. The system SHALL store all locally-entered data on device as the authoritative source.
 
@@ -43,13 +43,13 @@ G. The system SHALL provide full functionality in personal use mode using local 
 
 H. The user SHALL retain control over locally-entered data, including the right to delete it from the device.
 
-**Personal Use Mode**
+### Personal Use Mode
 
 I. The system SHALL NOT require account creation for personal use mode.
 
 J. deprecated: The system SHALL NOT maintain audit trails for personal use mode users.
 
-**Linked Use Mode**
+### Linked Use Mode
 
 K. The system SHALL support linked use mode with cloud synchronization to remote systems.
 
@@ -63,7 +63,7 @@ O. The system SHALL apply sponsor-specific branding and customization for linked
 
 P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
-*End* *Diary Mobile Application* | **Hash**: 96e7be97
+*End* *Diary Mobile Application* | **Hash**: 8651c82b
 ---
 
 ## Local Data Storage
@@ -113,15 +113,15 @@ P. The system SHALL provide users the option to link to a Cure HHT program to en
 
 Q. The system SHALL provide users the option to link to clinical trials via linking code.
 
-R. The system SHALL synchronize existing local data to remote systems after user linking.
+R. The system SHALL synchronize existing local data to the study database after user linking.
 
 S. The system SHALL NOT automatically link users to any study.
 
 T. The system SHALL require user-initiated action for study linking.
 
-U. The system SHALL back up linked users' data through remote systems synchronization.
+U. The system SHALL back up linked users' data through study database synchronization.
 
-*End* *Local Data Storage* | **Hash**: 937511be
+*End* *Local Data Storage* | **Hash**: f74d92a4
 ---
 
 ## Executive Summary
@@ -217,7 +217,7 @@ TODO - this needs another spec #
 # REQ-p00006: Offline-First Data Entry
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
+**Refines**: REQ-p00043-D, REQ-p00043-U, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
 
 ## Rationale
 
@@ -237,17 +237,17 @@ E. The system SHALL provide full core diary functionality without internet acces
 
 F. The system SHALL preserve all diary entries if the app closes unexpectedly.
 
-G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to remote systems.
+G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to the study database.
 
-H. The system SHALL automatically synchronize unsynchronized entries to remote systems when network connectivity becomes available for linked users.
+H. The system SHALL automatically synchronize unsynchronized entries to the study database when network connectivity becomes available for linked users.
 
 I. The system SHALL preserve all unsynchronized entries if the app closes before synchronization completes.
 
-J. The system SHALL NOT synchronize diary entries to any remote systems for patients not linked to a study.
+J. The system SHALL NOT synchronize diary entries to any study database for patients not linked to a study.
 
 K. The system SHALL activate synchronization only after a user links to a study as defined in REQ-p70000.
 
-*End* *Offline-First Data Entry* | **Hash**: a6c45a31
+*End* *Offline-First Data Entry* | **Hash**: b0555756
 ---
 
 ## Multi-Sponsor Support
@@ -398,7 +398,7 @@ E. The system SHALL NOT allow the start day to be set earlier than 365 days befo
 
 F. The system SHALL persist the start day across app sessions in the local database.
 
-G. The system SHALL sync the start day to remote systems for linked users.
+G. The system SHALL sync the start day to the study database for linked users.
 
 H. The system SHALL automatically update the start day when a user creates an entry for a date before the current start day.
 
@@ -418,7 +418,7 @@ O. The system SHALL NOT provide cloud backup of the start day for personal use m
 
 P. The system SHALL NOT explicitly prompt users to set the start day during onboarding.
 
-*End* *Diary Start Day Definition* | **Hash**: a53d579f
+*End* *Diary Start Day Definition* | **Hash**: 33ea4793
 
 ---
 
