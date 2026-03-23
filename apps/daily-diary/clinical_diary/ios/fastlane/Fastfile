@@ -69,10 +69,11 @@ platform :ios do
       profile_name: profile_name
     )
 
-    # Run flutter build to prepare the Xcode project and native code
+    # Generate Dart AOT snapshot + Xcode config without running xcodebuild
+    # (build_app below handles the single xcodebuild archive)
     Dir.chdir(FLUTTER_DIR) do
       sh("flutter", "build", "ios", "--flavor", flavor,
-         "--dart-define=APP_FLAVOR=#{flavor}", "--release", "--no-codesign")
+         "--dart-define=APP_FLAVOR=#{flavor}", "--release", "--config-only")
     end
 
     # Archive and export IPA with Fastlane gym
