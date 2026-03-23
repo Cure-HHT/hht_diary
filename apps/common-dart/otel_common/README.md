@@ -12,14 +12,14 @@ Shared OpenTelemetry instrumentation for HHT Diary platform servers. Pure Dart p
 
 ## Requirements Implemented
 
-| Requirement | Description |
-|-------------|-------------|
+| Requirement | Description                                         |
+|-------------|-----------------------------------------------------|
 | REQ-o00047  | Performance Monitoring -- OpenTelemetry integration |
-| REQ-o00047F | End-to-end distributed tracing |
-| REQ-o00047G | Database query tracing |
-| REQ-o00047I | HTTP request tracing with semantic conventions |
-| REQ-o00045  | Error tracking with Cloud Error Reporting |
-| REQ-o00045Q | PII/PHI scrubbing in traces and error messages |
+| REQ-o00047F | End-to-end distributed tracing                      |
+| REQ-o00047G | Database query tracing                              |
+| REQ-o00047I | HTTP request tracing with semantic conventions      |
+| REQ-o00045  | Error tracking with Cloud Error Reporting           |
+| REQ-o00045Q | PII/PHI scrubbing in traces and error messages      |
 
 ## Quick Start
 
@@ -168,13 +168,13 @@ tool/
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ENVIRONMENT` | `development` | `development` or `production` -- controls sampler |
-| `K_REVISION` | `unknown` | Cloud Run revision ID |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel Collector endpoint |
-| `OTEL_TRACES_SAMPLER_ARG` | `0.1` | Trace sampling ratio (production only) |
-| `OTEL_SERVICE_NAME` | `unknown` | Fallback service name for error reports |
+| Variable                      | Default                 | Description                                       |
+|-------------------------------|-------------------------|---------------------------------------------------|
+| `ENVIRONMENT`                 | `development`           | `development` or `production` -- controls sampler |
+| `K_REVISION`                  | `unknown`               | Cloud Run revision ID                             |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel Collector endpoint                           |
+| `OTEL_TRACES_SAMPLER_ARG`     | `0.1`                   | Trace sampling ratio (production only)            |
+| `OTEL_SERVICE_NAME`           | `unknown`               | Fallback service name for error reports           |
 
 ## Dependencies
 
