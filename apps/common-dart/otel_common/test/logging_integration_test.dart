@@ -53,8 +53,11 @@ void main() {
         });
 
         final json = jsonDecode(output.trim()) as Map<String, dynamic>;
-        expect(json['severity'], equals(entry.value),
-            reason: '${entry.key} should map to ${entry.value}');
+        expect(
+          json['severity'],
+          equals(entry.value),
+          reason: '${entry.key} should map to ${entry.value}',
+        );
       }
     });
 

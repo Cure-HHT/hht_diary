@@ -37,15 +37,17 @@ void main() {
           .addMiddleware(otelMiddleware())
           .addHandler((_) => Response.ok('ok'));
 
-      await handler(Request(
-        'POST',
-        Uri.parse('http://localhost/api/tasks?page=1'),
-        headers: {
-          'host': 'diary.example.com',
-          'user-agent': 'Dart/3.10',
-          'content-length': '42',
-        },
-      ));
+      await handler(
+        Request(
+          'POST',
+          Uri.parse('http://localhost/api/tasks?page=1'),
+          headers: {
+            'host': 'diary.example.com',
+            'user-agent': 'Dart/3.10',
+            'content-length': '42',
+          },
+        ),
+      );
 
       final span = exporter.spans.first;
       expect(span.attributes.getString('http.method'), equals('POST'));
@@ -54,9 +56,13 @@ void main() {
       expect(span.attributes.getString('url.path'), equals('/api/tasks'));
       expect(span.attributes.getString('url.query'), equals('page=1'));
       expect(
-          span.attributes.getString('server.address'), equals('diary.example.com'));
+        span.attributes.getString('server.address'),
+        equals('diary.example.com'),
+      );
       expect(
-          span.attributes.getString('user_agent.original'), equals('Dart/3.10'));
+        span.attributes.getString('user_agent.original'),
+        equals('Dart/3.10'),
+      );
       expect(span.attributes.getInt('http.request.body.size'), equals(42));
     });
 
@@ -102,15 +108,14 @@ void main() {
           .addHandler((_) => Response.ok('ok'));
 
       final response = await handler(
-          Request('GET', Uri.parse('http://localhost/')));
+        Request('GET', Uri.parse('http://localhost/')),
+      );
 
       expect(response.headers['x-trace-id'], isNotEmpty);
       expect(response.headers['x-span-id'], isNotEmpty);
       // Trace and span IDs should be valid hex strings
-      expect(response.headers['x-trace-id'],
-          matches(RegExp(r'^[0-9a-f]+$')));
-      expect(response.headers['x-span-id'],
-          matches(RegExp(r'^[0-9a-f]+$')));
+      expect(response.headers['x-trace-id'], matches(RegExp(r'^[0-9a-f]+$')));
+      expect(response.headers['x-span-id'], matches(RegExp(r'^[0-9a-f]+$')));
     });
 
     test('records exception on handler error and rethrows', () async {
@@ -138,11 +143,13 @@ void main() {
       const parentSpanId = 'b7ad6b7169203331';
       final traceparent = '00-$traceId-$parentSpanId-01';
 
-      await handler(Request(
-        'GET',
-        Uri.parse('http://localhost/'),
-        headers: {'traceparent': traceparent},
-      ));
+      await handler(
+        Request(
+          'GET',
+          Uri.parse('http://localhost/'),
+          headers: {'traceparent': traceparent},
+        ),
+      );
 
       final span = exporter.spans.first;
       // The span should belong to the propagated trace
