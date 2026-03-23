@@ -24,6 +24,33 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 
+# OTel is on by default; --no-otel disables it
+ENABLE_OTEL=true
+REMAINING_ARGS=()
+for arg in "$@"; do
+    case $arg in
+        --no-otel) ENABLE_OTEL=false ;;
+        *) REMAINING_ARGS+=("$arg") ;;
+    esac
+done
+set -- "${REMAINING_ARGS[@]}"
+
+# Start LGTM stack if OTel is enabled
+if [ "$ENABLE_OTEL" = true ]; then
+    COMPOSE_FILE="$REPO_ROOT/tools/dev-env/docker-compose.otel.yml"
+    if [ -f "$COMPOSE_FILE" ]; then
+        if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'otel-lgtm'; then
+            echo_info "Starting Grafana LGTM stack..."
+            docker compose -f "$COMPOSE_FILE" up -d 2>/dev/null || echo_info "WARNING: Could not start LGTM stack"
+        else
+            echo_info "Grafana LGTM stack already running"
+        fi
+        echo_info "Grafana UI: http://localhost:3000/explore"
+    fi
+    export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+    export ENVIRONMENT="development"
+fi
+
 # Handle --reset flag
 if [[ "$1" == "--reset" ]]; then
     echo_info "Resetting database and applying seed data..."
