@@ -255,3 +255,7 @@ TODO.md
 /apps/coverage/*.info
 # Implementation plans (ephemeral, session-specific)
 docs/plans/
+/apps/coverage/
+/apps/coverage/*.info
+# Implementation plans (ephemeral, session-specific)
+docs/plans/
