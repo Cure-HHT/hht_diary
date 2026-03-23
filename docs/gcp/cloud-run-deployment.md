@@ -145,17 +145,17 @@ resource "google_secret_manager_secret" "doppler_token" {
 
 The consultant's original design stored `DB_PASSWORD` directly in Secret Manager and referenced it via `secret_key_ref` in the Cloud Run module. This was replaced with the Doppler-first approach for these reasons:
 
-| Concern | Doppler-Only | Secret Manager for All | Hybrid (Doppler+SM) |
-| ------- | ------------ | ---------------------- | ------------------- |
-| **Systems to secure** | 1 (Doppler) | 1 (Secret Manager) | 2 (both) |
-| **Attack surface** | Doppler API | GCP IAM | Both surfaces |
-| **Developer experience** | `doppler run --` | `gcloud secrets...` + setup | Mixed |
-| **Terraform state risk** | Secrets not in state | Secrets in plaintext state | Partial exposure |
-| **Cold start / restart** | App fetches from Doppler | Cloud Run injects from SM | Depends on secret |
-| **Rotation** | Update in Doppler, restart | New SM version, redeploy | Two rotation paths |
-| **Audit** | Doppler audit log | Cloud Audit Logs | Two audit systems |
-| **Multi-cloud** | Yes | GCP only | Partial |
-| **FDA compliance** | SOC 2, BAA available | SOC 2 (GCP-wide) | Both |
+| Concern                  | Doppler-Only               | Secret Manager for All      | Hybrid (Doppler+SM) |
+|--------------------------|----------------------------|-----------------------------|---------------------|
+| **Systems to secure**    | 1 (Doppler)                | 1 (Secret Manager)          | 2 (both)            |
+| **Attack surface**       | Doppler API                | GCP IAM                     | Both surfaces       |
+| **Developer experience** | `doppler run --`           | `gcloud secrets...` + setup | Mixed               |
+| **Terraform state risk** | Secrets not in state       | Secrets in plaintext state  | Partial exposure    |
+| **Cold start / restart** | App fetches from Doppler   | Cloud Run injects from SM   | Depends on secret   |
+| **Rotation**             | Update in Doppler, restart | New SM version, redeploy    | Two rotation paths  |
+| **Audit**                | Doppler audit log          | Cloud Audit Logs            | Two audit systems   |
+| **Multi-cloud**          | Yes                        | GCP only                    | Partial             |
+| **FDA compliance**       | SOC 2, BAA available       | SOC 2 (GCP-wide)            | Both                |
 
 **Decision**: Doppler-only with a single DOPPLER_TOKEN in Secret Manager is the simplest, most auditable design. One system to secure, one audit trail, one rotation process.
 
@@ -290,11 +290,11 @@ The `modules/cloud-run` module is ready but needs two fixes before uncommenting:
 
 State is stored in GCS bucket `cure-hht-terraform-state`:
 
-| Workspace | Prefix | Backend |
-| --------- | ------ | ------- |
-| bootstrap | `bootstrap/{sponsor}` | `gcs {}` (configured via `-backend-config`) |
-| admin-project | `admin-project` | `gcs { bucket = "cure-hht-terraform-state" }` |
-| sponsor-envs | varies | `gcs {}` (configured via `-backend-config`) |
+| Workspace     | Prefix                | Backend                                       |
+|---------------|-----------------------|-----------------------------------------------|
+| bootstrap     | `bootstrap/{sponsor}` | `gcs {}` (configured via `-backend-config`)   |
+| admin-project | `admin-project`       | `gcs { bucket = "cure-hht-terraform-state" }` |
+| sponsor-envs  | varies                | `gcs {}` (configured via `-backend-config`)   |
 
 **Running Terraform** (sponsor-envs):
 ```bash
@@ -320,21 +320,21 @@ The `-backend-config` approach allows the same Terraform code to be used across 
 
 ### Service Account Risks
 
-| Risk | Mitigation |
-| ---- | ---------- |
-| Default Compute SA has `roles/editor` | Dedicated runtime SA with 5 specific roles |
-| Deployment SA could be over-privileged | Scoped to run.admin + sa.user per project |
-| SA key leakage | No keys — WIF for CI/CD, SA impersonation for Terraform |
-| Cross-sponsor access | Separate projects, separate SAs, no cross-project IAM |
+| Risk                                   | Mitigation                                              |
+|----------------------------------------|---------------------------------------------------------|
+| Default Compute SA has `roles/editor`  | Dedicated runtime SA with 5 specific roles              |
+| Deployment SA could be over-privileged | Scoped to run.admin + sa.user per project               |
+| SA key leakage                         | No keys — WIF for CI/CD, SA impersonation for Terraform |
+| Cross-sponsor access                   | Separate projects, separate SAs, no cross-project IAM   |
 
 ### Secrets Risks
 
-| Risk | Mitigation |
-| ---- | ---------- |
-| Doppler outage at cold start | Cloud Run retries with backoff; min_instances=1 for prod |
-| DOPPLER_TOKEN leaked | Stored in Secret Manager with IAM-scoped access |
-| DB password in Terraform state | State in GCS with encryption; consider state encryption |
-| Secrets in CI/CD logs | Doppler env vars are non-secret identifiers only |
+| Risk                           | Mitigation                                               |
+|--------------------------------|----------------------------------------------------------|
+| Doppler outage at cold start   | Cloud Run retries with backoff; min_instances=1 for prod |
+| DOPPLER_TOKEN leaked           | Stored in Secret Manager with IAM-scoped access          |
+| DB password in Terraform state | State in GCS with encryption; consider state encryption  |
+| Secrets in CI/CD logs          | Doppler env vars are non-secret identifiers only         |
 
 ### FDA 21 CFR Part 11 Compliance
 
