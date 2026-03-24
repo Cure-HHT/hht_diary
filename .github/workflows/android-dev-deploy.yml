@@ -168,6 +168,15 @@ on:
           - dev
           - qa
           - prod
+      deployment:
+        description: "Deployment target"
+        required: true
+        type: choice
+        options:
+          - none
+          - internal
+          - external
+          - release
 
 permissions:
   contents: read
@@ -237,6 +246,7 @@ jobs:
         working-directory: apps/daily-diary/clinical_diary/ios
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DEPLOYMENT_TARGET: ${{ inputs.deployment }}
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
@@ -257,6 +267,7 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment** | ${{ inputs.deployment }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY

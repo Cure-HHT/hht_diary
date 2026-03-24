@@ -94,8 +94,9 @@ platform :ios do
       }
     )
 
-    # Upload to TestFlight (CI only, does not distribute to testers)
-    if ENV["CI"]
+    # Upload to TestFlight (CI only)
+    deployment = ENV["DEPLOYMENT_TARGET"] || "none"
+    if ENV["CI"] && deployment != "none"
       api_key_path = File.join(Dir.tmpdir, "AuthKey.p8")
       File.write(api_key_path, Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_MGR_BASE64"]))
 
@@ -105,11 +106,23 @@ platform :ios do
         key_filepath: api_key_path
       )
 
-      upload_to_testflight(
+      testflight_opts = {
         api_key: api_key,
-        skip_waiting_for_build_processing: false,
-        skip_submission: true
-      )
+        skip_waiting_for_build_processing: false
+      }
+
+      case deployment
+      when "internal"
+        testflight_opts[:distribute_external] = false
+        testflight_opts[:groups] = ["Internal Testing"]
+      when "external"
+        testflight_opts[:distribute_external] = true
+        testflight_opts[:groups] = ["External Testing"]
+      when "release"
+        testflight_opts[:skip_submission] = false
+      end
+
+      upload_to_testflight(testflight_opts)
     end
   end
 end
