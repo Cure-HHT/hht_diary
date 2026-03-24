@@ -22,6 +22,7 @@
 # or upon a merge to the main branch
 
 name: Build portal-server
+
 # IMPLEMENTS: REQ-o00043-A (auto-trigger deployment on merge to main)
 on:
   push:
@@ -56,20 +57,22 @@ on:
         required: false
         type: boolean
         default: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/portal-server
   DART_BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
   FLUTTER_IMAGE: 'ghcr.io/cure-hht/flutter-base:3.38.7'
   DEBIAN_IMAGE: 'debian:12-slim'
+
 # Using :nonroot tag for security (DS001, DS002)
 # TODO DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 
 permissions:
   contents: read
   packages: write
-  id-token: write  # For Cosign signing
-  actions: write   # For triggering workflows
+  id-token: write
+  actions: write
 
 jobs:
   build-portal-server:
@@ -99,9 +102,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          installation-id: ${{ secrets.GH_APP_INSTALLATION_ID }}
+
       - name: Collect sponsor content
         env:
-          GH_TOKEN: ${{ secrets.SPONSOR_REPO_PAT }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: tools/build/collect-sponsor-content.sh
 
       - name: Set up Docker Buildx
@@ -211,12 +222,11 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
           echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
-          # tags is multiline output
+
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          # ECHO outputs
           echo "version=${VERSION}"
           echo "docker_ver=${DOCKER_VER}"
           echo "core=${CORE}"
@@ -226,7 +236,6 @@ jobs:
           echo "short_sha=${SHORT_SHA}"
           echo "tag_full=${TAG_FULL}"
           echo "is_main_push=${IS_MAIN_PUSH}"
-          # tags is multiline output
           echo "tags<<EOF"
           printf "%s\n" "$TAGS"
           echo "EOF"
@@ -339,7 +348,8 @@ jobs:
     needs: [verify-images, build-portal-server]
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     permissions:
-      actions: write  # For triggering workflows
+      actions: write
+
     steps:
       - name: Trigger deploy-run-service workflow
         env:
@@ -364,22 +374,22 @@ jobs:
     steps:
       - name: Generate summary
         run: |
-          echo "# Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Images built, pushed \& signed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ portal-server image" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Docker Image Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Event**: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Branch**: ${{ github.ref_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit**: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Images built, pushed & signed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ portal-server image" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          echo "## Published to GHCR" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
-          echo " TAGS= ${{ needs.build-portal-server.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
-          echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Published to GHCR" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "TAGS= ${{ needs.build-portal-server.outputs.image_tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image signatures verified with Cosign" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SBOMs generated with Syft" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
