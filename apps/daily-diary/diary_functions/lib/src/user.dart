@@ -186,6 +186,35 @@ Future<Response> linkHandler(Request request) async {
     // Extract phone number from contact_info JSONB (REQ-CAL-p00077)
     final sitePhoneNumber = contactInfo?['phone'] as String?;
 
+    // CUR-1055: Prevent duplicate enrollment from same device
+    // Check if this device is already linked to a connected patient
+    if (appUuid != null) {
+      final existingLink = await db.execute(
+        '''
+        SELECT plc.patient_id
+        FROM patient_linking_codes plc
+        JOIN patients p ON plc.patient_id = p.patient_id
+        WHERE plc.used_by_app_uuid = @appUuid
+          AND plc.used_at IS NOT NULL
+          AND p.mobile_linking_status = 'connected'
+        LIMIT 1
+        ''',
+        parameters: {'appUuid': appUuid},
+      );
+
+      if (existingLink.isNotEmpty) {
+        _log('WARNING', 'Duplicate enrollment attempt from same device', {
+          'codePrefix': codePrefix,
+          'appUuid': appUuid,
+        });
+        return _jsonResponse({
+          'error':
+              'This device is already enrolled in a study. '
+              'Please contact your research coordinator if you need to re-enroll.',
+        }, 409);
+      }
+    }
+
     // Create or find app_user for this device
     // The linking code IS the authentication - no prior login needed
     String userId;
