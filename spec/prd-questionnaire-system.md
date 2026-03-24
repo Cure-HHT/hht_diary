@@ -128,7 +128,7 @@ D. Questionnaires SHALL support versioning.
 
 E. Scored questionnaires SHALL support an investigator approval workflow.
 
-F. Questionnaire data SHALL be stored as immutable events per the event sourcing model.
+F. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
 G. The system SHALL track completion status for each questionnaire instance.
 
@@ -136,9 +136,8 @@ H. The system shall support sponsor configurable study start date.
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 
-J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-*End* *Clinical Questionnaire System* | **Hash**: 7379bdac
+*End* *Clinical Questionnaire System* | **Hash**: 18f4128c
 ---
 
 ## Child Requirements

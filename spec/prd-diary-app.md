@@ -15,7 +15,7 @@
 # REQ-p00043: Diary Mobile Application
 
 **Level**: prd | **Status**: Active | **Implements**: -
-**Refines**: REQ-p00044-C
+**Refines**: REQ-p00044-A
 
 ## Rationale
 
@@ -27,7 +27,7 @@ A. The system SHALL provide a smartphone application for iOS platforms, availabl
 
 B. The system SHALL provide a smartphone application for Android platforms, available via the Android app store.
 
-### Core Functionality
+*Core Functionality*
 
 C. The system SHALL enable users to record daily health observations.
 
@@ -35,7 +35,7 @@ D. The system SHALL treat local data storage as the primary location for locally
 
 E. The system SHALL support offline operation for core diary operations in both personal use mode and linked use mode.
 
-### Data Sovereignty
+*Data Sovereignty*
 
 F. The system SHALL store all locally-entered data on device as the authoritative source.
 
@@ -43,13 +43,13 @@ G. The system SHALL provide full functionality in personal use mode using local 
 
 H. The user SHALL retain control over locally-entered data, including the right to delete it from the device.
 
-### Personal Use Mode
+*Personal Use Mode*
 
 I. The system SHALL NOT require account creation for personal use mode.
 
-J. deprecated: The system SHALL NOT maintain audit trails for personal use mode users.
+J. The system SHALL provide full functionality in personal use mode using local storage alone.
 
-### Linked Use Mode
+*Linking Functionality*
 
 K. The system SHALL support linked use mode with cloud synchronization to remote systems.
 
@@ -63,7 +63,7 @@ O. The system SHALL apply sponsor-specific branding and customization for linked
 
 P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
-*End* *Diary Mobile Application* | **Hash**: 74be613b
+*End* *Diary Mobile Application* | **Hash**: 0b68e32b
 ---
 
 ## Local Data Storage
@@ -71,7 +71,7 @@ P. The system SHALL obtain explicit user consent before synchronizing pre-existi
 # REQ-p70000: Local Data Storage
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p00043-H
+**Refines**: REQ-p00043-D, REQ-p00043-F, REQ-p00043-G
 
 ## Rationale
 
@@ -113,15 +113,15 @@ P. The system SHALL provide users the option to link to a Cure HHT program to en
 
 Q. The system SHALL provide users the option to link to clinical trials via linking code.
 
-R. The system SHALL synchronize existing local data to the study database after user linking.
+R. The system SHALL synchronize existing local data to remote systems after user linking.
 
 S. The system SHALL NOT automatically link users to any study.
 
 T. The system SHALL require user-initiated action for study linking.
 
-U. The system SHALL back up linked users' data through study database synchronization.
+U. The system SHALL back up linked users' data through remote systems synchronization.
 
-*End* *Local Data Storage* | **Hash**: f74d92a4
+*End* *Local Data Storage* | **Hash**: 937511be
 ---
 
 ## Executive Summary
@@ -148,7 +148,7 @@ The Diary mobile application is a smartphone app for iOS and Android that allows
 # REQ-p00007: Automatic Sponsor Configuration
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001-A, REQ-p00043-J, REQ-p00043-L, REQ-p00043-M, REQ-p00043-N
+**Refines**: REQ-p00001-A, REQ-p00043-L, REQ-p00043-N, REQ-p00043-O
 
 ## Rationale
 
@@ -164,7 +164,7 @@ C. The app SHALL read linking information from the code and connect to the corre
 
 D. The app SHALL load sponsor branding and configuration automatically upon linking.
 
-E. The app SHALL NOT require patients to manually select a sponsor from a list.
+E. deprecated: The app SHALL NOT require patients to manually select a sponsor from a list.
 
 F. The app SHALL NOT provide any mechanism for patients to link to an incorrect study.
 
@@ -174,13 +174,9 @@ H. The app SHALL determine sponsor and study configuration from the linking code
 
 I. The app SHALL display the correct sponsor branding immediately after processing the linking code.
 
-J. The app SHALL NOT allow patients to switch to a different sponsor after linking is completed.
+J. deprecated: The app SHALL NOT allow patients to switch to a different sponsor after linking is completed.
 
-K. The app SHALL reject invalid linking codes with a clear error message.
-
-L. The app SHALL reject expired linking codes with a clear error message.
-
-*End* *Automatic Sponsor Configuration* | **Hash**: 3896c05a
+*End* *Automatic Sponsor Configuration* | **Hash**: ef5bdf5f
 ---
 
 TODO - this needs another spec #
@@ -217,7 +213,7 @@ TODO - this needs another spec #
 # REQ-p00006: Offline-First Data Entry
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00043-D, REQ-p00043-U, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
+**Refines**: REQ-p00043-D, REQ-p00043-E, REQ-p70000-A, REQ-p70000-E, REQ-p70000-L
 
 ## Rationale
 
@@ -237,17 +233,13 @@ E. The system SHALL provide full core diary functionality without internet acces
 
 F. The system SHALL preserve all diary entries if the app closes unexpectedly.
 
-G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to the study database.
+G. The system SHALL clearly indicate to linked patients which entries have not yet synchronized to remote systems.
 
-H. The system SHALL automatically synchronize unsynchronized entries to the study database when network connectivity becomes available for linked users.
+H. The system SHALL automatically synchronize unsynchronized entries to remote systems when network connectivity becomes available for linked users.
 
 I. The system SHALL preserve all unsynchronized entries if the app closes before synchronization completes.
 
-J. The system SHALL NOT synchronize diary entries to any study database for patients not linked to a study.
-
-K. The system SHALL activate synchronization only after a user links to a study as defined in REQ-p70000.
-
-*End* *Offline-First Data Entry* | **Hash**: b0555756
+*End* *Offline-First Data Entry* | **Hash**: 9455833d
 ---
 
 ## Multi-Sponsor Support
@@ -327,21 +319,21 @@ Temporal validation ensures data reflects actual events and prevents logical imp
 
 ## Assertions
 
-A. The system SHALL disable selection of future dates in the calendar view.
+A. The system SHALL restrict date selection to the current date and earlier dates only.
 
-B. The system SHALL restrict the date picker to current date and earlier dates only.
+B. The system SHALL visually indicate that future dates are not selectable in the calendar view.
 
-C. The system SHALL set the maximum selectable date in the calendar to the current date.
+C. deprecated: The system SHALL set the maximum selectable date in the calendar to the current date. (consolidated into A)
 
-D. The system SHALL restrict end time selection to times that do not exceed the current real time.
+D. The system SHALL validate that end time is greater than or equal to start time.
 
-E. The system SHALL visually disable or gray out future dates in the calendar view.
+E. deprecated: The system SHALL visually disable or gray out future dates in the calendar view. (consolidated into B)
 
-F. The system SHALL visually disable or gray out future times in the time picker.
+F. The system SHALL visually indicate that future times are not selectable in the time picker.
 
-G. The system SHALL validate that end time is greater than or equal to start time.
+G. The system SHALL restrict end time selection to times not exceeding the current real time.
 
-H. The system SHALL validate that end time is less than or equal to current time.
+H. deprecated: The system SHALL validate that end time is less than or equal to current time. (consolidated into G)
 
 I. The system SHALL update the current time dynamically if the user keeps the time picker open.
 
@@ -349,11 +341,11 @@ J. The system SHALL enforce diary start day boundaries as specified in REQ-p0103
 
 K. The system SHALL prevent creation of entries before the diary start day.
 
-L. The system SHALL visually distinguish dates before the diary start day as specified in REQ-p01040.
+L. The system SHALL visually distinguish dates before the diary start day.
 
 M. The system SHALL display a reason selection prompt when an entry date/time is more than 24 hours in the past.
 
-N. The system SHALL provide predefined reason options including: 'I forgot to record it at the time', 'I didn't have access to the app', 'I was in a medical facility', 'Technical issues with the app', and 'Other (specify)'.
+N. The system SHALL provide a predefined list of non-PII reason options for delayed entries.
 
 O. The system SHALL require the user to select a reason before proceeding with creation of entries more than 24 hours old.
 
@@ -369,7 +361,7 @@ T. The system SHALL allow the user to navigate to view the conflicting record wh
 
 U. The system SHALL require confirmation when creating entries less than 2 minutes old.
 
-*End* *Temporal Entry Validation* | **Hash**: 7b918745
+*End* *Temporal Entry Validation* | **Hash**: 8a468a3f
 
 ---
 
@@ -398,7 +390,7 @@ E. The system SHALL NOT allow the start day to be set earlier than 365 days befo
 
 F. The system SHALL persist the start day across app sessions in the local database.
 
-G. The system SHALL sync the start day to the study database for linked users.
+G. The system SHALL sync the start day to remote systems for linked users.
 
 H. The system SHALL automatically update the start day when a user creates an entry for a date before the current start day.
 
@@ -418,7 +410,7 @@ O. The system SHALL NOT provide cloud backup of the start day for personal use m
 
 P. The system SHALL NOT explicitly prompt users to set the start day during onboarding.
 
-*End* *Diary Start Day Definition* | **Hash**: 33ea4793
+*End* *Diary Start Day Definition* | **Hash**: a53d579f
 
 ---
 
@@ -482,7 +474,7 @@ S. The system SHALL allow users to select accessible fonts via user preferences.
 # REQ-p01072: Mobile App Linking Status and History
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00043-F, REQ-p00043-J
+**Refines**: REQ-p00043-K, REQ-p00043-L
 
 ## Rationale
 
