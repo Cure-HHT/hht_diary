@@ -108,7 +108,7 @@ platform :ios do
 
       testflight_opts = {
         api_key: api_key,
-        skip_waiting_for_build_processing: false
+        skip_waiting_for_build_processing: true
       }
 
       case deployment
