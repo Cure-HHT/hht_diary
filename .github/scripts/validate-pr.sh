@@ -135,19 +135,6 @@ end_group
 # --- 2. Gitleaks - secret scanning ---
 begin_group "Secret Scanning (gitleaks v${GITLEAKS_VERSION})"
 
-# Download gitleaks with retry
-for i in {1..3}; do
-  if wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"; then
-    break
-  fi
-  echo "Download attempt $i failed, retrying..."
-  sleep 5
-done
-
-GITLEAKS_TMP=$(mktemp -d)
-tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -C "$GITLEAKS_TMP"
-sudo mv "$GITLEAKS_TMP/gitleaks" /usr/local/bin/
-rm -rf "$GITLEAKS_TMP" "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
 gitleaks version
 
 if gitleaks detect --verbose --no-banner --redact --log-level info; then
@@ -243,20 +230,14 @@ end_group
 begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 
 if [ "$SPEC_CHANGED" = "true" ]; then
-  python3 -m pip install --upgrade pip -q --break-system-packages
-  python3 -m pip install elspais=="${ELSPAIS_VERSION}" -q --break-system-packages
-  export PATH="$HOME/.local/bin:$PATH"
   elspais --version
 
-  elspais validate --mode core
-  elspais index validate --mode core
+  elspais health
 
-  # Verify requirement hash freshness (CUR-1013)
-  if elspais hash verify 2>/dev/null; then
-    echo "Requirement hashes are up to date"
-  else
-    echo "::warning::Requirement hash verification returned non-zero (may not be supported in this elspais version)"
-  fi
+  # Generate traceability matrix for PR comment and artifact upload
+  mkdir -p build-reports/combined/traceability
+  elspais summary trace --format markdown \
+    -o build-reports/combined/traceability/traceability_matrix.md
 
   echo "Requirement validation passed"
 else
@@ -402,7 +383,7 @@ fi
 if [ "$DOCS_CHANGED" = "true" ] || [ "$SPEC_CHANGED" = "true" ]; then
   begin_group "Documentation Linting (markdownlint-cli v${MARKDOWNLINT_CLI_VERSION})"
 
-  npx "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}" --config .markdownlint.json '**/*.md'
+  markdownlint --config .markdownlint.json '**/*.md'
 
   echo "Documentation linting passed"
   end_group

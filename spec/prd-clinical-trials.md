@@ -1,3 +1,62 @@
+## REQ-p00045: Design Patterns
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00044, REQ-p00044-E
+
+## Assertions
+
+A. System components SHALL use common design patterns to ensure consistency
+
+## Rationale
+
+Clinical trial systems must comply with multiple regulatory frameworks depending on geographic scope and data types processed. This requirement establishes the platform's overarching regulatory compliance posture, ensuring that all applicable regulations are systematically addressed through dedicated child requirements. By centralizing regulatory compliance under a single framework requirement, the platform maintains clear traceability from the top-level system definition down to specific regulatory implementations.
+
+*End* *Design Patterns* | **Hash**: a451a0b8
+---
+## REQ-p00012: Clinical Data Retention Requirements
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00048
+
+## Assertions
+
+A. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
+
+B. The system SHALL provide export capability for regulatory submission.
+
+C. The system SHALL provide export capability for archival purposes.
+
+D. The system SHALL track the retention period per study.
+
+E. The system SHALL enforce the retention period per study.
+
+F. The retention period SHALL be configurable per study.
+
+G. The retention period SHALL be configurable per jurisdiction.
+
+H. Data export SHALL include the complete audit trail.
+
+I. Exported data SHALL be readable without proprietary systems.
+
+J. The system SHALL prevent premature deletion by enforcing retention period requirements.
+
+## Rationale
+
+Regulatory agencies require long-term retention of clinical trial data to support product approvals, post-market surveillance, and potential future investigations. Data must remain accessible and readable despite technology changes over the retention period. FDA 21 CFR Part 11 and ICH GCP guidelines mandate preservation of complete trial records including audit trails for periods typically extending 7+ years after study completion or product approval, depending on jurisdiction.
+
+*End* *Clinical Data Retention Requirements* | **Hash**: 095cb350
+---
+## REQ-p01085: Compliance Systems
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00044-E, REQ-p00045
+
+## Assertions
+
+A. The platform SHALL use libraries for common operations.
+
+*End* *Compliance Systems* | **Hash**: 418d48b6
+---
 # Clinical Trial Compliance Requirements
 
 **Version**: 1.0
@@ -13,7 +72,7 @@
 
 ## Executive Summary
 
-Clinical trial systems must comply with strict regulations to ensure data integrity and patient safety. This system meets all requirements for electronic clinical trial data collection in the United States and European Union.
+Clinical trial systems must comply with strict regulations to ensure data integrity and patient safety. This system is designed to meet all requirements for electronic clinical trial data collection in the United States and European Union.
 
 **Primary Regulations**:
 
@@ -36,235 +95,16 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 - Required for regulatory submission
 - Reduces risk of study rejection
-- Protects company reputation
 
 **For Patients**:
 
-- Guarantees their data is handled properly
-- Ensures privacy protection
-- Maintains trust in clinical research
+- Defines how to properly handle their data
+- Provides privacy protection
+- Basis of trust in clinical research
 
 ---
 
 ## Key Requirements
-
-# REQ-p00045: Regulatory Compliance Framework
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00044, p80002
-
-## Rationale
-
-Clinical trial systems must comply with multiple regulatory frameworks depending on geographic scope and data types processed. This requirement establishes the platform's overarching regulatory compliance posture, ensuring that all applicable regulations are systematically addressed through dedicated child requirements. By centralizing regulatory compliance under a single framework requirement, the platform maintains clear traceability from the top-level system definition down to specific regulatory implementations.
-
-## Assertions
-
-A. The system SHALL satisfy FDA 21 CFR Part 11 requirements for electronic records and electronic signatures.
-
-B. The system SHALL satisfy EU General Data Protection Regulation (GDPR) requirements for personal data protection.
-
-C. The system SHALL maintain documentation demonstrating compliance with applicable regulatory frameworks.
-
-D. The system SHALL support audit and inspection activities by regulatory authorities.
-
-*End* *Regulatory Compliance Framework* | **Hash**: c4fa27f7
----
-
-# REQ-p00010: FDA 21 CFR Part 11 Compliance
-
-**Level**: PRD | **Status**: Draft | **Implements**: p80001
-
-## Rationale
-
-FDA 21 CFR Part 11 is the regulatory foundation for electronic clinical trial systems in the United States. Compliance is mandatory for regulatory submission acceptance and protects the integrity of clinical trial data used for drug approval decisions. This requirement establishes the comprehensive set of controls and capabilities needed to ensure the system meets federal standards for electronic records and electronic signatures, enabling regulatory authorities to trust the integrity and authenticity of clinical trial data collected through the platform.
-
-The detailed FDA regulatory requirements are defined in the FDA regulations specification (`spec/regulations/fda/`), which provides the authoritative source documentation for 21 CFR Part 11, FDA guidance documents, and ICH GCP requirements. This platform requirement ensures those regulatory standards are implemented in the system.
-
-## Assertions
-
-A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures as defined in REQ-p80001 and its child requirements.
-
-B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
-
-C. The system SHALL include a complete validation documentation package.
-
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 20c0e7bc
----
-
-# REQ-p00011: ALCOA+ Data Integrity Principles
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00010, p80005-A, p80010
-
-## Rationale
-
-ALCOA+ principles are internationally recognized data integrity standards required for clinical trial systems. These principles ensure clinical trial data is trustworthy, defensible, and acceptable to regulators worldwide including FDA, EMA, and other health authorities. This requirement establishes the foundational data quality standards that enable the system to meet 21 CFR Part 11 compliance and support regulatory submissions. The principles apply throughout the entire data lifecycle from initial capture through long-term archival and retrieval.
-
-## Assertions
-
-A. All clinical trial data SHALL adhere to ALCOA+ principles throughout the data lifecycle.
-
-B. Data SHALL be attributable by being clearly linked to the person who created it.
-
-C. Every data entry SHALL include creator identification.
-
-D. Every data entry SHALL include a timestamp.
-
-E. Data SHALL be legible by being readable and understandable without obscuration.
-
-F. Data SHALL be readable without requiring special tools or decoding.
-
-G. Data SHALL be contemporaneous by being recorded at or near the time of observation.
-
-H. Data SHALL be original by representing the first recording or a certified true copy.
-
-I. Original values SHALL be preserved when data is modified.
-
-J. Data SHALL be accurate by being free from errors, complete, and correct.
-
-K. Data SHALL be complete with all data captured and nothing missing.
-
-L. Data SHALL be consistent by being performed in the same manner over time.
-
-M. Data SHALL be enduring by being preserved for the entire retention period.
-
-N. Data SHALL be available by being accessible for review and audit when needed.
-
-O. The system SHALL maintain a complete audit trail for the entire data lifecycle.
-
-*End* *ALCOA+ Data Integrity Principles* | **Hash**: 54818734
----
-
-# REQ-p00012: Clinical Data Retention Requirements
-
-**Level**: PRD | **Status**: Draft | **Implements**: p80030
-
-## Rationale
-
-Regulatory agencies require long-term retention of clinical trial data to support product approvals, post-market surveillance, and potential future investigations. Data must remain accessible and readable despite technology changes over the retention period. FDA 21 CFR Part 11 and ICH GCP guidelines mandate preservation of complete trial records including audit trails for periods typically extending 7+ years after study completion or product approval, depending on jurisdiction.
-
-## Assertions
-
-A. The system SHALL retain clinical trial data for the minimum period required by applicable regulations.
-
-B. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
-
-C. The system SHALL preserve all clinical trial records for the required retention period.
-
-D. The system SHALL retain audit trails with their associated clinical data for the entire retention period.
-
-E. The system SHALL ensure data remains readable throughout the retention period.
-
-F. The system SHALL ensure data remains accessible throughout the retention period.
-
-G. The system SHALL provide export capability for regulatory submission.
-
-H. The system SHALL provide export capability for archival purposes.
-
-I. The system SHALL track the retention period per study.
-
-J. The system SHALL enforce the retention period per study.
-
-K. The retention period SHALL be configurable per study.
-
-L. The retention period SHALL be configurable per jurisdiction.
-
-M. Data export SHALL include the complete audit trail.
-
-N. Exported data SHALL be readable without proprietary systems.
-
-O. The system SHALL prevent premature deletion by enforcing retention period requirements.
-
-P. The system SHALL maintain data integrity throughout the retention period.
-
-*End* *Clinical Data Retention Requirements* | **Hash**: 42ddd27b
----
-
-# REQ-p01061: EU GDPR
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00045
-
-## Rationale
-
-Clinical trials conducted in the EU or involving EU residents must comply with the General Data Protection Regulation (GDPR). This regulation mandates specific protections for personal data of trial participants, including establishing lawful bases for processing, honoring data subject rights, implementing privacy-by-design principles, and ensuring timely breach notifications. Non-compliance poses significant risks including regulatory fines up to €20M or 4% of global turnover, potential invalidation of trial data for regulatory submissions, and erosion of participant trust. The requirement ensures the platform embeds GDPR compliance into its core architecture and operational procedures, enabling sponsors to conduct legally compliant clinical trials involving EU residents.
-
-## Assertions
-
-A. The system SHALL comply with the EU General Data Protection Regulation (GDPR) for processing personal data of EU clinical trial participants.
-
-B. The system SHALL establish and document a lawful basis for processing personal data, either explicit consent or legitimate interest for clinical trials.
-
-C. The system SHALL implement a workflow to fulfill data subject access requests.
-
-D. The system SHALL implement a workflow to fulfill data subject rectification requests.
-
-E. The system SHALL implement a workflow to fulfill data subject erasure requests where applicable under GDPR.
-
-F. The system SHALL implement a workflow to fulfill data subject portability requests.
-
-G. The system SHALL collect only personal data that is necessary for trial purposes.
-
-H. The system SHALL incorporate privacy protections into its architecture by design.
-
-I. The platform SHALL maintain Data Processing Agreements with all third-party data processors.
-
-J. The system SHALL support breach notification to the supervisory authority within 72 hours of breach detection.
-
-K. The privacy policy SHALL document the GDPR lawful basis for processing personal data.
-
-L. Data subject request workflows SHALL be documented.
-
-M. Data Processing Agreements SHALL be in place with all third-party processors before processing begins.
-
-N. The breach notification procedure SHALL be documented.
-
-O. The breach notification procedure SHALL be tested.
-
-P. A Data Protection Impact Assessment SHALL be completed for clinical trial data processing activities.
-
-Q. The system SHALL implement exceptions to these rules as applicable to GCP and FDA data retention requirements.
-
-*End* *GDPR Compliance* | **Hash**: ebe9e2ad
----
-
-# REQ-p01062: GDPR Data Portability
-
-**Level**: PRD | **Status**: Draft | **Implements**: p01061
-
-## Rationale
-
-GDPR Article 20 grants EU data subjects the right to receive their personal data in a structured, commonly used, machine-readable format. This requirement ensures clinical trial participants can exercise their data portability rights by obtaining their own health diary data for personal records or transfer to another system. The export functionality must be self-service to avoid dependency on sponsor resources while maintaining data completeness and usability across devices.
-
-## Assertions
-
-A. The system SHALL enable patients to export their personal clinical diary data in a machine-readable format.
-
-B. The system SHALL provide patient-initiated export of all diary entries and health records belonging to that patient.
-
-C. Exported data SHALL be formatted as JSON.
-
-D. The export SHALL include complete data comprising timestamps, values, and metadata.
-
-E. The export functionality SHALL be accessible through the mobile app.
-
-F. The export functionality SHALL NOT require sponsor assistance.
-
-G. The system SHALL provide import capability to restore previously exported data.
-
-H. The import functionality SHALL support restoration on the same device from which data was exported.
-
-I. The import functionality SHALL support restoration on a different device than the one from which data was exported.
-
-J. The export SHALL include all user-generated content.
-
-K. The export SHALL include all timestamps associated with diary entries.
-
-L. The export and import functionality SHALL operate without requiring network connectivity.
-
-M. The export SHALL NOT include system internals such as sync state.
-
-N. The export SHALL NOT include system internals such as device IDs.
-
-*End* *GDPR Data Portability* | **Hash**: 30b27336
----
 
 ### System Validation
 
@@ -401,27 +241,6 @@ The detailed FDA regulatory requirements in `spec/regulations/fda/` are derived 
 | **FDA Guidance for Industry: Part 11 Scope and Application** | FDA guidance on interpretation and enforcement priorities | REQ-p80203, REQ-p80303, REQ-p80403 |
 | **ICH E6(R2) GCP Consolidated Guideline** | International standards for clinical trial conduct | REQ-p80005 |
 | **ICH E6(R2) GCP Detailed Requirements** | Specific requirements for electronic systems in clinical trials | REQ-p80204, REQ-p80304, REQ-p80404 |
-
-### Traceability Chain
-
-The regulatory compliance hierarchy follows this structure:
-
-```
-REQ-p00044 (Platform) - Top-level system definition
-    └── REQ-p00045 (Regulatory Compliance Framework)
-            ├── REQ-p80001 (US FDA 21 CFR Part 11)
-            │       ├── REQ-p00010 (FDA 21 CFR Part 11 Compliance) - platform commitment
-            │       ├── REQ-p80010 (Electronic Records Controls)
-            │       │       └── p00011 (ALCOA+), p00046, p01060
-            │       ├── REQ-p80030 (Audit Trail Requirements)
-            │       │       └── p00012, p01025, p01035, p01038, o00005, o00049, o00054, o00067
-            │       ├── REQ-p80050 (System Access and Security Controls)
-            │       │       └── p00014, p00016, p01020, o00066, o00075
-            │       └── REQ-p80060 (Closed and Open System Controls)
-            │               └── p00020, o00041, o00042, o00051, o00052, o00053, d00062
-            └── REQ-p01061 (EU GDPR)
-                    └── REQ-p01062 (Data Portability)
-```
 
 REQ-p80001 provides the authoritative regulatory source documentation. Platform requirements implement specific FDA domains (p80010-p80060) rather than the umbrella REQ-p00010.
 
