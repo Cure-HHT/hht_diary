@@ -108,7 +108,10 @@ jobs:
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          installation-id: ${{ secrets.GH_APP_INSTALLATION_ID }}
+          owner: Cure-HHT
+          repositories: |
+            hht_diary
+            hht_diary_callisto
 
       - name: Collect sponsor content
         env:
@@ -363,7 +366,6 @@ jobs:
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
-          # TODO ${{ needs.build-portal-server.outputs.service-name }}
 
   summary:
     name: Build Summary
