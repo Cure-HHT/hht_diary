@@ -169,5 +169,5 @@ jobs:
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ secrets.SLACK_CHANNEL_TEST }}"
-            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            channel: "${{ secrets.SLACK_DEVOPS_CHANNEL }}"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
