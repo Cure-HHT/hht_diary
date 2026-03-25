@@ -188,7 +188,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -283,3 +283,14 @@ jobs:
             echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
             echo "${{ inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Notify Slack
+        # if: inputs.deployment != 'none'  # TODO: uncomment after testing
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ secrets.SLACK_CHANNEL_IOS_BUILDS }}"
+            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor }}\n*Deployment:* ${{ inputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n${{ inputs.release_notes != '' && format('*Release Notes:*\n{0}\n', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
