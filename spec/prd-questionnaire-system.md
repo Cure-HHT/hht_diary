@@ -107,7 +107,7 @@ All questionnaire data follows the event sourcing model:
 
 # REQ-p01065: Clinical Questionnaire System
 
-**Level**: prd | **Status**: Proposed | **Implements**: -
+**Level**: prd | **Status**: Active | **Implements**: -
 **Refines**: REQ-p00044-C
 
 ## Rationale
@@ -120,25 +120,24 @@ Clinical trials require structured data collection instruments that ensure data 
 
 A. The system SHALL support multiple questionnaire types, each implemented as individual coded components.
 
-B. Each questionnaire SHALL be implemented as custom Flutter components with questionnaire-specific GUI/UX.
+B. The GUI of each questionnaire SHALL NOT change unless approved by the Sponsor.
 
-C. Each questionnaire SHALL have custom user interface optimized for its specific content and response types.
+C. Each questionnaire SHALL have a user-experience that is optimized for that specific questionnaire.
 
 D. Questionnaires SHALL support versioning.
 
 E. Scored questionnaires SHALL support an investigator approval workflow.
 
-F. Questionnaire data SHALL be stored as immutable events per the event sourcing model.
+F. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
 G. The system SHALL track completion status for each questionnaire instance.
 
-H. The system SHALL support sponsor-configurable "Study Start" questionnaire that gates patient enrollment.
+H. The system shall support sponsor configurable study start date.
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 
-J. A configuration file SHALL configure which questionnaires are enabled for a Sponsor.
 
-*End* *Clinical Questionnaire System* | **Hash**: 0a439bc2
+*End* *Clinical Questionnaire System* | **Hash**: 18f4128c
 ---
 
 ## Child Requirements
