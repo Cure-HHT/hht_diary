@@ -88,7 +88,14 @@
 | REQ-p01039 | Diary Start Day Definition                          | prd-diary-app.md                    | a53d579f |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status         | prd-diary-app.md                    | e4e1c4c2 |
 | REQ-p01041 | Open Source Licensing                               | prd-system.md                       | 7e6b1e00 |
-| REQ-p01043 | Web Diary Authentication via Linking Code           | prd-deprecated.md                   | 7cf5512f |
+| REQ-p01042 | Web Diary Application                               | prd-diary-web.md                    | a19f716f |
+| REQ-p01043 | Web Diary Authentication via Linking Code           | prd-diary-web.md                    | 8c7d6240 |
+| REQ-p01044 | Web Application Session Management                  | prd-diary-web.md                    | 8264ceb9 |
+| REQ-p01045 | Web Diary Privacy Protection                        | prd-diary-web.md                    | 58e010cd |
+| REQ-p01046 | Web Diary Account Creation                          | prd-diary-web.md                    | 8d39c8e6 |
+| REQ-p01047 | Web Diary User Profile                              | prd-diary-web.md                    | c132adc2 |
+| REQ-p01048 | Web Diary Login Interface                           | prd-diary-web.md                    | d643690a |
+| REQ-p01049 | Web Diary Lost Credential Recovery                  | prd-diary-web.md                    | 0af0c79c |
 | REQ-p01050 | Event Type Registry                                 | prd-event-sourcing-system.md        | 52464e42 |
 | REQ-p01051 | Questionnaire Versioning Model                      | prd-event-sourcing-system.md        | e311e5fc |
 | REQ-p01052 | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md        | 4218237c |
@@ -122,7 +129,7 @@
 | REQ-p01082 | Join Study Screen                                   | prd-diary-gui.md                    | 8eb89d10 |
 | REQ-p01083 | Account Settings Screen                             | prd-diary-gui.md                    | 63efe18c |
 | REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
-| REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | 418d48b6 |
+| REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | d5afe3ec |
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
 | REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
 | REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
@@ -175,7 +182,7 @@
 | REQ-o00049 | Artifact Retention and Archival                   | ops-deprecated.md               | c8ebf891 |
 | REQ-o00050 | Environment Parity and Separation                 | ops-artifact-management.md      | cc66f548 |
 | REQ-o00051 | Change Control and Audit Trail                    | ops-deprecated.md               | c8ebf891 |
-| REQ-o00052 | CI/CD Pipeline for Requirement Traceability       | ops-cicd.md                     | 4bfaefe3 |
+| REQ-o00052 | CI/CD Pipeline for Requirement Traceability       | ops-cicd.md                     | 2c4f6f4f |
 | REQ-o00053 | Branch Protection Enforcement                     | ops-cicd.md                     | 52dc7376 |
 | REQ-o00054 | Audit Trail Generation for CI/CD                  | ops-cicd.md                     | c4d7f202 |
 | REQ-o00056 | SLO Definition and Tracking                       | ops-SLA.md                      | 819feadc |
@@ -255,7 +262,7 @@
 | REQ-d00059 | Development Tool Specifications                    | dev-environment.md             | 1ddd744c |
 | REQ-d00060 | VS Code Dev Containers Integration                 | dev-environment.md             | 4b7e967b |
 | REQ-d00061 | Automated QA Workflow                              | dev-environment.md             | 75dfd6e6 |
-| REQ-d00062 | Environment Validation & Change Control            | dev-environment.md             | edff16ee |
+| REQ-d00062 | Environment Validation & Change Control            | dev-environment.md             | b907aec0 |
 | REQ-d00063 | Shared Workspace and File Exchange                 | dev-environment.md             | 8a68ffca |
 | REQ-d00064 | Plugin JSON Validation Tooling                     | dev-ai-claude.md               | ade1a4f4 |
 | REQ-d00065 | Plugin Path Validation                             | dev-ai-claude.md               | 09911117 |
@@ -263,9 +270,14 @@
 | REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md               | f6d9e288 |
 | REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md               | 951ecf65 |
 | REQ-d00072 | ODM-XML Export Implementation                      | dev-deprecated.md              | fc88846e |
+| REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md               | 7adcbff1 |
 | REQ-d00078 | Linking Code Validation                            | dev-linking.md                 | 8cc744c2 |
 | REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                 | f5e20cde |
+| REQ-d00080 | Web Session Management Implementation              | dev-diary-web.md               | 482b7002 |
 | REQ-d00081 | Linked Device Records                              | dev-linking.md                 | 16853ebd |
+| REQ-d00082 | Password Hashing Implementation                    | dev-diary-web.md               | 1174dead |
+| REQ-d00083 | Browser Storage Clearing                           | dev-diary-web.md               | dd80cdb0 |
+| REQ-d00084 | Sponsor Configuration Loading                      | dev-diary-web.md               | b8eb0a19 |
 | REQ-d00085 | Local Database Export and Import                   | dev-app.md                     | eaa18d27 |
 | REQ-d00086 | Sponsor Repository Structure Template              | dev-sponsor-repos.md           | 0ede3cec |
 | REQ-d00087 | Core Repo Reference Configuration                  | dev-sponsor-repos.md           | 2f2f7a26 |

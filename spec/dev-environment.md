@@ -30,7 +30,7 @@ The Clinical Diary development environment provides role-based containerized wor
 
 # REQ-d00027: Containerized Development Environments
 
-**Level**: Dev | **Status**: Draft | **Implements**: o00050
+**Level**: dev | **Status**: Draft | **Implements**: REQ-o00050
 
 ## Rationale
 
@@ -75,7 +75,7 @@ P. Containers SHALL include health checks that verify tool availability.
 
 # REQ-d00055: Role-Based Environment Separation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00005, p00014
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00005, REQ-p00014
 
 ## Rationale
 
@@ -128,7 +128,7 @@ T. Documentation SHALL explain what each role cannot do outside its designated p
 
 # REQ-d00056: Cross-Platform Development Support
 
-**Level**: Dev | **Status**: Draft | **Implements**: o00050
+**Level**: dev | **Status**: Draft | **Implements**: REQ-o00050
 
 ## Rationale
 
@@ -193,7 +193,7 @@ Z. Setup documentation SHALL include platform-specific prerequisites when requir
 
 # REQ-d00057: CI/CD Environment Parity
 
-**Level**: Dev | **Status**: Draft | **Implements**: o00052
+**Level**: dev | **Status**: Draft | **Implements**: REQ-o00052
 
 ## Rationale
 
@@ -232,7 +232,7 @@ M. Local development documentation SHALL include commands to verify environment 
 
 # REQ-d00058: Secrets Management via Doppler
 
-**Level**: Dev | **Status**: Draft | **Implements**: p00005
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00005
 
 ## Rationale
 
@@ -285,7 +285,7 @@ T. Documentation SHALL include secret rotation procedures.
 
 # REQ-d00059: Development Tool Specifications
 
-**Level**: Dev | **Status**: Draft | **Implements**: o00041
+**Level**: dev | **Status**: Draft | **Implements**: REQ-o00041
 
 ## Rationale
 
@@ -348,7 +348,7 @@ Y. Documentation SHALL include testing procedures for tool version updates.
 
 # REQ-d00060: VS Code Dev Containers Integration
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00027
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00027
 
 ## Rationale
 
@@ -385,7 +385,7 @@ L. First-time Dev Container setup SHALL complete in less than 5 minutes after Do
 
 # REQ-d00061: Automated QA Workflow
 
-**Level**: Dev | **Status**: Draft | **Implements**: o00052
+**Level**: dev | **Status**: Draft | **Implements**: REQ-o00052
 
 ## Rationale
 
@@ -430,7 +430,8 @@ P. The qa-container environment used in CI SHALL be identical to the qa-containe
 
 # REQ-d00062: Environment Validation & Change Control
 
-**Level**: Dev | **Status**: Draft
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00044
 
 ## Rationale
 
@@ -442,15 +443,13 @@ A. Development environments SHALL undergo formal validation using IQ/OQ/PQ proto
 
 B. Changes to development environments SHALL be managed through documented change control procedures.
 
-C. This requirement SHALL be implemented through REQ-d00090, REQ-d00091, REQ-d00092, and REQ-d00093.
-
-*End* *Environment Validation & Change Control* | **Hash**: edff16ee
+*End* *Environment Validation & Change Control* | **Hash**: b907aec0
 
 ---
 
 # REQ-d00090: Development Environment Installation Qualification
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00062
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00062
 
 ## Rationale
 
@@ -480,7 +479,7 @@ H. Test results templates SHALL be provided for IQ protocol execution.
 
 # REQ-d00091: Development Environment Operational Qualification
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00062
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00062
 
 ## Rationale
 
@@ -514,7 +513,7 @@ J. Test results templates SHALL be provided for OQ protocol execution.
 
 # REQ-d00092: Development Environment Performance Qualification
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00062
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00062
 
 ## Rationale
 
@@ -540,7 +539,7 @@ F. Test results templates SHALL be provided for PQ protocol execution.
 
 # REQ-d00093: Development Environment Change Control
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00062
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00062
 
 ## Rationale
 
@@ -571,7 +570,7 @@ I. Deprecation notices SHALL be provided at least 90 days before environment ver
 
 # REQ-d00063: Shared Workspace and File Exchange
 
-**Level**: Dev | **Status**: Draft | **Implements**: d00027
+**Level**: dev | **Status**: Draft | **Implements**: REQ-d00027
 
 ## Rationale
 
