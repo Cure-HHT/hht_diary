@@ -250,6 +250,7 @@ sponsor-content/
 # LOCAL DEV FILES
 # =====================================
 .elspais.local.toml
+.elspais.toml.bak
 .elspais/daemon.json
 .elspais/daemon.log
 .mcp.json
