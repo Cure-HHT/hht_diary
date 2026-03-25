@@ -141,6 +141,7 @@ Future<void> _pumpPatientsTab(WidgetTester tester) async {
   final authService = AuthService(
     firebaseAuth: mockFirebaseAuth,
     httpClient: mockHttpClient,
+    enableInactivityTimer: false,
   );
   await authService.signIn('investigator@example.com', 'password');
 

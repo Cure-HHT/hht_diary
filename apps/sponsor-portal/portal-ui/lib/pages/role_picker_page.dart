@@ -38,7 +38,7 @@ class _RolePickerPageState extends State<RolePickerPage> {
 
     if (!user.hasMultipleRoles) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToRoleDashboard(context, user.activeRole);
+        _navigateToCommonDashboard(context, user.activeRole);
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -131,7 +131,7 @@ class _RolePickerPageState extends State<RolePickerPage> {
     try {
       await authService.switchRole(role);
       if (mounted) {
-        _navigateToRoleDashboard(context, role);
+        _navigateToCommonDashboard(context, role);
       }
     } finally {
       if (mounted) {
@@ -140,25 +140,8 @@ class _RolePickerPageState extends State<RolePickerPage> {
     }
   }
 
-  void _navigateToRoleDashboard(BuildContext context, UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-        break;
-      case UserRole.administrator:
-        context.go('/admin');
-        break;
-      case UserRole.investigator:
-        context.go('/investigator');
-        break;
-      case UserRole.auditor:
-        context.go('/auditor');
-        break;
-      case UserRole.sponsor:
-      case UserRole.analyst:
-        context.go('/admin'); // Default dashboard for now
-        break;
-    }
+  void _navigateToCommonDashboard(BuildContext context, UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 }
 
