@@ -37,16 +37,19 @@ class UserManagementTab extends StatefulWidget {
 class SponsorRoleMapping {
   final String sponsorName;
   final String systemRole;
+  final String? description;
 
   const SponsorRoleMapping({
     required this.sponsorName,
     required this.systemRole,
+    this.description,
   });
 
   factory SponsorRoleMapping.fromJson(Map<String, dynamic> json) {
     return SponsorRoleMapping(
       sponsorName: json['sponsorName'] as String,
       systemRole: json['systemRole'] as String,
+      description: json['description'] as String?,
     );
   }
 }
