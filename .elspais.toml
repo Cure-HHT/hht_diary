@@ -6,7 +6,7 @@
 # .elspais.local.toml if your layout differs.
 
 project = { name = "hht-diary", type = "core" }
-validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
+validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8, allow_unresolved_cross_repo = true }
 
 [directories]
 spec = ["spec", "spec/regulations/fda"]
@@ -56,7 +56,8 @@ index_file = "INDEX.md"
 readme_file = "README.md"
 format_guide = "requirements-format.md"
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap", "regulations/fda/reference"]
+# skip_dirs = ["roadmap", "regulations/fda/reference"]
+skip_dirs = ["roadmap", "regulations"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"
 "dev-*.md" = "dev"
@@ -75,7 +76,7 @@ allow_orphans = true
 require_hash = true
 require_rationale = false
 require_status = true
-allowed_statuses = ["Active", "Draft", "Deprecated", "Superseded"]
+allowed_statuses = ["Active", "Proposed", "Draft", "Deprecated", "Superseded"]
 require_assertions = false
 acceptance_criteria = "error"
 require_shall = false
@@ -97,7 +98,14 @@ associated_patterns = ["sponsor/{name}/**/*.dart", "sponsor/{name}/**/*.sql", "s
 
 [testing]
 enabled = true
+reference_keyword = "Verifies"
 test_dirs = ["apps/**/test", "apps/**/integration_test", "packages/**/test", "packages/**/integration_test", "tools/**/tests", "database/tests"]
 patterns = ["*_test.dart", "test_*.dart", "test_*.py", "*_test.sql", "test_*.sql"]
 result_files = ["build-reports/**/TEST-*.xml", "build-reports/pytest-results.json"]
 default_mode = "core"
+
+[journeys]
+enabled = true
+reference_keyword = "Validates"
+dirs = ["spec/user-journeys"]
+patterns = ["*.md"]

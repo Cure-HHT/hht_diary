@@ -25,8 +25,6 @@ This specification defines the Portal Linking API endpoint that mobile apps call
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
 
-Addresses: JNY-Portal-Enrollment-01
-
 ## Rationale
 
 The Portal Linking API is the server-side endpoint that mobile apps call to validate linking codes and establish enrollment. This endpoint bridges the mobile app (REQ-d00094-d00108) and the server-side linking code validation logic (REQ-d00078). The API design prioritizes security through minimal information disclosure while providing sufficient data for successful enrollment.

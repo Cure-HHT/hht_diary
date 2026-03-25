@@ -563,14 +563,10 @@ class _ManageQuestionnairesDialogState
           child: const Text('Send'),
         );
       case 'sent':
-        return OutlinedButton(
+        return IconButton(
           onPressed: _actionInProgress ? null : () => _revokeQuestionnaire(q),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-            side: BorderSide(color: theme.colorScheme.error),
-            visualDensity: VisualDensity.compact,
-          ),
-          child: const Text('Revoke'),
+          icon: Icon(Icons.delete, color: theme.colorScheme.error),
+          tooltip: 'Revoke questionnaire',
         );
       case 'in_progress':
         return Text(

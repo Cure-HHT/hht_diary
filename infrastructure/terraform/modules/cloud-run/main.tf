@@ -44,16 +44,32 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
-# Service Account for Cloud Run
+# Runtime Service Account for Cloud Run
 # -----------------------------------------------------------------------------
+#
+# Dedicated least-privilege SA that Cloud Run containers run as.
+# Without this, Cloud Run falls back to the Compute Engine default SA
+# which typically has roles/editor — far too broad for FDA compliance.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: IaC for portal deployment
+#   REQ-d00035: Security and Compliance (least-privilege runtime identity)
 
 resource "google_service_account" "cloud_run" {
   account_id   = "${var.sponsor}-${var.environment}-run-sa"
-  display_name = "Cloud Run Service Account - ${var.sponsor} ${var.environment}"
+  display_name = "Cloud Run Runtime SA - ${var.sponsor} ${var.environment}"
+  description  = "Least-privilege runtime identity for Cloud Run services. Not for deployment."
   project      = var.project_id
 }
 
-# IAM roles for the service account
+# IAM roles for the runtime service account
+#
+# These are the ONLY permissions the running application needs:
+#   - cloudsql.client:             Connect to Cloud SQL via private IP
+#   - secretmanager.secretAccessor: Read DOPPLER_TOKEN from Secret Manager
+#   - logging.logWriter:           Write structured logs to Cloud Logging
+#   - monitoring.metricWriter:     Emit custom metrics (OTel)
+#   - cloudtrace.agent:            Distributed tracing (OTel)
 resource "google_project_iam_member" "cloud_run_roles" {
   for_each = toset([
     "roles/cloudsql.client",
@@ -118,12 +134,25 @@ resource "google_cloud_run_v2_service" "diary_server" {
         }
       }
 
-      # Database password from secret
+      # Doppler runtime configuration
+      # The app fetches all secrets (DB_PASSWORD, API keys, etc.) from Doppler at startup.
+      # Only the identifiers are passed as env vars — no secrets in Terraform state.
       env {
-        name = "DB_PASSWORD"
+        name  = "DOPPLER_PROJECT_ID"
+        value = var.doppler_project_id
+      }
+
+      env {
+        name  = "DOPPLER_CONFIG_NAME"
+        value = var.doppler_config_name
+      }
+
+      # Doppler service token from Secret Manager (the one secret we store in SM)
+      env {
+        name = "DOPPLER_TOKEN"
         value_source {
           secret_key_ref {
-            secret  = var.db_password_secret_id
+            secret  = var.doppler_token_secret_id
             version = "latest"
           }
         }

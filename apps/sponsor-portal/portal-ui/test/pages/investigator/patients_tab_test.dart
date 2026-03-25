@@ -50,6 +50,18 @@ final _testPatients = [
     'site_name': 'Test Site One',
     'site_number': '001',
     'trial_started': false,
+    'has_active_linking_code': true, // Active linking code
+  },
+  {
+    'patient_id': 'PAT-005',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-005',
+    'mobile_linking_status': 'linking_in_progress',
+    'edc_synced_at': '2024-01-05T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false,
+    'has_active_linking_code': false, // Expired linking code
   },
   {
     'patient_id': 'PAT-004',
@@ -277,6 +289,49 @@ void main() {
       });
     });
 
+    group('Expired Linking Code (CUR-965)', () {
+      testWidgets(
+        'shows Expired chip for linking_in_progress patient with no active code',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-005 has linking_in_progress + has_active_linking_code=false
+          expect(find.text('Expired'), findsOneWidget);
+          expect(find.byIcon(Icons.schedule), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'shows Pending chip for linking_in_progress patient with active code',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-003 has linking_in_progress + has_active_linking_code=true
+          expect(find.text('Pending'), findsOneWidget);
+        },
+      );
+
+      testWidgets('shows Generate New Code button for expired linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // PAT-005 expired code → should show Generate New Code
+        expect(find.text('Generate New Code'), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsWidgets); // refresh icon
+      });
+
+      testWidgets('shows Show Code button for active linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // PAT-003 active code → should show Show Code
+        expect(find.text('Show Code'), findsOneWidget);
+        expect(find.byIcon(Icons.qr_code), findsOneWidget);
+      });
+    });
+
     group('Search and Filter', () {
       testWidgets('should display search field', (WidgetTester tester) async {
         await _pumpPatientsTab(tester);
@@ -306,7 +361,7 @@ void main() {
           // - PAT-001: not_connected
           // - PAT-003: linking_in_progress (Pending)
           // Both should be in Not Connected tab, so count should be 2
-          expect(find.text('Not Connected (2)'), findsOneWidget);
+          expect(find.text('Not Connected (3)'), findsOneWidget);
         },
       );
 
