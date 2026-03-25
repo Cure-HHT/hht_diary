@@ -155,142 +155,28 @@
 #           echo "| **Play Store** | ${{ inputs.track }} track (${{ inputs.status }}) |" >> $GITHUB_STEP_SUMMARY
 #           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
 #           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-name: iOS Build & Store Artifact
+name: Test Slack Notification
 
 on:
   workflow_dispatch:
-    inputs:
-      flavor:
-        description: "Build flavor"
-        required: true
-        type: choice
-        options:
-          - dev
-          - qa
-          - prod
-      deployment:
-        description: "Deployment target"
-        required: true
-        type: choice
-        options:
-          - none
-          - internal
-          - external
-          - release
-      release_notes:
-        description: "Release notes / changelog (required for App Store release)"
-        required: false
-        type: string
-        default: ""
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  notify:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: true
-          working-directory: apps/daily-diary/clinical_diary/ios
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.38.7"
-          cache: true
-
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      - name: Install Flutter dependencies
-        working-directory: apps/daily-diary/clinical_diary
-        run: flutter pub get
-
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: apps/daily-diary/clinical_diary/ios/Pods
-          key: pods-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/ios/Podfile.lock') }}
-          restore-keys: pods-${{ runner.os }}-
-
-      - name: Install CocoaPods dependencies
-        working-directory: apps/daily-diary/clinical_diary/ios
-        run: bundle exec pod install
-
-      - name: Run Flutter analyze
-        working-directory: apps/daily-diary/clinical_diary
-        run: flutter analyze
-
-      - name: Run Flutter tests
-        working-directory: apps/daily-diary/clinical_diary
-        run: flutter test
-
-      - name: Extract version from pubspec.yaml
-        id: version
-        run: |
-          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "App version: $VERSION"
-
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
-
-      - name: Build iOS ${{ inputs.flavor }} with Fastlane
-        working-directory: apps/daily-diary/clinical_diary/ios
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-          DEPLOYMENT_TARGET: ${{ inputs.deployment }}
-          RELEASE_NOTES: ${{ inputs.release_notes }}
-        run: |
-          doppler run \
-            --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config dev \
-            -- bundle exec fastlane build_${{ inputs.flavor }}
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}-${{ github.sha }}.ipa
-          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ inputs.flavor }}.ipa
-          retention-days: 90
-
-      - name: Build summary
-        run: |
-          echo "### iOS Build Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Deployment** | ${{ inputs.deployment }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.deployment }}" = "release" ] && [ -n "${{ inputs.release_notes }}" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
-            echo "${{ inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
-          fi
-
       - name: Notify Slack
-        # if: inputs.deployment != 'none'  # TODO: uncomment after testing
         uses: slackapi/slack-github-action@v2.1.1
         with:
           method: chat.postMessage
-          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          token: ${{ secrets.SLACK_CHANNEL_TEST }}
           errors: true
           payload: |
             channel: "${{ secrets.SLACK_CHANNEL_IOS_BUILDS }}"
-            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor }}\n*Deployment:* ${{ inputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n${{ inputs.release_notes != '' && format('*Release Notes:*\n{0}\n', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":test_tube: *Slack Notification Test*\n\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
