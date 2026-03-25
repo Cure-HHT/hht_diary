@@ -2,174 +2,165 @@
 #   REQ-d00006: Mobile App Build and Release Process
 #   REQ-o00043: Automated Deployment Pipeline
 
-# name: Android Build & Store Artifact
-
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       flavor:
-#         description: "Build flavor"
-#         required: true
-#         type: choice
-#         options:
-#           - dev
-#           - qa
-#           - prod
-#       track:
-#         description: "Google Play track"
-#         required: true
-#         default: "internal"
-#       status:
-#         description: "Release status for Google Play"
-#         required: true
-#         default: "draft"
-
-# permissions:
-#   contents: read
-#   id-token: write
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-
-#       - name: Set up Java
-#         uses: actions/setup-java@v3
-#         with:
-#           distribution: temurin
-#           java-version: 17
-#           cache: gradle
-
-#       - name: Set up Flutter
-#         uses: subosito/flutter-action@v2
-#         with:
-#           flutter-version: "3.38.7"
-#           cache: true
-
-#       - name: Cache pub dependencies
-#         uses: actions/cache@v4
-#         with:
-#           path: ~/.pub-cache
-#           key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
-#           restore-keys: pub-${{ runner.os }}-
-
-#       - name: Pre-install CMake
-#         run: |
-#           SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
-#           if [ ! -d "$SDK/cmake/3.22.1" ]; then
-#             "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.22.1" > /dev/null 2>&1
-#           else
-#             echo "CMake 3.22.1 already installed, skipping."
-#           fi
-
-#       - name: Install Flutter dependencies
-#         working-directory: apps/daily-diary/clinical_diary
-#         run: flutter pub get
-
-#       - name: Run Flutter analyze
-#         working-directory: apps/daily-diary/clinical_diary
-#         run: flutter analyze
-
-#       - name: Run Flutter tests
-#         working-directory: apps/daily-diary/clinical_diary
-#         run: flutter test
-
-#       - name: Extract version from pubspec.yaml
-#         id: version
-#         run: |
-#           VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
-#           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-#           echo "App version: $VERSION"
-
-#       - name: Install Doppler CLI
-#         uses: dopplerhq/cli-action@v3
-
-#       - name: Build signed Android ${{ inputs.flavor }}
-#         working-directory: apps/daily-diary/clinical_diary
-#         env:
-#           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-#         run: |
-#           doppler run \
-#             --project ${{ secrets.DOPPLER_PROJECT }} \
-#             --config ${{ inputs.flavor }} \
-#             -- bash ./tool/build_android_${{ inputs.flavor }}_signed.sh
-
-#       - name: Determine artifact path
-#         id: artifact
-#         run: |
-#           FLAVOR="${{ inputs.flavor }}"
-#           if [ "$FLAVOR" = "prod" ]; then
-#             echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/prodRelease/app-prod-release.aab" >> "$GITHUB_OUTPUT"
-#             echo "name=clinical-diary-prod-${{ steps.version.outputs.version }}-${GITHUB_SHA::7}.aab" >> "$GITHUB_OUTPUT"
-#           else
-#             echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
-#             echo "name=clinical-diary-${FLAVOR}-${{ steps.version.outputs.version }}-${GITHUB_SHA::7}.apk" >> "$GITHUB_OUTPUT"
-#           fi
-
-#       - name: Upload artifact
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: ${{ steps.artifact.outputs.name }}
-#           path: ${{ steps.artifact.outputs.path }}
-#           retention-days: 90
-
-#       - name: Determine package name
-#         id: package
-#         run: |
-#           if [ "${{ inputs.flavor }}" = "prod" ]; then
-#             echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
-#           else
-#             echo "name=org.anspar.curehht.app.${{ inputs.flavor }}" >> "$GITHUB_OUTPUT"
-#           fi
-
-#       - name: Authenticate to Google Cloud
-#         id: gcp-auth
-#         uses: google-github-actions/auth@v2
-#         with:
-#           workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-#           service_account: ${{ vars.GCP_SA_EMAIL }}
-#           create_credentials_file: true
-
-#       - name: Upload to Google Play
-#         uses: r0adkll/upload-google-play@v1
-#         with:
-#           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-#           packageName: ${{ steps.package.outputs.name }}
-#           releaseFiles: ${{ steps.artifact.outputs.path }}
-#           track: ${{ inputs.track }}
-#           status: ${{ inputs.status }}
-
-#       - name: Build summary
-#         run: |
-#           echo "### Android Build & Play Store Upload Complete" >> $GITHUB_STEP_SUMMARY
-#           echo "" >> $GITHUB_STEP_SUMMARY
-#           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
-#           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Package** | ${{ steps.package.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Artifact** | ${{ steps.artifact.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Play Store** | ${{ inputs.track }} track (${{ inputs.status }}) |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-name: Test Slack Notification
+name: Android Build & Store Artifact
 
 on:
   workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Build flavor"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+      status:
+        description: "Release status for Google Play"
+        required: true
+        type: choice
+        default: "draft"
+        options:
+          - draft
+          - completed
+          - inProgress
+          - halted
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
-  notify:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.7"
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Pre-install CMake
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          if [ ! -d "$SDK/cmake/3.22.1" ]; then
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.22.1" > /dev/null 2>&1
+          else
+            echo "CMake 3.22.1 already installed, skipping."
+          fi
+
+      - name: Install Flutter dependencies
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+
+      - name: Run Flutter analyze
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter test
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION"
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Build signed Android ${{ inputs.flavor }}
+        working-directory: apps/daily-diary/clinical_diary
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          doppler run \
+            --project ${{ secrets.DOPPLER_PROJECT }} \
+            --config ${{ inputs.flavor }} \
+            -- bash ./tool/build_android_${{ inputs.flavor }}_signed.sh
+
+      - name: Determine artifact path
+        id: artifact
+        run: |
+          FLAVOR="${{ inputs.flavor }}"
+          if [ "$FLAVOR" = "prod" ]; then
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/prodRelease/app-prod-release.aab" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-prod-${{ steps.version.outputs.version }}-${GITHUB_SHA::7}.aab" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-${FLAVOR}-${{ steps.version.outputs.version }}-${GITHUB_SHA::7}.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.path }}
+          retention-days: 90
+
+      - name: Determine package name
+        id: package
+        run: |
+          if [ "${{ inputs.flavor }}" = "prod" ]; then
+            echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=org.anspar.curehht.app.${{ inputs.flavor }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+          create_credentials_file: true
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          packageName: ${{ steps.package.outputs.name }}
+          releaseFiles: ${{ steps.artifact.outputs.path }}
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
+
+      - name: Build summary
+        run: |
+          echo "### Android Build & Play Store Upload Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package** | ${{ steps.package.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Artifact** | ${{ steps.artifact.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Play Store** | ${{ inputs.track }} track (${{ inputs.status }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify Slack
         uses: slackapi/slack-github-action@v2.1.1
@@ -179,4 +170,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ secrets.SLACK_CHANNEL_TEST }}"
-            text: ":test_tube: *Slack Notification Test*\n\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Commit:* `${GITHUB_SHA::7}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
