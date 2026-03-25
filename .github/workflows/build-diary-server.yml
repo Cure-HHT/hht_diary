@@ -21,6 +21,7 @@
 # or upon a merge to the main branch
 
 name: Build diary-server
+
 # IMPLEMENTS: REQ-o00043-A (auto-trigger deployment on merge to main)
 on:
   push:
@@ -54,19 +55,21 @@ on:
         required: false
         type: boolean
         default: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/diary-server
   DART_BASE_IMAGE: 'ghcr.io/cure-hht/dart-base:3.10.7'
   DEBIAN_IMAGE: 'debian:12-slim'
+
 # Using :nonroot tag for security (DS001, DS002)
 # TODO DEBIAN_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 
 permissions:
   contents: read
   packages: write
-  id-token: write  # For Cosign signing
-  actions: write   # For triggering workflows
+  id-token: write
+  actions: write
 
 jobs:
   build-diary-server:
@@ -101,16 +104,25 @@ jobs:
           fetch-tags: true
           fetch-depth: 0
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: Cure-HHT
+          repositories: |
+            hht_diary
+            hht_diary_callisto
+
       - name: Collect sponsor content
         env:
-          GH_TOKEN: ${{ secrets.SPONSOR_REPO_PAT }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: tools/build/collect-sponsor-content.sh
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          # Use **docker** driver for PR builds to enable docker load/image sharing between jobs
-          # Use **docker-container** driver (default) for main builds to support provenance/SBOM
           driver: docker-container
 
       - name: Log in to GitHub Container Registry
@@ -127,17 +139,13 @@ jobs:
 
           SHORT_SHA="${GITHUB_SHA::7}"
 
-          # Helper: find the latest semver tag and bump patch by 1
           auto_version_from_latest_tag() {
-            # List tags matching vMAJOR.MINOR.PATCH, sort by semver, take the latest
             LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
             if [ -z "$LATEST_TAG" ]; then
               echo "0.0.1"
               return
             fi
-            # Strip leading v
             LATEST_VER="${LATEST_TAG#v}"
-            # Extract core version (strip prerelease/build metadata)
             LATEST_CORE="$(echo "$LATEST_VER" | sed -e 's/-.*$//' -e 's/\+.*$//')"
             L_MAJOR="$(echo "$LATEST_CORE" | awk -F. '{print $1}')"
             L_MINOR="$(echo "$LATEST_CORE" | awk -F. '{print $2}')"
@@ -146,32 +154,26 @@ jobs:
             echo "${L_MAJOR}.${L_MINOR}.${NEW_PATCH}"
           }
 
-          # Determine source of version based on trigger type
           IS_DISPATCH=false
           IS_MAIN_PUSH=false
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             RAW_TAG="${{ github.event.inputs.version }}"
             IS_DISPATCH=true
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            # Tag push: use the tag
             RAW_TAG="${GITHUB_REF#refs/tags/}"
           else
-            # Branch push (e.g., merge to main)
             RAW_TAG=""
             IS_MAIN_PUSH=true
           fi
 
-          # If no version was provided, auto-increment from latest tag
           if [ -z "$RAW_TAG" ]; then
             AUTO_VER="$(auto_version_from_latest_tag)"
             RAW_TAG="${AUTO_VER}"
             echo "::notice::No version specified. Auto-incremented from latest tag to v${AUTO_VER}"
           fi
 
-          # Normalize (strip optional leading v)
           VERSION="${RAW_TAG#v}"
 
-          # semver regex that accepts prerelease and build metadata per semver.org
           SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
 
           if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
@@ -183,40 +185,32 @@ jobs:
           MAJOR="${CORE%%.*}"
           MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
 
-          # is there prerelease or build metadata?
           if echo "$VERSION" | grep -Eq '[-+]'; then
             IS_RELEASE=false
           else
             IS_RELEASE=true
           fi
 
-          # sanitize for docker tags: convert '+' to '-' and lowercase
           DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
-
-          TAG_FULL="v${VERSION}"   # canonical tag with leading v
+          TAG_FULL="v${VERSION}"
 
           echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
 
-          # Build the tags list for build-push-action
-          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
           TAGS="${REGISTRY}/${IMAGE_PREFIX}:${DOCKER_VER}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
           fi
 
-          # For main branch pushes, also tag with main-latest
           if [ "$IS_MAIN_PUSH" = "true" ]; then
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
           fi
 
-          # For workflow_dispatch, also tag with the sanitized branch name
           if [ "$IS_DISPATCH" = "true" ]; then
             BRANCH_TAG="$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')"
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${BRANCH_TAG}-latest"
             echo "::notice::Workflow dispatch from branch '${GITHUB_REF_NAME}', added tag '${BRANCH_TAG}-latest'"
           fi
 
-          # Export outputs (use GITHUB_OUTPUT format)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "docker_ver=${DOCKER_VER}" >> "$GITHUB_OUTPUT"
           echo "core=${CORE}" >> "$GITHUB_OUTPUT"
@@ -227,7 +221,6 @@ jobs:
           echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
           echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
 
-          # Determine sponsor-env: use input for dispatch, default to dev for push events
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SPONSOR_ENV="${{ github.event.inputs.sponsor-env }}"
           else
@@ -236,12 +229,10 @@ jobs:
           echo "sponsor_env=${SPONSOR_ENV}" >> "$GITHUB_OUTPUT"
           echo "sponsor_env=${SPONSOR_ENV}"
 
-          # tags is multiline output
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          # ECHO outputs
           echo "version=${VERSION}"
           echo "docker_ver=${DOCKER_VER}"
           echo "core=${CORE}"
@@ -251,7 +242,6 @@ jobs:
           echo "short_sha=${SHORT_SHA}"
           echo "tag_full=${TAG_FULL}"
           echo "is_main_push=${IS_MAIN_PUSH}"
-          # tags is multiline output
           echo "tags<<EOF"
           printf "%s\n" "$TAGS"
           echo "EOF"
@@ -275,7 +265,6 @@ jobs:
         with:
           context: .
           file: apps/daily-diary/diary-server-container/Dockerfile
-          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
           platforms: linux/amd64, linux/arm64/v8
           build-args: |
             DART_BASE_IMAGE=${{ env.DART_BASE_IMAGE }}
@@ -363,7 +352,8 @@ jobs:
     needs: [verify-images, build-diary-server]
     if: github.event_name != 'workflow_dispatch' || inputs.tobe_deployed != false
     permissions:
-      actions: write  # For triggering workflows
+      actions: write
+
     steps:
       - name: Trigger deploy-run-service workflow
         env:
