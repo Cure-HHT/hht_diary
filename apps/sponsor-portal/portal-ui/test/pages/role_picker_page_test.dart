@@ -117,6 +117,7 @@ Future<void> _pumpRolePickerPage(
   final authService = AuthService(
     firebaseAuth: mockFirebaseAuth,
     httpClient: client,
+    enableInactivityTimer: false,
   );
   await authService.signIn('multi@example.com', 'password');
 
