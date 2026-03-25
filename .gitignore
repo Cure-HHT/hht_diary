@@ -251,6 +251,7 @@ sponsor-content/
 # =====================================
 .elspais.local.toml
 .elspais.toml.bak
+.elspais.local.toml.bak
 .elspais/daemon.json
 .elspais/daemon.log
 .mcp.json

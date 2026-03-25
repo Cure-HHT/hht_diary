@@ -6,202 +6,134 @@
 
 ## PRODUCT
 
-| ID             | Title                                               | File                                  | Hash     |
-| -------------- | --------------------------------------------------- | ------------------------------------- | -------- |
-| REQ-CAL-p00001 | Old Entry Modification Justification                | prd-app-validation.md                 | a8b3d98f |
-| REQ-CAL-p00002 | Short Duration Nosebleed Confirmation               | prd-app-validation.md                 | dcd66bcf |
-| REQ-CAL-p00003 | Long Duration Nosebleed Confirmation                | prd-app-validation.md                 | 05450847 |
-| REQ-CAL-p00004 | Yesterday Entry Reminder                            | prd-app-notifications.md              | 9d3ced0a |
-| REQ-CAL-p00005 | Historical Gap Reminder                             | prd-app-notifications.md              | 7f42dd13 |
-| REQ-CAL-p00006 | Ongoing Nosebleed Duration Reminder                 | prd-app-notifications.md              | 340ca3e8 |
-| REQ-CAL-p00007 | Questionnaire Score Display Prohibition             | prd-app-logic.md                      | 91b909bb |
-| REQ-CAL-p00008 | QoL Survey Score Calculation                        | prd-app-logic.md                      | bdab2feb |
-| REQ-CAL-p00009 | NOSE HHT Score Calculation                          | prd-app-logic.md                      | 6067aaf3 |
-| REQ-CAL-p00010 | First Admin Provisioning                            | prd-portal-administration.md          | 0cf72172 |
-| REQ-CAL-p00011 | Nosebleed Event Context Notes                       | prd-app-validation.md                 | 05f826f4 |
-| REQ-CAL-p00012 | EDC Metadata as Validation Source                   | prd-deprecated.md                     | 756667a1 |
-| REQ-CAL-p00013 | Study Coordinator Role Definition                   | prd-portal-roles.md                   | 7dd74bc5 |
-| REQ-CAL-p00014 | Admin Role Definition                               | prd-portal-roles.md                   | 291d5b33 |
-| REQ-CAL-p00015 | CRA Role Definition                                 | prd-portal-roles.md                   | 387ee9e0 |
-| REQ-CAL-p00016 | Multi-Role Assignment                               | prd-portal-roles.md                   | 7c383dd9 |
-| REQ-CAL-p00017 | Multi-Site Assignment                               | prd-portal-roles.md                   | a76133dc |
-| REQ-CAL-p00018 | Role-Based Audit Log Visibility                     | prd-portal-roles.md                   | 72a0510f |
-| REQ-CAL-p00019 | Link New Patient Workflow                           | prd-deprecated.md                     | c3f4dddf |
-| REQ-CAL-p00020 | Patient Disconnection Workflow                      | prd-portal-patient-workflows.md       | 57035a9e |
-| REQ-CAL-p00021 | Patient Reconnection Workflow                       | prd-portal-patient-workflows.md       | 1db64058 |
-| REQ-CAL-p00022 | Epistaxis Questionnaire (EQ) - Daily Diary Workflow | prd-portal-questionnaire-workflows.md | 9bdbd754 |
-| REQ-CAL-p00023 | Nose and Quality of Life Questionnaire Workflow     | prd-portal-questionnaire-workflows.md | 345762dc |
-| REQ-CAL-p00025 | Data Sync Compliance Notifications                  | prd-portal-system-configuration.md    | 3d6b3e1e |
-| REQ-CAL-p00026 | Study Coordinator Audit Logs                        | prd-portal-audit-logs.md              | c27b3297 |
-| REQ-CAL-p00027 | CRA Audit Logs                                      | prd-portal-audit-logs.md              | dd311867 |
-| REQ-CAL-p00028 | Admin Audit Logs                                    | prd-portal-audit-logs.md              | c7d9061e |
-| REQ-CAL-p00029 | Create User Account                                 | prd-portal-administration.md          | 8aae90a1 |
-| REQ-CAL-p00030 | Edit User Account                                   | prd-portal-administration.md          | 9ae1cab4 |
-| REQ-CAL-p00031 | Deactivate User Account                             | prd-portal-administration.md          | 459821cc |
-| REQ-CAL-p00032 | Reactivate User Account                             | prd-portal-administration.md          | e13e99c4 |
-| REQ-CAL-p00033 | Resend Activation Email                             | prd-portal-administration.md          | b23a5089 |
-| REQ-CAL-p00034 | Site Visibility and Assignment                      | prd-portal-administration.md          | a8b1b150 |
-| REQ-CAL-p00040 | CRA Dashboard Overview                              | prd-portal-monitoring.md              | b5e1b1a3 |
-| REQ-CAL-p00041 | CRA Site Detail View                                | prd-portal-monitoring.md              | 8d1d9ded |
-| REQ-CAL-p00043 | New User Account Activation                         | prd-portal-authentication.md          | 63147408 |
-| REQ-CAL-p00044 | Password Reset                                      | prd-portal-authentication.md          | eb01ad5c |
-| REQ-CAL-p00045 | Role Switching for Multi-Role Users                 | prd-portal-authentication.md          | 80459dae |
-| REQ-CAL-p00046 | Session Management                                  | prd-portal-authentication.md          | 89c26866 |
-| REQ-CAL-p00047 | Hard-Coded Questionnaires                           | prd-portal-system-configuration.md    | f043e43c |
-| REQ-CAL-p00048 | Email Notifications                                 | prd-portal-system-configuration.md    | 41a5db44 |
-| REQ-CAL-p00049 | Mobile Linking Codes                                | prd-portal-mobile-integration.md      | 4862e9f0 |
-| REQ-CAL-p00050 | Mobile App Data Collection and Sync                 | prd-portal-mobile-integration.md      | 2fd8b478 |
-| REQ-CAL-p00056 | Site-Based Patient Access on Staff Changes          | prd-portal-edge-cases.md              | 530c2f34 |
-| REQ-CAL-p00062 | Activation Link Expiration                          | prd-portal-administration.md          | 30885424 |
-| REQ-CAL-p00063 | EDC Patient Ingestion                               | prd-portal-patient-workflows.md       | 8d85e44b |
-| REQ-CAL-p00064 | Mark Patient as Not Participating                   | prd-portal-patient-workflows.md       | ae6d2c6f |
-| REQ-CAL-p00065 | Reactivate Patient                                  | prd-portal-patient-workflows.md       | be0e1f9a |
-| REQ-CAL-p00066 | Status Change Reason Field                          | prd-portal-administration.md          | 674d9b37 |
-| REQ-CAL-p00067 | Active and Inactive Users Tabs                      | prd-portal-administration.md          | f3d822d5 |
-| REQ-CAL-p00068 | Login Attempt Rate Limiting                         | prd-portal-authentication.md          | ddb3da2e |
-| REQ-CAL-p00069 | Account Unlock via Password Reset                   | prd-portal-authentication.md          | e6f72b39 |
-| REQ-CAL-p00070 | Administrator Deactivation Permissions              | prd-portal-administration.md          | b9d111a3 |
-| REQ-CAL-p00071 | Password Complexity Requirements                    | prd-portal-authentication.md          | 6a8dbb14 |
-| REQ-CAL-p00072 | View Linking Code Button                            | prd-portal-mobile-integration.md      | 35b7599a |
-| REQ-CAL-p00073 | Patient Status Definitions                          | prd-portal-patient-workflows.md       | d658af95 |
-| REQ-CAL-p00074 | Patient Tab Organization                            | prd-portal-patient-workflows.md       | ada96b91 |
-| REQ-CAL-p00075 | Patient Search                                      | prd-portal-patient-workflows.md       | 9ddf4cc9 |
-| REQ-CAL-p00076 | Participation Status Badge                          | prd-app-logic.md                      | 4fc2be8f |
-| REQ-CAL-p00077 | Disconnection Notification                          | prd-app-logic.md                      | 3def1c31 |
-| REQ-CAL-p00078 | Linking Code Entry Error States                     | prd-app-logic.md                      | 9527f386 |
-| REQ-CAL-p00079 | Start Trial Workflow                                | prd-portal-patient-workflows.md       | d377340c |
-| REQ-CAL-p00080 | Questionnaire Study Event Association               | prd-portal-questionnaire-workflows.md | f345592e |
-| REQ-CAL-p00081 | Patient Task System                                 | prd-app-logic.md                      | 9f34a11d |
-| REQ-CAL-p00082 | Patient Alert Delivery Specification                | prd-app-notifications.md              | 263ffc6d |
-| REQ-CAL-p00083 | Main Screen Layout                                  | prd-app-logic.md                      | cd94f86b |
-| REQ-CAL-p00085 | Questionnaire Session Resume and Timeout            | prd-app-logic.md                      | 8b7a175e |
-| REQ-CAL-p00086 | Patient Data Lock Policy                            | prd-app-validation.md                 | 76f9ef36 |
-| REQ-p00001     | Complete Multi-Sponsor Data Separation              | prd-security.md                       | d01b64d9 |
-| REQ-p00002     | Multi-Factor Authentication for Staff               | prd-security.md                       | b014564d |
-| REQ-p00003     | Separate Database Per Sponsor                       | prd-database.md                       | b265d8bb |
-| REQ-p00004     | Immutable Audit Trail via Event Sourcing            | prd-database.md                       | 59a44de8 |
-| REQ-p00005     | Role-Based Access Control                           | prd-security-RBAC.md                  | d5129b08 |
-| REQ-p00006     | Offline-First Data Entry                            | prd-diary-app.md                      | 9455833d |
-| REQ-p00007     | Automatic Sponsor Configuration                     | prd-diary-app.md                      | ef5bdf5f |
-| REQ-p00008     | Single Mobile App for All Sponsors                  | prd-architecture-multi-sponsor.md     | 3fe1fad0 |
-| REQ-p00009     | Sponsor-Specific Portals                            | prd-architecture-multi-sponsor.md     | e26dfd95 |
-| REQ-p00010     | FDA 21 CFR Part 11 Compliance                       | prd-deprecated.md                     | 291855cf |
-| REQ-p00011     | ALCOA+ Data Integrity Principles                    | prd-deprecated.md                     | 291855cf |
-| REQ-p00012     | Clinical Data Retention Requirements                | prd-clinical-trials.md                | 095cb350 |
-| REQ-p00013     | Complete Data Change History                        | prd-database.md                       | 893afe9e |
-| REQ-p00014     | Least Privilege Access                              | prd-security-RBAC.md                  | 5cecbe76 |
-| REQ-p00015     | Database-Level Access Enforcement                   | prd-security-RLS.md                   | e0b19391 |
-| REQ-p00016     | Separation of Identity and Clinical Data            | prd-security-data-classification.md   | 4a8b2335 |
-| REQ-p00017     | Data Encryption                                     | prd-security-data-classification.md   | 55d8aea3 |
-| REQ-p00018     | Multi-Site Support Per Sponsor                      | prd-architecture-multi-sponsor.md     | c4d7df6f |
-| REQ-p00020     | System Validation and Traceability                  | prd-requirements-management.md        | 7d81caf7 |
-| REQ-p00021     | Architecture Decision Documentation                 | prd-requirements-management.md        | 76c82ce6 |
-| REQ-p00022     | Analyst Read-Only Access                            | prd-security-RLS.md                   | f6c37670 |
-| REQ-p00023     | Sponsor Global Data Access                          | prd-security-RLS.md                   | de7caa72 |
-| REQ-p00024     | Portal User Roles and Permissions                   | prd-deprecated.md                     | 93a09d35 |
-| REQ-p00028     | Token Revocation and Access Control                 | prd-deprecated.md                     | 93a09d35 |
-| REQ-p00035     | Patient Data Isolation                              | prd-security-RLS.md                   | d519a005 |
-| REQ-p00036     | Investigator Site-Scoped Access                     | prd-security-RLS.md                   | 8cba2876 |
-| REQ-p00037     | Investigator Annotation Restrictions                | prd-security-RLS.md                   | 18789c92 |
-| REQ-p00038     | Auditor Compliance Access                           | prd-security-RLS.md                   | b5c84953 |
-| REQ-p00039     | Administrator Access with Audit Trail               | prd-security-RLS.md                   | 5082758c |
-| REQ-p00040     | Event Sourcing State Protection                     | prd-security-RLS.md                   | 2067e3e6 |
-| REQ-p00042     | HHT Epistaxis Data Capture Standard                 | prd-epistaxis-terminology.md          | 36dc9faf |
-| REQ-p00043     | Diary Mobile Application                            | prd-diary-app.md                      | 0b68e32b |
-| REQ-p00044     | Clinical Trial Compliant Diary Platform             | prd-system.md                         | 94b86e26 |
-| REQ-p00045     | Design Patterns                                     | prd-clinical-trials.md                | a451a0b8 |
-| REQ-p00047     | Data Backup and Archival                            | prd-backup.md                         | 4e9501e4 |
-| REQ-p00048     | Platform Operations and Monitoring                  | prd-devops.md                         | af349286 |
-| REQ-p00049     | Ancillary Platform Services                         | prd-services.md                       | ff326529 |
-| REQ-p00050     | Temporal Entry Validation                           | prd-diary-app.md                      | 8a468a3f |
-| REQ-p00071     | Password Complexity                                 | prd-deprecated.md                     | 93a09d35 |
-| REQ-p00076     | Participation Status Badge                          | prd-diary-gui.md                      | 852e6036 |
-| REQ-p01000     | Event Sourcing Client Interface                     | prd-event-sourcing-system.md          | c289ba20 |
-| REQ-p01001     | Offline Event Queue with Automatic Synchronization  | prd-event-sourcing-system.md          | 192df7e9 |
-| REQ-p01002     | Optimistic Concurrency Control                      | prd-event-sourcing-system.md          | dd66beb1 |
-| REQ-p01003     | Immutable Event Storage with Audit Trail            | prd-event-sourcing-system.md          | ec106ced |
-| REQ-p01004     | Schema Version Management                           | prd-event-sourcing-system.md          | 94c032f0 |
-| REQ-p01005     | Real-time Event Subscription                        | prd-event-sourcing-system.md          | 61d80d18 |
-| REQ-p01006     | Type-Safe Materialized View Queries                 | prd-event-sourcing-system.md          | 0ca0d9ae |
-| REQ-p01007     | Error Handling and Diagnostics                      | prd-event-sourcing-system.md          | 142a4821 |
-| REQ-p01008     | Event Replay and Time Travel Debugging              | prd-event-sourcing-system.md          | cef615c5 |
-| REQ-p01009     | Encryption at Rest for Offline Queue                | prd-event-sourcing-system.md          | c6c8ad62 |
-| REQ-p01010     | Multi-tenancy Support                               | prd-event-sourcing-system.md          | b7a09f00 |
-| REQ-p01011     | Event Transformation and Migration                  | prd-event-sourcing-system.md          | e1fbce81 |
-| REQ-p01012     | Batch Event Operations                              | prd-event-sourcing-system.md          | 5cf4df20 |
-| REQ-p01014     | Observability and Monitoring                        | prd-event-sourcing-system.md          | ad6ebb22 |
-| REQ-p01015     | Automated Testing Support                           | prd-event-sourcing-system.md          | f15b2c58 |
-| REQ-p01016     | Performance Benchmarking                            | prd-event-sourcing-system.md          | 5f5f0fe9 |
-| REQ-p01017     | Backward Compatibility Guarantees                   | prd-event-sourcing-system.md          | 68686f0b |
-| REQ-p01018     | Security Audit and Compliance                       | prd-event-sourcing-system.md          | ae8f6e49 |
-| REQ-p01019     | Phased Implementation                               | prd-event-sourcing-system.md          | 42cdad57 |
-| REQ-p01021     | Service Availability Commitment                     | prd-SLA.md                            | d39861a9 |
-| REQ-p01022     | Incident Severity Classification                    | prd-SLA.md                            | d1734735 |
-| REQ-p01023     | Incident Response Times                             | prd-SLA.md                            | 40fb577e |
-| REQ-p01024     | Disaster Recovery Objectives                        | prd-SLA.md                            | 6b076a50 |
-| REQ-p01025     | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md               | f2ab1f17 |
-| REQ-p01026     | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md               | 94499ad5 |
-| REQ-p01027     | Timestamp Verification Interface                    | prd-evidence-records.md               | 9956bd94 |
-| REQ-p01028     | Timestamp Proof Archival                            | prd-evidence-records.md               | 69a49395 |
-| REQ-p01029     | Device Fingerprinting                               | prd-evidence-records.md               | 8e10b85a |
-| REQ-p01030     | Patient Authentication for Data Attribution         | prd-evidence-records.md               | fc02cd59 |
-| REQ-p01031     | Optional Geolocation Tagging                        | prd-evidence-records.md               | f9a69607 |
-| REQ-p01032     | Hashed Email Identity Verification                  | prd-evidence-records.md               | 0ba2d208 |
-| REQ-p01033     | Customer Incident Notification                      | prd-SLA.md                            | 3ca3df0f |
-| REQ-p01034     | Root Cause Analysis                                 | prd-SLA.md                            | 0778e3bb |
-| REQ-p01035     | Corrective and Preventive Action                    | prd-SLA.md                            | f2c78d76 |
-| REQ-p01036     | Data Recovery Guarantee                             | prd-SLA.md                            | 5909fb2b |
-| REQ-p01037     | Chronic Failure Escalation                          | prd-SLA.md                            | 63205737 |
-| REQ-p01038     | Regulatory Event Support                            | prd-SLA.md                            | f62f5e4d |
-| REQ-p01039     | Diary Start Day Definition                          | prd-diary-app.md                      | a53d579f |
-| REQ-p01040     | Calendar Visual Indicators for Entry Status         | prd-diary-app.md                      | e4e1c4c2 |
-| REQ-p01041     | Open Source Licensing                               | prd-system.md                         | 7e6b1e00 |
-| REQ-p01043     | Web Diary Authentication via Linking Code           | prd-deprecated.md                     | 7cf5512f |
-| REQ-p01050     | Event Type Registry                                 | prd-event-sourcing-system.md          | 52464e42 |
-| REQ-p01051     | Questionnaire Versioning Model                      | prd-event-sourcing-system.md          | e311e5fc |
-| REQ-p01052     | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md          | 4218237c |
-| REQ-p01053     | Sponsor Questionnaire Eligibility Configuration     | prd-event-sourcing-system.md          | 3bc66244 |
-| REQ-p01054     | Complete Infrastructure Isolation Per Sponsor       | prd-architecture-multi-sponsor.md     | dae0f167 |
-| REQ-p01055     | Sponsor Confidentiality                             | prd-architecture-multi-sponsor.md     | 364675e2 |
-| REQ-p01056     | Confidentiality Sufficiency                         | prd-architecture-multi-sponsor.md     | f29524ee |
-| REQ-p01057     | Mono Repository with Sponsor Repositories           | prd-architecture-multi-sponsor.md     | a54d5ad6 |
-| REQ-p01058     | Unified App Deployment                              | prd-architecture-multi-sponsor.md     | c22435c6 |
-| REQ-p01059     | Customization Policy                                | prd-architecture-multi-sponsor.md     | bf7c7b8e |
-| REQ-p01060     | UX Changes During Trials                            | prd-architecture-multi-sponsor.md     | 2f531460 |
-| REQ-p01062     | GDPR Data Portability                               | prd-deprecated.md                     | 37ef744e |
-| REQ-p01064     | Investigator Questionnaire Approval Workflow        | prd-questionnaire-approval.md         | 735ee5a6 |
-| REQ-p01065     | Clinical Questionnaire System                       | prd-questionnaire-system.md           | 0a17515d |
-| REQ-p01066     | Daily Epistaxis Record Questionnaire                | prd-questionnaire-epistaxis.md        | 29498f8f |
-| REQ-p01067     | NOSE HHT Questionnaire                              | prd-questionnaire-nose-hht.md         | 23b411c6 |
-| REQ-p01068     | HHT Quality of Life Questionnaire                   | prd-questionnaire-qol.md              | d3970cea |
-| REQ-p01069     | Daily Epistaxis Record User Interface               | prd-questionnaire-epistaxis.md        | 0efa31a6 |
-| REQ-p01070     | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md         | 84fa171d |
-| REQ-p01071     | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md              | a231a942 |
-| REQ-p01072     | Mobile App Linking Status and History               | prd-diary-app.md                      | cf32de6c |
-| REQ-p01073     | Questionnaire Session Management                    | prd-questionnaire-session.md          | 3ab0f2f1 |
-| REQ-p01074     | User-Facing State Change Communication              | prd-system.md                         | ec6b0b1d |
-| REQ-p01075     | Top Navigation Bar                                  | prd-diary-gui.md                      | 027debad |
-| REQ-p01076     | User Menu                                           | prd-diary-gui.md                      | 9c51b097 |
-| REQ-p01077     | User Profile Screen                                 | prd-diary-gui.md                      | fc061bcc |
-| REQ-p01078     | App Menu                                            | prd-diary-gui.md                      | 115fd33c |
-| REQ-p01079     | License Display                                     | prd-system.md                         | 0a061e18 |
-| REQ-p01080     | Policies Screen                                     | prd-diary-gui.md                      | 0962c04b |
-| REQ-p01081     | Help Center Screen                                  | prd-diary-gui.md                      | f5ecea75 |
-| REQ-p01082     | Join Study Screen                                   | prd-diary-gui.md                      | 8eb89d10 |
-| REQ-p01083     | Account Settings Screen                             | prd-diary-gui.md                      | 63efe18c |
-| REQ-p01084     | Diary App Licenses Screen                           | prd-diary-gui.md                      | 621882cb |
-| REQ-p01085     | Compliance Systems                                  | prd-clinical-trials.md                | 418d48b6 |
-| REQ-p01086     | Deprecated Requirements Registry                    | prd-deprecated.md                     | 2418fb15 |
-| REQ-p70000     | Local Data Storage                                  | prd-diary-app.md                      | 937511be |
-| REQ-p70001     | Sponsor Portal Application                          | prd-portal.md                         | 08b8f03a |
-| REQ-p70005     | Customizable Role-Based Access Control              | prd-portal.md                         | d0617ddb |
-| REQ-p70006     | Comprehensive Audit Trail                           | prd-portal.md                         | c3ec2048 |
-| REQ-p70007     | Linking Code Lifecycle Management                   | prd-portal.md                         | c0a77938 |
-| REQ-p70008     | Sponsor-Specific Role Mapping                       | prd-portal.md                         | 9b56c1c9 |
-| REQ-p70009     | Link New Patient Workflow                           | prd-portal.md                         | 84d192e7 |
-| REQ-p70010     | Patient Disconnection Workflow                      | prd-portal.md                         | 79bc39eb |
-| REQ-p70011     | Patient Reconnection Workflow                       | prd-portal.md                         | c386824f |
-| REQ-p70012     | Portal Data Acceptance and Rejection                | prd-portal.md                         | 2f615ddb |
+| ID         | Title                                               | File                                | Hash     |
+| ---------- | --------------------------------------------------- | ----------------------------------- | -------- |
+| REQ-p00001 | Complete Multi-Sponsor Data Separation              | prd-security.md                     | d01b64d9 |
+| REQ-p00002 | Multi-Factor Authentication for Staff               | prd-security.md                     | b014564d |
+| REQ-p00003 | Separate Database Per Sponsor                       | prd-database.md                     | b265d8bb |
+| REQ-p00004 | Immutable Audit Trail via Event Sourcing            | prd-database.md                     | 59a44de8 |
+| REQ-p00005 | Role-Based Access Control                           | prd-security-RBAC.md                | d5129b08 |
+| REQ-p00006 | Offline-First Data Entry                            | prd-diary-app.md                    | 9455833d |
+| REQ-p00007 | Automatic Sponsor Configuration                     | prd-diary-app.md                    | ef5bdf5f |
+| REQ-p00008 | Single Mobile App for All Sponsors                  | prd-architecture-multi-sponsor.md   | 3fe1fad0 |
+| REQ-p00009 | Sponsor-Specific Portals                            | prd-architecture-multi-sponsor.md   | e26dfd95 |
+| REQ-p00010 | FDA 21 CFR Part 11 Compliance                       | prd-deprecated.md                   | 291855cf |
+| REQ-p00011 | ALCOA+ Data Integrity Principles                    | prd-deprecated.md                   | 291855cf |
+| REQ-p00012 | Clinical Data Retention Requirements                | prd-clinical-trials.md              | 095cb350 |
+| REQ-p00013 | Complete Data Change History                        | prd-database.md                     | 893afe9e |
+| REQ-p00014 | Least Privilege Access                              | prd-security-RBAC.md                | 5cecbe76 |
+| REQ-p00015 | Database-Level Access Enforcement                   | prd-security-RLS.md                 | e0b19391 |
+| REQ-p00016 | Separation of Identity and Clinical Data            | prd-security-data-classification.md | 4a8b2335 |
+| REQ-p00017 | Data Encryption                                     | prd-security-data-classification.md | 55d8aea3 |
+| REQ-p00018 | Multi-Site Support Per Sponsor                      | prd-architecture-multi-sponsor.md   | c4d7df6f |
+| REQ-p00020 | System Validation and Traceability                  | prd-requirements-management.md      | 7d81caf7 |
+| REQ-p00021 | Architecture Decision Documentation                 | prd-requirements-management.md      | 76c82ce6 |
+| REQ-p00022 | Analyst Read-Only Access                            | prd-security-RLS.md                 | f6c37670 |
+| REQ-p00023 | Sponsor Global Data Access                          | prd-security-RLS.md                 | de7caa72 |
+| REQ-p00024 | Portal User Roles and Permissions                   | prd-deprecated.md                   | 93a09d35 |
+| REQ-p00028 | Token Revocation and Access Control                 | prd-deprecated.md                   | 93a09d35 |
+| REQ-p00035 | Patient Data Isolation                              | prd-security-RLS.md                 | d519a005 |
+| REQ-p00036 | Investigator Site-Scoped Access                     | prd-security-RLS.md                 | 8cba2876 |
+| REQ-p00037 | Investigator Annotation Restrictions                | prd-security-RLS.md                 | 18789c92 |
+| REQ-p00038 | Auditor Compliance Access                           | prd-security-RLS.md                 | b5c84953 |
+| REQ-p00039 | Administrator Access with Audit Trail               | prd-security-RLS.md                 | 5082758c |
+| REQ-p00040 | Event Sourcing State Protection                     | prd-security-RLS.md                 | 2067e3e6 |
+| REQ-p00042 | HHT Epistaxis Data Capture Standard                 | prd-epistaxis-terminology.md        | 36dc9faf |
+| REQ-p00043 | Diary Mobile Application                            | prd-diary-app.md                    | 0b68e32b |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform             | prd-system.md                       | 94b86e26 |
+| REQ-p00045 | Design Patterns                                     | prd-clinical-trials.md              | a451a0b8 |
+| REQ-p00047 | Data Backup and Archival                            | prd-backup.md                       | 4e9501e4 |
+| REQ-p00048 | Platform Operations and Monitoring                  | prd-devops.md                       | af349286 |
+| REQ-p00049 | Ancillary Platform Services                         | prd-services.md                     | ff326529 |
+| REQ-p00050 | Temporal Entry Validation                           | prd-diary-app.md                    | 8a468a3f |
+| REQ-p00071 | Password Complexity                                 | prd-deprecated.md                   | 93a09d35 |
+| REQ-p00076 | Participation Status Badge                          | prd-diary-gui.md                    | 852e6036 |
+| REQ-p01000 | Event Sourcing Client Interface                     | prd-event-sourcing-system.md        | c289ba20 |
+| REQ-p01001 | Offline Event Queue with Automatic Synchronization  | prd-event-sourcing-system.md        | 192df7e9 |
+| REQ-p01002 | Optimistic Concurrency Control                      | prd-event-sourcing-system.md        | dd66beb1 |
+| REQ-p01003 | Immutable Event Storage with Audit Trail            | prd-event-sourcing-system.md        | ec106ced |
+| REQ-p01004 | Schema Version Management                           | prd-event-sourcing-system.md        | 94c032f0 |
+| REQ-p01005 | Real-time Event Subscription                        | prd-event-sourcing-system.md        | 61d80d18 |
+| REQ-p01006 | Type-Safe Materialized View Queries                 | prd-event-sourcing-system.md        | 0ca0d9ae |
+| REQ-p01007 | Error Handling and Diagnostics                      | prd-event-sourcing-system.md        | 142a4821 |
+| REQ-p01008 | Event Replay and Time Travel Debugging              | prd-event-sourcing-system.md        | cef615c5 |
+| REQ-p01009 | Encryption at Rest for Offline Queue                | prd-event-sourcing-system.md        | c6c8ad62 |
+| REQ-p01010 | Multi-tenancy Support                               | prd-event-sourcing-system.md        | b7a09f00 |
+| REQ-p01011 | Event Transformation and Migration                  | prd-event-sourcing-system.md        | e1fbce81 |
+| REQ-p01012 | Batch Event Operations                              | prd-event-sourcing-system.md        | 5cf4df20 |
+| REQ-p01014 | Observability and Monitoring                        | prd-event-sourcing-system.md        | ad6ebb22 |
+| REQ-p01015 | Automated Testing Support                           | prd-event-sourcing-system.md        | f15b2c58 |
+| REQ-p01016 | Performance Benchmarking                            | prd-event-sourcing-system.md        | 5f5f0fe9 |
+| REQ-p01017 | Backward Compatibility Guarantees                   | prd-event-sourcing-system.md        | 68686f0b |
+| REQ-p01018 | Security Audit and Compliance                       | prd-event-sourcing-system.md        | ae8f6e49 |
+| REQ-p01019 | Phased Implementation                               | prd-event-sourcing-system.md        | 42cdad57 |
+| REQ-p01021 | Service Availability Commitment                     | prd-SLA.md                          | d39861a9 |
+| REQ-p01022 | Incident Severity Classification                    | prd-SLA.md                          | d1734735 |
+| REQ-p01023 | Incident Response Times                             | prd-SLA.md                          | 40fb577e |
+| REQ-p01024 | Disaster Recovery Objectives                        | prd-SLA.md                          | 6b076a50 |
+| REQ-p01025 | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md             | f2ab1f17 |
+| REQ-p01026 | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md             | 94499ad5 |
+| REQ-p01027 | Timestamp Verification Interface                    | prd-evidence-records.md             | 9956bd94 |
+| REQ-p01028 | Timestamp Proof Archival                            | prd-evidence-records.md             | 69a49395 |
+| REQ-p01029 | Device Fingerprinting                               | prd-evidence-records.md             | 8e10b85a |
+| REQ-p01030 | Patient Authentication for Data Attribution         | prd-evidence-records.md             | fc02cd59 |
+| REQ-p01031 | Optional Geolocation Tagging                        | prd-evidence-records.md             | f9a69607 |
+| REQ-p01032 | Hashed Email Identity Verification                  | prd-evidence-records.md             | 0ba2d208 |
+| REQ-p01033 | Customer Incident Notification                      | prd-SLA.md                          | 3ca3df0f |
+| REQ-p01034 | Root Cause Analysis                                 | prd-SLA.md                          | 0778e3bb |
+| REQ-p01035 | Corrective and Preventive Action                    | prd-SLA.md                          | f2c78d76 |
+| REQ-p01036 | Data Recovery Guarantee                             | prd-SLA.md                          | 5909fb2b |
+| REQ-p01037 | Chronic Failure Escalation                          | prd-SLA.md                          | 63205737 |
+| REQ-p01038 | Regulatory Event Support                            | prd-SLA.md                          | f62f5e4d |
+| REQ-p01039 | Diary Start Day Definition                          | prd-diary-app.md                    | a53d579f |
+| REQ-p01040 | Calendar Visual Indicators for Entry Status         | prd-diary-app.md                    | e4e1c4c2 |
+| REQ-p01041 | Open Source Licensing                               | prd-system.md                       | 7e6b1e00 |
+| REQ-p01043 | Web Diary Authentication via Linking Code           | prd-deprecated.md                   | 7cf5512f |
+| REQ-p01050 | Event Type Registry                                 | prd-event-sourcing-system.md        | 52464e42 |
+| REQ-p01051 | Questionnaire Versioning Model                      | prd-event-sourcing-system.md        | e311e5fc |
+| REQ-p01052 | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md        | 4218237c |
+| REQ-p01053 | Sponsor Questionnaire Eligibility Configuration     | prd-event-sourcing-system.md        | 3bc66244 |
+| REQ-p01054 | Complete Infrastructure Isolation Per Sponsor       | prd-architecture-multi-sponsor.md   | dae0f167 |
+| REQ-p01055 | Sponsor Confidentiality                             | prd-architecture-multi-sponsor.md   | 364675e2 |
+| REQ-p01056 | Confidentiality Sufficiency                         | prd-architecture-multi-sponsor.md   | f29524ee |
+| REQ-p01057 | Mono Repository with Sponsor Repositories           | prd-architecture-multi-sponsor.md   | a54d5ad6 |
+| REQ-p01058 | Unified App Deployment                              | prd-architecture-multi-sponsor.md   | c22435c6 |
+| REQ-p01059 | Customization Policy                                | prd-architecture-multi-sponsor.md   | bf7c7b8e |
+| REQ-p01060 | UX Changes During Trials                            | prd-architecture-multi-sponsor.md   | 2f531460 |
+| REQ-p01062 | GDPR Data Portability                               | prd-deprecated.md                   | 37ef744e |
+| REQ-p01064 | Investigator Questionnaire Approval Workflow        | prd-questionnaire-approval.md       | 735ee5a6 |
+| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | 0a17515d |
+| REQ-p01066 | Daily Epistaxis Record Questionnaire                | prd-questionnaire-epistaxis.md      | 29498f8f |
+| REQ-p01067 | NOSE HHT Questionnaire                              | prd-questionnaire-nose-hht.md       | 23b411c6 |
+| REQ-p01068 | HHT Quality of Life Questionnaire                   | prd-questionnaire-qol.md            | d3970cea |
+| REQ-p01069 | Daily Epistaxis Record User Interface               | prd-questionnaire-epistaxis.md      | 0efa31a6 |
+| REQ-p01070 | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md       | 84fa171d |
+| REQ-p01071 | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md            | a231a942 |
+| REQ-p01072 | Mobile App Linking Status and History               | prd-diary-app.md                    | cf32de6c |
+| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 3ab0f2f1 |
+| REQ-p01074 | User-Facing State Change Communication              | prd-system.md                       | ec6b0b1d |
+| REQ-p01075 | Top Navigation Bar                                  | prd-diary-gui.md                    | 027debad |
+| REQ-p01076 | User Menu                                           | prd-diary-gui.md                    | 9c51b097 |
+| REQ-p01077 | User Profile Screen                                 | prd-diary-gui.md                    | fc061bcc |
+| REQ-p01078 | App Menu                                            | prd-diary-gui.md                    | 115fd33c |
+| REQ-p01079 | License Display                                     | prd-system.md                       | 0a061e18 |
+| REQ-p01080 | Policies Screen                                     | prd-diary-gui.md                    | 0962c04b |
+| REQ-p01081 | Help Center Screen                                  | prd-diary-gui.md                    | f5ecea75 |
+| REQ-p01082 | Join Study Screen                                   | prd-diary-gui.md                    | 8eb89d10 |
+| REQ-p01083 | Account Settings Screen                             | prd-diary-gui.md                    | 63efe18c |
+| REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
+| REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | 418d48b6 |
+| REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
+| REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
+| REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
+| REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
+| REQ-p70006 | Comprehensive Audit Trail                           | prd-portal.md                       | c3ec2048 |
+| REQ-p70007 | Linking Code Lifecycle Management                   | prd-portal.md                       | c0a77938 |
+| REQ-p70008 | Sponsor-Specific Role Mapping                       | prd-portal.md                       | 9b56c1c9 |
+| REQ-p70009 | Link New Patient Workflow                           | prd-portal.md                       | 84d192e7 |
+| REQ-p70010 | Patient Disconnection Workflow                      | prd-portal.md                       | 79bc39eb |
+| REQ-p70011 | Patient Reconnection Workflow                       | prd-portal.md                       | c386824f |
+| REQ-p70012 | Portal Data Acceptance and Rejection                | prd-portal.md                       | 2f615ddb |
 
 ## OPERATIONS
 
@@ -275,165 +207,108 @@
 
 ## DEVELOPMENT
 
-| ID             | Title                                              | File                           | Hash     |
-| -------------- | -------------------------------------------------- | ------------------------------ | -------- |
-| REQ-CAL-d00001 | Minimize Deleted Records                           | dev-database.md                | 5bc520a6 |
-| REQ-CAL-d00002 | No Implicit Field Changes                          | dev-database.md                | e54e9d7a |
-| REQ-CAL-d00003 | Survey Response Storage Format                     | dev-database.md                | 1701c36a |
-| REQ-CAL-d00004 | Proxy Database Purpose                             | dev-database.md                | a4a5f2f2 |
-| REQ-CAL-d00005 | UUID Field Format                                  | dev-edc-schema.md              | 0fef1aa4 |
-| REQ-CAL-d00006 | Date Field Format                                  | dev-edc-schema.md              | 58b2f49d |
-| REQ-CAL-d00007 | Time Field Format                                  | dev-edc-schema.md              | de99e024 |
-| REQ-CAL-d00008 | Duration Field Calculation                         | dev-edc-schema.md              | 0c76ed17 |
-| REQ-CAL-d00009 | Severity Field Format                              | dev-edc-schema.md              | 9bfdd635 |
-| REQ-CAL-d00010 | Notes Field Handling                               | dev-edc-schema.md              | c162113d |
-| REQ-CAL-d00011 | No Nosebleeds Event Flag                           | dev-edc-schema.md              | c278cf17 |
-| REQ-CAL-d00012 | Unknown Event Flag                                 | dev-edc-schema.md              | 40380c25 |
-| REQ-CAL-d00013 | Data Source Traceability                           | dev-edc-schema.md              | 5efe8e1c |
-| REQ-CAL-d00014 | Incomplete Entry Flag                              | dev-edc-schema.md              | b1e9f94f |
-| REQ-CAL-d00015 | Change History via EventStore                      | dev-edc-schema.md              | d9ee256c |
-| REQ-CAL-d00016 | Requester ID Field                                 | dev-edc-schema.md              | 45bef36a |
-| REQ-CAL-d00017 | Requester Name Field                               | dev-edc-schema.md              | 95edc730 |
-| REQ-CAL-d00018 | Survey Name Field                                  | dev-edc-schema.md              | 0e4fa43a |
-| REQ-CAL-d00019 | Survey Version Field                               | dev-edc-schema.md              | 3d9457ea |
-| REQ-CAL-d00020 | Survey Response Storage                            | dev-edc-schema.md              | 2f4e6520 |
-| REQ-CAL-d00021 | UUID Table Prefix Format                           | dev-edc-schema.md              | 189341f5 |
-| REQ-CAL-d00022 | Site ID Format                                     | dev-edc-schema.md              | f9398120 |
-| REQ-CAL-d00023 | Patient ID Format                                  | dev-edc-schema.md              | d28af884 |
-| REQ-CAL-d00024 | Audit Context Field Structure                      | dev-edc-schema.md              | cff75d38 |
-| REQ-CAL-d00025 | Audit User Field Values                            | dev-edc-schema.md              | a54dee5a |
-| REQ-CAL-d00026 | Audit Location Field Format                        | dev-edc-schema.md              | 39b68d8e |
-| REQ-CAL-d00027 | Audit Timestamp Format                             | dev-edc-schema.md              | b7604c5a |
-| REQ-CAL-d00028 | Audit Reason Field Values                          | dev-edc-schema.md              | 8ce83605 |
-| REQ-CAL-d00029 | EDC Metadata as Validation Source                  | prd-ODM-CDISC.md               | f4a14e8a |
-| REQ-CAL-d00031 | Callisto Transformation Rules                      | dev-edc-schema.md              | 9d3d0997 |
-| REQ-CAL-d00032 | Push Notification Delivery via FCM                 | dev-push-notifications.md      | 51613c24 |
-| REQ-d00001     | Sponsor-Specific Configuration Loading             | dev-configuration.md           | a2825584 |
-| REQ-d00002     | Pre-Build Configuration Validation                 | dev-configuration.md           | 5dde0fc5 |
-| REQ-d00003     | Identity Platform Configuration Per Sponsor        | dev-security.md                | f4493561 |
-| REQ-d00004     | Local-First Data Entry Implementation              | dev-app.md                     | 39589dad |
-| REQ-d00005     | Sponsor Configuration Detection Implementation     | dev-app.md                     | 33d3b6b0 |
-| REQ-d00006     | Mobile App Build and Release Process               | dev-app.md                     | 3b07a626 |
-| REQ-d00007     | Database Schema Implementation and Deployment      | dev-database.md                | 94170736 |
-| REQ-d00008     | MFA Enrollment and Verification Implementation     | dev-security.md                | c60371f2 |
-| REQ-d00009     | Role-Based Permission Enforcement Implementation   | dev-security.md                | c713723f |
-| REQ-d00010     | Data Encryption Implementation                     | dev-security.md                | be1c205f |
-| REQ-d00011     | Multi-Site Schema Implementation                   | dev-database.md                | 982caeb9 |
-| REQ-d00013     | Application Instance UUID Generation               | dev-app.md                     | 5a81d46b |
-| REQ-d00014     | Requirement Validation Tooling                     | dev-requirements-management.md | ed143a48 |
-| REQ-d00015     | Traceability Matrix Auto-Generation                | dev-requirements-management.md | 235c988e |
-| REQ-d00016     | Code-to-Requirement Linking                        | dev-requirements-management.md | 7723f737 |
-| REQ-d00017     | ADR Template and Lifecycle Tooling                 | dev-requirements-management.md | 4fa259a5 |
-| REQ-d00018     | Git Hook Implementation                            | dev-requirements-management.md | fcfe6de1 |
-| REQ-d00019     | Patient Data Isolation RLS Implementation          | dev-security-RLS.md            | f3cbf5fe |
-| REQ-d00020     | Investigator Site-Scoped RLS Implementation        | dev-security-RLS.md            | 2b982234 |
-| REQ-d00021     | Investigator Annotation RLS Implementation         | dev-security-RLS.md            | 01b5e939 |
-| REQ-d00022     | Analyst Read-Only RLS Implementation               | dev-security-RLS.md            | 0a4be6ec |
-| REQ-d00023     | Sponsor Global Access RLS Implementation           | dev-security-RLS.md            | 3cad1719 |
-| REQ-d00024     | Auditor Compliance RLS Implementation              | dev-security-RLS.md            | 434eca80 |
-| REQ-d00025     | Administrator Break-Glass RLS Implementation       | dev-security-RLS.md            | ca7b4eac |
-| REQ-d00026     | Event Sourcing State Protection RLS Implementation | dev-security-RLS.md            | f670b1e5 |
-| REQ-d00027     | Containerized Development Environments             | dev-environment.md             | 380e7b8c |
-| REQ-d00028     | Event sourcing implementation                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00029     | Portal UI Design System                            | dev-deprecated.md              | 93a09d35 |
-| REQ-d00030     | Portal Routing and Navigation                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00031     | Identity Platform Integration                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00032     | Role-Based Access Control Implementation           | dev-deprecated.md              | 93a09d35 |
-| REQ-d00033     | Site-Based Data Isolation                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00034     | Login Page Implementation                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00035     | Admin Dashboard Implementation                     | dev-deprecated.md              | 93a09d35 |
-| REQ-d00036     | Create User Dialog Implementation                  | dev-deprecated.md              | 93a09d35 |
-| REQ-d00039     | Portal Users Table Schema                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00040     | User Site Access Table Schema                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00041     | Patients Table Extensions for Portal               | dev-deprecated.md              | 93a09d35 |
-| REQ-d00053     | Development Environment and Tooling Setup          | dev-requirements-management.md | 31e32e36 |
-| REQ-d00055     | Role-Based Environment Separation                  | dev-environment.md             | 9d8e2081 |
-| REQ-d00056     | Cross-Platform Development Support                 | dev-environment.md             | 7ca59703 |
-| REQ-d00057     | CI/CD Environment Parity                           | dev-environment.md             | 608781a5 |
-| REQ-d00058     | Secrets Management via Doppler                     | dev-environment.md             | 18a5881a |
-| REQ-d00059     | Development Tool Specifications                    | dev-environment.md             | 1ddd744c |
-| REQ-d00060     | VS Code Dev Containers Integration                 | dev-environment.md             | 4b7e967b |
-| REQ-d00061     | Automated QA Workflow                              | dev-environment.md             | 75dfd6e6 |
-| REQ-d00062     | Environment Validation & Change Control            | dev-environment.md             | edff16ee |
-| REQ-d00063     | Shared Workspace and File Exchange                 | dev-environment.md             | 8a68ffca |
-| REQ-d00064     | Plugin JSON Validation Tooling                     | dev-ai-claude.md               | ade1a4f4 |
-| REQ-d00065     | Plugin Path Validation                             | dev-ai-claude.md               | 09911117 |
-| REQ-d00066     | Plugin-Specific Permission Management              | dev-marketplace-permissions.md | 03045719 |
-| REQ-d00067     | Streamlined Ticket Creation Agent                  | dev-ai-claude.md               | f6d9e288 |
-| REQ-d00068     | Enhanced Workflow New Work Detection               | dev-ai-claude.md               | 951ecf65 |
-| REQ-d00072     | ODM-XML Export Implementation                      | dev-deprecated.md              | fc88846e |
-| REQ-d00078     | Linking Code Validation                            | dev-linking.md                 | 8cc744c2 |
-| REQ-d00079     | Linking Code Pattern Matching                      | dev-linking.md                 | f5e20cde |
-| REQ-d00081     | Linked Device Records                              | dev-linking.md                 | 16853ebd |
-| REQ-d00085     | Local Database Export and Import                   | dev-app.md                     | eaa18d27 |
-| REQ-d00086     | Sponsor Repository Structure Template              | dev-sponsor-repos.md           | 0ede3cec |
-| REQ-d00087     | Core Repo Reference Configuration                  | dev-sponsor-repos.md           | 2f2f7a26 |
-| REQ-d00088     | Sponsor Requirement Namespace Validation           | dev-sponsor-repos.md           | bfec100c |
-| REQ-d00089     | Cross-Repository Traceability                      | dev-sponsor-repos.md           | e0ee0f65 |
-| REQ-d00090     | Development Environment Installation Qualification | dev-environment.md             | f170b97a |
-| REQ-d00091     | Development Environment Operational Qualification  | dev-environment.md             | 1c2e52c9 |
-| REQ-d00092     | Development Environment Performance Qualification  | dev-environment.md             | fcb5c6ba |
-| REQ-d00093     | Development Environment Change Control             | dev-environment.md             | d0a9c48d |
-| REQ-d00094     | Linking Code Entry Interface                       | dev-diary-app-linking.md       | dae36394 |
-| REQ-d00095     | Linking Code Input Validation                      | dev-diary-app-linking.md       | d124cbf4 |
-| REQ-d00096     | Enrollment Token Secure Storage                    | dev-diary-app-linking.md       | 2f2321ae |
-| REQ-d00097     | Token Lifecycle and Network Resilience             | dev-diary-app-linking.md       | 8b7af588 |
-| REQ-d00098     | Token Invalidation on Disconnection                | dev-diary-app-linking.md       | 654a51e8 |
-| REQ-d00099     | Linking Code Error Handling                        | dev-diary-app-linking.md       | 3a1f9cc5 |
-| REQ-d00100     | Network Failure Handling During Linking            | dev-diary-app-linking.md       | fe5b5e9a |
-| REQ-d00101     | Enrollment State Machine                           | dev-diary-app-linking.md       | 2505852b |
-| REQ-d00102     | Enrollment State Behaviors                         | dev-diary-app-linking.md       | ae21987f |
-| REQ-d00103     | Disconnection Detection                            | dev-diary-app-linking.md       | 0ef54680 |
-| REQ-d00104     | Contact Study Coordinator Screen                   | dev-diary-app-linking.md       | 9e53fe8a |
-| REQ-d00105     | Reconnection Recovery Path                         | dev-diary-app-linking.md       | 01389d10 |
-| REQ-d00106     | Study Start Questionnaire Rendering                | dev-diary-app-linking.md       | 60f1a652 |
-| REQ-d00107     | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md       | 888d43b7 |
-| REQ-d00108     | Questionnaire Submission Flow                      | dev-diary-app-linking.md       | b9a8f91b |
-| REQ-d00109     | Portal Linking Code Validation Endpoint            | dev-portal-api.md              | bac91a72 |
-| REQ-d00110     | Linking API Error Response Strategy                | dev-portal-api.md              | 39ae2a18 |
-| REQ-d00111     | Linking API Audit Trail                            | dev-portal-api.md              | 90a41f24 |
-| REQ-d00112     | Enrollment Token Revocation                        | dev-portal-api.md              | e8863441 |
-| REQ-d00113     | Deleted Questionnaire Submission Handling          | dev-questionnaire.md           | 6aaa85fd |
-| REQ-d00114     | Sync Request Device Binding Verification           | dev-portal-api.md              | b1a11feb |
+| ID         | Title                                              | File                           | Hash     |
+| ---------- | -------------------------------------------------- | ------------------------------ | -------- |
+| REQ-d00001 | Sponsor-Specific Configuration Loading             | dev-configuration.md           | a2825584 |
+| REQ-d00002 | Pre-Build Configuration Validation                 | dev-configuration.md           | 5dde0fc5 |
+| REQ-d00003 | Identity Platform Configuration Per Sponsor        | dev-security.md                | f4493561 |
+| REQ-d00004 | Local-First Data Entry Implementation              | dev-app.md                     | 39589dad |
+| REQ-d00005 | Sponsor Configuration Detection Implementation     | dev-app.md                     | 33d3b6b0 |
+| REQ-d00006 | Mobile App Build and Release Process               | dev-app.md                     | 3b07a626 |
+| REQ-d00007 | Database Schema Implementation and Deployment      | dev-database.md                | 94170736 |
+| REQ-d00008 | MFA Enrollment and Verification Implementation     | dev-security.md                | c60371f2 |
+| REQ-d00009 | Role-Based Permission Enforcement Implementation   | dev-security.md                | c713723f |
+| REQ-d00010 | Data Encryption Implementation                     | dev-security.md                | be1c205f |
+| REQ-d00011 | Multi-Site Schema Implementation                   | dev-database.md                | 982caeb9 |
+| REQ-d00013 | Application Instance UUID Generation               | dev-app.md                     | 5a81d46b |
+| REQ-d00014 | Requirement Validation Tooling                     | dev-requirements-management.md | ed143a48 |
+| REQ-d00015 | Traceability Matrix Auto-Generation                | dev-requirements-management.md | 235c988e |
+| REQ-d00016 | Code-to-Requirement Linking                        | dev-requirements-management.md | 7723f737 |
+| REQ-d00017 | ADR Template and Lifecycle Tooling                 | dev-requirements-management.md | 4fa259a5 |
+| REQ-d00018 | Git Hook Implementation                            | dev-requirements-management.md | fcfe6de1 |
+| REQ-d00019 | Patient Data Isolation RLS Implementation          | dev-security-RLS.md            | f3cbf5fe |
+| REQ-d00020 | Investigator Site-Scoped RLS Implementation        | dev-security-RLS.md            | 2b982234 |
+| REQ-d00021 | Investigator Annotation RLS Implementation         | dev-security-RLS.md            | 01b5e939 |
+| REQ-d00022 | Analyst Read-Only RLS Implementation               | dev-security-RLS.md            | 0a4be6ec |
+| REQ-d00023 | Sponsor Global Access RLS Implementation           | dev-security-RLS.md            | 3cad1719 |
+| REQ-d00024 | Auditor Compliance RLS Implementation              | dev-security-RLS.md            | 434eca80 |
+| REQ-d00025 | Administrator Break-Glass RLS Implementation       | dev-security-RLS.md            | ca7b4eac |
+| REQ-d00026 | Event Sourcing State Protection RLS Implementation | dev-security-RLS.md            | f670b1e5 |
+| REQ-d00027 | Containerized Development Environments             | dev-environment.md             | 380e7b8c |
+| REQ-d00028 | Event sourcing implementation                      | dev-deprecated.md              | 93a09d35 |
+| REQ-d00029 | Portal UI Design System                            | dev-deprecated.md              | 93a09d35 |
+| REQ-d00030 | Portal Routing and Navigation                      | dev-deprecated.md              | 93a09d35 |
+| REQ-d00031 | Identity Platform Integration                      | dev-deprecated.md              | 93a09d35 |
+| REQ-d00032 | Role-Based Access Control Implementation           | dev-deprecated.md              | 93a09d35 |
+| REQ-d00033 | Site-Based Data Isolation                          | dev-deprecated.md              | 93a09d35 |
+| REQ-d00034 | Login Page Implementation                          | dev-deprecated.md              | 93a09d35 |
+| REQ-d00035 | Admin Dashboard Implementation                     | dev-deprecated.md              | 93a09d35 |
+| REQ-d00036 | Create User Dialog Implementation                  | dev-deprecated.md              | 93a09d35 |
+| REQ-d00039 | Portal Users Table Schema                          | dev-deprecated.md              | 93a09d35 |
+| REQ-d00040 | User Site Access Table Schema                      | dev-deprecated.md              | 93a09d35 |
+| REQ-d00041 | Patients Table Extensions for Portal               | dev-deprecated.md              | 93a09d35 |
+| REQ-d00053 | Development Environment and Tooling Setup          | dev-requirements-management.md | 31e32e36 |
+| REQ-d00055 | Role-Based Environment Separation                  | dev-environment.md             | 9d8e2081 |
+| REQ-d00056 | Cross-Platform Development Support                 | dev-environment.md             | 7ca59703 |
+| REQ-d00057 | CI/CD Environment Parity                           | dev-environment.md             | 608781a5 |
+| REQ-d00058 | Secrets Management via Doppler                     | dev-environment.md             | 18a5881a |
+| REQ-d00059 | Development Tool Specifications                    | dev-environment.md             | 1ddd744c |
+| REQ-d00060 | VS Code Dev Containers Integration                 | dev-environment.md             | 4b7e967b |
+| REQ-d00061 | Automated QA Workflow                              | dev-environment.md             | 75dfd6e6 |
+| REQ-d00062 | Environment Validation & Change Control            | dev-environment.md             | edff16ee |
+| REQ-d00063 | Shared Workspace and File Exchange                 | dev-environment.md             | 8a68ffca |
+| REQ-d00064 | Plugin JSON Validation Tooling                     | dev-ai-claude.md               | ade1a4f4 |
+| REQ-d00065 | Plugin Path Validation                             | dev-ai-claude.md               | 09911117 |
+| REQ-d00066 | Plugin-Specific Permission Management              | dev-marketplace-permissions.md | 03045719 |
+| REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md               | f6d9e288 |
+| REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md               | 951ecf65 |
+| REQ-d00072 | ODM-XML Export Implementation                      | dev-deprecated.md              | fc88846e |
+| REQ-d00078 | Linking Code Validation                            | dev-linking.md                 | 8cc744c2 |
+| REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                 | f5e20cde |
+| REQ-d00081 | Linked Device Records                              | dev-linking.md                 | 16853ebd |
+| REQ-d00085 | Local Database Export and Import                   | dev-app.md                     | eaa18d27 |
+| REQ-d00086 | Sponsor Repository Structure Template              | dev-sponsor-repos.md           | 0ede3cec |
+| REQ-d00087 | Core Repo Reference Configuration                  | dev-sponsor-repos.md           | 2f2f7a26 |
+| REQ-d00088 | Sponsor Requirement Namespace Validation           | dev-sponsor-repos.md           | bfec100c |
+| REQ-d00089 | Cross-Repository Traceability                      | dev-sponsor-repos.md           | e0ee0f65 |
+| REQ-d00090 | Development Environment Installation Qualification | dev-environment.md             | f170b97a |
+| REQ-d00091 | Development Environment Operational Qualification  | dev-environment.md             | 1c2e52c9 |
+| REQ-d00092 | Development Environment Performance Qualification  | dev-environment.md             | fcb5c6ba |
+| REQ-d00093 | Development Environment Change Control             | dev-environment.md             | d0a9c48d |
+| REQ-d00094 | Linking Code Entry Interface                       | dev-diary-app-linking.md       | dae36394 |
+| REQ-d00095 | Linking Code Input Validation                      | dev-diary-app-linking.md       | d124cbf4 |
+| REQ-d00096 | Enrollment Token Secure Storage                    | dev-diary-app-linking.md       | 2f2321ae |
+| REQ-d00097 | Token Lifecycle and Network Resilience             | dev-diary-app-linking.md       | 8b7af588 |
+| REQ-d00098 | Token Invalidation on Disconnection                | dev-diary-app-linking.md       | 654a51e8 |
+| REQ-d00099 | Linking Code Error Handling                        | dev-diary-app-linking.md       | 3a1f9cc5 |
+| REQ-d00100 | Network Failure Handling During Linking            | dev-diary-app-linking.md       | fe5b5e9a |
+| REQ-d00101 | Enrollment State Machine                           | dev-diary-app-linking.md       | 2505852b |
+| REQ-d00102 | Enrollment State Behaviors                         | dev-diary-app-linking.md       | ae21987f |
+| REQ-d00103 | Disconnection Detection                            | dev-diary-app-linking.md       | 0ef54680 |
+| REQ-d00104 | Contact Study Coordinator Screen                   | dev-diary-app-linking.md       | 9e53fe8a |
+| REQ-d00105 | Reconnection Recovery Path                         | dev-diary-app-linking.md       | 01389d10 |
+| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md       | 60f1a652 |
+| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md       | 888d43b7 |
+| REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md       | b9a8f91b |
+| REQ-d00109 | Portal Linking Code Validation Endpoint            | dev-portal-api.md              | bac91a72 |
+| REQ-d00110 | Linking API Error Response Strategy                | dev-portal-api.md              | 39ae2a18 |
+| REQ-d00111 | Linking API Audit Trail                            | dev-portal-api.md              | 90a41f24 |
+| REQ-d00112 | Enrollment Token Revocation                        | dev-portal-api.md              | e8863441 |
+| REQ-d00113 | Deleted Questionnaire Submission Handling          | dev-questionnaire.md           | 6aaa85fd |
+| REQ-d00114 | Sync Request Device Binding Verification           | dev-portal-api.md              | b1a11feb |
 
 ## User Journeys
 
-| ID                           | Title                                                     | Actor                                                                            | File                                   |
-| ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------- |
-| JNY-Epistaxis-Diary-01       | Recording a Nosebleed Event                               | James (Patient)                                                                  | epistaxis-diary-journeys.md            |
-| JNY-Epistaxis-Diary-02       | Recording a Day Without Nosebleeds                        | James (Patient)                                                                  | epistaxis-diary-journeys.md            |
-| JNY-Epistaxis-Diary-03       | Recording When Memory Is Uncertain                        | Sarah (Patient)                                                                  | epistaxis-diary-journeys.md            |
-| JNY-Epistaxis-Diary-04       | Editing a Previous Record                                 | James (Patient)                                                                  | epistaxis-diary-journeys.md            |
-| JNY-HHT-QoL-01               | Completing the Quality of Life Assessment                 | Sarah (Patient)                                                                  | quality-of-life-assessment-journeys.md |
-| JNY-NOSE-HHT-01              | Completing the NOSE HHT Assessment                        | Maria (Patient)                                                                  | nose-hht-assessment-journeys.md        |
-| JNY-Portal-Linking-01        | Link New Patient                                          | Dr. Sarah Mitchell (Investigator)                                                | portal-linking-journeys.md             |
-| JNY-Portal-Linking-02        | Lost Mobile Phone Recovery                                | Dr. Sarah Mitchell (Investigator)                                                | portal-linking-journeys.md             |
-| JNY-Questionnaire-Session-01 | Deferring a Questionnaire                                 | Maria (Patient)                                                                  | questionnaire-session-journeys.md      |
-| JNY-Questionnaire-Session-02 | Session Expiry After Interruption                         | Maria (Patient)                                                                  | questionnaire-session-journeys.md      |
-| JNY-Study-Start-01           | Enrolling in a Clinical Trial                             | Maria (Patient)                                                                  | clinical-trial-enrollment-journeys.md  |
-| JNY-portal-admin-00          | First Admin Activation                                    | Dr. Lisa Chen (Principal Investigator, designated as first system administrator) | prd-portal-administration.md           |
-| JNY-portal-admin-01          | Admin Creates New User                                    | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-admin-02          | Admin Modifies User Access                                | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-admin-03          | Admin Deactivates Former Employee                         | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-admin-04          | Admin Reactivates Returning User                          | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-admin-05          | Admin Resends Activation Email                            | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-admin-06          | Admin Deactivates Another Admin                           | David (System Admin)                                                             | prd-portal-administration.md           |
-| JNY-portal-audit-01          | Study Coordinator Reviews Own Actions                     | Sarah (Study Coordinator at Site 101)                                            | prd-portal-audit-logs.md               |
-| JNY-portal-audit-02          | CRA Monitors Site Activities                              | Michael (CRA monitoring 5 sites)                                                 | prd-portal-audit-logs.md               |
-| JNY-portal-audit-03          | Admin Reviews Account Changes                             | David (System Admin)                                                             | prd-portal-audit-logs.md               |
-| JNY-portal-auth-01           | New User Account Activation                               | Maria (newly hired Study Coordinator)                                            | prd-portal-authentication.md           |
-| JNY-portal-auth-02           | User Resets Forgotten Password                            | John (Study Coordinator)                                                         | prd-portal-authentication.md           |
-| JNY-portal-auth-03           | Session Management and Timeout                            | Sarah (Study Coordinator)                                                        | prd-portal-authentication.md           |
-| JNY-portal-auth-04           | User with Multiple Failed Login Attempts                  | Jeff (Study Coordinator)                                                         | prd-portal-authentication.md           |
-| JNY-portal-config-01         | Study Coordinator Responds to Data Sync Compliance Alert  | John (Study Coordinator at Site 202)                                             | prd-portal-system-configuration.md     |
-| JNY-portal-monitoring-01     | CRA Reviews Assigned Sites                                | Michael (CRA monitoring 5 sites)                                                 | prd-portal-monitoring.md               |
-| JNY-portal-monitoring-02     | CRA Navigates to Site Detail                              | Michael (CRA monitoring 5 sites)                                                 | prd-portal-monitoring.md               |
-| JNY-portal-patient-01        | Study Coordinator Initial Patient Linking and Trial Start | John (Study Coordinator at Site 202)                                             | prd-portal-patient-workflows.md        |
-| JNY-portal-patient-02        | Study Coordinator Views Linking Code                      | ** Sarah (Study Coordinator at Site 101)                                         | prd-portal-patient-workflows.md        |
-| JNY-portal-patient-03        | Study Coordinator Disconnects Patient                     | Sarah (Study Coordinator at Site 101)                                            | prd-portal-patient-workflows.md        |
-| JNY-portal-patient-04        | Study Coordinator Reconnects Patient                      | John (Study Coordinator at Site 202)                                             | prd-portal-patient-workflows.md        |
-| JNY-portal-patient-05        | Study Coordinator Marks Patient as Not Participating      | Sarah (Study Coordinator at Site 101)                                            | prd-portal-patient-workflows.md        |
-| JNY-portal-patient-06        | Study Coordinator Reactivates Patient                     | John (Study Coordinator at Site 202)                                             | prd-portal-patient-workflows.md        |
-| JNY-portal-questionnaire-01  | Study Coordinator Starts Trial (Sends EQ)                 | John (Study Coordinator at Site 202)                                             | prd-portal-questionnaire-workflows.md  |
-| JNY-portal-questionnaire-02  | Study Coordinator Sends Nose/QoL Questionnaires           | Sarah (Study Coordinator at Site 101)                                            | prd-portal-questionnaire-workflows.md  |
-| JNY-portal-questionnaire-03  | Study Coordinator Finalizes Completed Questionnaire       | Sarah (Study Coordinator at Site 101)                                            | prd-portal-questionnaire-workflows.md  |
+| ID                           | Title                                     | Actor                             | File                                   |
+| ---------------------------- | ----------------------------------------- | --------------------------------- | -------------------------------------- |
+| JNY-Epistaxis-Diary-01       | Recording a Nosebleed Event               | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-02       | Recording a Day Without Nosebleeds        | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-03       | Recording When Memory Is Uncertain        | Sarah (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-Epistaxis-Diary-04       | Editing a Previous Record                 | James (Patient)                   | epistaxis-diary-journeys.md            |
+| JNY-HHT-QoL-01               | Completing the Quality of Life Assessment | Sarah (Patient)                   | quality-of-life-assessment-journeys.md |
+| JNY-NOSE-HHT-01              | Completing the NOSE HHT Assessment        | Maria (Patient)                   | nose-hht-assessment-journeys.md        |
+| JNY-Portal-Linking-01        | Link New Patient                          | Dr. Sarah Mitchell (Investigator) | portal-linking-journeys.md             |
+| JNY-Portal-Linking-02        | Lost Mobile Phone Recovery                | Dr. Sarah Mitchell (Investigator) | portal-linking-journeys.md             |
+| JNY-Questionnaire-Session-01 | Deferring a Questionnaire                 | Maria (Patient)                   | questionnaire-session-journeys.md      |
+| JNY-Questionnaire-Session-02 | Session Expiry After Interruption         | Maria (Patient)                   | questionnaire-session-journeys.md      |
+| JNY-Study-Start-01           | Enrolling in a Clinical Trial             | Maria (Patient)                   | clinical-trial-enrollment-journeys.md  |
