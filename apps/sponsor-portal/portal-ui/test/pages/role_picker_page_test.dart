@@ -135,7 +135,7 @@ Future<void> _pumpRolePickerPage(
 
 void main() {
   group('RolePickerPage', () {
-    testWidgets('shows welcome message with user name', (tester) async {
+    testWidgets('shows welcome message with user name ', (tester) async {
       await _pumpRolePickerPage(tester);
       expect(find.text('Welcome, Multi Role User'), findsOneWidget);
       expect(find.text('Select a role to continue'), findsOneWidget);
