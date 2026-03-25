@@ -170,4 +170,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ secrets.SLACK_CHANNEL_TEST }}"
-            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Commit:* `${GITHUB_SHA::7}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Commit:* `${{ github.sha }}`\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
