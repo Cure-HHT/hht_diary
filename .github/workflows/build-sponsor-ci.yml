@@ -1,0 +1,185 @@
+---
+# Shared sponsor-ci image build
+# Phase A: core repo publishes a source+dependencies image for sponsor repos to inherit
+
+name: Build sponsor-ci
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/common-dart/**'
+      - 'apps/edc/**'
+      - 'apps/sponsor-portal/**'
+      - 'apps/daily-diary/**'
+      - 'tools/dev-env/docker/sponsor-ci.Dockerfile'
+      - '.github/workflows/build-sponsor-ci.yml'
+      - '.github/versions.env'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'melos.yaml'
+      - 'analysis_options.yaml'
+      - 'dart_test.yaml'
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version to tag (example: v1.2.3)'
+        required: false
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: cure-hht/sponsor-ci
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-sponsor-ci:
+    name: Build sponsor-ci image
+    runs-on: ubuntu-22.04
+
+    outputs:
+      image_tag: ${{ steps.parse.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.parse.outputs.version }}
+
+    steps:
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine tags
+        id: parse
+        run: |
+          set -euo pipefail
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IS_MAIN_PUSH=false
+          IS_DISPATCH=false
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            RAW_TAG="${{ github.event.inputs.version }}"
+            IS_DISPATCH=true
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+          else
+            RAW_TAG="${SHORT_SHA}"
+            IS_MAIN_PUSH=true
+          fi
+
+          VERSION="${RAW_TAG#v}"
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${VERSION}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+
+          if [ "$IS_MAIN_PUSH" = "true" ]; then
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
+          fi
+
+          if [ "$IS_DISPATCH" = "true" ]; then
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:manual"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=main-latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build and push sponsor-ci image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: tools/dev-env/docker/sponsor-ci.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.parse.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}:buildcache,mode=max
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+  validate-sponsor-ci:
+    name: Validate sponsor-ci contents
+    runs-on: ubuntu-22.04
+    needs: [build-sponsor-ci]
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate expected contents
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}"
+
+          docker run --rm "$IMAGE" bash -lc '
+            set -euo pipefail
+
+            test -d /workspace/src/apps/sponsor-portal/portal_functions
+            test -d /workspace/src/apps/sponsor-portal/portal_server
+            test -d /workspace/src/apps/sponsor-portal/portal-ui
+            test -d /workspace/src/apps/daily-diary/diary_functions
+            test -d /workspace/src/apps/daily-diary/diary_server
+            test -d /workspace/src/apps/common-dart/trial_data_types
+
+            test ! -d /workspace/src/sponsor-content
+            test ! -f /workspace/src/apps/sponsor-portal/portal_server/bin/server
+            test ! -d /workspace/src/apps/sponsor-portal/portal-ui/build/web
+          '
+
+      - name: Write summary
+        run: |
+          {
+            echo "# sponsor-ci Build Summary"
+            echo ""
+            echo "- Image: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}\`"
+            echo "- Version: \`${{ needs.build-sponsor-ci.outputs.version }}\`"
+            echo "- Contains shared source + resolved dependencies"
+            echo "- Excludes sponsor content and compiled outputs"
+          } >> "$GITHUB_STEP_SUMMARY"
