@@ -177,6 +177,11 @@ on:
           - internal
           - external
           - release
+      release_notes:
+        description: "Release notes / changelog (required for App Store release)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -247,6 +252,7 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           DEPLOYMENT_TARGET: ${{ inputs.deployment }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
@@ -272,3 +278,8 @@ jobs:
           echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.deployment }}" = "release" ] && [ -n "${{ inputs.release_notes }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
+            echo "${{ inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
+          fi

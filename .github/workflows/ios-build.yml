@@ -15,13 +15,27 @@ on:
           - dev
           - qa
           - prod
+      deployment:
+        description: "Deployment target"
+        required: true
+        type: choice
+        options:
+          - none
+          - internal
+          - external
+          - release
+      release_notes:
+        description: "Release notes / changelog (required for App Store release)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26
 
     steps:
       - name: Checkout repository
@@ -51,9 +65,16 @@ jobs:
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: apps/daily-diary/clinical_diary/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
       - name: Install CocoaPods dependencies
         working-directory: apps/daily-diary/clinical_diary/ios
-        run: pod install
+        run: bundle exec pod install
 
       - name: Run Flutter analyze
         working-directory: apps/daily-diary/clinical_diary
@@ -77,10 +98,12 @@ jobs:
         working-directory: apps/daily-diary/clinical_diary/ios
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DEPLOYMENT_TARGET: ${{ inputs.deployment }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config ops \
+            --config dev \
             -- bundle exec fastlane build_${{ inputs.flavor }}
 
       - name: Upload IPA artifact
@@ -97,7 +120,13 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment** | ${{ inputs.deployment }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.deployment }}" = "release" ] && [ -n "${{ inputs.release_notes }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
+            echo "${{ inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
+          fi

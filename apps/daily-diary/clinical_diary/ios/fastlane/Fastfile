@@ -106,23 +106,35 @@ platform :ios do
         key_filepath: api_key_path
       )
 
-      testflight_opts = {
-        api_key: api_key,
-        skip_waiting_for_build_processing: true
-      }
-
       case deployment
       when "internal"
-        testflight_opts[:distribute_external] = false
-        testflight_opts[:groups] = ["Internal Testing"]
+        upload_to_testflight(
+          api_key: api_key,
+          skip_waiting_for_build_processing: true,
+          distribute_external: false,
+          groups: ["Internal Testing"]
+        )
       when "external"
-        testflight_opts[:distribute_external] = true
-        testflight_opts[:groups] = ["External Testing"]
+        upload_to_testflight(
+          api_key: api_key,
+          skip_waiting_for_build_processing: true,
+          distribute_external: true,
+          groups: ["External Testing"]
+        )
       when "release"
-        testflight_opts[:skip_submission] = false
+        release_notes = ENV["RELEASE_NOTES"] || ""
+        upload_to_app_store(
+          api_key: api_key,
+          ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+          skip_metadata: false,
+          skip_screenshots: true,
+          release_notes: { "en-US" => release_notes },
+          submit_for_review: true,
+          automatic_release: false,
+          force: true,
+          precheck_include_in_app_purchases: false
+        )
       end
-
-      upload_to_testflight(testflight_opts)
     end
   end
 end
