@@ -49,7 +49,6 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
-import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
