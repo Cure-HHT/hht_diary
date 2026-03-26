@@ -5,6 +5,11 @@
 name: iOS Build & Store Artifact
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+      - '.github/workflows/ios-build.yml'
   workflow_dispatch:
     inputs:
       flavor:
@@ -94,23 +99,23 @@ jobs:
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Build iOS ${{ inputs.flavor }} with Fastlane
+      - name: Build iOS ${{ inputs.flavor || 'dev' }} with Fastlane
         working-directory: apps/daily-diary/clinical_diary/ios
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-          DEPLOYMENT_TARGET: ${{ inputs.deployment }}
-          RELEASE_NOTES: ${{ inputs.release_notes }}
+          DEPLOYMENT_TARGET: ${{ inputs.deployment || 'internal' }}
+          RELEASE_NOTES: ${{ inputs.release_notes || '' }}
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
             --config dev \
-            -- bundle exec fastlane build_${{ inputs.flavor }}
+            -- bundle exec fastlane build_${{ inputs.flavor || 'dev' }}
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}-${{ github.sha }}.ipa
-          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ inputs.flavor }}.ipa
+          name: clinical-diary-${{ inputs.flavor || 'dev' }}-${{ steps.version.outputs.version }}-${{ github.sha }}.ipa
+          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ inputs.flavor || 'dev' }}.ipa
           retention-days: 90
 
       - name: Build summary
@@ -119,20 +124,20 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Deployment** | ${{ inputs.deployment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Flavor** | ${{ inputs.flavor || 'dev' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment** | ${{ inputs.deployment || 'internal' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Artifact** | clinical-diary-${{ inputs.flavor }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Artifact** | clinical-diary-${{ inputs.flavor || 'dev' }}-${{ steps.version.outputs.version }}.ipa |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.deployment }}" = "release" ] && [ -n "${{ inputs.release_notes }}" ]; then
+          if [ "${{ inputs.deployment || 'internal' }}" = "release" ] && [ -n "${{ inputs.release_notes || '' }}" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
-            echo "${{ inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
+            echo "${{ inputs.release_notes || '' }}" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Notify Slack
-        if: inputs.deployment != 'none'
+        if: (inputs.deployment || 'internal') != 'none'
         uses: slackapi/slack-github-action@v2.1.1
         with:
           method: chat.postMessage
@@ -140,4 +145,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ secrets.SLACK_DEVOPS_CHANNEL }}"
-            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor }}\n*Deployment:* ${{ inputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ inputs.release_notes != '' && format('*Release Notes:*\n{0}\n', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Deployment:* ${{ inputs.deployment || 'internal' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ (inputs.release_notes || '') != '' && format('*Release Notes:*\n{0}\n', inputs.release_notes || '') || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"

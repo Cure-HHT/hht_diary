@@ -5,6 +5,11 @@
 name: Android Build & Store Artifact
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+      - '.github/workflows/android-dev-deploy.yml'
   workflow_dispatch:
     inputs:
       flavor:
@@ -93,20 +98,20 @@ jobs:
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Build signed Android ${{ inputs.flavor }}
+      - name: Build signed Android ${{ inputs.flavor || 'dev' }}
         working-directory: apps/daily-diary/clinical_diary
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config ${{ inputs.flavor }} \
-            -- bash ./tool/build_android_${{ inputs.flavor }}_signed.sh
+            --config ${{ inputs.flavor || 'dev' }} \
+            -- bash ./tool/build_android_${{ inputs.flavor || 'dev' }}_signed.sh
 
       - name: Determine artifact path
         id: artifact
         run: |
-          FLAVOR="${{ inputs.flavor }}"
+          FLAVOR="${{ inputs.flavor || 'dev' }}"
           if [ "$FLAVOR" = "prod" ]; then
             echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/prodRelease/app-prod-release.aab" >> "$GITHUB_OUTPUT"
             echo "name=clinical-diary-prod-${{ steps.version.outputs.version }}-${GITHUB_SHA::7}.aab" >> "$GITHUB_OUTPUT"
@@ -125,10 +130,10 @@ jobs:
       - name: Determine package name
         id: package
         run: |
-          if [ "${{ inputs.flavor }}" = "prod" ]; then
+          if [ "${{ inputs.flavor || 'dev' }}" = "prod" ]; then
             echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
           else
-            echo "name=org.anspar.curehht.app.${{ inputs.flavor }}" >> "$GITHUB_OUTPUT"
+            echo "name=org.anspar.curehht.app.${{ inputs.flavor || 'dev' }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Authenticate to Google Cloud
@@ -145,8 +150,8 @@ jobs:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           packageName: ${{ steps.package.outputs.name }}
           releaseFiles: ${{ steps.artifact.outputs.path }}
-          track: ${{ inputs.track }}
-          status: ${{ inputs.status }}
+          track: ${{ inputs.track || 'internal' }}
+          status: ${{ inputs.status || 'completed' }}
 
       - name: Build summary
         run: |
@@ -154,11 +159,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Flavor** | ${{ inputs.flavor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Flavor** | ${{ inputs.flavor || 'dev' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Package** | ${{ steps.package.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Artifact** | ${{ steps.artifact.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Play Store** | ${{ inputs.track }} track (${{ inputs.status }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Play Store** | ${{ inputs.track || 'internal' }} track (${{ inputs.status || 'completed' }}) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${GITHUB_SHA::7} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
 
@@ -170,4 +175,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ secrets.SLACK_DEVOPS_CHANNEL }}"
-            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track }} track (${{ inputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ inputs.track || 'internal' }} track (${{ inputs.status || 'completed' }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
