@@ -19,17 +19,21 @@ class HealthCheckRequest extends $pb.GeneratedMessage {
     return result;
   }
   HealthCheckRequest._() : super();
-  factory HealthCheckRequest.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
+  factory HealthCheckRequest.fromBuffer(
+    $core.List<$core.int> i, [
+    $pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY,
+  ]) => create()..mergeFromBuffer(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'HealthCheckRequest',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'grpc.health.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'service')
-    ..hasRequiredFields = false;
+  static final $pb.BuilderInfo _i =
+      $pb.BuilderInfo(
+          _omitMessageNames ? '' : 'HealthCheckRequest',
+          package: const $pb.PackageName(
+            _omitMessageNames ? '' : 'grpc.health.v1',
+          ),
+          createEmptyInstance: create,
+        )
+        ..aOS(1, _omitFieldNames ? '' : 'service')
+        ..hasRequiredFields = false;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -59,14 +63,22 @@ class HealthCheckRequest extends $pb.GeneratedMessage {
 
 /// ServingStatus enum for HealthCheckResponse
 class ServingStatus extends $pb.ProtobufEnum {
-  static const ServingStatus UNKNOWN =
-      ServingStatus._(0, _omitEnumNames ? '' : 'UNKNOWN');
-  static const ServingStatus SERVING =
-      ServingStatus._(1, _omitEnumNames ? '' : 'SERVING');
-  static const ServingStatus NOT_SERVING =
-      ServingStatus._(2, _omitEnumNames ? '' : 'NOT_SERVING');
-  static const ServingStatus SERVICE_UNKNOWN =
-      ServingStatus._(3, _omitEnumNames ? '' : 'SERVICE_UNKNOWN');
+  static const ServingStatus UNKNOWN = ServingStatus._(
+    0,
+    _omitEnumNames ? '' : 'UNKNOWN',
+  );
+  static const ServingStatus SERVING = ServingStatus._(
+    1,
+    _omitEnumNames ? '' : 'SERVING',
+  );
+  static const ServingStatus NOT_SERVING = ServingStatus._(
+    2,
+    _omitEnumNames ? '' : 'NOT_SERVING',
+  );
+  static const ServingStatus SERVICE_UNKNOWN = ServingStatus._(
+    3,
+    _omitEnumNames ? '' : 'SERVICE_UNKNOWN',
+  );
 
   static const $core.List<ServingStatus> values = <ServingStatus>[
     UNKNOWN,
@@ -90,20 +102,28 @@ class HealthCheckResponse extends $pb.GeneratedMessage {
     return result;
   }
   HealthCheckResponse._() : super();
-  factory HealthCheckResponse.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
+  factory HealthCheckResponse.fromBuffer(
+    $core.List<$core.int> i, [
+    $pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY,
+  ]) => create()..mergeFromBuffer(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'HealthCheckResponse',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'grpc.health.v1'),
-      createEmptyInstance: create)
-    ..e<ServingStatus>(1, _omitFieldNames ? '' : 'status', $pb.PbFieldType.OE,
-        defaultOrMaker: ServingStatus.UNKNOWN,
-        valueOf: ServingStatus.valueOf,
-        enumValues: ServingStatus.values)
-    ..hasRequiredFields = false;
+  static final $pb.BuilderInfo _i =
+      $pb.BuilderInfo(
+          _omitMessageNames ? '' : 'HealthCheckResponse',
+          package: const $pb.PackageName(
+            _omitMessageNames ? '' : 'grpc.health.v1',
+          ),
+          createEmptyInstance: create,
+        )
+        ..e<ServingStatus>(
+          1,
+          _omitFieldNames ? '' : 'status',
+          $pb.PbFieldType.OE,
+          defaultOrMaker: ServingStatus.UNKNOWN,
+          valueOf: ServingStatus.valueOf,
+          enumValues: ServingStatus.values,
+        )
+        ..hasRequiredFields = false;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -132,6 +152,7 @@ class HealthCheckResponse extends $pb.GeneratedMessage {
 }
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames =
-    $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames = $core.bool.fromEnvironment(
+  'protobuf.omit_message_names',
+);
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

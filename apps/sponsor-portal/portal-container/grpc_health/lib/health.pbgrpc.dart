@@ -22,20 +22,28 @@ abstract class HealthServiceBase extends $grpc.Service {
   $core.String get $name => 'grpc.health.v1.Health';
 
   HealthServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.HealthCheckRequest, $0.HealthCheckResponse>(
+    $addMethod(
+      $grpc.ServiceMethod<$0.HealthCheckRequest, $0.HealthCheckResponse>(
         'Check',
         check_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.HealthCheckRequest.fromBuffer(value),
-        ($0.HealthCheckResponse value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) =>
+            $0.HealthCheckRequest.fromBuffer(value),
+        ($0.HealthCheckResponse value) => value.writeToBuffer(),
+      ),
+    );
   }
 
   $async.Future<$0.HealthCheckResponse> check_Pre(
-      $grpc.ServiceCall call, $async.Future<$0.HealthCheckRequest> request) async {
+    $grpc.ServiceCall call,
+    $async.Future<$0.HealthCheckRequest> request,
+  ) async {
     return check(call, await request);
   }
 
   $async.Future<$0.HealthCheckResponse> check(
-      $grpc.ServiceCall call, $0.HealthCheckRequest request);
+    $grpc.ServiceCall call,
+    $0.HealthCheckRequest request,
+  );
 }
