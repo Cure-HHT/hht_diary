@@ -55,7 +55,11 @@ Regulatory agencies require long-term retention of clinical trial data to suppor
 
 A. The platform SHALL use libraries for common operations.
 
-*End* *Compliance Systems* | **Hash**: 418d48b6
+B. The system SHALL use continuous integration and deployment
+
+C. The system SHALL define **promotion gates** for deployment to each **operating environment**.
+
+*End* *Compliance Systems* | **Hash**: d5afe3ec
 ---
 # Clinical Trial Compliance Requirements
 

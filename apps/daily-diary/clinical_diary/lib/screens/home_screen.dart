@@ -1062,6 +1062,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         );
+                        await _checkEnrollmentStatus();
+                        if (_isEnrolled) {
+                          widget.onEnrolled?.call();
+                        }
+                        await _checkDisconnectionStatus();
                       }
                     },
                     itemBuilder: (context) {

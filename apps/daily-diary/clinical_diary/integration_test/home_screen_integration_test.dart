@@ -2333,6 +2333,122 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // CUR-1063: Post-enrollment state refresh
+  // ---------------------------------------------------------------------------
+  group('CUR-1063: Active status and tasks after enrollment', () {
+    testWidgets(
+      'popup menu enrollment path refreshes enrollment status and calls onEnrolled',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Ignore overflow errors from popup menu long text
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        SharedPreferences.setMockInitialValues({});
+
+        // Mock enrollment service starts UNENROLLED
+        final mockEnrollment = MockEnrollmentService()
+          ..jwtToken = null
+          ..backendUrl = null;
+
+        final mockHttp = MockClient(
+          (_) async => http.Response('{"success": true}', 200),
+        );
+
+        var onEnrolledCalled = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: HomeScreen(
+              nosebleedService: NosebleedService(
+                enrollmentService: mockEnrollment,
+                httpClient: mockHttp,
+                enableCloudSync: false,
+              ),
+              enrollmentService: mockEnrollment,
+              authService: AuthService(httpClient: mockHttp),
+              taskService: TaskService(),
+              preferencesService: PreferencesService(),
+              onLocaleChanged: (_) {},
+              onThemeModeChanged: (_) {},
+              onLargerTextChanged: (_) {},
+              onEnrolled: () => onEnrolledCalled = true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // --- Verify initial state: user is NOT enrolled ---
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Account'),
+          findsNothing,
+          reason: 'Account menu should be hidden when not enrolled',
+        );
+        // Close menu
+        await tester.tapAt(Offset.zero);
+        await tester.pumpAndSettle();
+
+        // --- Navigate to enrollment screen via popup menu ---
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Enroll in Clinical Trial'));
+        await tester.pumpAndSettle();
+
+        // Simulate successful enrollment by flipping mock state
+        mockEnrollment
+          ..jwtToken = 'enrolled-jwt'
+          ..backendUrl = 'https://test.example.com';
+
+        // Return to home screen (back button on enrollment screen)
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
+
+        // --- Verify post-enrollment state ---
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // BUG CUR-1063: popup menu enrollment path does not call
+        // _checkEnrollmentStatus() after navigation returns, so the
+        // Account menu item never appears and Active status is stale.
+        expect(
+          find.text('Account'),
+          findsOneWidget,
+          reason: 'Account menu should appear after enrollment',
+        );
+
+        // BUG CUR-1063: popup menu enrollment path does not call
+        // widget.onEnrolled(), so task sync and FCM registration
+        // never happen — questionnaires are not fetched.
+        expect(
+          onEnrolledCalled,
+          isTrue,
+          reason: 'onEnrolled must be called to trigger task sync',
+        );
+      },
+    );
+  });
 }
 
 /// Helper to wrap widget with MaterialApp and localization support
