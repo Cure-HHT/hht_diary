@@ -76,6 +76,18 @@ RUN dart pub get && \
       > /app/SERVER_VERSIONS
 
 # =============================================================================
+# Stage 2b: Build gRPC Health Server
+# =============================================================================
+FROM ${DART_BASE_IMAGE} AS grpc-health-build
+
+# Copy gRPC health check server package
+COPY --chown=appuser:appuser apps/sponsor-portal/portal-container/grpc_health /app/grpc_health
+
+WORKDIR /app/grpc_health
+RUN dart pub get && \
+    dart compile exe bin/server.dart -o bin/grpc_health_server
+
+# =============================================================================
 # Stage 3a: Download Doppler CLI
 # =============================================================================
 FROM ${DEBIAN_IMAGE} AS doppler-download
@@ -141,6 +153,9 @@ COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/se
 COPY --from=dart-build /app/SERVER_VERSIONS /app/SERVER_VERSIONS
 COPY --from=flutter-build /app/UI_VERSION /app/UI_VERSION
 
+# Copy gRPC health server binary
+COPY --from=grpc-health-build /app/grpc_health/bin/grpc_health_server /app/grpc_health_server
+
 # Copy Flutter web build
 COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
 
@@ -170,8 +185,9 @@ ENV DOPPLER_CONFIG_NAME=""
 USER appuser
 
 # Health check via nginx (proxies to Dart /health endpoint)
+# Uses --http2-prior-knowledge because nginx listens in HTTP/2 (h2c) mode
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl --http2-prior-knowledge -f http://localhost:8080/health || exit 1
 
 # Labels for container registry
 LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"

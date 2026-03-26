@@ -24,6 +24,11 @@ export PORT=8081
 # Function to handle shutdown signals
 cleanup() {
     echo "Shutting down..."
+    # Kill the gRPC health server if running
+    if [ -n "$GRPC_HEALTH_PID" ]; then
+        kill -TERM "$GRPC_HEALTH_PID" 2>/dev/null || true
+        wait "$GRPC_HEALTH_PID" 2>/dev/null || true
+    fi
     # Kill the Dart server if running
     if [ -n "$DART_PID" ]; then
         kill -TERM "$DART_PID" 2>/dev/null || true
@@ -142,6 +147,15 @@ if ! curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
     exit 8
 fi
 
+# Start gRPC health server (responds to Cloud Run gRPC liveness probes)
+# nginx proxies gRPC health checks from port 8080 to this server on 50051
+echo "Starting gRPC health server on port 50051..."
+/app/grpc_health_server &
+GRPC_HEALTH_PID=$!
+
 # Start nginx in foreground (receives external traffic on port 8080)
-echo "Starting nginx on port 8080..."
+# nginx speaks HTTP/2 (h2c) and routes:
+#   - gRPC health checks -> grpc_health_server:50051
+#   - HTTP requests      -> dart_server:8081 or static files
+echo "Starting nginx on port 8080 (HTTP/2)..."
 exec nginx -g 'daemon off;'
