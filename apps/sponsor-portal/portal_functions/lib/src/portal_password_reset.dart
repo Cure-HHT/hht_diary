@@ -18,29 +18,10 @@ import 'package:googleapis_auth/auth_io.dart';
 
 import 'database.dart';
 import 'email_service.dart';
+import 'portal_activation.dart' show getPortalBaseUrl;
 
 /// Google Identity Platform REST API base URL
 const _identityApiUrl = 'https://identitytoolkit.googleapis.com/v1';
-
-/// Extract portal base URL from request headers.
-/// Prefers Origin header (set by browser on CORS requests),
-/// falls back to Referer, then PORTAL_URL env var.
-String _getPortalBaseUrl(Request request) {
-  final origin = request.headers['origin'];
-  if (origin != null && origin.isNotEmpty) {
-    return origin;
-  }
-  final referer = request.headers['referer'];
-  if (referer != null && referer.isNotEmpty) {
-    final uri = Uri.tryParse(referer);
-    if (uri != null && uri.hasScheme && uri.hasAuthority) {
-      return '${uri.scheme}://${uri.authority}';
-    }
-  }
-  return Platform.environment['PORTAL_URL'] ??
-      Platform.environment['PORTAL_BASE_URL'] ??
-      'http://localhost:8084';
-}
 
 /// Get access token for Identity Platform API
 ///
@@ -226,7 +207,10 @@ Future<Response> requestPasswordResetHandler(Request request) async {
 
     // Generate password reset link using Identity Platform's native oobCode
     print('[PASSWORD_RESET] Generating reset link for: $normalizedEmail');
-    final portalUrl = _getPortalBaseUrl(request);
+    final portalUrl = getPortalBaseUrl(
+      request,
+      portalUrlEnv: Platform.environment['PORTAL_URL'],
+    );
     final resetLink = await _generatePasswordResetLink(
       normalizedEmail,
       portalUrl,
