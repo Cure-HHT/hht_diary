@@ -1,0 +1,13 @@
+# Squawk configuration for PostgreSQL linting
+# These rules are excluded because schema.sql is an initial schema file,
+# not a migration on a live database:
+# - require-concurrent-index-creation: CONCURRENTLY can't run in a transaction
+# - prefer-robust-stmts: IF NOT EXISTS / transaction wrapping not needed for initial schema
+# - prefer-identity: BIGSERIAL is fine for initial schema (IDENTITY matters for migrations)
+# - prefer-bigint-over-int: INTEGER is intentional for bounded values (scores, versions, counts)
+excluded_rules = [
+    "require-concurrent-index-creation",
+    "prefer-robust-stmts",
+    "prefer-identity",
+    "prefer-bigint-over-int",
+]
