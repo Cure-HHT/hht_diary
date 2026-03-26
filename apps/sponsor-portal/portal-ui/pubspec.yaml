@@ -5,11 +5,8 @@
 
 name: sponsor_portal_ui
 description: Clinical Trial Sponsor Web Portal
-<<<<<<< fix/CUR-1070-sponsor-role-names
 version: 1.0.9+34
-=======
-version: 1.0.8+33
->>>>>>> main
+
 
 environment:
   sdk: ^3.10.7
