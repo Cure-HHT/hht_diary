@@ -16,7 +16,9 @@ import 'package:grpc_health/health.pbgrpc.dart';
 class HealthService extends HealthServiceBase {
   @override
   Future<HealthCheckResponse> check(
-      ServiceCall call, HealthCheckRequest request) async {
+    ServiceCall call,
+    HealthCheckRequest request,
+  ) async {
     return HealthCheckResponse()..status = ServingStatus.SERVING;
   }
 }
