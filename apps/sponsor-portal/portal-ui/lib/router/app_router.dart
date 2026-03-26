@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sponsor_portal_ui/pages/common_dashboard.dart';
+import 'package:sponsor_portal_ui/services/auth_service.dart';
 
 import '../pages/activation_page.dart';
 import '../pages/admin/admin_dashboard_page.dart';
@@ -103,6 +105,13 @@ final appRouter = GoRouter(
       path: '/sponsor',
       name: 'sponsor',
       builder: (context, state) => const SponsorDashboardPage(),
+    ),
+    GoRoute(
+      path: '/common-dashboard',
+      builder: (context, state) {
+        final role = state.extra as UserRole?;
+        return CommonDashboard(role: role);
+      },
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

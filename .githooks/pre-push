@@ -11,8 +11,7 @@
 #   - Creating/updating PR: Handled by gh pr create hooks
 #
 # Validation Scripts:
-#   - elspais validate: REQ format and links
-#   - elspais index validate: INDEX.md accuracy
+#   - elspais health --spec: REQ format, links, and INDEX accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
 #   - ./tool/test.sh: Dart and TypeScript tests (per app)
@@ -168,12 +167,12 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     fi
 fi
 
-# Run elspais validate (REQ format and links)
+# Run elspais health --spec (REQ format, links, and INDEX accuracy)
 printf '%b\n' "${BLUE}Running requirement validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais validate --mode core 2>&1); then
+    if ! OUTPUT=$(elspais health --spec 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
@@ -182,25 +181,6 @@ if command -v elspais &> /dev/null; then
     fi
 else
     printf '%b\n' "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
-    VALIDATION_FAILED=true
-fi
-
-echo ""
-
-# Run elspais index validate (INDEX.md accuracy)
-printf '%b\n' "${BLUE}Running INDEX.md validation...${NC}"
-echo ""
-
-if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais index validate --mode core 2>&1); then
-        VALIDATION_FAILED=true
-        VALIDATION_OUTPUT+="$OUTPUT"
-        echo "$OUTPUT"
-    else
-        echo "$OUTPUT"
-    fi
-else
-    printf '%b\n' "${RED}ERROR: elspais not installed - INDEX.md validation is required${NC}"
     VALIDATION_FAILED=true
 fi
 

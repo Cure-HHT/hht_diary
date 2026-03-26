@@ -133,21 +133,11 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
       return;
     }
 
-    // Navigate based on active role
-    switch (user.activeRole) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-      case UserRole.administrator:
-        context.go('/admin');
-      case UserRole.investigator:
-        context.go('/investigator');
-      case UserRole.auditor:
-        context.go('/auditor');
-      case UserRole.analyst:
-        context.go('/analyst');
-      case UserRole.sponsor:
-        context.go('/sponsor');
-    }
+    _navigateToCommonDashboard(user.activeRole);
+  }
+
+  void _navigateToCommonDashboard(UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 
   void _cancelAndGoBack() {
