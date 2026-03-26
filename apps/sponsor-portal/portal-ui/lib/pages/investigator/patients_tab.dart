@@ -467,7 +467,11 @@ class _StudyCoordinatorPatientsTabState
   }
 
   DataRow _buildPatientRow(_PatientData patient, ThemeData theme) {
+    final authService = context.read<AuthService>();
+    final apiClient = widget.apiClient ?? ApiClient(authService);
+
     return DataRow(
+      onSelectChanged: (_) => _openPatientActions(patient, apiClient),
       cells: [
         // Patient ID
         DataCell(

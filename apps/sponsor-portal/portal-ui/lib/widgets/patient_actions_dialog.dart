@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00072: View Linking Code Button
 //   REQ-CAL-p00073: Patient Status Definitions
 //
 // Modal dialog showing available actions for a patient based on their status
@@ -7,6 +8,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
+import 'disconnect_patient_dialog.dart';
 import 'link_patient_dialog.dart';
 import 'mark_not_participating_dialog.dart';
 import 'reconnect_patient_dialog.dart';
@@ -198,6 +200,49 @@ class PatientActionsDialog extends StatelessWidget {
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
               );
+            },
+          ),
+        ];
+
+      // REQ-CAL-p00072: Show Linking Code for any patient with a valid code
+      // REQ-CAL-p00073 Assertion C: connected patients can view linking code
+      case 'connected':
+        return [
+          _ActionTile(
+            icon: Icons.qr_code,
+            title: 'Show Linking Code',
+            description: 'View active linking code if available',
+            onTap: () async {
+              Navigator.of(context).pop(PatientActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.link_off,
+            title: 'Disconnect Patient',
+            description: 'Disconnect patient from the mobile app',
+            iconColor: theme.colorScheme.error,
+            titleColor: theme.colorScheme.error,
+            onTap: () async {
+              final success = await DisconnectPatientDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(
+                  success
+                      ? PatientActionResult.actionTaken
+                      : PatientActionResult.cancelled,
+                );
+              }
             },
           ),
         ];
