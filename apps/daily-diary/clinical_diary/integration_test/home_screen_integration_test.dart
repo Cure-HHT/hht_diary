@@ -2382,7 +2382,6 @@ void main() {
                 enableCloudSync: false,
               ),
               enrollmentService: mockEnrollment,
-              authService: AuthService(httpClient: mockHttp),
               taskService: TaskService(),
               preferencesService: PreferencesService(),
               onLocaleChanged: (_) {},
