@@ -477,8 +477,6 @@ fi
 # skip re-bumping. This prevents infinite increments on
 # repeated commits.
 
-# NOTE: GIT_DIR/GIT_WORK_TREE already unset at top of script.
-
 # Skip bumps on main/master (already checked above, but be safe)
 if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
 

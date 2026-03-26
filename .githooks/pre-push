@@ -300,8 +300,6 @@ echo ""
 # =====================================================
 # Only run pub get, format, and analyze on apps with changed files.
 # Walk up from each changed Dart file to find the nearest pubspec.yaml.
-#
-# NOTE: GIT_DIR/GIT_WORK_TREE already unset at top of script.
 AFFECTED_APP_DIRS=""
 while IFS= read -r changed_file; do
     if [[ "$changed_file" == apps/* ]] && [[ "$changed_file" == *.dart ]]; then
