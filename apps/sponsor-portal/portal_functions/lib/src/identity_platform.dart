@@ -11,6 +11,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
+import 'package:meta/meta.dart';
 
 /// Google's public key URL for ID token verification
 const _googleCertsUrl =
@@ -96,11 +97,20 @@ class VerificationResult {
   bool get isValid => uid != null && error == null;
 }
 
+/// Test-only: Override [verifyIdToken] to bypass Identity Platform
+/// token verification for unit testing.
+/// Set to null to restore production behavior.
+@visibleForTesting
+Future<VerificationResult> Function(String idToken)? verifyIdTokenOverride;
+
 /// Verify an Identity Platform ID token
 ///
 /// Returns [VerificationResult] with uid and email on success,
 /// or error message on failure.
 Future<VerificationResult> verifyIdToken(String idToken) async {
+  if (verifyIdTokenOverride != null) {
+    return verifyIdTokenOverride!(idToken);
+  }
   final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
   print('[AUTH] verifyIdToken called');
   print('[AUTH] FIREBASE_AUTH_EMULATOR_HOST = $emulatorHost');

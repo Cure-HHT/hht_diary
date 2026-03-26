@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
+import 'package:portal_functions/src/database.dart';
+import 'package:portal_functions/src/identity_platform.dart';
 import 'package:portal_functions/src/portal_auth.dart';
 
 void main() {
@@ -568,6 +570,141 @@ void main() {
       expect(json['roles'], contains('Developer Admin'));
       expect(json['roles'], contains('Investigator'));
       expect(json['active_role'], equals('Administrator'));
+    });
+  });
+
+  // ====================================================================
+  // CUR-1021: Activated user gets 403 on /portal/me after successful auth
+  // ====================================================================
+  group('portalMeHandler - CUR-1021 activated user 403', () {
+    // Simulates an activated user: firebase_uid linked, status='active',
+    // roles in portal_user_roles (modern path, NO legacy role column).
+    const testUid = 'firebase-activated-user-uid';
+    const testEmail = 'activated@example.com';
+    const testUserId = '11110000-0000-0000-0000-000000000001';
+
+    setUp(() {
+      verifyIdTokenOverride = (token) async => VerificationResult(
+        uid: testUid,
+        email: testEmail,
+        emailVerified: true,
+      );
+    });
+
+    tearDown(() {
+      verifyIdTokenOverride = null;
+      databaseQueryOverride = null;
+    });
+
+    test(
+      'returns 200 for activated user with roles in portal_user_roles',
+      () async {
+        // Mock DB: user found by firebase_uid, active, roles in junction table
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          // 1. Lookup by firebase_uid
+          if (query.contains('FROM portal_users') &&
+              query.contains('firebase_uid')) {
+            return [
+              [
+                testUserId,
+                testUid,
+                testEmail,
+                'Activated User',
+                'active',
+                null,
+              ],
+            ];
+          }
+          // 2. Roles from portal_user_roles (modern path)
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          return [];
+        };
+
+        final request = createGetRequest(
+          '/api/v1/portal/me',
+          headers: {'authorization': 'Bearer mock-token'},
+        );
+        final response = await portalMeHandler(request);
+
+        expect(response.statusCode, equals(200));
+        final json = await getResponseJson(response);
+        expect(json['email'], equals(testEmail));
+        expect(json['roles'], contains('Administrator'));
+      },
+    );
+
+    test(
+      'returns 200 when email case differs between Firebase token and DB',
+      () async {
+        // BUG scenario: Firebase normalizes email to lowercase but DB has
+        // mixed case from user creation. After activation, firebase_uid IS
+        // set so the lookup by UID should work regardless of email case.
+        const dbEmail = 'AnsparUser2@proton.me';
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('firebase_uid')) {
+            return [
+              [testUserId, testUid, dbEmail, 'Anspar User', 'active', null],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          return [];
+        };
+
+        final request = createGetRequest(
+          '/api/v1/portal/me',
+          headers: {'authorization': 'Bearer mock-token'},
+        );
+        final response = await portalMeHandler(request);
+
+        expect(response.statusCode, equals(200));
+        final json = await getResponseJson(response);
+        expect(json['email'], equals(dbEmail));
+      },
+    );
+
+    test('returns 403 when activated user has no roles (regression)', () async {
+      // This is the suspected root cause of CUR-1021: user exists, is
+      // active, firebase_uid linked, but portal_user_roles is empty AND
+      // legacy role column is NULL.
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM portal_users') &&
+            query.contains('firebase_uid')) {
+          return [
+            [testUserId, testUid, testEmail, 'No Role User', 'active', null],
+          ];
+        }
+        // portal_user_roles returns empty
+        if (query.contains('FROM portal_user_roles')) {
+          return [];
+        }
+        // Legacy role column also NULL
+        if (query.contains('FROM portal_users') &&
+            query.contains('role') &&
+            query.contains('IS NOT NULL')) {
+          return [];
+        }
+        return [];
+      };
+
+      final request = createGetRequest(
+        '/api/v1/portal/me',
+        headers: {'authorization': 'Bearer mock-token'},
+      );
+      final response = await portalMeHandler(request);
+
+      expect(response.statusCode, equals(403));
+      final json = await getResponseJson(response);
+      expect(json['error'], contains('no assigned roles'));
     });
   });
 }
