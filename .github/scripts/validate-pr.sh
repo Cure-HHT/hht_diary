@@ -232,7 +232,7 @@ begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 if [ "$SPEC_CHANGED" = "true" ]; then
   elspais --version
 
-  elspais health
+  elspais checks
 
   # Generate traceability matrix for PR comment and artifact upload
   mkdir -p build-reports/combined/traceability

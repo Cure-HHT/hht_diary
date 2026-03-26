@@ -191,7 +191,7 @@ class _RoleSwitcher extends StatelessWidget {
           await authService.switchRole(role);
           // Navigate to appropriate dashboard based on new role
           if (context.mounted) {
-            _navigateToRoleDashboard(context, role);
+            _navigateToCommonDashboard(context, role);
           }
         }
       },
@@ -214,26 +214,7 @@ class _RoleSwitcher extends StatelessWidget {
     );
   }
 
-  void _navigateToRoleDashboard(BuildContext context, UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-        break;
-      case UserRole.administrator:
-        context.go('/admin');
-        break;
-      case UserRole.investigator:
-        context.go('/investigator');
-        break;
-      case UserRole.auditor:
-        context.go('/auditor');
-        break;
-      case UserRole.sponsor:
-        context.go('/sponsor');
-        break;
-      case UserRole.analyst:
-        context.go('/analyst');
-        break;
-    }
+  void _navigateToCommonDashboard(BuildContext context, UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 }

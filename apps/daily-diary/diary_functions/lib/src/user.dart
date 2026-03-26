@@ -230,6 +230,35 @@ Future<Response> linkHandler(Request request) async {
       );
     }
 
+    // CUR-1055: Prevent duplicate enrollment from same device
+    // Check if this user is already linked to a connected patient.
+    // Uses used_by_user_id (set on first enrollment) and explicit ::text
+    // cast on the mobile_linking_status enum for driver compatibility.
+    final existingLink = await db.execute(
+      '''
+      SELECT plc.patient_id
+      FROM patient_linking_codes plc
+      JOIN patients p ON plc.patient_id = p.patient_id
+      WHERE plc.used_by_user_id = @userId
+        AND plc.used_at IS NOT NULL
+        AND p.mobile_linking_status::text = 'connected'
+      LIMIT 1
+      ''',
+      parameters: {'userId': userId},
+    );
+
+    if (existingLink.isNotEmpty) {
+      _log('WARNING', 'Duplicate enrollment attempt from same device', {
+        'codePrefix': codePrefix,
+        'userId': userId,
+      });
+      return _jsonResponse({
+        'error':
+            'This device is already enrolled in a study. '
+            'Please contact your research coordinator if you need to re-enroll.',
+      }, 409);
+    }
+
     // Generate JWT for the user
     final jwtToken = createJwtToken(authCode: authCode, userId: userId);
 

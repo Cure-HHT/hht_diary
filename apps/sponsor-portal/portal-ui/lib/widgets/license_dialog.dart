@@ -9,8 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Asset paths for bundled license PDFs (stable, no external URLs).
-const String _gnuAgplAsset =
-    'assets/licenses/GNU Affero General Public License - GNU Project - Free Software Foundation.pdf';
+const String _gnuAgplAsset = 'assets/licenses/gnu_license.pdf';
 
 class LicensesDialog extends StatelessWidget {
   const LicensesDialog({super.key});

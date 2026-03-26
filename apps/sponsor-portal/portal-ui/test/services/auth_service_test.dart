@@ -4,9 +4,13 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00044: Password Reset
 //   REQ-d00031: Identity Platform Integration
+//   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
+//   REQ-d00080-A: client-side session management with configurable inactivity timeout
 
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -513,6 +517,515 @@ void main() {
           reason: '$email should pass simple validation',
         );
       }
+    });
+  });
+
+  group('AuthService inactivity timeout', () {
+    // Synchronous setup helper — must run inside a fakeAsync zone so that
+    // the AuthService's internal Timer is governed by fake time.
+    AuthService buildSignedInAuthService(
+      FakeAsync fake, {
+      required Duration inactivityTimeout,
+    }) {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        inactivityTimeout: inactivityTimeout,
+      );
+      // Fire sign-in without awaiting, then flush microtasks to complete the
+      // entire sign-in chain (Firebase mock → token → HTTP mock → user set →
+      // resetInactivityTimer() → Timer created under fake time control).
+      authService.signIn('test@example.com', 'password');
+      fake.flushMicrotasks();
+      return authService;
+    }
+
+    test('inactivity timer firing signs user out and sets isTimedOut', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 100),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        expect(authService.isTimedOut, isFalse);
+
+        // Advance fake clock past the inactivity timeout
+        fake.elapse(const Duration(milliseconds: 200));
+
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+        expect(authService.currentUser, isNull);
+
+        // Clean up
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('inactivity timer does not fire before the timeout duration', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 300),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+
+        // Advance less than the timeout
+        fake.elapse(const Duration(milliseconds: 100));
+
+        expect(authService.isTimedOut, isFalse);
+        expect(authService.isAuthenticated, isTrue);
+
+        // Clean up
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('resetInactivityTimer prevents timeout from firing', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        // Advance to 150ms — before the 200ms timeout fires
+        fake.elapse(const Duration(milliseconds: 150));
+        authService.resetInactivityTimer();
+
+        // Advance another 150ms — would have timed out without the reset
+        fake.elapse(const Duration(milliseconds: 150));
+
+        expect(authService.isTimedOut, isFalse);
+        expect(authService.isAuthenticated, isTrue);
+
+        // Clean up
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test(
+      'isTimedOut remains true after timeout even when currentUser is null',
+      () {
+        fakeAsync((fake) {
+          final authService = buildSignedInAuthService(
+            fake,
+            inactivityTimeout: const Duration(milliseconds: 100),
+          );
+
+          fake.elapse(const Duration(milliseconds: 200));
+
+          // Both must be true simultaneously — this is what drives the login banner
+          expect(authService.isTimedOut, isTrue);
+          expect(authService.currentUser, isNull);
+
+          // Clean up (timer already fired, but ensures no pending microtasks)
+          authService.signOut();
+          fake.flushMicrotasks();
+        });
+      },
+    );
+
+    // REQ-d00080-D, REQ-p01044-G: isWarning becomes true before timeout fires
+    test('isWarning becomes true before inactivity timeout', () {
+      fakeAsync((fake) {
+        // Use a 200ms timeout with a 30s warning lead time. Since 200ms < 30s,
+        // the warning fires at timeout/2 = 100ms.
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        expect(authService.isWarning, isFalse);
+
+        // Advance to just past the warning point (100ms) but before timeout (200ms)
+        fake.elapse(const Duration(milliseconds: 110));
+
+        // REQ-p01044-G: warning should now be active
+        expect(authService.isWarning, isTrue);
+        expect(authService.isAuthenticated, isTrue); // Not timed out yet
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00080-E, REQ-p01044-I: resetInactivityTimer dismisses the warning
+    test('resetInactivityTimer clears isWarning', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        // Trigger the warning (fires at 100ms for a 200ms timeout)
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        // User clicks "Stay Logged In" — resets timer
+        authService.resetInactivityTimer();
+
+        // Warning should be cleared immediately
+        expect(authService.isWarning, isFalse);
+        expect(authService.isAuthenticated, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00080-F: timeout still fires even if warning was shown
+    test('inactivity timeout fires after warning if not reset', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        // Advance past warning point
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        // Advance past the full timeout without resetting
+        fake.elapse(const Duration(milliseconds: 100));
+        fake.flushMicrotasks();
+
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+        expect(authService.isWarning, isFalse); // cleared on sign-out
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // REQ-d00083-A..E, REQ-p01044-J..M: clearStorage called on explicit logout
+    test('clearStorage is called on explicit signOut', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final mockUser = MockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(milliseconds: 200),
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+        );
+        authService.signIn('test@example.com', 'password');
+        fake.flushMicrotasks();
+
+        authService.signOut();
+        fake.flushMicrotasks();
+
+        expect(clearStorageCalled, isTrue);
+      });
+    });
+
+    // REQ-d00083-F..J: clearStorage also called when session times out
+    test('clearStorage is called on inactivity timeout', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final mockUser = MockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(milliseconds: 100),
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+        );
+        authService.signIn('test@example.com', 'password');
+        fake.flushMicrotasks();
+
+        // Let the inactivity timer fire
+        fake.elapse(const Duration(milliseconds: 200));
+        fake.flushMicrotasks();
+
+        expect(clearStorageCalled, isTrue);
+        expect(authService.isTimedOut, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    // signOut clears isWarning
+    test('signOut clears isWarning flag', () {
+      fakeAsync((fake) {
+        final authService = buildSignedInAuthService(
+          fake,
+          inactivityTimeout: const Duration(milliseconds: 200),
+        );
+
+        fake.elapse(const Duration(milliseconds: 110));
+        expect(authService.isWarning, isTrue);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+
+        expect(authService.isWarning, isFalse);
+      });
+    });
+  });
+
+  // REQ-p01044-C, REQ-d00080-A: sponsor-configurable inactivity timeout
+  group('Sponsor-configurable timeout', () {
+    /// Build a signed-in AuthService where the sponsor config endpoint returns
+    /// [sponsorTimeoutMinutes] (null = 404, simulating failure).
+    AuthService buildWithSponsorConfig(
+      FakeAsync fake, {
+      int? sponsorTimeoutMinutes,
+      Duration inactivityTimeout = const Duration(milliseconds: 500),
+    }) {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (request.url.path == '/api/v1/sponsor/config') {
+          if (sponsorTimeoutMinutes == null) {
+            return http.Response('Not found', 404);
+          }
+          return http.Response(
+            jsonEncode({
+              'sponsorId': 'callisto',
+              'flags': {
+                'inactivityTimeoutMinutes': sponsorTimeoutMinutes,
+                'useReviewScreen': false,
+                'useAnimations': true,
+              },
+              'isDefault': false,
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        inactivityTimeout: inactivityTimeout,
+      );
+      authService.signIn('test@example.com', 'password');
+      fake.flushMicrotasks();
+      return authService;
+    }
+
+    test('applies sponsor timeout from config API after login', () {
+      fakeAsync((fake) {
+        // Sponsor config returns 30 minutes; default is 500ms
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 30,
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Timeout should now be 30 minutes from sponsor config
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 30),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('falls back to default timeout when sponsor config API fails', () {
+      fakeAsync((fake) {
+        // null → config endpoint returns 404
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: null,
+          inactivityTimeout: const Duration(milliseconds: 500),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Timeout should remain at the injected default
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(milliseconds: 500),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('clamps timeout below 1 minute to 1 minute', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 0, // out of range
+        );
+
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 1),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('clamps timeout above 30 minutes to 30 minutes', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: 60, // out of range
+        );
+
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(minutes: 30),
+        );
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
+    });
+
+    test('updateInactivityTimeout restarts live timer with new duration', () {
+      fakeAsync((fake) {
+        final authService = buildWithSponsorConfig(
+          fake,
+          sponsorTimeoutMinutes: null, // use injected default
+          inactivityTimeout: const Duration(milliseconds: 300),
+        );
+
+        expect(authService.isAuthenticated, isTrue);
+        // Advance past the sponsor-fetch microtasks so timer is running
+        fake.elapse(const Duration(milliseconds: 50));
+
+        // Now update to a longer timeout while session is live
+        authService.updateInactivityTimeout(const Duration(milliseconds: 600));
+        expect(
+          authService.currentInactivityTimeout,
+          const Duration(milliseconds: 600),
+        );
+
+        // The old 300ms timer would have fired by now (50+300=350ms total),
+        // but it was replaced — session should still be alive
+        fake.elapse(const Duration(milliseconds: 400));
+        expect(authService.isAuthenticated, isTrue);
+        expect(authService.isTimedOut, isFalse);
+
+        // Advance past the new 600ms timeout — should now sign out
+        fake.elapse(const Duration(milliseconds: 300));
+        fake.flushMicrotasks();
+        expect(authService.isTimedOut, isTrue);
+        expect(authService.isAuthenticated, isFalse);
+
+        authService.signOut();
+        fake.flushMicrotasks();
+      });
     });
   });
 }
