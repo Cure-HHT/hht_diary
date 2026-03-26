@@ -2333,6 +2333,11 @@ void main() {
   // ---------------------------------------------------------------------------
   // CUR-1063: Post-enrollment state refresh
   // ---------------------------------------------------------------------------
+  // NOTE: The original CUR-1063 test verified that an "Account" menu item
+  // appeared after enrollment. CUR-628 removed the Account screen and menu
+  // item entirely, so that assertion is no longer valid. This test now verifies
+  // that enrollment state refresh and onEnrolled callback still work correctly
+  // via the popup menu enrollment path.
   group('CUR-1063: Active status and tasks after enrollment', () {
     testWidgets(
       'popup menu enrollment path refreshes enrollment status and calls onEnrolled',
@@ -2353,6 +2358,27 @@ void main() {
         addTearDown(() => FlutterError.onError = oldOnError);
 
         SharedPreferences.setMockInitialValues({});
+
+        // Initialize the datastore for tests with a temp path
+        final tempDir = await Directory.systemTemp.createTemp('cur1063_test_');
+        if (Datastore.isInitialized) {
+          await Datastore.instance.deleteAndReset();
+        }
+        await Datastore.initialize(
+          config: DatastoreConfig(
+            deviceId: 'test-device-id',
+            userId: 'test-user-id',
+            databasePath: tempDir.path,
+            databaseName: 'test_events.db',
+            enableEncryption: false,
+          ),
+        );
+        addTearDown(() async {
+          if (Datastore.isInitialized) {
+            await Datastore.instance.deleteAndReset();
+          }
+          await tempDir.delete(recursive: true);
+        });
 
         // Mock enrollment service starts UNENROLLED
         final mockEnrollment = MockEnrollmentService()
@@ -2393,18 +2419,6 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // --- Verify initial state: user is NOT enrolled ---
-        await tester.tap(find.byIcon(Icons.person_outline));
-        await tester.pumpAndSettle();
-        expect(
-          find.text('Account'),
-          findsNothing,
-          reason: 'Account menu should be hidden when not enrolled',
-        );
-        // Close menu
-        await tester.tapAt(Offset.zero);
-        await tester.pumpAndSettle();
-
         // --- Navigate to enrollment screen via popup menu ---
         await tester.tap(find.byIcon(Icons.person_outline));
         await tester.pumpAndSettle();
@@ -2420,22 +2434,8 @@ void main() {
         await tester.tap(find.byIcon(Icons.arrow_back));
         await tester.pumpAndSettle();
 
-        // --- Verify post-enrollment state ---
-        await tester.tap(find.byIcon(Icons.person_outline));
-        await tester.pumpAndSettle();
-
-        // BUG CUR-1063: popup menu enrollment path does not call
-        // _checkEnrollmentStatus() after navigation returns, so the
-        // Account menu item never appears and Active status is stale.
-        expect(
-          find.text('Account'),
-          findsOneWidget,
-          reason: 'Account menu should appear after enrollment',
-        );
-
-        // BUG CUR-1063: popup menu enrollment path does not call
-        // widget.onEnrolled(), so task sync and FCM registration
-        // never happen — questionnaires are not fetched.
+        // CUR-1063: Verify onEnrolled callback is called after enrollment
+        // so task sync and FCM registration happen correctly.
         expect(
           onEnrolledCalled,
           isTrue,
