@@ -706,5 +706,115 @@ void main() {
       final json = await getResponseJson(response);
       expect(json['error'], contains('no assigned roles'));
     });
+
+    test(
+      'FAILING: email-link fallback should use case-insensitive matching',
+      () async {
+        // CUR-1021 root cause: When firebase_uid lookup fails (e.g., user's
+        // Firebase account was recreated, giving a new UID), the handler
+        // falls back to email-based linking. But the SQL uses case-sensitive
+        // matching (WHERE email = @email), while Firebase normalizes emails
+        // to lowercase. If the DB has mixed-case email (as entered by the
+        // admin), the match fails and the user gets 403.
+        //
+        // The activation handler already does case-insensitive comparison
+        // (toLowerCase), but portalMeHandler does not.
+        //
+        // Scenario:
+        //   Admin creates user with email "AnsparUser2@proton.me"
+        //   User activates with Firebase UID-A → firebase_uid = 'uid-A'
+        //   Firebase account is recreated → new UID-B
+        //   User signs in → token has uid='uid-B', email='ansparuser2@proton.me'
+        //   /me: lookup by uid-B → NOT FOUND
+        //   /me: email link WHERE email = 'ansparuser2@proton.me' → NO MATCH
+        //       (DB has 'AnsparUser2@proton.me', PostgreSQL = is case-sensitive)
+        //   /me: returns 403 "Email already linked to another account"
+        //
+        // Expected: handler should use LOWER(email) = LOWER(@email) so the
+        // user can still be found regardless of email case.
+
+        const dbEmail = 'AnsparUser2@proton.me';
+        const firebaseEmail =
+            'ansparuser2@proton.me'; // lowercase from Firebase
+        const oldUid = 'firebase-old-uid';
+        const newUid = 'firebase-new-uid';
+
+        verifyIdTokenOverride = (token) async => VerificationResult(
+          uid: newUid,
+          email: firebaseEmail,
+          emailVerified: true,
+        );
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          final email = parameters?['email'] as String?;
+          final firebaseUid = parameters?['firebaseUid'] as String?;
+
+          // 1. Lookup by firebase_uid (new UID) → NOT FOUND
+          if (query.contains('FROM portal_users') &&
+              query.contains('WHERE firebase_uid') &&
+              !query.contains('UPDATE')) {
+            if (firebaseUid == newUid) return [];
+            return [];
+          }
+
+          // 2. Email-link UPDATE: simulates PostgreSQL case-sensitive behavior
+          //    DB has 'AnsparUser2@proton.me', query has 'ansparuser2@proton.me'
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            // Case-sensitive: 'ansparuser2@proton.me' != 'AnsparUser2@proton.me'
+            if (email != null && email != dbEmail) return [];
+            // If email matched case-insensitively, would return the user
+            if (email != null && email.toLowerCase() == dbEmail.toLowerCase()) {
+              return [
+                [testUserId, newUid, dbEmail, 'Anspar User', 'active', null],
+              ];
+            }
+            return [];
+          }
+
+          // 3. Check if email exists (also case-sensitive in PostgreSQL)
+          if (query.contains('SELECT firebase_uid FROM portal_users') &&
+              query.contains('WHERE email')) {
+            // Case-sensitive: won't match
+            if (email != null && email != dbEmail) return [];
+            // But it DOES exist with old UID
+            if (email != null && email.toLowerCase() == dbEmail.toLowerCase()) {
+              return [
+                [oldUid],
+              ];
+            }
+            return [];
+          }
+
+          // Roles (in case we get past the email check)
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+
+          return [];
+        };
+
+        final request = createGetRequest(
+          '/api/v1/portal/me',
+          headers: {'authorization': 'Bearer mock-token'},
+        );
+        final response = await portalMeHandler(request);
+        final json = await getResponseJson(response);
+
+        // BUG: Currently returns 403 because case-sensitive email matching
+        // fails to find the user. Should return 200 after case-insensitive
+        // email lookup finds and re-links the user.
+        expect(
+          response.statusCode,
+          equals(200),
+          reason:
+              'Activated user should not get 403 due to email case '
+              'mismatch between Firebase (lowercase) and DB (mixed case)',
+        );
+        expect(json['email'], equals(dbEmail));
+      },
+    );
   });
 }
