@@ -6,11 +6,7 @@
 
 name: diary_server
 description: Shelf HTTP server hosting diary functions for Cloud Run
-<<<<<<< fix/CUR-1070-sponsor-role-names
-version: 0.1.1+20
-=======
-version: 0.1.2+20
->>>>>>> main
+version: 0.1.2+21
 publish_to: none
 
 environment:
