@@ -1,0 +1,140 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
+#   REQ-o00043: Automated Deployment Pipeline
+
+default_platform(:ios)
+
+FLUTTER_DIR = File.expand_path("../../", __dir__)
+
+PROFILE_NAMES = {
+  "dev"  => "ClinicalDiary_DEV_AppStore",
+  "qa"   => "ClinicalDiary_QA_AppStore",
+  "prod" => "ClinicalDiary_PROD_AppStore"
+}
+
+APP_IDENTIFIERS = {
+  "dev"  => "org.anspar.curehht.app.dev",
+  "qa"   => "org.anspar.curehht.app.qa",
+  "prod" => "org.anspar.curehht.app"
+}
+
+platform :ios do
+  before_all do
+    setup_ci if ENV["CI"]
+    ENV["DELIVER_ALTOOL_ADDITIONAL_UPLOAD_PARAMETERS"] = "--use-old-altool"
+  end
+
+  desc "Build DEV IPA"
+  lane :build_dev do
+    build_flavor(flavor: "dev")
+  end
+
+  desc "Build QA IPA"
+  lane :build_qa do
+    build_flavor(flavor: "qa")
+  end
+
+  desc "Build PROD IPA"
+  lane :build_prod do
+    build_flavor(flavor: "prod")
+  end
+
+  private_lane :build_flavor do |options|
+    flavor = options[:flavor]
+    app_id = APP_IDENTIFIERS[flavor]
+    profile_name = PROFILE_NAMES[flavor]
+
+    # Import distribution certificate from Doppler env var into CI keychain
+    cert_path = File.join(Dir.tmpdir, "distribution.p12")
+    File.write(cert_path, Base64.decode64(ENV["IOS_DISTRIBUTION_CERT_BASE64"]))
+    import_certificate(
+      certificate_path: cert_path,
+      certificate_password: ENV["IOS_DISTRIBUTION_CERT_PASSWORD"],
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: ""
+    )
+
+    # Install provisioning profile from Doppler env var
+    env_key = "IOS_PROVISIONING_PROFILE_#{flavor.upcase}_BASE64"
+    profile_path = File.join(Dir.tmpdir, "profile_#{flavor}.mobileprovision")
+    File.write(profile_path, Base64.decode64(ENV[env_key]))
+    install_provisioning_profile(path: profile_path)
+
+    # Switch Xcode project to manual signing for the Runner target
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: File.join(FLUTTER_DIR, "ios", "Runner.xcodeproj"),
+      team_id: "T4DGX8FF8F",
+      bundle_identifier: app_id,
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name
+    )
+
+    # Generate Dart AOT snapshot + Xcode config without running xcodebuild
+    # (build_app below handles the single xcodebuild archive)
+    Dir.chdir(FLUTTER_DIR) do
+      sh("flutter", "build", "ios", "--flavor", flavor,
+         "--dart-define=APP_FLAVOR=#{flavor}", "--release", "--config-only")
+    end
+
+    # Archive and export IPA with Fastlane gym
+    build_app(
+      workspace: File.join(FLUTTER_DIR, "ios", "Runner.xcworkspace"),
+      scheme: flavor,
+      configuration: "Release-#{flavor}",
+      export_method: "app-store",
+      output_directory: File.join(FLUTTER_DIR, "build", "ios", "ipa"),
+      output_name: "clinical-diary-#{flavor}.ipa",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "T4DGX8FF8F",
+        provisioningProfiles: {
+          app_id => profile_name
+        }
+      }
+    )
+
+    # Upload to TestFlight (CI only)
+    deployment = ENV["DEPLOYMENT_TARGET"] || "none"
+    if ENV["CI"] && deployment != "none"
+      api_key_path = File.join(Dir.tmpdir, "AuthKey.p8")
+      File.write(api_key_path, Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_MGR_BASE64"]))
+
+      api_key = app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_MGR_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+        key_filepath: api_key_path
+      )
+
+      case deployment
+      when "internal"
+        upload_to_testflight(
+          api_key: api_key,
+          skip_waiting_for_build_processing: true,
+          distribute_external: false,
+          groups: ["Internal Testing"]
+        )
+      when "external"
+        upload_to_testflight(
+          api_key: api_key,
+          skip_waiting_for_build_processing: true,
+          distribute_external: true,
+          groups: ["External Testing"]
+        )
+      when "release"
+        release_notes = ENV["RELEASE_NOTES"] || ""
+        upload_to_app_store(
+          api_key: api_key,
+          ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+          skip_metadata: false,
+          skip_screenshots: true,
+          release_notes: { "en-US" => release_notes },
+          submit_for_review: true,
+          automatic_release: false,
+          force: true,
+          precheck_include_in_app_purchases: false
+        )
+      end
+    end
+  end
+end
