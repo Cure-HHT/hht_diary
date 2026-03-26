@@ -11,7 +11,7 @@
 #   - Creating/updating PR: Handled by gh pr create hooks
 #
 # Validation Scripts:
-#   - elspais health --spec: REQ format, links, and INDEX accuracy
+#   - elspais checks: REQ format, links, and INDEX accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
 #   - ./tool/test.sh: Dart and TypeScript tests (per app)
@@ -167,12 +167,12 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     fi
 fi
 
-# Run elspais health --spec (REQ format, links, and INDEX accuracy)
+# Run elspais checks (REQ format, links, and INDEX accuracy)
 printf '%b\n' "${BLUE}Running requirement validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais health --spec 2>&1); then
+    if ! OUTPUT=$(elspais checks 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"

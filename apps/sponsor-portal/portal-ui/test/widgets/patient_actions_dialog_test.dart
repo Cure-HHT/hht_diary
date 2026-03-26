@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00072: View Linking Code Button
 //   REQ-CAL-p00073: Patient Status Definitions
 //
 // Widget tests for PatientActionsDialog rendering based on patient status.
@@ -152,6 +153,30 @@ void main() {
       expect(find.text('Show Linking Code'), findsNothing);
       expect(find.text('Reconnect Patient'), findsNothing);
     });
+
+    // REQ-CAL-p00072: View Linking Code for any patient with a valid code
+    // REQ-CAL-p00073 Assertion C: Show Linking Code for connected patients
+    testWidgets(
+      'connected status (Trial Active) shows Show Linking Code action',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
+
+        await _pumpDialog(tester, apiClient, 'connected');
+
+        expect(find.text('Show Linking Code'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'connected status (Trial Active) shows Disconnect Patient action',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
+
+        await _pumpDialog(tester, apiClient, 'connected');
+
+        expect(find.text('Disconnect Patient'), findsOneWidget);
+      },
+    );
 
     testWidgets('unknown status shows no actions message', (tester) async {
       final apiClient = await _createMockApiClient();
