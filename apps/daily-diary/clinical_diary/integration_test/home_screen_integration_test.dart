@@ -2452,7 +2452,6 @@ void main() {
   // REQ-CAL-p00076: Participation Status Badge
   group('Enrollment Flow Integration Tests', () {
     late EnrollmentService enrollmentService;
-    late AuthService authService;
     late PreferencesService preferencesService;
     late NosebleedService nosebleedService;
     late Directory tempDir;
@@ -2486,7 +2485,6 @@ void main() {
         ),
       );
 
-      authService = AuthService(httpClient: mockHttpClient);
       preferencesService = PreferencesService();
       nosebleedService = NosebleedService(
         enrollmentService: enrollmentService,
@@ -2511,7 +2509,6 @@ void main() {
         HomeScreen(
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
-          authService: authService,
           taskService: TaskService(),
           preferencesService: preferencesService,
           onLocaleChanged: (_) {},

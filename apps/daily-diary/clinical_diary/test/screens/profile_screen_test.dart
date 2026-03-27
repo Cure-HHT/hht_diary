@@ -4,7 +4,6 @@
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail_image_network/mocktail_image_network.dart';
 
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
@@ -372,44 +371,40 @@ void main() {
       testWidgets(
         'shows network sponsor logo when sponsorLogo is provided in active state',
         (tester) async {
-          await mockNetworkImages(() async {
-            await tester.pumpWidget(
-              buildProfileScreen(
-                isEnrolledInTrial: true,
-                isDisconnected: false,
-                sponsorLogo: 'assets/sponsor-content/status_badge.png',
-              ),
-            );
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              sponsorLogo: 'assets/sponsor-content/status_badge.png',
+            ),
+          );
 
-            await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
 
-            expect(find.byType(Image), findsWidgets);
+          expect(find.byType(Image), findsWidgets);
 
-            final image = tester.widget<Image>(find.byType(Image).first);
-            expect(image.image, isA<AssetImage>());
-          });
+          final image = tester.widget<Image>(find.byType(Image).first);
+          expect(image.image, isA<AssetImage>());
         },
       );
 
       testWidgets(
         'shows network sponsor logo when sponsorLogo is provided in disconnected state',
         (tester) async {
-          await mockNetworkImages(() async {
-            await tester.pumpWidget(
-              buildProfileScreen(
-                isEnrolledInTrial: true,
-                isDisconnected: true,
-                sponsorLogo: 'assets/sponsor-content/status_badge.png',
-              ),
-            );
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: true,
+              sponsorLogo: 'assets/sponsor-content/status_badge.png',
+            ),
+          );
 
-            await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
 
-            expect(find.byType(Image), findsWidgets);
+          expect(find.byType(Image), findsWidgets);
 
-            final image = tester.widget<Image>(find.byType(Image).first);
-            expect(image.image, isA<AssetImage>());
-          });
+          final image = tester.widget<Image>(find.byType(Image).first);
+          expect(image.image, isA<AssetImage>());
         },
       );
     });
