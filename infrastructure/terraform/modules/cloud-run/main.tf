@@ -261,13 +261,14 @@ resource "google_cloud_run_v2_service" "portal_server" {
         value = "https://${google_cloud_run_v2_service.diary_server.uri}"
       }
 
+      # h2c enables HTTP/2 cleartext, required for gRPC health checks
       ports {
+        name           = "h2c"
         container_port = 8080
       }
 
       startup_probe {
-        http_get {
-          path = "/health"
+        grpc {
           port = 8080
         }
         initial_delay_seconds = 2
@@ -277,8 +278,7 @@ resource "google_cloud_run_v2_service" "portal_server" {
       }
 
       liveness_probe {
-        http_get {
-          path = "/health"
+        grpc {
           port = 8080
         }
         timeout_seconds   = 2
