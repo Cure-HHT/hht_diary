@@ -262,6 +262,10 @@ class AuthService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  /// The Firebase UID that this tab signed in with.
+  /// Used to detect cross-tab session collisions (CUR-982).
+  String? _sessionUid;
+
   /// Inactivity timer — fires [_inactivityTimeout] after the last activity.
   Timer? _inactivityTimer;
 
@@ -418,8 +422,17 @@ class AuthService extends ChangeNotifier {
   /// Initialize auth state listener
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
-      if (user != null) {
-        // User signed in - fetch portal user info
+      if (user != null && _sessionUid != null && user.uid != _sessionUid) {
+        // CUR-982: A different user signed in from another tab, overwriting
+        // this tab's Firebase auth state via shared localStorage. Sign out
+        // to prevent role-escalation display mismatch (FDA 21 CFR Part 11).
+        debugPrint(
+          '[AUTH] Cross-tab session collision detected: '
+          'expected $_sessionUid, got ${user.uid}. Signing out.',
+        );
+        await signOut();
+      } else if (user != null) {
+        // Same user signed in - fetch portal user info
         await _fetchPortalUser();
       } else {
         // User signed out externally (e.g. token expiry, Firebase forced logout).
@@ -452,6 +465,9 @@ class AuthService extends ChangeNotifier {
     try {
       // Sign in with Firebase Auth
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+
+      // CUR-982: Track this tab's Firebase UID to detect cross-tab collisions
+      _sessionUid = _auth.currentUser?.uid;
 
       // Fetch portal user info
       final success = await _fetchPortalUser();
@@ -735,6 +751,7 @@ class AuthService extends ChangeNotifier {
     _currentUser = null;
     _sponsorRoleNames = {};
     _sponsorRoleDescriptions = {};
+    _sessionUid = null;
     _emailOtpRequired = false;
     _maskedEmail = null;
     _mfaRequired = false;
