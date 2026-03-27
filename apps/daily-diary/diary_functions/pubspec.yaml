@@ -7,7 +7,7 @@
 
 name: diary_functions
 description: Clinical Daily Diary Server Side Functions
-version: 0.1.3+12
+version: 0.1.5+14
 publish_to: none
 
 environment:
@@ -26,6 +26,10 @@ dependencies:
   # Shared types
   trial_data_types:
     path: ../../common-dart/trial_data_types
+
+  # Shared server-side utilities
+  shared_functions:
+    path: ../../common-dart/shared_functions
 
 dev_dependencies:
   test: ^1.25.15
