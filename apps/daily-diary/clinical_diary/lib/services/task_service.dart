@@ -88,10 +88,18 @@ class TaskService extends ChangeNotifier {
   /// Handle a questionnaire_sent FCM message.
   ///
   /// Per REQ-CAL-p00023-D: Creates a task at the top of the screen.
+  /// EQ (Epistaxis Questionnaire) is excluded per CUR-1050 — it is handled
+  /// via the nosebleed button, not as a scheduled task.
   void _handleQuestionnaireSent(Map<String, dynamic> data) {
     final instanceId = data['questionnaire_instance_id'] as String?;
     if (instanceId == null) {
       debugPrint('[TaskService] Missing questionnaire_instance_id');
+      return;
+    }
+
+    // EQ is not a scheduled task — skip it (CUR-1050)
+    if (data['questionnaire_type'] == 'eq') {
+      debugPrint('[TaskService] Skipping EQ questionnaire task (CUR-1050)');
       return;
     }
 
@@ -204,6 +212,9 @@ class TaskService extends ChangeNotifier {
         final data = taskJson as Map<String, dynamic>;
         final instanceId = data['questionnaire_instance_id'] as String?;
         if (instanceId == null) continue;
+
+        // EQ is not a scheduled task — skip it (CUR-1050)
+        if (data['questionnaire_type'] == 'eq') continue;
 
         serverTaskIds.add(instanceId);
 
