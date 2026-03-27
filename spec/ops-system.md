@@ -28,7 +28,7 @@ Operational requirements for the Clinical Trial Diary Platform ensuring FDA 21 C
 
 # REQ-o00065: Clinical Trial Diary Platform Operations
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00048
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p00048
 
 ## Rationale
 
@@ -64,7 +64,7 @@ J. Routine compliance maintenance SHALL require zero manual steps.
 
 # REQ-o00068: Automated Access Review
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00005
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p00005
 
 ## Rationale
 
@@ -112,7 +112,7 @@ P. The system SHALL maintain a false positive rate of less than 5% for access an
 
 # REQ-o00069: Encryption Verification
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00017
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p00017
 
 ## Rationale
 
@@ -162,7 +162,7 @@ R. The system SHALL automatically generate a monthly encryption compliance repor
 
 # REQ-o00070: Data Residency Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: p00001
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p00001
 
 ## Rationale
 
@@ -204,7 +204,7 @@ M. The system SHALL generate an annual residency verification report.
 
 # REQ-o00071: Automated Incident Detection
 
-**Level**: Ops | **Status**: Draft | **Implements**: p01022
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p01022
 
 ## Rationale
 
@@ -246,7 +246,7 @@ N. The system SHALL automatically preserve all evidence associated with detected
 
 # REQ-o00072: Regulatory Breach Notification
 
-**Level**: Ops | **Status**: Draft | **Implements**: p01033
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p01033
 
 ## Rationale
 
@@ -284,7 +284,7 @@ K. Notification templates SHALL include recipient information appropriate to the
 
 # REQ-o00073: Automated Change Control
 
-**Level**: Ops | **Status**: Draft | **Implements**: p01085
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p01085
 
 ## Rationale
 
@@ -344,7 +344,7 @@ V. Emergency changes SHALL be auditable through the same audit trail mechanisms.
 
 # REQ-o00074: Automated Backup Verification
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00008
+**Level**: ops | **Status**: Draft | **Implements**: REQ-o00008
 
 ## Rationale
 
@@ -390,7 +390,8 @@ O. The system SHALL conduct quarterly disaster recovery drills with documented r
 
 # REQ-o00075: Third-Party Security Assessment
 
-**Level**: Ops | **Status**: Draft
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01018
 
 ## Rationale
 

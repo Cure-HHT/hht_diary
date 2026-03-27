@@ -31,7 +31,6 @@ on:
       - 'apps/daily-diary/**'
       - 'apps/common-dart/trial_data_types/**'
       - '.github/workflows/build-diary-server.yml'
-      - '.github/workflows/deploy-run-service.yml'
       - 'tools/build/**'
     tags:
       - 'v*.*.*'

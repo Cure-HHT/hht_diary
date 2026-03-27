@@ -16,21 +16,22 @@ void main() {
     test('sponsorId returns empty string when SPONSOR_ID env is not set', () {
       // In the test environment SPONSOR_ID is not set
       // (unless the test runner explicitly exports it)
-      final id = SponsorBranding.sponsorId;
-      // We just verify it returns a String (empty or the env value)
-      expect(id, isA<String>());
+      final branding = SponsorBranding.fromEnvironment();
+      // We just verify sponsorId is a String (empty or the env value)
+      expect(branding.sponsorId, isA<String>());
     });
 
     test('isConfigured returns false when SPONSOR_ID is not set', () {
       // Without SPONSOR_ID the getter short-circuits on sponsorId.isNotEmpty
-      expect(SponsorBranding.isConfigured, isFalse);
+      final branding = SponsorBranding.fromEnvironment();
+      expect(branding.isConfigured, isFalse);
     });
 
     test('loadConfig returns null when config file does not exist', () {
       // Without a valid sponsor-content directory on disk, loadConfig
       // cannot find sponsor-config.json
-      final config = SponsorBranding.loadConfig();
-      expect(config, isNull);
+      const branding = SponsorBranding('nonexistent-sponsor');
+      expect(branding.loadConfig(), isNull);
     });
   });
 
