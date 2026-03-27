@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.11+24
+version: 0.9.11+26
 
 environment:
   sdk: ^3.10.7
@@ -57,6 +57,7 @@ dev_dependencies:
   widgetbook_annotation: ^3.2.0
   widgetbook_generator: ^3.9.0
   build_runner: ^2.4.13
+  mocktail_image_network: ^1.2.0
 
 flutter:
   uses-material-design: true
@@ -64,6 +65,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
     - assets/licenses/
 
   fonts:

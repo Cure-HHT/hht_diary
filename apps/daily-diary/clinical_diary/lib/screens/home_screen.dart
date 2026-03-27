@@ -26,6 +26,7 @@ import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/questionnaire_service.dart';
+import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
@@ -103,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.enrollmentService.resetDisconnectionBannerDismissed();
   }
 
+  SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
   Future<void> _loadPreferences() async {
     final useAnimation = await widget.preferencesService.getUseAnimation();
     final compactView = await widget.preferencesService.getCompactView();
@@ -122,8 +124,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
+    final enrollment = await widget.enrollmentService.getEnrollment();
+    try {
+      if (enrollment?.sponsorId != null) {
+        sponsorBranding = await SponsorBrandingService().fetchBranding(
+          enrollment!.sponsorId!,
+        );
+      }
+    } catch (e) {
+      debugPrint('Sponsor branding unavailable, using fallback: $e');
+    }
     if (mounted) {
-      setState(() => _isEnrolled = isEnrolled);
+      setState(() {
+        _isEnrolled = isEnrolled;
+      });
     }
   }
 
@@ -536,6 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onShareWithCureHHT: () {
             // TODO: Implement CureHHT data sharing
           },
+
           onStopSharingWithCureHHT: () {
             // TODO: Implement stop sharing
           },
@@ -543,6 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
           isDisconnected: _isDisconnected,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
+          sponsorLogo: sponsorBranding.appLogoUrl,
           userName: 'User',
           onUpdateUserName: (name) {
             // TODO: Implement username update
@@ -816,8 +832,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   LogoMenu(
                     onExportData: _handleExportData,
                     onImportData: _handleImportData,
+                    sponsorLogo: sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
+                    isEnrolled: _isEnrolled,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
