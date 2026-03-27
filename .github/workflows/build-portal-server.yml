@@ -33,7 +33,6 @@ on:
       - 'apps/common-dart/trial_data_types/**'
       - 'apps/edc/rave-integration/**'
       - '.github/workflows/build-portal-server.yml'
-      - '.github/workflows/deploy-run-service.yml'
       - 'tools/build/**'
     tags:
       - 'v*.*.*'

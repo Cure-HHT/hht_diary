@@ -26,6 +26,12 @@
 
 set -e
 
+# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE early, before any tool runs.
+# Git hooks inherit these env vars, and in worktree or AI-agent subshell
+# contexts they can point to unexpected paths, causing tools like elspais
+# and Flutter/Dart to fail config discovery or report wrong versions.
+unset GIT_DIR GIT_WORK_TREE
+
 # =====================================================
 # anspar-wf plugin path (installed via pip)
 # =====================================================
@@ -294,12 +300,6 @@ echo ""
 # =====================================================
 # Only run pub get, format, and analyze on apps with changed files.
 # Walk up from each changed Dart file to find the nearest pubspec.yaml.
-#
-# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE before running Flutter/Dart commands.
-# Git hooks set these env vars, which causes Flutter to read version info from
-# the project repo instead of the Flutter SDK repo, resulting in "0.0.0-unknown".
-unset GIT_DIR GIT_WORK_TREE
-
 AFFECTED_APP_DIRS=""
 while IFS= read -r changed_file; do
     if [[ "$changed_file" == apps/* ]] && [[ "$changed_file" == *.dart ]]; then
