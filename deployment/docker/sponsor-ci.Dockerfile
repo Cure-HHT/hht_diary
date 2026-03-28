@@ -11,31 +11,24 @@ COPY .github/versions.env ./.github/versions.env
 
 # common-dart/trial_data_types
 COPY apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
-COPY apps/common-dart/trial_data_types/pubspec.lock ./apps/common-dart/trial_data_types/pubspec.lock
 
 # edc/rave-integration
 COPY apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
-COPY apps/edc/rave-integration/pubspec.lock ./apps/edc/rave-integration/pubspec.lock
 
 # sponsor-portal/portal_functions
 COPY apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
-COPY apps/sponsor-portal/portal_functions/pubspec.lock ./apps/sponsor-portal/portal_functions/pubspec.lock
 
 # sponsor-portal/portal_server
 COPY apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
-COPY apps/sponsor-portal/portal_server/pubspec.lock ./apps/sponsor-portal/portal_server/pubspec.lock
 
 # sponsor-portal/portal-ui
 COPY apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
-COPY apps/sponsor-portal/portal-ui/pubspec.lock ./apps/sponsor-portal/portal-ui/pubspec.lock
 
 # daily-diary/diary_functions
 COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
-COPY apps/daily-diary/diary_functions/pubspec.lock ./apps/daily-diary/diary_functions/pubspec.lock
 
 # daily-diary/diary_server
 COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
-COPY apps/daily-diary/diary_server/pubspec.lock ./apps/daily-diary/diary_server/pubspec.lock
 
 # -----------------------------
 # Permission fix before pub get
@@ -46,7 +39,6 @@ RUN mkdir -p /workspace/src && \
 # -----------------------------
 # Resolve dependencies
 # -----------------------------
-
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
 RUN dart pub get
 
@@ -105,3 +97,4 @@ RUN groupadd --gid 10001 appuser && \
 
 WORKDIR /workspace/src
 USER 10001:10001
+
