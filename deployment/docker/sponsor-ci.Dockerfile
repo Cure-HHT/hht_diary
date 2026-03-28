@@ -1,5 +1,7 @@
 FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
 
+USER root
+
 WORKDIR /workspace/src
 
 # Keep versions metadata if needed by downstream logic
@@ -31,10 +33,11 @@ COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_func
 COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
-# Permission fix before pub get
+# Workspace ownership fix
+# Base image is non-root, so elevate before dependency resolution
 # -----------------------------
 RUN mkdir -p /workspace/src && \
-    chmod -R u+rwX /workspace
+    chown -R root:root /workspace
 
 # -----------------------------
 # Resolve dependencies
@@ -89,7 +92,7 @@ RUN set -euo pipefail && \
     test ! -d /workspace/src/apps/sponsor-portal/portal-ui/build/web
 
 # -----------------------------
-# Non-root final image
+# Final non-root image
 # -----------------------------
 RUN groupadd --gid 10001 appuser && \
     useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash appuser && \
@@ -97,4 +100,3 @@ RUN groupadd --gid 10001 appuser && \
 
 WORKDIR /workspace/src
 USER 10001:10001
-
