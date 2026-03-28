@@ -133,7 +133,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: tools/dev-env/docker/sponsor-ci.Dockerfile
+          file: deployment/docker/docker/sponsor-ci.Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.parse.outputs.tags }}
@@ -246,3 +246,4 @@ jobs:
             echo "- Image signed with Cosign"
             echo "- SBOM generated with Syft"
           } >> "$GITHUB_STEP_SUMMARY"
+
