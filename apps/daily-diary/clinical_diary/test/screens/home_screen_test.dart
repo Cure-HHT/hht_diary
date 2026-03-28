@@ -6,7 +6,6 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -28,7 +27,6 @@ void main() {
 
   group('HomeScreen', () {
     late EnrollmentService enrollmentService;
-    late AuthService authService;
     late PreferencesService preferencesService;
     late NosebleedService nosebleedService;
     late Directory tempDir;
@@ -64,7 +62,6 @@ void main() {
       );
 
       enrollmentService = EnrollmentService(httpClient: mockHttpClient);
-      authService = AuthService(httpClient: mockHttpClient);
       preferencesService = PreferencesService();
       nosebleedService = NosebleedService(
         enrollmentService: enrollmentService,
@@ -92,7 +89,6 @@ void main() {
         HomeScreen(
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
-          authService: authService,
           taskService: TaskService(),
           preferencesService: preferencesService,
           onLocaleChanged: (_) {},
@@ -149,6 +145,27 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.person_outline), findsOneWidget);
+      });
+
+      testWidgets('user menu contains Profile item (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Profile (patient info) remains — it's not the removed login/account screens
+        expect(find.text('Profile'), findsOneWidget);
       });
     });
 
@@ -218,6 +235,48 @@ void main() {
 
         // Login option is hidden - linking code is the authentication mechanism
         expect(find.text('Login'), findsNothing);
+      });
+
+      testWidgets('does not show logout option (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Logout was removed along with the login/account screens (CUR-628)
+        expect(find.text('Logout'), findsNothing);
+      });
+
+      testWidgets('does not show account option (CUR-628)', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        await tester.pumpWidget(buildHomeScreen());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Account profile screen was removed (CUR-628)
+        expect(find.text('Account'), findsNothing);
       });
 
       testWidgets('shows accessibility option', (tester) async {
