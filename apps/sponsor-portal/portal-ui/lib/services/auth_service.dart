@@ -316,6 +316,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Sponsor role name mappings (systemRole → sponsorName)
+  Map<String, String> _sponsorRoleNames = {};
+
+  /// Sponsor role description mappings (systemRole → description)
+  Map<String, String> _sponsorRoleDescriptions = {};
+
   /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
   bool _mfaRequired = false;
@@ -345,6 +351,14 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
+
+  /// Get sponsor display name for a system role, falling back to the system name
+  String sponsorRoleName(String systemRole) =>
+      _sponsorRoleNames[systemRole] ?? systemRole;
+
+  /// Get sponsor description for a system role, or null if not set
+  String? sponsorRoleDescription(String systemRole) =>
+      _sponsorRoleDescriptions[systemRole];
 
   /// Whether TOTP MFA verification is required to complete sign-in
   bool get mfaRequired => _mfaRequired;
@@ -735,6 +749,8 @@ class AuthService extends ChangeNotifier {
 
     await _auth.signOut();
     _currentUser = null;
+    _sponsorRoleNames = {};
+    _sponsorRoleDescriptions = {};
     _sessionUid = null;
     _emailOtpRequired = false;
     _maskedEmail = null;
@@ -774,6 +790,10 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _currentUser = PortalUser.fromJson(data);
+        // Fetch sponsor role mappings if not loaded yet
+        if (_sponsorRoleNames.isEmpty) {
+          await _fetchSponsorRoleMappings(idToken!);
+        }
         notifyListeners();
         // REQ-p01044-C: apply sponsor-configurable inactivity timeout
         await _fetchSponsorTimeout();
@@ -826,6 +846,42 @@ class AuthService extends ChangeNotifier {
       debugPrint(
         '[AuthService] Failed to fetch sponsor timeout, using default: $e',
       );
+    }
+  }
+
+  /// Fetch sponsor role name mappings from the API
+  Future<void> _fetchSponsorRoleMappings(String idToken) async {
+    try {
+      // TODO: Get sponsorId from config/context - hardcoded for now
+      const sponsorId = 'callisto';
+      final response = await _httpClient.get(
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/roles?sponsorId=$sponsorId'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final mappingsList = (data['mappings'] as List?) ?? [];
+        final nameMap = <String, String>{};
+        final descMap = <String, String>{};
+        for (final m in mappingsList) {
+          final mapping = m as Map<String, dynamic>;
+          final systemRole = mapping['systemRole'] as String;
+          nameMap[systemRole] = mapping['sponsorName'] as String;
+          final desc = mapping['description'] as String?;
+          if (desc != null && desc.isNotEmpty) {
+            descMap[systemRole] = desc;
+          }
+        }
+        _sponsorRoleNames = nameMap;
+        _sponsorRoleDescriptions = descMap;
+      }
+    } catch (e) {
+      debugPrint('Error fetching sponsor role mappings: $e');
+      // Non-fatal: fall back to system names
     }
   }
 
