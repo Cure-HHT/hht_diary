@@ -2,7 +2,7 @@ FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac91
 
 WORKDIR /workspace/src
 
-# Copy only files/directories that are confirmed to exist in this repo layout
+# Copy only files/directories that are confirmed to be needed in this repo layout
 COPY .github/versions.env ./.github/versions.env
 
 # Shared/common packages
