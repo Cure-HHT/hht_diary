@@ -2,23 +2,51 @@ FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac91
 
 WORKDIR /workspace/src
 
-# Copy only files/directories that are confirmed to be needed in this repo layout
+# Keep versions metadata if needed by downstream logic
 COPY .github/versions.env ./.github/versions.env
 
-# Shared/common packages
-COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
-COPY apps/edc/rave-integration ./apps/edc/rave-integration
+# -----------------------------
+# Dependency manifests first
+# -----------------------------
 
-# Sponsor portal apps
-COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
-COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
-COPY apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+# common-dart/trial_data_types
+COPY apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
+COPY apps/common-dart/trial_data_types/pubspec.lock ./apps/common-dart/trial_data_types/pubspec.lock
 
-# Daily diary apps
-COPY apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
+# edc/rave-integration
+COPY apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
+COPY apps/edc/rave-integration/pubspec.lock ./apps/edc/rave-integration/pubspec.lock
 
-# Resolve package dependencies
+# sponsor-portal/portal_functions
+COPY apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
+COPY apps/sponsor-portal/portal_functions/pubspec.lock ./apps/sponsor-portal/portal_functions/pubspec.lock
+
+# sponsor-portal/portal_server
+COPY apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
+COPY apps/sponsor-portal/portal_server/pubspec.lock ./apps/sponsor-portal/portal_server/pubspec.lock
+
+# sponsor-portal/portal-ui
+COPY apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
+COPY apps/sponsor-portal/portal-ui/pubspec.lock ./apps/sponsor-portal/portal-ui/pubspec.lock
+
+# daily-diary/diary_functions
+COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
+COPY apps/daily-diary/diary_functions/pubspec.lock ./apps/daily-diary/diary_functions/pubspec.lock
+
+# daily-diary/diary_server
+COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
+COPY apps/daily-diary/diary_server/pubspec.lock ./apps/daily-diary/diary_server/pubspec.lock
+
+# -----------------------------
+# Permission fix before pub get
+# -----------------------------
+RUN mkdir -p /workspace/src && \
+    chmod -R u+rwX /workspace
+
+# -----------------------------
+# Resolve dependencies
+# -----------------------------
+
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
 RUN dart pub get
 
@@ -40,8 +68,22 @@ RUN dart pub get
 WORKDIR /workspace/src/apps/daily-diary/diary_server
 RUN dart pub get
 
-# Sanity checks
+# -----------------------------
+# Copy full source after deps
+# -----------------------------
 WORKDIR /workspace/src
+
+COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
+COPY apps/edc/rave-integration ./apps/edc/rave-integration
+COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
+COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
+COPY apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+COPY apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
+COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
+
+# -----------------------------
+# Sanity checks
+# -----------------------------
 RUN set -euo pipefail && \
     test -d /workspace/src/apps/common-dart/trial_data_types && \
     test -d /workspace/src/apps/edc/rave-integration && \
@@ -54,7 +96,9 @@ RUN set -euo pipefail && \
     test ! -f /workspace/src/apps/sponsor-portal/portal_server/bin/server && \
     test ! -d /workspace/src/apps/sponsor-portal/portal-ui/build/web
 
-# Create and switch to non-root user
+# -----------------------------
+# Non-root final image
+# -----------------------------
 RUN groupadd --gid 10001 appuser && \
     useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /workspace
