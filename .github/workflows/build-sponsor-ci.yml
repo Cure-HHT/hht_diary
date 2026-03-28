@@ -13,7 +13,7 @@ on:
       - 'apps/edc/**'
       - 'apps/sponsor-portal/**'
       - 'apps/daily-diary/**'
-      - 'tools/dev-env/docker/sponsor-ci.Dockerfile'
+      - 'deployment/docker/sponsor-ci.Dockerfile'
       - '.github/workflows/build-sponsor-ci.yml'
       - '.github/versions.env'
       - 'pubspec.yaml'
