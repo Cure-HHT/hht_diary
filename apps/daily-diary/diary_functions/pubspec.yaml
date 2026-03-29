@@ -23,6 +23,10 @@ dependencies:
   # Utilities
   crypto: ^3.0.7
 
+  # Observability
+  otel_common:
+    path: ../../common-dart/otel_common
+
   # Shared types
   trial_data_types:
     path: ../../common-dart/trial_data_types

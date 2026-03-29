@@ -21,6 +21,10 @@ dependencies:
   diary_functions:
     path: ../diary_functions
 
+  # Observability
+  otel_common:
+    path: ../../common-dart/otel_common
+
   # Environment & logging
   logging: ^1.3.0
 
