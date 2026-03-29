@@ -14,6 +14,9 @@ RUN groupadd --gid 10001 appuser && \
 # Switch to non-root BEFORE running Dart/Flutter
 USER 10001:10001
 
+# Fix Flutter/Git safe.directory issue
+RUN git config --global --add safe.directory /opt/flutter
+
 # Keep versions metadata
 COPY .github/versions.env ./.github/versions.env
 
@@ -29,7 +32,7 @@ COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_func
 COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
-# Resolve dependencies (non-root ✅)
+# Resolve dependencies (non-root)
 # -----------------------------
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
 RUN dart pub get
