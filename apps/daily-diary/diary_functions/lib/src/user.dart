@@ -257,7 +257,8 @@ Future<Response> linkHandler(Request request) async {
     );
 
     if (existingLink.isNotEmpty) {
-      _log('WARNING', 'Duplicate enrollment attempt from same device', {
+      logWithTrace('WARNING', 'Duplicate enrollment attempt from same device',
+          labels: {
         'codePrefix': codePrefix,
         'userId': userId,
       });
