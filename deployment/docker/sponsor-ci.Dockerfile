@@ -16,18 +16,18 @@ USER 10001:10001
 RUN git config --global --add safe.directory /opt/flutter
 
 # Keep versions metadata if needed by downstream logic
-COPY .github/versions.env ./.github/versions.env
+COPY --chown=10001:10001 .github/versions.env ./.github/versions.env
 
 # -----------------------------
 # Dependency manifests first (cache-friendly)
 # -----------------------------
-COPY apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
-COPY apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
-COPY apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
-COPY apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
-COPY apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
-COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
-COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
+COPY --chown=10001:10001 apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
+COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
 # Resolve dependencies
@@ -58,13 +58,13 @@ RUN dart pub get
 # -----------------------------
 WORKDIR /workspace/src
 
-COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
-COPY apps/edc/rave-integration ./apps/edc/rave-integration
-COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
-COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
-COPY apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
-COPY apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
+COPY --chown=10001:10001 apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
+COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
+COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # -----------------------------
 # Sanity checks
