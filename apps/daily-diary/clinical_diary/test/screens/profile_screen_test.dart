@@ -94,6 +94,16 @@ void main() {
 
         expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
+
+      testWidgets(
+        'does not show Share with CureHHT button when not enrolled (CUR-1116)',
+        (tester) async {
+          await tester.pumpWidget(buildProfileScreen(isEnrolledInTrial: false));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
     });
 
     group('Participation Status Badge - Active', () {
@@ -174,6 +184,22 @@ void main() {
 
         expect(find.text('Enter New Linking Code'), findsNothing);
       });
+
+      testWidgets(
+        'does not show Share with CureHHT button when enrolled (CUR-1116)',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              enrollmentStatus: 'active',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
     });
 
     group('Participation Status Badge - Disconnected', () {
