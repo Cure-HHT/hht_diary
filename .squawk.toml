@@ -6,10 +6,12 @@
 # - prefer-identity: BIGSERIAL is fine for initial schema (IDENTITY matters for migrations)
 # - prefer-bigint-over-int: INTEGER is intentional for bounded values (scores, versions, counts)
 # - require-timeout-settings: Not needed for initial schema DDL
+# - adding-foreign-key-constraint: NOT VALID + VALIDATE pattern not needed for initial schema
 excluded_rules = [
     "require-concurrent-index-creation",
     "prefer-robust-stmts",
     "prefer-identity",
     "prefer-bigint-over-int",
     "require-timeout-settings",
+    "adding-foreign-key-constraint",
 ]
