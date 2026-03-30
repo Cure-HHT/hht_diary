@@ -257,11 +257,11 @@ Future<Response> linkHandler(Request request) async {
     );
 
     if (existingLink.isNotEmpty) {
-      logWithTrace('WARNING', 'Duplicate enrollment attempt from same device',
-          labels: {
-        'codePrefix': codePrefix,
-        'userId': userId,
-      });
+      logWithTrace(
+        'WARNING',
+        'Duplicate enrollment attempt from same device',
+        labels: {'codePrefix': codePrefix, 'userId': userId},
+      );
       return _jsonResponse({
         'error':
             'This device is already enrolled in a study. '
