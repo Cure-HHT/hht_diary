@@ -235,12 +235,14 @@ class AuthService extends ChangeNotifier {
   /// is automatically signed out. Defaults to 2 minutes (REQ-p01044-B). Pass a
   /// shorter duration in tests to avoid sleeping.
   AuthService({
+    String sponsorId = '',
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
     Duration inactivityTimeout = const Duration(minutes: 2),
     bool enableInactivityTimer = true,
     Future<void> Function()? clearStorage,
-  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
+  }) : _sponsorId = sponsorId,
+       _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout,
        _enableInactivityTimer = enableInactivityTimer,
@@ -250,6 +252,7 @@ class AuthService extends ChangeNotifier {
     _init();
   }
 
+  final String _sponsorId;
   final bool _enableInactivityTimer;
   // REQ-d00083-A..E, REQ-p01044-J..M: injectable for testing, web impl by default
   final Future<void> Function() _clearStorage;
@@ -351,6 +354,7 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
+  String get sponsorId => _sponsorId;
 
   /// Get sponsor display name for a system role, falling back to the system name
   String sponsorRoleName(String systemRole) =>
@@ -751,6 +755,7 @@ class AuthService extends ChangeNotifier {
     _currentUser = null;
     _sponsorRoleNames = {};
     _sponsorRoleDescriptions = {};
+    _sponsorTimeoutFetched = false;
     _sessionUid = null;
     _emailOtpRequired = false;
     _maskedEmail = null;
@@ -818,19 +823,24 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Whether the sponsor timeout has already been fetched this session.
+  bool _sponsorTimeoutFetched = false;
+
   /// Fetch the sponsor-configurable inactivity timeout and apply it.
   ///
   /// REQ-p01044-C: sponsors can configure inactivity timeout (1–30 minutes).
   /// Silently falls back to the current timeout on any error.
+  /// Only fetches once per session.
   Future<void> _fetchSponsorTimeout() async {
+    if (_sponsorTimeoutFetched) return;
+
     try {
-      // Sponsor config is a public endpoint — no auth token required.
-      // sponsorId is hardcoded to 'callisto' for now (same as user_management_tab).
       final response = await _httpClient.get(
-        Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=callisto'),
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=$_sponsorId'),
       );
 
       if (response.statusCode == 200) {
+        _sponsorTimeoutFetched = true;
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final flags = data['flags'] as Map<String, dynamic>?;
         final minutes = flags?['inactivityTimeoutMinutes'] as int?;
@@ -852,10 +862,8 @@ class AuthService extends ChangeNotifier {
   /// Fetch sponsor role name mappings from the API
   Future<void> _fetchSponsorRoleMappings(String idToken) async {
     try {
-      // TODO: Get sponsorId from config/context - hardcoded for now
-      const sponsorId = 'callisto';
       final response = await _httpClient.get(
-        Uri.parse('$_apiBaseUrl/api/v1/sponsor/roles?sponsorId=$sponsorId'),
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/roles?sponsorId=$_sponsorId'),
         headers: {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',

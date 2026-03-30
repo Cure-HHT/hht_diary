@@ -11,16 +11,6 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/role_badge.dart';
 
-/// Fallback descriptions keyed by system role name, used when backend has none
-const _fallbackDescriptions = <String, String>{
-  'Developer Admin': 'System configuration and portal admin setup',
-  'Administrator': 'User management and portal administration',
-  'Investigator': 'Patient management and questionnaire workflows',
-  'Auditor': 'Audit trails and compliance review',
-  'Sponsor': 'Study oversight and reporting',
-  'Analyst': 'Data analysis and insights',
-};
-
 /// Page for users with multiple roles to select which role to use
 class RolePickerPage extends StatefulWidget {
   const RolePickerPage({super.key});
@@ -37,9 +27,7 @@ class _RolePickerPageState extends State<RolePickerPage> {
   }
 
   String _getDescription(AuthService authService, UserRole role) {
-    return authService.sponsorRoleDescription(role.systemName) ??
-        _fallbackDescriptions[role.systemName] ??
-        '';
+    return authService.sponsorRoleDescription(role.systemName) ?? '';
   }
 
   @override

@@ -103,8 +103,7 @@ class _UserManagementTabState extends State<UserManagementTab>
 
     try {
       // Fetch users, sites, and role mappings in parallel
-      // TODO: Get sponsorId from config/context - hardcoded for now
-      const sponsorId = 'callisto';
+      final sponsorId = context.read<AuthService>().sponsorId;
       final results = await Future.wait([
         _apiClient.get('/api/v1/portal/users'),
         _apiClient.get('/api/v1/portal/sites'),

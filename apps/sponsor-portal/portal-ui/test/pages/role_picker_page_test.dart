@@ -3,7 +3,7 @@
 //   REQ-d00032: Role-Based Access Control Implementation
 //
 // Widget tests for RolePickerPage
-// Tests role display names and descriptions from AuthService with fallback
+// Tests role display names and descriptions from AuthService (no fallbacks)
 
 import 'dart:convert';
 
@@ -154,34 +154,30 @@ void main() {
       expect(find.text('Review audit trails and compliance'), findsOneWidget);
     });
 
-    testWidgets('falls back to default descriptions when API has none', (
-      tester,
-    ) async {
+    testWidgets('shows no descriptions when API has none', (tester) async {
       final client = _createMockClient(
         roleMappings: _roleMappingsNoDescriptions,
       );
       await _pumpRolePickerPage(tester, mockClient: client);
 
-      // Should fall back to _fallbackDescriptions constant
+      // Descriptions come only from the database — no fallbacks
       expect(
         find.text('Patient management and questionnaire workflows'),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Audit trails and compliance review'), findsOneWidget);
+      expect(find.text('Audit trails and compliance review'), findsNothing);
     });
 
-    testWidgets('falls back to default descriptions when API fails', (
-      tester,
-    ) async {
+    testWidgets('shows no descriptions when API fails', (tester) async {
       final client = _createFailingRolesClient();
       await _pumpRolePickerPage(tester, mockClient: client);
 
-      // Should fall back to _fallbackDescriptions constant
+      // Descriptions come only from the database — no fallbacks
       expect(
         find.text('Patient management and questionnaire workflows'),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Audit trails and compliance review'), findsOneWidget);
+      expect(find.text('Audit trails and compliance review'), findsNothing);
     });
 
     testWidgets('shows role switch info text', (tester) async {
