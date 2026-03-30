@@ -52,7 +52,9 @@ jobs:
 
     steps:
       - name: Free up disk space
+        shell: bash
         run: |
+          set -euo pipefail
           echo "Disk space before cleanup:"
           df -h
           docker image prune -af
@@ -84,6 +86,7 @@ jobs:
 
       - name: Determine tags
         id: parse
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -148,6 +151,9 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-sponsor-ci]
 
+    outputs:
+      attestation_status: ${{ steps.attest.outputs.attestation_status }}
+
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -163,13 +169,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sign sponsor-ci image
+        shell: bash
         run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
+          set -euo pipefail
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}"
+          cosign sign --yes "$IMAGE"
 
       - name: Generate SBOM for sponsor-ci image
+        shell: bash
         run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }} \
+          set -euo pipefail
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}"
+          syft "$IMAGE" \
             -o spdx-json \
             --file sponsor-ci-sbom.spdx.json
 
@@ -180,12 +191,57 @@ jobs:
           path: sponsor-ci-sbom.spdx.json
           retention-days: 90
 
-      - name: Attach SBOM attestation to sponsor-ci image
+      - name: Attach SBOM attestation to sponsor-ci image with retry
+        id: attest
+        shell: bash
         run: |
-          cosign attest --yes \
-            --predicate sponsor-ci-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
+          set -euo pipefail
+
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}"
+          max_attempts=5
+          attempt=1
+          success=false
+
+          while true; do
+            echo "SBOM attestation attempt ${attempt}/${max_attempts} for ${IMAGE}"
+
+            if cosign attest --yes \
+              --predicate sponsor-ci-sbom.spdx.json \
+              --type spdxjson \
+              "$IMAGE"; then
+              echo "SBOM attestation succeeded on attempt ${attempt}"
+              success=true
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::warning::SBOM attestation failed after ${max_attempts} attempts. Continuing pipeline without blocking build."
+              break
+            fi
+
+            sleep_seconds=$((attempt * 15))
+            echo "SBOM attestation failed on attempt ${attempt}; retrying in ${sleep_seconds}s..."
+            sleep "$sleep_seconds"
+            attempt=$((attempt + 1))
+          done
+
+          if [ "$success" = true ]; then
+            echo "attestation_status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "attestation_status=failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Add attestation note to job summary
+        shell: bash
+        run: |
+          {
+            echo "## SBOM Attestation"
+            echo ""
+            echo "- Status: \`${{ steps.attest.outputs.attestation_status }}\`"
+            if [ "${{ steps.attest.outputs.attestation_status }}" = "failed" ]; then
+              echo "- Note: Rekor upload did not succeed after retry attempts; image build and SBOM artifact were still preserved."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   validate-sponsor-ci:
     name: Validate sponsor-ci contents
@@ -201,6 +257,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate expected contents
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -210,6 +267,7 @@ jobs:
             set -euo pipefail
 
             test -d /workspace/src/apps/common-dart/trial_data_types
+            test -d /workspace/src/apps/common-dart/shared_functions
             test -d /workspace/src/apps/edc/rave-integration
             test -d /workspace/src/apps/sponsor-portal/portal_functions
             test -d /workspace/src/apps/sponsor-portal/portal_server
@@ -223,6 +281,7 @@ jobs:
           '
 
       - name: Generate summary
+        shell: bash
         run: |
           {
             echo "# sponsor-ci Build Summary"
@@ -245,5 +304,5 @@ jobs:
             echo "- Excludes built web artifacts"
             echo "- Image signed with Cosign"
             echo "- SBOM generated with Syft"
+            echo "- SBOM attestation status: \`${{ needs.sign-and-sbom.outputs.attestation_status }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
-

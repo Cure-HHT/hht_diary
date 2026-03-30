@@ -3,35 +3,40 @@ FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac91
 USER root
 WORKDIR /workspace/src
 
-# Fix workspace ownership (required because base image is non-root)
-RUN mkdir -p /workspace/src && \
-    chown -R 10001:10001 /workspace
-
-# Create app user early
+# Create app user and fix writable locations needed before switching to non-root
 RUN groupadd --gid 10001 appuser && \
-    useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash appuser
+    useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash appuser && \
+    mkdir -p /workspace/src /opt/flutter/bin/cache && \
+    chown -R 10001:10001 /workspace /opt/flutter/bin/cache
 
-# Switch to non-root BEFORE running Dart/Flutter
+# Switch to non-root before running Dart/Flutter tooling
 USER 10001:10001
 
-# Keep versions metadata
-COPY .github/versions.env ./.github/versions.env
+# Allow Git operations against the Flutter checkout used internally by Dart/Flutter
+RUN git config --global --add safe.directory /opt/flutter
+
+# Keep versions metadata if needed by downstream logic
+COPY --chown=10001:10001 .github/versions.env ./.github/versions.env
 
 # -----------------------------
-# Dependency manifests first (for caching)
+# Dependency manifests first (cache-friendly)
 # -----------------------------
-COPY apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
-COPY apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
-COPY apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
-COPY apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
-COPY apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
-COPY apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
-COPY apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
+COPY --chown=10001:10001 apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
+COPY --chown=10001:10001 apps/common-dart/shared_functions/pubspec.yaml ./apps/common-dart/shared_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
-# Resolve dependencies (non-root ✅)
+# Resolve dependencies
 # -----------------------------
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
+RUN dart pub get
+
+WORKDIR /workspace/src/apps/common-dart/shared_functions
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/edc/rave-integration
@@ -57,25 +62,30 @@ RUN dart pub get
 # -----------------------------
 WORKDIR /workspace/src
 
-COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
-COPY apps/edc/rave-integration ./apps/edc/rave-integration
-COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
-COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
-COPY apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
-COPY apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
+COPY --chown=10001:10001 apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
+COPY --chown=10001:10001 apps/common-dart/shared_functions ./apps/common-dart/shared_functions
+COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
+COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # -----------------------------
 # Sanity checks
 # -----------------------------
 RUN set -euo pipefail && \
     test -d apps/common-dart/trial_data_types && \
+    test -d apps/common-dart/shared_functions && \
     test -d apps/edc/rave-integration && \
     test -d apps/sponsor-portal/portal_functions && \
     test -d apps/sponsor-portal/portal_server && \
     test -d apps/sponsor-portal/portal-ui && \
     test -d apps/daily-diary/diary_functions && \
-    test -d apps/daily-diary/diary_server
+    test -d apps/daily-diary/diary_server && \
+    test ! -d sponsor-content && \
+    test ! -f apps/sponsor-portal/portal_server/bin/server && \
+    test ! -d apps/sponsor-portal/portal-ui/build/web
 
 WORKDIR /workspace/src
 USER 10001:10001
