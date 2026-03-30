@@ -7,9 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   // Ensure timezone DB is initialized before tests
-  setUpAll(() {
-    TimezoneConverter.ensureInitialized();
-  });
+  setUpAll(TimezoneConverter.ensureInitialized);
 
   group('TimezoneConverter', () {
     // Use fixed device offset for deterministic tests
