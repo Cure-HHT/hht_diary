@@ -33,6 +33,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
+import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:uuid/uuid.dart';
 
 /// Flavor name from build configuration.
@@ -68,6 +69,9 @@ void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Initialize IANA timezone database for DST-aware time calculations
+      tz_data.initializeTimeZones();
 
       try {
         await Firebase.initializeApp(
