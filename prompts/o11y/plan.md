@@ -10,7 +10,7 @@
 ## Current State
 
 | Layer | What Exists | What's Missing |
-|-------|------------|----------------|
+| ----- | ---------- | -------------- |
 | **Logging** | Basic JSON to stdout (Cloud Logging picks it up) | No trace correlation, no structured context propagation |
 | **Tracing** | IAM roles granted (`cloudtrace.agent`) but unused | No OTel SDK, no spans, no context propagation |
 | **Metrics** | IAM role granted (`monitoring.metricWriter`) but unused | No custom metrics, no histograms, no counters |
@@ -396,7 +396,7 @@ Every phase must enforce:
 ## Testing Strategy
 
 | Phase | Test Type | What |
-|-------|-----------|------|
+| ----- | --------- | ---- |
 | 1 | Integration | Collector receives OTLP, forwards to GCP |
 | 2 | Unit | Middleware creates spans, DB wrapper traces queries, logs include trace IDs |
 | 3-4 | Integration | End-to-end request produces trace in Cloud Trace |
@@ -409,7 +409,7 @@ Every phase must enforce:
 ## Risk & Mitigation
 
 | Risk | Mitigation |
-|------|-----------|
+| ---- | --------- |
 | OTel Collector adds latency | Sidecar on same host, async OTLP export, batch processor |
 | Collector OOM on Cloud Run | Memory limiter processor, conservative batch sizes |
 | Span volume costs (Cloud Trace $0.20/M) | Sampler: always-on for errors, probabilistic for success (e.g. 10%) |
@@ -422,7 +422,7 @@ Every phase must enforce:
 ## Environment Variables (New)
 
 | Variable | Value | Where Set |
-|----------|-------|-----------|
+| -------- | ----- | --------- |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Cloud Run env |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | Cloud Run env |
 | `OTEL_SERVICE_NAME` | `diary-server` / `portal-server` | Cloud Run env |
@@ -436,7 +436,7 @@ Every phase must enforce:
 ## Estimated Scope per Phase
 
 | Phase | New Files | Modified Files | Complexity |
-|-------|-----------|---------------|------------|
+| ----- | --------- | ------------- | ---------- |
 | 1 — IaC | 4-5 | 2-3 | Medium (Terraform + Docker) |
 | 2 — otel_common | 8-10 | 0 | Medium (new package) |
 | 3 — diary_server | 0 | 6-8 | Low-Medium (integration) |
