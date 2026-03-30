@@ -49,14 +49,14 @@ void main() {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Clinical Trial Enrollment'), findsOneWidget);
+        expect(find.text('Clinical Trial Linking'), findsOneWidget);
       });
 
       testWidgets('displays linking code title', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Enter Enrollment Code'), findsOneWidget);
+        expect(find.text('Enter Linking Code'), findsOneWidget);
       });
 
       testWidgets('displays description text', (tester) async {
@@ -65,7 +65,7 @@ void main() {
 
         expect(
           find.text(
-            'Please enter the 10-digit enrollment code provided by your research coordinator.',
+            'Please enter the 10-digit linking code provided by your research coordinator.',
           ),
           findsOneWidget,
         );
@@ -120,7 +120,7 @@ void main() {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Enroll in Clinical Trial'), findsOneWidget);
+        expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
 
       testWidgets('displays back button', (tester) async {
@@ -221,7 +221,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNull);
       });
@@ -242,7 +242,7 @@ void main() {
         // Don't check the consent checkbox
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNull);
       });
@@ -269,7 +269,7 @@ void main() {
         await tester.pump();
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNotNull);
       });
@@ -300,7 +300,7 @@ void main() {
 
         // Tap link button
         await tester.tap(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         await tester.pumpAndSettle();
 
@@ -332,7 +332,7 @@ void main() {
 
         // Tap link button to get error
         await tester.tap(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         await tester.pumpAndSettle();
 
