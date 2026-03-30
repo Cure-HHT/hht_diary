@@ -279,7 +279,7 @@ class PatientActionsDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'To re-enroll this patient, use the "Reactivate" button in the patient list.',
+            'To reactivate this patient, use the "Reactivate" button in the patient list.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

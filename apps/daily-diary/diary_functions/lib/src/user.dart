@@ -254,8 +254,8 @@ Future<Response> linkHandler(Request request) async {
       });
       return _jsonResponse({
         'error':
-            'This device is already enrolled in a study. '
-            'Please contact your research coordinator if you need to re-enroll.',
+            'This device is already linked to a study. '
+            'Please contact your research coordinator if you need to re-link.',
       }, 409);
     }
 
