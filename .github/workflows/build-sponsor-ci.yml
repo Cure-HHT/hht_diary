@@ -84,6 +84,7 @@ jobs:
 
       - name: Determine tags
         id: parse
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -163,12 +164,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sign sponsor-ci image
+        shell: bash
         run: |
+          set -euo pipefail
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
 
       - name: Generate SBOM for sponsor-ci image
+        shell: bash
         run: |
+          set -euo pipefail
           syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }} \
             -o spdx-json \
             --file sponsor-ci-sbom.spdx.json
@@ -180,12 +185,37 @@ jobs:
           path: sponsor-ci-sbom.spdx.json
           retention-days: 90
 
-      - name: Attach SBOM attestation to sponsor-ci image
+      - name: Attach SBOM attestation to sponsor-ci image with retry
+        shell: bash
         run: |
-          cosign attest --yes \
-            --predicate sponsor-ci-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
+          set -euo pipefail
+
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}"
+          max_attempts=5
+          attempt=1
+
+          while true; do
+            echo "SBOM attestation attempt ${attempt}/${max_attempts} for ${IMAGE}"
+
+            if cosign attest --yes \
+              --predicate sponsor-ci-sbom.spdx.json \
+              --type spdxjson \
+              "$IMAGE"; then
+              echo "SBOM attestation succeeded on attempt ${attempt}"
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::SBOM attestation failed after ${max_attempts} attempts"
+              exit 1
+            fi
+
+            sleep_seconds=$((attempt * 15))
+            echo "SBOM attestation failed on attempt ${attempt}; retrying in ${sleep_seconds}s..."
+            sleep "$sleep_seconds"
+
+            attempt=$((attempt + 1))
+          done
 
   validate-sponsor-ci:
     name: Validate sponsor-ci contents
@@ -201,6 +231,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate expected contents
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -223,6 +254,7 @@ jobs:
           '
 
       - name: Generate summary
+        shell: bash
         run: |
           {
             echo "# sponsor-ci Build Summary"
@@ -245,5 +277,5 @@ jobs:
             echo "- Excludes built web artifacts"
             echo "- Image signed with Cosign"
             echo "- SBOM generated with Syft"
+            echo "- SBOM attestation retried automatically on transient failure"
           } >> "$GITHUB_STEP_SUMMARY"
-
