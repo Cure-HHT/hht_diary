@@ -1,115 +1,91 @@
-# syntax=docker/dockerfile:1.7
+FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
 
-##
-## Sponsor CI base image
-##
-## Purpose:
-## - Shared CI/build environment for sponsor-owned final images
-## - Built in hht_diary, consumed by hht_diary_callisto
-##
-## Notes:
-## - Keeps toolchain in one reusable base layer
-## - Does NOT contain sponsor-specific content
-## - Final images should extend this image via SPONSOR_CI_IMAGE
-##
+USER root
+WORKDIR /workspace/src
 
-FROM debian:12-slim
+# Create app user and fix writable locations needed before switching to non-root
+RUN groupadd --gid 10001 appuser && \
+    useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash appuser && \
+    mkdir -p /workspace/src /opt/flutter/bin/cache && \
+    chown -R 10001:10001 /workspace /opt/flutter/bin/cache
 
-ARG DEBIAN_FRONTEND=noninteractive
-ARG FLUTTER_VERSION=3.32.8
-ARG DART_VERSION=3.8.1
-ARG USERNAME=builder
-ARG USER_UID=10001
-ARG USER_GID=10001
+# Switch to non-root before running Dart/Flutter tooling
+USER 10001:10001
 
-ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    TZ=UTC \
-    FLUTTER_HOME=/opt/flutter \
-    PUB_CACHE=/opt/pub-cache \
-    PATH=/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/pub-cache/bin:${PATH}
+# Allow Git operations against the Flutter checkout used internally by Dart/Flutter
+RUN git config --global --add safe.directory /opt/flutter
 
-# Base OS packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
-    ca-certificates \
-    curl \
-    git \
-    jq \
-    openssh-client \
-    python3 \
-    python3-pip \
-    rsync \
-    unzip \
-    xz-utils \
-    zip \
-    file \
-    make \
-    pkg-config \
-    libc6 \
-    libstdc++6 \
-    xz-utils \
-    gnupg \
-    dirmngr \
-    # Common runtime/build libs often needed by Flutter/Dart tooling
-    libglu1-mesa \
-    libgtk-3-0 \
-    libnss3 \
-    libx11-6 \
-    libxext6 \
-    libxi6 \
-    libxrender1 \
-    libxtst6 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcairo2 \
-    libdrm2 \
-    libgbm1 \
-    libglib2.0-0 \
-    libnspr4 \
-    libpango-1.0-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxkbcommon0 \
-    libasound2 \
-    fonts-liberation \
-    procps \
-    tini \
- && rm -rf /var/lib/apt/lists/*
+# Keep versions metadata if needed by downstream logic
+COPY --chown=10001:10001 .github/versions.env ./.github/versions.env
 
-# Create non-root user
-RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
- && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USERNAME}" \
- && mkdir -p /workspace /opt/pub-cache \
- && chown -R "${USERNAME}:${USERNAME}" /workspace /opt/pub-cache
+# -----------------------------
+# Dependency manifests first (cache-friendly)
+# -----------------------------
+COPY --chown=10001:10001 apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
+COPY --chown=10001:10001 apps/common-dart/shared_functions/pubspec.yaml ./apps/common-dart/shared_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
-# Install Flutter SDK
-RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o /tmp/flutter.tar.xz \
- && mkdir -p /opt \
- && tar -xJf /tmp/flutter.tar.xz -C /opt \
- && rm -f /tmp/flutter.tar.xz \
- && flutter --version \
- && dart --version
+# -----------------------------
+# Resolve dependencies
+# -----------------------------
+WORKDIR /workspace/src/apps/common-dart/trial_data_types
+RUN dart pub get
 
-# Warm Flutter/Dart caches a bit
-RUN flutter config --no-analytics \
- && dart --disable-analytics \
- && flutter precache --linux --web
+WORKDIR /workspace/src/apps/common-dart/shared_functions
+RUN dart pub get
 
-# Optional: install a specific standalone Dart SDK if you want hard pinning separate from Flutter.
-# In most Flutter-based stacks, the Dart bundled with Flutter is the right source of truth.
-# Keeping this as a label for visibility instead of overriding the bundled SDK.
-LABEL sponsor-ci.flutter-version="${FLUTTER_VERSION}"
-LABEL sponsor-ci.dart-version="${DART_VERSION}"
+WORKDIR /workspace/src/apps/edc/rave-integration
+RUN dart pub get
 
-WORKDIR /workspace
+WORKDIR /workspace/src/apps/sponsor-portal/portal_functions
+RUN dart pub get
 
-# Switch to non-root for normal CI usage
-USER ${USERNAME}
+WORKDIR /workspace/src/apps/sponsor-portal/portal_server
+RUN dart pub get
 
-# Final sanity checks
-RUN flutter doctor -v || true
+WORKDIR /workspace/src/apps/sponsor-portal/portal-ui
+RUN flutter pub get
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["bash"]
+WORKDIR /workspace/src/apps/daily-diary/diary_functions
+RUN dart pub get
+
+WORKDIR /workspace/src/apps/daily-diary/diary_server
+RUN dart pub get
+
+# -----------------------------
+# Copy full source after deps
+# -----------------------------
+WORKDIR /workspace/src
+
+COPY --chown=10001:10001 apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
+COPY --chown=10001:10001 apps/common-dart/shared_functions ./apps/common-dart/shared_functions
+COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
+COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
+COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
+COPY --chown=10001:10001 apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
+COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
+
+# -----------------------------
+# Sanity checks
+# -----------------------------
+RUN set -euo pipefail && \
+    test -d apps/common-dart/trial_data_types && \
+    test -d apps/common-dart/shared_functions && \
+    test -d apps/edc/rave-integration && \
+    test -d apps/sponsor-portal/portal_functions && \
+    test -d apps/sponsor-portal/portal_server && \
+    test -d apps/sponsor-portal/portal-ui && \
+    test -d apps/daily-diary/diary_functions && \
+    test -d apps/daily-diary/diary_server && \
+    test ! -d sponsor-content && \
+    test ! -f apps/sponsor-portal/portal_server/bin/server && \
+    test ! -d apps/sponsor-portal/portal-ui/build/web
+
+WORKDIR /workspace/src
+USER 10001:10001
