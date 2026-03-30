@@ -62,7 +62,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('displays enrollment confirmed message', (tester) async {
+    testWidgets('displays linking confirmed message', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );

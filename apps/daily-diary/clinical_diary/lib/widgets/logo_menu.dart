@@ -206,7 +206,7 @@ class _LogoMenuState extends State<LogoMenu> {
           ),
         ],
 
-        // Clinical Trial section (only if enrolled)
+        // Clinical Trial section (only if linked)
         if (widget.onEndClinicalTrial != null) ...[
           // Only add divider if dev tools section was shown
           if (widget.showDevTools) const PopupMenuDivider(),

@@ -45,7 +45,7 @@ VALUES (
     now()
 );
 
--- Enroll test user at DEFAULT site
+-- Link test user at DEFAULT site
 INSERT INTO user_site_assignments (
     patient_id,
     site_id,

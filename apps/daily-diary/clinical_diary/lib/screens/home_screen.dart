@@ -67,7 +67,7 @@ class HomeScreen extends StatefulWidget {
   // CUR-528: Callback for font selection changes
   final ValueChanged<String>? onFontChanged;
   final PreferencesService preferencesService;
-  // REQ-CAL-p00082: Called after successful enrollment to register FCM token
+  // REQ-CAL-p00082: Called after successful linking to register FCM token
   final VoidCallback? onEnrolled;
 
   @override
@@ -570,7 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-    // Refresh enrollment status after returning from profile
+    // Refresh linking status after returning from profile
     await _checkEnrollmentStatus();
     await _checkDisconnectionStatus();
   }

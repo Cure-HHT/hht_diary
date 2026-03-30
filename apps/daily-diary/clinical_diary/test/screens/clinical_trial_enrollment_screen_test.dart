@@ -25,7 +25,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockStorage = MockSecureStorage();
-      // Pre-set auth JWT token - required for enrollment/linking (REQ-p70007)
+      // Pre-set auth JWT token - required for linking (REQ-p70007)
       mockStorage.data['auth_jwt'] = 'test-jwt-token';
       mockStorage.data['auth_username'] = 'test-user-id';
     });
@@ -52,7 +52,7 @@ void main() {
         expect(find.text('Clinical Trial Enrollment'), findsOneWidget);
       });
 
-      testWidgets('displays enrollment code title', (tester) async {
+      testWidgets('displays linking code title', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
@@ -92,7 +92,7 @@ void main() {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        // Only one checkbox remains after removing the optional share-prior-to-enrollment one
+        // Only one checkbox remains after removing the optional share-prior-to-linking one
         expect(find.byType(Checkbox), findsOneWidget);
         expect(
           find.textContaining(
@@ -103,12 +103,12 @@ void main() {
       });
 
       testWidgets(
-        'does not show Share data prior to enrollment checkbox (CUR-990)',
+        'does not show Share data prior to linking checkbox (CUR-990)',
         (tester) async {
           await tester.pumpWidget(buildScreen());
           await tester.pumpAndSettle();
 
-          // Optional checkbox was removed — enrollment requires only the mandatory consent
+          // Optional checkbox was removed — linking requires only the mandatory consent
           expect(
             find.text('Share data prior to enrollment (optional)'),
             findsNothing,
@@ -116,7 +116,7 @@ void main() {
         },
       );
 
-      testWidgets('displays enroll button', (tester) async {
+      testWidgets('displays link button', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
@@ -215,7 +215,7 @@ void main() {
       });
     });
 
-    group('Enroll Button State', () {
+    group('Link Button State', () {
       testWidgets('button is disabled when code is incomplete', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
@@ -275,8 +275,8 @@ void main() {
       });
     });
 
-    group('Enrollment Error Handling', () {
-      testWidgets('shows error message on enrollment failure', (tester) async {
+    group('Linking Error Handling', () {
+      testWidgets('shows error message on linking failure', (tester) async {
         final mockClient = MockClient((_) async {
           return http.Response('{"error": "Invalid code"}', 400);
         });
@@ -298,7 +298,7 @@ void main() {
         await tester.tap(requiredCheckbox);
         await tester.pump();
 
-        // Tap enroll button
+        // Tap link button
         await tester.tap(
           find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
         );
@@ -330,7 +330,7 @@ void main() {
         await tester.tap(requiredCheckbox);
         await tester.pump();
 
-        // Tap enroll button to get error
+        // Tap link button to get error
         await tester.tap(
           find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
         );
