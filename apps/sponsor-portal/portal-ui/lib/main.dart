@@ -123,6 +123,7 @@ void main() async {
   // direct reference before the widget tree is built.
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
   final authService = AuthService(
+    sponsorId: sponsorBranding.sponsorId,
     clearStorage: BrowserStorageService().clearStorage,
   );
 

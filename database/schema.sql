@@ -871,6 +871,7 @@ CREATE TABLE sponsor_role_mapping (
     sponsor_id TEXT NOT NULL,
     sponsor_role_name TEXT NOT NULL,
     mapped_role portal_user_role NOT NULL,
+    description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(sponsor_id, sponsor_role_name)
 );
@@ -881,6 +882,7 @@ COMMENT ON TABLE sponsor_role_mapping IS 'Maps sponsor-specific role names to co
 COMMENT ON COLUMN sponsor_role_mapping.sponsor_id IS 'Sponsor identifier (e.g., curehht, callisto)';
 COMMENT ON COLUMN sponsor_role_mapping.sponsor_role_name IS 'Sponsor internal role name (e.g., CRA, Study Coordinator)';
 COMMENT ON COLUMN sponsor_role_mapping.mapped_role IS 'Common role this maps to in portal_user_role enum';
+COMMENT ON COLUMN sponsor_role_mapping.description IS 'Optional sponsor-specific description for the role';
 
 -- =====================================================
 -- EMAIL OTP CODES (2FA via Email)
