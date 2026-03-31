@@ -163,7 +163,7 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
     const serviceContext = UserContext.service;
     final result = await db.executeWithContext(
       '''
-      SELECT sponsor_role_name, mapped_role::text
+      SELECT sponsor_role_name, mapped_role::text, description
       FROM sponsor_role_mapping
       WHERE sponsor_id = @sponsorId
         AND mapped_role != 'Developer Admin'
@@ -173,12 +173,16 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
       context: serviceContext,
     );
 
-    final mappings = <Map<String, String>>[];
+    final mappings = <Map<String, dynamic>>[];
     for (final row in result) {
-      mappings.add({
+      final mapping = <String, dynamic>{
         'sponsorName': row[0] as String,
         'systemRole': row[1] as String,
-      });
+      };
+      if (row[2] != null) {
+        mapping['description'] = row[2] as String;
+      }
+      mappings.add(mapping);
     }
 
     return _jsonResponse({'sponsorId': sponsorId, 'mappings': mappings});

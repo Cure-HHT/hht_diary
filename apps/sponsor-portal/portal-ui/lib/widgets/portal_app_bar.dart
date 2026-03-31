@@ -62,7 +62,14 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(child: RoleBadge(role: user.activeRole)),
+              child: Center(
+                child: RoleBadge(
+                  role: user.activeRole,
+                  displayName: authService.sponsorRoleName(
+                    user.activeRole.systemName,
+                  ),
+                ),
+              ),
             ),
           // About
           IconButton(
@@ -174,7 +181,7 @@ class _RoleSwitcher extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              user.activeRole.displayName,
+              authService.sponsorRoleName(user.activeRole.systemName),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -202,7 +209,10 @@ class _RoleSwitcher extends StatelessWidget {
             value: role,
             child: Row(
               children: [
-                RoleBadge(role: role),
+                RoleBadge(
+                  role: role,
+                  displayName: authService.sponsorRoleName(role.systemName),
+                ),
                 const SizedBox(width: 8),
                 if (isActive)
                   Icon(Icons.check, size: 16, color: theme.colorScheme.primary),

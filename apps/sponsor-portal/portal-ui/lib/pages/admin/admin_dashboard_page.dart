@@ -68,7 +68,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Logged in as ${user.role.displayName}',
+                    'Logged in as ${authService.sponsorRoleName(user.role.systemName)}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: _getRoleBannerTextColor(user.role, theme),
                       fontWeight: FontWeight.w500,

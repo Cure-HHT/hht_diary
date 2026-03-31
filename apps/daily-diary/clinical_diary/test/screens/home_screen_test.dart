@@ -5,7 +5,10 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/models/user_enrollment.dart';
+import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -18,6 +21,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
@@ -366,6 +370,220 @@ void main() {
 
         expect(find.byType(RefreshIndicator), findsOneWidget);
       });
+    });
+
+    group('Post-Linking Profile Return (CUR-1114)', () {
+      testWidgets('returns to ProfileScreen after successful enrollment', (
+        tester,
+      ) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        // Ignore overflow errors from popup menu / profile screen layout
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        // Use MockEnrollmentService to control enrollment state
+        final mockEnrollment = MockEnrollmentService();
+        final mockHttpClient = MockClient(
+          (_) async => http.Response('{"success": true}', 200),
+        );
+        final mockNosebleedService = NosebleedService(
+          enrollmentService: mockEnrollment,
+          httpClient: mockHttpClient,
+          enableCloudSync: false,
+        );
+        addTearDown(() {
+          mockNosebleedService.dispose();
+          mockEnrollment.dispose();
+        });
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            HomeScreen(
+              nosebleedService: mockNosebleedService,
+              enrollmentService: mockEnrollment,
+              taskService: TaskService(),
+              preferencesService: PreferencesService(),
+              onLocaleChanged: (_) {},
+              onThemeModeChanged: (_) {},
+              onLargerTextChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Open user menu and tap Profile
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Profile'));
+        await tester.pumpAndSettle();
+
+        // Verify ProfileScreen is shown
+        expect(find.byType(ProfileScreen), findsOneWidget);
+
+        // 2. Tap "Enroll in Clinical Trial" button on profile
+        await tester.tap(find.text('Enroll in Clinical Trial'));
+        await tester.pumpAndSettle();
+
+        // ProfileScreen should be popped, EnrollmentScreen should be shown
+        expect(find.byType(ClinicalTrialEnrollmentScreen), findsOneWidget);
+        expect(find.byType(ProfileScreen), findsNothing);
+
+        // 3. Simulate successful enrollment by setting mock state
+        mockEnrollment
+          ..jwtToken = 'test-jwt-token'
+          ..enrollment = UserEnrollment(
+            userId: 'test-user-id',
+            jwtToken: 'test-jwt-token',
+            enrolledAt: DateTime(2026, 3, 30),
+            linkingCode: 'ABCDE12345',
+          );
+
+        // 4. Pop the enrollment screen (simulates enrollment completion)
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
+
+        // 5. CUR-1114 fix: ProfileScreen should be re-opened automatically
+        expect(find.byType(ProfileScreen), findsOneWidget);
+      });
+
+      testWidgets(
+        'does not return to ProfileScreen when enrollment is cancelled',
+        (tester) async {
+          setUpTestScreenSize(tester);
+          addTearDown(() => resetTestScreenSize(tester));
+
+          final oldOnError = FlutterError.onError;
+          FlutterError.onError = (details) {
+            if (details.exceptionAsString().contains('overflowed')) return;
+            oldOnError?.call(details);
+          };
+          addTearDown(() => FlutterError.onError = oldOnError);
+
+          // Use MockEnrollmentService — enrollment stays null (not enrolled)
+          final mockEnrollment = MockEnrollmentService();
+          final mockHttpClient = MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          );
+          final mockNosebleedService = NosebleedService(
+            enrollmentService: mockEnrollment,
+            httpClient: mockHttpClient,
+            enableCloudSync: false,
+          );
+          addTearDown(() {
+            mockNosebleedService.dispose();
+            mockEnrollment.dispose();
+          });
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              HomeScreen(
+                nosebleedService: mockNosebleedService,
+                enrollmentService: mockEnrollment,
+                taskService: TaskService(),
+                preferencesService: PreferencesService(),
+                onLocaleChanged: (_) {},
+                onThemeModeChanged: (_) {},
+                onLargerTextChanged: (_) {},
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Open Profile
+          await tester.tap(find.byIcon(Icons.person_outline));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Profile'));
+          await tester.pumpAndSettle();
+
+          // Tap enroll
+          await tester.tap(find.text('Enroll in Clinical Trial'));
+          await tester.pumpAndSettle();
+
+          // Back out without enrolling (jwtToken stays null)
+          await tester.tap(find.byIcon(Icons.arrow_back));
+          await tester.pumpAndSettle();
+
+          // Should be back on HomeScreen, NOT ProfileScreen
+          expect(find.byType(ProfileScreen), findsNothing);
+          expect(find.text('Nosebleed Diary'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'navigates to ProfileScreen after enrolling from dropdown menu',
+        (tester) async {
+          setUpTestScreenSize(tester);
+          addTearDown(() => resetTestScreenSize(tester));
+
+          final oldOnError = FlutterError.onError;
+          FlutterError.onError = (details) {
+            if (details.exceptionAsString().contains('overflowed')) return;
+            oldOnError?.call(details);
+          };
+          addTearDown(() => FlutterError.onError = oldOnError);
+
+          final mockEnrollment = MockEnrollmentService();
+          final mockHttpClient = MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          );
+          final mockNosebleedService = NosebleedService(
+            enrollmentService: mockEnrollment,
+            httpClient: mockHttpClient,
+            enableCloudSync: false,
+          );
+          addTearDown(() {
+            mockNosebleedService.dispose();
+            mockEnrollment.dispose();
+          });
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              HomeScreen(
+                nosebleedService: mockNosebleedService,
+                enrollmentService: mockEnrollment,
+                taskService: TaskService(),
+                preferencesService: PreferencesService(),
+                onLocaleChanged: (_) {},
+                onThemeModeChanged: (_) {},
+                onLargerTextChanged: (_) {},
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // 1. Open dropdown menu and tap "Enroll in Clinical Trial" directly
+          await tester.tap(find.byIcon(Icons.person_outline));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Enroll in Clinical Trial'));
+          await tester.pumpAndSettle();
+
+          // EnrollmentScreen should be shown (no ProfileScreen in between)
+          expect(find.byType(ClinicalTrialEnrollmentScreen), findsOneWidget);
+
+          // 2. Simulate successful enrollment
+          mockEnrollment
+            ..jwtToken = 'test-jwt-token'
+            ..enrollment = UserEnrollment(
+              userId: 'test-user-id',
+              jwtToken: 'test-jwt-token',
+              enrolledAt: DateTime(2026, 3, 30),
+              linkingCode: 'ABCDE12345',
+            );
+
+          // 3. Pop enrollment screen
+          await tester.tap(find.byIcon(Icons.arrow_back));
+          await tester.pumpAndSettle();
+
+          // 4. CUR-1114 fix: ProfileScreen should open to show badge
+          expect(find.byType(ProfileScreen), findsOneWidget);
+        },
+      );
     });
   });
 }
