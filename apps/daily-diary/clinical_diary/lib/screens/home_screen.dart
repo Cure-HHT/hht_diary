@@ -531,6 +531,10 @@ class _HomeScreenState extends State<HomeScreen> {
               widget.onEnrolled?.call();
             }
             await _checkDisconnectionStatus();
+            // CUR-1114: Re-open profile to show participation status badge after linking
+            if (_isEnrolled && mounted) {
+              await _handleShowProfile();
+            }
           },
           onShowSettings: () async {
             await Navigator.push(
@@ -888,6 +892,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       } else if (value == 'enroll') {
+                        final wasEnrolled = _isEnrolled;
                         await Navigator.push(
                           context,
                           AppPageRoute<void>(
@@ -901,6 +906,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           widget.onEnrolled?.call();
                         }
                         await _checkDisconnectionStatus();
+                        // CUR-1114: Open profile only if enrollment state changed
+                        if (!wasEnrolled && _isEnrolled && mounted) {
+                          await _handleShowProfile();
+                        }
                       }
                     },
                     itemBuilder: (context) {

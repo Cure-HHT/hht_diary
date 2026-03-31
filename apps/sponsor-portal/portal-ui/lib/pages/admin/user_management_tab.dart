@@ -37,16 +37,19 @@ class UserManagementTab extends StatefulWidget {
 class SponsorRoleMapping {
   final String sponsorName;
   final String systemRole;
+  final String? description;
 
   const SponsorRoleMapping({
     required this.sponsorName,
     required this.systemRole,
+    this.description,
   });
 
   factory SponsorRoleMapping.fromJson(Map<String, dynamic> json) {
     return SponsorRoleMapping(
       sponsorName: json['sponsorName'] as String,
       systemRole: json['systemRole'] as String,
+      description: json['description'] as String?,
     );
   }
 }
@@ -100,8 +103,7 @@ class _UserManagementTabState extends State<UserManagementTab>
 
     try {
       // Fetch users, sites, and role mappings in parallel
-      // TODO: Get sponsorId from config/context - hardcoded for now
-      const sponsorId = 'callisto';
+      final sponsorId = context.read<AuthService>().sponsorId;
       final results = await Future.wait([
         _apiClient.get('/api/v1/portal/users'),
         _apiClient.get('/api/v1/portal/sites'),

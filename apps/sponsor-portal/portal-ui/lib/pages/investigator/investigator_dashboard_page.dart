@@ -58,7 +58,7 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Logged in as ${user.role.displayName}',
+                    'Logged in as ${authService.sponsorRoleName(user.role.systemName)}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSecondaryContainer,
                       fontWeight: FontWeight.w500,
