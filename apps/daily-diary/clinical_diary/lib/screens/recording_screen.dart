@@ -306,7 +306,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return true;
   }
 
-  // CUR-408: _loadEnrollmentStatus removed - notes step removed from recording flow - TODO PUT BACK
+  // CUR-408: _loadLinkingStatus removed - notes step removed from recording flow - TODO PUT BACK
 
   RecordingStep _getInitialStepForExisting() {
     if (widget.existingRecord == null) {

@@ -426,8 +426,8 @@ void main() {
         // Verify ProfileScreen is shown
         expect(find.byType(ProfileScreen), findsOneWidget);
 
-        // 2. Tap "Enroll in Clinical Trial" button on profile
-        await tester.tap(find.text('Enroll in Clinical Trial'));
+        // 2. Tap "Link to Clinical Trial" button on profile
+        await tester.tap(find.text('Link to Clinical Trial'));
         await tester.pumpAndSettle();
 
         // ProfileScreen should be popped, EnrollmentScreen should be shown
@@ -502,7 +502,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Tap enroll
-          await tester.tap(find.text('Enroll in Clinical Trial'));
+          await tester.tap(find.text('Link to Clinical Trial'));
           await tester.pumpAndSettle();
 
           // Back out without enrolling (jwtToken stays null)
@@ -557,10 +557,10 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          // 1. Open dropdown menu and tap "Enroll in Clinical Trial" directly
+          // 1. Open dropdown menu and tap "Link to Clinical Trial" directly
           await tester.tap(find.byIcon(Icons.person_outline));
           await tester.pumpAndSettle();
-          await tester.tap(find.text('Enroll in Clinical Trial'));
+          await tester.tap(find.text('Link to Clinical Trial'));
           await tester.pumpAndSettle();
 
           // EnrollmentScreen should be shown (no ProfileScreen in between)

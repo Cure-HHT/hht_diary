@@ -92,7 +92,7 @@ void main() {
         await tester.pumpWidget(buildProfileScreen(isEnrolledInTrial: false));
         await tester.pumpAndSettle();
 
-        expect(find.text('Enroll in Clinical Trial'), findsOneWidget);
+        expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
     });
 

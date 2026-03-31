@@ -136,7 +136,7 @@ class _ClinicalTrialEnrollmentScreenState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Clinical Trial Enrollment',
+                        'Clinical Trial Linking',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ],
@@ -154,7 +154,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Title
                         Text(
-                          'Enter Enrollment Code',
+                          'Enter Linking Code',
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
@@ -164,7 +164,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Description
                         Text(
-                          'Please enter the 10-digit enrollment code provided by your research coordinator.',
+                          'Please enter the 10-digit linking code provided by your research coordinator.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -418,7 +418,7 @@ class _ClinicalTrialEnrollmentScreenState
                                     Icon(Icons.check, size: 20),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Enroll in Clinical Trial',
+                                      'Link to Clinical Trial',
                                       style: TextStyle(fontSize: 16),
                                     ),
                                   ],

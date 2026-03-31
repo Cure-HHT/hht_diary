@@ -25,7 +25,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockStorage = MockSecureStorage();
-      // Pre-set auth JWT token - required for enrollment/linking (REQ-p70007)
+      // Pre-set auth JWT token - required for linking (REQ-p70007)
       mockStorage.data['auth_jwt'] = 'test-jwt-token';
       mockStorage.data['auth_username'] = 'test-user-id';
     });
@@ -49,14 +49,14 @@ void main() {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Clinical Trial Enrollment'), findsOneWidget);
+        expect(find.text('Clinical Trial Linking'), findsOneWidget);
       });
 
-      testWidgets('displays enrollment code title', (tester) async {
+      testWidgets('displays linking code title', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Enter Enrollment Code'), findsOneWidget);
+        expect(find.text('Enter Linking Code'), findsOneWidget);
       });
 
       testWidgets('displays description text', (tester) async {
@@ -65,7 +65,7 @@ void main() {
 
         expect(
           find.text(
-            'Please enter the 10-digit enrollment code provided by your research coordinator.',
+            'Please enter the 10-digit linking code provided by your research coordinator.',
           ),
           findsOneWidget,
         );
@@ -92,7 +92,7 @@ void main() {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        // Only one checkbox remains after removing the optional share-prior-to-enrollment one
+        // Only one checkbox remains after removing the optional share-prior-to-linking one
         expect(find.byType(Checkbox), findsOneWidget);
         expect(
           find.textContaining(
@@ -103,12 +103,12 @@ void main() {
       });
 
       testWidgets(
-        'does not show Share data prior to enrollment checkbox (CUR-990)',
+        'does not show Share data prior to linking checkbox (CUR-990)',
         (tester) async {
           await tester.pumpWidget(buildScreen());
           await tester.pumpAndSettle();
 
-          // Optional checkbox was removed — enrollment requires only the mandatory consent
+          // Optional checkbox was removed — linking requires only the mandatory consent
           expect(
             find.text('Share data prior to enrollment (optional)'),
             findsNothing,
@@ -116,11 +116,11 @@ void main() {
         },
       );
 
-      testWidgets('displays enroll button', (tester) async {
+      testWidgets('displays link button', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Enroll in Clinical Trial'), findsOneWidget);
+        expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
 
       testWidgets('displays back button', (tester) async {
@@ -215,13 +215,13 @@ void main() {
       });
     });
 
-    group('Enroll Button State', () {
+    group('Link Button State', () {
       testWidgets('button is disabled when code is incomplete', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNull);
       });
@@ -242,7 +242,7 @@ void main() {
         // Don't check the consent checkbox
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNull);
       });
@@ -269,14 +269,14 @@ void main() {
         await tester.pump();
 
         final enrollButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         expect(enrollButton.onPressed, isNotNull);
       });
     });
 
-    group('Enrollment Error Handling', () {
-      testWidgets('shows error message on enrollment failure', (tester) async {
+    group('Linking Error Handling', () {
+      testWidgets('shows error message on linking failure', (tester) async {
         final mockClient = MockClient((_) async {
           return http.Response('{"error": "Invalid code"}', 400);
         });
@@ -298,9 +298,9 @@ void main() {
         await tester.tap(requiredCheckbox);
         await tester.pump();
 
-        // Tap enroll button
+        // Tap link button
         await tester.tap(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         await tester.pumpAndSettle();
 
@@ -330,9 +330,9 @@ void main() {
         await tester.tap(requiredCheckbox);
         await tester.pump();
 
-        // Tap enroll button to get error
+        // Tap link button to get error
         await tester.tap(
-          find.widgetWithText(FilledButton, 'Enroll in Clinical Trial'),
+          find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
         );
         await tester.pumpAndSettle();
 
