@@ -3,11 +3,6 @@
 //   REQ-p00013: GDPR compliance - EU-only regions
 //
 // HTTP server setup using shelf
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00056: Container infrastructure for Cloud Run
-//   REQ-p00013: GDPR compliance - EU-only regions
-//
-// HTTP server setup using shelf
 
 import 'dart:io';
 
