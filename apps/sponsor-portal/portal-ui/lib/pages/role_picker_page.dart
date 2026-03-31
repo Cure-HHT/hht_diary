@@ -22,6 +22,14 @@ class RolePickerPage extends StatefulWidget {
 class _RolePickerPageState extends State<RolePickerPage> {
   bool _isLoading = false;
 
+  String _getDisplayName(AuthService authService, UserRole role) {
+    return authService.sponsorRoleName(role.systemName);
+  }
+
+  String _getDescription(AuthService authService, UserRole role) {
+    return authService.sponsorRoleDescription(role.systemName) ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
@@ -83,6 +91,8 @@ class _RolePickerPageState extends State<RolePickerPage> {
                   ...user.roles.map(
                     (role) => _RoleOption(
                       role: role,
+                      displayName: _getDisplayName(authService, role),
+                      description: _getDescription(authService, role),
                       isLoading: _isLoading,
                       onTap: () => _selectRole(authService, role),
                     ),
@@ -148,11 +158,15 @@ class _RolePickerPageState extends State<RolePickerPage> {
 /// Individual role option card
 class _RoleOption extends StatelessWidget {
   final UserRole role;
+  final String displayName;
+  final String description;
   final bool isLoading;
   final VoidCallback onTap;
 
   const _RoleOption({
     required this.role,
+    required this.displayName,
+    required this.description,
     required this.isLoading,
     required this.onTap,
   });
@@ -192,14 +206,14 @@ class _RoleOption extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        role.displayName,
+                        displayName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _getRoleDescription(role),
+                        description,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -234,23 +248,6 @@ class _RoleOption extends StatelessWidget {
         return Icons.business;
       case UserRole.analyst:
         return Icons.analytics;
-    }
-  }
-
-  String _getRoleDescription(UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        return 'System configuration and portal admin setup';
-      case UserRole.administrator:
-        return 'User management and portal administration';
-      case UserRole.investigator:
-        return 'Patient linking and monitoring';
-      case UserRole.auditor:
-        return 'Audit trails and compliance review';
-      case UserRole.sponsor:
-        return 'Study oversight and reporting';
-      case UserRole.analyst:
-        return 'Data analysis and insights';
     }
   }
 }
