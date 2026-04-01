@@ -334,6 +334,16 @@ void main() {
     });
 
     group('Patient Row Interaction (REQ-CAL-p00072, REQ-CAL-p00073)', () {
+      // CUR-1112: Checkbox column removed via showCheckboxColumn: false.
+      // Row tap still opens PatientActionsDialog without checkboxes.
+      testWidgets('no checkbox column is rendered (CUR-1112)', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        expect(find.byType(Checkbox), findsNothing);
+      });
+
       testWidgets('tapping a patient row opens PatientActionsDialog', (
         WidgetTester tester,
       ) async {
