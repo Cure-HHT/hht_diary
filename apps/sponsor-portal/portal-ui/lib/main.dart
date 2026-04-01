@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:web/web.dart' as web;
 import 'package:provider/provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 
@@ -119,12 +120,32 @@ void main() async {
     }
   }
 
+  // CUR-1118: Ensure Firebase Auth persists sessions in IndexedDB so they
+  // survive page reloads. Without this, the Auth Emulator (and some browser
+  // contexts) may default to in-memory-only persistence.
+  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+
+  // CUR-1118: Distinguish page refresh from a fresh tab load / post-close.
+  //
+  // BrowserLifecycleService sets '_portalRefreshing' in sessionStorage on
+  // every beforeunload event.  sessionStorage survives a same-tab reload but
+  // is destroyed by the browser when the tab is genuinely closed.
+  //
+  //  • Flag present  → user pressed F5 / Cmd+R.  Keep the Firebase session
+  //                    so the user does not have to log in again.
+  //  • Flag absent   → fresh tab or return after tab-close.  AuthService
+  //                    signs out any stale Firebase session in _init().
+  final isPageRefresh =
+      web.window.sessionStorage.getItem('_portalRefreshing') != null;
+  web.window.sessionStorage.removeItem('_portalRefreshing');
+
   // Create AuthService here so the browser lifecycle service can hold a
   // direct reference before the widget tree is built.
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
   final authService = AuthService(
     sponsorId: sponsorBranding.sponsorId,
     clearStorage: BrowserStorageService().clearStorage,
+    isPageRefresh: isPageRefresh,
   );
 
   // REQ-d00080-G: beforeunload handler, REQ-d00080-K: visibilitychange handler,
