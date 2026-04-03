@@ -7,7 +7,7 @@
 
 name: diary_functions
 description: Clinical Daily Diary Server Side Functions
-version: 0.1.6+15
+version: 0.1.7+16
 publish_to: none
 
 environment:
@@ -22,6 +22,10 @@ dependencies:
 
   # Utilities
   crypto: ^3.0.7
+
+  # Observability
+  otel_common:
+    path: ../../common-dart/otel_common
 
   # Shared types
   trial_data_types:

@@ -8,11 +8,26 @@
 
 import 'dart:convert';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'diary-functions-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
   Future<Map<String, dynamic>> getResponseJson(Response response) async {
     final chunks = await response.read().toList();
     final body = utf8.decode(chunks.expand((c) => c).toList());

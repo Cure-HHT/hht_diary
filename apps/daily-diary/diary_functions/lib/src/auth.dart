@@ -7,6 +7,7 @@
 
 import 'dart:convert';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -119,7 +120,8 @@ Future<Response> registerHandler(Request request) async {
       'userId': userId,
       'username': normalizedUsername,
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }
 }
@@ -195,7 +197,8 @@ Future<Response> loginHandler(Request request) async {
       'userId': userId,
       'username': normalizedUsername,
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }
 }
@@ -267,7 +270,8 @@ Future<Response> changePasswordHandler(Request request) async {
     );
 
     return _jsonResponse({'success': true});
-  } catch (e) {
+  } catch (e, stackTrace) {
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }
 }
