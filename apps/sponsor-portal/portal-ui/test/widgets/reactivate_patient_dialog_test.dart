@@ -167,7 +167,7 @@ void main() {
         // Enter reason
         await tester.enterText(
           find.byType(TextField),
-          'Patient wants to re-enroll',
+          'Patient wants to re-link',
         );
         await tester.pump();
 
@@ -180,10 +180,7 @@ void main() {
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
         expect(find.textContaining('has been reactivated'), findsOneWidget);
         expect(find.text('Disconnected'), findsOneWidget);
-        expect(
-          find.textContaining('Patient wants to re-enroll'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('Patient wants to re-link'), findsOneWidget);
         expect(find.text('Done'), findsOneWidget);
         expect(find.textContaining('Reconnect'), findsWidgets);
       },

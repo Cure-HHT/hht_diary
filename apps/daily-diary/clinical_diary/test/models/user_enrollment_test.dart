@@ -9,7 +9,7 @@ void main() {
     final testEnrolledAt = DateTime(2024, 1, 15, 10, 30);
 
     group('constructor', () {
-      test('creates enrollment with required fields', () {
+      test('creates linking with required fields', () {
         final enrollment = UserEnrollment(
           userId: 'user-123',
           jwtToken: 'jwt-token-abc',

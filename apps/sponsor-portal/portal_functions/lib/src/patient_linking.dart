@@ -16,7 +16,7 @@
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
 // Patient linking code handlers - generate and manage linking codes
-// for patient mobile app enrollment
+// for patient mobile app linking
 
 import 'dart:convert';
 import 'dart:io';
@@ -238,7 +238,7 @@ Future<Response> generatePatientLinkingCodeHandler(
       : 'GENERATE_LINKING_CODE';
   final justification = isReconnection
       ? 'Patient reconnected to mobile app: $reconnectReason'
-      : 'Patient linking code generated for mobile app enrollment';
+      : 'Patient linking code generated for mobile app linking';
 
   // Log to admin_action_log for audit trail (CUR-690)
   await db.executeWithContext(

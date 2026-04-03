@@ -6,7 +6,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// User profile screen with enrollment status, data sharing, and settings
+/// User profile screen with linking status, data sharing, and settings
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     required this.onBack,
@@ -39,7 +39,7 @@ class ProfileScreen extends StatefulWidget {
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
-  final String enrollmentStatus; // 'active', 'ended', or 'none'
+  final String enrollmentStatus; // linking status: 'active', 'ended', or 'none'
   final bool isSharingWithCureHHT;
   final String userName;
   final ValueChanged<String> onUpdateUserName;
@@ -243,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // 3. REQ-CAL-p00076: Participation Status Badge or Enroll Button
+                      // 3. REQ-CAL-p00076: Participation Status Badge or Link Button
                       if (!widget.isEnrolledInTrial ||
                           widget.isDisconnected) ...[
                         OutlinedButton.icon(
@@ -410,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             textAlign: TextAlign.start,
                           ),
 
-                          // Enrollment details (if enrolled)
+                          // Linking details (if linked)
                           if (widget.isEnrolledInTrial) ...[
                             const SizedBox(height: 5),
                             if (widget.enrollmentCode != null)

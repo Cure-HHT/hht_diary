@@ -417,6 +417,7 @@ class _StudyCoordinatorPatientsTabState
         child: SizedBox(
           width: double.infinity,
           child: DataTable(
+            showCheckboxColumn: false,
             headingRowColor: WidgetStateProperty.all(
               theme.colorScheme.surfaceContainerHighest,
             ),

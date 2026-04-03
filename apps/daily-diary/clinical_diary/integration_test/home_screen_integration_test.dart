@@ -2422,10 +2422,10 @@ void main() {
         // --- Navigate to enrollment screen via popup menu ---
         await tester.tap(find.byIcon(Icons.person_outline));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Enroll in Clinical Trial'));
+        await tester.tap(find.text('Link to Clinical Trial'));
         await tester.pumpAndSettle();
 
-        // Simulate successful enrollment by flipping mock state
+        // Simulate successful linking by flipping mock state
         mockEnrollment
           ..jwtToken = 'enrolled-jwt'
           ..backendUrl = 'https://test.example.com';
@@ -2533,7 +2533,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.person_outline).first);
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Enroll in Clinical Trial').first);
+        await tester.tap(find.text('Link to Clinical Trial').first);
         await tester.pumpAndSettle();
 
         await tester.enterText(find.byType(TextField).first, 'CAXXX');

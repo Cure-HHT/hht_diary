@@ -164,7 +164,7 @@ class AppLocalizations {
       'languageDescription': 'Choose your preferred language',
       'accessibilityAndPreferences': 'Accessibility & Preferences',
       'privacy': 'Privacy',
-      'enrollInClinicalTrial': 'Enroll in Clinical Trial',
+      'enrollInClinicalTrial': 'Link to Clinical Trial',
       'comingSoon': 'Coming soon',
       'comingSoonEnglishOnly': 'Coming soon - English only for now',
 
@@ -241,13 +241,13 @@ class AppLocalizations {
       'hadNosebleeds': 'Had nosebleeds',
       'dontRemember': "Don't remember",
 
-      // Enrollment
-      'enrollmentTitle': 'Enroll in Clinical Trial',
-      'enterEnrollmentCode': 'Enter your enrollment code',
+      // Linking
+      'enrollmentTitle': 'Link to Clinical Trial',
+      'enterEnrollmentCode': 'Enter your linking code',
       'enrollmentCodeHint': 'XXXXX-XXXXX',
-      'enroll': 'Enroll',
-      'enrollmentSuccess': 'Successfully enrolled!',
-      'enrollmentError': 'Enrollment failed',
+      'enroll': 'Link',
+      'enrollmentSuccess': 'Successfully linked!',
+      'enrollmentError': 'Linking failed',
 
       // Delete confirmation
       'deleteRecord': 'Delete Record',
@@ -290,13 +290,13 @@ class AppLocalizations {
           'This time overlaps with an existing nosebleed record from {0} to {1}',
       'viewConflictingRecord': 'View',
 
-      // Enrollment screen
+      // Linking screen
       'welcomeToNosebleedDiary': 'Welcome to\nNosebleed Diary',
-      'enterCodeToGetStarted': 'Enter your enrollment code to get started.',
+      'enterCodeToGetStarted': 'Enter your linking code to get started.',
       'enrollmentCodePlaceholder': 'CUREHHT#',
       'getStarted': 'Get Started',
       'codeMustBe8Chars': 'Code must be 8 characters',
-      'pleaseEnterEnrollmentCode': 'Please enter your enrollment code',
+      'pleaseEnterEnrollmentCode': 'Please enter your linking code',
 
       // Date records screen
       'addNewEvent': 'Add new event',
@@ -321,10 +321,10 @@ class AppLocalizations {
           ' Clinical trial participation ended on {0}. Previously shared data remains with researchers indefinitely for scientific analysis.',
       'noDataSharedMessage':
           ' No data is shared with external parties unless you choose to participate in research or clinical trials.',
-      'enrolledInClinicalTrialStatus': 'Enrolled in Clinical Trial',
-      'clinicalTrialEnrollmentEnded': 'Clinical Trial Enrollment: Ended',
-      'enrollmentCodeLabel': 'Enrollment Code: {0}',
-      'enrolledLabel': 'Enrolled: {0}',
+      'enrolledInClinicalTrialStatus': 'Linked to Clinical Trial',
+      'clinicalTrialEnrollmentEnded': 'Clinical Trial Linking: Ended',
+      'enrollmentCodeLabel': 'Linking Code: {0}',
+      'enrolledLabel': 'Linked: {0}',
       'endedLabel': 'Ended: {0}',
       'sharingWithCureHHT': 'Sharing with CureHHT',
       'sharingNoteActive':
