@@ -20,6 +20,8 @@ import 'package:crypto/crypto.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
+import 'diary_metrics.dart';
+
 import 'database.dart';
 import 'jwt.dart';
 
@@ -445,6 +447,8 @@ Future<Response> syncHandler(Request request) async {
         );
 
         syncedEventIds.add(eventId);
+        // IMPLEMENTS: REQ-o00047
+        auditEventWritten(operation: operation);
       }
     }
 

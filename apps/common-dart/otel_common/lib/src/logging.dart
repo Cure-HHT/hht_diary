@@ -5,11 +5,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart'
+    show OTel, Severity;
 import 'package:logging/logging.dart';
 
 /// Configure the root logger to output Cloud Logging structured JSON
-/// with OpenTelemetry trace correlation.
+/// with OpenTelemetry trace correlation, and bridge log records to
+/// the OTel Logs pipeline for OTLP export.
 ///
 /// Call this once at server startup, after [initializeOTel].
 ///
@@ -17,10 +19,18 @@ import 'package:logging/logging.dart';
 /// `logging.googleapis.com/spanId` to link log entries to traces.
 void configureTracedLogging({Level level = Level.INFO, String? gcpProjectId}) {
   Logger.root.level = level;
+
+  // OTel Logger for emitting log records via OTLP.
+  // Captured in the closure so we create it once.
+  final otelLogger = OTel.logger('dart.logging');
+
   Logger.root.onRecord.listen((record) {
+    // Structured JSON to stderr for Cloud Run / Cloud Logging
     final entry = _buildLogEntry(record, gcpProjectId: gcpProjectId);
-    // Use stderr for Cloud Run — stdout is for application output.
     stderr.writeln(jsonEncode(entry));
+
+    // OTel Log Record for OTLP export to collector
+    _emitOTelLogRecord(otelLogger, record);
   });
 }
 
@@ -50,6 +60,47 @@ void logWithTrace(
   }
 
   stderr.writeln(jsonEncode(logEntry));
+
+  // Also emit as OTel Log Record
+  try {
+    final otelLogger = OTel.logger('dart.logging');
+    otelLogger.emit(
+      severityNumber: _severityFromString(severity),
+      severityText: severity,
+      body: message,
+      timeStamp: DateTime.now(),
+      attributes: labels != null
+          ? OTel.attributesFromMap(
+              labels.map((k, v) => MapEntry(k, v.toString())),
+            )
+          : null,
+    );
+  } catch (_) {
+    // Best-effort: don't break logging if OTel Logs fails
+  }
+}
+
+/// Emit a Dart [LogRecord] as an OTel Log Record via the Logs pipeline.
+void _emitOTelLogRecord(dynamic otelLogger, LogRecord record) {
+  try {
+    final attrs = <String, Object>{'logger.name': record.loggerName};
+    if (record.error != null) {
+      attrs['exception.message'] = record.error.toString();
+    }
+    if (record.stackTrace != null) {
+      attrs['exception.stacktrace'] = record.stackTrace.toString();
+    }
+
+    otelLogger.emit(
+      severityNumber: _mapLevelToSeverity(record.level),
+      severityText: _mapLevel(record.level),
+      body: record.message,
+      timeStamp: record.time,
+      attributes: OTel.attributesFromMap(attrs),
+    );
+  } catch (_) {
+    // Best-effort: don't break logging if OTel Logs pipeline fails
+  }
 }
 
 Map<String, dynamic> _buildLogEntry(LogRecord record, {String? gcpProjectId}) {
@@ -110,4 +161,33 @@ String _mapLevel(Level level) {
   if (level >= Level.INFO) return 'INFO';
   if (level >= Level.CONFIG) return 'DEBUG';
   return 'DEBUG';
+}
+
+/// Map Dart [Level] to OTel [Severity] for the Logs signal.
+Severity _mapLevelToSeverity(Level level) {
+  if (level >= Level.SHOUT) return Severity.FATAL;
+  if (level >= Level.SEVERE) return Severity.ERROR;
+  if (level >= Level.WARNING) return Severity.WARN;
+  if (level >= Level.INFO) return Severity.INFO;
+  if (level >= Level.CONFIG) return Severity.DEBUG2;
+  if (level >= Level.FINE) return Severity.DEBUG;
+  return Severity.TRACE;
+}
+
+/// Map a GCP severity string to OTel [Severity].
+Severity _severityFromString(String severity) {
+  switch (severity.toUpperCase()) {
+    case 'CRITICAL':
+      return Severity.FATAL;
+    case 'ERROR':
+      return Severity.ERROR;
+    case 'WARNING':
+      return Severity.WARN;
+    case 'INFO':
+      return Severity.INFO;
+    case 'DEBUG':
+      return Severity.DEBUG;
+    default:
+      return Severity.INFO;
+  }
 }

@@ -42,6 +42,7 @@ Future<void> initializeOTel({
     resourceAttributes: resourceAttrs,
     sampler: sampler,
     enableMetrics: true,
+    enableLogs: true,
   );
 }
 
@@ -58,9 +59,16 @@ Sampler _buildSampler(String environment) {
   return const AlwaysOnSampler();
 }
 
-/// Gracefully shut down OTel — flushes pending spans and metrics.
+/// Gracefully shut down OTel — flushes pending spans, metrics, and logs.
 ///
 /// Call this in your SIGTERM/SIGINT handler before exiting.
 Future<void> shutdownOTel() async {
+  // OTel.shutdown() flushes traces and metrics but not logs in 1.0.0-alpha.
+  // Flush the LoggerProvider explicitly to ensure all log records are exported.
+  try {
+    await OTel.loggerProvider().shutdown();
+  } catch (_) {
+    // Best-effort: loggerProvider may not be initialized
+  }
   await OTel.shutdown();
 }

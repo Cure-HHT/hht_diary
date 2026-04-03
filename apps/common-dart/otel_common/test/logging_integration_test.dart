@@ -4,7 +4,7 @@
 
 import 'dart:convert';
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 import 'package:logging/logging.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:test/test.dart';

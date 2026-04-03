@@ -272,3 +272,27 @@ docs/plans/
 /apps/coverage/*.info
 # Implementation plans (ephemeral, session-specific)
 docs/plans/
+/apps/common-dart/otel_common/coverage/html/src/db_tracing.dart.gcov.html
+/apps/common-dart/otel_common/coverage/html/src/error_reporting.dart.gcov.html
+/apps/common-dart/otel_common/coverage/html/src/index.html
+/apps/common-dart/otel_common/coverage/html/src/index-sort-f.html
+/apps/common-dart/otel_common/coverage/html/src/index-sort-l.html
+/apps/common-dart/otel_common/coverage/html/src/init.dart.gcov.html
+/apps/common-dart/otel_common/coverage/html/src/logging.dart.gcov.html
+/apps/common-dart/otel_common/coverage/html/src/middleware.dart.gcov.html
+/apps/common-dart/otel_common/coverage/html/amber.png
+/apps/common-dart/otel_common/coverage/html/cmd_line
+/apps/common-dart/otel_common/coverage/html/emerald.png
+/apps/common-dart/otel_common/coverage/html/gcov.css
+/apps/common-dart/otel_common/coverage/html/glass.png
+/apps/common-dart/otel_common/coverage/html/index.html
+/apps/common-dart/otel_common/coverage/html/ruby.png
+/apps/common-dart/otel_common/coverage/html/snow.png
+/apps/common-dart/otel_common/coverage/html/updown.png
+/apps/common-dart/otel_common/coverage/test/db_tracing_integration_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/test/db_tracing_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/test/error_reporting_integration_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/test/error_reporting_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/test/logging_integration_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/test/middleware_integration_test.dart.vm.json
+/apps/common-dart/otel_common/coverage/lcov.info

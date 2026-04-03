@@ -1,19 +1,39 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00047F: End-to-end distributed tracing
 //   REQ-o00047I: HTTP request tracing with semantic conventions
+//   REQ-o00047: Performance Monitoring — custom application metrics
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 import 'package:shelf/shelf.dart';
 
-/// Shelf middleware that creates a span per HTTP request.
+/// Shelf middleware that creates a span per HTTP request, records custom
+/// metrics, and propagates W3C TraceContext.
 ///
-/// Propagates W3C TraceContext from incoming headers, sets HTTP semantic
-/// convention attributes, and records exceptions.
+/// Metrics recorded:
+/// - `http_request_duration_seconds` (histogram) — request latency
+/// - `http_requests_total` (counter) — request count by status/method/path
 Middleware otelMiddleware({String tracerName = 'http.server'}) {
+  // Create metric instruments once when the middleware is constructed.
+  // This runs after initializeOTel() since middleware is wired at startup.
+  final meter = OTel.meter('http.server');
+
+  // IMPLEMENTS: REQ-o00047
+  final httpDuration = meter.createHistogram<double>(
+    name: 'http_request_duration_seconds',
+    unit: 's',
+    description: 'HTTP request latency distribution',
+  );
+  final httpTotal = meter.createCounter<int>(
+    name: 'http_requests_total',
+    unit: '{request}',
+    description: 'Total HTTP requests by status, method, endpoint',
+  );
+
   return (Handler innerHandler) {
     return (Request request) async {
       final tracer = OTel.tracerProvider().getTracer(tracerName);
+      final stopwatch = Stopwatch()..start();
 
       // Extract parent context from incoming W3C traceparent header.
       final parentContext = _extractContext(request);
@@ -60,6 +80,19 @@ Middleware otelMiddleware({String tracerName = 'http.server'}) {
           span.setStatus(SpanStatusCode.Ok);
         }
 
+        // Record metrics
+        stopwatch.stop();
+        final durationSecs = stopwatch.elapsedMicroseconds / 1e6;
+        httpDuration.recordWithMap(durationSecs, {
+          'http.method': request.method,
+          'url.path': request.requestedUri.path,
+        });
+        httpTotal.addWithMap(1, {
+          'http.method': request.method,
+          'url.path': request.requestedUri.path,
+          'http.response.status_code': response.statusCode,
+        });
+
         // Inject trace context into response headers for downstream correlation.
         final traceId = span.spanContext.traceId.toString();
         final spanId = span.spanContext.spanId.toString();
@@ -70,6 +103,20 @@ Middleware otelMiddleware({String tracerName = 'http.server'}) {
       } catch (e, st) {
         span.recordException(e, stackTrace: st);
         span.setStatus(SpanStatusCode.Error, e.toString());
+
+        // Record failed request metrics
+        stopwatch.stop();
+        final durationSecs = stopwatch.elapsedMicroseconds / 1e6;
+        httpDuration.recordWithMap(durationSecs, {
+          'http.method': request.method,
+          'url.path': request.requestedUri.path,
+        });
+        httpTotal.addWithMap(1, {
+          'http.method': request.method,
+          'url.path': request.requestedUri.path,
+          'http.response.status_code': 500,
+        });
+
         rethrow;
       } finally {
         span.end();

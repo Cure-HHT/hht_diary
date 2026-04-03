@@ -14,6 +14,7 @@ library diary_functions;
 
 export 'src/auth.dart';
 export 'src/database.dart';
+export 'src/diary_metrics.dart';
 export 'src/fcm_token.dart';
 export 'src/health.dart';
 export 'src/jwt.dart';
