@@ -1,0 +1,27 @@
+name: hilagaynon_dictionary
+description: "Open-source Hilagaynon (Ilonggo) dictionary and language learning app"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.2.1
+  cloud_firestore: ^6.2.0
+  firebase_messaging: ^16.1.1
+  uuid: ^4.5.2
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
