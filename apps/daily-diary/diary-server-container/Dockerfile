@@ -19,6 +19,7 @@ FROM ${DART_BASE_IMAGE} AS dart-build
 # Copy shared dependencies first (for layer caching)
 # Use --chown because dart-base runs as appuser
 COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+COPY --chown=appuser:appuser apps/common-dart/shared_functions /app/apps/common-dart/shared_functions
 
 # Copy diary_functions package
 COPY --chown=appuser:appuser apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
@@ -106,7 +107,11 @@ RUN useradd -r -m -d /home/appuser -s /bin/false appuser
 COPY --from=dart-build --chmod=755 /app/apps/daily-diary/diary_server/bin/server /app/server
 COPY --from=dart-build /app/VERSIONS /app/VERSIONS
 COPY --chmod=755 apps/daily-diary/diary-server-container/start.sh /app/start.sh
-
+# Copy shared nginx configuration includes (from apps/common-config/)
+COPY apps/common-config/nginx/common-http.conf /etc/nginx/common-http.conf
+COPY apps/common-config/nginx/common-locations.conf /etc/nginx/common-locations.conf
+# Copy diary-specific nginx configuration (bug fix: was incorrectly copying portal nginx.conf)
+COPY apps/daily-diary/diary-server-container/nginx.conf /etc/nginx/nginx.conf
 # Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
 COPY sponsor-content/ /app/sponsor-content/
 

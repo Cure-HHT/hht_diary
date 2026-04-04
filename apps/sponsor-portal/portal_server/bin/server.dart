@@ -2,6 +2,7 @@
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-o00002: Environment-Specific Configuration Management
+//   REQ-o00047: Performance Monitoring — OpenTelemetry integration
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Main entry point for the portal server
@@ -9,9 +10,10 @@
 
 import 'dart:io';
 
+import 'package:logging/logging.dart';
+import 'package:otel_common/otel_common.dart';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:portal_server/portal_server.dart';
-import 'package:logging/logging.dart';
 
 /// Component versions injected at compile time via -D flags in Dockerfile.
 /// Defaults to 'unknown' when running outside Docker (e.g. local dev).
@@ -29,16 +31,15 @@ const _trialDataTypesVersion = String.fromEnvironment(
 );
 
 void main(List<String> args) async {
-  // Configure logging
-  Logger.root.level = Level.INFO;
-  Logger.root.onRecord.listen((record) {
-    // Cloud Run structured logging format
-    print(
-      '{"severity":"${record.level.name}",'
-      '"message":"${record.message}",'
-      '"time":"${record.time.toIso8601String()}"}',
-    );
-  });
+  // Initialize OpenTelemetry first (before logging, so traces are available)
+  await initializeOTel(
+    serviceName: 'portal-server',
+    serviceVersion: _portalServerVersion,
+  );
+
+  // Configure trace-correlated logging with OTel Logs bridge
+  final gcpProjectId = Platform.environment['GCP_PROJECT_ID'];
+  configureTracedLogging(gcpProjectId: gcpProjectId);
 
   final log = Logger('portal_server');
 
@@ -122,6 +123,7 @@ void main(List<String> args) async {
   // Handle shutdown signals
   ProcessSignal.sigint.watch().listen((_) async {
     log.info('Received SIGINT, shutting down...');
+    await shutdownOTel();
     await Database.instance.close();
     await server.close();
     exit(0);
@@ -129,6 +131,7 @@ void main(List<String> args) async {
 
   ProcessSignal.sigterm.watch().listen((_) async {
     log.info('Received SIGTERM, shutting down...');
+    await shutdownOTel();
     await Database.instance.close();
     await server.close();
     exit(0);

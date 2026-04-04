@@ -1,7 +1,7 @@
 ## REQ-p01000: Event Sourcing Client Interface
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -44,7 +44,7 @@ This requirement establishes a type-safe client interface for event sourcing ope
 ## REQ-p01001: Offline Event Queue with Automatic Synchronization
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -85,7 +85,7 @@ Client applications in clinical trials frequently operate in environments with i
 ## REQ-p01002: Optimistic Concurrency Control
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -118,7 +118,7 @@ In distributed systems with offline support, multiple users may edit the same da
 ## REQ-p01003: Immutable Event Storage with Audit Trail
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -147,7 +147,7 @@ FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trail
 ## REQ-p01004: Schema Version Management
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -182,7 +182,7 @@ Long-lived clinical trial applications require schema evolution over multiple ye
 ## REQ-p01005: Real-time Event Subscription
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -219,7 +219,7 @@ Real-time event subscriptions enhance user experience by providing immediate fee
 ## REQ-p01006: Type-Safe Materialized View Queries
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -260,7 +260,7 @@ Querying event-sourced systems by replaying entire event streams for every read 
 ## REQ-p01007: Error Handling and Diagnostics
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -291,7 +291,7 @@ Comprehensive error handling and diagnostics are essential for maintaining syste
 ## REQ-p01008: Event Replay and Time Travel Debugging
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004-E
+**Refines**: REQ-p00004-E
 
 ## Assertions
 
@@ -322,7 +322,7 @@ Time travel debugging capabilities enable developers to reconstruct application 
 ## REQ-p01009: Encryption at Rest for Offline Queue
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00043
+**Refines**: REQ-p00043
 
 ## Assertions
 
@@ -351,7 +351,7 @@ Healthcare and clinical trial data often includes Protected Health Information (
 ## REQ-p01010: Multi-tenancy Support
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00043-L
+**Refines**: REQ-p00043-N
 
 ## Assertions
 
@@ -384,7 +384,7 @@ This requirement enables the clinical trial platform to serve multiple sponsors 
 ## REQ-p01050: Event Type Registry
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -429,7 +429,7 @@ Without an explicit type registry, the relationship between versioned schemas (e
 ## REQ-p01051: Questionnaire Versioning Model
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01050-A, p01050-C
+**Refines**: REQ-p01050-A, REQ-p01050-C
 
 ## Assertions
 
@@ -488,7 +488,7 @@ Clinical questionnaires evolve across multiple independent dimensions. Structura
 ## REQ-p01052: Questionnaire Localization and Translation Tracking
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01051-A, p01051-F, p01051-G
+**Refines**: REQ-p01065-D
 
 ## Assertions
 
@@ -525,7 +525,7 @@ International clinical trials require validated translations of instruments, whe
 ## REQ-p01053: Sponsor Questionnaire Eligibility Configuration
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01050-P, p01051-A
+**Refines**: REQ-p01050-P, REQ-p01051-A
 
 ## Assertions
 
@@ -566,7 +566,7 @@ Multi-sponsor deployments require sponsor-specific questionnaire portfolios to a
 ## REQ-p01011: Event Transformation and Migration
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01050-A, p01050-C
+**Refines**: REQ-p01050-A, REQ-p01050-C
 
 ## Assertions
 
@@ -597,7 +597,7 @@ As clinical trial applications evolve over time, event structures and business l
 ## REQ-p01012: Batch Event Operations
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -626,7 +626,7 @@ Some business operations naturally generate multiple events that should be atomi
 ## REQ-p01014: Observability and Monitoring
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -657,7 +657,7 @@ Production systems require visibility into module behavior for debugging, capaci
 ## REQ-p01015: Automated Testing Support
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -690,7 +690,7 @@ Testable code is maintainable code in FDA-regulated systems where validation is 
 ## REQ-p01016: Performance Benchmarking
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -723,7 +723,7 @@ Client applications must be responsive and efficient to provide good user experi
 ## REQ-p01017: Backward Compatibility Guarantees
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -754,7 +754,7 @@ Forcing breaking changes on consumers creates upgrade friction and technical deb
 ## REQ-p01018: Security Audit and Compliance
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01085
+**Refines**: REQ-p01085
 
 ## Assertions
 
@@ -795,7 +795,7 @@ Healthcare applications handle sensitive Protected Health Information (PHI) and 
 ## REQ-p01019: Phased Implementation
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004
+**Refines**: REQ-p00004
 
 ## Assertions
 
@@ -901,40 +901,40 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 ### Component Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│          Flutter Application Layer                  │
-│  (Business Logic, UI, ViewModels)                  │
-└─────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│      Flutter Event Sourcing Module                  │
-│                                                     │
-│  ┌────────────────┐  ┌───────────────────────┐    │
-│  │ Event Store    │  │ Materialized View     │    │
-│  │ Repository     │  │ Query Service         │    │
-│  └────────────────┘  └───────────────────────┘    │
-│                                                     │
-│  ┌────────────────┐  ┌───────────────────────┐    │
-│  │ Offline Queue  │  │ Conflict Resolution   │    │
-│  │ Manager        │  │ Engine                │    │
-│  └────────────────┘  └───────────────────────┘    │
-│                                                     │
-│  ┌────────────────┐  ┌───────────────────────┐    │
-│  │ Schema         │  │ Real-time             │    │
-│  │ Migration      │  │ Subscription          │    │
-│  └────────────────┘  └───────────────────────┘    │
-└─────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│         PostgreSQL Database                         │
-│                                                     │
-│  ┌────────────────┐  ┌───────────────────────┐    │
-│  │ events         │  │ materialized_views    │    │
-│  │ (append-only)  │  │ (current state)       │    │
-│  └────────────────┘  └───────────────────────┘    │
-└─────────────────────────────────────────────────────┘
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 ### Data Flow

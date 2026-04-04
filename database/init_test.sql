@@ -8,7 +8,7 @@
 -- Usage:
 --   psql -h localhost -U postgres -d sponsor_portal -f init_test.sql
 
-\echo 'Setting up test fixtures...'
+DO $$ BEGIN RAISE NOTICE 'Setting up test fixtures...'; END $$;
 
 -- =====================================================
 -- Test Site
@@ -45,7 +45,7 @@ VALUES (
     now()
 );
 
--- Enroll test user at DEFAULT site
+-- Link test user at DEFAULT site
 INSERT INTO user_site_assignments (
     patient_id,
     site_id,
@@ -79,10 +79,12 @@ VALUES
     ('curehht', 'Study Admin', 'Administrator')
 ON CONFLICT (sponsor_id, sponsor_role_name) DO NOTHING;
 
-\echo 'Test fixtures created successfully!'
-\echo ''
-\echo 'Test users available:'
-\echo '  - App User: 11111111-1111-1111-1111-111111111111 (auth_code: test-sync-user-auth-code)'
-\echo '  - Site: DEFAULT (Test Site)'
-\echo 'Role mappings: callisto (4 roles), curehht (3 roles)'
-\echo ''
+DO $$ BEGIN
+  RAISE NOTICE 'Test fixtures created successfully!';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Test users available:';
+  RAISE NOTICE '  - App User: 11111111-1111-1111-1111-111111111111 (auth_code: test-sync-user-auth-code)';
+  RAISE NOTICE '  - Site: DEFAULT (Test Site)';
+  RAISE NOTICE 'Role mappings: callisto (4 roles), curehht (3 roles)';
+  RAISE NOTICE '';
+END $$;

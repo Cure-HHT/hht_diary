@@ -5,3 +5,31 @@
 # Avoid committing pubspec.lock for library packages; see
 # https://dart.dev/guides/libraries/private-files#pubspeclock.
 pubspec.lock
+/coverage/html/src/models/exceptions.dart.gcov.html
+/coverage/html/src/models/index.html
+/coverage/html/src/models/index-sort-f.html
+/coverage/html/src/models/index-sort-l.html
+/coverage/html/src/models/site.dart.gcov.html
+/coverage/html/src/models/subject.dart.gcov.html
+/coverage/html/src/client.dart.gcov.html
+/coverage/html/src/index.html
+/coverage/html/src/index-sort-f.html
+/coverage/html/src/index-sort-l.html
+/coverage/html/src/odm_parser.dart.gcov.html
+/coverage/html/amber.png
+/coverage/html/cmd_line
+/coverage/html/emerald.png
+/coverage/html/gcov.css
+/coverage/html/glass.png
+/coverage/html/index.html
+/coverage/html/index-sort-f.html
+/coverage/html/index-sort-l.html
+/coverage/html/ruby.png
+/coverage/html/snow.png
+/coverage/html/updown.png
+/coverage/integration_test/rave_api_test.dart.vm.json
+/coverage/test/models/subject_test.dart.vm.json
+/coverage/test/rave_integration_test.dart.vm.json
+/coverage/lcov.info
+/coverage/lcov-integration.info
+/coverage/lcov-unit.info

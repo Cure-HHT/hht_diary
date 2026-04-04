@@ -213,6 +213,98 @@ void main() {
     expect(completeCalled, isTrue);
   });
 
+  group('Edit mode — return to review (CUR-1119)', () {
+    testWidgets(
+      'tapping Edit on question 2 then Next returns to review screen',
+      (tester) async {
+        setUpTestScreen(tester);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        await tester.pumpWidget(buildFlow());
+
+        await passReadinessAndPreamble(tester, qolDef);
+        await answerAllQuestions(tester, 4);
+
+        // On review screen — tap the second review card (question 2, index 1)
+        expect(find.text('Review Your Answers'), findsOneWidget);
+        await tester.tap(find.byType(Card).at(1));
+        await tester.pumpAndSettle();
+
+        // Should be on question 2 (index 1 → "Question 2 of 4")
+        expect(find.text('Question 2 of 4'), findsOneWidget);
+
+        // Change answer and tap Next
+        await tester.tap(find.text('Never'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        // Should return directly to review — NOT question 3
+        expect(find.text('Review Your Answers'), findsOneWidget);
+        expect(find.text('Question 3 of 4'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'tapping Edit, pressing Back, then Next still returns to review',
+      (tester) async {
+        setUpTestScreen(tester);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        await tester.pumpWidget(buildFlow());
+
+        await passReadinessAndPreamble(tester, qolDef);
+        await answerAllQuestions(tester, 4);
+
+        // Tap the third review card (question 3, index 2)
+        expect(find.text('Review Your Answers'), findsOneWidget);
+        await tester.tap(find.byType(Card).at(2));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Question 3 of 4'), findsOneWidget);
+
+        // Press Back (goes to question 2) — still in edit mode
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+        expect(find.text('Question 2 of 4'), findsOneWidget);
+
+        // Press Next — should go to review, not question 3
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Review Your Answers'), findsOneWidget);
+        expect(find.text('Question 3 of 4'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'normal forward flow (no edit) still advances question by question',
+      (tester) async {
+        setUpTestScreen(tester);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        await tester.pumpWidget(buildFlow());
+
+        await passReadinessAndPreamble(tester, qolDef);
+
+        // Answer question 1, tap Next → should go to question 2 (not review)
+        await tester.tap(find.text('Sometimes'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Question 2 of 4'), findsOneWidget);
+        expect(find.text('Review Your Answers'), findsNothing);
+      },
+    );
+  });
+
   testWidgets('handles generic submit error', (tester) async {
     setUpTestScreen(tester);
     addTearDown(() {

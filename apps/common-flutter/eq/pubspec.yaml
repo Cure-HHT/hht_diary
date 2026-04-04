@@ -1,7 +1,8 @@
 name: eq
 description: "A new Flutter package project."
-version: 0.0.2+9
+version: 0.0.3+10
 homepage:
+publish_to: none
 
 environment:
   sdk: ^3.10.7

@@ -1,11 +1,14 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-o00047: Performance Monitoring — OpenTelemetry integration
+//   REQ-o00047I: HTTP request tracing with semantic conventions
 //
 // HTTP server setup using shelf
 
 import 'dart:io';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
@@ -15,6 +18,7 @@ import 'routes.dart';
 Future<HttpServer> createServer({required int port}) async {
   final handler = const Pipeline()
       .addMiddleware(logRequests())
+      .addMiddleware(otelMiddleware())
       .addMiddleware(_corsMiddleware())
       .addHandler(createRouter().call);
 

@@ -992,6 +992,7 @@ void main() {
       });
     });
 
+    // Sponsor-configurable timeout tests continue below
     test('updateInactivityTimeout restarts live timer with new duration', () {
       fakeAsync((fake) {
         final authService = buildWithSponsorConfig(
@@ -1027,5 +1028,102 @@ void main() {
         fake.flushMicrotasks();
       });
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // CUR-982: Cross-session auth collision
+  // ---------------------------------------------------------------------------
+  group('CUR-982: cross-session auth collision', () {
+    test(
+      'detects cross-tab UID change and signs out instead of adopting foreign session',
+      () {
+        fakeAsync((fake) {
+          // Admin is signed in initially
+          final adminUser = MockUser(
+            uid: 'admin-uid',
+            email: 'admin@test.com',
+            displayName: 'Admin User',
+          );
+          final mockAuth = MockFirebaseAuth(
+            mockUser: adminUser,
+            signedIn: true,
+          );
+
+          final mockHttpClient = MockClient((request) async {
+            if (request.url.path == '/api/v1/portal/me') {
+              return http.Response(
+                jsonEncode({
+                  'id': 'admin-id',
+                  'email': 'admin@test.com',
+                  'name': 'Admin User',
+                  'roles': ['Administrator'],
+                  'active_role': 'Administrator',
+                  'status': 'active',
+                  'sites': [],
+                }),
+                200,
+                headers: {'content-type': 'application/json'},
+              );
+            }
+            if (request.url.path == '/api/v1/portal/config/session') {
+              return http.Response('{}', 200);
+            }
+            return http.Response('Not found', 404);
+          });
+
+          final authService = AuthService(
+            firebaseAuth: mockAuth,
+            httpClient: mockHttpClient,
+            inactivityTimeout: const Duration(minutes: 30),
+            enableInactivityTimer: false,
+          );
+
+          // Sign in as Admin
+          authService.signIn('admin@test.com', 'password');
+          fake.flushMicrotasks();
+
+          expect(authService.isAuthenticated, isTrue);
+          expect(authService.currentUser!.activeRole, UserRole.administrator);
+
+          // Simulate cross-tab auth collision: another browser window signs
+          // in as a different user, which changes the Firebase auth state in
+          // localStorage. Our tab's authStateChanges listener receives a user
+          // with a DIFFERENT UID.
+          final scUser = MockUser(
+            uid: 'sc-uid',
+            email: 'coordinator@test.com',
+            displayName: 'Study Coordinator',
+          );
+          mockAuth.stateChangedStreamController.add(scUser);
+          fake.flushMicrotasks();
+
+          // BUG CUR-982: The service silently adopts the foreign user's
+          // identity. The session should be invalidated because the Firebase
+          // UID changed — this tab's session was overwritten by another tab.
+          //
+          // Expected: service detects UID mismatch and signs out, clearing
+          // currentUser so the UI shows a login prompt instead of the wrong
+          // role badge.
+          //
+          // Actual: service fetches the new user's profile and displays
+          // their role, creating a privilege confusion (FDA 21 CFR Part 11).
+          expect(
+            authService.isAuthenticated,
+            isFalse,
+            reason:
+                'Session must be invalidated when Firebase UID changes '
+                'from a cross-tab sign-in — silently adopting another '
+                "user's identity is a role-escalation display mismatch",
+          );
+          expect(
+            authService.currentUser,
+            isNull,
+            reason:
+                'currentUser must be cleared on cross-session collision '
+                'to prevent wrong role display',
+          );
+        });
+      },
+    );
   });
 }

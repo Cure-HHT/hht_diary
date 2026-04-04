@@ -164,7 +164,7 @@ class AppLocalizations {
       'languageDescription': 'Choose your preferred language',
       'accessibilityAndPreferences': 'Accessibility & Preferences',
       'privacy': 'Privacy',
-      'enrollInClinicalTrial': 'Enroll in Clinical Trial',
+      'enrollInClinicalTrial': 'Link to Clinical Trial',
       'comingSoon': 'Coming soon',
       'comingSoonEnglishOnly': 'Coming soon - English only for now',
 
@@ -241,13 +241,13 @@ class AppLocalizations {
       'hadNosebleeds': 'Had nosebleeds',
       'dontRemember': "Don't remember",
 
-      // Enrollment
-      'enrollmentTitle': 'Enroll in Clinical Trial',
-      'enterEnrollmentCode': 'Enter your enrollment code',
+      // Linking
+      'enrollmentTitle': 'Link to Clinical Trial',
+      'enterEnrollmentCode': 'Enter your linking code',
       'enrollmentCodeHint': 'XXXXX-XXXXX',
-      'enroll': 'Enroll',
-      'enrollmentSuccess': 'Successfully enrolled!',
-      'enrollmentError': 'Enrollment failed',
+      'enroll': 'Link',
+      'enrollmentSuccess': 'Successfully linked!',
+      'enrollmentError': 'Linking failed',
 
       // Delete confirmation
       'deleteRecord': 'Delete Record',
@@ -290,13 +290,13 @@ class AppLocalizations {
           'This time overlaps with an existing nosebleed record from {0} to {1}',
       'viewConflictingRecord': 'View',
 
-      // Enrollment screen
+      // Linking screen
       'welcomeToNosebleedDiary': 'Welcome to\nNosebleed Diary',
-      'enterCodeToGetStarted': 'Enter your enrollment code to get started.',
+      'enterCodeToGetStarted': 'Enter your linking code to get started.',
       'enrollmentCodePlaceholder': 'CUREHHT#',
       'getStarted': 'Get Started',
       'codeMustBe8Chars': 'Code must be 8 characters',
-      'pleaseEnterEnrollmentCode': 'Please enter your enrollment code',
+      'pleaseEnterEnrollmentCode': 'Please enter your linking code',
 
       // Date records screen
       'addNewEvent': 'Add new event',
@@ -321,10 +321,10 @@ class AppLocalizations {
           ' Clinical trial participation ended on {0}. Previously shared data remains with researchers indefinitely for scientific analysis.',
       'noDataSharedMessage':
           ' No data is shared with external parties unless you choose to participate in research or clinical trials.',
-      'enrolledInClinicalTrialStatus': 'Enrolled in Clinical Trial',
-      'clinicalTrialEnrollmentEnded': 'Clinical Trial Enrollment: Ended',
-      'enrollmentCodeLabel': 'Enrollment Code: {0}',
-      'enrolledLabel': 'Enrolled: {0}',
+      'enrolledInClinicalTrialStatus': 'Linked to Clinical Trial',
+      'clinicalTrialEnrollmentEnded': 'Clinical Trial Linking: Ended',
+      'enrollmentCodeLabel': 'Linking Code: {0}',
+      'enrolledLabel': 'Linked: {0}',
       'endedLabel': 'Ended: {0}',
       'sharingWithCureHHT': 'Sharing with CureHHT',
       'sharingNoteActive':
@@ -341,8 +341,7 @@ class AppLocalizations {
       'joinedDate': 'Joined: {0}',
       'linkingCode': 'Linking Code: {0}',
       'enterNewLinkingCode': 'Enter New Linking Code',
-      'participationStatusActiveMessage':
-          'You are actively participating in a clinical trial. Your data is being synced.',
+      'participationStatusActiveMessage': "You've joined the study",
       'participationStatusDisconnectedMessage':
           'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
       'participationStatusNotParticipatingMessage':
@@ -751,8 +750,7 @@ class AppLocalizations {
       'joinedDate': 'Inscrito: {0}',
       'linkingCode': 'Codigo de Enlace: {0}',
       'enterNewLinkingCode': 'Ingresar Nuevo Codigo de Enlace',
-      'participationStatusActiveMessage':
-          'Estas participando activamente en un ensayo clinico. Tus datos se estan sincronizando.',
+      'participationStatusActiveMessage': 'Te has unido al estudio',
       'participationStatusDisconnectedMessage':
           'Has sido desconectado del ensayo clinico. Por favor contacta a tu sitio de estudio o ingresa un nuevo codigo de enlace.',
       'participationStatusNotParticipatingMessage':
@@ -1173,8 +1171,7 @@ class AppLocalizations {
       'joinedDate': 'Inscrit: {0}',
       'linkingCode': 'Code de Liaison: {0}',
       'enterNewLinkingCode': 'Entrer un Nouveau Code de Liaison',
-      'participationStatusActiveMessage':
-          'Vous participez activement a un essai clinique. Vos donnees sont synchronisees.',
+      'participationStatusActiveMessage': "Vous avez rejoint l'etude",
       'participationStatusDisconnectedMessage':
           "Vous avez ete deconnecte de l'essai clinique. Veuillez contacter votre site d'etude ou entrer un nouveau code de liaison.",
       'participationStatusNotParticipatingMessage':
@@ -1590,8 +1587,7 @@ class AppLocalizations {
       'joinedDate': 'Angemeldet: {0}',
       'linkingCode': 'Verknupfungscode: {0}',
       'enterNewLinkingCode': 'Neuen Verknupfungscode Eingeben',
-      'participationStatusActiveMessage':
-          'Sie nehmen aktiv an einer klinischen Studie teil. Ihre Daten werden synchronisiert.',
+      'participationStatusActiveMessage': 'Sie sind der Studie beigetreten',
       'participationStatusDisconnectedMessage':
           'Sie wurden von der klinischen Studie getrennt. Bitte kontaktieren Sie Ihr Studienzentrum oder geben Sie einen neuen Verknupfungscode ein.',
       'participationStatusNotParticipatingMessage':

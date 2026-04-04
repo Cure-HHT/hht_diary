@@ -81,6 +81,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
   int _preambleIndex = 0;
   int _questionIndex = 0;
   bool _isSubmitting = false;
+  bool _editMode = false;
   DateTime? _sessionStartTime;
 
   /// Responses keyed by question ID
@@ -126,6 +127,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         _responses.clear();
         _questionIndex = 0;
         _preambleIndex = 0;
+        _editMode = false;
         _state = _FlowState.readiness;
         _sessionStartTime = null;
       });
@@ -185,7 +187,11 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
 
   void _handleNext() {
     setState(() {
-      if (_questionIndex < _allQuestions.length - 1) {
+      // CUR-1119: If editing from review screen, return directly to review
+      if (_editMode) {
+        _editMode = false;
+        _state = _FlowState.review;
+      } else if (_questionIndex < _allQuestions.length - 1) {
         _questionIndex++;
       } else {
         _state = _FlowState.review;
@@ -205,6 +211,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     setState(() {
       _questionIndex = index;
       _state = _FlowState.questions;
+      _editMode = true;
     });
   }
 
