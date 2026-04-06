@@ -22,6 +22,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
+                      patientDisplayId: '002-1013456',
                       suggestedCycle: suggestedCycle,
                     );
                   },
@@ -75,6 +76,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
+                      patientDisplayId: '002-1013456',
                     );
                   },
                   child: const Text('Open'),
@@ -109,6 +111,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
+                      patientDisplayId: '002-1013456',
                       suggestedCycle: 3,
                     );
                   },
@@ -143,6 +146,28 @@ void main() {
       await pumpAndShow(tester);
 
       expect(find.text('Starting Cycle'), findsOneWidget);
+    });
+
+    testWidgets('shows patient display ID in subtitle', (
+      WidgetTester tester,
+    ) async {
+      await pumpAndShow(tester);
+
+      expect(find.textContaining('002-1013456'), findsOneWidget);
+    });
+
+    testWidgets('shows info card with bold Cycle 1 Day 1', (
+      WidgetTester tester,
+    ) async {
+      await pumpAndShow(tester);
+
+      expect(find.textContaining('paper diaries'), findsOneWidget);
+    });
+
+    testWidgets('has close X button', (WidgetTester tester) async {
+      await pumpAndShow(tester);
+
+      expect(find.byIcon(Icons.close), findsOneWidget);
     });
   });
 }
