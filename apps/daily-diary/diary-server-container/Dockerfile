@@ -20,6 +20,7 @@ FROM ${DART_BASE_IMAGE} AS dart-build
 # Use --chown because dart-base runs as appuser
 COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 COPY --chown=appuser:appuser apps/common-dart/shared_functions /app/apps/common-dart/shared_functions
+COPY --chown=appuser:appuser apps/common-dart/otel_common /app/apps/common-dart/otel_common
 
 # Copy diary_functions package
 COPY --chown=appuser:appuser apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
