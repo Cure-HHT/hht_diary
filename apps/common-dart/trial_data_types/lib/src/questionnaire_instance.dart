@@ -21,6 +21,7 @@ class QuestionnaireInstance {
     this.submittedAt,
     this.finalizedAt,
     this.studyEvent,
+    this.endEvent,
     this.deletedAt,
     this.deleteReason,
     this.score,
@@ -46,6 +47,7 @@ class QuestionnaireInstance {
           ? DateTime.parse(json['finalized_at'] as String)
           : null,
       studyEvent: json['study_event'] as String?,
+      endEvent: json['end_event'] as String?,
       deletedAt: json['deleted_at'] != null
           ? DateTime.parse(json['deleted_at'] as String)
           : null,
@@ -78,6 +80,12 @@ class QuestionnaireInstance {
   /// Study event identifier per REQ-CAL-p00080 (e.g., "Cycle 1 Day 1")
   final String? studyEvent;
 
+  /// Terminal event type per REQ-CAL-p00080 Assertion F.
+  /// Null for normal cycles. "End of Treatment" or "End of Study" when
+  /// set during finalization. Stored separately from [studyEvent] to
+  /// preserve the cycle number.
+  final String? endEvent;
+
   /// Questionnaire version identifier per REQ-CAL-p00047-E
   final String version;
 
@@ -108,6 +116,7 @@ class QuestionnaireInstance {
       'submitted_at': submittedAt?.toIso8601String(),
       'finalized_at': finalizedAt?.toIso8601String(),
       'study_event': studyEvent,
+      'end_event': endEvent,
       'deleted_at': deletedAt?.toIso8601String(),
       'delete_reason': deleteReason,
       'score': score,
@@ -121,6 +130,7 @@ class QuestionnaireInstance {
     DateTime? submittedAt,
     DateTime? finalizedAt,
     String? studyEvent,
+    String? endEvent,
     DateTime? deletedAt,
     String? deleteReason,
     int? score,
@@ -135,6 +145,7 @@ class QuestionnaireInstance {
       submittedAt: submittedAt ?? this.submittedAt,
       finalizedAt: finalizedAt ?? this.finalizedAt,
       studyEvent: studyEvent ?? this.studyEvent,
+      endEvent: endEvent ?? this.endEvent,
       deletedAt: deletedAt ?? this.deletedAt,
       deleteReason: deleteReason ?? this.deleteReason,
       score: score ?? this.score,

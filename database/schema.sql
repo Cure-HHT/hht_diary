@@ -1014,6 +1014,7 @@ CREATE TABLE questionnaire_instances (
     delete_reason TEXT CHECK (char_length(delete_reason) <= 25),
     deleted_by UUID REFERENCES portal_users(id),
     score INTEGER,
+    end_event TEXT CHECK (end_event IN ('End of Treatment', 'End of Study')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -1023,6 +1024,9 @@ CREATE INDEX idx_qi_patient_type ON questionnaire_instances(patient_id, question
     WHERE deleted_at IS NULL;
 CREATE INDEX idx_qi_status ON questionnaire_instances(status)
     WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_qi_unique_study_event
+    ON questionnaire_instances (patient_id, questionnaire_type, study_event)
+    WHERE deleted_at IS NULL AND study_event IS NOT NULL;
 
 ALTER TABLE questionnaire_instances ENABLE ROW LEVEL SECURITY;
 
@@ -1034,6 +1038,7 @@ COMMENT ON COLUMN questionnaire_instances.study_event IS 'Study event associatio
 COMMENT ON COLUMN questionnaire_instances.version IS 'Questionnaire content version per REQ-CAL-p00047-E';
 COMMENT ON COLUMN questionnaire_instances.delete_reason IS 'Reason for deletion, max 25 chars per REQ-CAL-p00066-B';
 COMMENT ON COLUMN questionnaire_instances.score IS 'Calculated score after finalization per REQ-CAL-p00009';
+COMMENT ON COLUMN questionnaire_instances.end_event IS 'Terminal event type per REQ-CAL-p00080-F: End of Treatment or End of Study. NULL for normal cycles.';
 
 -- =====================================================
 -- QUESTIONNAIRE RESPONSES (REQ-p01067, REQ-p01068)

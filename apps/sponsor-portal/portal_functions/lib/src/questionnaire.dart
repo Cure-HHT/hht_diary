@@ -17,6 +17,112 @@ import 'database.dart';
 import 'notification_service.dart';
 import 'portal_auth.dart';
 import 'portal_metrics.dart';
+import 'sponsor.dart';
+
+/// Cycle number regex for parsing "Cycle N Day 1" study_event values.
+final _cyclePattern = RegExp(r'^Cycle (\d+) Day 1$');
+
+/// Computes the next cycle info for a (patient, questionnaire type) pair.
+///
+/// Returns a map with:
+/// - `needs_initial_selection`: true if the SC must pick a starting cycle
+/// - `suggested_cycle`: hint for pre-selecting the dropdown (from last deleted)
+/// - `study_event`: the computed study_event string (only if auto-increment)
+///
+/// Per REQ-CAL-p00080 Assertions C, D, H.
+Future<Map<String, dynamic>> _computeNextCycleInfo(
+  Database db,
+  UserContext ctx,
+  String patientId,
+  String questionnaireType,
+) async {
+  // REQ-CAL-p00080-G: Check for finalized end events (blocks further sends)
+  final endEventResult = await db.executeWithContext(
+    '''
+    SELECT qi.end_event, qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type = @questionnaireType::questionnaire_type
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+      AND qi.end_event IS NOT NULL
+    LIMIT 1
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'questionnaireType': questionnaireType,
+    },
+    context: ctx,
+  );
+
+  if (endEventResult.isNotEmpty) {
+    final endEvent = endEventResult.first[0] as String;
+    final studyEvent = endEventResult.first[1] as String?;
+    return {
+      'blocked': true,
+      'blocked_reason':
+          '$endEvent was finalized${studyEvent != null ? ' on $studyEvent' : ''}',
+      'end_event': endEvent,
+      'ended_on_study_event': studyEvent,
+    };
+  }
+
+  // Query 1: Max cycle from finalized, non-deleted instances
+  final finalizedResult = await db.executeWithContext(
+    '''
+    SELECT qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type = @questionnaireType::questionnaire_type
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+      AND qi.study_event ~ '^Cycle \\d+ Day 1\$'
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'questionnaireType': questionnaireType,
+    },
+    context: ctx,
+  );
+
+  int? maxFinalizedCycle;
+  for (final row in finalizedResult) {
+    final studyEvent = row[0] as String?;
+    if (studyEvent == null) continue;
+    final match = _cyclePattern.firstMatch(studyEvent);
+    if (match != null) {
+      final cycle = int.tryParse(match.group(1)!);
+      if (cycle != null &&
+          (maxFinalizedCycle == null || cycle > maxFinalizedCycle)) {
+        maxFinalizedCycle = cycle;
+      }
+    }
+  }
+
+  // If finalized cycles exist → auto-increment
+  if (maxFinalizedCycle != null) {
+    final nextCycle = maxFinalizedCycle + 1;
+    return {
+      'needs_initial_selection': false,
+      'suggested_cycle': nextCycle,
+      'study_event': 'Cycle $nextCycle Day 1',
+    };
+  }
+
+  // No finalized cycles — check sponsor config
+  // REQ-CAL-p00080-I/J: If sponsor disabled the prompt, auto-assign Cycle 1
+  final flags = getCurrentSponsorFlags();
+  if (!flags.requireInitialCycleSelection) {
+    return {
+      'needs_initial_selection': false,
+      'suggested_cycle': 1,
+      'study_event': 'Cycle 1 Day 1',
+    };
+  }
+
+  // Prompt SC for starting cycle
+  return {'needs_initial_selection': true};
+}
 
 /// GET /api/v1/portal/patients/<patientId>/questionnaires
 ///
@@ -105,6 +211,62 @@ Future<Response> getQuestionnaireStatusHandler(
     }
   }
 
+  // REQ-CAL-p00080: Compute next cycle info and add finalized metadata
+  // for nose_hht and qol (eq excluded — managed via Start Trial)
+  for (final type in ['nose_hht', 'qol']) {
+    final entry = statusMap[type]!;
+    final status = entry['status'] as String;
+
+    // Always query the most recent finalized instance for this type,
+    // so Last Completed is shown even when a new cycle is active.
+    final lastFinalizedResult = await db.executeWithContext(
+      '''
+      SELECT qi.finalized_at, qi.study_event
+      FROM questionnaire_instances qi
+      WHERE qi.patient_id = @patientId
+        AND qi.questionnaire_type = @type::questionnaire_type
+        AND qi.status = 'finalized'
+        AND qi.deleted_at IS NULL
+      ORDER BY qi.finalized_at DESC
+      LIMIT 1
+      ''',
+      parameters: {'patientId': patientId, 'type': type},
+      context: serviceContext,
+    );
+
+    if (lastFinalizedResult.isNotEmpty) {
+      entry['last_finalized_at'] = (lastFinalizedResult.first[0] as DateTime?)
+          ?.toIso8601String();
+      entry['last_finalized_study_event'] =
+          lastFinalizedResult.first[1] as String?;
+    }
+
+    // If the latest instance is "finalized", transform to "not_sent".
+    // This matches the Miro flow: "Now questionnaire is available to be
+    // sent again in the next Cycle."
+    if (status == 'finalized') {
+      entry['status'] = 'not_sent';
+      entry.remove('id');
+      entry.remove('study_event');
+      entry.remove('version');
+      entry.remove('sent_at');
+      entry.remove('submitted_at');
+      entry.remove('finalized_at');
+      entry.remove('score');
+    }
+
+    // Compute next cycle info for types that are ready for a new send
+    if (entry['status'] == 'not_sent') {
+      final nextCycleInfo = await _computeNextCycleInfo(
+        db,
+        serviceContext,
+        patientId,
+        type,
+      );
+      entry['next_cycle_info'] = nextCycleInfo;
+    }
+  }
+
   return _jsonResponse({
     'patient_id': patientId,
     'questionnaires': statusMap.values.toList(),
@@ -169,6 +331,18 @@ Future<Response> sendQuestionnaireHandler(
     // Body is optional for send
   }
 
+  // REQ-CAL-p00080-B: Validate study_event format if provided
+  if (studyEvent != null) {
+    final cyclePattern = RegExp(r'^Cycle [1-9]\d* Day 1$');
+    if (!cyclePattern.hasMatch(studyEvent) || studyEvent.length > 32) {
+      return _jsonResponse({
+        'error':
+            'Invalid study_event format. Must be "Cycle N Day 1" '
+            'where N is a positive integer (max 32 chars).',
+      }, 400);
+    }
+  }
+
   // Verify patient exists, has trial started, and user has site access
   final patientResult = await db.executeWithContext(
     '''
@@ -228,6 +402,37 @@ Future<Response> sendQuestionnaireHandler(
           'A $questionnaireType questionnaire is already active '
           '(status: $existingStatus). Delete it first before sending a new one.',
     }, 409);
+  }
+
+  // REQ-CAL-p00080: Auto-compute study_event if not provided (for nose_hht/qol)
+  if (questionnaireType == 'nose_hht' || questionnaireType == 'qol') {
+    final nextCycleInfo = await _computeNextCycleInfo(
+      db,
+      serviceContext,
+      patientId,
+      questionnaireType,
+    );
+
+    // REQ-CAL-p00080-G: Block sends after finalized end events
+    if (nextCycleInfo['blocked'] == true) {
+      return _jsonResponse({
+        'error':
+            'Cannot send questionnaire: ${nextCycleInfo['blocked_reason']}',
+      }, 409);
+    }
+
+    if (studyEvent == null) {
+      final needsSelection =
+          nextCycleInfo['needs_initial_selection'] as bool? ?? true;
+      if (needsSelection) {
+        return _jsonResponse({
+          'error':
+              'Initial cycle selection required for the first $questionnaireType '
+              'questionnaire. Provide study_event in the request body.',
+        }, 400);
+      }
+      studyEvent = nextCycleInfo['study_event'] as String;
+    }
   }
 
   // Determine questionnaire version per REQ-CAL-p00047-E
@@ -431,7 +636,7 @@ Future<Response> deleteQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, qi.study_event
     FROM questionnaire_instances qi
     WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
     ''',
@@ -532,6 +737,7 @@ Future<Response> deleteQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[5] as String?,
         'previous_status': currentStatus,
         'reason': reason.trim(),
         'deleted_at': now.toIso8601String(),
@@ -601,7 +807,7 @@ Future<Response> unlockQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, qi.study_event
     FROM questionnaire_instances qi
     WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
     ''',
@@ -696,6 +902,7 @@ Future<Response> unlockQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[5] as String?,
         'previous_status': currentStatus,
         'new_status': 'sent',
         'unlocked_at': now.toIso8601String(),
@@ -766,7 +973,7 @@ Future<Response> finalizeQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, qi.study_event
     FROM questionnaire_instances qi
     WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
     ''',
@@ -794,17 +1001,41 @@ Future<Response> finalizeQuestionnaireHandler(
     }, 409);
   }
 
+  // REQ-CAL-p00080-F: Parse optional end_event from body
+  String? endEvent;
+  try {
+    final body = await request.readAsString();
+    if (body.isNotEmpty) {
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      endEvent = json['end_event'] as String?;
+    }
+  } catch (_) {
+    // Body is optional for finalize
+  }
+
+  // Validate end_event if provided
+  if (endEvent != null &&
+      endEvent != 'End of Treatment' &&
+      endEvent != 'End of Study') {
+    return _jsonResponse({
+      'error':
+          'Invalid end_event. Must be "End of Treatment" or "End of Study".',
+    }, 400);
+  }
+
   final now = DateTime.now().toUtc();
 
   // Placeholder score calculation (real scoring deferred to questionnaire content sprint)
   const score = 0;
 
-  // Set status to finalized
+  // Set status to finalized, optionally set end_event
   await db.executeWithContext(
     '''
     UPDATE questionnaire_instances
     SET status = 'finalized',
         finalized_at = @finalizedAt,
+        finalized_by = @finalizedBy,
+        end_event = @endEvent,
         score = @score,
         updated_at = @finalizedAt
     WHERE id = @instanceId::uuid
@@ -812,6 +1043,8 @@ Future<Response> finalizeQuestionnaireHandler(
     parameters: {
       'instanceId': instanceId,
       'finalizedAt': now.toIso8601String(),
+      'finalizedBy': user.id,
+      'endEvent': endEvent,
       'score': score,
     },
     context: serviceContext,
@@ -836,14 +1069,18 @@ Future<Response> finalizeQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[5] as String?,
         'previous_status': currentStatus,
         'new_status': 'finalized',
+        'end_event': endEvent,
         'score': score,
         'finalized_at': now.toIso8601String(),
         'finalized_by_email': user.email,
         'finalized_by_name': user.name,
       }),
-      'justification': 'Questionnaire finalized with score $score',
+      'justification': endEvent != null
+          ? 'Questionnaire finalized as $endEvent'
+          : 'Questionnaire finalized with score $score',
       'ipAddress': clientIp,
     },
     context: serviceContext,
@@ -856,7 +1093,7 @@ Future<Response> finalizeQuestionnaireHandler(
     labels: {
       'instance_id': instanceId,
       'patient_id': patientId,
-      'score': score.toString(),
+      'score': score${endEvent != null ? ', end_event: $endEvent' : ''}.toString(),
     },
   );
 
@@ -865,6 +1102,7 @@ Future<Response> finalizeQuestionnaireHandler(
     'instance_id': instanceId,
     'patient_id': patientId,
     'status': 'finalized',
+    'end_event': endEvent,
     'score': score,
     'finalized_at': now.toIso8601String(),
   });
