@@ -70,9 +70,21 @@ final _testSites = [
 
 final _testRoleMappings = {
   'mappings': [
-    {'sponsorName': 'Admin', 'systemRole': 'Administrator'},
-    {'sponsorName': 'Study Coordinator', 'systemRole': 'Investigator'},
-    {'sponsorName': 'CRA', 'systemRole': 'Auditor'},
+    {
+      'sponsorName': 'Admin',
+      'systemRole': 'Administrator',
+      'description': 'User management and portal administration',
+    },
+    {
+      'sponsorName': 'Study Coordinator',
+      'systemRole': 'Investigator',
+      'description': 'Patient management and questionnaire workflows',
+    },
+    {
+      'sponsorName': 'CRA',
+      'systemRole': 'Auditor',
+      'description': 'Audit trails and compliance review',
+    },
   ],
 };
 
@@ -142,6 +154,7 @@ Future<void> _pumpUserManagementTab(WidgetTester tester) async {
   final authService = AuthService(
     firebaseAuth: mockFirebaseAuth,
     httpClient: mockHttpClient,
+    enableInactivityTimer: false,
   );
   await authService.signIn('admin@example.com', 'password');
 
@@ -394,6 +407,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final client = ApiClient(authService, httpClient: mockHttpClient);
@@ -572,6 +586,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -645,6 +660,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -720,6 +736,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -780,6 +797,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -835,6 +853,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -890,6 +909,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -964,6 +984,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       return ApiClient(authService, httpClient: mockHttpClient);
@@ -1403,6 +1424,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -1463,6 +1485,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -1521,6 +1544,7 @@ void main() {
       final authService = AuthService(
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
+        enableInactivityTimer: false,
       );
       await authService.signIn('admin@example.com', 'password');
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);

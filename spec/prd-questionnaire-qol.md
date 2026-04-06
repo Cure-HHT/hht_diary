@@ -11,29 +11,7 @@
 
 ## User Journeys
 
-# JNY-HHT-QoL-01: Completing the Quality of Life Assessment
-
-**Actor**: Sarah (Patient)
-**Goal**: Complete the HHT Quality of Life questionnaire to report how HHT has affected her daily life
-**Context**: Sarah is participating in an HHT clinical trial. Her investigator has triggered the HHT Quality of Life questionnaire as part of her monthly assessment. Sarah has four weeks of experience to reflect on.
-
-## Steps
-
-1. Sarah opens the Diary app and sees the pending HHT QoL questionnaire
-2. Sarah reads the preamble explaining the four-week recall period
-3. Sarah answers the first question about work/school interruption, noting the emphasized key phrase
-4. Sarah moves to the second question about social activities being interrupted
-5. Sarah answers the third question about avoiding social situations
-6. Sarah answers the fourth question about non-epistaxis HHT symptoms
-7. Sarah reaches the review screen showing all four answers
-8. Sarah reviews her responses and taps to submit
-9. The app shows confirmation that the questionnaire is submitted for investigator review
-
-## Expected Outcome
-
-Sarah successfully completes the brief HHT QoL questionnaire. Her responses are submitted and await investigator approval before the score is calculated.
-
-*End* *Completing the Quality of Life Assessment*
+> **See**: [user-journeys/quality-of-life-assessment-journeys.md](user-journeys/quality-of-life-assessment-journeys.md)
 
 ---
 
@@ -83,9 +61,7 @@ All questions use a single 5-point frequency scale (scored 0–4):
 
 # REQ-p01068: HHT Quality of Life Questionnaire
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01065
-
-Addresses: JNY-HHT-QoL-01
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01065-A
 
 ## Rationale
 
@@ -114,9 +90,7 @@ H. The system SHALL record the exact response value (0-4) for each answered ques
 
 # REQ-p01071: HHT Quality of Life User Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: REQ-p01068
-
-Addresses: JNY-HHT-QoL-01
+**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01068-A
 
 ## Rationale
 

@@ -62,7 +62,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('displays enrollment confirmed message', (tester) async {
+    testWidgets('displays linking confirmed message', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
@@ -71,7 +71,7 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
-      expect(find.text('Enrollment Confirmed'), findsOneWidget);
+      expect(find.text('Linking Confirmed'), findsOneWidget);
     });
 
     testWidgets('is contained in a Card widget', (tester) async {

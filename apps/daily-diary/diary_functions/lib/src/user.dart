@@ -15,24 +15,15 @@
 // Sync writes to record_audit (event store), not separate tables
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
+
+import 'diary_metrics.dart';
 
 import 'database.dart';
 import 'jwt.dart';
-
-/// Simple structured logger for Cloud Run
-void _log(String level, String message, [Map<String, dynamic>? data]) {
-  final logEntry = {
-    'severity': level,
-    'message': message,
-    'time': DateTime.now().toUtc().toIso8601String(),
-    if (data != null) ...data,
-  };
-  stderr.writeln(jsonEncode(logEntry));
-}
 
 /// Hash a linking code using SHA-256 for secure validation lookup
 /// Must match the hash algorithm used in sponsor portal (REQ-d00078)
@@ -80,11 +71,15 @@ Future<Response> linkHandler(Request request) async {
     final codeHash = _hashLinkingCode(code);
     final codePrefix = code.substring(0, 2);
 
-    _log('INFO', 'Link attempt', {
-      'codePrefix': codePrefix,
-      'codeLength': code.length,
-      'hasAppUuid': appUuid != null,
-    });
+    logWithTrace(
+      'INFO',
+      'Link attempt',
+      labels: {
+        'codePrefix': codePrefix,
+        'codeLength': code.length,
+        'hasAppUuid': appUuid != null,
+      },
+    );
 
     // Look up the linking code in patient_linking_codes
     // Must be: not expired, not used, not revoked
@@ -123,11 +118,15 @@ Future<Response> linkHandler(Request request) async {
         );
         final totalCodes = countResult.first[0] as int;
 
-        _log('WARNING', 'Linking code not found', {
-          'codePrefix': codePrefix,
-          'hashPrefix': codeHash.substring(0, 8),
-          'totalCodesInTable': totalCodes,
-        });
+        logWithTrace(
+          'WARNING',
+          'Linking code not found',
+          labels: {
+            'codePrefix': codePrefix,
+            'hashPrefix': codeHash.substring(0, 8),
+            'totalCodesInTable': totalCodes,
+          },
+        );
 
         return _jsonResponse({
           'error': 'Invalid linking code. Please check the code and try again.',
@@ -140,9 +139,11 @@ Future<Response> linkHandler(Request request) async {
       final revokedAt = row[2];
 
       if (usedAt != null) {
-        _log('WARNING', 'Linking code already used', {
-          'codePrefix': codePrefix,
-        });
+        logWithTrace(
+          'WARNING',
+          'Linking code already used',
+          labels: {'codePrefix': codePrefix},
+        );
         return _jsonResponse({
           'error':
               'This linking code has already been used. Please request a new code from your research coordinator.',
@@ -150,7 +151,11 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (revokedAt != null) {
-        _log('WARNING', 'Linking code revoked', {'codePrefix': codePrefix});
+        logWithTrace(
+          'WARNING',
+          'Linking code revoked',
+          labels: {'codePrefix': codePrefix},
+        );
         return _jsonResponse({
           'error':
               'This linking code has been revoked. Please request a new code from your research coordinator.',
@@ -158,19 +163,25 @@ Future<Response> linkHandler(Request request) async {
       }
 
       if (expiresAt.isBefore(DateTime.now())) {
-        _log('WARNING', 'Linking code expired', {
-          'codePrefix': codePrefix,
-          'expiredAt': expiresAt.toIso8601String(),
-        });
+        logWithTrace(
+          'WARNING',
+          'Linking code expired',
+          labels: {
+            'codePrefix': codePrefix,
+            'expiredAt': expiresAt.toIso8601String(),
+          },
+        );
         return _jsonResponse({
           'error':
               'This linking code has expired. Please request a new code from your research coordinator.',
         }, 410);
       }
 
-      _log('WARNING', 'Linking code invalid (unknown reason)', {
-        'codePrefix': codePrefix,
-      });
+      logWithTrace(
+        'WARNING',
+        'Linking code invalid (unknown reason)',
+        labels: {'codePrefix': codePrefix},
+      );
       return _jsonResponse({'error': 'Invalid linking code.'}, 400);
     }
 
@@ -230,6 +241,36 @@ Future<Response> linkHandler(Request request) async {
       );
     }
 
+    // CUR-1055: Prevent duplicate enrollment from same device
+    // Check if this user is already linked to a connected patient.
+    // Uses used_by_user_id (set on first enrollment) and explicit ::text
+    // cast on the mobile_linking_status enum for driver compatibility.
+    final existingLink = await db.execute(
+      '''
+      SELECT plc.patient_id
+      FROM patient_linking_codes plc
+      JOIN patients p ON plc.patient_id = p.patient_id
+      WHERE plc.used_by_user_id = @userId
+        AND plc.used_at IS NOT NULL
+        AND p.mobile_linking_status::text = 'connected'
+      LIMIT 1
+      ''',
+      parameters: {'userId': userId},
+    );
+
+    if (existingLink.isNotEmpty) {
+      logWithTrace(
+        'WARNING',
+        'Duplicate enrollment attempt from same device',
+        labels: {'codePrefix': codePrefix, 'userId': userId},
+      );
+      return _jsonResponse({
+        'error':
+            'This device is already linked to a study. '
+            'Please contact your research coordinator if you need to re-link.',
+      }, 409);
+    }
+
     // Generate JWT for the user
     final jwtToken = createJwtToken(authCode: authCode, userId: userId);
 
@@ -268,11 +309,15 @@ Future<Response> linkHandler(Request request) async {
       parameters: {'userId': userId},
     );
 
-    _log('INFO', 'Patient linked successfully', {
-      'codePrefix': codePrefix,
-      'siteId': siteId,
-      'patientLinked': true,
-    });
+    logWithTrace(
+      'INFO',
+      'Patient linked successfully',
+      labels: {
+        'codePrefix': codePrefix,
+        'siteId': siteId,
+        'patientLinked': true,
+      },
+    );
 
     return _jsonResponse({
       'success': true,
@@ -287,10 +332,7 @@ Future<Response> linkHandler(Request request) async {
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
     });
   } catch (e, stackTrace) {
-    _log('ERROR', 'Link handler error', {
-      'error': e.toString(),
-      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
-    });
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }
@@ -405,6 +447,8 @@ Future<Response> syncHandler(Request request) async {
         );
 
         syncedEventIds.add(eventId);
+        // IMPLEMENTS: REQ-o00047
+        auditEventWritten(operation: operation);
       }
     }
 
@@ -423,7 +467,8 @@ Future<Response> syncHandler(Request request) async {
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }
@@ -496,7 +541,8 @@ Future<Response> getRecordsHandler(Request request) async {
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
     });
-  } catch (e) {
+  } catch (e, stackTrace) {
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error'}, 500);
   }
 }

@@ -30,8 +30,6 @@ This specification defines the mobile app implementation details for linking to 
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007, REQ-p00007
 
-Addresses: JNY-Portal-Enrollment-01
-
 ## Rationale
 
 The linking code entry interface is the patient's first interaction with the enrollment process. Clear visual feedback and input formatting reduce data entry errors, while real-time validation provides immediate feedback on code format before submission. The interface design mirrors proven patterns from activation code entry systems (e.g., software licenses, gift cards) that users are familiar with.
@@ -226,8 +224,6 @@ J. The system SHALL NOT automatically request a new linking code; this must be i
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
 
-Addresses: JNY-Portal-Enrollment-01
-
 ## Rationale
 
 Linking code validation can fail for multiple reasons: expired codes, already-used codes, invalid format, or unknown sponsor prefix. Per REQ-p70007-G, the system returns a generic "Invalid Code" error message to prevent information disclosure about code validity. However, the mobile app must provide actionable guidance for users to resolve the issue. The error messages guide users to contact their clinical staff, who have visibility into the specific failure reason in the Sponsor Portal.
@@ -303,8 +299,6 @@ L. The system SHALL preserve entered linking code during network retry attempts.
 # REQ-d00101: Enrollment State Machine
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p00043, REQ-p70000, REQ-p01065
-
-Addresses: JNY-Portal-Enrollment-01, JNY-Portal-Enrollment-02
 
 ## Rationale
 
@@ -472,8 +466,6 @@ N. The screen SHALL use sponsor branding colors if available in cached configura
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p70011 | **Refines**: REQ-d00101
 
-Addresses: JNY-Portal-Enrollment-02
-
 ## Rationale
 
 After disconnection, patients may be reconnected to the study with a new linking code provided by clinical staff. The reconnection process must verify the new code, restore synchronization, and upload any diary entries created during the disconnected period. The recovery path ensures data continuity and seamless resumption of study participation.
@@ -513,8 +505,6 @@ L. The system SHALL NOT require the user to re-enter diary entries created durin
 # REQ-d00106: Study Start Questionnaire Rendering
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p01065, REQ-p01066
-
-Addresses: JNY-Study-Start-01
 
 ## Rationale
 
@@ -587,8 +577,6 @@ K. The system SHALL encrypt stored questionnaire responses using the same encryp
 # REQ-d00108: Questionnaire Submission Flow
 
 **Level**: Dev | **Status**: Draft | **Implements**: REQ-p01065, REQ-p01064
-
-Addresses: JNY-Study-Start-01
 
 ## Rationale
 

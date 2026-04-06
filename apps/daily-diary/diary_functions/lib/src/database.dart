@@ -1,11 +1,13 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-o00047G: Database query tracing
 //
 // Database connection pool for PostgreSQL
 
 import 'dart:io';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:postgres/postgres.dart';
 
 /// Database connection configuration from environment
@@ -71,15 +73,26 @@ class Database {
     _pool = Pool.withEndpoints([endpoint], settings: settings);
   }
 
-  /// Execute a query with the pool
+  /// Execute a query with the pool, wrapped in an OTel trace span.
+  ///
+  /// The [query] SQL is sanitized before recording in the span to prevent
+  /// PII/PHI leakage (REQ-o00045Q).
   Future<Result> execute(
     String query, {
     Map<String, dynamic>? parameters,
+    String? table,
   }) async {
     if (_pool == null) {
       throw StateError('Database not initialized. Call initialize() first.');
     }
-    return _pool!.execute(Sql.named(query), parameters: parameters);
+
+    final operation = _extractOperation(query);
+    return tracedQuery(
+      operation,
+      query,
+      () => _pool!.execute(Sql.named(query), parameters: parameters),
+      table: table,
+    );
   }
 
   /// Close the connection pool
@@ -87,4 +100,15 @@ class Database {
     await _pool?.close();
     _pool = null;
   }
+}
+
+/// Extract the SQL operation (SELECT, INSERT, UPDATE, DELETE) from a query.
+String _extractOperation(String query) {
+  final trimmed = query.trimLeft().toUpperCase();
+  if (trimmed.startsWith('SELECT')) return 'SELECT';
+  if (trimmed.startsWith('INSERT')) return 'INSERT';
+  if (trimmed.startsWith('UPDATE')) return 'UPDATE';
+  if (trimmed.startsWith('DELETE')) return 'DELETE';
+  if (trimmed.startsWith('WITH')) return 'SELECT'; // CTEs are typically SELECTs
+  return 'QUERY';
 }

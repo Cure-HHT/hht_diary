@@ -50,6 +50,7 @@ FROM ${DART_BASE_IMAGE} AS dart-build
 # Copy shared dependencies first (for layer caching)
 # Use --chown because dart-base runs as appuser
 COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
+COPY --chown=appuser:appuser apps/common-dart/shared_functions /app/apps/common-dart/shared_functions
 
 # Copy EDC integration (dependency of portal_functions)
 COPY --chown=appuser:appuser apps/edc/rave-integration /app/apps/edc/rave-integration
@@ -74,6 +75,18 @@ RUN dart pub get && \
     printf 'portal_server=%s\nportal_functions=%s\ntrial_data_types=%s\n' \
       "$PORTAL_SERVER_VERSION" "$PORTAL_FUNCTIONS_VERSION" "$TRIAL_DATA_TYPES_VERSION" \
       > /app/SERVER_VERSIONS
+
+# =============================================================================
+# Stage 2b: Build gRPC Health Server
+# =============================================================================
+FROM ${DART_BASE_IMAGE} AS grpc-health-build
+
+# Copy gRPC health check server package
+COPY --chown=appuser:appuser apps/sponsor-portal/portal-container/grpc_health /app/grpc_health
+
+WORKDIR /app/grpc_health
+RUN dart pub get && \
+    dart compile exe bin/server.dart -o bin/grpc_health_server
 
 # =============================================================================
 # Stage 3a: Download Doppler CLI
@@ -141,13 +154,19 @@ COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/se
 COPY --from=dart-build /app/SERVER_VERSIONS /app/SERVER_VERSIONS
 COPY --from=flutter-build /app/UI_VERSION /app/UI_VERSION
 
+# Copy gRPC health server binary
+COPY --from=grpc-health-build /app/grpc_health/bin/grpc_health_server /app/grpc_health_server
+
 # Copy Flutter web build
 COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
 
 # Copy sponsor content (collected by tools/build/collect-sponsor-content.sh)
 COPY sponsor-content/ /app/sponsor-content/
 
-# Copy nginx configuration
+# Copy shared nginx configuration includes (from apps/common-config/)
+COPY apps/common-config/nginx/common-http.conf /etc/nginx/common-http.conf
+COPY apps/common-config/nginx/common-locations.conf /etc/nginx/common-locations.conf
+# Copy portal-specific nginx configuration
 COPY apps/sponsor-portal/portal-container/nginx.conf /etc/nginx/nginx.conf
 
 # Copy startup script
@@ -170,8 +189,9 @@ ENV DOPPLER_CONFIG_NAME=""
 USER appuser
 
 # Health check via nginx (proxies to Dart /health endpoint)
+# Uses --http2-prior-knowledge because nginx listens in HTTP/2 (h2c) mode
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl --http2-prior-knowledge -f http://localhost:8080/health || exit 1
 
 # Labels for container registry
 LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"

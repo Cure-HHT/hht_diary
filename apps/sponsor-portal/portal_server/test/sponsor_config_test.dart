@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//   REQ-p01044-C: sponsor-configurable inactivity timeout
 //
 // Unit tests for sponsor configuration handler
 
@@ -141,7 +142,93 @@ void main() {
         expect(flags.containsKey('enableLongDurationConfirmation'), isTrue);
         expect(flags.containsKey('longDurationThresholdMinutes'), isTrue);
         expect(flags.containsKey('availableFonts'), isTrue);
+        // REQ-p01044-C: inactivity timeout must be present
+        expect(flags.containsKey('inactivityTimeoutMinutes'), isTrue);
       });
+    });
+
+    // REQ-p01044-B: default timeout is 2 minutes
+    test('default inactivityTimeoutMinutes is 2 for curehht', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=curehht'),
+      );
+
+      final response = sponsorConfigHandler(request);
+      final body = await response.readAsString();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+
+      expect(json['flags']['inactivityTimeoutMinutes'], equals(2));
+    });
+
+    // REQ-p01044-C: sponsor can override the inactivity timeout
+    test(
+      'callisto inactivityTimeoutMinutes is sponsor-configured value',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse(
+            'http://localhost/api/v1/sponsor/config?sponsorId=callisto',
+          ),
+        );
+
+        final response = sponsorConfigHandler(request);
+        final body = await response.readAsString();
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        final timeout = json['flags']['inactivityTimeoutMinutes'] as int;
+
+        // Must be within the valid range (1–30) and sponsor-specific
+        expect(timeout, greaterThanOrEqualTo(1));
+        expect(timeout, lessThanOrEqualTo(30));
+        expect(timeout, isNot(equals(2))); // callisto overrides the default
+      },
+    );
+
+    // REQ-p01044-C: unknown sponsor falls back to default timeout
+    test('unknown sponsor inactivityTimeoutMinutes defaults to 2', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=unknown'),
+      );
+
+      final response = sponsorConfigHandler(request);
+      final body = await response.readAsString();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+
+      expect(json['flags']['inactivityTimeoutMinutes'], equals(2));
+    });
+
+    // REQ-p01044-C: assert prevents out-of-range values at construction time
+    test('SponsorFeatureFlags rejects timeout below 1', () {
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 0,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('SponsorFeatureFlags rejects timeout above 30', () {
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 31,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
     });
 
     test('availableFonts contains expected fonts', () {

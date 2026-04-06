@@ -1,44 +1,7 @@
-# Requirements Management
+## REQ-p00020: System Validation and Traceability
 
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-10-25
-**Status**: Draft
-
-> **See**: ops-requirements-management.md for operational enforcement of requirements
-> **See**: dev-requirements-management.md for tooling implementation
-> **See**: prd-clinical-trials.md for FDA regulatory context
-
----
-
-## Executive Summary
-
-This document defines the business and regulatory requirements for formal requirements management in clinical trial software development. For systems subject to FDA 21 CFR Part 11 regulation, formal requirements with complete traceability are not optional—they are mandatory for system validation and regulatory approval.
-
----
-
-## Regulatory Context
-
-### Why Requirements Matter
-
-Clinical trial systems must be validated to ensure data integrity and regulatory compliance. System validation requires:
-
-- Formal requirements defining what the system does
-- Complete traceability from requirements through implementation
-- Evidence that the system was built to specification
-- Audit trail of all requirement changes
-
-Without formal requirements and traceability, a clinical trial system cannot be validated and cannot be used for regulatory submissions.
-
----
-
-# REQ-p00020: System Validation and Traceability
-
-**Level**: PRD | **Status**: Draft | **Implements**: p80060
-
-## Rationale
-
-FDA 21 CFR Part 11 requires validated systems for electronic records in clinical trials. System validation requires formal requirements with complete traceability demonstrating the system was built to specification. Without traceable requirements, the system cannot be validated, and cannot be used for regulatory submissions. Formal requirements also enable change impact analysis, support quality audits, and ensure institutional knowledge is documented rather than tribal knowledge.
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p01085-A
 
 ## Assertions
 
@@ -76,16 +39,16 @@ P. DEV requirements SHALL NOT drive PRD requirements.
 
 Q. OPS requirements SHALL NOT drive PRD requirements.
 
-*End* *System Validation and Traceability* | **Hash**: 7d81caf7
----
-
-# REQ-p00021: Architecture Decision Documentation
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00048
-
 ## Rationale
 
-Clinical trial systems have long operational lifetimes (25+ years per FDA retention requirements). Architectural decisions made today will be maintained by different teams over decades. Formal decision documentation ensures future maintainers understand why the system was built the way it was, enables informed evolution of the system, supports regulatory audits by explaining technical choices, and prevents repeating past mistakes by documenting alternatives that were rejected and why.
+FDA 21 CFR Part 11 requires validated systems for electronic records in clinical trials. System validation requires formal requirements with complete traceability demonstrating the system was built to specification. Without traceable requirements, the system cannot be validated, and cannot be used for regulatory submissions. Formal requirements also enable change impact analysis, support quality audits, and ensure institutional knowledge is documented rather than tribal knowledge.
+
+*End* *System Validation and Traceability* | **Hash**: 7d81caf7
+---
+## REQ-p00021: Architecture Decision Documentation
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00048-M
 
 ## Assertions
 
@@ -119,8 +82,46 @@ N. ADRs SHALL be maintained in version control with system evolution.
 
 O. The system SHALL maintain an ADR index showing all decisions and their status.
 
+## Rationale
+
+Clinical trial systems have long operational lifetimes (25+ years per FDA retention requirements). Architectural decisions made today will be maintained by different teams over decades. Formal decision documentation ensures future maintainers understand why the system was built the way it was, enables informed evolution of the system, supports regulatory audits by explaining technical choices, and prevents repeating past mistakes by documenting alternatives that were rejected and why.
+
 *End* *Architecture Decision Documentation* | **Hash**: 76c82ce6
 ---
+# Requirements Management
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: 2025-10-25
+**Status**: Draft
+
+> **See**: ops-requirements-management.md for operational enforcement of requirements
+> **See**: dev-requirements-management.md for tooling implementation
+> **See**: prd-clinical-trials.md for FDA regulatory context
+
+---
+
+## Executive Summary
+
+This document defines the business and regulatory requirements for formal requirements management in clinical trial software development. For systems subject to FDA 21 CFR Part 11 regulation, formal requirements with complete traceability are not optional—they are mandatory for system validation and regulatory approval.
+
+---
+
+## Regulatory Context
+
+### Why Requirements Matter
+
+Clinical trial systems must be validated to ensure data integrity and regulatory compliance. System validation requires:
+
+- Formal requirements defining what the system does
+- Complete traceability from requirements through implementation
+- Evidence that the system was built to specification
+- Audit trail of all requirement changes
+
+Without formal requirements and traceability, a clinical trial system cannot be validated and cannot be used for regulatory submissions.
+
+---
+
 
 ## References
 

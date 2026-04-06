@@ -401,7 +401,10 @@ Future<Response> generateActivationCodeHandler(Request request) async {
       : null;
 
   // Build activation URL from the portal origin the caller used
-  final portalUrl = _getPortalBaseUrl(request);
+  final portalUrl = getPortalBaseUrl(
+    request,
+    portalUrlEnv: Platform.environment['PORTAL_URL'],
+  );
   final activationUrl = '$portalUrl/activate?code=$activationCode';
 
   // Send activation email if feature is enabled
@@ -453,10 +456,18 @@ Future<Response> generateActivationCodeHandler(Request request) async {
   });
 }
 
-/// Extract portal base URL from request headers.
-/// Prefers Origin header (set by browser on CORS requests),
-/// falls back to Referer, then PORTAL_URL env var.
-String _getPortalBaseUrl(Request request) {
+/// Extract portal base URL for activation links.
+///
+/// Prefers [portalUrlEnv] (PORTAL_URL env var) — this is the authoritative,
+/// per-environment domain (e.g. portal-qa.callisto.anspar.org).
+/// Falls back to Origin header, then Referer, then localhost.
+///
+/// Production callers pass `Platform.environment['PORTAL_URL']` as
+/// [portalUrlEnv]; tests pass explicit values for determinism.
+String getPortalBaseUrl(Request request, {String? portalUrlEnv}) {
+  if (portalUrlEnv != null && portalUrlEnv.isNotEmpty) {
+    return portalUrlEnv;
+  }
   final origin = request.headers['origin'];
   if (origin != null && origin.isNotEmpty) {
     return origin;
@@ -468,7 +479,7 @@ String _getPortalBaseUrl(Request request) {
       return '${uri.scheme}://${uri.authority}';
     }
   }
-  return Platform.environment['PORTAL_URL'] ?? 'http://localhost:8081';
+  return 'http://localhost:8081';
 }
 
 /// Generate a random code in XXXXX-XXXXX format

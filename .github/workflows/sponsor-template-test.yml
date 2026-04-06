@@ -1,0 +1,78 @@
+name: Sponsor Template Test
+
+on:
+  workflow_call:
+    inputs:
+      sponsor:
+        description: "Sponsor name"
+        required: true
+        type: string
+      environment:
+        description: "Target environment"
+        required: true
+        type: string
+      service_name:
+        description: "Service name"
+        required: true
+        type: string
+
+jobs:
+  test-template:
+    name: Test Shared Reusable Workflow
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Print workflow context
+        run: |
+          echo "=== Shared reusable workflow test ==="
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Ref: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"
+
+      - name: Print input values
+        run: |
+          echo "Sponsor: ${{ inputs.sponsor }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Service Name: ${{ inputs.service_name }}"
+
+      - name: Validate environment input
+        run: |
+          case "${{ inputs.environment }}" in
+            dev|qa|uat|prod)
+              echo "Environment is valid."
+              ;;
+            *)
+              echo "ERROR: Invalid environment '${{ inputs.environment }}'"
+              exit 1
+              ;;
+          esac
+
+      - name: Validate service name input
+        run: |
+          case "${{ inputs.service_name }}" in
+            portal-server|diary-server)
+              echo "Service name is valid."
+              ;;
+            *)
+              echo "ERROR: Invalid service_name '${{ inputs.service_name }}'"
+              exit 1
+              ;;
+          esac
+
+      - name: Create summary
+        run: |
+          {
+            echo "## Shared Reusable Workflow Test Passed"
+            echo ""
+            echo "- Sponsor: \`${{ inputs.sponsor }}\`"
+            echo "- Environment: \`${{ inputs.environment }}\`"
+            echo "- Service Name: \`${{ inputs.service_name }}\`"
+            echo "- Caller Repository: \`$GITHUB_REPOSITORY\`"
+          } >> "$GITHUB_STEP_SUMMARY"

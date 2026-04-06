@@ -12,13 +12,14 @@
 
 import 'dart:convert';
 
-import 'package:shelf/shelf.dart';
-
 import 'package:meta/meta.dart';
+import 'package:otel_common/otel_common.dart';
+import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'feature_flags.dart';
 import 'identity_platform.dart';
+import 'portal_metrics.dart';
 
 /// Test-only: Override [requirePortalAuth] to bypass Identity Platform
 /// token verification and database lookup for unit testing.
@@ -88,35 +89,37 @@ class PortalUser {
 /// If user has multiple roles and no role is specified, returns all roles
 /// for the client to display a role picker.
 Future<Response> portalMeHandler(Request request) async {
-  print('[PORTAL_AUTH] portalMeHandler called');
+  logWithTrace('INFO', 'portalMeHandler called');
 
   // Extract bearer token
   final token = extractBearerToken(request.headers['authorization']);
   if (token == null) {
-    print('[PORTAL_AUTH] No authorization header found');
+    authAttempt(result: 'failure', reason: 'missing_token');
+    logWithTrace('WARNING', 'Auth failed: no authorization header');
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
   // Check for requested role from query param
   final requestedRole = request.url.queryParameters['role'];
-  print(
-    '[PORTAL_AUTH] Got bearer token, verifying... (requestedRole: $requestedRole)',
-  );
 
   // Verify Identity Platform token
   final verification = await verifyIdToken(token);
   if (!verification.isValid) {
-    print('[PORTAL_AUTH] Token verification FAILED: ${verification.error}');
+    authAttempt(result: 'failure', reason: 'invalid_token');
+    logWithTrace(
+      'WARNING',
+      'Auth failed: token verification failed',
+      labels: {'error': verification.error ?? 'unknown'},
+    );
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
 
   final firebaseUid = verification.uid!;
   final email = verification.email;
 
-  print('[PORTAL_AUTH] Token verified: uid=$firebaseUid, email=$email');
-
   if (email == null) {
-    print('[PORTAL_AUTH] Token missing email claim');
+    authAttempt(result: 'failure', reason: 'no_email');
+    logWithTrace('WARNING', 'Auth failed: token missing email claim');
     return _jsonResponse({'error': 'Token missing email claim'}, 401);
   }
 
@@ -127,7 +130,6 @@ Future<Response> portalMeHandler(Request request) async {
   const serviceContext = UserContext.service;
 
   // First, try to find user by firebase_uid (subsequent logins)
-  print('[PORTAL_AUTH] Looking up user by firebase_uid: $firebaseUid');
   var result = await db.executeWithContext(
     '''
     SELECT id, firebase_uid, email, name, status, mfa_type
@@ -138,11 +140,9 @@ Future<Response> portalMeHandler(Request request) async {
     context: serviceContext,
   );
 
-  print('[PORTAL_AUTH] Firebase UID lookup returned ${result.length} rows');
-
   if (result.isEmpty) {
     // First login - try to link by email
-    print('[PORTAL_AUTH] No match by UID, trying to link by email: $email');
+    logWithTrace('INFO', 'First login, linking by email');
     result = await db.executeWithContext(
       '''
       UPDATE portal_users
@@ -154,28 +154,28 @@ Future<Response> portalMeHandler(Request request) async {
       context: serviceContext,
     );
 
-    print('[PORTAL_AUTH] Email link update returned ${result.length} rows');
-
     if (result.isEmpty) {
       // Check if email exists but already linked to different uid
-      print('[PORTAL_AUTH] Checking if email exists with different UID');
       final existing = await db.executeWithContext(
         'SELECT firebase_uid FROM portal_users WHERE email = @email',
         parameters: {'email': email},
         context: serviceContext,
       );
 
-      print('[PORTAL_AUTH] Email exists check: ${existing.length} rows');
-
       if (existing.isNotEmpty && existing.first[0] != null) {
-        print('[PORTAL_AUTH] Email already linked to: ${existing.first[0]}');
+        authAttempt(result: 'failure', reason: 'already_linked');
+        logWithTrace(
+          'WARNING',
+          'Auth failed: email already linked to another account',
+        );
         return _jsonResponse({
           'error': 'Email already linked to another account',
         }, 403);
       }
 
       // Email not found in portal_users - not pre-authorized
-      print('[PORTAL_AUTH] Email not in portal_users - NOT AUTHORIZED');
+      authAttempt(result: 'failure', reason: 'not_authorized');
+      logWithTrace('WARNING', 'Auth failed: email not in portal_users');
       return _jsonResponse({
         'error': 'User not authorized for portal access',
       }, 403);
@@ -191,11 +191,15 @@ Future<Response> portalMeHandler(Request request) async {
 
   // Check if account is revoked
   if (userStatus == 'revoked') {
+    authAttempt(result: 'failure', reason: 'revoked');
+    logWithTrace('WARNING', 'Auth failed: account revoked');
     return _jsonResponse({'error': 'Account access has been revoked'}, 403);
   }
 
   // Check if account is pending activation
   if (userStatus == 'pending') {
+    authAttempt(result: 'failure', reason: 'pending');
+    logWithTrace('INFO', 'Auth: account pending activation');
     return _jsonResponse({
       'error': 'Account pending activation',
       'status': 'pending',
@@ -215,7 +219,6 @@ Future<Response> portalMeHandler(Request request) async {
   );
 
   final List<String> roles = rolesResult.map((r) => r[0] as String).toList();
-  print('[PORTAL_AUTH] User has ${roles.length} roles: $roles');
 
   // If no roles in junction table, fall back to role column (backwards compat)
   if (roles.isEmpty) {
@@ -226,11 +229,12 @@ Future<Response> portalMeHandler(Request request) async {
     );
     if (legacyResult.isNotEmpty && legacyResult.first[0] != null) {
       roles.add(legacyResult.first[0] as String);
-      print('[PORTAL_AUTH] Using legacy single role: ${roles.first}');
     }
   }
 
   if (roles.isEmpty) {
+    authAttempt(result: 'failure', reason: 'no_roles');
+    logWithTrace('WARNING', 'Auth failed: user has no assigned roles');
     return _jsonResponse({'error': 'User has no assigned roles'}, 403);
   }
 
@@ -242,8 +246,6 @@ Future<Response> portalMeHandler(Request request) async {
     // Default to first role (alphabetical)
     activeRole = roles.first;
   }
-
-  print('[PORTAL_AUTH] Active role: $activeRole');
 
   // Fetch site assignments for investigators (service context for initial login)
   List<Map<String, dynamic>> sites = [];
@@ -268,6 +270,14 @@ Future<Response> portalMeHandler(Request request) async {
       };
     }).toList();
   }
+
+  // IMPLEMENTS: REQ-o00047
+  authAttempt(result: 'success');
+  logWithTrace(
+    'INFO',
+    'Auth success',
+    labels: {'role': activeRole, 'roles_count': roles.length.toString()},
+  );
 
   final user = PortalUser(
     id: userId,

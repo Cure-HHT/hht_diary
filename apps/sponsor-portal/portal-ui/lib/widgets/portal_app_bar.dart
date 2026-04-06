@@ -62,7 +62,14 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(child: RoleBadge(role: user.activeRole)),
+              child: Center(
+                child: RoleBadge(
+                  role: user.activeRole,
+                  displayName: authService.sponsorRoleName(
+                    user.activeRole.systemName,
+                  ),
+                ),
+              ),
             ),
           // About
           IconButton(
@@ -174,7 +181,7 @@ class _RoleSwitcher extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              user.activeRole.displayName,
+              authService.sponsorRoleName(user.activeRole.systemName),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -191,7 +198,7 @@ class _RoleSwitcher extends StatelessWidget {
           await authService.switchRole(role);
           // Navigate to appropriate dashboard based on new role
           if (context.mounted) {
-            _navigateToRoleDashboard(context, role);
+            _navigateToCommonDashboard(context, role);
           }
         }
       },
@@ -202,7 +209,10 @@ class _RoleSwitcher extends StatelessWidget {
             value: role,
             child: Row(
               children: [
-                RoleBadge(role: role),
+                RoleBadge(
+                  role: role,
+                  displayName: authService.sponsorRoleName(role.systemName),
+                ),
                 const SizedBox(width: 8),
                 if (isActive)
                   Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
@@ -214,26 +224,7 @@ class _RoleSwitcher extends StatelessWidget {
     );
   }
 
-  void _navigateToRoleDashboard(BuildContext context, UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-        break;
-      case UserRole.administrator:
-        context.go('/admin');
-        break;
-      case UserRole.investigator:
-        context.go('/investigator');
-        break;
-      case UserRole.auditor:
-        context.go('/auditor');
-        break;
-      case UserRole.sponsor:
-        context.go('/sponsor');
-        break;
-      case UserRole.analyst:
-        context.go('/analyst');
-        break;
-    }
+  void _navigateToCommonDashboard(BuildContext context, UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 }

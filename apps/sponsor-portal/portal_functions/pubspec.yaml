@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.1+17
+version: 0.1.10+26
 publish_to: none
 
 environment:
@@ -31,6 +31,14 @@ dependencies:
   # Gmail API for email OTP
   googleapis: ^15.0.0
   googleapis_auth: ^2.0.0
+
+  # OpenTelemetry instrumentation
+  otel_common:
+    path: ../../common-dart/otel_common
+
+  # Shared server-side utilities
+  shared_functions:
+    path: ../../common-dart/shared_functions
 
   # EDC Integration (RAVE)
   rave_integration:

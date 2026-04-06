@@ -2,9 +2,44 @@
 # Local diary server startup.
 # Run with: doppler run -- ./tool/run_local.sh
 # Doppler provides LOCAL_DB_PASSWORD for app_user.
+#
+# Options:
+#   --no-otel   Disable OpenTelemetry (LGTM stack not started, traces disabled)
+#
+# By default, OTel is enabled and traces are exported to localhost:4317.
+# Start the LGTM stack first:
+#   cd tools/dev-env && docker compose -f docker-compose.otel.yml up -d
+# Or use the otel_common demo:
+#   apps/common-dart/otel_common/tool/local_otel_demo.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
+
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+
+# OTel is on by default; --no-otel disables it
+ENABLE_OTEL=true
+for arg in "$@"; do
+    case $arg in
+        --no-otel) ENABLE_OTEL=false; shift ;;
+    esac
+done
+
+# Start LGTM stack if OTel is enabled
+if [ "$ENABLE_OTEL" = true ]; then
+    COMPOSE_FILE="$PROJECT_ROOT/tools/dev-env/docker-compose.otel.yml"
+    if [ -f "$COMPOSE_FILE" ]; then
+        if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'otel-lgtm'; then
+            echo "[OTEL] Starting Grafana LGTM stack..."
+            docker compose -f "$COMPOSE_FILE" up -d 2>/dev/null || echo "[OTEL] WARNING: Could not start LGTM stack"
+        else
+            echo "[OTEL] Grafana LGTM stack already running"
+        fi
+        echo "[OTEL] Grafana UI: http://localhost:3000/explore"
+    fi
+    export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+    export ENVIRONMENT="development"
+fi
 
 # Extract component versions for local dev
 DIARY_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')

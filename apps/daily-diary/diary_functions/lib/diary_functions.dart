@@ -14,6 +14,7 @@ library diary_functions;
 
 export 'src/auth.dart';
 export 'src/database.dart';
+export 'src/diary_metrics.dart';
 export 'src/fcm_token.dart';
 export 'src/health.dart';
 export 'src/jwt.dart';
@@ -21,3 +22,4 @@ export 'src/questionnaire_submit.dart';
 export 'src/sponsor.dart';
 export 'src/tasks.dart';
 export 'src/user.dart';
+export 'src/sponsor_branding.dart';

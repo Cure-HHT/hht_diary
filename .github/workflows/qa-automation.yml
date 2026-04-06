@@ -244,7 +244,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src
-            CHANGED_SQL=\$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | grep '\.sql$' || true)
+            CHANGED_SQL=\$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | grep '^database/migrations/.*\.sql$' || true)
             if [ -n \"\$CHANGED_SQL\" ]; then
               echo 'Linting changed SQL files...'
               LINT_FAILED=false
