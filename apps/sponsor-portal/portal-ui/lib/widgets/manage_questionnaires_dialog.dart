@@ -249,6 +249,7 @@ class _ManageQuestionnairesDialogState
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
         questionnaireDisplayName: _displayName(type),
+        patientDisplayId: widget.patientDisplayId,
         suggestedCycle: q.suggestedCycle,
       );
       if (selectedCycle == null || !mounted) return;
