@@ -68,11 +68,16 @@ MockClient _createMockHttpClient({
           'questionnaire_type': 'nose_hht',
           'status': noseStatus,
           if (noseId != null) 'id': noseId,
+          // CUR-856: Include next_cycle_info for not_sent status
+          if (noseStatus == 'not_sent')
+            'next_cycle_info': {'needs_initial_selection': true},
         },
         {
           'questionnaire_type': 'qol',
           'status': qolStatus,
           if (qolId != null) 'id': qolId,
+          if (qolStatus == 'not_sent')
+            'next_cycle_info': {'needs_initial_selection': true},
         },
         {'questionnaire_type': 'eq', 'status': 'sent', 'id': 'eq-instance-1'},
       ];
@@ -196,6 +201,14 @@ Future<ApiClient> _createMockApiClient({
 }
 
 Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
+  // CUR-856: Wider viewport needed for Current Cycle + Last Completed columns
+  tester.view.physicalSize = const Size(2400, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -318,13 +331,26 @@ void main() {
       );
     });
 
-    testWidgets('Send action calls POST and refreshes list', (tester) async {
+    testWidgets('Send action shows cycle selection then sends (CUR-856)', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
       // Tap the first Send button (Nose HHT)
-      await tester.tap(find.text('Send').first);
+      final sendButton = find.widgetWithText(FilledButton, 'Send').first;
+      await tester.ensureVisible(sendButton);
+      await tester.pumpAndSettle();
+      await tester.tap(sendButton);
+      await tester.pumpAndSettle();
+
+      // CUR-856: Cycle selection dialog should appear (needsInitialSelection)
+      expect(find.text('Select Starting Cycle'), findsOneWidget);
+      expect(find.text('Confirm and Send'), findsOneWidget);
+
+      // Confirm with default cycle
+      await tester.tap(find.text('Confirm and Send'));
       await tester.pumpAndSettle();
 
       // Dialog should still be showing with refreshed data
@@ -339,7 +365,10 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      await tester.tap(find.byIcon(Icons.delete));
+      final deleteIcon = find.byIcon(Icons.delete);
+      await tester.ensureVisible(deleteIcon);
+      await tester.pumpAndSettle();
+      await tester.tap(deleteIcon);
       await tester.pumpAndSettle();
 
       // Confirmation dialog should appear
@@ -360,7 +389,10 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      await tester.tap(find.byIcon(Icons.delete));
+      final deleteIcon = find.byIcon(Icons.delete);
+      await tester.ensureVisible(deleteIcon);
+      await tester.pumpAndSettle();
+      await tester.tap(deleteIcon);
       await tester.pumpAndSettle();
 
       // Cancel the confirmation
@@ -371,12 +403,9 @@ void main() {
       expect(find.byIcon(Icons.delete), findsOneWidget);
     });
 
-    testWidgets('Finalize shows confirmation dialog', (tester) async {
-      // Use a larger surface so buttons are not clipped in DataTable
-      tester.view.physicalSize = const Size(1200, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
-
+    testWidgets('Finalize shows confirmation dialog with cycle dropdown', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient(
         noseStatus: 'ready_to_review',
         noseId: 'nose-instance-1',
@@ -392,9 +421,10 @@ void main() {
 
       // Confirmation dialog should appear
       expect(find.text('Finalize Questionnaire?'), findsOneWidget);
-      expect(find.text('Mark the questionnaire as finalized'), findsOneWidget);
-      expect(find.text('Calculate the questionnaire score'), findsOneWidget);
+      expect(find.textContaining('999-002-320'), findsWidgets);
+      expect(find.text('Cycle'), findsWidgets);
       expect(find.text('Finalize Questionnaire'), findsOneWidget);
+      expect(find.text('This action will:'), findsOneWidget);
     });
 
     testWidgets('handles API error on load', (tester) async {
@@ -427,6 +457,140 @@ void main() {
 
       expect(find.text('Finalized'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    });
+
+    // CUR-856 Phase 2: Finalize end-event dropdown
+    testWidgets(
+      'Finalize dialog shows cycle dropdown with end-event options (CUR-856)',
+      (tester) async {
+        final apiClient = await _createMockApiClient(
+          noseStatus: 'ready_to_review',
+          noseId: 'nose-instance-1',
+        );
+
+        await _pumpDialog(tester, apiClient);
+
+        final finalizeFinder = find.widgetWithText(FilledButton, 'Finalize');
+        await tester.ensureVisible(finalizeFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(finalizeFinder);
+        await tester.pumpAndSettle();
+
+        // Should show Cycle label and dropdown
+        expect(find.text('Cycle'), findsWidgets);
+        // Dropdown should be present with DropdownButtonFormField
+        expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Finalize dialog shows warning when end event selected (CUR-856)',
+      (tester) async {
+        final apiClient = await _createMockApiClient(
+          noseStatus: 'ready_to_review',
+          noseId: 'nose-instance-1',
+        );
+
+        await _pumpDialog(tester, apiClient);
+
+        final finalizeFinder = find.widgetWithText(FilledButton, 'Finalize');
+        await tester.ensureVisible(finalizeFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(finalizeFinder);
+        await tester.pumpAndSettle();
+
+        // Open the dropdown
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+
+        // Select "End of Treatment" from dropdown
+        await tester.tap(find.text('End of Treatment').last);
+        await tester.pumpAndSettle();
+
+        // Warning should appear
+        expect(
+          find.textContaining('No further Nose HHT questionnaires'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // CUR-856 Phase 2: Blocked state after end event
+    testWidgets('shows Completed text when type is blocked (CUR-856)', (
+      tester,
+    ) async {
+      // Create a custom mock that returns blocked next_cycle_info
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        final path = request.url.path;
+        if (path == '/api/v1/portal/me' && request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (path.contains('/questionnaires') && request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'patient_id': 'PAT-TEST-001',
+              'questionnaires': [
+                {
+                  'questionnaire_type': 'nose_hht',
+                  'status': 'not_sent',
+                  'last_finalized_at': '2026-04-02T10:00:00Z',
+                  'last_finalized_study_event': 'Cycle 5 Day 1',
+                  'next_cycle_info': {
+                    'blocked': true,
+                    'blocked_reason':
+                        'End of Treatment was finalized on Cycle 5 Day 1',
+                  },
+                },
+                {
+                  'questionnaire_type': 'qol',
+                  'status': 'not_sent',
+                  'next_cycle_info': {'needs_initial_selection': true},
+                },
+                {'questionnaire_type': 'eq', 'status': 'sent', 'id': 'eq-1'},
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('test@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      await _pumpDialog(tester, apiClient);
+
+      // NOSE HHT should show "Completed" in both status chip and actions
+      expect(find.text('Completed'), findsNWidgets(2));
+      // QoL should still have Send button
+      expect(find.text('Send'), findsOneWidget);
     });
   });
 }

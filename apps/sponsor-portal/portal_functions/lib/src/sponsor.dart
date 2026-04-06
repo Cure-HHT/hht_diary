@@ -7,6 +7,7 @@
 // Sponsor configuration handler - converted from Firebase sponsor.ts
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:shelf/shelf.dart';
 
@@ -42,6 +43,10 @@ class SponsorFeatureFlags {
   // Defaults to 2 minutes (REQ-p01044-B).
   final int inactivityTimeoutMinutes;
 
+  // REQ-CAL-p00080-I: When true, prompt SC for starting cycle on first send.
+  // When false, auto-assign Cycle 1 Day 1.
+  final bool requireInitialCycleSelection;
+
   SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
@@ -51,6 +56,7 @@ class SponsorFeatureFlags {
     required this.longDurationThresholdMinutes,
     required this.availableFonts,
     this.inactivityTimeoutMinutes = 2,
+    this.requireInitialCycleSelection = true,
   }) : assert(
          inactivityTimeoutMinutes >= 1 && inactivityTimeoutMinutes <= 30,
          'inactivityTimeoutMinutes must be between 1 and 30 (got $inactivityTimeoutMinutes)',
@@ -66,6 +72,8 @@ class SponsorFeatureFlags {
     'availableFonts': availableFonts,
     // REQ-p01044-C: returned to UI so AuthService can apply the correct timeout
     'inactivityTimeoutMinutes': inactivityTimeoutMinutes,
+    // REQ-CAL-p00080-I: cycle prompt configuration
+    'requireInitialCycleSelection': requireInitialCycleSelection,
   };
 }
 
@@ -96,6 +104,14 @@ final _sponsorConfigs = <String, SponsorFeatureFlags>{
     inactivityTimeoutMinutes: 30,
   ),
 };
+
+/// Returns the feature flags for the current sponsor (from SPONSOR_ID env var).
+SponsorFeatureFlags getCurrentSponsorFlags() {
+  final sponsorId = (Platform.environment['SPONSOR_ID'] ?? '')
+      .toLowerCase()
+      .trim();
+  return _sponsorConfigs[sponsorId] ?? _defaultFlags;
+}
 
 /// Sponsor config handler
 /// GET /api/v1/sponsor/config?sponsorId=curehht

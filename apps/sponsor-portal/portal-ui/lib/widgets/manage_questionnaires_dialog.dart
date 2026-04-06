@@ -1,21 +1,44 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00080: Questionnaire Study Event Association
 //
 // Dialog for managing questionnaire status and actions for a patient.
 // Shows Nose HHT and QoL rows with status chips and contextual actions.
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../services/api_client.dart';
+import 'select_starting_cycle_dialog.dart';
 
 /// Data model for a questionnaire row in the dialog
 class _QuestionnaireInfo {
   final String? id;
   final String type;
   final String status;
+  final String? studyEvent;
+  final String? lastFinalizedAt;
+  final String? lastFinalizedStudyEvent;
+  final bool needsInitialSelection;
+  final int? suggestedCycle;
+  final String? suggestedStudyEvent;
+  final bool isBlocked;
+  final String? blockedReason;
 
-  _QuestionnaireInfo({this.id, required this.type, required this.status});
+  _QuestionnaireInfo({
+    this.id,
+    required this.type,
+    required this.status,
+    this.studyEvent,
+    this.lastFinalizedAt,
+    this.lastFinalizedStudyEvent,
+    this.needsInitialSelection = false,
+    this.suggestedCycle,
+    this.suggestedStudyEvent,
+    this.isBlocked = false,
+    this.blockedReason,
+  });
 }
 
 /// Dialog for managing questionnaires for a patient.
@@ -104,11 +127,26 @@ class _ManageQuestionnairesDialogState
         final type = map['questionnaire_type'] as String;
         // Filter out EQ — managed via Start Trial separately
         if (type == 'eq') continue;
+
+        // Parse next_cycle_info if present (REQ-CAL-p00080)
+        final nextCycleInfo =
+            map['next_cycle_info'] as Map<String, dynamic>? ?? {};
+
         questionnaires.add(
           _QuestionnaireInfo(
             id: map['id'] as String?,
             type: type,
             status: map['status'] as String? ?? 'not_sent',
+            studyEvent: map['study_event'] as String?,
+            lastFinalizedAt: map['last_finalized_at'] as String?,
+            lastFinalizedStudyEvent:
+                map['last_finalized_study_event'] as String?,
+            needsInitialSelection:
+                nextCycleInfo['needs_initial_selection'] as bool? ?? false,
+            suggestedCycle: nextCycleInfo['suggested_cycle'] as int?,
+            suggestedStudyEvent: nextCycleInfo['study_event'] as String?,
+            isBlocked: nextCycleInfo['blocked'] as bool? ?? false,
+            blockedReason: nextCycleInfo['blocked_reason'] as String?,
           ),
         );
       }
@@ -170,12 +208,41 @@ class _ManageQuestionnairesDialogState
     }
   }
 
+  /// Formats an ISO 8601 date string for display (e.g., "Apr 2, 2026").
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      return DateFormat.yMMMd().format(date);
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  // REQ-CAL-p00080: Cycle-aware send flow
   Future<void> _sendQuestionnaire(String type) async {
+    final q = _questionnaires.firstWhere((q) => q.type == type);
+
+    String? studyEvent;
+    if (q.needsInitialSelection) {
+      // First send (or all previous deleted) — show cycle selection dialog
+      final selectedCycle = await SelectStartingCycleDialog.show(
+        context: context,
+        questionnaireDisplayName: _displayName(type),
+        suggestedCycle: q.suggestedCycle,
+      );
+      if (selectedCycle == null || !mounted) return; // cancelled
+      studyEvent = 'Cycle $selectedCycle Day 1';
+    }
+    // If not needsInitialSelection, don't pass study_event → server auto-computes
+
     setState(() => _actionInProgress = true);
 
+    final body = studyEvent != null
+        ? {'study_event': studyEvent}
+        : <String, dynamic>{};
     final response = await widget.apiClient.post(
       '/api/v1/portal/patients/${widget.patientId}/questionnaires/$type/send',
-      {},
+      body,
     );
 
     if (!mounted) return;
@@ -312,15 +379,22 @@ class _ManageQuestionnairesDialogState
     if (mounted) setState(() => _actionInProgress = false);
   }
 
+  /// Returns the selected end_event string, or empty string for normal
+  /// finalization, or null if cancelled.
   Future<void> _finalizeQuestionnaire(_QuestionnaireInfo q) async {
-    final confirmed = await _showFinalizeConfirmation(q);
-    if (confirmed != true || !mounted) return;
+    final result = await _showFinalizeConfirmation(q);
+    if (result == null || !mounted) return; // cancelled
+
+    final endEvent = result.isEmpty ? null : result;
 
     setState(() => _actionInProgress = true);
 
+    final body = endEvent != null
+        ? {'end_event': endEvent}
+        : <String, dynamic>{};
     final response = await widget.apiClient.post(
       '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}/finalize',
-      {},
+      body,
     );
 
     if (!mounted) return;
@@ -339,42 +413,153 @@ class _ManageQuestionnairesDialogState
     if (mounted) setState(() => _actionInProgress = false);
   }
 
-  Future<bool?> _showFinalizeConfirmation(_QuestionnaireInfo q) {
-    return showDialog<bool>(
+  /// Shows finalize confirmation with cycle/end-event dropdown.
+  /// Returns: end_event string, empty string for normal finalization, or null
+  /// if cancelled.
+  Future<String?> _showFinalizeConfirmation(_QuestionnaireInfo q) {
+    final cycleName = q.studyEvent ?? 'Current Cycle';
+
+    return showDialog<String>(
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        return AlertDialog(
-          title: const Text('Finalize Questionnaire?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Finalizing the ${_displayName(q.type)} questionnaire will:',
-                style: theme.textTheme.bodyMedium,
+        // Default = cycle name (normal finalization), or end event string
+        String selectedValue = cycleName;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isEndEvent =
+                selectedValue == 'End of Treatment' ||
+                selectedValue == 'End of Study';
+            return AlertDialog(
+              title: const Text('Finalize Questionnaire?'),
+              content: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Are you sure you want to finalize the '
+                      '${_displayName(q.type)} questionnaire for patient '
+                      '${widget.patientDisplayId}?',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Cycle', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedValue,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: cycleName,
+                          child: Text(cycleName),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'End of Treatment',
+                          child: Text('End of Treatment'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'End of Study',
+                          child: Text('End of Study'),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() => selectedValue = v);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isEndEvent
+                            ? theme.colorScheme.errorContainer.withValues(
+                                alpha: 0.3,
+                              )
+                            : Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isEndEvent
+                              ? theme.colorScheme.error.withValues(alpha: 0.5)
+                              : Colors.green.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isEndEvent
+                                    ? Icons.warning_amber
+                                    : Icons.check_circle_outline,
+                                color: isEndEvent
+                                    ? theme.colorScheme.error
+                                    : Colors.green,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'This action will:',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isEndEvent
+                                      ? theme.colorScheme.error
+                                      : Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _buildBulletPoint('Finalize this questionnaire'),
+                          const SizedBox(height: 4),
+                          _buildBulletPoint(
+                            'Calculate the score and send it to EDC',
+                          ),
+                          const SizedBox(height: 4),
+                          _buildBulletPoint(
+                            'Finalizing the questionnaire locks all patient '
+                            'responses. After this point, the patient cannot '
+                            'edit or update their answers in the Daily Diary app.',
+                          ),
+                          if (isEndEvent) ...[
+                            const SizedBox(height: 4),
+                            _buildBulletPoint(
+                              'No further ${_displayName(q.type)} '
+                              'questionnaires can be sent to this patient.',
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildBulletPoint('Mark the questionnaire as finalized'),
-              const SizedBox(height: 4),
-              _buildBulletPoint('Calculate the questionnaire score'),
-              const SizedBox(height: 4),
-              _buildBulletPoint(
-                'Change status back to "Not Sent" for the next cycle',
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Finalize Questionnaire'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    // Return '' for normal cycle, or end event string
+                    final result = selectedValue == cycleName
+                        ? ''
+                        : selectedValue;
+                    Navigator.of(context).pop(result);
+                  },
+                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                  child: const Text('Finalize Questionnaire'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -420,7 +605,7 @@ class _ManageQuestionnairesDialogState
           ),
         ],
       ),
-      content: SizedBox(width: 520, child: _buildContent(theme)),
+      content: SizedBox(width: 800, child: _buildContent(theme)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -465,7 +650,9 @@ class _ManageQuestionnairesDialogState
   }
 
   Widget _buildLoadedContent(ThemeData theme) {
-    final allNotSent = _questionnaires.every((q) => q.status == 'not_sent');
+    final allNotSent = _questionnaires.every(
+      (q) => q.status == 'not_sent' && q.lastFinalizedAt == null,
+    );
 
     return Stack(
       children: [
@@ -499,18 +686,23 @@ class _ManageQuestionnairesDialogState
                   ),
                 ),
               ),
-            DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                theme.colorScheme.surfaceContainerHighest,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  theme.colorScheme.surfaceContainerHighest,
+                ),
+                columns: const [
+                  DataColumn(label: Text('Questionnaire')),
+                  DataColumn(label: Text('Status')),
+                  DataColumn(label: Text('Current Cycle')),
+                  DataColumn(label: Text('Last Completed')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: _questionnaires
+                    .map((q) => _buildQuestionnaireRow(q, theme))
+                    .toList(),
               ),
-              columns: const [
-                DataColumn(label: Text('Questionnaire')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: _questionnaires
-                  .map((q) => _buildQuestionnaireRow(q, theme))
-                  .toList(),
             ),
           ],
         ),
@@ -526,7 +718,9 @@ class _ManageQuestionnairesDialogState
   }
 
   DataRow _buildQuestionnaireRow(_QuestionnaireInfo q, ThemeData theme) {
-    final color = _statusColor(q.status, theme);
+    // Override status display when blocked (End of Treatment/Study finalized)
+    final statusLabel = q.isBlocked ? 'Completed' : _statusLabel(q.status);
+    final color = q.isBlocked ? Colors.green : _statusColor(q.status, theme);
 
     return DataRow(
       cells: [
@@ -539,12 +733,26 @@ class _ManageQuestionnairesDialogState
         DataCell(
           Chip(
             label: Text(
-              _statusLabel(q.status),
+              statusLabel,
               style: TextStyle(fontSize: 12, color: color),
             ),
             side: BorderSide(color: color.withValues(alpha: 0.3)),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
+          ),
+        ),
+        // Current Cycle column — shows active cycle or last completed cycle
+        DataCell(
+          Text(
+            q.studyEvent ?? q.lastFinalizedStudyEvent ?? '-',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+        // Last Completed column
+        DataCell(
+          Text(
+            q.lastFinalizedAt != null ? _formatDate(q.lastFinalizedAt!) : '-',
+            style: theme.textTheme.bodySmall,
           ),
         ),
         DataCell(_buildActions(q, theme)),
@@ -555,6 +763,18 @@ class _ManageQuestionnairesDialogState
   Widget _buildActions(_QuestionnaireInfo q, ThemeData theme) {
     switch (q.status) {
       case 'not_sent':
+        if (q.isBlocked) {
+          return Tooltip(
+            message: q.blockedReason ?? 'No further questionnaires allowed',
+            child: Text(
+              'Completed',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          );
+        }
         return FilledButton(
           onPressed: _actionInProgress
               ? null
@@ -599,6 +819,14 @@ class _ManageQuestionnairesDialogState
                 visualDensity: VisualDensity.compact,
               ),
               child: const Text('Finalize'),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: _actionInProgress
+                  ? null
+                  : () => _revokeQuestionnaire(q),
+              icon: Icon(Icons.delete, color: theme.colorScheme.error),
+              tooltip: 'Revoke questionnaire',
             ),
           ],
         );

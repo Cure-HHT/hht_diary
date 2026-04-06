@@ -1,0 +1,98 @@
+-- =====================================================
+-- Migration: Add study_event uniqueness constraint and end_event column
+-- Number: 007
+-- Date: 2026-04-02
+-- Description: Adds a partial unique index to prevent duplicate study_event
+--   values for the same patient + questionnaire type (non-deleted instances).
+--   Also adds an end_event column for Phase 2 terminal event tracking
+--   (End of Treatment / End of Study), separate from study_event to preserve
+--   the cycle number.
+--   (Linear: CUR-856)
+-- Dependencies: Requires migration 004 (questionnaire_instances table)
+-- Reference: spec/prd-questionnaire-system.md
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00080: Questionnaire Study Event Association
+--     Assertion E: No two non-deleted questionnaires of the same type for the
+--       same patient may share a StudyEvent value.
+--     Assertion F (Phase 2 prep): End of Treatment / End of Study column.
+-- =====================================================
+
+-- =====================================================
+-- 1. PARTIAL UNIQUE INDEX ON study_event (Assertion E)
+-- =====================================================
+-- Ensures no two non-deleted instances of the same type for the same patient
+-- share a study_event value. Deleted (revoked) instances are excluded — their
+-- cycle numbers are "freed" and can be reused by a subsequent send.
+--
+-- Uses CONCURRENTLY to avoid locking the table in production (required by Squawk).
+
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_qi_unique_study_event
+  ON questionnaire_instances (patient_id, questionnaire_type, study_event)
+  WHERE deleted_at IS NULL AND study_event IS NOT NULL;
+
+-- =====================================================
+-- 2. END_EVENT COLUMN (Phase 2 prep — Assertion F)
+-- =====================================================
+-- Nullable column to record terminal events separately from study_event.
+-- This preserves the cycle number ("Cycle 5 Day 1") while also recording
+-- HOW the questionnaire ended ("End of Treatment" or "End of Study").
+-- Without this, overwriting study_event would lose the cycle number.
+--
+-- Example after finalization:
+--   study_event = "Cycle 5 Day 1"      ← which cycle
+--   end_event   = "End of Treatment"   ← how it ended
+--
+-- Phase 1: always NULL. Phase 2: set during finalization when SC selects
+-- an end event.
+
+ALTER TABLE questionnaire_instances
+  ADD COLUMN IF NOT EXISTS end_event TEXT
+  CHECK (end_event IN ('End of Treatment', 'End of Study'));
+
+-- =====================================================
+-- 3. ADD QUESTIONNAIRE ACTION TYPES TO admin_action_log
+-- =====================================================
+-- The questionnaire handlers (send, delete, unlock, finalize) log to
+-- admin_action_log with these action types, but they were never added
+-- to the CHECK constraint.
+
+ALTER TABLE admin_action_log DROP CONSTRAINT IF EXISTS admin_action_log_action_type_check;
+ALTER TABLE admin_action_log ADD CONSTRAINT admin_action_log_action_type_check CHECK (
+  action_type IN (
+    'ASSIGN_USER', 'ASSIGN_INVESTIGATOR', 'ASSIGN_ANALYST',
+    'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
+    'EMERGENCY_ACCESS', 'BULK_OPERATION',
+    'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE',
+    'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
+    'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT',
+    'START_TRIAL',
+    'QUESTIONNAIRE_SENT', 'QUESTIONNAIRE_DELETED',
+    'QUESTIONNAIRE_UNLOCKED', 'QUESTIONNAIRE_FINALIZED'
+  )
+);
+
+-- =====================================================
+-- VERIFICATION
+-- =====================================================
+DO $$
+BEGIN
+    -- Verify unique index exists
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'idx_qi_unique_study_event'
+    ) THEN
+        RAISE EXCEPTION 'idx_qi_unique_study_event index was not created';
+    END IF;
+
+    -- Verify end_event column exists
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'questionnaire_instances'
+          AND column_name = 'end_event'
+    ) THEN
+        RAISE EXCEPTION 'end_event column was not added';
+    END IF;
+
+    RAISE NOTICE 'Migration 007 complete: study_event uniqueness index, end_event column, and action_type constraint updated';
+END $$;
