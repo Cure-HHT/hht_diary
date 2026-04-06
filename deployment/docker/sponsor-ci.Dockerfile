@@ -23,6 +23,7 @@ COPY --chown=10001:10001 .github/versions.env ./.github/versions.env
 # -----------------------------
 COPY --chown=10001:10001 apps/common-dart/trial_data_types/pubspec.yaml ./apps/common-dart/trial_data_types/pubspec.yaml
 COPY --chown=10001:10001 apps/common-dart/shared_functions/pubspec.yaml ./apps/common-dart/shared_functions/pubspec.yaml
+COPY --chown=10001:10001 apps/common-dart/otel_common/pubspec.yaml ./apps/common-dart/otel_common/pubspec.yaml
 COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
@@ -37,6 +38,9 @@ WORKDIR /workspace/src/apps/common-dart/trial_data_types
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/common-dart/shared_functions
+RUN dart pub get
+
+WORKDIR /workspace/src/apps/common-dart/otel_common
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/edc/rave-integration
@@ -64,6 +68,7 @@ WORKDIR /workspace/src
 
 COPY --chown=10001:10001 apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
 COPY --chown=10001:10001 apps/common-dart/shared_functions ./apps/common-dart/shared_functions
+COPY --chown=10001:10001 apps/common-dart/otel_common ./apps/common-dart/otel_common
 COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
 COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
@@ -77,6 +82,7 @@ COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_
 RUN set -euo pipefail && \
     test -d apps/common-dart/trial_data_types && \
     test -d apps/common-dart/shared_functions && \
+    test -d apps/common-dart/otel_common && \
     test -d apps/edc/rave-integration && \
     test -d apps/sponsor-portal/portal_functions && \
     test -d apps/sponsor-portal/portal_server && \

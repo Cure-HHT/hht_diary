@@ -16,6 +16,8 @@ COPY .github/versions.env ./.github/versions.env
 
 # Copy only the shared source trees needed by sponsor builds
 COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
+COPY apps/common-dart/shared_functions ./apps/common-dart/shared_functions
+COPY apps/common-dart/otel_common ./apps/common-dart/otel_common
 COPY apps/edc/rave-integration ./apps/edc/rave-integration
 COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
 COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
@@ -25,6 +27,9 @@ COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # Resolve dependencies for shared packages/apps
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
+RUN dart pub get
+
+WORKDIR /workspace/src/apps/common-dart/otel_common
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/edc/rave-integration
@@ -50,6 +55,8 @@ WORKDIR /workspace/src
 # Validate expected image shape during build
 RUN set -euo pipefail && \
     test -d /workspace/src/apps/common-dart/trial_data_types && \
+    test -d /workspace/src/apps/common-dart/shared_functions && \
+    test -d /workspace/src/apps/common-dart/otel_common && \
     test -d /workspace/src/apps/edc/rave-integration && \
     test -d /workspace/src/apps/sponsor-portal/portal_functions && \
     test -d /workspace/src/apps/sponsor-portal/portal_server && \
