@@ -51,6 +51,7 @@ FROM ${DART_BASE_IMAGE} AS dart-build
 # Use --chown because dart-base runs as appuser
 COPY --chown=appuser:appuser apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 COPY --chown=appuser:appuser apps/common-dart/shared_functions /app/apps/common-dart/shared_functions
+COPY --chown=appuser:appuser apps/common-dart/otel_common /app/apps/common-dart/otel_common
 
 # Copy EDC integration (dependency of portal_functions)
 COPY --chown=appuser:appuser apps/edc/rave-integration /app/apps/edc/rave-integration
