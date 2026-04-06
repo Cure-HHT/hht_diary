@@ -4,12 +4,13 @@
 //   REQ-CAL-p00080: Questionnaire Study Event Association
 //
 // Dialog for managing questionnaire status and actions for a patient.
-// Shows Nose HHT and QoL rows with status chips and contextual actions.
+// Shows Nose HHT and QoL as cards with status chips and contextual actions.
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/api_client.dart';
+import 'portal_button.dart';
 import 'select_starting_cycle_dialog.dart';
 
 /// Data model for a questionnaire row in the dialog
@@ -43,18 +44,8 @@ class _QuestionnaireInfo {
 
 /// Dialog for managing questionnaires for a patient.
 ///
-/// Shows Nose HHT and QoL questionnaire rows with status chips and
-/// contextual action buttons (Send, Revoke, Unlock, Finalize).
-///
-/// Usage:
-/// ```dart
-/// await ManageQuestionnairesDialog.show(
-///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
-///   apiClient: apiClient,
-/// );
-/// ```
+/// Shows Nose HHT and QoL questionnaire cards with status chips and
+/// contextual action buttons (Send Now, Revoke, Unlock, Finalize).
 class ManageQuestionnairesDialog extends StatefulWidget {
   final String patientId;
   final String patientDisplayId;
@@ -168,7 +159,7 @@ class _ManageQuestionnairesDialogState
       case 'nose_hht':
         return 'Nose HHT';
       case 'qol':
-        return 'QoL';
+        return 'Quality of Life';
       default:
         return type;
     }
@@ -191,20 +182,51 @@ class _ManageQuestionnairesDialogState
     }
   }
 
-  Color _statusColor(String status, ThemeData theme) {
+  Color _statusColor(String status) {
     switch (status) {
       case 'not_sent':
-        return theme.colorScheme.outline;
+        return const Color(0xFF6F7884);
       case 'sent':
-        return Colors.blue;
+        return const Color(0xFF6383FD);
       case 'in_progress':
         return Colors.amber.shade700;
       case 'ready_to_review':
-        return Colors.orange;
+        return const Color(0xFFC25F16);
       case 'finalized':
         return Colors.green;
       default:
-        return theme.colorScheme.outline;
+        return const Color(0xFF6F7884);
+    }
+  }
+
+  Color _statusBackgroundColor(String status) {
+    switch (status) {
+      case 'sent':
+        return const Color(0xFFDBEAFF);
+      case 'ready_to_review':
+        return const Color(0xFFFEF1BA).withValues(alpha: 0.4);
+      default:
+        return Colors.transparent;
+    }
+  }
+
+  /// Card background color — yellow tint for ready_to_review
+  Color _cardBackgroundColor(String status) {
+    switch (status) {
+      case 'ready_to_review':
+        return const Color(0xFFFFFBEA).withValues(alpha: 0.4);
+      default:
+        return Colors.transparent;
+    }
+  }
+
+  /// Card border color — golden for ready_to_review
+  Color? _cardBorderColor(String status, ThemeData theme) {
+    switch (status) {
+      case 'ready_to_review':
+        return const Color(0xFFFEF1BA);
+      default:
+        return theme.colorScheme.outlineVariant;
     }
   }
 
@@ -224,16 +246,14 @@ class _ManageQuestionnairesDialogState
 
     String? studyEvent;
     if (q.needsInitialSelection) {
-      // First send (or all previous deleted) — show cycle selection dialog
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
         questionnaireDisplayName: _displayName(type),
         suggestedCycle: q.suggestedCycle,
       );
-      if (selectedCycle == null || !mounted) return; // cancelled
+      if (selectedCycle == null || !mounted) return;
       studyEvent = 'Cycle $selectedCycle Day 1';
     }
-    // If not needsInitialSelection, don't pass study_event → server auto-computes
 
     setState(() => _actionInProgress = true);
 
@@ -355,6 +375,7 @@ class _ManageQuestionnairesDialogState
     );
   }
 
+  // ignore: unused_element
   Future<void> _unlockQuestionnaire(_QuestionnaireInfo q) async {
     setState(() => _actionInProgress = true);
 
@@ -379,11 +400,9 @@ class _ManageQuestionnairesDialogState
     if (mounted) setState(() => _actionInProgress = false);
   }
 
-  /// Returns the selected end_event string, or empty string for normal
-  /// finalization, or null if cancelled.
   Future<void> _finalizeQuestionnaire(_QuestionnaireInfo q) async {
     final result = await _showFinalizeConfirmation(q);
-    if (result == null || !mounted) return; // cancelled
+    if (result == null || !mounted) return;
 
     final endEvent = result.isEmpty ? null : result;
 
@@ -413,9 +432,6 @@ class _ManageQuestionnairesDialogState
     if (mounted) setState(() => _actionInProgress = false);
   }
 
-  /// Shows finalize confirmation with cycle/end-event dropdown.
-  /// Returns: end_event string, empty string for normal finalization, or null
-  /// if cancelled.
   Future<String?> _showFinalizeConfirmation(_QuestionnaireInfo q) {
     final cycleName = q.studyEvent ?? 'Current Cycle';
 
@@ -423,7 +439,6 @@ class _ManageQuestionnairesDialogState
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        // Default = cycle name (normal finalization), or end event string
         String selectedValue = cycleName;
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -438,10 +453,19 @@ class _ManageQuestionnairesDialogState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Are you sure you want to finalize the '
-                      '${_displayName(q.type)} questionnaire for patient '
-                      '${widget.patientDisplayId}?',
+                    Text.rich(
+                      TextSpan(
+                        text:
+                            'Are you sure you want to finalize the '
+                            '${_displayName(q.type)} questionnaire for patient ',
+                        children: [
+                          TextSpan(
+                            text: widget.patientDisplayId,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const TextSpan(text: '?'),
+                        ],
+                      ),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -548,7 +572,6 @@ class _ManageQuestionnairesDialogState
                 ),
                 FilledButton(
                   onPressed: () {
-                    // Return '' for normal cycle, or end event string
                     final result = selectedValue == cycleName
                         ? ''
                         : selectedValue;
@@ -575,22 +598,39 @@ class _ManageQuestionnairesDialogState
     );
   }
 
+  // ================================================================
+  // BUILD — Card-based layout matching Miro design
+  // ================================================================
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Manage Questionnaires'),
-                const SizedBox(height: 4),
                 Text(
-                  'Manage questionnaire status and actions for patient '
-                  '${widget.patientDisplayId}',
+                  'Manage Questionnaires',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text.rich(
+                  TextSpan(
+                    text: 'View and manage questionnaire status for patient ',
+                    children: [
+                      TextSpan(
+                        text: widget.patientDisplayId,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -605,13 +645,7 @@ class _ManageQuestionnairesDialogState
           ),
         ],
       ),
-      content: SizedBox(width: 800, child: _buildContent(theme)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
+      content: SizedBox(width: 520, child: _buildContent(theme)),
     );
   }
 
@@ -659,51 +693,26 @@ class _ManageQuestionnairesDialogState
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (allNotSent)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'No questionnaires have been sent yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+            ..._questionnaires.map((q) => _buildQuestionnaireCard(q, theme)),
+            if (allNotSent) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xfff8fafb),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'No questionnaires sent yet',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                  theme.colorScheme.surfaceContainerHighest,
-                ),
-                columns: const [
-                  DataColumn(label: Text('Questionnaire')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Current Cycle')),
-                  DataColumn(label: Text('Last Completed')),
-                  DataColumn(label: Text('Actions')),
-                ],
-                rows: _questionnaires
-                    .map((q) => _buildQuestionnaireRow(q, theme))
-                    .toList(),
-              ),
-            ),
+            ],
           ],
         ),
         if (_actionInProgress)
@@ -717,77 +726,196 @@ class _ManageQuestionnairesDialogState
     );
   }
 
-  DataRow _buildQuestionnaireRow(_QuestionnaireInfo q, ThemeData theme) {
-    // Override status display when blocked (End of Treatment/Study finalized)
+  Widget _buildQuestionnaireCard(_QuestionnaireInfo q, ThemeData theme) {
     final statusLabel = q.isBlocked ? 'Completed' : _statusLabel(q.status);
-    final color = q.isBlocked ? Colors.green : _statusColor(q.status, theme);
+    final statusColor = q.isBlocked ? Colors.green : _statusColor(q.status);
+    final statusBg = q.isBlocked
+        ? Colors.green.withValues(alpha: 0.1)
+        : _statusBackgroundColor(q.status);
+    final lastCompleted = q.lastFinalizedAt != null
+        ? _formatDate(q.lastFinalizedAt!)
+        : 'Never';
+    final currentCycle = q.studyEvent ?? q.lastFinalizedStudyEvent;
 
-    return DataRow(
-      cells: [
-        DataCell(
-          Text(
-            _displayName(q.type),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+    final cardBg = _cardBackgroundColor(q.status);
+    final cardBorder = _cardBorderColor(q.status, theme);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardBg,
+          border: Border.all(color: cardBorder!),
+          borderRadius: BorderRadius.circular(16),
         ),
-        DataCell(
-          Chip(
-            label: Text(
-              statusLabel,
-              style: TextStyle(fontSize: 12, color: color),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Questionnaire icon
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBEAFF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.description_outlined,
+                color: Color(0xFF6383FD),
+                size: 22,
+              ),
             ),
-            side: BorderSide(color: color.withValues(alpha: 0.3)),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-          ),
+            const SizedBox(width: 12),
+
+            // Info section
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _displayName(q.type),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Status chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      border: Border.all(
+                        color: q.status == 'ready_to_review'
+                            ? const Color(0xFFFEF1BA)
+                            : statusColor.withValues(alpha: 0.4),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: statusColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Last Completed
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: Color(0xFF7D8691),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Last Completed:  ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF7D8691),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        lastCompleted,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Current Cycle (if active)
+                  if (currentCycle != null) ...[
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 14,
+                          color: Color(0xFF7D8691),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Current Cycle:  ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF7D8691),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          currentCycle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ],
+              ),
+            ),
+
+            // Action buttons
+            _buildCardActions(q, theme),
+          ],
         ),
-        // Current Cycle column — shows active cycle or last completed cycle
-        DataCell(
-          Text(
-            q.studyEvent ?? q.lastFinalizedStudyEvent ?? '-',
-            style: theme.textTheme.bodySmall,
-          ),
-        ),
-        // Last Completed column
-        DataCell(
-          Text(
-            q.lastFinalizedAt != null ? _formatDate(q.lastFinalizedAt!) : '-',
-            style: theme.textTheme.bodySmall,
-          ),
-        ),
-        DataCell(_buildActions(q, theme)),
-      ],
+      ),
     );
   }
 
-  Widget _buildActions(_QuestionnaireInfo q, ThemeData theme) {
+  Widget _buildCardActions(_QuestionnaireInfo q, ThemeData theme) {
     switch (q.status) {
       case 'not_sent':
         if (q.isBlocked) {
           return Tooltip(
             message: q.blockedReason ?? 'No further questionnaires allowed',
-            child: Text(
-              'Completed',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Completed',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         }
-        return FilledButton(
+        return PortalButton(
           onPressed: _actionInProgress
               ? null
               : () => _sendQuestionnaire(q.type),
-          style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
-          child: const Text('Send'),
+          icon: Icons.send,
+          label: 'Send Now',
         );
+
       case 'sent':
         return IconButton(
           onPressed: _actionInProgress ? null : () => _revokeQuestionnaire(q),
-          icon: Icon(Icons.delete, color: theme.colorScheme.error),
+          icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
           tooltip: 'Revoke questionnaire',
+          iconSize: 22,
+          constraints: const BoxConstraints(),
+          padding: const EdgeInsets.all(4),
         );
+
       case 'in_progress':
         return Text(
           'Patient is working',
@@ -796,42 +924,37 @@ class _ManageQuestionnairesDialogState
             fontStyle: FontStyle.italic,
           ),
         );
+
       case 'ready_to_review':
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            OutlinedButton(
-              onPressed: _actionInProgress
-                  ? null
-                  : () => _unlockQuestionnaire(q),
-              style: OutlinedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-              child: const Text('Unlock'),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
+            PortalButton(
               onPressed: _actionInProgress
                   ? null
                   : () => _finalizeQuestionnaire(q),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.green,
-                visualDensity: VisualDensity.compact,
-              ),
-              child: const Text('Finalize'),
+              label: 'Finalize',
+              icon: Icons.check_circle_outline,
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
             ),
             const SizedBox(width: 4),
             IconButton(
               onPressed: _actionInProgress
                   ? null
                   : () => _revokeQuestionnaire(q),
-              icon: Icon(Icons.delete, color: theme.colorScheme.error),
+              icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
               tooltip: 'Revoke questionnaire',
+              iconSize: 22,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(4),
             ),
           ],
         );
+
       case 'finalized':
         return const Icon(Icons.check_circle, color: Colors.green, size: 20);
+
       default:
         return const SizedBox.shrink();
     }
