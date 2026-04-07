@@ -17,9 +17,21 @@ class StudyEvent {
   /// Phase 1 format: "Cycle N Day 1" where N >= 1.
   static final _cyclePattern = RegExp(r'^Cycle ([1-9]\d*) Day 1$');
 
-  // Phase 2 end-event constants.
-  static const endOfTreatment = 'End of Treatment';
-  static const endOfStudy = 'End of Study';
+  // Phase 2 end-event constants (snake_case DB values).
+  static const endOfTreatment = 'end_of_treatment';
+  static const endOfStudy = 'end_of_study';
+
+  /// Display labels for end events.
+  static String endEventDisplayLabel(String endEvent) {
+    switch (endEvent) {
+      case endOfTreatment:
+        return 'End of Treatment';
+      case endOfStudy:
+        return 'End of Study';
+      default:
+        return endEvent;
+    }
+  }
 
   /// Validates a study_event string against the "Cycle N Day 1" format.
   ///

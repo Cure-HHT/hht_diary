@@ -1489,7 +1489,7 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
-        body: jsonEncode({'end_event': 'End of Treatment'}),
+        body: jsonEncode({'end_event': 'end_of_treatment'}),
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1500,17 +1500,17 @@ void main() {
 
       expect(response.statusCode, 200);
       final body = await _json(response);
-      expect(body['end_event'], 'End of Treatment');
+      expect(body['end_event'], 'end_of_treatment');
 
       // Verify end_event was passed to the UPDATE query
       final updateQuery = capturedQueries.where(
         (q) => q.query.contains('UPDATE questionnaire_instances'),
       );
       expect(updateQuery, isNotEmpty);
-      expect(updateQuery.first.params?['endEvent'], 'End of Treatment');
+      expect(updateQuery.first.params?['endEvent'], 'end_of_treatment');
     });
 
-    test('stores End of Study end_event', () async {
+    test('stores end_of_study end_event', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM questionnaire_instances')) {
           return [_instanceRow(status: 'ready_to_review')];
@@ -1521,7 +1521,7 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
-        body: jsonEncode({'end_event': 'End of Study'}),
+        body: jsonEncode({'end_event': 'end_of_study'}),
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1532,7 +1532,7 @@ void main() {
 
       expect(response.statusCode, 200);
       final body = await _json(response);
-      expect(body['end_event'], 'End of Study');
+      expect(body['end_event'], 'end_of_study');
     });
 
     test('end_event is null when not provided (normal finalization)', () async {
@@ -1605,7 +1605,7 @@ void main() {
         // End event check — return a finalized end event
         if (query.contains('end_event IS NOT NULL')) {
           return [
-            ['End of Treatment', 'Cycle 5 Day 1'],
+            ['end_of_treatment', 'Cycle 5 Day 1'],
           ];
         }
         return [];
@@ -1626,7 +1626,7 @@ void main() {
       expect(response.statusCode, 409);
       final body = await _json(response);
       expect(body['error'], contains('Cannot send questionnaire'));
-      expect(body['error'], contains('End of Treatment'));
+      expect(body['error'], contains('end_of_treatment'));
     });
 
     test('does not block when no end event finalized', () async {

@@ -306,7 +306,9 @@ void main() {
       expect(find.text('Manage Questionnaires'), findsOneWidget);
     });
 
-    testWidgets('Revoke shows confirmation dialog', (tester) async {
+    testWidgets('Delete shows confirmation dialog with reason input', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient(
         noseStatus: 'sent',
         noseId: 'nose-1',
@@ -316,8 +318,11 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
 
-      expect(find.text('Revoke Questionnaire?'), findsOneWidget);
-      expect(find.text('Revoke Questionnaire'), findsOneWidget);
+      expect(find.text('Delete Questionnaire?'), findsOneWidget);
+      expect(find.text('Why?'), findsOneWidget);
+      expect(find.text('Enter the reason...'), findsOneWidget);
+      expect(find.text('Delete Questionnaire'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
     });
 
     testWidgets('close button closes dialog', (tester) async {

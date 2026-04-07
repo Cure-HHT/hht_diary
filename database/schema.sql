@@ -997,6 +997,7 @@ COMMENT ON COLUMN email_audit_log.metadata IS 'Additional context: masked email,
 
 CREATE TYPE questionnaire_type AS ENUM ('nose_hht', 'qol', 'eq');
 CREATE TYPE questionnaire_status AS ENUM ('not_sent', 'sent', 'in_progress', 'ready_to_review', 'finalized');
+CREATE TYPE end_event_type AS ENUM ('end_of_treatment', 'end_of_study');
 
 CREATE TABLE questionnaire_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1014,7 +1015,7 @@ CREATE TABLE questionnaire_instances (
     delete_reason TEXT CHECK (char_length(delete_reason) <= 25),
     deleted_by UUID REFERENCES portal_users(id),
     score INTEGER,
-    end_event TEXT CHECK (end_event IN ('End of Treatment', 'End of Study')),
+    end_event end_event_type,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

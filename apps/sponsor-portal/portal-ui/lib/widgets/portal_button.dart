@@ -58,6 +58,8 @@ class PortalButton extends StatelessWidget {
     final style = FilledButton.styleFrom(
       backgroundColor: bg,
       foregroundColor: fg,
+      disabledBackgroundColor: bg.withValues(alpha: 0.4),
+      disabledForegroundColor: fg.withValues(alpha: 0.7),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
     );
