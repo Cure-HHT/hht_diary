@@ -64,18 +64,18 @@ void main() {
     });
 
     test('rejects end-event strings (not cycle format)', () {
-      expect(StudyEvent.isValid('End of Treatment'), isFalse);
-      expect(StudyEvent.isValid('End of Study'), isFalse);
+      expect(StudyEvent.isValid('end_of_treatment'), isFalse);
+      expect(StudyEvent.isValid('end_of_study'), isFalse);
     });
   });
 
   group('StudyEvent.isEndEvent', () {
-    test('accepts "End of Treatment"', () {
-      expect(StudyEvent.isEndEvent('End of Treatment'), isTrue);
+    test('accepts "end_of_treatment"', () {
+      expect(StudyEvent.isEndEvent('end_of_treatment'), isTrue);
     });
 
-    test('accepts "End of Study"', () {
-      expect(StudyEvent.isEndEvent('End of Study'), isTrue);
+    test('accepts "end_of_study"', () {
+      expect(StudyEvent.isEndEvent('end_of_study'), isTrue);
     });
 
     test('rejects cycle strings', () {
@@ -117,7 +117,7 @@ void main() {
     });
 
     test('returns null for end-event strings', () {
-      expect(StudyEvent.parseCycleNumber('End of Treatment'), isNull);
+      expect(StudyEvent.parseCycleNumber('end_of_treatment'), isNull);
     });
   });
 

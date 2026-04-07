@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../services/api_client.dart';
 import 'portal_button.dart';
 import 'select_starting_cycle_dialog.dart';
+import 'start_next_cycle_dialog.dart';
 
 /// Data model for a questionnaire row in the dialog
 class _QuestionnaireInfo {
@@ -246,6 +247,7 @@ class _ManageQuestionnairesDialogState
 
     String? studyEvent;
     if (q.needsInitialSelection) {
+      // First send — show cycle selection dropdown
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
         questionnaireDisplayName: _displayName(type),
@@ -254,6 +256,15 @@ class _ManageQuestionnairesDialogState
       );
       if (selectedCycle == null || !mounted) return;
       studyEvent = 'Cycle $selectedCycle Day 1';
+    } else {
+      // Next cycle — show confirmation dialog
+      final confirmed = await StartNextCycleDialog.show(
+        context: context,
+        cycleLabel: q.suggestedStudyEvent ?? 'Next Cycle',
+        patientDisplayId: widget.patientDisplayId,
+        questionnaireDisplayName: _displayName(type),
+      );
+      if (confirmed != true || !mounted) return;
     }
 
     setState(() => _actionInProgress = true);
@@ -283,14 +294,14 @@ class _ManageQuestionnairesDialogState
   }
 
   Future<void> _revokeQuestionnaire(_QuestionnaireInfo q) async {
-    final confirmed = await _showRevokeConfirmation(q);
-    if (confirmed != true || !mounted) return;
+    final reason = await _showDeleteConfirmation(q);
+    if (reason == null || !mounted) return;
 
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.delete(
       '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}',
-      body: {'reason': 'Revoked by investigator'},
+      body: {'reason': reason},
     );
 
     if (!mounted) return;
@@ -300,7 +311,7 @@ class _ManageQuestionnairesDialogState
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response.error ?? 'Failed to revoke questionnaire'),
+          content: Text(response.error ?? 'Failed to delete questionnaire'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -309,68 +320,110 @@ class _ManageQuestionnairesDialogState
     if (mounted) setState(() => _actionInProgress = false);
   }
 
-  Future<bool?> _showRevokeConfirmation(_QuestionnaireInfo q) {
-    return showDialog<bool>(
+  /// Shows delete confirmation with reason input.
+  /// Returns the reason string or null if cancelled.
+  Future<String?> _showDeleteConfirmation(_QuestionnaireInfo q) {
+    final reasonController = TextEditingController();
+
+    return showDialog<String>(
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        return AlertDialog(
-          title: const Text('Revoke Questionnaire?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'This will remove the ${_displayName(q.type)} questionnaire '
-                'from the patient\'s mobile app.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withValues(
-                    alpha: 0.3,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.colorScheme.error.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber,
-                      color: theme.colorScheme.error,
-                      size: 20,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final reason = reasonController.text.trim();
+            final isValid = reason.isNotEmpty && reason.length <= 25;
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Delete Questionnaire?',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Any in-progress answers will be lost.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(null),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        text:
+                            'Are you sure you want to delete the '
+                            '${_displayName(q.type)} questionnaire for patient ',
+                        children: [
+                          TextSpan(
+                            text: widget.patientDisplayId,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const TextSpan(text: '?'),
+                        ],
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Why?',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reasonController,
+                      maxLength: 25,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Enter the reason...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
                         ),
                       ),
+                      onChanged: (_) => setDialogState(() {}),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.error,
-              ),
-              child: const Text('Revoke Questionnaire'),
-            ),
-          ],
+              actions: [
+                PortalButton.outlined(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  label: 'Cancel',
+                ),
+                PortalButton(
+                  onPressed: isValid
+                      ? () => Navigator.of(context).pop(reason)
+                      : null,
+                  label: 'Delete Questionnaire',
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: Colors.white,
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -406,6 +459,12 @@ class _ManageQuestionnairesDialogState
     if (result == null || !mounted) return;
 
     final endEvent = result.isEmpty ? null : result;
+
+    // Show additional confirmation when End of Treatment / End of Study selected
+    if (endEvent != null) {
+      final confirmed = await _showEndEventConfirmation(q, endEvent);
+      if (confirmed != true || !mounted) return;
+    }
 
     setState(() => _actionInProgress = true);
 
@@ -444,8 +503,8 @@ class _ManageQuestionnairesDialogState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final isEndEvent =
-                selectedValue == 'End of Treatment' ||
-                selectedValue == 'End of Study';
+                selectedValue == 'end_of_treatment' ||
+                selectedValue == 'end_of_study';
             return AlertDialog(
               title: const Text('Finalize Questionnaire?'),
               content: SizedBox(
@@ -485,11 +544,11 @@ class _ManageQuestionnairesDialogState
                           child: Text(cycleName),
                         ),
                         const DropdownMenuItem(
-                          value: 'End of Treatment',
+                          value: 'end_of_treatment',
                           child: Text('End of Treatment'),
                         ),
                         const DropdownMenuItem(
-                          value: 'End of Study',
+                          value: 'end_of_study',
                           child: Text('End of Study'),
                         ),
                       ],
@@ -584,6 +643,124 @@ class _ManageQuestionnairesDialogState
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  /// Confirmation dialog when End of Treatment / End of Study is selected.
+  /// Returns true if confirmed, null if cancelled.
+  Future<bool?> _showEndEventConfirmation(
+    _QuestionnaireInfo q,
+    String endEvent,
+  ) {
+    final displayLabel = endEvent == 'end_of_treatment'
+        ? 'End of Treatment'
+        : endEvent == 'end_of_study'
+        ? 'End of Study'
+        : endEvent;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        final cycleName = q.studyEvent ?? 'Current Cycle';
+
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: theme.colorScheme.error,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Confirm $displayLabel',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(null),
+                icon: const Icon(Icons.close),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Warning card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer.withValues(
+                      alpha: 0.2,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                          text: 'You are finalizing ',
+                          children: [
+                            TextSpan(
+                              text: _displayName(q.type),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(text: ' ($cycleName) as '),
+                            TextSpan(
+                              text: displayLabel,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Patient: ${widget.patientDisplayId}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            PortalButton.outlined(
+              onPressed: () => Navigator.of(context).pop(null),
+              label: 'Go Back',
+            ),
+            PortalButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              label: 'Confirm $displayLabel',
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+          ],
         );
       },
     );
@@ -899,12 +1076,13 @@ class _ManageQuestionnairesDialogState
             ),
           );
         }
+        final isNextCycle = q.lastFinalizedAt != null;
         return PortalButton(
           onPressed: _actionInProgress
               ? null
               : () => _sendQuestionnaire(q.type),
-          icon: Icons.send,
-          label: 'Send Now',
+          icon: isNextCycle ? Icons.replay : Icons.send,
+          label: isNextCycle ? 'Start Next Cycle' : 'Send Now',
         );
 
       case 'sent':

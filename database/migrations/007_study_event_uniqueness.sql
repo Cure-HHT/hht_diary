@@ -46,9 +46,15 @@ CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_qi_unique_study_event
 -- Phase 1: always NULL. Phase 2: set during finalization when SC selects
 -- an end event.
 
+-- Create enum type for end events
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'end_event_type') THEN
+        CREATE TYPE end_event_type AS ENUM ('end_of_treatment', 'end_of_study');
+    END IF;
+END $$;
+
 ALTER TABLE questionnaire_instances
-  ADD COLUMN IF NOT EXISTS end_event TEXT
-  CHECK (end_event IN ('End of Treatment', 'End of Study'));
+  ADD COLUMN IF NOT EXISTS end_event end_event_type;
 
 -- =====================================================
 -- 3. ADD QUESTIONNAIRE ACTION TYPES TO admin_action_log

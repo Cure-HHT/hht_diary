@@ -56,8 +56,8 @@ Future<Map<String, dynamic>> _computeNextCycleInfo(
   );
 
   if (endEventResult.isNotEmpty) {
-    final endEvent = endEventResult.first[0] as String;
-    final studyEvent = endEventResult.first[1] as String?;
+    final endEvent = endEventResult.first[0].toString();
+    final studyEvent = endEventResult.first[1]?.toString();
     return {
       'blocked': true,
       'blocked_reason':
@@ -1015,11 +1015,11 @@ Future<Response> finalizeQuestionnaireHandler(
 
   // Validate end_event if provided
   if (endEvent != null &&
-      endEvent != 'End of Treatment' &&
-      endEvent != 'End of Study') {
+      endEvent != 'end_of_treatment' &&
+      endEvent != 'end_of_study') {
     return _jsonResponse({
       'error':
-          'Invalid end_event. Must be "End of Treatment" or "End of Study".',
+          'Invalid end_event. Must be "end_of_treatment" or "end_of_study".',
     }, 400);
   }
 
@@ -1035,7 +1035,7 @@ Future<Response> finalizeQuestionnaireHandler(
     SET status = 'finalized',
         finalized_at = @finalizedAt,
         finalized_by = @finalizedBy,
-        end_event = @endEvent,
+        end_event = @endEvent::end_event_type,
         score = @score,
         updated_at = @finalizedAt
     WHERE id = @instanceId::uuid
