@@ -111,11 +111,13 @@ jobs:
         id: plan
         working-directory: infrastructure/terraform/admin-project
         run: |
+          set +e
           terraform plan -input=false -no-color \
             -var-file=cure-hht-admin.tfvars \
             -out=tfplan 2>&1 | tee plan-output.txt
-          echo "exitcode=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          EXIT_CODE=$?
+          echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0  # Don't fail yet — post the comment first
         env:
           TF_VAR_ADMIN_PROJECT_NUMBER: ${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
@@ -126,10 +128,13 @@ jobs:
           script: |
             const fs = require('fs');
             const plan = fs.readFileSync('infrastructure/terraform/admin-project/plan-output.txt', 'utf8');
-            const exitCode = '${{ steps.plan.outcome }}';
-            const icon = exitCode === 'success' ? '✅' : '❌';
+            const exitCode = parseInt('${{ steps.plan.outputs.exitcode }}' || '1');
+            const passed = exitCode === 0;
+            const icon = passed ? '✅' : '❌';
+            const hasErrors = plan.includes('Error:');
+            const status = hasErrors ? 'FAILED (errors in plan output)' : (passed ? 'succeeded' : `FAILED (exit code ${exitCode})`);
 
-            const body = `### ${icon} Terraform Plan: \`admin-project\`
+            const body = `### ${hasErrors ? '❌' : icon} Terraform Plan: \`admin-project\`
 
             <details><summary>Show Plan Output</summary>
 
@@ -139,7 +144,7 @@ jobs:
 
             </details>
 
-            *Plan: ${exitCode === 'success' ? 'succeeded' : 'FAILED'}*
+            *Plan: ${status}*
             *Pusher: @${{ github.actor }}*`;
 
             github.rest.issues.createComment({
@@ -150,8 +155,10 @@ jobs:
             });
 
       - name: 'Fail on plan error'
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+        if: steps.plan.outputs.exitcode != '0'
+        run: |
+          echo "::error::Terraform plan failed with exit code ${{ steps.plan.outputs.exitcode }}"
+          exit 1
 
   # ─── Plan: sponsor-envs (dev only) ────────────────────────────
   # Plans against the dev tfvars as a smoke test. If dev plan works,
@@ -189,11 +196,13 @@ jobs:
         id: plan
         working-directory: infrastructure/terraform/sponsor-envs
         run: |
+          set +e
           terraform plan -input=false -no-color \
             -var-file=sponsor-configs/callisto4-dev.tfvars \
             -out=tfplan 2>&1 | tee plan-output.txt
-          echo "exitcode=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          EXIT_CODE=$?
+          echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0
         env:
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
           TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
@@ -208,10 +217,12 @@ jobs:
           script: |
             const fs = require('fs');
             const plan = fs.readFileSync('infrastructure/terraform/sponsor-envs/plan-output.txt', 'utf8');
-            const exitCode = '${{ steps.plan.outcome }}';
-            const icon = exitCode === 'success' ? '✅' : '❌';
+            const exitCode = parseInt('${{ steps.plan.outputs.exitcode }}' || '1');
+            const passed = exitCode === 0;
+            const hasErrors = plan.includes('Error:');
+            const status = hasErrors ? 'FAILED (errors in plan output)' : (passed ? 'succeeded' : `FAILED (exit code ${exitCode})`);
 
-            const body = `### ${icon} Terraform Plan: \`sponsor-envs/callisto4-dev\`
+            const body = `### ${hasErrors ? '❌' : (passed ? '✅' : '❌')} Terraform Plan: \`sponsor-envs/callisto4-dev\`
 
             <details><summary>Show Plan Output</summary>
 
@@ -221,7 +232,7 @@ jobs:
 
             </details>
 
-            *Plan: ${exitCode === 'success' ? 'succeeded' : 'FAILED'}*
+            *Plan: ${status}*
             *Environment: dev (auto-apply on merge)*
             *Promotion: qa/uat/prod require manual workflow dispatch*
             *Pusher: @${{ github.actor }}*`;
@@ -234,8 +245,10 @@ jobs:
             });
 
       - name: 'Fail on plan error'
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+        if: steps.plan.outputs.exitcode != '0'
+        run: |
+          echo "::error::Terraform plan failed with exit code ${{ steps.plan.outputs.exitcode }}"
+          exit 1
 
   # ─── Apply: admin-project (post-merge) ───────────────────────
   apply-admin-project:
