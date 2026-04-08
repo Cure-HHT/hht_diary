@@ -365,7 +365,6 @@ jobs:
             -f image_path="ghcr.io/${{ env.IMAGE_PREFIX }}@${{ needs.build-portal-server.outputs.image_digest }}" \
             -f version="${{ needs.build-portal-server.outputs.version }}"
           echo "Triggered deploy-run-service.yml asynchronously"
-          # TODO ${{ needs.build-portal-server.outputs.service-name }}
 
   summary:
     name: Build Summary
