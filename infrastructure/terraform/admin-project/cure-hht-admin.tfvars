@@ -51,10 +51,15 @@ gmail_sender_email = "support@anspar.org"
 # These need serviceUsageConsumer access to reference admin project resources
 # (e.g., github-actions-sa service account).
 
-# Add Cloud Run service account emails here after deploying sponsor-envs
+# Cloud Run runtime service accounts (Gmail SA impersonation for email OTP)
 sponsor_cloud_run_service_accounts = [
-  "service-768644809588@serverless-robot-prod.iam.gserviceaccount.com",  # Cloud Run Service Agent (Artifact Registry pull)
   "768644809588-compute@developer.gserviceaccount.com"                   # callisto4-uat default compute SA (Gmail signJwt)
+]
+
+# Cloud Run Service Agents (need artifactregistry.reader to pull images from GAR)
+# Format: service-{PROJECT_NUMBER}@serverless-robot-prod.iam.gserviceaccount.com
+sponsor_cloud_run_service_agents = [
+  "service-768644809588@serverless-robot-prod.iam.gserviceaccount.com",  # callisto4-uat Cloud Run Service Agent
 ]
 
 # Add the Compute Engine default service account for each sponsor/environment here to allow read access to the schema bucket for migrations/resets.
