@@ -1,0 +1,400 @@
+---
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00042: Infrastructure Change Control
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00051: Change Control and Audit Trail
+#
+# Terraform Plan on PR + Auto-Apply on Merge
+#
+# PR: Runs `terraform plan` for any changed Terraform directory.
+#     Posts plan output as PR comment. Blocks merge on plan errors.
+#
+# Merge: Runs `terraform apply -auto-approve` for changed directories.
+#     The plan was already reviewed and approved on the PR.
+#
+# FDA compliance: The PR approval IS the human-in-the-loop approval.
+# The plan comment provides the audit trail of what was reviewed.
+
+name: 'Terraform Plan & Apply'
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/terraform/**'
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/terraform/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for terraform apply'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+          - prod
+      sponsor:
+        description: 'Sponsor (must match tfvars filename prefix)'
+        required: true
+        type: string
+        default: callisto4
+      action:
+        description: 'Plan only or apply?'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+
+env:
+  TF_VERSION: '1.7.0'
+  TF_IN_AUTOMATION: 'true'
+
+jobs:
+  # ─── Detect which Terraform directories changed ───────────────
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      admin_project: ${{ steps.changes.outputs.admin_project }}
+      bootstrap: ${{ steps.changes.outputs.bootstrap }}
+      sponsor_envs: ${{ steps.changes.outputs.sponsor_envs }}
+      modules: ${{ steps.changes.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            admin_project:
+              - 'infrastructure/terraform/admin-project/**'
+            bootstrap:
+              - 'infrastructure/terraform/bootstrap/**'
+            sponsor_envs:
+              - 'infrastructure/terraform/sponsor-envs/**'
+            modules:
+              - 'infrastructure/terraform/modules/**'
+
+  # ─── Plan: admin-project ──────────────────────────────────────
+  plan-admin-project:
+    if: >-
+      github.event_name == 'pull_request' &&
+      (needs.detect-changes.outputs.admin_project == 'true' ||
+       needs.detect-changes.outputs.modules == 'true')
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Authenticate with Google Cloud'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+
+      - name: 'Terraform Init'
+        working-directory: infrastructure/terraform/admin-project
+        run: terraform init -input=false
+
+      - name: 'Terraform Plan'
+        id: plan
+        working-directory: infrastructure/terraform/admin-project
+        run: |
+          terraform plan -input=false -no-color \
+            -var-file=cure-hht-admin.tfvars \
+            -out=tfplan 2>&1 | tee plan-output.txt
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        env:
+          TF_VAR_ADMIN_PROJECT_NUMBER: ${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}
+          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
+
+      - name: 'Post Plan to PR'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infrastructure/terraform/admin-project/plan-output.txt', 'utf8');
+            const exitCode = '${{ steps.plan.outcome }}';
+            const icon = exitCode === 'success' ? '✅' : '❌';
+
+            const body = `### ${icon} Terraform Plan: \`admin-project\`
+
+            <details><summary>Show Plan Output</summary>
+
+            \`\`\`hcl
+            ${plan.substring(0, 60000)}
+            \`\`\`
+
+            </details>
+
+            *Plan: ${exitCode === 'success' ? 'succeeded' : 'FAILED'}*
+            *Pusher: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: 'Fail on plan error'
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  # ─── Plan: sponsor-envs (dev only) ────────────────────────────
+  # Plans against the dev tfvars as a smoke test. If dev plan works,
+  # the same modules will work for qa/uat/prod (same structure, similar vars).
+  # Promotion to qa/uat/prod is manual via workflow_dispatch (see below).
+  plan-sponsor-envs-dev:
+    if: >-
+      github.event_name == 'pull_request' &&
+      (needs.detect-changes.outputs.sponsor_envs == 'true' ||
+       needs.detect-changes.outputs.modules == 'true')
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Authenticate with Google Cloud'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+
+      - name: 'Terraform Init (sponsor-envs)'
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: terraform init -input=false
+
+      - name: 'Terraform Plan (callisto4-dev)'
+        id: plan
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: |
+          terraform plan -input=false -no-color \
+            -var-file=sponsor-configs/callisto4-dev.tfvars \
+            -out=tfplan 2>&1 | tee plan-output.txt
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        env:
+          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
+          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
+          TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
+          TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
+          TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+
+      - name: 'Post Plan to PR'
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infrastructure/terraform/sponsor-envs/plan-output.txt', 'utf8');
+            const exitCode = '${{ steps.plan.outcome }}';
+            const icon = exitCode === 'success' ? '✅' : '❌';
+
+            const body = `### ${icon} Terraform Plan: \`sponsor-envs/callisto4-dev\`
+
+            <details><summary>Show Plan Output</summary>
+
+            \`\`\`hcl
+            ${plan.substring(0, 60000)}
+            \`\`\`
+
+            </details>
+
+            *Plan: ${exitCode === 'success' ? 'succeeded' : 'FAILED'}*
+            *Environment: dev (auto-apply on merge)*
+            *Promotion: qa/uat/prod require manual workflow dispatch*
+            *Pusher: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: 'Fail on plan error'
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  # ─── Apply: admin-project (post-merge) ───────────────────────
+  apply-admin-project:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.detect-changes.outputs.admin_project == 'true'
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    environment: infrastructure
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Authenticate with Google Cloud'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+
+      - name: 'Terraform Init'
+        working-directory: infrastructure/terraform/admin-project
+        run: terraform init -input=false
+
+      - name: 'Terraform Apply'
+        working-directory: infrastructure/terraform/admin-project
+        run: |
+          terraform apply -input=false -auto-approve \
+            -var-file=cure-hht-admin.tfvars
+        env:
+          TF_VAR_ADMIN_PROJECT_NUMBER: ${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}
+          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
+
+      - name: 'Post apply result'
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "::notice::Terraform apply succeeded for admin-project"
+          else
+            echo "::error::Terraform apply FAILED for admin-project — manual intervention required"
+          fi
+
+  # ─── Apply: sponsor-envs dev (post-merge) ────────────────────
+  apply-sponsor-envs-dev:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      (needs.detect-changes.outputs.sponsor_envs == 'true' ||
+       needs.detect-changes.outputs.modules == 'true')
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    environment: infrastructure
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Authenticate with Google Cloud'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+
+      - name: 'Terraform Init'
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: terraform init -input=false
+
+      - name: 'Terraform Apply (callisto4-dev)'
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: |
+          terraform apply -input=false -auto-approve \
+            -var-file=sponsor-configs/callisto4-dev.tfvars
+        env:
+          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
+          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
+          TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
+          TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
+          TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+
+      - name: 'Post apply result'
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "::notice::Terraform apply succeeded for callisto4-dev"
+          else
+            echo "::error::Terraform apply FAILED for callisto4-dev — manual intervention required"
+          fi
+
+  # ─── Manual Promotion: sponsor-envs (qa/uat/prod) ────────────
+  # Triggered via Actions UI: workflow_dispatch with environment selector.
+  # Promotion flow: dev (auto) → qa (manual) → uat (manual) → prod (manual)
+  promote-sponsor-env:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Validate tfvars exists'
+        run: |
+          TFVARS="infrastructure/terraform/sponsor-envs/sponsor-configs/${{ inputs.sponsor }}-${{ inputs.environment }}.tfvars"
+          if [ ! -f "$TFVARS" ]; then
+            echo "::error::tfvars file not found: $TFVARS"
+            ls infrastructure/terraform/sponsor-envs/sponsor-configs/
+            exit 1
+          fi
+          echo "Using: $TFVARS"
+
+      - name: 'Authenticate with Google Cloud'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+
+      - name: 'Terraform Init'
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: terraform init -input=false
+
+      - name: 'Terraform Plan'
+        id: plan
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: |
+          terraform plan -input=false -no-color \
+            -var-file=sponsor-configs/${{ inputs.sponsor }}-${{ inputs.environment }}.tfvars \
+            -out=tfplan 2>&1 | tee plan-output.txt
+        env:
+          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
+          TF_VAR_DB_PASSWORD: ${{ secrets[format('TF_VAR_DB_PASSWORD_{0}', inputs.environment)] }}
+          TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
+          TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
+          TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+
+      - name: 'Terraform Apply'
+        if: inputs.action == 'apply'
+        working-directory: infrastructure/terraform/sponsor-envs
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: 'Summary'
+        if: always()
+        run: |
+          echo "### Terraform ${{ inputs.action }}: ${{ inputs.sponsor }}-${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "Actor: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
