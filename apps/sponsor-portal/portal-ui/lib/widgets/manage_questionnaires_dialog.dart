@@ -27,6 +27,8 @@ class _QuestionnaireInfo {
   final String? suggestedStudyEvent;
   final bool isBlocked;
   final String? blockedReason;
+  final String? endEvent;
+  final bool cycleTrackingDisabled;
 
   _QuestionnaireInfo({
     this.id,
@@ -40,6 +42,8 @@ class _QuestionnaireInfo {
     this.suggestedStudyEvent,
     this.isBlocked = false,
     this.blockedReason,
+    this.endEvent,
+    this.cycleTrackingDisabled = false,
   });
 }
 
@@ -139,6 +143,11 @@ class _ManageQuestionnairesDialogState
             suggestedStudyEvent: nextCycleInfo['study_event'] as String?,
             isBlocked: nextCycleInfo['blocked'] as bool? ?? false,
             blockedReason: nextCycleInfo['blocked_reason'] as String?,
+            endEvent: nextCycleInfo['end_event'] as String?,
+            cycleTrackingDisabled:
+                map['cycle_tracking_disabled'] as bool? ??
+                nextCycleInfo['cycle_tracking_disabled'] as bool? ??
+                false,
           ),
         );
       }
@@ -234,8 +243,8 @@ class _ManageQuestionnairesDialogState
   /// Formats an ISO 8601 date string for display (e.g., "Apr 2, 2026").
   String _formatDate(String isoDate) {
     try {
-      final date = DateTime.parse(isoDate);
-      return DateFormat.yMMMd().format(date);
+      final date = DateTime.parse(isoDate).toLocal();
+      return DateFormat('MMM d, yyyy, h:mm a').format(date);
     } catch (_) {
       return isoDate;
     }
@@ -246,7 +255,9 @@ class _ManageQuestionnairesDialogState
     final q = _questionnaires.firstWhere((q) => q.type == type);
 
     String? studyEvent;
-    if (q.needsInitialSelection) {
+    if (q.cycleTrackingDisabled) {
+      // Cycle tracking disabled — send immediately, no dialogs
+    } else if (q.needsInitialSelection) {
       // First send — show cycle selection dropdown
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
@@ -455,15 +466,23 @@ class _ManageQuestionnairesDialogState
   }
 
   Future<void> _finalizeQuestionnaire(_QuestionnaireInfo q) async {
-    final result = await _showFinalizeConfirmation(q);
-    if (result == null || !mounted) return;
+    String? endEvent;
 
-    final endEvent = result.isEmpty ? null : result;
-
-    // Show additional confirmation when End of Treatment / End of Study selected
-    if (endEvent != null) {
-      final confirmed = await _showEndEventConfirmation(q, endEvent);
+    if (q.cycleTrackingDisabled) {
+      // Simple confirmation — no cycle dropdown
+      final confirmed = await _showSimpleFinalizeConfirmation(q);
       if (confirmed != true || !mounted) return;
+    } else {
+      final result = await _showFinalizeConfirmation(q);
+      if (result == null || !mounted) return;
+
+      endEvent = result.isEmpty ? null : result;
+
+      // Show additional confirmation when End of Treatment / End of Study selected
+      if (endEvent != null) {
+        final confirmed = await _showEndEventConfirmation(q, endEvent);
+        if (confirmed != true || !mounted) return;
+      }
     }
 
     setState(() => _actionInProgress = true);
@@ -490,6 +509,121 @@ class _ManageQuestionnairesDialogState
     }
 
     if (mounted) setState(() => _actionInProgress = false);
+  }
+
+  /// Simple finalize confirmation when cycle tracking is disabled.
+  Future<bool?> _showSimpleFinalizeConfirmation(_QuestionnaireInfo q) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Finalize Questionnaire?',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(null),
+                icon: const Icon(Icons.close),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    text:
+                        'Are you sure you want to finalize the '
+                        '${_displayName(q.type)} questionnaire for patient ',
+                    children: [
+                      TextSpan(
+                        text: widget.patientDisplayId,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: '?'),
+                    ],
+                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'This action will:',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildBulletPoint('Finalize this questionnaire'),
+                      const SizedBox(height: 4),
+                      _buildBulletPoint(
+                        'Calculate the score and send it to EDC',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildBulletPoint(
+                        'Finalizing the questionnaire locks all patient '
+                        'responses. After this point, the patient cannot '
+                        'edit or update their answers in the Daily Diary app.',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            PortalButton.outlined(
+              onPressed: () => Navigator.of(context).pop(null),
+              label: 'Cancel',
+            ),
+            PortalButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              label: 'Finalize Questionnaire',
+              icon: Icons.check_circle_outline,
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<String?> _showFinalizeConfirmation(_QuestionnaireInfo q) {
@@ -660,35 +794,31 @@ class _ManageQuestionnairesDialogState
         ? 'End of Study'
         : endEvent;
 
+    const accentColor = Color(0xFFE17200);
+
     return showDialog<bool>(
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        final cycleName = q.studyEvent ?? 'Current Cycle';
 
         return AlertDialog(
           backgroundColor: Colors.white,
           title: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.warning_amber_rounded,
-                color: theme.colorScheme.error,
+                color: accentColor,
                 size: 24,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Confirm $displayLabel',
+                  displayLabel,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
                 ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(null),
-                icon: const Icon(Icons.close),
-                tooltip: 'Close',
               ),
             ],
           ),
@@ -698,52 +828,37 @@ class _ManageQuestionnairesDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Warning card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer.withValues(
-                      alpha: 0.2,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.error.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Text.rich(
+                  TextSpan(
+                    text: 'This action will ',
                     children: [
-                      Text.rich(
-                        TextSpan(
-                          text: 'You are finalizing ',
-                          children: [
-                            TextSpan(
-                              text: _displayName(q.type),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(text: ' ($cycleName) as '),
-                            TextSpan(
-                              text: displayLabel,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const TextSpan(text: '.'),
-                          ],
-                        ),
-                        style: theme.textTheme.bodyMedium,
+                      const TextSpan(
+                        text: 'permanently close',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Patient: ${widget.patientDisplayId}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                      const TextSpan(
+                        text:
+                            ' this questionnaire type for this patient. '
+                            "You won't be able to send ",
                       ),
+                      TextSpan(text: _displayName(q.type)),
+                      const TextSpan(text: ' questionnaires to patient '),
+                      TextSpan(
+                        text: widget.patientDisplayId,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: '.'),
                     ],
+                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Are you sure?',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -752,12 +867,12 @@ class _ManageQuestionnairesDialogState
           actions: [
             PortalButton.outlined(
               onPressed: () => Navigator.of(context).pop(null),
-              label: 'Go Back',
+              label: 'Cancel',
             ),
             PortalButton(
               onPressed: () => Navigator.of(context).pop(true),
-              label: 'Confirm $displayLabel',
-              backgroundColor: theme.colorScheme.error,
+              label: 'Yes',
+              backgroundColor: accentColor,
               foregroundColor: Colors.white,
             ),
           ],
@@ -905,17 +1020,37 @@ class _ManageQuestionnairesDialogState
   }
 
   Widget _buildQuestionnaireCard(_QuestionnaireInfo q, ThemeData theme) {
-    final statusLabel = q.isBlocked ? 'Completed' : _statusLabel(q.status);
-    final statusColor = q.isBlocked ? Colors.green : _statusColor(q.status);
+    const closedTextColor = Color(0xFFC85427);
+    const closedBorderColor = Color(0xFFFCE0DB);
+    const closedBgColor = Color(0xFFFEF5F3);
+
+    String? endEventLabel;
+    if (q.endEvent == 'end_of_treatment') {
+      endEventLabel = 'End of treatment';
+    } else if (q.endEvent == 'end_of_study') {
+      endEventLabel = 'End of study';
+    }
+    final statusLabel = q.isBlocked
+        ? (endEventLabel != null ? 'Closed \u00B7 $endEventLabel' : 'Closed')
+        : _statusLabel(q.status);
+    final statusColor = q.isBlocked ? closedTextColor : _statusColor(q.status);
     final statusBg = q.isBlocked
-        ? Colors.green.withValues(alpha: 0.1)
+        ? closedBgColor
         : _statusBackgroundColor(q.status);
+    final statusBorder = q.isBlocked
+        ? closedBorderColor
+        : (q.status == 'ready_to_review'
+              ? const Color(0xFFFEF1BA)
+              : statusColor.withValues(alpha: 0.4));
     final lastCompleted = q.lastFinalizedAt != null
         ? _formatDate(q.lastFinalizedAt!)
         : 'Never';
     final currentCycle = q.studyEvent ?? q.lastFinalizedStudyEvent;
+    final isClosed = q.isBlocked;
 
-    final cardBg = _cardBackgroundColor(q.status);
+    final cardBg = isClosed
+        ? const Color(0xFFF9FAFC)
+        : _cardBackgroundColor(q.status);
     final cardBorder = _cardBorderColor(q.status, theme);
 
     return Padding(
@@ -934,12 +1069,16 @@ class _ManageQuestionnairesDialogState
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFDBEAFF),
+                color: isClosed
+                    ? const Color(0xFFEDEFF2)
+                    : const Color(0xFFDBEAFF),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.description_outlined,
-                color: Color(0xFF6383FD),
+                color: isClosed
+                    ? const Color(0xFF7D8691)
+                    : const Color(0xFF6383FD),
                 size: 22,
               ),
             ),
@@ -965,11 +1104,7 @@ class _ManageQuestionnairesDialogState
                     ),
                     decoration: BoxDecoration(
                       color: statusBg,
-                      border: Border.all(
-                        color: q.status == 'ready_to_review'
-                            ? const Color(0xFFFEF1BA)
-                            : statusColor.withValues(alpha: 0.4),
-                      ),
+                      border: Border.all(color: statusBorder),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -999,17 +1134,19 @@ class _ManageQuestionnairesDialogState
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      Text(
-                        lastCompleted,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Text(
+                          lastCompleted,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Current Cycle (if active)
-                  if (currentCycle != null) ...[
+                  // Current Cycle / Finalized cycle (if active and cycle tracking enabled)
+                  if (currentCycle != null && !q.cycleTrackingDisabled) ...[
                     Row(
                       children: [
                         const Icon(
@@ -1019,7 +1156,7 @@ class _ManageQuestionnairesDialogState
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Current Cycle:  ',
+                          isClosed ? 'Finalized cycle:  ' : 'Current Cycle:  ',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF7D8691),
                             fontWeight: FontWeight.w500,
@@ -1034,6 +1171,17 @@ class _ManageQuestionnairesDialogState
                       ],
                     ),
                     const SizedBox(height: 4),
+                  ],
+                  // Closed message (end of treatment / end of study)
+                  if (isClosed) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'No further questionnaires of this type can be sent.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF7D8691),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -1051,32 +1199,14 @@ class _ManageQuestionnairesDialogState
     switch (q.status) {
       case 'not_sent':
         if (q.isBlocked) {
-          return Tooltip(
-            message: q.blockedReason ?? 'No further questionnaires allowed',
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Completed',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          return PortalButton(
+            onPressed: null,
+            icon: q.cycleTrackingDisabled ? Icons.send : Icons.replay,
+            label: q.cycleTrackingDisabled ? 'Send Now' : 'Start Next Cycle',
           );
         }
-        final isNextCycle = q.lastFinalizedAt != null;
+        final isNextCycle =
+            q.lastFinalizedAt != null && !q.cycleTrackingDisabled;
         return PortalButton(
           onPressed: _actionInProgress
               ? null

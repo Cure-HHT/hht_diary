@@ -360,7 +360,7 @@ void main() {
       expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
     });
 
-    testWidgets('shows Completed when type is blocked (CUR-856)', (
+    testWidgets('shows disabled Start Next Cycle when blocked (CUR-856)', (
       tester,
     ) async {
       final mockUser = MockUser(
@@ -429,8 +429,10 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      // NOSE HHT: Completed in status chip + action area
-      expect(find.text('Completed'), findsNWidgets(2));
+      // NOSE HHT: status chip shows "Closed" (no end_event) and action
+      // area shows disabled "Start Next Cycle" button
+      expect(find.text('Closed'), findsOneWidget);
+      expect(find.text('Start Next Cycle'), findsOneWidget);
       // QoL: still has Send Now
       expect(find.text('Send Now'), findsOneWidget);
     });
