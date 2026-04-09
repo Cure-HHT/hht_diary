@@ -151,7 +151,7 @@ void main() {
       expect(FlavorConfig.uat.name, 'uat');
       expect(
         FlavorConfig.uat.apiBase,
-        'https://diary-server-421945483876.europe-west9.run.app',
+        'https://diary-server-768644809588.europe-west9.run.app',
       );
       expect(FlavorConfig.uat.environment, 'uat');
       expect(FlavorConfig.uat.showDevTools, false);
