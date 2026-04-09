@@ -47,6 +47,10 @@ class SponsorFeatureFlags {
   // When false, auto-assign Cycle 1 Day 1.
   final bool requireInitialCycleSelection;
 
+  // REQ-CAL-p00080-M: When true, full cycle tracking (multiple sends per type).
+  // When false, single-use: one send, one finalize, done.
+  final bool enableCycleTracking;
+
   SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
@@ -57,6 +61,7 @@ class SponsorFeatureFlags {
     required this.availableFonts,
     this.inactivityTimeoutMinutes = 2,
     this.requireInitialCycleSelection = true,
+    this.enableCycleTracking = true,
   }) : assert(
          inactivityTimeoutMinutes >= 1 && inactivityTimeoutMinutes <= 30,
          'inactivityTimeoutMinutes must be between 1 and 30 (got $inactivityTimeoutMinutes)',
@@ -74,6 +79,8 @@ class SponsorFeatureFlags {
     'inactivityTimeoutMinutes': inactivityTimeoutMinutes,
     // REQ-CAL-p00080-I: cycle prompt configuration
     'requireInitialCycleSelection': requireInitialCycleSelection,
+    // REQ-CAL-p00080-M: cycle tracking toggle
+    'enableCycleTracking': enableCycleTracking,
   };
 }
 

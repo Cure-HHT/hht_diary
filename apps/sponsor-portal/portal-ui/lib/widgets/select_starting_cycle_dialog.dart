@@ -157,7 +157,7 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
             PortalDropdown<int>(
               label: 'Starting Cycle',
               value: _selectedCycle,
-              items: List.generate(20, (i) {
+              items: List.generate(100, (i) {
                 final cycle = i + 1;
                 return DropdownMenuItem<int>(
                   value: cycle,

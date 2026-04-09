@@ -36,10 +36,38 @@ Future<Map<String, dynamic>> _computeNextCycleInfo(
   String patientId,
   String questionnaireType,
 ) async {
+  // REQ-CAL-p00080-M: If cycle tracking disabled, single-use per type
+  final flags = getCurrentSponsorFlags();
+  if (!flags.enableCycleTracking) {
+    final anyFinalized = await db.executeWithContext(
+      '''
+      SELECT 1 FROM questionnaire_instances
+      WHERE patient_id = @patientId
+        AND questionnaire_type = @questionnaireType::questionnaire_type
+        AND status = 'finalized'
+        AND deleted_at IS NULL
+      LIMIT 1
+      ''',
+      parameters: {
+        'patientId': patientId,
+        'questionnaireType': questionnaireType,
+      },
+      context: ctx,
+    );
+    if (anyFinalized.isNotEmpty) {
+      return {
+        'blocked': true,
+        'blocked_reason': 'Questionnaire completed',
+        'cycle_tracking_disabled': true,
+      };
+    }
+    return {'needs_initial_selection': false, 'cycle_tracking_disabled': true};
+  }
+
   // REQ-CAL-p00080-G: Check for finalized end events (blocks further sends)
   final endEventResult = await db.executeWithContext(
     '''
-    SELECT qi.end_event, qi.study_event
+    SELECT qi.end_event::text, qi.study_event
     FROM questionnaire_instances qi
     WHERE qi.patient_id = @patientId
       AND qi.questionnaire_type = @questionnaireType::questionnaire_type
@@ -111,7 +139,6 @@ Future<Map<String, dynamic>> _computeNextCycleInfo(
 
   // No finalized cycles — check sponsor config
   // REQ-CAL-p00080-I/J: If sponsor disabled the prompt, auto-assign Cycle 1
-  final flags = getCurrentSponsorFlags();
   if (!flags.requireInitialCycleSelection) {
     return {
       'needs_initial_selection': false,
@@ -253,6 +280,12 @@ Future<Response> getQuestionnaireStatusHandler(
       entry.remove('submitted_at');
       entry.remove('finalized_at');
       entry.remove('score');
+    }
+
+    // Always include cycle_tracking_disabled flag
+    final sponsorFlags = getCurrentSponsorFlags();
+    if (!sponsorFlags.enableCycleTracking) {
+      entry['cycle_tracking_disabled'] = true;
     }
 
     // Compute next cycle info for types that are ready for a new send
@@ -421,7 +454,11 @@ Future<Response> sendQuestionnaireHandler(
       }, 409);
     }
 
-    if (studyEvent == null) {
+    // When cycle tracking is disabled, study_event stays null
+    final cycleDisabled =
+        nextCycleInfo['cycle_tracking_disabled'] as bool? ?? false;
+
+    if (studyEvent == null && !cycleDisabled) {
       final needsSelection =
           nextCycleInfo['needs_initial_selection'] as bool? ?? true;
       if (needsSelection) {
