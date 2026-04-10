@@ -2,6 +2,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 /// A timezone entry with display formatting
 class TimezoneEntry {
@@ -656,10 +658,43 @@ String getTimezoneDisplayName(String ianaId) {
   return ianaId;
 }
 
-/// Get abbreviation for an IANA timezone ID from our curated list
-/// Returns compact abbreviation like "PST", "CET", etc.
-String getTimezoneAbbreviation(String ianaId) {
-  final entry = commonTimezones.where((tz) => tz.ianaId == ianaId).firstOrNull;
+bool _tzPickerInitialized = false;
+
+void _ensureTzInitialized() {
+  if (!_tzPickerInitialized) {
+    tz_data.initializeTimeZones();
+    _tzPickerInitialized = true;
+  }
+}
+
+/// Get DST-aware abbreviation for an IANA timezone ID.
+///
+/// Uses the IANA timezone database to return the correct abbreviation
+/// for the current DST state (e.g., "PDT" during summer, "PST" in winter
+/// for America/Los_Angeles).
+///
+/// [at] Optional reference time to determine DST state. Components are
+/// interpreted as wall-clock time in the target timezone. Defaults to now.
+///
+/// Falls back to static [commonTimezones] list if the IANA ID is not found
+/// in the timezone database.
+String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
+  _ensureTzInitialized();
+  try {
+    final location = tz.getLocation(ianaId);
+    final tzDateTime = at != null
+        ? tz.TZDateTime(location, at.year, at.month, at.day, at.hour, at.minute)
+        : tz.TZDateTime.now(location);
+    final abbr = tzDateTime.timeZone.abbreviation;
+    // Some zones return numeric offsets (e.g., "-07"); fall through to static
+    if (!abbr.startsWith('+') && !abbr.startsWith('-')) {
+      return abbr;
+    }
+  } catch (_) {
+    // Fall through to static lookup
+  }
+  // Static fallback
+  final entry = commonTimezones.where((e) => e.ianaId == ianaId).firstOrNull;
   if (entry != null) {
     return entry.abbreviation;
   }
