@@ -2,6 +2,7 @@
 //   REQ-d00005: User Profile Screen Implementation
 //   REQ-CAL-p00076: Participation Status Badge
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -259,19 +260,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
 
                       // 4. Data Sharing Section
-                      if (widget.isSharingWithCureHHT)
-                        _buildSharingCard(theme)
-                      else
-                        OutlinedButton.icon(
-                          onPressed: widget.onShareWithCureHHT,
-                          icon: const Icon(Icons.share, size: 20),
-                          label: Text(l10n.shareWithCureHHT),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 48),
+                      // CUR-1116: Hidden behind FeatureFlagService.showShareWithCureHHT flag.
+                      if (FeatureFlagService.instance.showShareWithCureHHT) ...[
+                        if (widget.isSharingWithCureHHT)
+                          _buildSharingCard(theme)
+                        else
+                          OutlinedButton.icon(
+                            onPressed: widget.onShareWithCureHHT,
+                            icon: const Icon(Icons.share, size: 20),
+                            label: Text(l10n.shareWithCureHHT),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
                           ),
-                        ),
-
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
+                      ],
 
                       // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),

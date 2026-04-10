@@ -34,6 +34,11 @@ class SponsorFeatureFlags {
   final int longDurationThresholdMinutes;
   final List<String> availableFonts;
 
+  // CUR-1116: Whether the "Share with CureHHT" button and sharing card
+  // should be visible on the Profile screen. Defaults to false —
+  // feature is not ready yet.
+  final bool showShareWithCureHHT;
+
   const SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
@@ -42,6 +47,7 @@ class SponsorFeatureFlags {
     required this.enableLongDurationConfirmation,
     required this.longDurationThresholdMinutes,
     required this.availableFonts,
+    this.showShareWithCureHHT = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +58,8 @@ class SponsorFeatureFlags {
     'enableLongDurationConfirmation': enableLongDurationConfirmation,
     'longDurationThresholdMinutes': longDurationThresholdMinutes,
     'availableFonts': availableFonts,
+    // CUR-1116
+    'showShareWithCureHHT': showShareWithCureHHT,
   };
 }
 
