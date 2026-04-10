@@ -76,14 +76,15 @@ List<dynamic> _patientRow({
 }
 
 /// Standard questionnaire instance row:
-/// [id, type::text, status::text, patient_id, deleted_at]
+/// [id, type::text, status::text, patient_id, deleted_at, study_event]
 List<dynamic> _instanceRow({
   String id = _testInstanceId,
   String type = 'nose_hht',
   String status = 'sent',
   DateTime? deletedAt,
+  String? studyEvent = 'Cycle 1 Day 1',
 }) {
-  return [id, type, status, _testPatientId, deletedAt];
+  return [id, type, status, _testPatientId, deletedAt, studyEvent];
 }
 
 /// Build a shelf Request with optional body and headers.
@@ -406,6 +407,15 @@ void main() {
         if (query.contains('FROM patients')) {
           return [_patientRow()];
         }
+        // CUR-856: Last-finalized query (2-column result)
+        if (query.contains("status = 'finalized'") &&
+            query.contains('finalized_at')) {
+          return [];
+        }
+        // CUR-856: End-event blocking query
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
         if (query.contains('FROM questionnaire_instances')) {
           return [
             // [id, type, status, study_event, version, sent_at,
@@ -591,9 +601,15 @@ void main() {
           return [];
         };
 
+        // CUR-856: nose_hht and qol require study_event per REQ-CAL-p00080
+        final body = (type == 'nose_hht' || type == 'qol')
+            ? jsonEncode({'study_event': 'Cycle 1 Day 1'})
+            : null;
+
         final request = _request(
           'POST',
           '/api/v1/portal/patients/$_testPatientId/questionnaires/$type/send',
+          body: body,
         );
 
         final response = await sendQuestionnaireHandler(
@@ -729,9 +745,11 @@ void main() {
         return [];
       };
 
+      // CUR-856: study_event required per REQ-CAL-p00080
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({'study_event': 'Cycle 1 Day 1'}),
       );
 
       await sendQuestionnaireHandler(request, _testPatientId, 'nose_hht');
@@ -1452,6 +1470,211 @@ void main() {
       );
 
       expect(response.statusCode, 409);
+    });
+  });
+
+  // ====================================================================
+  // Phase 2: End Events (CUR-856, REQ-CAL-p00080 Assertions F, G)
+  // ====================================================================
+  group('finalizeQuestionnaireHandler — end events (CUR-856)', () {
+    test('stores end_event when provided in body', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        capturedQueries.add((query: query, params: parameters));
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'end_of_treatment'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testPatientId,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], 'end_of_treatment');
+
+      // Verify end_event was passed to the UPDATE query
+      final updateQuery = capturedQueries.where(
+        (q) => q.query.contains('UPDATE questionnaire_instances'),
+      );
+      expect(updateQuery, isNotEmpty);
+      expect(updateQuery.first.params?['endEvent'], 'end_of_treatment');
+    });
+
+    test('stores end_of_study end_event', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'end_of_study'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testPatientId,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], 'end_of_study');
+    });
+
+    test('end_event is null when not provided (normal finalization)', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        capturedQueries.add((query: query, params: parameters));
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testPatientId,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], isNull);
+
+      final updateQuery = capturedQueries.where(
+        (q) => q.query.contains('UPDATE questionnaire_instances'),
+      );
+      expect(updateQuery.first.params?['endEvent'], isNull);
+    });
+
+    test('returns 400 for invalid end_event string', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'invalid value'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testPatientId,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 400);
+      final body = await _json(response);
+      expect(body['error'], contains('Invalid end_event'));
+    });
+  });
+
+  group('sendQuestionnaireHandler — end event blocking (CUR-856)', () {
+    test('returns 409 when end event is finalized for that type', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // No active non-finalized instance
+        if (query.contains('FROM questionnaire_instances') &&
+            query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // End event check — return a finalized end event
+        if (query.contains('end_event IS NOT NULL')) {
+          return [
+            ['end_of_treatment', 'Cycle 5 Day 1'],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({'study_event': 'Cycle 6 Day 1'}),
+      );
+
+      final response = await sendQuestionnaireHandler(
+        request,
+        _testPatientId,
+        'nose_hht',
+      );
+
+      expect(response.statusCode, 409);
+      final body = await _json(response);
+      expect(body['error'], contains('Cannot send questionnaire'));
+      expect(body['error'], contains('end_of_treatment'));
+    });
+
+    test('does not block when no end event finalized', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        if (query.contains('FROM questionnaire_instances') &&
+            query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // End event check — none found
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
+        // Finalized cycles for auto-increment
+        if (query.contains("status = 'finalized'") &&
+            query.contains('study_event')) {
+          return [
+            ['Cycle 3 Day 1'],
+          ];
+        }
+        if (query.contains('INSERT INTO questionnaire_instances')) {
+          return [
+            ['new-instance-id'],
+          ];
+        }
+        if (query.contains('FROM patient_fcm_tokens')) {
+          return [];
+        }
+        if (query.contains('INSERT INTO admin_action_log')) {
+          return [];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+      );
+
+      final response = await sendQuestionnaireHandler(
+        request,
+        _testPatientId,
+        'nose_hht',
+      );
+
+      expect(response.statusCode, 200);
     });
   });
 }
