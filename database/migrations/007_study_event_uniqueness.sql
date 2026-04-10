@@ -63,6 +63,8 @@ ALTER TABLE questionnaire_instances
 -- admin_action_log with these action types, but they were never added
 -- to the CHECK constraint.
 
+-- Add with NOT VALID to avoid full table scan / table lock on deploy,
+-- then VALIDATE afterwards (only locks metadata, not the table).
 ALTER TABLE admin_action_log DROP CONSTRAINT IF EXISTS admin_action_log_action_type_check;
 ALTER TABLE admin_action_log ADD CONSTRAINT admin_action_log_action_type_check CHECK (
   action_type IN (
@@ -76,7 +78,9 @@ ALTER TABLE admin_action_log ADD CONSTRAINT admin_action_log_action_type_check C
     'QUESTIONNAIRE_SENT', 'QUESTIONNAIRE_DELETED',
     'QUESTIONNAIRE_UNLOCKED', 'QUESTIONNAIRE_FINALIZED'
   )
-);
+) NOT VALID;
+
+ALTER TABLE admin_action_log VALIDATE CONSTRAINT admin_action_log_action_type_check;
 
 -- =====================================================
 -- VERIFICATION
