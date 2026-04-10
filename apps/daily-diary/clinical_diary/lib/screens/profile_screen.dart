@@ -2,6 +2,7 @@
 //   REQ-d00005: User Profile Screen Implementation
 //   REQ-CAL-p00076: Participation Status Badge
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -258,19 +259,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 24),
                       ],
 
-                      // CUR-1116: "Share with CureHHT" button hidden — uncomment when feature is ready
-                      // if (widget.isSharingWithCureHHT)
-                      //   _buildSharingCard(theme)
-                      // else
-                      //   OutlinedButton.icon(
-                      //     onPressed: widget.onShareWithCureHHT,
-                      //     icon: const Icon(Icons.share, size: 20),
-                      //     label: Text(l10n.shareWithCureHHT),
-                      //     style: OutlinedButton.styleFrom(
-                      //       minimumSize: const Size(double.infinity, 48),
-                      //     ),
-                      //   ),
-                      // const SizedBox(height: 24),
+                      // 4. Data Sharing Section
+                      // CUR-1116: Hidden behind FeatureFlagService.showShareWithCureHHT flag.
+                      if (FeatureFlagService.instance.showShareWithCureHHT) ...[
+                        if (widget.isSharingWithCureHHT)
+                          _buildSharingCard(theme)
+                        else
+                          OutlinedButton.icon(
+                            onPressed: widget.onShareWithCureHHT,
+                            icon: const Icon(Icons.share, size: 20),
+                            label: Text(l10n.shareWithCureHHT),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
 
                       // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
@@ -478,57 +482,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // CUR-1116: Sharing card hidden — uncomment when feature is ready
-  // Widget _buildSharingCard(ThemeData theme) {
-  //   return Card(
-  //     color: Colors.blue.shade50,
-  //     shape: RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.circular(12),
-  //       side: BorderSide(color: Colors.blue.shade200),
-  //     ),
-  //     child: Padding(
-  //       padding: const EdgeInsets.all(16),
-  //       child: Row(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Container(
-  //             width: 32,
-  //             height: 32,
-  //             decoration: BoxDecoration(
-  //               color: Colors.blue.shade100,
-  //               shape: BoxShape.circle,
-  //             ),
-  //             child: Icon(Icons.check, size: 16, color: Colors.blue.shade700),
-  //           ),
-  //           const SizedBox(width: 12),
-  //           Expanded(
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.stretch,
-  //               children: [
-  //                 Text(
-  //                   'Sharing with CureHHT',
-  //                   style: theme.textTheme.titleSmall?.copyWith(
-  //                     color: Colors.blue.shade900,
-  //                     fontWeight: FontWeight.w600,
-  //                   ),
-  //                 ),
-  //                 const SizedBox(height: 12),
-  //                 OutlinedButton.icon(
-  //                   onPressed: widget.onStopSharingWithCureHHT,
-  //                   icon: const Icon(Icons.share, size: 20),
-  //                   label: const Text('Stop Sharing with CureHHT'),
-  //                   style: OutlinedButton.styleFrom(
-  //                     minimumSize: const Size(double.infinity, 40),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
+  Widget _buildSharingCard(ThemeData theme) {
+    return Card(
+      color: Colors.blue.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.blue.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check, size: 16, color: Colors.blue.shade700),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Sharing with CureHHT',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: Colors.blue.shade900,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: widget.onStopSharingWithCureHHT,
+                    icon: const Icon(Icons.share, size: 20),
+                    label: const Text('Stop Sharing with CureHHT'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 40),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildPrivacyCard(ThemeData theme) {
     return Card(

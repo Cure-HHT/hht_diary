@@ -156,7 +156,58 @@ void main() {
       expect(flags.containsKey('enableLongDurationConfirmation'), isTrue);
       expect(flags.containsKey('longDurationThresholdMinutes'), isTrue);
       expect(flags.containsKey('availableFonts'), isTrue);
+      expect(flags.containsKey('showShareWithCureHHT'), isTrue);
     });
+
+    test(
+      'CUR-1116: showShareWithCureHHT defaults to false for curehht',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=curehht'),
+        );
+
+        final response = sponsorConfigHandler(request);
+        final json = await getResponseJson(response);
+        final flags = json['flags'] as Map<String, dynamic>;
+
+        expect(flags['showShareWithCureHHT'], isFalse);
+      },
+    );
+
+    test(
+      'CUR-1116: showShareWithCureHHT defaults to false for callisto',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse(
+            'http://localhost/api/v1/sponsor/config?sponsorId=callisto',
+          ),
+        );
+
+        final response = sponsorConfigHandler(request);
+        final json = await getResponseJson(response);
+        final flags = json['flags'] as Map<String, dynamic>;
+
+        expect(flags['showShareWithCureHHT'], isFalse);
+      },
+    );
+
+    test(
+      'CUR-1116: showShareWithCureHHT defaults to false for unknown sponsor',
+      () async {
+        final request = Request(
+          'GET',
+          Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=mystery'),
+        );
+
+        final response = sponsorConfigHandler(request);
+        final json = await getResponseJson(response);
+        final flags = json['flags'] as Map<String, dynamic>;
+
+        expect(flags['showShareWithCureHHT'], isFalse);
+      },
+    );
 
     test('availableFonts is a list of strings', () async {
       final request = Request(
@@ -219,6 +270,24 @@ void main() {
       expect(json['enableLongDurationConfirmation'], isTrue);
       expect(json['longDurationThresholdMinutes'], equals(30));
       expect(json['availableFonts'], equals(['Roboto', 'OpenDyslexic']));
+      // CUR-1116: defaults to false when not explicitly provided
+      expect(json['showShareWithCureHHT'], isFalse);
+    });
+
+    test('CUR-1116: toJson includes showShareWithCureHHT when true', () {
+      const flags = SponsorFeatureFlags(
+        useReviewScreen: false,
+        useAnimations: true,
+        requireOldEntryJustification: false,
+        enableShortDurationConfirmation: false,
+        enableLongDurationConfirmation: false,
+        longDurationThresholdMinutes: 60,
+        availableFonts: ['Roboto'],
+        showShareWithCureHHT: true,
+      );
+
+      final json = flags.toJson();
+      expect(json['showShareWithCureHHT'], isTrue);
     });
   });
 }
