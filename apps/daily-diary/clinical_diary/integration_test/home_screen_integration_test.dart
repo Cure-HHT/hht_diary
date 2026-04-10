@@ -1944,7 +1944,18 @@ void main() {
         await tester.pumpAndSettle();
 
         // ===== STEP 5: Set start time =====
-        debugPrint('Step 5: Click Set Start Time');
+        // CUR-586 / CUR-1095 DST safety: _startDateTime defaults to the
+        // selected day at 00:00 local. If the test runs on a device inside
+        // a DST window and the timezone converter shifts by ±1 hour, a
+        // midnight start time can cross the day boundary and land on the
+        // previous day. Advance the start time by 2 hours (8 taps of +15)
+        // so the event stays safely on the selected day in both DST and
+        // standard time.
+        debugPrint('Step 5: Advance start time +2h then Click Set Start Time');
+        for (var i = 0; i < 8; i++) {
+          await tester.tap(find.text('+15'));
+          await tester.pumpAndSettle();
+        }
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
