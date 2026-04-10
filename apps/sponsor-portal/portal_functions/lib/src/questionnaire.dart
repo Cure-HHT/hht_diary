@@ -1130,7 +1130,8 @@ Future<Response> finalizeQuestionnaireHandler(
     labels: {
       'instance_id': instanceId,
       'patient_id': patientId,
-      'score': score${endEvent != null ? ', end_event: $endEvent' : ''}.toString(),
+      'score': score.toString(),
+      if (endEvent != null) 'end_event': endEvent,
     },
   );
 
