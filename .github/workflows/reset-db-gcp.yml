@@ -53,7 +53,7 @@ jobs:
     environment: ${{ inputs.sponsor-env }}
     permissions:
       contents: 'read'
-      id-token: 'write'  # Required to request the OIDC token
+      id-token: 'write'
 
     steps:
       - uses: 'actions/checkout@v4'
@@ -87,8 +87,9 @@ jobs:
       - name: 'Build and push deploy-db image'
         run: |
           docker build \
+            -f infrastructure/docker/db-schema-job/Dockerfile \
             -t ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
-            infrastructure/docker/db-schema-job/
+            .
           docker push ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest
 
       - name: 'Consolidate schema'
