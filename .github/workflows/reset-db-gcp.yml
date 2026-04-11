@@ -56,7 +56,8 @@ jobs:
       id-token: 'write'
 
     steps:
-      - uses: 'actions/checkout@v4'
+      - name: 'Checkout primary repo'
+        uses: 'actions/checkout@v4'
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -65,9 +66,9 @@ jobs:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: '${{ vars.CUREHHT_ADMIN_SA_EMAIL }}'
 
-      - name: Generate GitHub App token
+      - name: 'Generate GitHub App token'
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: 'actions/create-github-app-token@v2'
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -78,7 +79,20 @@ jobs:
 
       - name: 'List files'
         if: inputs.debug == 'true'
-        run: find . -type f
+        run: |
+          find . -type f | sort
+
+      - name: 'Verify Docker source files'
+        if: inputs.debug == 'true'
+        run: |
+          echo "=== Repo root ==="
+          pwd
+
+          echo "=== db-schema-job directory ==="
+          ls -la infrastructure/docker/db-schema-job || true
+
+          echo "=== sponsor portal tool directory ==="
+          ls -la apps/sponsor-portal/tool || true
 
       - name: 'Configure Docker for Artifact Registry'
         run: |
@@ -90,6 +104,7 @@ jobs:
             -f infrastructure/docker/db-schema-job/Dockerfile \
             -t ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
             .
+
           docker push ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest
 
       - name: 'Consolidate schema'
@@ -102,10 +117,10 @@ jobs:
 
       - name: 'Copy schema to GCP'
         run: |
-          gcloud storage cp database/${{ env.SCHEMA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }} \
-            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
+          gcloud storage cp "database/${{ env.SCHEMA_FILE }}" "${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ env.SCHEMA_FILE }}" \
+            --project="${{ vars.CUREHHT_ADMIN_PROJECT_ID }}"
 
-      - name: 'Pull Sponsor repo for seed data'
+      - name: 'Checkout sponsor repo for seed data'
         uses: 'actions/checkout@v4'
         with:
           repository: Cure-HHT/hht_diary_callisto
@@ -114,15 +129,15 @@ jobs:
 
       - name: 'Copy seed data to GCP'
         run: |
-          gcloud storage cp sponsor-data/database/${{ vars.SPONSOR_DATA_FILE }} ${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ vars.SPONSOR_DATA_FILE }} \
-            --project=${{ vars.CUREHHT_ADMIN_PROJECT_ID }}
+          gcloud storage cp "sponsor-data/database/${{ vars.SPONSOR_DATA_FILE }}" "${{ vars.CUREHHT_ADMIN_SCHEMA_BUCKET }}/db-schema/${{ vars.SPONSOR_DATA_FILE }}" \
+            --project="${{ vars.CUREHHT_ADMIN_PROJECT_ID }}"
 
       - name: 'Deploy deploy-db job to Cloud Run'
         run: |
           gcloud run jobs deploy deploy-db \
-            --image=${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
-            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
-            --region=${{ vars.GCP_REGION }} \
+            --image="${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest" \
+            --project="${{ vars.CALLISTO_TARGET_PROJECT_ID }}" \
+            --region="${{ vars.GCP_REGION }}" \
             --task-timeout=5m \
             --max-retries=1 \
             --set-env-vars="DOPPLER_PROJECT_ID=${{ env.DOPPLER_PROJECT }}" \
@@ -133,12 +148,12 @@ jobs:
             --set-env-vars="SCHEMA_FILE=${{ env.SCHEMA_FILE }}" \
             --set-env-vars="SPONSOR_DATA_FILE=${{ vars.SPONSOR_DATA_FILE }}" \
             --set-env-vars="SPONSOR=${{ inputs.sponsor }}" \
-            --set-cloudsql-instances=${{ vars.CALLISTO_DB_CONNECTION_NAME }} \
-            --vpc-connector ${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }}
+            --set-cloudsql-instances="${{ vars.CALLISTO_DB_CONNECTION_NAME }}" \
+            --vpc-connector="${{ vars.CALLISTO_SERVERLESS_VPC_CONNECTOR }}"
 
       - name: 'Execute deploy-db job'
         run: |
           gcloud run jobs execute deploy-db \
-            --project=${{ vars.CALLISTO_TARGET_PROJECT_ID }} \
-            --region=${{ vars.GCP_REGION }} \
+            --project="${{ vars.CALLISTO_TARGET_PROJECT_ID }}" \
+            --region="${{ vars.GCP_REGION }}" \
             --wait
