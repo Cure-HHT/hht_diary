@@ -17,7 +17,7 @@ set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────
 SERVICE_NAME="diary-server"
-REGION="${GCP_REGION:-europe-west9}"
+REGION="${GCP_REGION:-}"
 PROJECT="${GCP_PROJECT:-}"
 SERVICE_URL=""
 VERBOSE=false
@@ -67,6 +67,10 @@ if [[ -z "$SERVICE_URL" ]]; then
       fail "No GCP project configured. Use --project or gcloud config set project"
       exit 1
     fi
+  fi
+  if [[ -z "$REGION" ]]; then
+    fail "No region configured. Use --region or set GCP_REGION"
+    exit 1
   fi
   echo -e "  Project: ${BOLD}$PROJECT${NC}"
 
@@ -159,12 +163,46 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 LOCAL_DIARY_SERVER_VER=$(grep '^version:' "$REPO_ROOT/apps/daily-diary/diary_server/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 LOCAL_DIARY_FUNCTIONS_VER=$(grep '^version:' "$REPO_ROOT/apps/daily-diary/diary_functions/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
-LOCAL_OTEL_COMMON_VER=$(grep '^version:' "$REPO_ROOT/apps/common-dart/otel_common/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
+LOCAL_TRIAL_DATA_TYPES_VER=$(grep '^version:' "$REPO_ROOT/apps/common-dart/trial_data_types/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 
 info "Local versions (from working tree):"
 info "  diary_server:     $LOCAL_DIARY_SERVER_VER"
 info "  diary_functions:  $LOCAL_DIARY_FUNCTIONS_VER"
-info "  otel_common:      $LOCAL_OTEL_COMMON_VER"
+info "  trial_data_types: $LOCAL_TRIAL_DATA_TYPES_VER"
+
+# Compare with deployed versions from /health response
+if [[ "$HEALTH_STATUS" == "200" ]]; then
+  DEPLOYED_DIARY_SERVER=$(echo "$HEALTH_BODY" | jq -r '.versions.diary_server // "unknown"' 2>/dev/null || echo "unknown")
+  DEPLOYED_DIARY_FUNCTIONS=$(echo "$HEALTH_BODY" | jq -r '.versions.diary_functions // "unknown"' 2>/dev/null || echo "unknown")
+  DEPLOYED_TRIAL_DATA_TYPES=$(echo "$HEALTH_BODY" | jq -r '.versions.trial_data_types // "unknown"' 2>/dev/null || echo "unknown")
+
+  info "Deployed versions (from /health):"
+  info "  diary_server:     $DEPLOYED_DIARY_SERVER"
+  info "  diary_functions:  $DEPLOYED_DIARY_FUNCTIONS"
+  info "  trial_data_types: $DEPLOYED_TRIAL_DATA_TYPES"
+
+  if [[ "$DEPLOYED_DIARY_SERVER" == "unknown" ]]; then
+    warn "Server not reporting versions (pre-version-injection build?)"
+  else
+    if [[ "$DEPLOYED_DIARY_SERVER" == "$LOCAL_DIARY_SERVER_VER" ]]; then
+      pass "diary_server version matches: $DEPLOYED_DIARY_SERVER"
+    else
+      warn "diary_server version mismatch: deployed=$DEPLOYED_DIARY_SERVER local=$LOCAL_DIARY_SERVER_VER"
+    fi
+
+    if [[ "$DEPLOYED_DIARY_FUNCTIONS" == "$LOCAL_DIARY_FUNCTIONS_VER" ]]; then
+      pass "diary_functions version matches: $DEPLOYED_DIARY_FUNCTIONS"
+    else
+      warn "diary_functions version mismatch: deployed=$DEPLOYED_DIARY_FUNCTIONS local=$LOCAL_DIARY_FUNCTIONS_VER"
+    fi
+
+    if [[ "$DEPLOYED_TRIAL_DATA_TYPES" == "$LOCAL_TRIAL_DATA_TYPES_VER" ]]; then
+      pass "trial_data_types version matches: $DEPLOYED_TRIAL_DATA_TYPES"
+    else
+      warn "trial_data_types version mismatch: deployed=$DEPLOYED_TRIAL_DATA_TYPES local=$LOCAL_TRIAL_DATA_TYPES_VER"
+    fi
+  fi
+fi
 
 # Get Cloud Run revision info
 if [[ -n "$PROJECT" ]]; then

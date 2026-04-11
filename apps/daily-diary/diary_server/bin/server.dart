@@ -42,6 +42,11 @@ void main(List<String> args) async {
 
   final log = Logger('diary_server');
 
+  // Populate version info for health endpoint
+  ServerVersions.diaryServer = _diaryServerVersion;
+  ServerVersions.diaryFunctions = _diaryFunctionsVersion;
+  ServerVersions.trialDataTypes = _trialDataTypesVersion;
+
   // Log component versions at startup
   log.info('=== Diary Server v$_diaryServerVersion ===');
   log.info('  diary_functions: $_diaryFunctionsVersion');
