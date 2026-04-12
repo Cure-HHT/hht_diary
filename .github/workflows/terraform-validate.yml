@@ -385,6 +385,18 @@ jobs:
         working-directory: infrastructure/terraform/sponsor-envs
         run: terraform init -input=false
 
+      - name: 'Resolve DB password for environment'
+        id: db-password
+        run: |
+          # Explicit per-environment secret resolution (avoids dynamic secrets[format()] pattern)
+          case "${{ inputs.environment }}" in
+            dev)  echo "value=${{ secrets.TF_VAR_DB_PASSWORD_DEV }}" >> $GITHUB_OUTPUT ;;
+            qa)   echo "value=${{ secrets.TF_VAR_DB_PASSWORD_QA }}" >> $GITHUB_OUTPUT ;;
+            uat)  echo "value=${{ secrets.TF_VAR_DB_PASSWORD_UAT }}" >> $GITHUB_OUTPUT ;;
+            prod) echo "value=${{ secrets.TF_VAR_DB_PASSWORD_PROD }}" >> $GITHUB_OUTPUT ;;
+            *)    echo "::error::Unknown environment: ${{ inputs.environment }}"; exit 1 ;;
+          esac
+
       - name: 'Terraform Plan'
         id: plan
         working-directory: infrastructure/terraform/sponsor-envs
@@ -394,7 +406,7 @@ jobs:
             -out=tfplan 2>&1 | tee plan-output.txt
         env:
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
-          TF_VAR_DB_PASSWORD: ${{ secrets[format('TF_VAR_DB_PASSWORD_{0}', inputs.environment)] }}
+          TF_VAR_DB_PASSWORD: ${{ steps.db-password.outputs.value }}
           TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
