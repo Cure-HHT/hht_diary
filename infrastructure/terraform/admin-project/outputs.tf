@@ -50,6 +50,15 @@ output "region" {
 }
 
 # -----------------------------------------------------------------------------
+# Terraform Admin Service Account
+# -----------------------------------------------------------------------------
+
+output "terraform_admin_sa_email" {
+  description = "Email of the Terraform admin SA (for GitHub Actions workflow config)"
+  value       = google_service_account.terraform_admin.email
+}
+
+# -----------------------------------------------------------------------------
 # Setup Instructions
 # -----------------------------------------------------------------------------
 
