@@ -14,6 +14,7 @@ FROM ${SPONSOR_CI_IMAGE} AS build
 WORKDIR /workspace/src/apps/sponsor-portal/portal_server
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN mkdir -p /workspace/out
 RUN set -eu && \
     PORTAL_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
     PORTAL_FUNCTIONS_VERSION=$(grep '^version:' /workspace/src/apps/sponsor-portal/portal_functions/pubspec.yaml | sed 's/version: //') && \
