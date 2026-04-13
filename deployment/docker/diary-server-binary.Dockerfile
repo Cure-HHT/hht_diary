@@ -14,8 +14,8 @@ FROM ${SPONSOR_CI_IMAGE} AS build
 WORKDIR /workspace/src/apps/daily-diary/diary_server
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir -p /workspace/out
-RUN set -eu && \
+RUN mkdir -p /workspace/out && \
+    set -eu && \
     DIARY_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
     DIARY_FUNCTIONS_VERSION=$(grep '^version:' /workspace/src/apps/daily-diary/diary_functions/pubspec.yaml | sed 's/version: //') && \
     TRIAL_DATA_TYPES_VERSION=$(grep '^version:' /workspace/src/apps/common-dart/trial_data_types/pubspec.yaml | sed 's/version: //') && \
