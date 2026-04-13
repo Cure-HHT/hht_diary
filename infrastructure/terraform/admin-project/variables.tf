@@ -87,3 +87,19 @@ variable "sponsor_terraform_service_accounts" {
   type        = list(string)
   default     = []
 }
+
+# -----------------------------------------------------------------------------
+# Terraform Admin SA — GitHub Repository for WIF
+# -----------------------------------------------------------------------------
+
+variable "github_org" {
+  description = "GitHub organization for WIF attribute condition (e.g., Cure-HHT)"
+  type        = string
+  default     = "Cure-HHT"
+}
+
+variable "github_repo" {
+  description = "GitHub repository for WIF attribute binding (e.g., hht_diary)"
+  type        = string
+  default     = "hht_diary"
+}

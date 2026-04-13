@@ -7,16 +7,16 @@
 ## Maintenance Schedule
 
 ### Quarterly Review (Every 90 Days)
-**Files**: `docker/dev.Dockerfile`, `docker/qa.Dockerfile`, `docker/ops.Dockerfile`
+**Files**: `tools/dev-env/docker/ci.Dockerfile`, `tools/dev-env/docker/sponsor-ci.Dockerfile`
 
 **Process**:
 ```bash
 # 1. Check for outdated tool versions
 # Review release notes for:
-# - kubectl: https://github.com/kubernetes/kubernetes/releases
-# - Cosign: https://github.com/sigstore/cosign/releases
-# - Syft: https://github.com/anchore/syft/releases
-# - Grype: https://github.com/anchore/grype/releases
+# - Flutter: https://docs.flutter.dev/release/whats-new
+# - Dart SDK: https://dart.dev/get-dart
+# - Gitleaks: https://github.com/gitleaks/gitleaks/releases
+# - Squawk: https://github.com/sbdchd/squawk/releases
 
 # 2. Check security advisories
 # Visit GitHub security tab for each tool
@@ -32,7 +32,7 @@ git push origin main
 ```
 
 ### Annual Review (Every 365 Days)
-**Files**: `docker/base.Dockerfile`
+**Files**: `tools/dev-env/docker/ci.Dockerfile` (base stages)
 
 **Process**:
 ```bash

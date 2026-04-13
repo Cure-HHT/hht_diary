@@ -177,6 +177,62 @@ resource "google_project_iam_member" "sponsor_terraform_sa_service_usage" {
 #   }
 # }
 
+# -----------------------------------------------------------------------------
+# Terraform Admin Service Account + Workload Identity Federation
+# -----------------------------------------------------------------------------
+#
+# Dedicated SA for CI/CD Terraform plan/apply on the admin project.
+# Separate from github-actions-sa (which deploys containers to sponsor projects).
+#
+# Permissions scoped to admin-project management only:
+#   - Project IAM admin (manage IAM bindings for sponsor SAs)
+#   - Service account admin (manage Gmail SA)
+#   - Storage admin (manage schema bucket IAM)
+#   - Service usage consumer (API quota billing)
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00042: Infrastructure Change Control
+#   REQ-o00043: Automated Deployment Pipeline
+
+resource "google_service_account" "terraform_admin" {
+  account_id   = "terraform-admin-sa"
+  display_name = "Terraform Admin SA"
+  description  = "CI/CD Terraform plan/apply for admin-project resources only"
+  project      = var.project_id
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# IAM roles needed to manage admin-project resources
+resource "google_project_iam_member" "terraform_admin_roles" {
+  for_each = toset([
+    "roles/resourcemanager.projectIamAdmin", # Manage project IAM bindings
+    "roles/iam.serviceAccountAdmin",         # Manage service accounts (Gmail SA)
+    "roles/storage.admin",                   # Manage bucket IAM (schema bucket)
+    "roles/serviceusage.serviceUsageConsumer", # API quota
+    "roles/artifactregistry.admin",          # Manage GAR repositories
+  ])
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.terraform_admin.email}"
+}
+
+# WIF: Allow GitHub Actions to impersonate this SA
+# Uses the existing github-pool (created by bootstrap), adds a new binding
+resource "google_service_account_iam_member" "terraform_admin_wif" {
+  service_account_id = google_service_account.terraform_admin.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/projects/${var.ADMIN_PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${var.github_org}/${var.github_repo}"
+}
+
+# Also grant Terraform state bucket access
+resource "google_storage_bucket_iam_member" "terraform_admin_state" {
+  bucket = "cure-hht-terraform-state"
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.terraform_admin.email}"
+}
+
 #TODO We will want one(1) global loadbalancer, external IP and certifactes
 # for ALL sponsors.
 # -----------------------------------------------------------------------------
