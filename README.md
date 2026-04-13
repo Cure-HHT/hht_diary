@@ -4,6 +4,21 @@ Multi-sponsor clinical trial diary platform with FDA 21 CFR Part 11 compliance.
 
 ---
 
+## PRE-RELEASE NOTICE
+
+**This project is in active development and is not yet functional or ready for production use.**
+
+- **Not Production Ready**: Core features are still being implemented
+- **Active Development**: APIs, data models, and interfaces are subject to change
+- **Testing Phase**: This software has not undergone clinical validation
+- **FDA Compliance**: Validation protocols are in development but not yet complete
+
+**Do not use this software for actual clinical trial data collection at this time.**
+
+For information about the project roadmap and planned features, see the `spec/` directory.
+
+---
+
 ## Repository Structure
 
 This is the **core repo** — contains all app source code and shared packages.
