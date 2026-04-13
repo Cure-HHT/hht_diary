@@ -186,7 +186,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - name: 'Terraform Init (sponsor-envs)'
         working-directory: infrastructure/terraform/sponsor-envs
@@ -321,7 +321,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
@@ -379,7 +379,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: ${{ vars.CUREHHT_ADMIN_SA_EMAIL }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
