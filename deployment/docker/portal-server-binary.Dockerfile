@@ -13,6 +13,9 @@ FROM ${SPONSOR_CI_IMAGE} AS build
 
 WORKDIR /workspace/src/apps/sponsor-portal/portal_server
 
+# Ensure deps are resolved for this package (sponsor-ci may have stale .dart_tool)
+RUN dart pub get --offline
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /workspace/out && \
     set -eu && \
