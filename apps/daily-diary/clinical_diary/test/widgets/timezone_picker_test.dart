@@ -529,10 +529,31 @@ void main() {
   });
 
   group('getTimezoneAbbreviation', () {
-    test('returns abbreviation for known IANA ID', () {
-      expect(getTimezoneAbbreviation('America/Los_Angeles'), 'PST');
-      expect(getTimezoneAbbreviation('Europe/Paris'), 'CET');
-      expect(getTimezoneAbbreviation('Asia/Tokyo'), 'JST');
+    // Reference dates for deterministic DST testing
+    final winterDate = DateTime(2025, 12, 18);
+    final summerDate = DateTime(2025, 7, 1);
+
+    test('returns standard-time abbreviation in winter', () {
+      expect(
+        getTimezoneAbbreviation('America/Los_Angeles', at: winterDate),
+        'PST',
+      );
+      expect(getTimezoneAbbreviation('Europe/Paris', at: winterDate), 'CET');
+      expect(getTimezoneAbbreviation('Asia/Tokyo', at: winterDate), 'JST');
+    });
+
+    test('returns daylight-time abbreviation in summer', () {
+      expect(
+        getTimezoneAbbreviation('America/Los_Angeles', at: summerDate),
+        'PDT',
+      );
+      expect(
+        getTimezoneAbbreviation('America/New_York', at: summerDate),
+        'EDT',
+      );
+      expect(getTimezoneAbbreviation('Europe/Paris', at: summerDate), 'CEST');
+      // Tokyo does not observe DST
+      expect(getTimezoneAbbreviation('Asia/Tokyo', at: summerDate), 'JST');
     });
 
     test('returns uppercase value if already abbreviation', () {
@@ -721,12 +742,21 @@ void main() {
     // CUR-543: Cross-check with getTimezoneAbbreviation
     // The key requirement: when device TZ and event TZ are the same timezone,
     // normalizeDeviceTimezone(deviceTzName) MUST equal getTimezoneAbbreviation(ianaId)
+    //
+    // Uses `at` parameter with appropriate date so that the device's reported
+    // timezone name (standard vs daylight) matches the DST state.
     group('must match getTimezoneAbbreviation for same timezone', () {
+      // Standard time (winter) cross-checks
+      final winterDate = DateTime(2025, 12, 18);
+
       test(
-        'Eastern timezone: device "Eastern Standard Time" matches event "America/New_York"',
+        'Eastern standard: device "Eastern Standard Time" matches event in winter',
         () {
           final deviceResult = normalizeDeviceTimezone('Eastern Standard Time');
-          final eventResult = getTimezoneAbbreviation('America/New_York');
+          final eventResult = getTimezoneAbbreviation(
+            'America/New_York',
+            at: winterDate,
+          );
           expect(
             deviceResult,
             eventResult,
@@ -736,10 +766,13 @@ void main() {
       );
 
       test(
-        'Pacific timezone: device "Pacific Standard Time" matches event "America/Los_Angeles"',
+        'Pacific standard: device "Pacific Standard Time" matches event in winter',
         () {
           final deviceResult = normalizeDeviceTimezone('Pacific Standard Time');
-          final eventResult = getTimezoneAbbreviation('America/Los_Angeles');
+          final eventResult = getTimezoneAbbreviation(
+            'America/Los_Angeles',
+            at: winterDate,
+          );
           expect(
             deviceResult,
             eventResult,
@@ -748,74 +781,122 @@ void main() {
         },
       );
 
+      test('Central European standard: matches event in winter', () {
+        final deviceResult = normalizeDeviceTimezone(
+          'Central European Standard Time',
+        );
+        final eventResult = getTimezoneAbbreviation(
+          'Europe/Paris',
+          at: winterDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for CET timezone',
+        );
+      });
+
+      test('Central US standard: matches event in winter', () {
+        final deviceResult = normalizeDeviceTimezone('Central Standard Time');
+        final eventResult = getTimezoneAbbreviation(
+          'America/Chicago',
+          at: winterDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for Central timezone',
+        );
+      });
+
+      test('Mountain standard: matches event in winter', () {
+        final deviceResult = normalizeDeviceTimezone('Mountain Standard Time');
+        final eventResult = getTimezoneAbbreviation(
+          'America/Denver',
+          at: winterDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for Mountain timezone',
+        );
+      });
+
+      test('GMT: device "Greenwich Mean Time" matches event in winter', () {
+        final deviceResult = normalizeDeviceTimezone('Greenwich Mean Time');
+        final eventResult = getTimezoneAbbreviation(
+          'Europe/London',
+          at: winterDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for GMT timezone',
+        );
+      });
+
+      test('Japan: device "Japan Standard Time" matches event (no DST)', () {
+        final deviceResult = normalizeDeviceTimezone('Japan Standard Time');
+        final eventResult = getTimezoneAbbreviation(
+          'Asia/Tokyo',
+          at: winterDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for JST timezone',
+        );
+      });
+
+      // Daylight time (summer) cross-checks
+      final summerDate = DateTime(2025, 7, 1);
+
       test(
-        'Central European: device "Central European Standard Time" matches event "Europe/Paris"',
+        'Eastern daylight: device "Eastern Daylight Time" matches event in summer',
         () {
-          final deviceResult = normalizeDeviceTimezone(
-            'Central European Standard Time',
+          final deviceResult = normalizeDeviceTimezone('Eastern Daylight Time');
+          final eventResult = getTimezoneAbbreviation(
+            'America/New_York',
+            at: summerDate,
           );
-          final eventResult = getTimezoneAbbreviation('Europe/Paris');
           expect(
             deviceResult,
             eventResult,
-            reason: 'Device and event TZ should match for CET timezone',
+            reason: 'Device and event TZ should match for EDT',
           );
         },
       );
 
       test(
-        'Central US: device "Central Standard Time" matches event "America/Chicago"',
+        'Pacific daylight: device "Pacific Daylight Time" matches event in summer',
         () {
-          final deviceResult = normalizeDeviceTimezone('Central Standard Time');
-          final eventResult = getTimezoneAbbreviation('America/Chicago');
+          final deviceResult = normalizeDeviceTimezone('Pacific Daylight Time');
+          final eventResult = getTimezoneAbbreviation(
+            'America/Los_Angeles',
+            at: summerDate,
+          );
           expect(
             deviceResult,
             eventResult,
-            reason: 'Device and event TZ should match for Central timezone',
+            reason: 'Device and event TZ should match for PDT',
           );
         },
       );
 
-      test(
-        'Mountain: device "Mountain Standard Time" matches event "America/Denver"',
-        () {
-          final deviceResult = normalizeDeviceTimezone(
-            'Mountain Standard Time',
-          );
-          final eventResult = getTimezoneAbbreviation('America/Denver');
-          expect(
-            deviceResult,
-            eventResult,
-            reason: 'Device and event TZ should match for Mountain timezone',
-          );
-        },
-      );
-
-      test(
-        'GMT: device "Greenwich Mean Time" matches event "Europe/London"',
-        () {
-          final deviceResult = normalizeDeviceTimezone('Greenwich Mean Time');
-          final eventResult = getTimezoneAbbreviation('Europe/London');
-          expect(
-            deviceResult,
-            eventResult,
-            reason: 'Device and event TZ should match for GMT timezone',
-          );
-        },
-      );
-
-      test(
-        'Japan: device "Japan Standard Time" matches event "Asia/Tokyo"',
-        () {
-          final deviceResult = normalizeDeviceTimezone('Japan Standard Time');
-          final eventResult = getTimezoneAbbreviation('Asia/Tokyo');
-          expect(
-            deviceResult,
-            eventResult,
-            reason: 'Device and event TZ should match for JST timezone',
-          );
-        },
-      );
+      test('Central European summer: matches event in summer', () {
+        final deviceResult = normalizeDeviceTimezone(
+          'Central European Summer Time',
+        );
+        final eventResult = getTimezoneAbbreviation(
+          'Europe/Paris',
+          at: summerDate,
+        );
+        expect(
+          deviceResult,
+          eventResult,
+          reason: 'Device and event TZ should match for CEST',
+        );
+      });
     });
   });
 }
