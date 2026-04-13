@@ -14,8 +14,8 @@ FROM ${SPONSOR_CI_IMAGE} AS build
 WORKDIR /workspace/src/apps/sponsor-portal/portal_server
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir -p /workspace/out
-RUN set -eu && \
+RUN mkdir -p /workspace/out && \
+    set -eu && \
     PORTAL_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
     PORTAL_FUNCTIONS_VERSION=$(grep '^version:' /workspace/src/apps/sponsor-portal/portal_functions/pubspec.yaml | sed 's/version: //') && \
     TRIAL_DATA_TYPES_VERSION=$(grep '^version:' /workspace/src/apps/common-dart/trial_data_types/pubspec.yaml | sed 's/version: //') && \
