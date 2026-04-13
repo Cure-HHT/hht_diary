@@ -529,14 +529,7 @@ void main() {
 
     test('verifySyncLogChain does not introduce new invalid records', () async {
       // Record baseline — chain may already have invalid records from
-      // previous test runs or other integration tests that inserted entries.
-      //
-      // NOTE: Other integration test files (e.g., patients_sync_test.dart)
-      // run concurrently and also insert into edc_sync_log. A concurrent
-      // insert between our sequential inserts will break the hash chain,
-      // producing an additional invalid record. We allow for this by
-      // checking that we don't introduce MORE than 1 additional invalid
-      // record (the concurrent insert itself).
+      // previous test runs or other integration tests that inserted entries
       final baseline = await verifySyncLogChain();
       final baselineInvalid = baseline.invalidRecords;
       final baselineTotal = baseline.totalRecords;
@@ -560,16 +553,8 @@ void main() {
       // Verify chain integrity
       final verification = await verifySyncLogChain();
 
-      // Our sequential inserts should not break the chain. However,
-      // concurrent inserts from other test files may interleave and
-      // produce at most 1 additional invalid record per concurrent writer.
-      expect(
-        verification.invalidRecords - baselineInvalid,
-        lessThanOrEqualTo(1),
-        reason: 'Sequential inserts should not break chain; '
-            'at most 1 invalid from concurrent test interleaving '
-            '(baseline=$baselineInvalid, now=${verification.invalidRecords})',
-      );
+      // Our new entries should not introduce additional invalid records
+      expect(verification.invalidRecords, equals(baselineInvalid));
       expect(
         verification.totalRecords,
         greaterThanOrEqualTo(baselineTotal + 3),
