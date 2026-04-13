@@ -32,8 +32,10 @@ RUN set -eu && \
 # Minimal image with just the binary
 FROM debian:12-slim
 
+RUN useradd -r -s /bin/false appuser
 COPY --from=build /workspace/out/server /app/server
 COPY --from=build /workspace/out/VERSIONS /app/VERSIONS
+USER appuser
 
 LABEL org.opencontainers.image.source="https://github.com/Cure-HHT/hht_diary"
 LABEL org.opencontainers.image.description="Diary server compiled binary"
