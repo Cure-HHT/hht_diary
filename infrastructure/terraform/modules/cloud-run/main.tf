@@ -65,15 +65,16 @@ resource "google_service_account" "cloud_run" {
 # IAM roles for the runtime service account
 #
 # These are the ONLY permissions the running application needs:
-#   - cloudsql.client:             Connect to Cloud SQL via private IP
-#   - secretmanager.secretAccessor: Read DOPPLER_TOKEN from Secret Manager
-#   - logging.logWriter:           Write structured logs to Cloud Logging
-#   - monitoring.metricWriter:     Emit custom metrics (OTel)
-#   - cloudtrace.agent:            Distributed tracing (OTel)
+#   - cloudsql.client:         Connect to Cloud SQL via private IP
+#   - logging.logWriter:       Write structured logs to Cloud Logging
+#   - monitoring.metricWriter: Emit custom metrics (OTel)
+#   - cloudtrace.agent:        Distributed tracing (OTel)
+#
+# NOTE: No secretmanager access — Doppler token is passed as a Cloud Run
+# env var at deploy time, not fetched from GCP Secret Manager.
 resource "google_project_iam_member" "cloud_run_roles" {
   for_each = toset([
     "roles/cloudsql.client",
-    "roles/secretmanager.secretAccessor",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
     "roles/cloudtrace.agent",

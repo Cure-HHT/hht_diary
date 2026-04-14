@@ -61,35 +61,8 @@ locals {
   }
 }
 
-# -----------------------------------------------------------------------------
-# Secret Manager
-# -----------------------------------------------------------------------------
-
-resource "google_secret_manager_secret" "doppler_token" {
-  secret_id = "DOPPLER_TOKEN"
-  project   = var.project_id
-
-  labels = local.common_labels
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "doppler_token" {
-  secret      = google_secret_manager_secret.doppler_token.id
-  secret_data = var.DOPPLER_TOKEN
-}
-
-# Grant Compute Engine default service account read access to Doppler token
-# Required for Cloud Run services to fetch secrets at runtime
-resource "google_secret_manager_secret_iam_member" "doppler_token_compute_accessor" {
-  count     = var.compute_service_account != "" ? 1 : 0
-  secret_id = google_secret_manager_secret.doppler_token.secret_id
-  project   = var.project_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.compute_service_account}"
-}
+# NOTE: Doppler tokens are passed as Cloud Run env vars at deploy time.
+# No Secret Manager needed — Doppler has its own API.
 
 # Grant Compute Engine default service account Identity Platform admin access
 # Required for deploy-db job to batch-delete and seed Identity Platform users
@@ -193,7 +166,7 @@ module "database" {
 #   # Doppler runtime secret fetching (replaces direct Secret Manager refs)
 #   doppler_project_id      = "hht-diary"
 #   doppler_config_name     = var.environment
-#   doppler_token_secret_id = google_secret_manager_secret.doppler_token.secret_id
+#   (Doppler token passed as Cloud Run env var, no Secret Manager)
 #
 #   min_instances    = var.min_instances
 #   max_instances    = var.max_instances
@@ -205,7 +178,6 @@ module "database" {
 #   depends_on = [
 #     module.vpc,
 #     module.database,
-#     google_secret_manager_secret_version.doppler_token,
 #   ]
 # }
 
