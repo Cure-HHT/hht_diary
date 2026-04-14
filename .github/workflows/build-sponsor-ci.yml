@@ -14,6 +14,8 @@ on:
       - 'apps/sponsor-portal/**'
       - 'apps/daily-diary/**'
       - 'deployment/docker/sponsor-ci.Dockerfile'
+      - 'deployment/docker/portal-server-binary.Dockerfile'
+      - 'deployment/docker/diary-server-binary.Dockerfile'
       - '.github/workflows/build-sponsor-ci.yml'
       - '.github/versions.env'
       - 'pubspec.yaml'
