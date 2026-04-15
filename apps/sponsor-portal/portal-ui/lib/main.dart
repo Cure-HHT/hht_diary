@@ -23,6 +23,7 @@ import 'services/browser_storage_service.dart';
 import 'services/identity_config_service.dart';
 import 'services/sponsor_branding_service.dart';
 import 'theme/portal_theme.dart';
+import 'widgets/environment_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -171,11 +172,13 @@ class _CarinaPortalAppState extends State<CarinaPortalApp> {
         ChangeNotifierProvider<AuthService>.value(value: widget.authService),
         Provider<SponsorBrandingConfig>.value(value: widget.branding),
       ],
-      child: MaterialApp.router(
-        title: widget.branding.title,
-        theme: portalTheme,
-        routerConfig: appRouter,
-        debugShowCheckedModeBanner: F.showBanner,
+      child: EnvironmentBanner(
+        child: MaterialApp.router(
+          title: widget.branding.title,
+          theme: portalTheme,
+          routerConfig: appRouter,
+          debugShowCheckedModeBanner: F.showBanner,
+        ),
       ),
     );
   }
