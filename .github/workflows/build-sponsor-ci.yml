@@ -10,6 +10,7 @@ on:
       - main
     paths:
       - 'apps/common-dart/**'
+      - 'apps/common-flutter/**'
       - 'apps/edc/**'
       - 'apps/sponsor-portal/**'
       - 'apps/daily-diary/**'

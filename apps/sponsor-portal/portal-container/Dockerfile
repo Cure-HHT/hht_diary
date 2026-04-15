@@ -23,6 +23,10 @@ ARG DEBIAN_IMAGE=debian:12-slim
 # =============================================================================
 FROM ${FLUTTER_IMAGE} AS flutter-build
 
+# Copy shared Flutter packages first (for layer caching)
+# portal-ui depends on common_widgets via path in pubspec.yaml
+COPY --chown=appuser:appuser apps/common-flutter/common_widgets /app/apps/common-flutter/common_widgets
+
 # Copy portal-ui source (use --chown because flutter-base runs as appuser)
 COPY --chown=appuser:appuser apps/sponsor-portal/portal-ui /app/apps/sponsor-portal/portal-ui
 

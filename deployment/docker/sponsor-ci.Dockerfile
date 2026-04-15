@@ -28,6 +28,7 @@ COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-
 COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
+COPY --chown=10001:10001 apps/common-flutter/common_widgets/pubspec.yaml ./apps/common-flutter/common_widgets/pubspec.yaml
 COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
 COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
@@ -73,6 +74,7 @@ COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
 COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
 COPY --chown=10001:10001 apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
+COPY --chown=10001:10001 apps/common-flutter/common_widgets ./apps/common-flutter/common_widgets
 COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
 COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
@@ -87,6 +89,7 @@ RUN set -euo pipefail && \
     test -d apps/sponsor-portal/portal_functions && \
     test -d apps/sponsor-portal/portal_server && \
     test -d apps/sponsor-portal/portal-ui && \
+    test -d apps/common-flutter/common_widgets && \
     test -d apps/daily-diary/diary_functions && \
     test -d apps/daily-diary/diary_server && \
     test ! -d sponsor-content && \
