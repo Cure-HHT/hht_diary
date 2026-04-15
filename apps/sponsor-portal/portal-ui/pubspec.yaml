@@ -14,6 +14,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Shared widgets (EnvironmentBanner, etc.)
+  common_widgets:
+    path: ../../common-flutter/common_widgets
+
   # Firebase / Identity Platform
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3

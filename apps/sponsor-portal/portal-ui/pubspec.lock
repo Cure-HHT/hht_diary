@@ -105,6 +105,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  common_widgets:
+    dependency: "direct main"
+    description:
+      path: "../../common-flutter/common_widgets"
+      relative: true
+    source: path
+    version: "0.0.1"
   convert:
     dependency: transitive
     description:

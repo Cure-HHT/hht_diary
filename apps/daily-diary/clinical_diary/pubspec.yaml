@@ -20,6 +20,8 @@ dependencies:
     path: ../../common-dart/trial_data_types
   eq:
     path: ../../common-flutter/eq
+  common_widgets:
+    path: ../../common-flutter/common_widgets
 
   collection: ^1.19.1
   crypto: ^3.0.7

@@ -7,6 +7,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -23,7 +24,6 @@ import 'services/browser_storage_service.dart';
 import 'services/identity_config_service.dart';
 import 'services/sponsor_branding_service.dart';
 import 'theme/portal_theme.dart';
-import 'widgets/environment_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -173,6 +173,8 @@ class _CarinaPortalAppState extends State<CarinaPortalApp> {
         Provider<SponsorBrandingConfig>.value(value: widget.branding),
       ],
       child: EnvironmentBanner(
+        show: F.showBanner,
+        flavorName: F.name,
         child: MaterialApp.router(
           title: widget.branding.title,
           theme: portalTheme,
