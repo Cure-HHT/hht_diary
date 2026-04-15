@@ -13,9 +13,10 @@ apps/common-config/
 
 ## nginx/
 
-Contains nginx include fragments shared by:
-- `apps/sponsor-portal/portal-container/` — listens on 8080, serves Flutter web UI + proxies to Dart API
+Contains nginx include fragments used by:
 - `apps/daily-diary/diary-server-container/` — listens on 8081, serves static assets only
+
+Previously also consumed by `apps/sponsor-portal/portal-container/`, which was removed when the portal deployment moved to the sponsor-owned Callisto `portal-final` image (see `hht_diary_callisto/deployment/docker/portal-final.Dockerfile`).
 
 ### How includes work
 
@@ -36,10 +37,9 @@ correctly at runtime inside the container.
 
 ### Modifying shared config
 
-Changes here affect **both** containers. Build and test both images after any change:
+Build and test the diary container after any change:
 
 ```bash
-docker build -f apps/sponsor-portal/portal-container/Dockerfile -t portal-test . && docker run --rm portal-test nginx -t
 docker build -f apps/daily-diary/diary-server-container/Dockerfile -t diary-test . && docker run --rm diary-test nginx -t
 ```
 
@@ -47,7 +47,5 @@ docker build -f apps/daily-diary/diary-server-container/Dockerfile -t diary-test
 
 | File | Purpose |
 | ------ | ------- |
-| `apps/sponsor-portal/portal-container/nginx.conf` | Portal-specific: listen 8080, /health + /api/ proxy |
 | `apps/daily-diary/diary-server-container/nginx.conf` | Diary-specific: listen 8081, static assets only |
-| `apps/sponsor-portal/portal-container/Dockerfile` | COPYs common-http.conf + common-locations.conf |
 | `apps/daily-diary/diary-server-container/Dockerfile` | COPYs common-http.conf + common-locations.conf |
