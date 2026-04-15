@@ -18,6 +18,7 @@ COPY .github/versions.env ./.github/versions.env
 COPY apps/common-dart/trial_data_types ./apps/common-dart/trial_data_types
 COPY apps/common-dart/shared_functions ./apps/common-dart/shared_functions
 COPY apps/common-dart/otel_common ./apps/common-dart/otel_common
+COPY apps/common-dart/grpc_health ./apps/common-dart/grpc_health
 COPY apps/edc/rave-integration ./apps/edc/rave-integration
 COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
 COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
@@ -31,6 +32,9 @@ WORKDIR /workspace/src/apps/common-dart/trial_data_types
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/common-dart/otel_common
+RUN dart pub get
+
+WORKDIR /workspace/src/apps/common-dart/grpc_health
 RUN dart pub get
 
 WORKDIR /workspace/src/apps/edc/rave-integration
@@ -58,6 +62,7 @@ RUN set -euo pipefail && \
     test -d /workspace/src/apps/common-dart/trial_data_types && \
     test -d /workspace/src/apps/common-dart/shared_functions && \
     test -d /workspace/src/apps/common-dart/otel_common && \
+    test -d /workspace/src/apps/common-dart/grpc_health && \
     test -d /workspace/src/apps/edc/rave-integration && \
     test -d /workspace/src/apps/sponsor-portal/portal_functions && \
     test -d /workspace/src/apps/sponsor-portal/portal_server && \
