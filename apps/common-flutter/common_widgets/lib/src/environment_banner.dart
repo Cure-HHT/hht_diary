@@ -53,11 +53,7 @@ class EnvironmentBanner extends StatelessWidget {
       child: Stack(
         children: [
           child,
-          Positioned(
-            top: 0,
-            left: 0,
-            child: _EnvironmentRibbon(data: data),
-          ),
+          Positioned(top: 0, left: 0, child: _EnvironmentRibbon(data: data)),
         ],
       ),
     );
@@ -79,20 +75,11 @@ class _EnvironmentRibbonData {
           color: Colors.green,
         );
       case 'dev':
-        return const _EnvironmentRibbonData(
-          label: 'DEV',
-          color: Colors.orange,
-        );
+        return const _EnvironmentRibbonData(label: 'DEV', color: Colors.orange);
       case 'qa':
-        return const _EnvironmentRibbonData(
-          label: 'QA',
-          color: Colors.purple,
-        );
+        return const _EnvironmentRibbonData(label: 'QA', color: Colors.purple);
       case 'uat':
-        return const _EnvironmentRibbonData(
-          label: 'UAT',
-          color: Colors.blue,
-        );
+        return const _EnvironmentRibbonData(label: 'UAT', color: Colors.blue);
       case 'prod':
       default:
         return null;
