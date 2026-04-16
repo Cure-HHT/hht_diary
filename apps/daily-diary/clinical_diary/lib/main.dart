@@ -26,8 +26,8 @@ import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
-import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
+import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -184,6 +184,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Widget build(BuildContext context) {
     // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
     return EnvironmentBanner(
+      show: F.showBanner,
+      flavorName: F.name,
       child: MaterialApp(
         title: F.title,
         // Show Flutter debug banner in debug mode (top-right corner)
