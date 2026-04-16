@@ -124,7 +124,9 @@ main() {
     # DROP database if it exists
     log_info "Checking if database ${DB_NAME} exists..."
     if psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'" | grep -q 1; then
-        log_info "Database ${DB_NAME} exists, dropping..."
+        log_info "Database ${DB_NAME} exists, terminating active connections..."
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();"
+        log_info "Dropping database ${DB_NAME}..."
         psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE \"${DB_NAME}\""
         log_info "Database ${DB_NAME} dropped"
     else
