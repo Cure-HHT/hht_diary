@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   crypto: ^3.0.7
-  dartastic_opentelemetry: ^1.0.0-alpha
+  dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'
   flutter:
     sdk: flutter
   json_annotation: ^4.9.0

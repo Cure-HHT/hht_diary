@@ -726,7 +726,6 @@ main() {
                 log_info "Grafana LGTM stack already running"
             fi
         fi
-        export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"
         export ENVIRONMENT="development"
     fi
 
