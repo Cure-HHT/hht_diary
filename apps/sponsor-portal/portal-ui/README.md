@@ -261,7 +261,7 @@ The portal UI is deployed alongside the portal server in a single container:
 2. Copy `build/web/` to container's nginx directory
 3. Nginx serves static files + proxies API requests
 
-See `apps/sponsor-portal/portal-container/` for container setup.
+Container setup lives in the sponsor repo (e.g. `hht_diary_callisto/deployment/docker/portal-final.Dockerfile`).
 
 ### Static Hosting
 

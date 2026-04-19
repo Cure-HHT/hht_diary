@@ -7,11 +7,25 @@
 // Tests cover configuration, lifecycle, and send paths that don't require
 // GCP credentials or a running database.
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:test/test.dart';
 
 import 'package:portal_functions/src/notification_service.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
   group('NotificationConfig', () {
     test('stores projectId, enabled, and consoleMode', () {
       final config = NotificationConfig(

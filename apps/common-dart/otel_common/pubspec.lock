@@ -93,10 +93,10 @@ packages:
     dependency: "direct main"
     description:
       name: dartastic_opentelemetry
-      sha256: dff966ab901845b55df03d398cbc006d144fd0891e2e92fa37fdc7816936ef23
+      sha256: "9b142ca47071e45a57b6adf17bd67c603167d572dabfbbc09c6c4bc6cbad0796"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0-alpha"
+    version: "1.0.2-alpha"
   dartastic_opentelemetry_api:
     dependency: transitive
     description:

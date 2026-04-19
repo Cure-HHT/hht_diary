@@ -14,11 +14,24 @@ import 'package:mocktail/mocktail.dart';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
 // Mock classes for integration tests with real DB
 class MockRaveClient extends Mock implements RaveClient {}
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
   // Test data using unique IDs to avoid conflicts
   const testSiteId1 = 'test-patient-sync-site-001';
   const testSiteId2 = 'test-patient-sync-site-002';

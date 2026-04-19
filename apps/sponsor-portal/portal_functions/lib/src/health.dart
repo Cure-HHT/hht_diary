@@ -1,21 +1,40 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00013: GDPR compliance - EU-only regions
+//   REQ-o00047: Performance Monitoring
 //
-// Health check handler - converted from Firebase health.ts
+// Health check handler - returns server status and component versions
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:shelf/shelf.dart';
 
+/// Component version info, populated from compile-time -D flags.
+/// Set once at startup from server.dart, used by health endpoint.
+class ServerVersions {
+  static String portalServer = 'unknown';
+  static String portalFunctions = 'unknown';
+  static String trialDataTypes = 'unknown';
+}
+
 /// Health check endpoint handler
-/// Returns server status for Cloud Run health checks
+/// Returns server status and component versions for Cloud Run health checks
+/// and the portal UI About dialog.
 Response healthHandler(Request request) {
   final body = jsonEncode({
     'status': 'ok',
     'timestamp': DateTime.now().toUtc().toIso8601String(),
-    'region': 'europe-west1',
-    'service': 'diary-server',
+    'region':
+        Platform.environment['GCP_REGION'] ??
+        Platform.environment['CLOUD_RUN_REGION'] ??
+        'unknown',
+    'service': Platform.environment['K_SERVICE'] ?? 'portal-server',
+    'versions': {
+      'portal_server': ServerVersions.portalServer,
+      'portal_functions': ServerVersions.portalFunctions,
+      'trial_data_types': ServerVersions.trialDataTypes,
+    },
   });
 
   return Response.ok(body, headers: {'Content-Type': 'application/json'});
