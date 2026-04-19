@@ -147,7 +147,7 @@ Future<Response> portalMeHandler(Request request) async {
       '''
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE email = @email AND firebase_uid IS NULL
+      WHERE LOWER(email) = LOWER(@email) AND firebase_uid IS NULL
       RETURNING id, firebase_uid, email, name, status, mfa_type
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
@@ -157,7 +157,7 @@ Future<Response> portalMeHandler(Request request) async {
     if (result.isEmpty) {
       // Check if email exists but already linked to different uid
       final existing = await db.executeWithContext(
-        'SELECT firebase_uid FROM portal_users WHERE email = @email',
+        'SELECT firebase_uid FROM portal_users WHERE LOWER(email) = LOWER(@email)',
         parameters: {'email': email},
         context: serviceContext,
       );
@@ -357,7 +357,7 @@ Future<PortalUser?> requirePortalAuth(
       '''
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE email = @email AND firebase_uid IS NULL
+      WHERE LOWER(email) = LOWER(@email) AND firebase_uid IS NULL
       RETURNING id, firebase_uid, email, name, status
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
