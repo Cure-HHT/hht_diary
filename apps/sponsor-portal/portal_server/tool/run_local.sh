@@ -47,7 +47,6 @@ if [ "$ENABLE_OTEL" = true ]; then
         fi
         echo_info "Grafana UI: http://localhost:3000/explore"
     fi
-    export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
     export ENVIRONMENT="development"
 fi
 

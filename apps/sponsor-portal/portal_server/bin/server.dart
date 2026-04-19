@@ -43,6 +43,11 @@ void main(List<String> args) async {
 
   final log = Logger('portal_server');
 
+  // Populate version info for health endpoint
+  ServerVersions.portalServer = _portalServerVersion;
+  ServerVersions.portalFunctions = _portalFunctionsVersion;
+  ServerVersions.trialDataTypes = _trialDataTypesVersion;
+
   // Log component versions at startup
   log.info('=== Portal Server v$_portalServerVersion ===');
   log.info('  portal_functions: $_portalFunctionsVersion');

@@ -8,9 +8,8 @@ import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
 /// Initialize OpenTelemetry for a Cloud Run Dart server.
 ///
-/// Reads configuration from environment variables (OTEL_*) with sensible
-/// defaults for local development. In production, the OTel Collector sidecar
-/// receives OTLP on localhost:4318.
+/// Endpoint and protocol are handled by dartastic_opentelemetry defaults
+/// and standard OTEL_* environment variables.
 Future<void> initializeOTel({
   required String serviceName,
   required String serviceVersion,
@@ -18,10 +17,6 @@ Future<void> initializeOTel({
 }) async {
   final environment = Platform.environment['ENVIRONMENT'] ?? 'development';
   final revision = Platform.environment['K_REVISION'] ?? 'unknown';
-  final endpoint =
-      Platform.environment['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
-      'http://localhost:4317';
-  final secure = endpoint.startsWith('https');
 
   final resourceAttrs = OTel.attributesFromMap({
     'deployment.environment': environment,
@@ -37,8 +32,6 @@ Future<void> initializeOTel({
   await OTel.initialize(
     serviceName: serviceName,
     serviceVersion: serviceVersion,
-    endpoint: endpoint,
-    secure: secure,
     resourceAttributes: resourceAttrs,
     sampler: sampler,
     enableMetrics: true,

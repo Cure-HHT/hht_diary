@@ -11,7 +11,7 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  dartastic_opentelemetry: ^1.0.0-alpha
+  dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'
   shelf: ^1.4.2
   logging: ^1.3.0
 
