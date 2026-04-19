@@ -551,6 +551,27 @@ void main() {
       expect(find.text('S001 - Site One'), findsOneWidget);
     });
 
+    testWidgets(
+      'CUR-1098: shows site selection when CRA role selected (REQ-CAL-p00029.B)',
+      (tester) async {
+        await pumpCreateDialog(tester);
+
+        // Initially no sites section
+        expect(find.text('Assigned Sites *'), findsNothing);
+
+        // Select CRA — per REQ-CAL-p00029.B, CRA is site-scoped and
+        // requires site assignment, just like Study Coordinator.
+        // BUG: CRA maps to 'Auditor' system role, and _needsSites only
+        // checks for 'Investigator', so site selection never appears.
+        await tester.tap(find.text('CRA'));
+        await tester.pumpAndSettle();
+
+        // Sites section should appear for CRA
+        expect(find.text('Assigned Sites *'), findsOneWidget);
+        expect(find.text('S001 - Site One'), findsOneWidget);
+      },
+    );
+
     testWidgets('hides site selection when non-investigator role selected', (
       tester,
     ) async {
