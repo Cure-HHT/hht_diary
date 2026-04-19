@@ -193,118 +193,59 @@ main() {
 
     # -------------------------------------------------------------------------
     # Reset Identity Platform users (optional - requires RESET_IDS=true)
-    # 1. Batch-delete all existing users via Identity Toolkit REST API
+    # 1. Batch-delete all existing users via Firebase Admin SDK
     # 2. Re-seed users from portal_users table via seed_identity_users.js
+    #
+    # Both steps use the same Node.js script and Firebase Admin SDK — the
+    # raw Identity Toolkit REST API returns 0 users for projects created via
+    # Identity Platform (vs. Firebase), so the Admin SDK is the reliable path.
     # -------------------------------------------------------------------------
     if [[ "${RESET_IDS:-false}" == "true" ]]; then
         local id_project="${SPONSOR}-${ENVIRONMENT}"
         log_info "Resetting Identity Platform users for project: ${id_project}"
 
-        # Get access token for Identity Toolkit API calls
-        local access_token
-        access_token=$(gcloud auth print-access-token 2>/dev/null)
-        if [[ -z "${access_token}" ]]; then
-            log_warn "Failed to obtain access token - skipping Identity Platform reset"
+        # --- Step 1: Delete all existing users via Firebase Admin SDK ---
+        log_info "Deleting all existing Identity Platform users..."
+        if node /app/seed_identity_users.js \
+            --project="${SPONSOR}" \
+            --env="${ENVIRONMENT}" \
+            --delete-all; then
+            log_info "Identity Platform users deleted successfully"
         else
-            # --- Step 1: Batch-delete existing users ---
-            log_info "Looking up existing Identity Platform users..."
-            local api_base="https://identitytoolkit.googleapis.com/v1/projects/${id_project}"
-            local all_local_ids=()
-            local next_page_token=""
+            log_warn "Identity Platform user deletion failed (non-fatal)"
+        fi
 
-            # Paginate through all users via accounts:batchGet
-            while true; do
-                local batch_url="${api_base}/accounts:batchGet?maxResults=1000"
-                if [[ -n "${next_page_token}" ]]; then
-                    batch_url="${batch_url}&nextPageToken=${next_page_token}"
-                fi
+        # --- Step 2: Re-seed users from portal_users table ---
+        if [[ -n "${DEFAULT_USER_PWD}" ]]; then
+            log_info "Seeding Identity Platform users..."
 
-                local response
-                response=$(curl -sf -H "Authorization: Bearer ${access_token}" \
-                    -H "Content-Type: application/json" \
-                    "${batch_url}" 2>/dev/null) || true
+            # Extract comma-separated emails and names from portal_users table
+            local user_emails
+            user_emails=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                "SELECT string_agg(email, ',') FROM portal_users")
 
-                if [[ -z "${response}" ]]; then
-                    log_warn "Empty response from accounts:batchGet - may have no users"
-                    break
-                fi
+            local user_names
+            user_names=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                "SELECT string_agg(name, ',') FROM portal_users")
 
-                # Extract localIds from response
-                local page_ids
-                page_ids=$(echo "${response}" | jq -r '.users[]?.localId // empty' 2>/dev/null)
-                if [[ -n "${page_ids}" ]]; then
-                    while IFS= read -r uid; do
-                        all_local_ids+=("${uid}")
-                    done <<< "${page_ids}"
-                fi
+            if [[ -n "${user_emails}" ]]; then
+                log_info "Found portal users to seed: ${user_emails}"
 
-                # Check for next page
-                next_page_token=$(echo "${response}" | jq -r '.nextPageToken // empty' 2>/dev/null)
-                if [[ -z "${next_page_token}" ]]; then
-                    break
-                fi
-            done
-
-            local user_count=${#all_local_ids[@]}
-            log_info "Found ${user_count} existing Identity Platform users"
-
-            if [[ ${user_count} -gt 0 ]]; then
-                log_info "Batch-deleting ${user_count} users..."
-
-                # Build JSON array of localIds for batchDelete
-                local ids_json
-                ids_json=$(printf '%s\n' "${all_local_ids[@]}" | jq -R . | jq -s '.')
-
-                local delete_response
-                delete_response=$(curl -sf -X POST \
-                    -H "Authorization: Bearer ${access_token}" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"localIds\": ${ids_json}, \"force\": true}" \
-                    "${api_base}/accounts:batchDelete" 2>/dev/null) || true
-
-                # Check for errors in the response
-                local error_count
-                error_count=$(echo "${delete_response}" | jq -r '.errors | length // 0' 2>/dev/null)
-                if [[ "${error_count}" -gt 0 ]]; then
-                    log_warn "Batch delete completed with ${error_count} errors"
-                    log_warn "Details: $(echo "${delete_response}" | jq -c '.errors' 2>/dev/null)"
+                if node /app/seed_identity_users.js \
+                    --project="${SPONSOR}" \
+                    --env="${ENVIRONMENT}" \
+                    --password="${DEFAULT_USER_PWD}" \
+                    --users="${user_emails}" \
+                    --user-names="${user_names}"; then
+                    log_info "Identity Platform users seeded successfully"
                 else
-                    log_info "Batch-deleted ${user_count} Identity Platform users"
-                fi
-            fi
-
-            # --- Step 2: Re-seed users from portal_users table ---
-            if [[ -n "${DEFAULT_USER_PWD}" ]]; then
-                log_info "Seeding Identity Platform users..."
-
-                # Extract comma-separated emails and names from portal_users table
-                local user_emails
-                user_emails=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
-                    "SELECT string_agg(email, ',') FROM portal_users")
-
-                local user_names
-                user_names=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
-                    "SELECT string_agg(name, ',') FROM portal_users")
-
-                if [[ -n "${user_emails}" ]]; then
-                    log_info "Found portal users to seed: ${user_emails}"
-
-                    if node /app/seed_identity_users.js \
-                        --project="${SPONSOR}" \
-                        --env="${ENVIRONMENT}" \
-                        --password="${DEFAULT_USER_PWD}" \
-                        --users="${user_emails}" \
-                        --user-names="${user_names}"; then
-                        log_info "Identity Platform users seeded successfully"
-                    else
-                        log_warn "Identity Platform user seeding failed (non-fatal)"
-                    fi
-                else
-                    log_warn "No portal users found in database - skipping Identity Platform seeding"
+                    log_warn "Identity Platform user seeding failed (non-fatal)"
                 fi
             else
-                log_info "DEFAULT_USER_PWD not set - skipping Identity Platform user seeding (delete-only reset)"
+                log_warn "No portal users found in database - skipping Identity Platform seeding"
             fi
+        else
+            log_info "DEFAULT_USER_PWD not set - skipping Identity Platform user seeding (delete-only reset)"
         fi
     else
         log_info "RESET_IDS not set - skipping Identity Platform reset"
