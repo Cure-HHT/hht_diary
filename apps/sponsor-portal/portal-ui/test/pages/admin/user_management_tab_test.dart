@@ -572,12 +572,12 @@ void main() {
       },
     );
 
-    testWidgets('hides site selection when non-investigator role selected', (
+    testWidgets('hides site selection when non-site-scoped role selected', (
       tester,
     ) async {
       await pumpCreateDialog(tester);
 
-      // Select Admin (maps to Administrator — no sites needed)
+      // Select Admin (maps to Administrator — not site-scoped)
       await tester.tap(find.text('Admin'));
       await tester.pumpAndSettle();
 
@@ -907,7 +907,7 @@ void main() {
       expect(find.text('Close'), findsOneWidget);
     });
 
-    testWidgets('shows "All sites" for non-investigator with no sites', (
+    testWidgets('shows "All sites" for non-site-scoped user with no sites', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1400, 900);

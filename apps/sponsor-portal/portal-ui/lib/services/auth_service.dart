@@ -111,9 +111,13 @@ enum UserRole {
   bool get isAdmin =>
       this == UserRole.administrator || this == UserRole.developerAdmin;
 
-  /// Whether this role requires site assignment
-  /// Investigator is site-scoped (can only view assigned sites' data)
-  bool get requiresSiteAssignment => this == UserRole.investigator;
+  /// Whether this role requires site assignment.
+  ///
+  /// Site-scoped system roles:
+  /// - Investigator (e.g. Study Coordinator) — can only see assigned sites
+  /// - Auditor (e.g. CRA) — assigned to specific sites per REQ-CAL-p00029.B
+  bool get requiresSiteAssignment =>
+      this == UserRole.investigator || this == UserRole.auditor;
 }
 
 /// Portal user information from server
