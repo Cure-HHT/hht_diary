@@ -6,7 +6,7 @@
 # Options:
 #   --no-otel   Disable OpenTelemetry (LGTM stack not started, traces disabled)
 #
-# By default, OTel is enabled and traces are exported to localhost:4317.
+# By default, OTel is enabled and exports to the local LGTM stack.
 # Start the LGTM stack first:
 #   cd tools/dev-env && docker compose -f docker-compose.otel.yml up -d
 # Or use the otel_common demo:
@@ -37,7 +37,7 @@ if [ "$ENABLE_OTEL" = true ]; then
         fi
         echo "[OTEL] Grafana UI: http://localhost:3000/explore"
     fi
-    export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+    export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"
     export ENVIRONMENT="development"
 fi
 

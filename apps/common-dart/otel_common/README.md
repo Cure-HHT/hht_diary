@@ -172,7 +172,7 @@ tool/
 |-------------------------------|-------------------------|---------------------------------------------------|
 | `ENVIRONMENT`                 | `development`           | `development` or `production` -- controls sampler |
 | `K_REVISION`                  | `unknown`               | Cloud Run revision ID                             |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel Collector endpoint                           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | *(library default)*     | Override only if collector is non-standard                           |
 | `OTEL_TRACES_SAMPLER_ARG`     | `0.1`                   | Trace sampling ratio (production only)            |
 | `OTEL_SERVICE_NAME`           | `unknown`               | Fallback service name for error reports           |
 
