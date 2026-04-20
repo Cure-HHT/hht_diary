@@ -21,7 +21,6 @@ APP_IDENTIFIERS = {
 platform :ios do
   before_all do
     setup_ci if ENV["CI"]
-    ENV["DELIVER_ALTOOL_ADDITIONAL_UPLOAD_PARAMETERS"] = "--use-old-altool"
   end
 
   desc "Build DEV IPA"
@@ -64,7 +63,7 @@ platform :ios do
     update_code_signing_settings(
       use_automatic_signing: false,
       path: File.join(FLUTTER_DIR, "ios", "Runner.xcodeproj"),
-      team_id: "T4DGX8FF8F",
+      team_id: ENV["APPLE_TEAM_ID"],
       bundle_identifier: app_id,
       code_sign_identity: "Apple Distribution",
       profile_name: profile_name
@@ -87,7 +86,7 @@ platform :ios do
       output_name: "clinical-diary-#{flavor}.ipa",
       export_options: {
         signingStyle: "manual",
-        teamID: "T4DGX8FF8F",
+        teamID: ENV["APPLE_TEAM_ID"],
         provisioningProfiles: {
           app_id => profile_name
         }

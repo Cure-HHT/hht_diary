@@ -38,9 +38,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
@@ -108,7 +112,7 @@ jobs:
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config ${{ inputs.flavor }} \
+            --config ${{ inputs.flavor || 'dev' }} \
             -- bundle exec fastlane build_${{ inputs.flavor || 'dev' }}
 
       - name: Upload IPA artifact
@@ -137,10 +141,19 @@ jobs:
           fi
 
       - name: Notify Slack
-        if: (inputs.deployment || 'internal') != 'none'
+        if: success() && (inputs.deployment || 'internal') != 'none'
         uses: slackapi/slack-github-action@v2.1.1
         with:
           webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
             text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Deployment:* ${{ inputs.deployment || 'internal' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ (inputs.release_notes || '') != '' && format('*Release Notes:* {0}', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: ":x: *iOS Build Failed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"

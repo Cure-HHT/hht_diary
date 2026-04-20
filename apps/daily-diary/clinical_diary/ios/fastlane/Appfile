@@ -1,2 +1,2 @@
 app_identifier("org.anspar.curehht.app")
-team_id("T4DGX8FF8F")
+team_id(ENV["APPLE_TEAM_ID"] || "T4DGX8FF8F")
