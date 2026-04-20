@@ -46,6 +46,20 @@ class _QuestionnaireInfo {
     this.endEvent,
     this.cycleTrackingDisabled = false,
   });
+
+  /// Human-readable name for this questionnaire type.
+  /// Single source of truth — used by both the state class (dialogs) and
+  /// [_QuestionnaireCard] (card header).
+  String get displayName {
+    switch (type) {
+      case 'nose_hht':
+        return 'Nose HHT';
+      case 'qol':
+        return 'Quality of Life';
+      default:
+        return type;
+    }
+  }
 }
 
 /// Dialog for managing questionnaires for a patient.
@@ -165,17 +179,6 @@ class _ManageQuestionnairesDialogState
     }
   }
 
-  String _displayName(String type) {
-    switch (type) {
-      case 'nose_hht':
-        return 'Nose HHT';
-      case 'qol':
-        return 'Quality of Life';
-      default:
-        return type;
-    }
-  }
-
   // REQ-CAL-p00080: Cycle-aware send flow
   Future<void> _sendQuestionnaire(String type) async {
     final q = _questionnaires.firstWhere((q) => q.type == type);
@@ -187,7 +190,7 @@ class _ManageQuestionnairesDialogState
       // First send — show cycle selection dropdown
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
-        questionnaireDisplayName: _displayName(type),
+        questionnaireDisplayName: q.displayName,
         patientDisplayId: widget.patientDisplayId,
         suggestedCycle: q.suggestedCycle,
       );
@@ -199,7 +202,7 @@ class _ManageQuestionnairesDialogState
         context: context,
         cycleLabel: q.suggestedStudyEvent ?? 'Next Cycle',
         patientDisplayId: widget.patientDisplayId,
-        questionnaireDisplayName: _displayName(type),
+        questionnaireDisplayName: q.displayName,
       );
       if (confirmed != true || !mounted) return;
     }
@@ -300,7 +303,7 @@ class _ManageQuestionnairesDialogState
                       TextSpan(
                         text:
                             'Are you sure you want to delete the '
-                            '${_displayName(q.type)} questionnaire for patient ',
+                            '${q.displayName} questionnaire for patient ',
                         children: [
                           TextSpan(
                             text: widget.patientDisplayId,
@@ -473,7 +476,7 @@ class _ManageQuestionnairesDialogState
                   TextSpan(
                     text:
                         'Are you sure you want to finalize the '
-                        '${_displayName(q.type)} questionnaire for patient ',
+                        '${q.displayName} questionnaire for patient ',
                     children: [
                       TextSpan(
                         text: widget.patientDisplayId,
@@ -575,7 +578,7 @@ class _ManageQuestionnairesDialogState
                       TextSpan(
                         text:
                             'Are you sure you want to finalize the '
-                            '${_displayName(q.type)} questionnaire for patient ',
+                            '${q.displayName} questionnaire for patient ',
                         children: [
                           TextSpan(
                             text: widget.patientDisplayId,
@@ -681,7 +684,7 @@ class _ManageQuestionnairesDialogState
                           if (isEndEvent) ...[
                             const SizedBox(height: 4),
                             _buildBulletPoint(
-                              'No further ${_displayName(q.type)} '
+                              'No further ${q.displayName} '
                               'questionnaires can be sent to this patient.',
                             ),
                           ],
@@ -771,7 +774,7 @@ class _ManageQuestionnairesDialogState
                             ' this questionnaire type for this patient. '
                             "You won't be able to send ",
                       ),
-                      TextSpan(text: _displayName(q.type)),
+                      TextSpan(text: q.displayName),
                       const TextSpan(text: ' questionnaires to patient '),
                       TextSpan(
                         text: widget.patientDisplayId,
@@ -987,17 +990,6 @@ class _QuestionnaireCard extends StatelessWidget {
 
   // ── helpers ──────────────────────────────────────────────
 
-  String _displayName() {
-    switch (q.type) {
-      case 'nose_hht':
-        return 'Nose HHT';
-      case 'qol':
-        return 'Quality of Life';
-      default:
-        return q.type;
-    }
-  }
-
   String _statusLabel() {
     switch (q.status) {
       case 'not_sent':
@@ -1139,7 +1131,7 @@ class _QuestionnaireCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _displayName(),
+                    q.displayName,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

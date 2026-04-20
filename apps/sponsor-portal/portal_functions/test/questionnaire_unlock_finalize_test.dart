@@ -3,10 +3,12 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00047: Hard-Coded Questionnaires
 //   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00080: Questionnaire Study Event Association
 //   REQ-CAL-p00081: Patient Task System
 //
 // Comprehensive tests for questionnaire handlers (get, send, delete,
-// unlock, finalize). Covers all CUR-823 acceptance criteria:
+// unlock, finalize) and NextCycleResult sealed class serialisation.
+// Covers all CUR-823 acceptance criteria:
 //   1. GET returns statuses per patient
 //   2. POST sends questionnaire + triggers FCM
 //   3. Nose HHT and QoL can be sent multiple times (after finalize)
@@ -2007,5 +2009,84 @@ void main() {
         expect(body['study_event'], 'Cycle 1 Day 1');
       },
     );
+  });
+
+  // ================================================================
+  // NextCycleResult sealed class — toJson() wire format
+  // ================================================================
+  //
+  // These tests pin the JSON shape embedded in next_cycle_info so that
+  // any accidental change to the serialisation is caught immediately,
+  // independently of the full handler integration tests above.
+
+  group('NextCycleResult.toJson()', () {
+    test('NextCycleBlocked produces correct shape (end-event block)', () {
+      const result = NextCycleBlocked(
+        blockedReason: 'End of Treatment was finalized on Cycle 3 Day 1',
+        endEvent: 'end_of_treatment',
+        endedOnStudyEvent: 'Cycle 3 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['blocked'], true);
+      expect(json['blocked_reason'], contains('End of Treatment'));
+      expect(json['end_event'], 'end_of_treatment');
+      expect(json['ended_on_study_event'], 'Cycle 3 Day 1');
+      expect(json.containsKey('cycle_tracking_disabled'), isFalse);
+    });
+
+    test(
+      'NextCycleBlocked produces correct shape (cycle-tracking-disabled block)',
+      () {
+        const result = NextCycleBlocked(
+          blockedReason: 'Questionnaire completed',
+          cycleTrackingDisabled: true,
+        );
+        final json = result.toJson();
+        expect(json['blocked'], true);
+        expect(json['blocked_reason'], 'Questionnaire completed');
+        expect(json['cycle_tracking_disabled'], true);
+        expect(json.containsKey('end_event'), isFalse);
+        expect(json.containsKey('ended_on_study_event'), isFalse);
+      },
+    );
+
+    test('NextCycleCycleTrackingDisabled produces correct shape', () {
+      const result = NextCycleCycleTrackingDisabled();
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['cycle_tracking_disabled'], true);
+      expect(json.containsKey('blocked'), isFalse);
+    });
+
+    test('NextCycleAutoComputed produces correct shape', () {
+      const result = NextCycleAutoComputed(
+        suggestedCycle: 4,
+        studyEvent: 'Cycle 4 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['suggested_cycle'], 4);
+      expect(json['study_event'], 'Cycle 4 Day 1');
+      expect(json.containsKey('blocked'), isFalse);
+    });
+
+    test('NextCycleAutoComputed Cycle 1 produces correct shape', () {
+      const result = NextCycleAutoComputed(
+        suggestedCycle: 1,
+        studyEvent: 'Cycle 1 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['suggested_cycle'], 1);
+      expect(json['study_event'], 'Cycle 1 Day 1');
+    });
+
+    test('NextCycleNeedsSelection produces correct shape', () {
+      const result = NextCycleNeedsSelection();
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], true);
+      expect(json.containsKey('blocked'), isFalse);
+      expect(json.containsKey('study_event'), isFalse);
+    });
   });
 }

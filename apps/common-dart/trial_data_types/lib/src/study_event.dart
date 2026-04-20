@@ -4,6 +4,8 @@
 // StudyEvent format validation and cycle number parsing.
 // Used by both portal server (cycle computation) and portal UI (display).
 
+import 'package:trial_data_types/src/end_event.dart';
+
 /// Utility class for StudyEvent format validation and cycle number parsing.
 ///
 /// Phase 1 valid format: "Cycle N Day 1" where N is a positive integer.
@@ -17,19 +19,23 @@ class StudyEvent {
   /// Phase 1 format: "Cycle N Day 1" where N >= 1.
   static final _cyclePattern = RegExp(r'^Cycle ([1-9]\d*) Day 1$');
 
-  // Phase 2 end-event constants (snake_case DB values).
+  // Phase 2 end-event wire-format constants (snake_case DB values).
+  // These MUST match EndEvent.endOfTreatment.value / EndEvent.endOfStudy.value.
+  // Dart const does not allow accessing enum fields at compile time, so the
+  // string literals are duplicated here. A test in study_event_test.dart
+  // asserts they stay in sync.
   static const endOfTreatment = 'end_of_treatment';
   static const endOfStudy = 'end_of_study';
 
-  /// Display labels for end events.
-  static String endEventDisplayLabel(String endEvent) {
-    switch (endEvent) {
-      case endOfTreatment:
-        return 'End of Treatment';
-      case endOfStudy:
-        return 'End of Study';
-      default:
-        return endEvent;
+  /// Returns the human-readable display label for an end-event wire value.
+  ///
+  /// Delegates to [EndEvent.displayName] so the label is defined in exactly
+  /// one place. Falls back to the raw value for unknown inputs.
+  static String endEventDisplayLabel(String endEventValue) {
+    try {
+      return EndEvent.fromValue(endEventValue).displayName;
+    } catch (_) {
+      return endEventValue;
     }
   }
 
@@ -43,10 +49,11 @@ class StudyEvent {
     return _cyclePattern.hasMatch(value);
   }
 
-  /// Returns true if the value is an end-event literal
-  /// ("End of Treatment" or "End of Study").
+  /// Returns true if the value is a known end-event wire value.
+  ///
+  /// Delegates to [EndEvent] so the set of valid values is defined once.
   static bool isEndEvent(String value) {
-    return value == endOfTreatment || value == endOfStudy;
+    return EndEvent.values.any((e) => e.value == value);
   }
 
   /// Extracts the cycle number N from a "Cycle N Day 1" string.
