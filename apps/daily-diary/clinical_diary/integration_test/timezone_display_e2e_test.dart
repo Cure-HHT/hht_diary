@@ -16,6 +16,7 @@ import 'package:clinical_diary/main.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -1580,15 +1581,16 @@ void main() {
             '($initialTimeText) without timezone conversion.',
       );
 
-      // Also verify the timezone label is shown (EDT during DST, EST otherwise)
-      final tzLabel = find.text('EDT');
+      // Verify the timezone label is shown. Resolve the abbreviation at runtime
+      // so the test passes in any season (EDT in summer, EST in winter).
+      final expectedTzAbbr = getTimezoneAbbreviation('America/New_York');
+      final tzLabel = find.text(expectedTzAbbr);
       expect(
         tzLabel,
         findsWidgets,
         reason:
-            'EDT timezone label should be displayed on home page '
-            'since event timezone differs from device timezone '
-            '(America/New_York is EDT during DST)',
+            '$expectedTzAbbr timezone label should be displayed on home page '
+            'since event timezone (America/New_York) differs from device timezone',
       );
 
       debugPrint('CUR-597 test completed!');

@@ -23,14 +23,10 @@ class TimezoneConverter {
   /// Set to null to use actual device timezone.
   static int? testDeviceOffsetMinutes;
 
-  static bool _tzInitialized = false;
-
   /// Ensure the IANA timezone database is initialized. Safe to call multiple times.
+  /// initializeTimeZones() is idempotent — the package tracks its own init state.
   static void ensureInitialized() {
-    if (!_tzInitialized) {
-      tz_data.initializeTimeZones();
-      _tzInitialized = true;
-    }
+    tz_data.initializeTimeZones();
   }
 
   /// Get UTC offset in minutes for a timezone, accounting for DST.
@@ -124,20 +120,29 @@ class TimezoneConverter {
     String? timezone, {
     int? deviceOffsetMinutes,
   }) {
-    final timezoneOffset = getTimezoneOffsetMinutes(
-      timezone,
-      at: storedDateTime,
-    );
-    if (timezoneOffset == null) {
+    // Pass 1: approximate timezone offset using stored (device-local) time as
+    // reference. Accurate in all cases except the ±1h ambiguous window at
+    // "fall back" DST transitions, where stored (device-local) may have a
+    // different DST state than the target timezone's local wall-clock time.
+    final approxOffset = getTimezoneOffsetMinutes(timezone, at: storedDateTime);
+    if (approxOffset == null) {
       // No timezone or unknown, use as-is
       return storedDateTime;
     }
 
     final deviceOffset = deviceOffsetMinutes ?? getDeviceOffsetMinutes();
-    // Reverse the adjustment
-    final reverseAdjustment = timezoneOffset - deviceOffset;
+    final approxDisplayed = storedDateTime.add(
+      Duration(minutes: approxOffset - deviceOffset),
+    );
 
-    return storedDateTime.add(Duration(minutes: reverseAdjustment));
+    // Pass 2: re-lookup DST using the approximate display time, which is now
+    // expressed in target-TZ wall-clock terms. This resolves the "fall back"
+    // ambiguity — one iteration is always sufficient because the two results
+    // differ by at most 1 hour.
+    final timezoneOffset =
+        getTimezoneOffsetMinutes(timezone, at: approxDisplayed) ?? approxOffset;
+
+    return storedDateTime.add(Duration(minutes: timezoneOffset - deviceOffset));
   }
 
   /// Recalculate stored DateTime when timezone changes.

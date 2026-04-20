@@ -658,15 +658,6 @@ String getTimezoneDisplayName(String ianaId) {
   return ianaId;
 }
 
-bool _tzPickerInitialized = false;
-
-void _ensureTzInitialized() {
-  if (!_tzPickerInitialized) {
-    tz_data.initializeTimeZones();
-    _tzPickerInitialized = true;
-  }
-}
-
 /// Get DST-aware abbreviation for an IANA timezone ID.
 ///
 /// Uses the IANA timezone database to return the correct abbreviation
@@ -679,7 +670,8 @@ void _ensureTzInitialized() {
 /// Falls back to static [commonTimezones] list if the IANA ID is not found
 /// in the timezone database.
 String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
-  _ensureTzInitialized();
+  // initializeTimeZones() is idempotent — the package tracks its own init state.
+  tz_data.initializeTimeZones();
   try {
     final location = tz.getLocation(ianaId);
     final tzDateTime = at != null

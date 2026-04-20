@@ -458,5 +458,35 @@ void main() {
         expect(displayed, equals(original));
       });
     });
+
+    group('"Fall back" DST transition (November 2024 Pacific Time)', () {
+      // DST ends Nov 3, 2024 — clocks fall back from 2:00 AM PDT to 1:00 AM PST.
+      // The hour 1:00–2:00 AM is repeated (ambiguous). A toDisplayedDateTime
+      // single-pass lookup using device-local stored time as `at` reference would
+      // land in the post-fallback window (PST) and return the wrong offset.
+      // The two-pass fix resolves this by refining with the approximate display time.
+
+      test('toDisplayedDateTime resolves ambiguous "fall back" hour correctly '
+          '(device UTC, target America/Los_Angeles)', () {
+        // Event: 1:30 AM PDT (UTC-7) on Nov 3, 2024
+        // UTC moment: 1:30 AM + 7h = 08:30 AM UTC
+        // Device is UTC (offset = 0), so stored = 08:30 AM UTC.
+        //
+        // Use DateTime.utc() so the test is machine-timezone-agnostic:
+        // 1:30 AM on fall-back day is ambiguous in local time (PDT vs PST),
+        // but 08:30 UTC is a single unambiguous epoch.
+        final stored = DateTime.utc(2024, 11, 3, 8, 30);
+        const deviceOffset = 0; // UTC
+
+        final displayed = TimezoneConverter.toDisplayedDateTime(
+          stored,
+          'America/Los_Angeles',
+          deviceOffsetMinutes: deviceOffset,
+        );
+
+        // Should recover 1:30 AM PDT (= 08:30 UTC), not 12:30 AM (incorrect PST lookup)
+        expect(displayed, equals(DateTime.utc(2024, 11, 3, 1, 30)));
+      });
+    });
   });
 }

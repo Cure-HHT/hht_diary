@@ -776,10 +776,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
     debugPrint('_startTimeTimezone: $_startTimeTimezone');
     debugPrint('_endTimeTimezone: $_endTimeTimezone');
     final startTzAbbr = _startTimeTimezone != null
-        ? getTimezoneAbbreviation(_startTimeTimezone!)
+        ? getTimezoneAbbreviation(_startTimeTimezone!, at: _startDateTime)
         : null;
     final endTzAbbr = _endTimeTimezone != null
-        ? getTimezoneAbbreviation(_endTimeTimezone!)
+        ? getTimezoneAbbreviation(
+            _endTimeTimezone!,
+            at: _endDateTime ?? _startDateTime,
+          )
         : null;
 
     debugPrint('startTzAbbr: $startTzAbbr');
