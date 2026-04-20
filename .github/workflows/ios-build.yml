@@ -5,6 +5,9 @@
 name: iOS Build & Store Artifact
 
 on:
+  # Auto-triggers on merge to main when app code changes.
+  # Both Android and iOS workflows trigger in parallel — this is intentional
+  # for continuous deployment (Android → Play Store internal/draft, iOS → TestFlight internal).
   push:
     branches: [main]
     paths:
@@ -143,11 +146,15 @@ jobs:
       - name: Notify Slack
         if: success() && (inputs.deployment || 'internal') != 'none'
         uses: slackapi/slack-github-action@v2.1.1
+        env:
+          RELEASE_NOTES_LINE: ${{ (inputs.release_notes || '') != '' && format('*Release Notes:* {0}', inputs.release_notes) || '' }}
         with:
           webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
-            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Deployment:* ${{ inputs.deployment || 'internal' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ (inputs.release_notes || '') != '' && format('*Release Notes:* {0}', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            {
+              "text": ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Deployment:* ${{ inputs.deployment || 'internal' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ env.RELEASE_NOTES_LINE }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            }
 
       - name: Notify Slack on failure
         if: failure()
@@ -156,4 +163,6 @@ jobs:
           webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
-            text: ":x: *iOS Build Failed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            {
+              "text": ":x: *iOS Build Failed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            }
