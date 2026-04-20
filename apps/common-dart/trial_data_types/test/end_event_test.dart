@@ -7,6 +7,12 @@ import 'package:test/test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 void main() {
+  // Guard against accidentally adding a third end-event without updating
+  // StudyEvent constants, display labels, and the DB enum type.
+  test('EndEvent has exactly 2 variants', () {
+    expect(EndEvent.values, hasLength(2));
+  });
+
   group('EndEvent.fromValue', () {
     test('parses end_of_treatment', () {
       expect(EndEvent.fromValue('end_of_treatment'), EndEvent.endOfTreatment);
