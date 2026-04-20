@@ -108,7 +108,7 @@ jobs:
         run: |
           doppler run \
             --project ${{ secrets.DOPPLER_PROJECT }} \
-            --config ${{ inputs.flavor || 'dev' }} \
+            --config ${{ inputs.flavor }} \
             -- bundle exec fastlane build_${{ inputs.flavor || 'dev' }}
 
       - name: Upload IPA artifact
@@ -140,9 +140,7 @@ jobs:
         if: (inputs.deployment || 'internal') != 'none'
         uses: slackapi/slack-github-action@v2.1.1
         with:
-          method: chat.postMessage
-          token: ${{ secrets.SLACK_APP_OAUTH_TOKEN }}
-          errors: true
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
-            channel: "${{ secrets.SLACK_DEVOPS_CHANNEL }}"
             text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ inputs.flavor || 'dev' }}\n*Deployment:* ${{ inputs.deployment || 'internal' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n${{ (inputs.release_notes || '') != '' && format('*Release Notes:* {0}', inputs.release_notes) || '' }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
