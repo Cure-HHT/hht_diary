@@ -1,18 +1,39 @@
 # Doppler vs GCP Secret Manager Comparison
 
-**Version**: 1.0
+**Version**: 1.1
 **Status**: Active
 **Created**: 2025-11-24
+**Updated**: 2026-03-22
 
 > **Purpose**: Compare Doppler with GCP Secret Manager for secrets management in a clinical trial platform with HIPAA, GDPR, and FDA 21 CFR Part 11 compliance requirements.
 
 ---
 
-## Executive Summary
+## Architecture Decision (2026-03-22)
+
+**DECIDED: Doppler-first with single Secret Manager bootstrap token.**
+
+The platform uses Doppler as the single source of truth. GCP Secret Manager stores exactly one secret per project: the `DOPPLER_TOKEN` service token. The app fetches all secrets from Doppler at runtime.
+
+This decision was made because:
+1. **Fewer systems = smaller attack surface** — one secrets system to audit, rotate, and secure
+2. **No secrets in Terraform state** — only the Doppler project/config identifiers are in HCL
+3. **Simpler rotation** — update in Doppler, restart service; no Secret Manager version management
+4. **Cold start overhead is negligible** — ~100-200ms Doppler API call vs 30-60s Dart JIT compilation
+
+See `docs/gcp/cloud-run-deployment.md` for the full secrets architecture documentation.
+
+> **Note**: The "Hybrid Approach" recommendation below was the original v1.0 analysis. The decision above supersedes it. The comparison content is retained for reference.
+
+---
+
+## Original Analysis (v1.0)
+
+### Executive Summary
 
 Both Doppler and GCP Secret Manager are enterprise-grade secrets management solutions. This document compares them specifically for a GCP-hosted clinical trial platform, with focus on developer experience, compliance, and integration patterns.
 
-**Recommendation**: **Hybrid Approach** - Use Doppler for development/CI convenience with Secret Manager for production GCP workloads, or continue using Doppler exclusively if the current workflow is satisfactory.
+**Original Recommendation (superseded)**: Hybrid Approach - Use Doppler for development/CI convenience with Secret Manager for production GCP workloads, or continue using Doppler exclusively if the current workflow is satisfactory.
 
 ---
 

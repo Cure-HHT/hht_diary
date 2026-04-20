@@ -28,7 +28,7 @@ The Web Diary is a browser-based companion to the Diary mobile application. It a
 
 # REQ-p01042: Web Diary Application
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00043
+**Level**: PRD | **Status**: Draft | **Refines**: p00043-C
 
 ## Rationale
 
@@ -64,7 +64,7 @@ K. The system SHALL function as a companion to the mobile app, not as a replacem
 
 # REQ-p01043: Web Diary Authentication via Linking Code
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-G
 
 ## Rationale
 
@@ -113,7 +113,7 @@ R. The authentication system SHALL function correctly across all supported brows
 
 # REQ-p01044: Web Application Session Management
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00044
+**Level**: PRD | **Status**: Draft | **Refines**: p00044-E
 
 ## Rationale
 
@@ -161,7 +161,7 @@ Q. The system SHALL NOT provide a persistent login option.
 
 # REQ-p01045: Web Diary Privacy Protection
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-E+F, p01043-H+Q
 
 ## Rationale
 
@@ -207,7 +207,7 @@ P. The system SHALL NOT use tracking cookies beyond essential session management
 
 # REQ-p01046: Web Diary Account Creation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-G, p01043-A+B
 
 ## Rationale
 
@@ -247,7 +247,7 @@ M. The system SHALL log account creation events to the audit trail for complianc
 
 # REQ-p01047: Web Diary User Profile
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-A
 
 ## Rationale
 
@@ -289,7 +289,7 @@ N. The system SHALL log all password change attempts and outcomes to the audit t
 
 # REQ-p01048: Web Diary Login Interface
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-G, p01043-A+J
 
 ## Rationale
 
@@ -333,7 +333,7 @@ O. The logout confirmation SHALL provide a confirm option that completes the log
 
 # REQ-p01049: Web Diary Lost Credential Recovery
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
+**Level**: PRD | **Status**: Draft | **Refines**: p01042-G, p01043-A+M+N
 
 ## Rationale
 

@@ -8,23 +8,12 @@
 // portal server can send push notifications via the shared database.
 
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
-
-/// Simple structured logger for Cloud Run
-void _log(String level, String message, [Map<String, dynamic>? data]) {
-  final logEntry = {
-    'severity': level,
-    'message': message,
-    'time': DateTime.now().toUtc().toIso8601String(),
-    if (data != null) ...data,
-  };
-  stderr.writeln(jsonEncode(logEntry));
-}
 
 /// Register or update FCM token for a patient's device.
 /// POST /api/v1/user/fcm-token
@@ -121,18 +110,19 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       },
     );
 
-    _log('INFO', 'FCM token registered', {
-      'patientId': patientId,
-      'platform': platform,
-      'tokenPrefix': fcmToken.substring(0, 20),
-    });
+    logWithTrace(
+      'INFO',
+      'FCM token registered',
+      labels: {
+        'patientId': patientId,
+        'platform': platform,
+        'tokenPrefix': fcmToken.substring(0, 20),
+      },
+    );
 
     return _jsonResponse({'success': true});
   } catch (e, stackTrace) {
-    _log('ERROR', 'FCM token registration error', {
-      'error': e.toString(),
-      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
-    });
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }

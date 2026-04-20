@@ -71,7 +71,7 @@ class QuestionnaireService {
 
       final backendUrl = await enrollmentService.getBackendUrl();
       if (backendUrl == null) {
-        return const SubmitResult(success: false, error: 'Not enrolled');
+        return const SubmitResult(success: false, error: 'Not linked');
       }
 
       final url =

@@ -100,6 +100,7 @@ RESET_DB=false
 START_UI=true
 SHOW_HELP=false
 USE_DEV_IDENTITY=false
+ENABLE_OTEL=true
 
 for arg in "$@"; do
     case $arg in
@@ -113,6 +114,10 @@ for arg in "$@"; do
             ;;
         --dev)
             USE_DEV_IDENTITY=true
+            shift
+            ;;
+        --no-otel)
+            ENABLE_OTEL=false
             shift
             ;;
         --offline)
@@ -135,6 +140,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  --reset     Reset database (drop all tables, reapply schema + seed data)"
     echo "  --no-ui     Don't start Flutter web client"
     echo "  --dev       Use GCP Identity Platform (dev project) instead of Firebase emulator"
+    echo "  --no-otel   Disable OpenTelemetry (don't start LGTM stack)"
     echo "  --offline   Run without Doppler (uses local password 'postgres')"
     echo "  --help, -h  Show this help message"
     echo ""
@@ -143,6 +149,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  - Firebase Emulator: localhost:9099 (UI at localhost:4000) - skipped with --dev"
     echo "  - Portal Server:     localhost:8084"
     echo "  - Portal UI:         localhost:PORT (Flutter assigns port)"
+    echo "  - Grafana LGTM:      localhost:3000 (OTel traces) - skipped with --no-otel"
     echo ""
     echo "Email handling:"
     echo "  Emails are logged to console (EMAIL_CONSOLE_MODE=true)"
@@ -684,8 +691,8 @@ cleanup() {
         kill $UI_PID 2>/dev/null || true
     fi
 
-    log_info "Services stopped. Docker containers (postgres, firebase) left running."
-    log_info "To stop all containers: cd tools/dev-env && docker compose -f docker-compose.db.yml -f docker-compose.firebase.yml down"
+    log_info "Services stopped. Docker containers (postgres, firebase, otel-lgtm) left running."
+    log_info "To stop all containers: cd tools/dev-env && docker compose -f docker-compose.db.yml -f docker-compose.firebase.yml -f docker-compose.otel.yml down"
 
     # Ensure terminal prompt returns cleanly
     echo ""
@@ -707,6 +714,20 @@ main() {
 
     # Set up cleanup trap
     trap cleanup EXIT
+
+    # Start OTel LGTM stack if enabled
+    if [ "$ENABLE_OTEL" = true ]; then
+        OTEL_COMPOSE="$DEV_ENV_DIR/docker-compose.otel.yml"
+        if [ -f "$OTEL_COMPOSE" ]; then
+            if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'otel-lgtm'; then
+                log_info "Starting Grafana LGTM stack (OTel)..."
+                docker compose -f "$OTEL_COMPOSE" up -d 2>/dev/null || log_warn "Could not start LGTM stack"
+            else
+                log_info "Grafana LGTM stack already running"
+            fi
+        fi
+        export ENVIRONMENT="development"
+    fi
 
     # Start services
     start_postgres
@@ -775,6 +796,9 @@ main() {
         echo "  Auth:               GCP Identity Platform (callisto4-dev)"
     fi
     echo "  PostgreSQL:         localhost:5432"
+    if [ "$ENABLE_OTEL" = true ]; then
+        echo "  Grafana (traces):   http://localhost:3000/explore"
+    fi
     echo ""
     if [ "$USE_DEV_IDENTITY" = false ]; then
         echo "  Dev Login:"

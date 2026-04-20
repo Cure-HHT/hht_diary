@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 
-/// Dialog widget that shows enrollment processing and success states
+/// Dialog widget that shows linking processing and success states
 /// with an animated transition between them.
 class EnrollmentSuccessDialog extends StatefulWidget {
   const EnrollmentSuccessDialog({super.key});
@@ -59,7 +59,7 @@ class _EnrollmentSuccessDialogState extends State<EnrollmentSuccessDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Enrollment Confirmed',
+                'Linking Confirmed',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],

@@ -38,6 +38,10 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = context.read<AuthService>();
+    if (authService.isTimedOut) {
+      authService.setIsTimedOut(false);
+    }
+
     final success = await authService.signIn(
       _emailController.text.trim(),
       _passwordController.text,
@@ -95,24 +99,11 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     // Navigate based on active role
-    _navigateToRoleDashboard(user.activeRole);
+    _navigateToCommonDashboard(user.activeRole);
   }
 
-  void _navigateToRoleDashboard(UserRole role) {
-    switch (role) {
-      case UserRole.developerAdmin:
-        context.go('/dev-admin');
-      case UserRole.administrator:
-        context.go('/admin');
-      case UserRole.investigator:
-        context.go('/investigator');
-      case UserRole.auditor:
-        context.go('/auditor');
-      case UserRole.analyst:
-        context.go('/analyst');
-      case UserRole.sponsor:
-        context.go('/sponsor');
-    }
+  void _navigateToCommonDashboard(UserRole role) {
+    context.go('/common-dashboard', extra: role);
   }
 
   @override
@@ -238,6 +229,16 @@ class _LoginPageState extends State<LoginPage> {
                           child: const Text('Forgot Password?'),
                         ),
                       ),
+
+                      // Session timeout banner
+                      if (authService.isTimedOut &&
+                          authService.error == null) ...[
+                        const SizedBox(height: 16),
+                        const ErrorMessage(
+                          message:
+                              "Your session has expired due to inactivity.",
+                        ),
+                      ],
 
                       // Error message
                       if (authService.error != null) ...[

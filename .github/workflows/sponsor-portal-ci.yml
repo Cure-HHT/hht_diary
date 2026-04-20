@@ -167,7 +167,7 @@ jobs:
             cd /workspace/src/apps/sponsor-portal/portal_functions
             DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
             DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test integration_test/
+            dart test -j1 integration_test/
           "
 
       - name: Run portal_server integration tests
@@ -179,7 +179,7 @@ jobs:
             cd /workspace/src/apps/sponsor-portal/portal_server
             DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
             DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test integration_test/
+            dart test -j1 integration_test/
           "
 
       # ---------------------------------------------------------------

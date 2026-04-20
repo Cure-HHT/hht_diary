@@ -142,7 +142,7 @@ jobs:
             -e JWT_SECRET=test-jwt-secret-for-ci \
             ci bash -c "
               cd /workspace/src/apps/daily-diary/diary_functions
-              dart test integration_test/
+              dart test -j1 integration_test/
             "
 
       - name: Run diary_server integration tests
@@ -158,7 +158,7 @@ jobs:
             -e JWT_SECRET=test-jwt-secret-for-ci \
             ci bash -c "
               cd /workspace/src/apps/daily-diary/diary_server
-              dart test integration_test/
+              dart test -j1 integration_test/
             "
 
       # ---------------------------------------------------------------

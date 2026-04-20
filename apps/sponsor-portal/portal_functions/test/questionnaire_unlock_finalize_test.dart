@@ -18,6 +18,7 @@
 
 import 'dart:convert';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
@@ -25,6 +26,15 @@ import 'package:portal_functions/src/database.dart';
 import 'package:portal_functions/src/notification_service.dart';
 import 'package:portal_functions/src/portal_auth.dart';
 import 'package:portal_functions/src/questionnaire.dart';
+
+Future<void> _initOTel() async {
+  await OTel.reset();
+  await OTel.initialize(
+    serviceName: 'portal-functions-test',
+    serviceVersion: '0.0.1-test',
+    enableMetrics: false,
+  );
+}
 
 /// Test patient and user data
 const _testPatientId = 'patient-001';
@@ -97,6 +107,12 @@ Future<Map<String, dynamic>> _json(Response response) async {
 }
 
 void main() {
+  setUpAll(() async => await _initOTel());
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
   // Track queries for verification
   late List<({String query, Map<String, dynamic>? params})> capturedQueries;
 

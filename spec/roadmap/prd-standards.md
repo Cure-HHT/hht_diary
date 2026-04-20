@@ -9,7 +9,7 @@
 
 # REQ-p00041: CDISC Standards Compliance
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Refines**: p00044-E | **Status**: Draft
 
 The system SHALL support Clinical Data Interchange Standards Consortium (CDISC) standards for clinical data capture, storage, transformation, and export to enable regulatory submission and EDC system integration.
 
