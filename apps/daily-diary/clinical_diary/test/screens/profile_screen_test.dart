@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00076: Participation Status Badge
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpTestFlavor();
 
+  // Reset the FeatureFlagService singleton before and after each test so that
+  // flag mutations in one test cannot pollute another (CUR-1116).
+  setUp(() => FeatureFlagService.instance.resetToDefaults());
+  tearDown(() => FeatureFlagService.instance.resetToDefaults());
+
   group('ProfileScreen', () {
     Widget buildProfileScreen({
       bool isEnrolledInTrial = false,
@@ -22,6 +28,7 @@ void main() {
       String? siteName,
       String? sitePhoneNumber,
       String? sponsorLogo,
+      bool isSharingWithCureHHT = false,
     }) {
       return wrapWithMaterialApp(
         ProfileScreen(
@@ -34,7 +41,7 @@ void main() {
           isEnrolledInTrial: isEnrolledInTrial,
           isDisconnected: isDisconnected,
           enrollmentStatus: enrollmentStatus,
-          isSharingWithCureHHT: false,
+          isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
           onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
@@ -285,6 +292,68 @@ void main() {
 
         expect(buttonTapped, isTrue);
       });
+    });
+
+    // CUR-1116: Verify the feature flag actually gates the button.
+    // These tests complement the findsNothing assertions above by proving the
+    // button IS rendered when the flag is true, so deleting both the gate and
+    // the button code would be caught.
+    group('CUR-1116: Share with CureHHT feature flag gating', () {
+      testWidgets(
+        'shows Share with CureHHT button when flag is true and not sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            buildProfileScreen(isSharingWithCureHHT: false),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'shows Sharing with CureHHT card when flag is true and already sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              ProfileScreen(
+                onBack: () {},
+                onStartClinicalTrialEnrollment: () {},
+                onShowSettings: () {},
+                onShareWithCureHHT: () {},
+                onStopSharingWithCureHHT: () {},
+                isEnrolledInTrial: false,
+                isDisconnected: false,
+                enrollmentStatus: 'none',
+                isSharingWithCureHHT: true,
+                userName: 'Test User',
+                onUpdateUserName: (_) {},
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Sharing with CureHHT'), findsOneWidget);
+          // The "Share with CureHHT" button should not appear — the card
+          // replaces it when sharing is already active.
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'hides Share with CureHHT button when flag is false (default)',
+        (tester) async {
+          // Flag is already false from setUp — this guards the default state.
+          await tester.pumpWidget(buildProfileScreen());
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
     });
 
     group('Navigation', () {
