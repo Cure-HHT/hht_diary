@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.14+31
+version: 0.9.14+33
 
 environment:
   sdk: ^3.10.7
@@ -20,6 +20,8 @@ dependencies:
     path: ../../common-dart/trial_data_types
   eq:
     path: ../../common-flutter/eq
+  common_widgets:
+    path: ../../common-flutter/common_widgets
 
   collection: ^1.19.1
   crypto: ^3.0.7

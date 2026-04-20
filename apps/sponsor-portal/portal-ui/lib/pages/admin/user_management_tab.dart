@@ -367,8 +367,11 @@ class _UserManagementTabState extends State<UserManagementTab>
           systemRoles.add(user['role'] as String);
         }
 
-        // Check if user has investigator role for sites display
-        final hasInvestigatorRole = systemRoles.contains('Investigator');
+        // Site-scoped roles (Investigator, Auditor/CRA) get site assignments;
+        // others implicitly have access to all sites.
+        final hasSiteScopedRole = systemRoles
+            .map(UserRole.fromString)
+            .any((r) => r.requiresSiteAssignment);
 
         // Get sites
         final sitesList = (user['sites'] as List<dynamic>?) ?? [];
@@ -396,7 +399,7 @@ class _UserManagementTabState extends State<UserManagementTab>
                 compact: true,
               ),
             ),
-            DataCell(Text(hasInvestigatorRole ? sitesDisplay : 'All sites')),
+            DataCell(Text(hasSiteScopedRole ? sitesDisplay : 'All sites')),
             DataCell(StatusBadge.fromString(status, compact: true)),
             DataCell(
               Row(
@@ -815,13 +818,13 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   List<String> get _selectedSystemRoles =>
       _selectedSponsorRoles.map(_toSystemRole).toList();
 
-  /// Check if any selected role requires site assignment
-  /// Site-scoped roles: Investigator (Study Coordinator), and sponsor-specific mappings
-  bool get _needsSites {
-    // Check if any selected system role requires site assignment
-    // Investigator is the only site-scoped system role
-    return _selectedSystemRoles.contains('Investigator');
-  }
+  /// Check if any selected role requires site assignment.
+  ///
+  /// Delegates to [UserRole.requiresSiteAssignment] so site-scoped roles
+  /// (Investigator, Auditor) are defined in one place.
+  bool get _needsSites => _selectedSystemRoles
+      .map(UserRole.fromString)
+      .any((r) => r.requiresSiteAssignment);
 
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -1314,7 +1317,9 @@ class UserInfoDialog extends StatelessWidget {
               const SizedBox(height: 8),
               if (sitesList.isEmpty)
                 Text(
-                  systemRoles.contains('Investigator')
+                  systemRoles
+                          .map(UserRole.fromString)
+                          .any((r) => r.requiresSiteAssignment)
                       ? 'No sites assigned'
                       : 'All sites (role does not require site assignment)',
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -1516,7 +1521,9 @@ class _EditUserDialogState extends State<EditUserDialog> {
   List<String> get _selectedSystemRoles =>
       _selectedSponsorRoles.map(_toSystemRole).toList();
 
-  bool get _needsSites => _selectedSystemRoles.contains('Investigator');
+  bool get _needsSites => _selectedSystemRoles
+      .map(UserRole.fromString)
+      .any((r) => r.requiresSiteAssignment);
 
   bool get _hasChanges {
     if (_nameController.text.trim() != _originalName) return true;

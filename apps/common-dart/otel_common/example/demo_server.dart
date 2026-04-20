@@ -17,7 +17,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
 Future<void> main() async {
-  // 1. Initialize OpenTelemetry — exports to localhost:4317 by default.
+  // 1. Initialize OpenTelemetry
   await initializeOTel(
     serviceName: 'otel-demo-server',
     serviceVersion: '0.0.1',
