@@ -360,10 +360,10 @@ class NosebleedService {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;
 
-      // Get the sync URL from enrollment (sponsor-specific backend)
+      // Get the sync URL from linking data (sponsor-specific backend)
       final syncUrl = await _enrollmentService.getSyncUrl();
       if (syncUrl == null) {
-        debugPrint('No sync URL available - user not enrolled');
+        debugPrint('No sync URL available - user not linked');
         return;
       }
 
@@ -415,12 +415,12 @@ class NosebleedService {
         return SyncResult.success(syncedCount: 0); // No auth, nothing to sync
       }
 
-      // Get the sync URL from enrollment (sponsor-specific backend)
+      // Get the sync URL from linking data (sponsor-specific backend)
       final syncUrl = await _enrollmentService.getSyncUrl();
       if (syncUrl == null) {
         return SyncResult.success(
           syncedCount: 0,
-        ); // Not enrolled, nothing to sync
+        ); // Not linked, nothing to sync
       }
 
       final response = await _httpClient.post(
@@ -471,10 +471,10 @@ class NosebleedService {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;
 
-      // Get the records URL from enrollment (sponsor-specific backend)
+      // Get the records URL from linking data (sponsor-specific backend)
       final recordsUrl = await _enrollmentService.getRecordsUrl();
       if (recordsUrl == null) {
-        debugPrint('No records URL available - user not enrolled');
+        debugPrint('No records URL available - user not linked');
         return;
       }
 

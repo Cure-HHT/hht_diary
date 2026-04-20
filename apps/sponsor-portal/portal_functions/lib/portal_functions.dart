@@ -38,3 +38,6 @@ export 'src/patient_linking.dart';
 // Questionnaire Management & Notifications
 export 'src/notification_service.dart';
 export 'src/questionnaire.dart';
+
+// Observability
+export 'src/portal_metrics.dart';

@@ -10,6 +10,7 @@ library;
 
 import 'dart:io';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:test/test.dart';
 
@@ -17,6 +18,13 @@ void main() {
   late DatabaseConfig config;
 
   setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'diary-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+
     // Get database configuration from environment
     // For local dev, default to no SSL (docker container doesn't support it)
     final sslEnv = Platform.environment['DB_SSL'];

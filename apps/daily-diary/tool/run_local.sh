@@ -41,18 +41,38 @@ DEVICE=""
 BACKEND_URL="http://localhost:8080"
 USE_ADB_REVERSE=true
 
+# OTel is on by default; --no-otel disables it
+ENABLE_OTEL=true
+OTEL_FLAG=""
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     --web) DEVICE="chrome"; USE_ADB_REVERSE=false; shift ;;
     --ios) USE_ADB_REVERSE=false; shift ;;
     --device) DEVICE="$2"; shift 2 ;;
+    --no-otel) ENABLE_OTEL=false; OTEL_FLAG="--no-otel"; shift ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
 echo "=== Local Development Environment ==="
 echo ""
+
+# 0. Start Grafana LGTM stack for OTel (if enabled)
+if [ "$ENABLE_OTEL" = true ]; then
+    COMPOSE_FILE="$DEV_ENV/docker-compose.otel.yml"
+    if [ -f "$COMPOSE_FILE" ]; then
+        if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'otel-lgtm'; then
+            echo "[OTEL] Starting Grafana LGTM stack..."
+            docker compose -f "$COMPOSE_FILE" up -d 2>/dev/null || echo "[OTEL] WARNING: Could not start LGTM stack"
+        else
+            echo "[OTEL] Grafana LGTM stack already running"
+        fi
+        echo "[OTEL] Grafana UI: http://localhost:3000/explore"
+        echo ""
+    fi
+fi
 
 # 1. Start PostgreSQL if not running
 if docker ps --filter "name=sponsor-portal-postgres" --format '{{.Names}}' | grep -q sponsor-portal-postgres; then
@@ -66,7 +86,7 @@ fi
 
 # 2. Start diary server in background
 echo "[SERVER] Starting diary server on :8080..."
-(cd "$DIARY_SERVER" && doppler run -- ./tool/run_local.sh) &
+(cd "$DIARY_SERVER" && doppler run -- ./tool/run_local.sh $OTEL_FLAG) &
 DIARY_PID=$!
 echo "[SERVER] Diary server PID: $DIARY_PID"
 

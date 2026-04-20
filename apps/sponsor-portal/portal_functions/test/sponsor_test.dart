@@ -30,7 +30,7 @@ void main() {
 
   group('SponsorFeatureFlags', () {
     test('toJson includes all fields', () {
-      const flags = SponsorFeatureFlags(
+      final flags = SponsorFeatureFlags(
         useReviewScreen: true,
         useAnimations: false,
         requireOldEntryJustification: true,
@@ -38,6 +38,7 @@ void main() {
         enableLongDurationConfirmation: false,
         longDurationThresholdMinutes: 45,
         availableFonts: ['Roboto'],
+        inactivityTimeoutMinutes: 10,
       );
 
       final json = flags.toJson();
@@ -49,6 +50,85 @@ void main() {
       expect(json['enableLongDurationConfirmation'], isFalse);
       expect(json['longDurationThresholdMinutes'], equals(45));
       expect(json['availableFonts'], equals(['Roboto']));
+      // REQ-p01044-C: inactivity timeout included in serialized config
+      expect(json['inactivityTimeoutMinutes'], equals(10));
+    });
+
+    // REQ-p01044-B: default timeout is 2 minutes
+    test('inactivityTimeoutMinutes defaults to 2', () {
+      final flags = SponsorFeatureFlags(
+        useReviewScreen: false,
+        useAnimations: true,
+        requireOldEntryJustification: false,
+        enableShortDurationConfirmation: false,
+        enableLongDurationConfirmation: false,
+        longDurationThresholdMinutes: 60,
+        availableFonts: ['Roboto'],
+      );
+
+      expect(flags.inactivityTimeoutMinutes, equals(2));
+    });
+
+    // REQ-p01044-C: valid range is 1–30 minutes
+    test('accepts boundary values 1 and 30', () {
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 1,
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 30,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('rejects inactivityTimeoutMinutes below 1', () {
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 0,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('rejects inactivityTimeoutMinutes above 30', () {
+      expect(
+        () => SponsorFeatureFlags(
+          useReviewScreen: false,
+          useAnimations: true,
+          requireOldEntryJustification: false,
+          enableShortDurationConfirmation: false,
+          enableLongDurationConfirmation: false,
+          longDurationThresholdMinutes: 60,
+          availableFonts: ['Roboto'],
+          inactivityTimeoutMinutes: 31,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
     });
   });
 

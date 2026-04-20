@@ -58,7 +58,7 @@ Sponsor A                          Sponsor B
 
 # REQ-p00015: Database-Level Access Enforcement
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+G, p00014-D
 
 ## Rationale
 
@@ -118,7 +118,7 @@ L. The database SHALL log all policy violations to the audit trail.
 
 # REQ-p00035: Patient Data Isolation
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+G, p00014-A+D
 
 ## Rationale
 
@@ -155,7 +155,7 @@ L. Access controls SHALL NOT be bypassable through application code.
 
 # REQ-p00036: Investigator Site-Scoped Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014, p00018
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+D, p00014-D+F, p00018-E+L
 
 ## Rationale
 
@@ -182,7 +182,7 @@ G. Site assignments SHALL determine the complete scope of data visibility for ea
 
 # REQ-p00037: Investigator Annotation Restrictions
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+C, p00014-A
 
 ## Rationale
 
@@ -215,7 +215,7 @@ J. Annotation records SHALL include a timestamp of when the annotation was creat
 
 # REQ-p00022: Analyst Read-Only Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014, p00018
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+F, p00014-A+D, p00018-E+G
 
 ## Rationale
 
@@ -246,7 +246,7 @@ I. The system SHALL log all analyst data access events in the audit trail.
 
 # REQ-p00023: Sponsor Global Data Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00014
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+D, p00014-A
 
 ## Rationale
 
@@ -279,7 +279,7 @@ J. The system SHALL NOT allow sponsors to modify audit records.
 
 # REQ-p00038: Auditor Compliance Access
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00010
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+I
 
 ## Rationale
 
@@ -314,7 +314,7 @@ K. The system SHALL enforce quarterly access reviews for all auditor accounts.
 
 # REQ-p00039: Administrator Access with Audit Trail
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00010
+**Level**: PRD | **Status**: Draft | **Refines**: p00005-A+E+H
 
 ## Rationale
 
@@ -349,7 +349,7 @@ K. The system SHALL record the results of quarterly access reviews in the audit 
 
 # REQ-p00040: Event Sourcing State Protection
 
-**Level**: PRD | **Status**: Draft | **Implements**: p00004, p00010
+**Level**: PRD | **Status**: Draft | **Refines**: p00004-A+B+C+L
 
 ## Rationale
 
@@ -363,8 +363,6 @@ B. The system SHALL prohibit direct modification of derived clinical data state 
 
 C. The system SHALL require all clinical data changes to be written as events to the audit trail.
 
-D. The system SHALL automatically update derived state from audit events.
-
 E. The system SHALL maintain event sourcing integrity at the data layer.
 
 F. The system SHALL prevent tampering with derived state through access controls.
@@ -373,7 +371,7 @@ G. The system SHALL return permission denied for any attempts to directly modify
 
 H. The system SHALL enforce the event sourcing pattern at the data layer.
 
-*End* *Event Sourcing State Protection* | **Hash**: 1694c31b
+*End* *Event Sourcing State Protection* | **Hash**: 2067e3e6
 ---
 
 ### Policy Implementation Details

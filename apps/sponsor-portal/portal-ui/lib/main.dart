@@ -7,6 +7,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,8 @@ import 'firebase_options.dart';
 import 'flavors.dart';
 import 'router/app_router.dart';
 import 'services/auth_service.dart';
+import 'services/browser_lifecycle_service.dart';
+import 'services/browser_storage_service.dart';
 import 'services/identity_config_service.dart';
 import 'services/sponsor_branding_service.dart';
 import 'theme/portal_theme.dart';
@@ -117,26 +120,67 @@ void main() async {
     }
   }
 
-  runApp(CarinaPortalApp(branding: sponsorBranding));
+  // Create AuthService here so the browser lifecycle service can hold a
+  // direct reference before the widget tree is built.
+  // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
+  final authService = AuthService(
+    sponsorId: sponsorBranding.sponsorId,
+    clearStorage: BrowserStorageService().clearStorage,
+  );
+
+  // REQ-d00080-G: beforeunload handler, REQ-d00080-K: visibilitychange handler,
+  // REQ-p01044-D: terminate session on tab/window close.
+  // Web-only: browser_lifecycle_service.dart uses dart:js_interop.
+  final lifecycleService = BrowserLifecycleService()..register(authService);
+
+  runApp(
+    CarinaPortalApp(
+      branding: sponsorBranding,
+      authService: authService,
+      lifecycleService: lifecycleService,
+    ),
+  );
 }
 
-class CarinaPortalApp extends StatelessWidget {
+class CarinaPortalApp extends StatefulWidget {
   final SponsorBrandingConfig branding;
+  final AuthService authService;
+  final BrowserLifecycleService lifecycleService;
 
-  const CarinaPortalApp({super.key, required this.branding});
+  const CarinaPortalApp({
+    super.key,
+    required this.branding,
+    required this.authService,
+    required this.lifecycleService,
+  });
+
+  @override
+  State<CarinaPortalApp> createState() => _CarinaPortalAppState();
+}
+
+class _CarinaPortalAppState extends State<CarinaPortalApp> {
+  @override
+  void dispose() {
+    widget.lifecycleService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        Provider<SponsorBrandingConfig>.value(value: branding),
+        ChangeNotifierProvider<AuthService>.value(value: widget.authService),
+        Provider<SponsorBrandingConfig>.value(value: widget.branding),
       ],
-      child: MaterialApp.router(
-        title: branding.title,
-        theme: portalTheme,
-        routerConfig: appRouter,
-        debugShowCheckedModeBanner: F.showBanner,
+      child: EnvironmentBanner(
+        show: F.showBanner,
+        flavorName: F.name,
+        child: MaterialApp.router(
+          title: widget.branding.title,
+          theme: portalTheme,
+          routerConfig: appRouter,
+          debugShowCheckedModeBanner: F.showBanner,
+        ),
       ),
     );
   }
