@@ -760,19 +760,21 @@ class _ManageQuestionnairesDialogState
                 ),
               ),
               actions: [
-                TextButton(
+                PortalButton.outlined(
                   onPressed: () => Navigator.of(context).pop(null),
-                  child: const Text('Cancel'),
+                  label: 'Cancel',
                 ),
-                FilledButton(
+                PortalButton(
                   onPressed: () {
                     final result = selectedValue == cycleName
                         ? ''
                         : selectedValue;
                     Navigator.of(context).pop(result);
                   },
-                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Finalize Questionnaire'),
+                  label: 'Finalize Questionnaire',
+                  icon: Icons.check_circle_outline,
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                 ),
               ],
             );

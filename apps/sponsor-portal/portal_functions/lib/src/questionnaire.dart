@@ -472,6 +472,38 @@ Future<Response> sendQuestionnaireHandler(
     }
   }
 
+  // REQ-CAL-p00080-E: Pre-check for study_event uniqueness to return a clean
+  // 409 rather than leaking a raw PostgreSQL unique-constraint violation.
+  // The idx_qi_unique_study_event index is the authoritative enforcement;
+  // this check provides a user-readable error for defence-in-depth.
+  if (studyEvent != null) {
+    final conflictResult = await db.executeWithContext(
+      '''
+      SELECT 1 FROM questionnaire_instances
+      WHERE patient_id = @patientId
+        AND questionnaire_type = @questionnaireType::questionnaire_type
+        AND study_event = @studyEvent
+        AND deleted_at IS NULL
+      LIMIT 1
+      ''',
+      parameters: {
+        'patientId': patientId,
+        'questionnaireType': questionnaireType,
+        'studyEvent': studyEvent,
+      },
+      context: serviceContext,
+    );
+
+    if (conflictResult.isNotEmpty) {
+      return _jsonResponse({
+        'error':
+            'A $questionnaireType questionnaire for study event '
+            '"$studyEvent" already exists and has not been deleted. '
+            'Delete it first or choose a different cycle.',
+      }, 409);
+    }
+  }
+
   // Determine questionnaire version per REQ-CAL-p00047-E
   const versionMap = {'nose_hht': '1.0.0', 'qol': '1.0.0', 'eq': '1.0.0'};
   final version = versionMap[questionnaireType]!;
@@ -694,7 +726,18 @@ Future<Response> deleteQuestionnaireHandler(
     }, 409);
   }
 
-  // REQ-CAL-p00023-I: Cannot delete after finalization
+  // REQ-CAL-p00023-I: Cannot delete after finalization.
+  //
+  // This also covers terminal-cycle questionnaires (end_event IS NOT NULL,
+  // REQ-CAL-p00080-G): end_event is only set during finalization, so a
+  // terminal-cycle questionnaire is always 'finalized' by the time it carries
+  // a non-null end_event. Deletion is therefore permanently blocked at the
+  // application layer once a terminal cycle is finalized.
+  //
+  // Corollary (REQ-CAL-p00080-G): if the questionnaire is still in 'sent'
+  // or 'ready_to_review' status (i.e. finalization has not yet happened),
+  // it CAN be deleted — and doing so clears the end_event block, allowing a
+  // new send. See: _computeNextCycleInfo end_event check (deleted_at IS NULL).
   if (currentStatus == 'finalized') {
     return _jsonResponse({
       'error': 'Cannot delete a finalized questionnaire',

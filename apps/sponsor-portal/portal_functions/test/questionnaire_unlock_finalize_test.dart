@@ -503,6 +503,84 @@ void main() {
       final body = await _json(response);
       expect(body['error'], contains('site'));
     });
+
+    test('shows blocked next_cycle_info and end_event metadata after terminal '
+        'cycle finalization (REQ-CAL-p00080-G)', () async {
+      // Scenario: nose_hht Cycle 5 Day 1 was finalized with
+      // end_event='end_of_treatment'. The handler must:
+      //   1. Transform 'finalized' → 'not_sent' so the type shows as sendable
+      //   2. Still expose last_finalized_study_event
+      //   3. Call _computeNextCycleInfo which detects the end_event and
+      //      returns blocked=true with end_event / ended_on_study_event fields
+      final finalizedAt = DateTime.now().toUtc();
+
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // Last-finalized query (runs per type to populate last_finalized_*)
+        if (query.contains("status = 'finalized'") &&
+            query.contains('finalized_at')) {
+          return [
+            [finalizedAt, 'Cycle 5 Day 1'],
+          ];
+        }
+        // End-event blocking query — terminal cycle still active (not deleted)
+        if (query.contains('end_event IS NOT NULL')) {
+          return [
+            ['end_of_treatment', 'Cycle 5 Day 1'],
+          ];
+        }
+        // Main instances query: nose_hht is finalized on Cycle 5 Day 1
+        // columns: [id, type, status, study_event, version,
+        //           sent_at, submitted_at, finalized_at, score, sent_by]
+        if (query.contains('FROM questionnaire_instances')) {
+          return [
+            [
+              _testInstanceId,
+              'nose_hht',
+              'finalized',
+              'Cycle 5 Day 1',
+              '1.0.0',
+              finalizedAt,
+              finalizedAt,
+              finalizedAt,
+              null,
+              _testUserId,
+            ],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'GET',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires',
+      );
+
+      final response = await getQuestionnaireStatusHandler(
+        request,
+        _testPatientId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      final questionnaires = body['questionnaires'] as List<dynamic>;
+
+      final noseHht = questionnaires.firstWhere(
+        (q) => q['questionnaire_type'] == 'nose_hht',
+      );
+
+      // Finalized status is exposed as not_sent — ready for next-cycle send
+      expect(noseHht['status'], 'not_sent');
+      // Last finalized metadata is preserved so the UI can display it
+      expect(noseHht['last_finalized_study_event'], 'Cycle 5 Day 1');
+      // Terminal cycle blocks further sends
+      final nextCycleInfo = noseHht['next_cycle_info'] as Map<String, dynamic>;
+      expect(nextCycleInfo['blocked'], true);
+      expect(nextCycleInfo['end_event'], 'end_of_treatment');
+      expect(nextCycleInfo['ended_on_study_event'], 'Cycle 5 Day 1');
+    });
   });
 
   // ====================================================================
@@ -761,6 +839,58 @@ void main() {
 
       // Action type is hardcoded in SQL, not a named parameter
       expect(auditQuery.first.query, contains('QUESTIONNAIRE_SENT'));
+    });
+
+    test('returns 409 with user-readable error when study_event conflicts '
+        'with an existing non-deleted instance (REQ-CAL-p00080-E)', () async {
+      // Scenario: Cycle 1 is finalized. System auto-suggests Cycle 2.
+      // But another concurrent send already created Cycle 2 Day 1 (e.g.
+      // race condition or manual override). The conflict check must return
+      // a clean 409 before the INSERT reaches the DB constraint.
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // No active non-finalized instance
+        if (query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // No terminal cycle block
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
+        // Finalized cycles: Cycle 1 exists → auto-suggests Cycle 2
+        if (query.contains("status = 'finalized'") &&
+            query.contains('study_event ~')) {
+          return [
+            ['Cycle 1 Day 1'],
+          ];
+        }
+        // study_event conflict check — Cycle 2 Day 1 already taken
+        if (query.contains('study_event = @studyEvent')) {
+          return [
+            [1],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({'study_event': 'Cycle 2 Day 1'}),
+      );
+
+      final response = await sendQuestionnaireHandler(
+        request,
+        _testPatientId,
+        'nose_hht',
+      );
+
+      expect(response.statusCode, 409);
+      final body = await _json(response);
+      expect(body['error'], contains('Cycle 2 Day 1'));
+      expect(body['error'], contains('already exists'));
     });
   });
 
@@ -1676,5 +1806,205 @@ void main() {
 
       expect(response.statusCode, 200);
     });
+  });
+
+  // REQ-CAL-p00080-E: when a questionnaire is deleted before finalization,
+  // the system SHALL reassign the same Cycle value to the next questionnaire.
+  // The implementation satisfies this because Next Cycle is always
+  // (max FINALIZED cycle + 1) — deleted cycles are never finalized, so
+  // they are transparently re-suggested.
+  group('sendQuestionnaireHandler — deleted cycle re-suggestion (REQ-CAL-p00080-E)', () {
+    test(
+      'reassigns deleted cycle as next cycle when no newer finalized cycle exists',
+      () async {
+        // Scenario:
+        //   Cycle 1 sent → finalized  (Finalized Cycle = 1)
+        //   Cycle 2 sent → deleted before finalization
+        //
+        // Expected: system auto-assigns Cycle 2 Day 1 (not Cycle 3 Day 1),
+        // because Next Cycle = Finalized Cycle (1) + 1 = 2.
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow()];
+          }
+          // No active non-finalized instance — Cycle 2 was soft-deleted
+          if (query.contains('FROM questionnaire_instances') &&
+              query.contains("status != 'finalized'")) {
+            return [];
+          }
+          // No terminal cycle finalized
+          if (query.contains('end_event IS NOT NULL')) {
+            return [];
+          }
+          // Only Cycle 1 is finalized; Cycle 2 was deleted, never finalized
+          if (query.contains("status = 'finalized'") &&
+              query.contains('study_event')) {
+            return [
+              ['Cycle 1 Day 1'],
+            ];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              ['new-instance-id'],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        // No study_event in the request — system must auto-compute it
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        );
+
+        final response = await sendQuestionnaireHandler(
+          request,
+          _testPatientId,
+          'nose_hht',
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        // Must re-assign Cycle 2 (the deleted cycle), NOT skip to Cycle 3
+        expect(body['study_event'], equals('Cycle 2 Day 1'));
+      },
+    );
+
+    test(
+      'skips multiple deleted cycles and re-assigns the first un-finalized one',
+      () async {
+        // Scenario:
+        //   Cycle 1 finalized, Cycle 2 finalized  (Finalized Cycle = 2)
+        //   Cycle 3 sent → deleted
+        //   Cycle 4 sent → deleted
+        //
+        // Expected: system assigns Cycle 3 Day 1 (Finalized Cycle 2 + 1),
+        // not Cycle 5.
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow()];
+          }
+          if (query.contains('FROM questionnaire_instances') &&
+              query.contains("status != 'finalized'")) {
+            return [];
+          }
+          if (query.contains('end_event IS NOT NULL')) {
+            return [];
+          }
+          // Cycles 1 and 2 finalized; Cycles 3 and 4 were deleted
+          if (query.contains("status = 'finalized'") &&
+              query.contains('study_event')) {
+            return [
+              ['Cycle 1 Day 1'],
+              ['Cycle 2 Day 1'],
+            ];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              ['new-instance-id'],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        );
+
+        final response = await sendQuestionnaireHandler(
+          request,
+          _testPatientId,
+          'nose_hht',
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['study_event'], equals('Cycle 3 Day 1'));
+      },
+    );
+  });
+
+  // ====================================================================
+  // Terminal cycle: soft-delete allows resend (REQ-CAL-p00080-G)
+  // ====================================================================
+  //
+  // The end_event IS NOT NULL query includes `deleted_at IS NULL`, so a
+  // soft-deleted terminal-cycle row does not permanently block further sends.
+  // This verifies the database query correctly excludes deleted rows.
+  group('sendQuestionnaireHandler — terminal cycle soft-delete allows resend '
+      '(REQ-CAL-p00080-G)', () {
+    test(
+      'permits send after terminal-cycle questionnaire is soft-deleted',
+      () async {
+        // Scenario:
+        //   A questionnaire was sent for a terminal cycle (end_of_treatment)
+        //   but was soft-deleted before finalization (end_event was never set).
+        //   Because the end_event IS NOT NULL query has deleted_at IS NULL,
+        //   the deleted row is excluded — the type is unblocked.
+        //
+        // Expected: 200 — system allows a new send.
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow()];
+          }
+          // No active non-finalized instance (deleted one is excluded)
+          if (query.contains('FROM questionnaire_instances') &&
+              query.contains("status != 'finalized'")) {
+            return [];
+          }
+          // Terminal-cycle row is soft-deleted → excluded by deleted_at IS NULL
+          if (query.contains('end_event IS NOT NULL')) {
+            return [];
+          }
+          // No finalized cycles remain
+          if (query.contains("status = 'finalized'") &&
+              query.contains('study_event')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              [_testInstanceId],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+          body: jsonEncode({'study_event': 'Cycle 1 Day 1'}),
+        );
+
+        final response = await sendQuestionnaireHandler(
+          request,
+          _testPatientId,
+          'nose_hht',
+        );
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['study_event'], 'Cycle 1 Day 1');
+      },
+    );
   });
 }

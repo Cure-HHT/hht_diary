@@ -1028,6 +1028,10 @@ CREATE INDEX idx_qi_status ON questionnaire_instances(status)
 CREATE UNIQUE INDEX idx_qi_unique_study_event
     ON questionnaire_instances (patient_id, questionnaire_type, study_event)
     WHERE deleted_at IS NULL AND study_event IS NOT NULL;
+-- REQ-CAL-p00080-G: at most one terminal-cycle (end_event IS NOT NULL) per patient + type
+CREATE UNIQUE INDEX idx_qi_unique_end_event
+    ON questionnaire_instances (patient_id, questionnaire_type)
+    WHERE end_event IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE questionnaire_instances ENABLE ROW LEVEL SECURITY;
 

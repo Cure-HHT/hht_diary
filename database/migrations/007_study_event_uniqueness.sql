@@ -83,11 +83,29 @@ ALTER TABLE admin_action_log ADD CONSTRAINT admin_action_log_action_type_check C
 ALTER TABLE admin_action_log VALIDATE CONSTRAINT admin_action_log_action_type_check;
 
 -- =====================================================
+-- 4. PARTIAL UNIQUE INDEX ON end_event (Assertion G)
+-- =====================================================
+-- Ensures at most one non-deleted questionnaire instance per patient + type
+-- carries a non-null end_event (End of Treatment / End of Study).
+--
+-- Application logic already blocks a second terminal send, but for 21 CFR
+-- Part 11 defence-in-depth the database must enforce this independently.
+--
+-- Soft-deleted instances are excluded so a deleted terminal-cycle
+-- questionnaire does not permanently block the type.
+--
+-- Uses CONCURRENTLY to avoid locking the table in production (required by Squawk).
+
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_qi_unique_end_event
+  ON questionnaire_instances (patient_id, questionnaire_type)
+  WHERE end_event IS NOT NULL AND deleted_at IS NULL;
+
+-- =====================================================
 -- VERIFICATION
 -- =====================================================
 DO $$
 BEGIN
-    -- Verify unique index exists
+    -- Verify study_event unique index exists
     IF NOT EXISTS (
         SELECT 1 FROM pg_indexes
         WHERE indexname = 'idx_qi_unique_study_event'
@@ -104,5 +122,13 @@ BEGIN
         RAISE EXCEPTION 'end_event column was not added';
     END IF;
 
-    RAISE NOTICE 'Migration 007 complete: study_event uniqueness index, end_event column, and action_type constraint updated';
+    -- Verify terminal cycle uniqueness index exists
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'idx_qi_unique_end_event'
+    ) THEN
+        RAISE EXCEPTION 'idx_qi_unique_end_event index was not created';
+    END IF;
+
+    RAISE NOTICE 'Migration 007 complete: study_event uniqueness index, end_event column, action_type constraint, and terminal cycle uniqueness index added';
 END $$;

@@ -306,6 +306,135 @@ void main() {
       expect(find.text('Manage Questionnaires'), findsOneWidget);
     });
 
+    // REQ-CAL-p00080 Assertion C: cancelling the Starting Cycle dialog must
+    // abort the send — the questionnaire SHALL NOT be sent.
+    Future<ApiClient> createTrackingApiClient({
+      required bool Function() getSendCalled,
+      required void Function() setSendCalled,
+    }) async {
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = MockClient((request) async {
+        final path = request.url.path;
+
+        if (path == '/api/v1/portal/me' && request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        if (path.contains('/questionnaires') && request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'patient_id': 'PAT-TEST-001',
+              'questionnaires': [
+                {
+                  'questionnaire_type': 'nose_hht',
+                  'status': 'not_sent',
+                  'next_cycle_info': {'needs_initial_selection': true},
+                },
+                {
+                  'questionnaire_type': 'qol',
+                  'status': 'not_sent',
+                  'next_cycle_info': {'needs_initial_selection': true},
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        if (path.contains('/send') && request.method == 'POST') {
+          setSendCalled();
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'instance_id': 'new-id',
+              'status': 'sent',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+
+        return http.Response('Not found', 404);
+      });
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('test@example.com', 'password');
+      return ApiClient(authService, httpClient: mockHttpClient);
+    }
+
+    testWidgets(
+      'Cancelling cycle selection dialog does not send questionnaire (REQ-CAL-p00080-C)',
+      (tester) async {
+        var sendCalled = false;
+        final apiClient = await createTrackingApiClient(
+          getSendCalled: () => sendCalled,
+          setSendCalled: () => sendCalled = true,
+        );
+
+        await _pumpDialog(tester, apiClient);
+
+        await tester.tap(find.text('Send Now').first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Select Starting Cycle'), findsOneWidget);
+
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        expect(sendCalled, isFalse);
+        expect(find.text('Manage Questionnaires'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Closing cycle selection via X does not send questionnaire (REQ-CAL-p00080-C)',
+      (tester) async {
+        var sendCalled = false;
+        final apiClient = await createTrackingApiClient(
+          getSendCalled: () => sendCalled,
+          setSendCalled: () => sendCalled = true,
+        );
+
+        await _pumpDialog(tester, apiClient);
+
+        await tester.tap(find.text('Send Now').first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Select Starting Cycle'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.close).last);
+        await tester.pumpAndSettle();
+
+        expect(sendCalled, isFalse);
+        expect(find.text('Manage Questionnaires'), findsOneWidget);
+      },
+    );
+
     testWidgets('Delete shows confirmation dialog with reason input', (
       tester,
     ) async {
