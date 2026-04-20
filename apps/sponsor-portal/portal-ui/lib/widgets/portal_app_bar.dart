@@ -5,8 +5,11 @@
 //
 // Portal app bar with role switcher for multi-role users
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../flavors.dart';
@@ -62,7 +65,14 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(child: RoleBadge(role: user.activeRole)),
+              child: Center(
+                child: RoleBadge(
+                  role: user.activeRole,
+                  displayName: authService.sponsorRoleName(
+                    user.activeRole.systemName,
+                  ),
+                ),
+              ),
             ),
           // About
           IconButton(
@@ -87,8 +97,26 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _showAbout(BuildContext context) {
+  void _showAbout(BuildContext context) async {
     final theme = Theme.of(context);
+
+    // Fetch server versions from health endpoint
+    Map<String, String> serverVersions = {};
+    try {
+      final response = await http.get(Uri.parse('/health'));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final versions = json['versions'] as Map<String, dynamic>?;
+        if (versions != null) {
+          serverVersions = versions.map((k, v) => MapEntry(k, v.toString()));
+        }
+      }
+    } catch (_) {
+      // Health fetch failed — show what we have
+    }
+
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -103,8 +131,19 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Version ${F.version}', style: theme.textTheme.bodyLarge),
-
+            Text('Portal UI: ${F.version}', style: theme.textTheme.bodyLarge),
+            if (serverVersions.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              ...serverVersions.entries.map(
+                (e) => Text(
+                  '${e.key}: ${e.value}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
             InkWell(
               onTap: () {
                 Navigator.pop(context);
@@ -174,7 +213,7 @@ class _RoleSwitcher extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              user.activeRole.displayName,
+              authService.sponsorRoleName(user.activeRole.systemName),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -202,7 +241,10 @@ class _RoleSwitcher extends StatelessWidget {
             value: role,
             child: Row(
               children: [
-                RoleBadge(role: role),
+                RoleBadge(
+                  role: role,
+                  displayName: authService.sponsorRoleName(role.systemName),
+                ),
                 const SizedBox(width: 8),
                 if (isActive)
                   Icon(Icons.check, size: 16, color: theme.colorScheme.primary),

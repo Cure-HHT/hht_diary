@@ -7,6 +7,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -123,6 +124,7 @@ void main() async {
   // direct reference before the widget tree is built.
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
   final authService = AuthService(
+    sponsorId: sponsorBranding.sponsorId,
     clearStorage: BrowserStorageService().clearStorage,
   );
 
@@ -170,11 +172,15 @@ class _CarinaPortalAppState extends State<CarinaPortalApp> {
         ChangeNotifierProvider<AuthService>.value(value: widget.authService),
         Provider<SponsorBrandingConfig>.value(value: widget.branding),
       ],
-      child: MaterialApp.router(
-        title: widget.branding.title,
-        theme: portalTheme,
-        routerConfig: appRouter,
-        debugShowCheckedModeBanner: F.showBanner,
+      child: EnvironmentBanner(
+        show: F.showBanner,
+        flavorName: F.name,
+        child: MaterialApp.router(
+          title: widget.branding.title,
+          theme: portalTheme,
+          routerConfig: appRouter,
+          debugShowCheckedModeBanner: F.showBanner,
+        ),
       ),
     );
   }

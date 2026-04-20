@@ -66,9 +66,9 @@ void main() {
         final service = TaskService(httpClient: client);
         await service.syncTasks(mockEnrollment);
 
-        expect(service.taskCount, equals(2));
-        expect(service.tasks[0].id, equals('inst-001'));
-        expect(service.tasks[1].id, equals('inst-002'));
+        // eq is filtered out (CUR-1050), only nose_hht task added
+        expect(service.taskCount, equals(1));
+        expect(service.tasks[0].id, equals('inst-002'));
         expect(service.tasks[0].taskType, equals(TaskType.questionnaire));
       });
 
@@ -115,8 +115,9 @@ void main() {
 
         final service = TaskService(httpClient: client);
 
+        // First sync: eq is filtered, only nose_hht added (CUR-1050)
         await service.syncTasks(mockEnrollment);
-        expect(service.taskCount, equals(2));
+        expect(service.taskCount, equals(1));
 
         await service.syncTasks(mockEnrollment);
         expect(service.taskCount, equals(1));
@@ -259,11 +260,11 @@ void main() {
 
         final service = TaskService(httpClient: client);
 
-        // Sync twice — task count should still be 1
+        // Sync twice — eq is filtered out, task count stays 0 (CUR-1050)
         await service.syncTasks(mockEnrollment);
         await service.syncTasks(mockEnrollment);
 
-        expect(service.taskCount, equals(1));
+        expect(service.taskCount, equals(0));
       });
 
       test('handles network error gracefully', () async {
@@ -274,6 +275,81 @@ void main() {
         final service = TaskService(httpClient: client);
         // Should not throw
         await service.syncTasks(mockEnrollment);
+        expect(service.taskCount, equals(0));
+      });
+
+      test('skips eq type tasks (CUR-1050)', () async {
+        final client = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'tasks': [
+                {
+                  'questionnaire_instance_id': 'eq-inst-001',
+                  'questionnaire_type': 'eq',
+                  'status': 'sent',
+                },
+              ],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+        await service.syncTasks(mockEnrollment);
+
+        // EQ tasks must never appear in the patient to-do list
+        expect(service.taskCount, equals(0));
+      });
+    });
+
+    group('handleFcmMessage', () {
+      test('questionnaire_sent adds questionnaire task for nose_hht', () {
+        final service =
+            TaskService(
+              httpClient: MockClient((_) async => http.Response('', 200)),
+            )..handleFcmMessage({
+              'type': 'questionnaire_sent',
+              'questionnaire_instance_id': 'nose-inst-001',
+              'questionnaire_type': 'nose_hht',
+              'status': 'sent',
+            });
+
+        expect(service.taskCount, equals(1));
+        expect(service.tasks[0].id, equals('nose-inst-001'));
+      });
+
+      test('questionnaire_sent ignores eq type (CUR-1050)', () {
+        final service =
+            TaskService(
+              httpClient: MockClient((_) async => http.Response('', 200)),
+            )..handleFcmMessage({
+              'type': 'questionnaire_sent',
+              'questionnaire_instance_id': 'eq-inst-001',
+              'questionnaire_type': 'eq',
+              'status': 'sent',
+            });
+
+        // EQ tasks must never appear in the patient to-do list
+        expect(service.taskCount, equals(0));
+      });
+
+      test('questionnaire_deleted removes existing task', () {
+        final service =
+            TaskService(
+              httpClient: MockClient((_) async => http.Response('', 200)),
+            )..handleFcmMessage({
+              'type': 'questionnaire_sent',
+              'questionnaire_instance_id': 'nose-inst-001',
+              'questionnaire_type': 'nose_hht',
+              'status': 'sent',
+            });
+        expect(service.taskCount, equals(1));
+
+        service.handleFcmMessage({
+          'type': 'questionnaire_deleted',
+          'questionnaire_instance_id': 'nose-inst-001',
+        });
         expect(service.taskCount, equals(0));
       });
     });

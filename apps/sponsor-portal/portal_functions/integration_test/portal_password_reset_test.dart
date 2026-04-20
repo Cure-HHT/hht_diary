@@ -15,8 +15,21 @@ import 'dart:io';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
   // Test user data
   const testActiveUserId = '99993000-0000-0000-0000-000000000001';
   const testActiveUserEmail = 'active@password-reset-test.example.com';

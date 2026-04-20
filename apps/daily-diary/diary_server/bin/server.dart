@@ -2,6 +2,7 @@
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-o00002: Environment-Specific Configuration Management
+//   REQ-o00047: Performance Monitoring — OpenTelemetry integration
 //
 // Main entry point for the diary server
 // Runs a shelf HTTP server on Cloud Run
@@ -11,6 +12,7 @@ import 'dart:io';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:diary_server/diary_server.dart';
 import 'package:logging/logging.dart';
+import 'package:otel_common/otel_common.dart';
 
 /// Component versions injected at compile time via -D flags in Dockerfile.
 /// Defaults to 'unknown' when running outside Docker (e.g. local dev).
@@ -28,18 +30,22 @@ const _trialDataTypesVersion = String.fromEnvironment(
 );
 
 void main(List<String> args) async {
-  // Configure logging
-  Logger.root.level = Level.INFO;
-  Logger.root.onRecord.listen((record) {
-    // Cloud Run structured logging format
-    print(
-      '{"severity":"${record.level.name}",'
-      '"message":"${record.message}",'
-      '"time":"${record.time.toIso8601String()}"}',
-    );
-  });
+  // Initialize OpenTelemetry first (before logging, so traces are available)
+  await initializeOTel(
+    serviceName: 'diary-server',
+    serviceVersion: _diaryServerVersion,
+  );
+
+  // Configure trace-correlated logging (replaces basic JSON logging)
+  final gcpProjectId = Platform.environment['GCP_PROJECT_ID'];
+  configureTracedLogging(gcpProjectId: gcpProjectId);
 
   final log = Logger('diary_server');
+
+  // Populate version info for health endpoint
+  ServerVersions.diaryServer = _diaryServerVersion;
+  ServerVersions.diaryFunctions = _diaryFunctionsVersion;
+  ServerVersions.trialDataTypes = _trialDataTypesVersion;
 
   // Log component versions at startup
   log.info('=== Diary Server v$_diaryServerVersion ===');
@@ -63,6 +69,7 @@ void main(List<String> args) async {
   // Handle shutdown signals
   ProcessSignal.sigint.watch().listen((_) async {
     log.info('Received SIGINT, shutting down...');
+    await shutdownOTel();
     await Database.instance.close();
     await server.close();
     exit(0);
@@ -70,6 +77,7 @@ void main(List<String> args) async {
 
   ProcessSignal.sigterm.watch().listen((_) async {
     log.info('Received SIGTERM, shutting down...');
+    await shutdownOTel();
     await Database.instance.close();
     await server.close();
     exit(0);

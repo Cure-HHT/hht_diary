@@ -251,7 +251,7 @@ class _MarkNotParticipatingDialogState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'This patient will no longer be considered actively enrolled in the trial.',
+                      'This patient will no longer be considered actively participating in the trial.',
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 4),
@@ -350,7 +350,7 @@ class _MarkNotParticipatingDialogState
             const SizedBox(height: 16),
             Text(
               'Sponsor-specific rules will no longer be applied to this patient. '
-              'To re-enroll them, use the "Reactivate" action.',
+              'To reactivate them, use the "Reactivate" action.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

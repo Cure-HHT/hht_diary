@@ -17,7 +17,7 @@ VALUES (
     'Developer Admin',
     'active',
     'totp',      -- Developer Admins use TOTP
-    false        -- MFA enrollment happens on first login
+    false        -- MFA registration happens on first login
 )
 ON CONFLICT (email) DO UPDATE SET
     role = EXCLUDED.role,

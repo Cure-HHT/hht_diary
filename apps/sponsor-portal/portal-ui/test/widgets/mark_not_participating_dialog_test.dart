@@ -290,7 +290,7 @@ void main() {
       // Success state should show reason info
       expect(find.text('Reason'), findsOneWidget);
       expect(find.text('Subject Withdrawal'), findsOneWidget);
-      expect(find.textContaining('re-enroll'), findsOneWidget);
+      expect(find.textContaining('reactivate'), findsOneWidget);
     });
   });
 }

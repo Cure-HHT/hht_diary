@@ -38,6 +38,7 @@ void main() {
       final response = healthHandler(request);
       final json = await getResponseJson(response);
 
+      // K_SERVICE not set in tests, falls back to default
       expect(json['service'], equals('diary-server'));
     });
 
@@ -46,7 +47,8 @@ void main() {
       final response = healthHandler(request);
       final json = await getResponseJson(response);
 
-      expect(json['region'], equals('europe-west1'));
+      // Region comes from env var; in tests without env set, returns 'unknown'
+      expect(json['region'], equals('unknown'));
     });
 
     test('returns valid timestamp', () async {

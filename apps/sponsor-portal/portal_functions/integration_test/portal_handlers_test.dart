@@ -15,8 +15,21 @@ import 'dart:io';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
   // Test user data - using fixed UUIDs for reproducibility
   const testAdminId = '99990000-0000-0000-0000-000000000001';
   const testAdminEmail = 'admin@portal-test.example.com';
@@ -1064,6 +1077,85 @@ void main() {
         expect(response.statusCode, equals(403));
         final json = await getResponseJson(response);
         expect(json['error'], contains('already linked'));
+      },
+    );
+
+    // CUR-1021: Admin creates user with mixed-case email. Firebase normalizes
+    // email to lowercase. First-login email-link lookup was case-sensitive
+    // against a case-preserving varchar column, so the user got 403.
+    // Fix: WHERE LOWER(email) = LOWER(@email) in portal_auth.dart.
+    test(
+      'portalMeHandler links firebase_uid when Firebase email case differs from DB',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Seed a pending user with MIXED-case email and no firebase_uid.
+        const mixedCaseEmail = 'MixedCase.User@portal-test.example.com';
+        const pendingUserId = '99990000-0000-0000-0000-00000000c021';
+        const pendingFirebaseUid = 'firebase-cur1021-uid';
+
+        final db = Database.instance;
+        await db.execute(
+          '''
+          INSERT INTO portal_users (id, email, name, role, firebase_uid, status)
+          VALUES (@id::uuid, @email, 'CUR-1021 Case Test', 'Administrator',
+                  NULL, 'active')
+          ''',
+          parameters: {'id': pendingUserId, 'email': mixedCaseEmail},
+        );
+
+        try {
+          // Firebase sends the email lowercased.
+          final token = createMockEmulatorToken(
+            pendingFirebaseUid,
+            mixedCaseEmail.toLowerCase(),
+          );
+          final request = createGetRequest(
+            '/api/v1/portal/me',
+            headers: {'authorization': 'Bearer $token'},
+          );
+          final response = await portalMeHandler(request);
+
+          expect(
+            response.statusCode,
+            equals(200),
+            reason:
+                'Case-insensitive email match should find the user and link '
+                'firebase_uid on first login',
+          );
+          final json = await getResponseJson(response);
+          // DB retains the original mixed case — we just want the match to work.
+          expect(
+            (json['email'] as String).toLowerCase(),
+            equals(mixedCaseEmail.toLowerCase()),
+          );
+
+          // Confirm the link actually happened in the DB.
+          final linked = await db.execute(
+            'SELECT firebase_uid FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': pendingUserId},
+          );
+          expect(linked.first[0], equals(pendingFirebaseUid));
+        } finally {
+          // Clean up so the test is idempotent.
+          await db.execute(
+            'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
+          );
+          await db.execute(
+            'DELETE FROM portal_user_audit_log WHERE user_id = @id::uuid OR changed_by = @id::uuid',
+            parameters: {'id': pendingUserId},
+          );
+          await db.execute(
+            'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
+          );
+          await db.execute(
+            'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
+            parameters: {'id': pendingUserId},
+          );
+          await db.execute(
+            'DELETE FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': pendingUserId},
+          );
+        }
       },
     );
   });

@@ -111,9 +111,13 @@ enum UserRole {
   bool get isAdmin =>
       this == UserRole.administrator || this == UserRole.developerAdmin;
 
-  /// Whether this role requires site assignment
-  /// Investigator is site-scoped (can only view assigned sites' data)
-  bool get requiresSiteAssignment => this == UserRole.investigator;
+  /// Whether this role requires site assignment.
+  ///
+  /// Site-scoped system roles:
+  /// - Investigator (e.g. Study Coordinator) — can only see assigned sites
+  /// - Auditor (e.g. CRA) — assigned to specific sites per REQ-CAL-p00029.B
+  bool get requiresSiteAssignment =>
+      this == UserRole.investigator || this == UserRole.auditor;
 }
 
 /// Portal user information from server
@@ -235,12 +239,14 @@ class AuthService extends ChangeNotifier {
   /// is automatically signed out. Defaults to 2 minutes (REQ-p01044-B). Pass a
   /// shorter duration in tests to avoid sleeping.
   AuthService({
+    String sponsorId = '',
     FirebaseAuth? firebaseAuth,
     http.Client? httpClient,
     Duration inactivityTimeout = const Duration(minutes: 2),
     bool enableInactivityTimer = true,
     Future<void> Function()? clearStorage,
-  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
+  }) : _sponsorId = sponsorId,
+       _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout,
        _enableInactivityTimer = enableInactivityTimer,
@@ -250,6 +256,7 @@ class AuthService extends ChangeNotifier {
     _init();
   }
 
+  final String _sponsorId;
   final bool _enableInactivityTimer;
   // REQ-d00083-A..E, REQ-p01044-J..M: injectable for testing, web impl by default
   final Future<void> Function() _clearStorage;
@@ -261,6 +268,10 @@ class AuthService extends ChangeNotifier {
   PortalUser? _currentUser;
   bool _isLoading = false;
   String? _error;
+
+  /// The Firebase UID that this tab signed in with.
+  /// Used to detect cross-tab session collisions (CUR-982).
+  String? _sessionUid;
 
   /// Inactivity timer — fires [_inactivityTimeout] after the last activity.
   Timer? _inactivityTimer;
@@ -312,6 +323,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Sponsor role name mappings (systemRole → sponsorName)
+  Map<String, String> _sponsorRoleNames = {};
+
+  /// Sponsor role description mappings (systemRole → description)
+  Map<String, String> _sponsorRoleDescriptions = {};
+
   /// MFA state - resolver for completing MFA challenge (TOTP)
   MultiFactorResolver? _mfaResolver;
   bool _mfaRequired = false;
@@ -341,6 +358,15 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
+  String get sponsorId => _sponsorId;
+
+  /// Get sponsor display name for a system role, falling back to the system name
+  String sponsorRoleName(String systemRole) =>
+      _sponsorRoleNames[systemRole] ?? systemRole;
+
+  /// Get sponsor description for a system role, or null if not set
+  String? sponsorRoleDescription(String systemRole) =>
+      _sponsorRoleDescriptions[systemRole];
 
   /// Whether TOTP MFA verification is required to complete sign-in
   bool get mfaRequired => _mfaRequired;
@@ -404,8 +430,17 @@ class AuthService extends ChangeNotifier {
   /// Initialize auth state listener
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
-      if (user != null) {
-        // User signed in - fetch portal user info
+      if (user != null && _sessionUid != null && user.uid != _sessionUid) {
+        // CUR-982: A different user signed in from another tab, overwriting
+        // this tab's Firebase auth state via shared localStorage. Sign out
+        // to prevent role-escalation display mismatch (FDA 21 CFR Part 11).
+        debugPrint(
+          '[AUTH] Cross-tab session collision detected: '
+          'expected $_sessionUid, got ${user.uid}. Signing out.',
+        );
+        await signOut();
+      } else if (user != null) {
+        // Same user signed in - fetch portal user info
         await _fetchPortalUser();
       } else {
         // User signed out externally (e.g. token expiry, Firebase forced logout).
@@ -438,6 +473,9 @@ class AuthService extends ChangeNotifier {
     try {
       // Sign in with Firebase Auth
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+
+      // CUR-982: Track this tab's Firebase UID to detect cross-tab collisions
+      _sessionUid = _auth.currentUser?.uid;
 
       // Fetch portal user info
       final success = await _fetchPortalUser();
@@ -719,6 +757,10 @@ class AuthService extends ChangeNotifier {
 
     await _auth.signOut();
     _currentUser = null;
+    _sponsorRoleNames = {};
+    _sponsorRoleDescriptions = {};
+    _sponsorTimeoutFetched = false;
+    _sessionUid = null;
     _emailOtpRequired = false;
     _maskedEmail = null;
     _mfaRequired = false;
@@ -757,6 +799,10 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _currentUser = PortalUser.fromJson(data);
+        // Fetch sponsor role mappings if not loaded yet
+        if (_sponsorRoleNames.isEmpty) {
+          await _fetchSponsorRoleMappings(idToken!);
+        }
         notifyListeners();
         // REQ-p01044-C: apply sponsor-configurable inactivity timeout
         await _fetchSponsorTimeout();
@@ -781,19 +827,24 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Whether the sponsor timeout has already been fetched this session.
+  bool _sponsorTimeoutFetched = false;
+
   /// Fetch the sponsor-configurable inactivity timeout and apply it.
   ///
   /// REQ-p01044-C: sponsors can configure inactivity timeout (1–30 minutes).
   /// Silently falls back to the current timeout on any error.
+  /// Only fetches once per session.
   Future<void> _fetchSponsorTimeout() async {
+    if (_sponsorTimeoutFetched) return;
+
     try {
-      // Sponsor config is a public endpoint — no auth token required.
-      // sponsorId is hardcoded to 'callisto' for now (same as user_management_tab).
       final response = await _httpClient.get(
-        Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=callisto'),
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=$_sponsorId'),
       );
 
       if (response.statusCode == 200) {
+        _sponsorTimeoutFetched = true;
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final flags = data['flags'] as Map<String, dynamic>?;
         final minutes = flags?['inactivityTimeoutMinutes'] as int?;
@@ -809,6 +860,40 @@ class AuthService extends ChangeNotifier {
       debugPrint(
         '[AuthService] Failed to fetch sponsor timeout, using default: $e',
       );
+    }
+  }
+
+  /// Fetch sponsor role name mappings from the API
+  Future<void> _fetchSponsorRoleMappings(String idToken) async {
+    try {
+      final response = await _httpClient.get(
+        Uri.parse('$_apiBaseUrl/api/v1/sponsor/roles?sponsorId=$_sponsorId'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final mappingsList = (data['mappings'] as List?) ?? [];
+        final nameMap = <String, String>{};
+        final descMap = <String, String>{};
+        for (final m in mappingsList) {
+          final mapping = m as Map<String, dynamic>;
+          final systemRole = mapping['systemRole'] as String;
+          nameMap[systemRole] = mapping['sponsorName'] as String;
+          final desc = mapping['description'] as String?;
+          if (desc != null && desc.isNotEmpty) {
+            descMap[systemRole] = desc;
+          }
+        }
+        _sponsorRoleNames = nameMap;
+        _sponsorRoleDescriptions = descMap;
+      }
+    } catch (e) {
+      debugPrint('Error fetching sponsor role mappings: $e');
+      // Non-fatal: fall back to system names
     }
   }
 
