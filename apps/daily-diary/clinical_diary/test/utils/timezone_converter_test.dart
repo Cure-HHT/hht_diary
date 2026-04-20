@@ -322,6 +322,60 @@ void main() {
         // 2:00 AM CET = 8:00 PM previous day in device local
         expect(storedCET, equals(DateTime(2025, 12, 17, 20, 0)));
       });
+
+      test('DST: changing from PDT to EDT uses summer offsets for both zones', () {
+        // July 1, 2025 — both US zones are in daylight time
+        // User recorded 4:13 PM PDT (America/Los_Angeles, UTC-7)
+        // Device is EDT (UTC-4 = -240)
+        // Stored = displayed + (deviceOffset - tzOffset) = 4:13 PM + (-240 - (-420)) = 4:13 PM + 3h = 7:13 PM
+        final storedPDT = DateTime(2025, 7, 1, 19, 13);
+
+        // User then changes timezone from PDT → EDT
+        final storedEDT = TimezoneConverter.recalculateForTimezoneChange(
+          storedPDT,
+          'America/Los_Angeles', // old: PDT (UTC-7)
+          'America/New_York', // new: EDT (UTC-4)
+          deviceOffsetMinutes: -240, // EDT device
+        );
+
+        // Displayed time was 4:13 PM PDT.
+        // Same wall-clock 4:13 PM in EDT: stored = 4:13 PM + (-240 - (-240)) = 4:13 PM
+        expect(storedEDT, equals(DateTime(2025, 7, 1, 16, 13)));
+
+        // Verify: displayed time is still 4:13 PM
+        final displayed = TimezoneConverter.toDisplayedDateTime(
+          storedEDT,
+          'America/New_York',
+          deviceOffsetMinutes: -240,
+        );
+        expect(displayed, equals(DateTime(2025, 7, 1, 16, 13)));
+      });
+
+      test('DST: recalculate across a DST boundary (PST → PDT)', () {
+        // An event recorded on March 7, 2026 (PST, UTC-8) at 11:00 PM.
+        // Device is also PST (UTC-8). Stored = displayed (no adjustment).
+        final storedPreDst = DateTime(2026, 3, 7, 23, 0);
+
+        // User corrects the timezone to America/Los_Angeles on March 12 (now PDT).
+        // The displayed time was 11:00 PM PST. Recalculate with old=PST, new=PDT timezone.
+        // But both map to the same IANA ID — the `at` date determines DST state.
+        // March 7 → PST (-480), March 12 → PDT (-420).
+        //
+        // Actually a more realistic scenario: old=null (no tz), new=America/Los_Angeles
+        // on a post-DST date where the stored time is in March (PST period).
+        // toDisplayedDateTime(stored, null) → returns stored as-is = 11:00 PM
+        // toStoredDateTime(11:00 PM, 'America/Los_Angeles', at: March 7) → PST offset
+        // device = PST (-480), tz = PST (-480) → no adjustment
+        final storedLA = TimezoneConverter.recalculateForTimezoneChange(
+          storedPreDst,
+          null, // old: no timezone
+          'America/Los_Angeles', // new: LA (PST on March 7)
+          deviceOffsetMinutes: -480, // device is PST
+        );
+
+        // 11:00 PM PST on March 7, device PST → no adjustment
+        expect(storedLA, equals(DateTime(2026, 3, 7, 23, 0)));
+      });
     });
 
     group('CUR-583 bug scenario', () {

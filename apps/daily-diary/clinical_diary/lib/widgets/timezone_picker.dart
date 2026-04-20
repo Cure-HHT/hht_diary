@@ -675,7 +675,15 @@ String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
   try {
     final location = tz.getLocation(ianaId);
     final tzDateTime = at != null
-        ? tz.TZDateTime(location, at.year, at.month, at.day, at.hour, at.minute)
+        ? tz.TZDateTime(
+            location,
+            at.year,
+            at.month,
+            at.day,
+            at.hour,
+            at.minute,
+            at.second,
+          )
         : tz.TZDateTime.now(location);
     final abbr = tzDateTime.timeZone.abbreviation;
     // Some zones return numeric offsets (e.g., "-07"); fall through to static
@@ -683,7 +691,7 @@ String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
       return abbr;
     }
   } catch (_) {
-    // Fall through to static lookup
+    // IANA ID not found in timezone database — fall through to static lookup.
   }
   // Static fallback
   final entry = commonTimezones.where((e) => e.ianaId == ianaId).firstOrNull;

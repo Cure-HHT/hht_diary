@@ -26,6 +26,7 @@ import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -33,7 +34,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
-import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:uuid/uuid.dart';
 
 /// Flavor name from build configuration.
@@ -71,7 +71,7 @@ void main() async {
       WidgetsFlutterBinding.ensureInitialized();
 
       // Initialize IANA timezone database for DST-aware time calculations
-      tz_data.initializeTimeZones();
+      TimezoneConverter.ensureInitialized();
 
       try {
         await Firebase.initializeApp(

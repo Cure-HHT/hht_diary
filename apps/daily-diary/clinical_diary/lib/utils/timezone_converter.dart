@@ -113,8 +113,13 @@ class TimezoneConverter {
   /// (adjusted for UTC correctness) and returns what should be displayed
   /// to the user in the specified timezone.
   ///
-  /// Formula: displayedDateTime = storedDateTime - (deviceOffset - timezoneOffset)
-  ///        = storedDateTime + (timezoneOffset - deviceOffset)
+  /// Formula: displayedDateTime = storedDateTime + (timezoneOffset - deviceOffset)
+  ///
+  /// Uses a two-pass DST lookup to handle the "fall back" ambiguity: Pass 1
+  /// approximates the display time using the stored (device-local) time as a
+  /// DST reference; Pass 2 refines the offset using that approximate display
+  /// time, which is already in target-TZ wall-clock terms. One iteration is
+  /// always sufficient because the two DST states differ by at most 1 hour.
   static DateTime toDisplayedDateTime(
     DateTime storedDateTime,
     String? timezone, {
