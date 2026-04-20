@@ -15,6 +15,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
@@ -92,6 +93,19 @@ Future<Map<String, dynamic>> _json(Response response) async {
 }
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
   group('generatePatientLinkingCodeHandler', () {
     group('authorization', () {
       test('returns 401 when no authorization header', () async {
@@ -1828,11 +1842,6 @@ void main() {
           if (query.contains('UPDATE patients')) {
             return [];
           }
-          if (query.contains('INSERT INTO questionnaire_instances')) {
-            return [
-              ['eq-instance-001'],
-            ];
-          }
           if (query.contains('FROM patient_fcm_tokens')) {
             return [];
           }
@@ -1853,7 +1862,6 @@ void main() {
         final body = await _json(response);
         expect(body['success'], true);
         expect(body['trial_started'], true);
-        expect(body['eq_instance_id'], 'eq-instance-001');
       });
 
       test('returns 403 for non-Investigator role', () async {
@@ -1949,11 +1957,6 @@ void main() {
           }
           if (query.contains('UPDATE patients')) {
             return [];
-          }
-          if (query.contains('INSERT INTO questionnaire_instances')) {
-            return [
-              ['eq-instance-001'],
-            ];
           }
           if (query.contains('FROM patient_fcm_tokens')) {
             return [

@@ -7,23 +7,12 @@
 // that were assigned via the sponsor portal.
 
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
-
-/// Simple structured logger for Cloud Run
-void _log(String level, String message, [Map<String, dynamic>? data]) {
-  final logEntry = {
-    'severity': level,
-    'message': message,
-    'time': DateTime.now().toUtc().toIso8601String(),
-    if (data != null) ...data,
-  };
-  stderr.writeln(jsonEncode(logEntry));
-}
 
 /// Get pending tasks for a patient.
 /// GET /api/v1/user/tasks
@@ -102,10 +91,11 @@ Future<Response> getTasksHandler(Request request) async {
       };
     }).toList();
 
-    _log('INFO', 'Tasks fetched', {
-      'patientId': patientId,
-      'taskCount': tasks.length,
-    });
+    logWithTrace(
+      'INFO',
+      'Tasks fetched',
+      labels: {'patientId': patientId, 'taskCount': tasks.length},
+    );
 
     return _jsonResponse({
       'tasks': tasks,
@@ -114,10 +104,7 @@ Future<Response> getTasksHandler(Request request) async {
       'isDisconnected': mobileLinkingStatus == 'disconnected',
     });
   } catch (e, stackTrace) {
-    _log('ERROR', 'Get tasks error', {
-      'error': e.toString(),
-      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
-    });
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }

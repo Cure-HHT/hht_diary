@@ -30,7 +30,6 @@ class _ClinicalTrialEnrollmentScreenState
   bool _isLoading = false;
   String? _errorMessage;
   bool _hasAgreedToSharing = false;
-  bool _shareDataPriorToEnrollment = false;
   bool _showSuccessDialog = false;
 
   @override
@@ -137,7 +136,7 @@ class _ClinicalTrialEnrollmentScreenState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Clinical Trial Enrollment',
+                        'Clinical Trial Linking',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ],
@@ -155,7 +154,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Title
                         Text(
-                          'Enter Enrollment Code',
+                          'Enter Linking Code',
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
@@ -165,7 +164,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Description
                         Text(
-                          'Please enter the 10-digit enrollment code provided by your research coordinator.',
+                          'Please enter the 10-digit linking code provided by your research coordinator.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -317,45 +316,6 @@ class _ClinicalTrialEnrollmentScreenState
                           ),
                           child: Column(
                             children: [
-                              // Optional: Share data prior to enrollment
-                              InkWell(
-                                onTap: _isLoading
-                                    ? null
-                                    : () => setState(
-                                        () => _shareDataPriorToEnrollment =
-                                            !_shareDataPriorToEnrollment,
-                                      ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Checkbox(
-                                      value: _shareDataPriorToEnrollment,
-                                      onChanged: _isLoading
-                                          ? null
-                                          : (value) => setState(
-                                              () =>
-                                                  _shareDataPriorToEnrollment =
-                                                      value ?? false,
-                                            ),
-                                    ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(top: 12),
-                                        child: Text(
-                                          'Share data prior to enrollment (optional)',
-                                          style: TextStyle(
-                                            color: Colors.blue.shade800,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
                               // Required: Consent to sharing agreement
                               InkWell(
                                 onTap: _isLoading
@@ -458,7 +418,7 @@ class _ClinicalTrialEnrollmentScreenState
                                     Icon(Icons.check, size: 20),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Enroll in Clinical Trial',
+                                      'Link to Clinical Trial',
                                       style: TextStyle(fontSize: 16),
                                     ),
                                   ],

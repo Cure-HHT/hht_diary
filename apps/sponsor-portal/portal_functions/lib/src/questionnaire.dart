@@ -10,11 +10,13 @@
 
 import 'dart:convert';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'notification_service.dart';
 import 'portal_auth.dart';
+import 'portal_metrics.dart';
 
 /// GET /api/v1/portal/patients/<patientId>/questionnaires
 ///
@@ -25,7 +27,11 @@ Future<Response> getQuestionnaireStatusHandler(
   Request request,
   String patientId,
 ) async {
-  print('[QUESTIONNAIRE] getQuestionnaireStatusHandler for: $patientId');
+  logWithTrace(
+    'INFO',
+    'getQuestionnaireStatusHandler',
+    labels: {'patient_id': patientId},
+  );
 
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -117,8 +123,10 @@ Future<Response> sendQuestionnaireHandler(
   String patientId,
   String questionnaireType,
 ) async {
-  print(
-    '[QUESTIONNAIRE] sendQuestionnaireHandler: $questionnaireType for $patientId',
+  logWithTrace(
+    'INFO',
+    'sendQuestionnaireHandler',
+    labels: {'patient_id': patientId, 'questionnaire_type': questionnaireType},
   );
 
   final user = await requirePortalAuth(request);
@@ -279,14 +287,22 @@ Future<Response> sendQuestionnaireHandler(
     fcmMessageId = notificationResult.messageId;
 
     if (!notificationResult.success) {
-      print('[QUESTIONNAIRE] FCM send failed: ${notificationResult.error}');
+      logWithTrace(
+        'WARNING',
+        'FCM send failed for questionnaire',
+        labels: {
+          'instance_id': instanceId,
+          'error': notificationResult.error ?? 'unknown',
+        },
+      );
       // Don't fail the request - the questionnaire is still created.
       // Patient can discover it via sync.
     }
   } else {
-    print(
-      '[QUESTIONNAIRE] No FCM token found for patient $patientId. '
-      'Patient will discover questionnaire via sync.',
+    logWithTrace(
+      'INFO',
+      'No FCM token found, patient will discover via sync',
+      labels: {'patient_id': patientId},
     );
   }
 
@@ -322,9 +338,15 @@ Future<Response> sendQuestionnaireHandler(
     context: serviceContext,
   );
 
-  print(
-    '[QUESTIONNAIRE] Sent $questionnaireType to patient $patientId: '
-    'instance=$instanceId',
+  questionnaireOp(operation: 'send', status: 'success');
+  logWithTrace(
+    'INFO',
+    'Questionnaire sent',
+    labels: {
+      'instance_id': instanceId,
+      'patient_id': patientId,
+      'questionnaire_type': questionnaireType,
+    },
   );
 
   return _jsonResponse({
@@ -352,8 +374,10 @@ Future<Response> deleteQuestionnaireHandler(
   String patientId,
   String instanceId,
 ) async {
-  print(
-    '[QUESTIONNAIRE] deleteQuestionnaireHandler: $instanceId for $patientId',
+  logWithTrace(
+    'INFO',
+    'deleteQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
   );
 
   final user = await requirePortalAuth(request);
@@ -478,9 +502,13 @@ Future<Response> deleteQuestionnaireHandler(
         );
 
     if (!notificationResult.success) {
-      print(
-        '[QUESTIONNAIRE] FCM delete notification failed: '
-        '${notificationResult.error}',
+      logWithTrace(
+        'WARNING',
+        'FCM delete notification failed',
+        labels: {
+          'instance_id': instanceId,
+          'error': notificationResult.error ?? 'unknown',
+        },
       );
     }
   }
@@ -516,8 +544,11 @@ Future<Response> deleteQuestionnaireHandler(
     context: serviceContext,
   );
 
-  print(
-    '[QUESTIONNAIRE] Deleted questionnaire $instanceId for patient $patientId',
+  questionnaireOp(operation: 'delete', status: 'success');
+  logWithTrace(
+    'INFO',
+    'Questionnaire deleted',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
   );
 
   return _jsonResponse({
@@ -540,8 +571,10 @@ Future<Response> unlockQuestionnaireHandler(
   String patientId,
   String instanceId,
 ) async {
-  print(
-    '[QUESTIONNAIRE] unlockQuestionnaireHandler: $instanceId for $patientId',
+  logWithTrace(
+    'INFO',
+    'unlockQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
   );
 
   final user = await requirePortalAuth(request);
@@ -633,9 +666,13 @@ Future<Response> unlockQuestionnaireHandler(
         );
 
     if (!notificationResult.success) {
-      print(
-        '[QUESTIONNAIRE] FCM unlock notification failed: '
-        '${notificationResult.error}',
+      logWithTrace(
+        'WARNING',
+        'FCM unlock notification failed',
+        labels: {
+          'instance_id': instanceId,
+          'error': notificationResult.error ?? 'unknown',
+        },
       );
     }
   }
@@ -671,8 +708,11 @@ Future<Response> unlockQuestionnaireHandler(
     context: serviceContext,
   );
 
-  print(
-    '[QUESTIONNAIRE] Unlocked questionnaire $instanceId for patient $patientId',
+  questionnaireOp(operation: 'unlock', status: 'success');
+  logWithTrace(
+    'INFO',
+    'Questionnaire unlocked',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
   );
 
   return _jsonResponse({
@@ -696,8 +736,10 @@ Future<Response> finalizeQuestionnaireHandler(
   String patientId,
   String instanceId,
 ) async {
-  print(
-    '[QUESTIONNAIRE] finalizeQuestionnaireHandler: $instanceId for $patientId',
+  logWithTrace(
+    'INFO',
+    'finalizeQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
   );
 
   final user = await requirePortalAuth(request);
@@ -807,9 +849,15 @@ Future<Response> finalizeQuestionnaireHandler(
     context: serviceContext,
   );
 
-  print(
-    '[QUESTIONNAIRE] Finalized questionnaire $instanceId for patient $patientId '
-    '(score: $score)',
+  questionnaireOp(operation: 'finalize', status: 'success');
+  logWithTrace(
+    'INFO',
+    'Questionnaire finalized',
+    labels: {
+      'instance_id': instanceId,
+      'patient_id': patientId,
+      'score': score.toString(),
+    },
   );
 
   return _jsonResponse({

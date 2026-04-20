@@ -18,6 +18,7 @@ import 'package:sponsor_portal_ui/firebase_options.dart';
 import 'package:sponsor_portal_ui/flavors.dart';
 import 'package:sponsor_portal_ui/router/app_router.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
+import 'package:sponsor_portal_ui/services/sponsor_branding_service.dart';
 import 'package:sponsor_portal_ui/theme/portal_theme.dart';
 import 'package:provider/provider.dart';
 
@@ -82,6 +83,9 @@ Widget buildTestApp({AuthService? authService}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => authService ?? AuthService()),
+      Provider<SponsorBrandingConfig>.value(
+        value: SponsorBrandingConfig.fallback,
+      ),
     ],
     child: MaterialApp.router(
       title: 'Portal UI Integration Test',

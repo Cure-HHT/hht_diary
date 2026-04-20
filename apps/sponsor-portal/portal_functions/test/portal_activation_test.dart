@@ -293,6 +293,84 @@ void main() {
     });
   });
 
+  group('getPortalBaseUrl - CUR-997', () {
+    // Helper to create a GET request with specific headers
+    Request createGetRequest(String path, {Map<String, String>? headers}) {
+      return Request(
+        'GET',
+        Uri.parse('http://localhost$path'),
+        headers: headers,
+      );
+    }
+
+    test('PORTAL_URL env var takes priority over Origin header', () {
+      // BUG: In QA, the Origin header contains the raw Cloud Run service URL
+      // (e.g., portal-server-421945483876.europe-west9.run.app) instead of
+      // the DNS alias (portal-qa.callisto.anspar.org). The activation email
+      // should use the configured PORTAL_URL, not the Origin header.
+      final request = createGetRequest(
+        '/api/v1/portal/admin/generate-code',
+        headers: {
+          'origin': 'https://portal-server-421945483876.europe-west9.run.app',
+        },
+      );
+
+      final result = getPortalBaseUrl(
+        request,
+        portalUrlEnv: 'https://portal-qa.callisto.anspar.org',
+      );
+
+      expect(result, equals('https://portal-qa.callisto.anspar.org'));
+    });
+
+    test('PORTAL_URL env var takes priority over Referer header', () {
+      final request = createGetRequest(
+        '/api/v1/portal/admin/generate-code',
+        headers: {
+          'referer':
+              'https://portal-server-421945483876.europe-west9.run.app/dev-admin',
+        },
+      );
+
+      final result = getPortalBaseUrl(
+        request,
+        portalUrlEnv: 'https://portal-qa.callisto.anspar.org',
+      );
+
+      expect(result, equals('https://portal-qa.callisto.anspar.org'));
+    });
+
+    test('falls back to Origin when PORTAL_URL is not set', () {
+      final request = createGetRequest(
+        '/api/v1/portal/admin/generate-code',
+        headers: {'origin': 'https://portal-qa.callisto.anspar.org'},
+      );
+
+      final result = getPortalBaseUrl(request);
+
+      expect(result, equals('https://portal-qa.callisto.anspar.org'));
+    });
+
+    test('falls back to Referer when PORTAL_URL and Origin are not set', () {
+      final request = createGetRequest(
+        '/api/v1/portal/admin/generate-code',
+        headers: {'referer': 'https://portal-qa.callisto.anspar.org/dev-admin'},
+      );
+
+      final result = getPortalBaseUrl(request);
+
+      expect(result, equals('https://portal-qa.callisto.anspar.org'));
+    });
+
+    test('falls back to localhost when nothing is set', () {
+      final request = createGetRequest('/api/v1/portal/admin/generate-code');
+
+      final result = getPortalBaseUrl(request);
+
+      expect(result, equals('http://localhost:8081'));
+    });
+  });
+
   group('Edge cases', () {
     test('handles empty POST body', () async {
       final request = createPostRequest(

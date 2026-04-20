@@ -87,8 +87,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Firebase: a451a7b61536298fd5cbfe3a746fd40443a50679
-  firebase_auth: 2f960f34c77f30d59ea8e642aff2d7876265f244
-  firebase_core: eef0a346c1d66aca6e79bdc43bfcb94dba45d0a8
+  firebase_auth: 3d1489a4a36f4d272d6c9c5883deef7eaa374aa9
+  firebase_core: 2ccd04fc130691db5f3d3cd9aa43ab430004c1e9
   FirebaseAppCheckInterop: e2178171b4145013c7c1a3cc464d1d446d3a1896
   FirebaseAuth: 613c463cb43545a7fd2cd99ade09b78ac472c544
   FirebaseAuthInterop: db06756ef028006d034b6004dc0c37c24f7828d4
@@ -98,7 +98,7 @@ SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 02d6e866e90bc236f48a703a041dfe43e6221a29
-  url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
+  url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 

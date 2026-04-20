@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 
 /// Screen for viewing and modifying feature flags.
 /// Only available in dev and qa builds for testing purposes.
-/// These are sponsor-controlled settings that will be set at enrollment time.
+/// These are sponsor-controlled settings that will be set at linking time.
 class FeatureFlagsScreen extends StatefulWidget {
   const FeatureFlagsScreen({super.key});
 

@@ -1,64 +1,138 @@
 # Diary Platform
 
-[![Pre-release](https://img.shields.io/badge/status-PRE--RELEASE-orange?style=for-the-badge)](https://github.com/Cure-HHT/hht_diary#-pre-release-notice)
-[![PR Validation](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml)
+Multi-sponsor clinical trial diary platform with FDA 21 CFR Part 11 compliance.
 
 ---
 
-## ⚠️ PRE-RELEASE NOTICE
+## PRE-RELEASE NOTICE
 
 **This project is in active development and is not yet functional or ready for production use.**
 
-- ⚠️ **Not Production Ready**: Core features are still being implemented
-- 🚧 **Active Development**: APIs, data models, and interfaces are subject to change
-- 🔬 **Testing Phase**: This software has not undergone clinical validation
-- 📋 **FDA Compliance**: Validation protocols are in development but not yet complete
+- **Not Production Ready**: Core features are still being implemented
+- **Active Development**: APIs, data models, and interfaces are subject to change
+- **Testing Phase**: This software has not undergone clinical validation
+- **FDA Compliance**: Validation protocols are in development but not yet complete
 
 **Do not use this software for actual clinical trial data collection at this time.**
 
-For information about the project roadmap and planned features, see the documentation in the `spec/` directory.
+For information about the project roadmap and planned features, see the `spec/` directory.
 
 ---
 
-## Documentation Structure
+## Repository Structure
 
-Project documentation is split into two directories:
+This is the **core repo** — contains all app source code and shared packages.
+Sponsor-specific deployment, content, and infrastructure live in separate repos.
 
-### spec/ - Formal Requirements
+```
+apps/
+├── daily-diary/
+│   ├── clinical_diary/     Flutter mobile app (iOS + Android)
+│   ├── diary_server/       Dart shelf HTTP server (Cloud Run)
+│   └── diary_functions/    Business logic library
+├── sponsor-portal/
+│   ├── portal-ui/          Flutter web app
+│   ├── portal_server/      Dart shelf HTTP server (Cloud Run)
+│   └── portal_functions/   Business logic library
+├── common-dart/
+│   ├── otel_common/        Shared OpenTelemetry instrumentation
+│   ├── trial_data_types/   Shared data types
+│   └── shared_functions/   Shared utilities
+└── edc/
+    └── rave-integration/   Medidata RAVE EDC integration
 
-Contains formal requirements documents defining WHAT the system does, WHY it exists, and HOW to build/deploy it.
+database/                   PostgreSQL schema, triggers, RLS policies, migrations
+infrastructure/terraform/
+├── modules/                Reusable Terraform modules (shared via hht_sponsor_iac)
+├── sponsor-envs/           Per-sponsor environment configs (migrating to sponsor repos)
+└── bootstrap/              Creates GCP projects for new sponsors
+```
 
-**Format**: `{audience}-{topic}(-{subtopic}).md`
+## Related Repos
 
-**Audiences**:
-- **prd**: Product Requirements - High-level, evaluation for suitability
-- **ops**: DevOps - Deployment, maintenance, operations, monitoring
-- **dev**: Developers - Code practices, libraries, implementation
+| Repo | Purpose |
+| --- | --- |
+| `hht_diary` (this repo) | Core app source code, shared packages, sponsor-ci base image |
+| `hht_admin` | Admin-project Terraform (GAR, Gmail SA, IAM, WIF) |
+| `hht_sponsor_iac` | Reusable Terraform modules + workflow templates |
+| `hht_diary_{sponsor}` | Sponsor-specific deployment, content, seed data, infrastructure |
 
-**Key Topics**: app, database, security, clinical-trials
+---
 
-**See**: `spec/README.md` for complete hierarchical documentation map and topic scope definitions.
+## CI/CD Architecture
 
-### docs/ - Implementation Documentation
+### What This Repo Builds
 
-Contains Architecture Decision Records (ADRs), implementation guides, and technical explanations of HOW decisions were made.
+This repo has one CI/CD responsibility: **building the `sponsor-ci` base image**.
 
-**Includes**:
-- `adr/` - Architecture Decision Records documenting major technical decisions
-- Implementation tutorials and guides
-- Investigation reports and research findings
+```
+hht_diary push to main
+  └─→ build-sponsor-ci.yml
+        └─→ Builds: ghcr.io/cure-hht/sponsor-ci:main-latest
+              Contains: all app source + resolved dependencies (no compilation)
+```
 
-**See**: `docs/README.md` for complete documentation about when to use docs/ vs spec/.
+Sponsor repos pull this base image, overlay their content, compile, and deploy.
+See `hht_diary_callisto/deployment/README.md` for the full container layering.
 
-**Key Documents**:
-- `spec/prd-diary-app.md` - High level system functional requirements
-- `spec/prd-database.md` - Database architecture requirements
-- `spec/prd-database-event-sourcing.md` - Event Sourcing pattern
-- `spec/prd-security-RBAC.md` - Role-based access control
-- `spec/prd-clinical-trials.md` - FDA compliance requirements
-- `spec/dev-database.md` - Implementation guide
-- `spec/dev-data-models-jsonb.md` - JSONB schema definitions
-- `spec/ops-database-setup.md` - Supabase deployment guide
+### What This Repo Does NOT Build
+
+Deployment is owned by sponsor repos. The following workflows were removed
+because they were replaced by the sponsor-repo deployment model:
+
+- `build-portal-server.yml` — replaced by `hht_diary_callisto` build workflows
+- `build-diary-server.yml` — replaced by `hht_diary_callisto` build workflows
+- `deploy-run-service.yml` — replaced by `hht_diary_callisto` deploy workflows
+
+### Terraform
+
+This repo manages **sponsor-envs** Terraform only (Cloud Run, Cloud SQL, VPC
+per sponsor environment). Admin-project Terraform moved to `hht_admin`.
+
+| Trigger | What happens |
+| --- | --- |
+| PR touching `infrastructure/terraform/**` | `terraform plan` for sponsor-envs/dev, posted as PR comment |
+| Merge to main | Auto-apply sponsor-envs/dev |
+| Manual dispatch (Actions UI) | Plan or apply any sponsor/environment |
+
+### Service Accounts
+
+| SA | GitHub Variable | Purpose |
+| --- | --- | --- |
+| `admin-cicd-sa@cure-hht-admin...` | `CUREHHT_ADMIN_SA_EMAIL` | Admin-project Terraform (in `hht_admin` repo) |
+| `github-actions-sa@cure-hht-admin...` | `GCP_SA_EMAIL` | Sponsor-envs Terraform + Cloud Run deploys |
+
+Both authenticate via Workload Identity Federation (WIF) — no JSON key files.
+
+### Other Workflows
+
+| Workflow | Purpose |
+| --- | --- |
+| `build-sponsor-ci.yml` | Builds the shared base image on push to main |
+| `terraform-validate.yml` | Sponsor-envs Terraform plan/apply |
+| `qa-automation.yml` | PR validation (tests, linting, analysis) |
+| `reset-db-gcp.yml` | Database schema reset for dev/qa/uat |
+
+---
+
+## Documentation
+
+### spec/ — Formal Requirements
+
+Requirements documents defining WHAT the system does, organized by audience:
+
+- **prd-\*** — Product requirements (no code)
+- **ops-\*** — Operations (deployment, monitoring, CLI commands)
+- **dev-\*** — Development (implementation details, code examples)
+
+See `spec/README.md` for the complete map and `spec/INDEX.md` for the REQ index.
+
+### docs/ — Implementation Documentation
+
+- `docs/adr/` — Architecture Decision Records
+- `docs/gcp/` — GCP setup guides (Cloud SQL, Identity Platform, Cloud Run)
+- `docs/ops-incident-response-runbook.md` — Incident response procedures
+- `docs/ops-deployment-production-tagging-hotfix.md` — Release process
 
 ---
 
@@ -66,103 +140,83 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 
 ### Initial Setup
 
-**After cloning the repository**, run the setup script to configure Git hooks and repository settings:
-
 ```bash
 ./tools/setup-repo.sh
 ```
 
-This enables:
-- Git hooks for commit validation and workflow tracking
-- Requirement reference enforcement
-- Secret scanning with gitleaks
+Configures Git hooks for commit validation, requirement traceability, and secret scanning.
 
-### Development Environment
+### Local Development
 
-The Clinical Diary project uses Docker-based containerized development environments to ensure consistency, security, and FDA compliance.
+Each app has its own `tool/run_local.sh`:
 
-**Quick Start Options**:
-
-**🌐 GitHub Codespaces** (5 minutes, recommended for remote teams):
-1. Go to: `https://github.com/yourorg/clinical-diary`
-2. Click "Code" → "Codespaces" → "Create codespace"
-3. Choose your role → Start coding!
-
-**💻 Local Dev Containers** (1-2 hours):
 ```bash
-cd tools/dev-env
-./setup.sh
+# Portal (DB + Firebase emulator + server + UI)
+cd apps/sponsor-portal
+./tool/run_local.sh
+
+# Diary server
+cd apps/daily-diary
+./tool/run_local.sh
 ```
 
-**Features**:
-- 🚀 **Role-Based Containers**: Separate environments for dev, qa, ops, and management
-- 🔒 **Security**: Isolated workspaces with role-specific permissions
-- 📦 **Pre-Configured Tools**: Flutter, Node.js, Python, Playwright, Terraform, and more
-- 🔄 **CI/CD Ready**: Same environment locally and in GitHub Actions
-- ✅ **FDA Validated**: IQ/OQ/PQ protocols for 21 CFR Part 11 compliance
-- 🌍 **Cross-Platform**: Linux, macOS, and Windows (WSL2)
+See `apps/sponsor-portal/README.md` and `apps/daily-diary/clinical_diary/README.md`
+for detailed setup, environment variables, and troubleshooting.
 
-**Documentation**:
-- **Setup Guide**: `tools/dev-env/README.md`
-- **Architecture**: `docs/dev-environment-architecture.md`
-- **Requirements**: `spec/dev-environment.md`
-- **Validation**: `docs/validation/dev-environment/`
-- **ADR**: `docs/adr/ADR-006-docker-dev-environments.md`
+### Database
 
-**Supported Roles**:
-- **dev**: Full development environment (Flutter, Android SDK, Node.js, Python)
-- **qa**: Testing environment (Playwright, Flutter tests, report generation)
-- **ops**: DevOps environment (Terraform, gcloud CLI, Cosign, Syft)
-- **mgmt**: Read-only management environment (Git viewing, report access)
+Located in `database/`:
 
-### Database Files
+| File | Purpose |
+| --- | --- |
+| `schema.sql` | Core table definitions |
+| `triggers.sql` | Event store triggers |
+| `roles.sql` | User roles and RLS helper functions |
+| `rls_policies.sql` | Row-level security policies |
+| `migrations/` | Schema migrations |
+| `init.sql` | Master initialization script |
 
-Located in `database/` directory:
-- `schema.sql` - Core table definitions and extensions
-- `triggers.sql` - Event store triggers and validation
-- `roles.sql` - User roles and permissions
-- `rls_policies.sql` - Row-level security policies
-- `indexes.sql` - Performance indexes
-- `init.sql` - Master initialization script
+### Deployment Doctor
 
-### Testing
+Health check scripts for deployed services:
 
-See `database/tests/` for SQL test scripts:
-- `test_audit_trail.sql` - Audit trail validation
-- `test_compliance_functions.sql` - Compliance verification
+```bash
+# Portal server
+./apps/sponsor-portal/tool/deployment-doctor.sh --url https://portal-service-XXXX.run.app --verbose
 
-### Flutter App
+# Diary server
+./apps/daily-diary/tool/deployment-doctor.sh --url https://diary-service-XXXX.run.app --verbose
+```
 
-See **[apps/daily-diary/clinical_diary/README.md](apps/daily-diary/clinical_diary/README.md)** for complete documentation on:
-- Building and running the Flutter app
-- Environment flavors (dev, qa, uat, prod)
-- IDE configurations (IntelliJ IDEA, VSCode)
-- Build scripts for web, iOS, and Android
-- Testing and coverage
-- Doppler secrets management
+Checks: health endpoint, versions, HTTPS, API smoke tests, Cloud Logging signals.
+
+### Observability
+
+Both servers use OpenTelemetry via `otel_common`:
+
+| Signal | What | Where |
+| --- | --- | --- |
+| Traces | Per-request spans, DB queries, FCM sends | Cloud Trace (via OTLP) |
+| Logs | Structured JSON with trace correlation | Cloud Logging + OTLP |
+| Metrics | Request counts, latencies, auth attempts, FCM, questionnaire ops | Cloud Monitoring |
 
 ---
 
-## Deployment
+## Target Platform
 
-### Target Platform
-Firebase (Hosting, Functions, Firestore)
-
-### Deployment Guide
-See `apps/daily-diary/clinical_diary/README.md` for Firebase deployment details.
+- **Compute**: GCP Cloud Run (europe-west9)
+- **Database**: GCP Cloud SQL PostgreSQL 17 (private VPC)
+- **Auth**: GCP Identity Platform (portal), JWT (diary mobile)
+- **Secrets**: Doppler
+- **Container Registry**: GitHub Container Registry (GHCR) + Google Artifact Registry (GAR)
+- **IaC**: Terraform with GCS backend
 
 ---
 
-## Support
+## External Resources
 
-### Getting Help
-- **Executive overview and requirements**: See `spec/prd-*.md` files
-- **Implementation Questions**: See `spec/dev-*.md` files
-- **Deployment Issues**: See `spec/ops-*.md` files
-- **Compliance Questions**: See `spec/prd-clinical-trials.md`
-
-### External Resources
-- Supabase Docs: https://supabase.com/docs
 - PostgreSQL Docs: https://www.postgresql.org/docs/
+- GCP Identity Platform: https://cloud.google.com/security/products/identity-platform
 - FDA 21 CFR Part 11: https://www.fda.gov/regulatory-information
-
+- Flutter Docs: https://docs.flutter.dev/
+- Linear (tickets): https://linear.app/cure-hht-diary

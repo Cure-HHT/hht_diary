@@ -1,6 +1,6 @@
 name: rave_integration
 description: Dart client for Medidata RAVE Web Services API - EDC site sync integration.
-version: 0.1.1+1
+version: 0.1.2+2
 
 environment:
   sdk: ^3.10.7

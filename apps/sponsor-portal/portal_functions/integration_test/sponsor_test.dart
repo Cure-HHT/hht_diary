@@ -14,8 +14,21 @@ import 'dart:io';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
   setUpAll(() async {
     // Initialize database
     final sslEnv = Platform.environment['DB_SSL'];
@@ -38,11 +51,11 @@ void main() {
     // Ensure test data exists
     final db = Database.instance;
     await db.execute('''
-      INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role)
+      INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role, description)
       VALUES
-        ('test-sponsor', 'Test Admin Role', 'Administrator'),
-        ('test-sponsor', 'Test Investigator Role', 'Investigator'),
-        ('test-sponsor', 'Test Auditor Role', 'Auditor')
+        ('test-sponsor', 'Test Admin Role', 'Administrator', 'Admin description'),
+        ('test-sponsor', 'Test Investigator Role', 'Investigator', 'Investigator description'),
+        ('test-sponsor', 'Test Auditor Role', 'Auditor', NULL)
       ON CONFLICT (sponsor_id, sponsor_role_name) DO NOTHING
       ''');
   });
@@ -159,6 +172,29 @@ void main() {
       final response = await sponsorRoleMappingsHandler(request);
 
       expect(response.headers['Content-Type'], equals('application/json'));
+    });
+
+    test('includes description when present', () async {
+      final request = createGetRequest(
+        '/api/v1/sponsor/roles?sponsorId=test-sponsor',
+      );
+      final response = await sponsorRoleMappingsHandler(request);
+
+      expect(response.statusCode, equals(200));
+      final json = await getResponseJson(response);
+      final mappings = json['mappings'] as List;
+
+      // Find mapping with description
+      final adminMapping = mappings.firstWhere(
+        (m) => m['sponsorName'] == 'Test Admin Role',
+      );
+      expect(adminMapping['description'], equals('Admin description'));
+
+      // Find mapping without description (null)
+      final auditorMapping = mappings.firstWhere(
+        (m) => m['sponsorName'] == 'Test Auditor Role',
+      );
+      expect(auditorMapping.containsKey('description'), isFalse);
     });
 
     test('excludes Developer Admin from returned mappings', () async {

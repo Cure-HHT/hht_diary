@@ -7,23 +7,12 @@
 // The mobile app calls this when a patient completes a questionnaire.
 
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
 import 'jwt.dart';
-
-/// Simple structured logger for Cloud Run
-void _log(String level, String message, [Map<String, dynamic>? data]) {
-  final logEntry = {
-    'severity': level,
-    'message': message,
-    'time': DateTime.now().toUtc().toIso8601String(),
-    if (data != null) ...data,
-  };
-  stderr.writeln(jsonEncode(logEntry));
-}
 
 /// Submit questionnaire responses.
 /// POST /api/v1/user/questionnaires/<instanceId>/submit
@@ -101,10 +90,11 @@ Future<Response> submitQuestionnaireHandler(
 
     // REQ-d00113-B: Check if questionnaire was deleted
     if (deletedAt != null) {
-      _log('WARN', 'Submit attempt on deleted questionnaire', {
-        'instanceId': instanceId,
-        'patientId': patientId,
-      });
+      logWithTrace(
+        'WARN',
+        'Submit attempt on deleted questionnaire',
+        labels: {'instanceId': instanceId, 'patientId': patientId},
+      );
       return _jsonResponse({
         'error': 'questionnaire_deleted',
         'message':
@@ -165,11 +155,15 @@ Future<Response> submitQuestionnaireHandler(
       parameters: {'instanceId': instanceId},
     );
 
-    _log('INFO', 'Questionnaire submitted', {
-      'instanceId': instanceId,
-      'patientId': patientId,
-      'responseCount': responses.length,
-    });
+    logWithTrace(
+      'INFO',
+      'Questionnaire submitted',
+      labels: {
+        'instanceId': instanceId,
+        'patientId': patientId,
+        'responseCount': responses.length,
+      },
+    );
 
     return _jsonResponse({
       'success': true,
@@ -177,11 +171,7 @@ Future<Response> submitQuestionnaireHandler(
       'status': 'ready_to_review',
     });
   } catch (e, stackTrace) {
-    _log('ERROR', 'Submit questionnaire error', {
-      'instanceId': instanceId,
-      'error': e.toString(),
-      'stackTrace': stackTrace.toString().split('\n').take(5).join('\n'),
-    });
+    reportAndRecordError(e, stackTrace: stackTrace);
     return _jsonResponse({'error': 'Internal server error: $e'}, 500);
   }
 }

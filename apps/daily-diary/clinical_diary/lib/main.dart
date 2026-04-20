@@ -18,7 +18,6 @@ import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
@@ -27,9 +26,8 @@ import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
-import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
-import 'package:clinical_diary/widgets/update_banner_wrapper.dart';
+import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -186,6 +184,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Widget build(BuildContext context) {
     // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
     return EnvironmentBanner(
+      show: F.showBanner,
+      flavorName: F.name,
       child: MaterialApp(
         title: F.title,
         // Show Flutter debug banner in debug mode (top-right corner)
@@ -254,7 +254,6 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   final EnrollmentService _enrollmentService = EnrollmentService();
-  final AuthService _authService = AuthService();
   final TaskService _taskService = TaskService();
   late final NosebleedService _nosebleedService;
   MobileNotificationService? _notificationService;
@@ -419,20 +418,16 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     // Go directly to home screen - clinical trial enrollment is accessed
     // from the user profile menu, not at app startup
-    // CUR-513: Wrap with UpdateBannerWrapper for version update notifications
-    return UpdateBannerWrapper(
-      child: HomeScreen(
-        nosebleedService: _nosebleedService,
-        enrollmentService: _enrollmentService,
-        authService: _authService,
-        taskService: _taskService,
-        onLocaleChanged: widget.onLocaleChanged,
-        onThemeModeChanged: widget.onThemeModeChanged,
-        onLargerTextChanged: widget.onLargerTextChanged,
-        onFontChanged: widget.onFontChanged,
-        preferencesService: widget.preferencesService,
-        onEnrolled: _onPostEnrollment,
-      ),
+    return HomeScreen(
+      nosebleedService: _nosebleedService,
+      enrollmentService: _enrollmentService,
+      taskService: _taskService,
+      onLocaleChanged: widget.onLocaleChanged,
+      onThemeModeChanged: widget.onThemeModeChanged,
+      onLargerTextChanged: widget.onLargerTextChanged,
+      onFontChanged: widget.onFontChanged,
+      preferencesService: widget.preferencesService,
+      onEnrolled: _onPostEnrollment,
     );
   }
 }

@@ -6,7 +6,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Enrollment screen with 8-character code input
+/// Linking screen with 8-character code input
 class EnrollmentScreen extends StatefulWidget {
   const EnrollmentScreen({
     required this.enrollmentService,
@@ -195,7 +195,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // Enroll button
+              // Link button
               FilledButton(
                 onPressed: _isLoading ? null : () => _enroll(l10n),
                 style: FilledButton.styleFrom(
