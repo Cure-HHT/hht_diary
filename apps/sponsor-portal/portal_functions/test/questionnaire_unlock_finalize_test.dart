@@ -1756,7 +1756,8 @@ void main() {
       expect(response.statusCode, 409);
       final body = await _json(response);
       expect(body['error'], contains('Cannot send questionnaire'));
-      expect(body['error'], contains('end_of_treatment'));
+      // Error message uses the human-readable display label, not snake_case (CUR-856).
+      expect(body['error'], contains('End of Treatment'));
     });
 
     test('does not block when no end event finalized', () async {

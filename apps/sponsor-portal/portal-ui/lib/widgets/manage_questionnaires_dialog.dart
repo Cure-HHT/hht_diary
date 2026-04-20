@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 import '../services/api_client.dart';
 import 'portal_button.dart';
@@ -175,81 +176,6 @@ class _ManageQuestionnairesDialogState
     }
   }
 
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'not_sent':
-        return 'Not Sent';
-      case 'sent':
-        return 'Sent';
-      case 'in_progress':
-        return 'In Progress';
-      case 'ready_to_review':
-        return 'Ready to Review';
-      case 'finalized':
-        return 'Finalized';
-      default:
-        return status;
-    }
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'not_sent':
-        return const Color(0xFF6F7884);
-      case 'sent':
-        return const Color(0xFF6383FD);
-      case 'in_progress':
-        return Colors.amber.shade700;
-      case 'ready_to_review':
-        return const Color(0xFFC25F16);
-      case 'finalized':
-        return Colors.green;
-      default:
-        return const Color(0xFF6F7884);
-    }
-  }
-
-  Color _statusBackgroundColor(String status) {
-    switch (status) {
-      case 'sent':
-        return const Color(0xFFDBEAFF);
-      case 'ready_to_review':
-        return const Color(0xFFFEF1BA).withValues(alpha: 0.4);
-      default:
-        return Colors.transparent;
-    }
-  }
-
-  /// Card background color — yellow tint for ready_to_review
-  Color _cardBackgroundColor(String status) {
-    switch (status) {
-      case 'ready_to_review':
-        return const Color(0xFFFFFBEA).withValues(alpha: 0.4);
-      default:
-        return Colors.transparent;
-    }
-  }
-
-  /// Card border color — golden for ready_to_review
-  Color? _cardBorderColor(String status, ThemeData theme) {
-    switch (status) {
-      case 'ready_to_review':
-        return const Color(0xFFFEF1BA);
-      default:
-        return theme.colorScheme.outlineVariant;
-    }
-  }
-
-  /// Formats an ISO 8601 date string for display (e.g., "Apr 2, 2026").
-  String _formatDate(String isoDate) {
-    try {
-      final date = DateTime.parse(isoDate).toLocal();
-      return DateFormat('MMM d, yyyy, h:mm a').format(date);
-    } catch (_) {
-      return isoDate;
-    }
-  }
-
   // REQ-CAL-p00080: Cycle-aware send flow
   Future<void> _sendQuestionnaire(String type) async {
     final q = _questionnaires.firstWhere((q) => q.type == type);
@@ -266,7 +192,7 @@ class _ManageQuestionnairesDialogState
         suggestedCycle: q.suggestedCycle,
       );
       if (selectedCycle == null || !mounted) return;
-      studyEvent = 'Cycle $selectedCycle Day 1';
+      studyEvent = StudyEvent.format(selectedCycle);
     } else {
       // Next cycle — show confirmation dialog
       final confirmed = await StartNextCycleDialog.show(
@@ -636,9 +562,7 @@ class _ManageQuestionnairesDialogState
         String selectedValue = cycleName;
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final isEndEvent =
-                selectedValue == 'end_of_treatment' ||
-                selectedValue == 'end_of_study';
+            final isEndEvent = StudyEvent.isEndEvent(selectedValue);
             return AlertDialog(
               title: const Text('Finalize Questionnaire?'),
               content: SizedBox(
@@ -677,13 +601,21 @@ class _ManageQuestionnairesDialogState
                           value: cycleName,
                           child: Text(cycleName),
                         ),
-                        const DropdownMenuItem(
-                          value: 'end_of_treatment',
-                          child: Text('End of Treatment'),
+                        DropdownMenuItem(
+                          value: StudyEvent.endOfTreatment,
+                          child: Text(
+                            StudyEvent.endEventDisplayLabel(
+                              StudyEvent.endOfTreatment,
+                            ),
+                          ),
                         ),
-                        const DropdownMenuItem(
-                          value: 'end_of_study',
-                          child: Text('End of Study'),
+                        DropdownMenuItem(
+                          value: StudyEvent.endOfStudy,
+                          child: Text(
+                            StudyEvent.endEventDisplayLabel(
+                              StudyEvent.endOfStudy,
+                            ),
+                          ),
                         ),
                       ],
                       onChanged: (v) {
@@ -790,11 +722,7 @@ class _ManageQuestionnairesDialogState
     _QuestionnaireInfo q,
     String endEvent,
   ) {
-    final displayLabel = endEvent == 'end_of_treatment'
-        ? 'End of Treatment'
-        : endEvent == 'end_of_study'
-        ? 'End of Study'
-        : endEvent;
+    final displayLabel = StudyEvent.endEventDisplayLabel(endEvent);
 
     const accentColor = Color(0xFFE17200);
 
@@ -988,7 +916,16 @@ class _ManageQuestionnairesDialogState
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ..._questionnaires.map((q) => _buildQuestionnaireCard(q, theme)),
+            ..._questionnaires.map(
+              (q) => _QuestionnaireCard(
+                q: q,
+                patientDisplayId: widget.patientDisplayId,
+                actionInProgress: _actionInProgress,
+                onSend: () => _sendQuestionnaire(q.type),
+                onRevoke: () => _revokeQuestionnaire(q),
+                onFinalize: () => _finalizeQuestionnaire(q),
+              ),
+            ),
             if (allNotSent) ...[
               const SizedBox(height: 8),
               Container(
@@ -1020,25 +957,137 @@ class _ManageQuestionnairesDialogState
       ],
     );
   }
+}
 
-  Widget _buildQuestionnaireCard(_QuestionnaireInfo q, ThemeData theme) {
+// ============================================================
+// Extracted card widget — keeps the state class focused on
+// network / dialog orchestration.
+// ============================================================
+
+/// A single questionnaire row card shown inside [ManageQuestionnairesDialog].
+///
+/// Stateless — all mutable state (action-in-progress flag, callbacks) is
+/// passed in from the parent state.
+class _QuestionnaireCard extends StatelessWidget {
+  const _QuestionnaireCard({
+    required this.q,
+    required this.patientDisplayId,
+    required this.actionInProgress,
+    required this.onSend,
+    required this.onRevoke,
+    required this.onFinalize,
+  });
+
+  final _QuestionnaireInfo q;
+  final String patientDisplayId;
+  final bool actionInProgress;
+  final VoidCallback onSend;
+  final VoidCallback onRevoke;
+  final VoidCallback onFinalize;
+
+  // ── helpers ──────────────────────────────────────────────
+
+  String _displayName() {
+    switch (q.type) {
+      case 'nose_hht':
+        return 'Nose HHT';
+      case 'qol':
+        return 'Quality of Life';
+      default:
+        return q.type;
+    }
+  }
+
+  String _statusLabel() {
+    switch (q.status) {
+      case 'not_sent':
+        return 'Not Sent';
+      case 'sent':
+        return 'Sent';
+      case 'in_progress':
+        return 'In Progress';
+      case 'ready_to_review':
+        return 'Ready to Review';
+      case 'finalized':
+        return 'Finalized';
+      default:
+        return q.status;
+    }
+  }
+
+  Color _statusColor() {
+    switch (q.status) {
+      case 'not_sent':
+        return const Color(0xFF6F7884);
+      case 'sent':
+        return const Color(0xFF6383FD);
+      case 'in_progress':
+        return Colors.amber.shade700;
+      case 'ready_to_review':
+        return const Color(0xFFC25F16);
+      case 'finalized':
+        return Colors.green;
+      default:
+        return const Color(0xFF6F7884);
+    }
+  }
+
+  Color _statusBackgroundColor() {
+    switch (q.status) {
+      case 'sent':
+        return const Color(0xFFDBEAFF);
+      case 'ready_to_review':
+        return const Color(0xFFFEF1BA).withValues(alpha: 0.4);
+      default:
+        return Colors.transparent;
+    }
+  }
+
+  Color _cardBackgroundColor() {
+    switch (q.status) {
+      case 'ready_to_review':
+        return const Color(0xFFFFFBEA).withValues(alpha: 0.4);
+      default:
+        return Colors.transparent;
+    }
+  }
+
+  Color _cardBorderColor(ThemeData theme) {
+    switch (q.status) {
+      case 'ready_to_review':
+        return const Color(0xFFFEF1BA);
+      default:
+        return theme.colorScheme.outlineVariant;
+    }
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate).toLocal();
+      return DateFormat('MMM d, yyyy, h:mm a').format(date);
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  // ── build ─────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     const closedTextColor = Color(0xFFC85427);
     const closedBorderColor = Color(0xFFFCE0DB);
     const closedBgColor = Color(0xFFFEF5F3);
 
-    String? endEventLabel;
-    if (q.endEvent == 'end_of_treatment') {
-      endEventLabel = 'End of treatment';
-    } else if (q.endEvent == 'end_of_study') {
-      endEventLabel = 'End of study';
-    }
+    final endEventLabel = q.endEvent != null
+        ? StudyEvent.endEventDisplayLabel(q.endEvent!)
+        : null;
     final statusLabel = q.isBlocked
         ? (endEventLabel != null ? 'Closed \u00B7 $endEventLabel' : 'Closed')
-        : _statusLabel(q.status);
-    final statusColor = q.isBlocked ? closedTextColor : _statusColor(q.status);
-    final statusBg = q.isBlocked
-        ? closedBgColor
-        : _statusBackgroundColor(q.status);
+        : _statusLabel();
+    final statusColor = q.isBlocked ? closedTextColor : _statusColor();
+    final statusBg = q.isBlocked ? closedBgColor : _statusBackgroundColor();
     final statusBorder = q.isBlocked
         ? closedBorderColor
         : (q.status == 'ready_to_review'
@@ -1050,10 +1099,8 @@ class _ManageQuestionnairesDialogState
     final currentCycle = q.studyEvent ?? q.lastFinalizedStudyEvent;
     final isClosed = q.isBlocked;
 
-    final cardBg = isClosed
-        ? const Color(0xFFF9FAFC)
-        : _cardBackgroundColor(q.status);
-    final cardBorder = _cardBorderColor(q.status, theme);
+    final cardBg = isClosed ? const Color(0xFFF9FAFC) : _cardBackgroundColor();
+    final cardBorder = _cardBorderColor(theme);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1061,7 +1108,7 @@ class _ManageQuestionnairesDialogState
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: cardBg,
-          border: Border.all(color: cardBorder!),
+          border: Border.all(color: cardBorder),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -1092,7 +1139,7 @@ class _ManageQuestionnairesDialogState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _displayName(q.type),
+                    _displayName(),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1190,14 +1237,14 @@ class _ManageQuestionnairesDialogState
             ),
 
             // Action buttons
-            _buildCardActions(q, theme),
+            _buildActions(theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCardActions(_QuestionnaireInfo q, ThemeData theme) {
+  Widget _buildActions(ThemeData theme) {
     switch (q.status) {
       case 'not_sent':
         if (q.isBlocked) {
@@ -1210,16 +1257,14 @@ class _ManageQuestionnairesDialogState
         final isNextCycle =
             q.lastFinalizedAt != null && !q.cycleTrackingDisabled;
         return PortalButton(
-          onPressed: _actionInProgress
-              ? null
-              : () => _sendQuestionnaire(q.type),
+          onPressed: actionInProgress ? null : onSend,
           icon: isNextCycle ? Icons.replay : Icons.send,
           label: isNextCycle ? 'Start Next Cycle' : 'Send Now',
         );
 
       case 'sent':
         return IconButton(
-          onPressed: _actionInProgress ? null : () => _revokeQuestionnaire(q),
+          onPressed: actionInProgress ? null : onRevoke,
           icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
           tooltip: 'Revoke questionnaire',
           iconSize: 22,
@@ -1241,9 +1286,7 @@ class _ManageQuestionnairesDialogState
           mainAxisSize: MainAxisSize.min,
           children: [
             PortalButton(
-              onPressed: _actionInProgress
-                  ? null
-                  : () => _finalizeQuestionnaire(q),
+              onPressed: actionInProgress ? null : onFinalize,
               label: 'Finalize',
               icon: Icons.check_circle_outline,
               backgroundColor: Colors.green,
@@ -1251,9 +1294,7 @@ class _ManageQuestionnairesDialogState
             ),
             const SizedBox(width: 4),
             IconButton(
-              onPressed: _actionInProgress
-                  ? null
-                  : () => _revokeQuestionnaire(q),
+              onPressed: actionInProgress ? null : onRevoke,
               icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
               tooltip: 'Revoke questionnaire',
               iconSize: 22,

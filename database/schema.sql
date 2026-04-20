@@ -1025,6 +1025,9 @@ CREATE INDEX idx_qi_patient_type ON questionnaire_instances(patient_id, question
     WHERE deleted_at IS NULL;
 CREATE INDEX idx_qi_status ON questionnaire_instances(status)
     WHERE deleted_at IS NULL;
+-- Intentionally omits CONCURRENTLY: this file is for fresh-DB creation only.
+-- The equivalent migration (007_study_event_uniqueness.sql) uses CONCURRENTLY
+-- for safe production application.
 CREATE UNIQUE INDEX idx_qi_unique_study_event
     ON questionnaire_instances (patient_id, questionnaire_type, study_event)
     WHERE deleted_at IS NULL AND study_event IS NOT NULL;

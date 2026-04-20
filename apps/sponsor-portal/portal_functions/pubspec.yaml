@@ -40,6 +40,10 @@ dependencies:
   shared_functions:
     path: ../../common-dart/shared_functions
 
+  # Shared data types — StudyEvent validation, QuestionnaireInstance, etc.
+  trial_data_types:
+    path: ../../common-dart/trial_data_types
+
   # EDC Integration (RAVE)
   rave_integration:
     path: ../../edc/rave-integration

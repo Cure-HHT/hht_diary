@@ -6,6 +6,7 @@
 // from paper records who may need to start at a cycle > 1.
 
 import 'package:flutter/material.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 import 'portal_button.dart';
 import 'portal_dropdown.dart';
@@ -128,14 +129,14 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text.rich(
-                      const TextSpan(
+                      TextSpan(
                         text: 'Select ',
                         children: [
                           TextSpan(
-                            text: 'Cycle 1 Day 1',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            text: StudyEvent.format(1),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text:
                                 ' if this is the patient\'s first cycle, or a '
                                 'later cycle if the patient started on paper diaries.',
@@ -161,7 +162,7 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
                 final cycle = i + 1;
                 return DropdownMenuItem<int>(
                   value: cycle,
-                  child: Text('Cycle $cycle Day 1'),
+                  child: Text(StudyEvent.format(cycle)),
                 );
               }),
               onChanged: (value) {

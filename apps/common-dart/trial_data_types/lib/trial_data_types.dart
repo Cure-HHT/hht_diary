@@ -9,6 +9,7 @@
 /// Common data types for trial data shared between client and server.
 library;
 
+export 'src/end_event.dart';
 export 'src/question_category.dart';
 export 'src/question_definition.dart';
 export 'src/question_response.dart';

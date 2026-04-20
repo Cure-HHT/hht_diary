@@ -19,6 +19,10 @@ dependencies:
   common_widgets:
     path: ../../common-flutter/common_widgets
 
+  # Shared data types — StudyEvent validation/formatting, QuestionnaireInstance, etc.
+  trial_data_types:
+    path: ../../common-dart/trial_data_types
+
   # Firebase / Identity Platform
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
