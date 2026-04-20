@@ -521,10 +521,11 @@ void main() {
           return [_patientRow()];
         }
         // Last-finalized query (runs per type to populate last_finalized_*)
+        // columns: [questionnaire_type, finalized_at, study_event]
         if (query.contains("status = 'finalized'") &&
             query.contains('finalized_at')) {
           return [
-            [finalizedAt, 'Cycle 5 Day 1'],
+            ['nose_hht', finalizedAt, 'Cycle 5 Day 1'],
           ];
         }
         // End-event blocking query — terminal cycle still active (not deleted)

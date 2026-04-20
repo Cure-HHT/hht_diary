@@ -322,34 +322,40 @@ Future<Response> getQuestionnaireStatusHandler(
   // to avoid a second env-lookup per type (Issue 9).
   final sponsorFlags = getCurrentSponsorFlags();
 
-  // REQ-CAL-p00080: Compute next cycle info and add finalized metadata
+  // REQ-CAL-p00080: Fetch last-finalized metadata for nose_hht and qol in one query
+  final lastFinalizedBatch = await db.executeWithContext(
+    '''
+    SELECT DISTINCT ON (qi.questionnaire_type)
+           qi.questionnaire_type::text, qi.finalized_at, qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type IN ('nose_hht'::questionnaire_type, 'qol'::questionnaire_type)
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+    ORDER BY qi.questionnaire_type, qi.finalized_at DESC
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Index batch results by type
+  final lastFinalizedByType = <String, List<dynamic>>{};
+  for (final row in lastFinalizedBatch) {
+    lastFinalizedByType[row[0] as String] = row;
+  }
+
+  // Compute next cycle info and add finalized metadata
   // for nose_hht and qol (eq excluded — managed via Start Trial)
   for (final type in ['nose_hht', 'qol']) {
     final entry = statusMap[type]!;
     final status = entry['status'] as String;
 
-    // Always query the most recent finalized instance for this type,
-    // so Last Completed is shown even when a new cycle is active.
-    final lastFinalizedResult = await db.executeWithContext(
-      '''
-      SELECT qi.finalized_at, qi.study_event
-      FROM questionnaire_instances qi
-      WHERE qi.patient_id = @patientId
-        AND qi.questionnaire_type = @type::questionnaire_type
-        AND qi.status = 'finalized'
-        AND qi.deleted_at IS NULL
-      ORDER BY qi.finalized_at DESC
-      LIMIT 1
-      ''',
-      parameters: {'patientId': patientId, 'type': type},
-      context: serviceContext,
-    );
-
-    if (lastFinalizedResult.isNotEmpty) {
-      entry['last_finalized_at'] = (lastFinalizedResult.first[0] as DateTime?)
+    // Apply last-finalized metadata from batch query
+    final lastFinalizedRow = lastFinalizedByType[type];
+    if (lastFinalizedRow != null) {
+      entry['last_finalized_at'] = (lastFinalizedRow[1] as DateTime?)
           ?.toIso8601String();
-      entry['last_finalized_study_event'] =
-          lastFinalizedResult.first[1] as String?;
+      entry['last_finalized_study_event'] = lastFinalizedRow[2] as String?;
     }
 
     // If the latest instance is "finalized", transform to "not_sent".
@@ -1202,7 +1208,9 @@ Future<Response> finalizeQuestionnaireHandler(
 
   final now = DateTime.now().toUtc();
 
-  // Placeholder score calculation (real scoring deferred to questionnaire content sprint)
+  // TODO(CUR-856): Replace with real scoring logic before EDC integration.
+  // WARNING: This placeholder sends score=0 for all finalizations.
+  // Do NOT consume this value downstream until scoring is implemented.
   const score = 0;
 
   // Set status to finalized, optionally set end_event
