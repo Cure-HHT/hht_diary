@@ -7,6 +7,7 @@
 
 import 'dart:io';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:portal_server/portal_server.dart';
 
@@ -20,6 +21,14 @@ class TestServer {
 
   /// Start the test server on a random available port
   Future<void> start() async {
+    // Initialize OTel (required by otelMiddleware in createServer)
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-server-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+
     // Initialize database with test configuration
     final dbConfig = _getTestDatabaseConfig();
     await Database.instance.initialize(dbConfig);
@@ -37,6 +46,8 @@ class TestServer {
   Future<void> stop() async {
     await _server?.close(force: true);
     await Database.instance.close();
+    await OTel.shutdown();
+    await OTel.reset();
     print('Test server stopped');
   }
 

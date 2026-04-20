@@ -11,8 +11,7 @@
 #   - Creating/updating PR: Handled by gh pr create hooks
 #
 # Validation Scripts:
-#   - elspais validate: REQ format and links
-#   - elspais index validate: INDEX.md accuracy
+#   - elspais checks: REQ format, links, and INDEX accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
 #   - ./tool/test.sh: Dart and TypeScript tests (per app)
@@ -26,6 +25,12 @@
 # =====================================================
 
 set -e
+
+# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE early, before any tool runs.
+# Git hooks inherit these env vars, and in worktree or AI-agent subshell
+# contexts they can point to unexpected paths, causing tools like elspais
+# and Flutter/Dart to fail config discovery or report wrong versions.
+unset GIT_DIR GIT_WORK_TREE
 
 # =====================================================
 # anspar-wf plugin path (installed via pip)
@@ -168,12 +173,12 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     fi
 fi
 
-# Run elspais validate (REQ format and links)
+# Run elspais checks (REQ format, links, and INDEX accuracy)
 printf '%b\n' "${BLUE}Running requirement validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais validate --mode core 2>&1); then
+    if ! OUTPUT=$(elspais checks 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
@@ -182,25 +187,6 @@ if command -v elspais &> /dev/null; then
     fi
 else
     printf '%b\n' "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
-    VALIDATION_FAILED=true
-fi
-
-echo ""
-
-# Run elspais index validate (INDEX.md accuracy)
-printf '%b\n' "${BLUE}Running INDEX.md validation...${NC}"
-echo ""
-
-if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais index validate --mode core 2>&1); then
-        VALIDATION_FAILED=true
-        VALIDATION_OUTPUT+="$OUTPUT"
-        echo "$OUTPUT"
-    else
-        echo "$OUTPUT"
-    fi
-else
-    printf '%b\n' "${RED}ERROR: elspais not installed - INDEX.md validation is required${NC}"
     VALIDATION_FAILED=true
 fi
 
@@ -314,12 +300,6 @@ echo ""
 # =====================================================
 # Only run pub get, format, and analyze on apps with changed files.
 # Walk up from each changed Dart file to find the nearest pubspec.yaml.
-#
-# IMPORTANT: Unset GIT_DIR/GIT_WORK_TREE before running Flutter/Dart commands.
-# Git hooks set these env vars, which causes Flutter to read version info from
-# the project repo instead of the Flutter SDK repo, resulting in "0.0.0-unknown".
-unset GIT_DIR GIT_WORK_TREE
-
 AFFECTED_APP_DIRS=""
 while IFS= read -r changed_file; do
     if [[ "$changed_file" == apps/* ]] && [[ "$changed_file" == *.dart ]]; then

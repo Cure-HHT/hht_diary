@@ -60,17 +60,12 @@ Each requirement MUST begin with a header in the following exact form:
 # REQ-{id}: {Short Descriptive Title}
 
 **Level**: {PRD | Dev | Ops} | **Status**: {Draft | Review | Active | Deprecated} | **Implements**: {REQ-xNNNNN, REQ-yNNNNN | -}
-
-Addresses: {JNY-xxx-NN, ...}
 ```
 
 Rules:
 - `Implements` lists **only less-specific requirements**.
 - Parent requirements MUST NOT reference children.
 - Use `-` if the requirement has no parent.
-- `Addresses` is optional; when present, it lists User Journey IDs this requirement supports.
-- The `Addresses` line appears after the metadata line, before any section content.
-- The `Addresses` line is NOT part of the hashed content.
 
 ---
 
@@ -274,25 +269,27 @@ Field guidance:
 - **Expected Outcome**: Brief statement of success from the user's perspective
 - **End marker**: Required for parsing; uses format `*End* *{Title}*` (no hash since JNYs are non-normative)
 
-### Referencing User Journeys in Requirements
+### Linking User Journeys to Requirements
 
-Requirements MAY reference User Journeys they address. This reference appears after the REQ header line but before the body content (outside the hashed area):
+User Journeys MAY reference the requirements they validate. This link appears after the JNY metadata block, before `## Steps`:
 
 ```markdown
-# REQ-pXXXXX: Admin Site Management
+# JNY-Portal-Linking-01: Link New Patient
 
-**Level**: PRD | **Status**: Active | **Implements**: REQ-p00001
+**Actor**: Dr. Sarah Mitchell (Investigator)
+**Goal**: Link a new patient's mobile app to the sponsor portal
+**Context**: ...
 
-Addresses: JNY-Admin-Portal-01, JNY-Admin-Portal-02
+Validates: REQ-d00094, REQ-d00099, REQ-d00101
 
-## Assertions
+## Steps
 ...
 ```
 
-The `Addresses:` line:
+The `Validates:` line:
 - is optional,
-- lists one or more JNY IDs separated by commas,
-- indicates which user journeys this requirement supports,
+- lists one or more REQ IDs separated by commas,
+- indicates which requirements this journey validates during UAT (PQ),
 - is NOT part of the hashed content.
 
 ### Do's and Don'ts

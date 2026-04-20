@@ -30,7 +30,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 # REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p00020
 
 ## Rationale
 
@@ -38,32 +38,16 @@ This requirement ensures automated enforcement of requirement traceability throu
 
 ## Assertions
 
-A. The system SHALL provide automated CI/CD validation of requirement traceability on every pull request to protected branches.
+A. The system SHALL post validation results as comments on the associated pull request.
 
-B. The system SHALL provide automated CI/CD validation of requirement traceability on every commit to protected branches.
+B. The CI/CD validation workflow SHALL complete execution within 10 minutes.
 
-C. The CI/CD workflow SHALL validate requirement format for all referenced requirement IDs.
-
-D. The CI/CD workflow SHALL validate that all referenced requirement IDs exist.
-
-E. The CI/CD workflow SHALL automatically generate a traceability matrix during validation.
-
-F. The system SHALL NOT allow pull requests to merge without passing requirement traceability validation.
-
-G. The system SHALL post validation results as comments on the associated pull request.
-
-H. The system SHALL retain validation artifacts for a minimum of 2 years.
-
-I. The system SHALL trigger notifications when requirement traceability validation fails.
-
-J. The CI/CD validation workflow SHALL complete execution within 10 minutes.
-
-*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 4bfaefe3
+*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 2c4f6f4f
 ---
 
 # REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80060
+**Level**: ops | **Status**: Draft | **Implements**: REQ-o00052
 
 ## Rationale
 
@@ -90,7 +74,7 @@ G. The system SHALL create an audit trail entry when administrators override bra
 
 # REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Status**: Draft | **Implements**: o00052, p80030
+**Level**: ops | **Status**: Draft | **Implements**: REQ-o00052
 
 ## Rationale
 
@@ -117,7 +101,8 @@ G. The system SHALL make artifacts downloadable to authorized personnel.
 
 # REQ-o00078: Change-Appropriate CI Validation
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00020
 
 ## Rationale
 
@@ -140,7 +125,8 @@ E. The CI pipeline SHALL complete all validation jobs and produce a consolidated
 
 # REQ-o00079: Commit and PR Traceability Enforcement
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00020
 
 ## Rationale
 
@@ -163,7 +149,7 @@ E. The CI pipeline SHALL provide clear error messages indicating which reference
 
 # REQ-o00080: Secret and Vulnerability Scanning
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060, p01018
+**Level**: ops | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Rationale
 
@@ -186,7 +172,8 @@ E. Secret detection failures SHALL block merge to protected branches.
 
 # REQ-o00081: Code Quality and Static Analysis
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01085
 
 ## Rationale
 
@@ -209,7 +196,8 @@ E. Code formatting violations SHALL block merge to protected branches.
 
 # REQ-o00082: Automated Test Execution
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01085
 
 ## Rationale
 
@@ -234,7 +222,8 @@ F. Unit and integration test failures SHALL block merge to protected branches.
 
 # REQ-o00083: QA Promotion Gate
 
-**Level**: Ops | **Status**: Draft | **Implements**: p80060
+**Level**: ops | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01085
 
 ## Rationale
 
@@ -260,77 +249,77 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 ### Pipeline Stages
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       PR Created/Updated                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 1: Requirement Validation                                  │
-│ - Validate requirement format and IDs                            │
-│ - Check for duplicates and orphans                               │
-│ - Generate traceability matrix                                   │
-│ - Upload artifacts                                               │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 2: Code Header Validation                                  │
-│ - Check implementation files have requirement headers            │
-│ - Validate header format                                         │
-│ - Warn on missing headers (non-blocking)                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 3: Migration Header Validation                             │
-│ - Check migration files have proper headers                      │
-│ - Validate migration metadata                                    │
-│ - Fail on invalid headers (blocking)                             │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 4: Security Check                                          │
-│ - Scan for accidentally committed secrets                        │
-│ - Check for .env files in git                                    │
-│ - Validate no hardcoded credentials                              │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 5: FDA Compliance Check                                    │
-│ - Verify audit trail requirements present                        │
-│ - Check RLS policies exist                                       │
-│ - Validate event sourcing implementation                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 6: Infrastructure Validation (if infra changes)            │
-│ - Run `terraform plan` on changed modules                        │
-│ - Verify no unexpected resource deletions                        │
-│ - Validate Terraform configs (`terraform validate`)              │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Stage 7: Validation Summary                                      │
-│ - Aggregate results from all stages                              │
-│ - Post summary to GitHub PR                                      │
-│ - Generate GitHub Step Summary                                   │
-│ - Overall pass/fail determination                                │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-                  ┌──────┴──────┐
-                  │             │
-                  ▼             ▼
-           ┌──────────┐  ┌──────────┐
-           │   PASS   │  │   FAIL   │
-           │  Merge   │  │  Block   │
-           │ Allowed  │  │  Merge   │
-           └──────────┘  └──────────┘
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 ### Pipeline Characteristics
@@ -480,17 +469,17 @@ None required. All validation uses tools checked into the repository.
 Test branch protection is working:
 
 ```bash
-# Attempt direct commit to main (should fail)
-git checkout main
-echo "test" >> test.txt
-git add test.txt
-git commit -m "Test direct commit"
-git push origin main  # Should be rejected
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 Expected output:
 ```
-! [remote rejected] main -> main (protected branch hook declined)
+<!-- fenced -->
 ```
 
 ### Emergency Override Procedure
@@ -532,20 +521,20 @@ Expected output:
 
 1. Create feature branch:
    ```bash
-   git checkout -b test/validate-cicd-pass
+<!-- fenced -->
    ```
 
 2. Make trivial change to spec:
    ```bash
-   echo "" >> spec/prd-diary-app.md
-   git add spec/prd-diary-app.md
-   git commit -m "Test: Validate CI/CD passes"
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 3. Push and create PR:
    ```bash
-   git push -u origin test/validate-cicd-pass
-   gh pr create --title "Test: CI/CD Validation Pass" --body "Testing CI/CD workflow with valid changes"
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 4. Observe GitHub Actions tab:
@@ -556,7 +545,7 @@ Expected output:
 
 5. Clean up:
    ```bash
-   gh pr close --delete-branch
+<!-- fenced -->
    ```
 
 **Expected Result**: All checks pass, PR mergeable
@@ -571,23 +560,23 @@ Expected output:
 
 1. Create feature branch:
    ```bash
-   git checkout -b test/validate-migration-fail
+<!-- fenced -->
    ```
 
 2. Add invalid migration:
    ```bash
-   cat > database/migrations/20251028_test_invalid.sql <<'EOF'
--- This migration is missing required headers
-CREATE TABLE test_table (id SERIAL PRIMARY KEY);
-EOF
-   git add database/migrations/20251028_test_invalid.sql
-   git commit -m "Test: Add invalid migration"
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 3. Push and create PR:
    ```bash
-   git push -u origin test/validate-migration-fail
-   gh pr create --title "Test: Migration Validation Fail" --body "Testing migration header validation"
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 4. Observe GitHub Actions tab:
@@ -598,7 +587,7 @@ EOF
 
 5. Clean up:
    ```bash
-   gh pr close --delete-branch
+<!-- fenced -->
    ```
 
 **Expected Result**: Migration validation fails, PR blocked
@@ -613,27 +602,27 @@ EOF
 
 1. Create feature branch:
    ```bash
-   git checkout -b test/validate-security-fail
+<!-- fenced -->
    ```
 
 2. Add file with fake secret:
    ```bash
-   cat > config_test.txt <<'EOF'
-# Test file with intentional security violations
-api_key = "sk_test_YOUR_KEY_HERE"
-password = "YOUR_PASSWORD_HERE"
-database_url = "postgresql://user:pass@host/db"
-EOF
-   git add config_test.txt
-   git commit -m "Test: Add file with secrets"
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
    ```
 
    **Note**: Replace `YOUR_KEY_HERE` and `YOUR_PASSWORD_HERE` with actual-looking values when testing (e.g., `sk_test_1234567890`, `MyPass123`) to trigger detection.
 
 3. Push and create PR:
    ```bash
-   git push -u origin test/validate-security-fail
-   gh pr create --title "Test: Security Check Fail" --body "Testing secret detection"
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 4. Observe GitHub Actions tab:
@@ -644,7 +633,7 @@ EOF
 
 5. Clean up:
    ```bash
-   gh pr close --delete-branch
+<!-- fenced -->
    ```
 
 **Expected Result**: Security check fails, PR blocked
@@ -659,27 +648,27 @@ EOF
 
 1. Create feature branch:
    ```bash
-   git checkout -b test/validate-infra-fail
+<!-- fenced -->
    ```
 
 2. Add invalid Terraform config:
    ```bash
-   mkdir -p infrastructure/terraform/modules/test-invalid
-   cat > infrastructure/terraform/modules/test-invalid/main.tf <<'EOF'
-   # This file has HCL syntax errors
-   resource "google_project" "bad" {
-     name = 123  # Type error: expected string
-     invalid_attr = true
-   }
-   EOF
-   git add infrastructure/terraform/modules/test-invalid/main.tf
-   git commit -m "Test: Add invalid Terraform config"
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 3. Push and create PR:
    ```bash
-   git push -u origin test/validate-infra-fail
-   gh pr create --title "Test: Infrastructure Validation Fail" --body "Testing Terraform validation"
+<!-- fenced -->
+<!-- fenced -->
    ```
 
 4. Observe GitHub Actions tab:
@@ -690,7 +679,7 @@ EOF
 
 5. Clean up:
    ```bash
-   gh pr close --delete-branch
+<!-- fenced -->
    ```
 
 **Expected Result**: Infrastructure validation fails, PR blocked
@@ -712,15 +701,15 @@ EOF
 **Diagnosis**:
 
 ```bash
-# Check workflow syntax
-python3 -c "import yaml; yaml.safe_load(open('.github/workflows/pr-validation.yml'))"
+<!-- fenced -->
+<!-- fenced -->
 
-# Check if workflow exists on main
-git fetch origin main
-git show origin/main:.github/workflows/pr-validation.yml
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-# Check GitHub Actions settings
-# Navigate to: Settings → Actions → General → Allow all actions
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **Resolution**:
@@ -745,17 +734,17 @@ git show origin/main:.github/workflows/pr-validation.yml
 **Diagnosis**:
 
 ```bash
-# Run validation locally using elspais
-elspais validate
+<!-- fenced -->
+<!-- fenced -->
 
-# Or use legacy script
-python3 tools/requirements/validate_requirements.py
+<!-- fenced -->
+<!-- fenced -->
 
-# Check for hidden characters
-cat -A spec/prd-diary-app.md | grep REQ-
+<!-- fenced -->
+<!-- fenced -->
 
-# Validate specific requirement
-grep -A 5 "REQ-p00001" spec/prd-*.md
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **Resolution**:
@@ -780,16 +769,16 @@ grep -A 5 "REQ-p00001" spec/prd-*.md
 **Diagnosis**:
 
 ```bash
-# Run generation locally using elspais
-elspais trace --format markdown
-elspais trace --format html
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-# Or use legacy script
-python3 tools/requirements/generate_traceability.py --format markdown
-python3 tools/requirements/generate_traceability.py --format html
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-# Check files created
-ls -lh traceability*
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **Resolution**:
@@ -813,11 +802,11 @@ ls -lh traceability*
 **Diagnosis**:
 
 ```bash
-# Check branch protection via API
-gh api repos/{owner}/{repo}/branches/main/protection
+<!-- fenced -->
+<!-- fenced -->
 
-# Verify status check names in workflow match branch protection settings
-grep "^name:" .github/workflows/pr-validation.yml
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **Resolution**:
@@ -841,16 +830,16 @@ grep "^name:" .github/workflows/pr-validation.yml
 **Diagnosis**:
 
 ```bash
-# Time validation locally using elspais
-time elspais validate
-time elspais trace --format markdown
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-# Or use legacy scripts
-time python3 tools/requirements/validate_requirements.py
-time python3 tools/requirements/generate_traceability.py --format markdown
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-# Check repository size
-du -sh .
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **Resolution**:
@@ -887,14 +876,14 @@ The migration validation job uses an **early-pass pattern**:
 
 When no migrations changed:
 ```
-ℹ️  No migration files were modified in this PR
-✅ Migration validation: PASSED (no migrations to validate)
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 When migrations were changed:
 ```
-✓ Migration files were modified in this PR
-✅ All migration files have proper headers
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 **For Auditors**:
@@ -937,16 +926,16 @@ The infrastructure validation job uses an **early-pass pattern**:
 
 When no infrastructure changed:
 ```
-ℹ️  No infrastructure files were modified in this PR
-✅ Infrastructure validation: PASSED (no changes to validate)
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 When infrastructure was changed:
 ```
-✓ Infrastructure files were modified in this PR
-✓ Terraform validate: PASSED
-✓ Terraform plan: PASSED (3 resources unchanged)
-✅ All infrastructure validation checks passed
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 ---

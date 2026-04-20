@@ -35,7 +35,7 @@ void main() {
     });
 
     group('isEnrolled', () {
-      test('returns false when no enrollment exists', () async {
+      test('returns false when no linking exists', () async {
         service = EnrollmentService(
           secureStorage: mockStorage,
           httpClient: MockClient((_) async => http.Response('', 200)),
@@ -46,7 +46,7 @@ void main() {
         expect(result, false);
       });
 
-      test('returns true when enrollment exists', () async {
+      test('returns true when linking exists', () async {
         final enrollment = UserEnrollment(
           userId: 'user-123',
           jwtToken: 'token-abc',
@@ -66,7 +66,7 @@ void main() {
     });
 
     group('getEnrollment', () {
-      test('returns null when no enrollment exists', () async {
+      test('returns null when no linking exists', () async {
         service = EnrollmentService(
           secureStorage: mockStorage,
           httpClient: MockClient((_) async => http.Response('', 200)),
@@ -77,7 +77,7 @@ void main() {
         expect(result, isNull);
       });
 
-      test('returns enrollment when exists', () async {
+      test('returns linking when exists', () async {
         final enrollment = UserEnrollment(
           userId: 'user-456',
           jwtToken: 'token-xyz',
@@ -389,7 +389,7 @@ void main() {
     });
 
     group('clearEnrollment', () {
-      test('removes enrollment from storage', () async {
+      test('removes linking from storage', () async {
         final enrollment = UserEnrollment(
           userId: 'user-123',
           jwtToken: 'token-abc',
@@ -413,7 +413,7 @@ void main() {
     });
 
     group('getJwtToken', () {
-      test('returns null when not enrolled and no auth token', () async {
+      test('returns null when not linked and no auth token', () async {
         // Clear the pre-set auth tokens for this test
         mockStorage.data.remove('auth_jwt');
         mockStorage.data.remove('user_enrollment');
@@ -428,7 +428,7 @@ void main() {
         expect(token, isNull);
       });
 
-      test('returns token when enrolled', () async {
+      test('returns token when linked', () async {
         final enrollment = UserEnrollment(
           userId: 'user-123',
           jwtToken: 'my-jwt-token',

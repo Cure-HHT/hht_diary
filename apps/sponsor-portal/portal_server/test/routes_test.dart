@@ -6,11 +6,26 @@
 //
 // Unit tests for portal server routes
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:portal_server/portal_server.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-server-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
   group('createRouter', () {
     late Handler handler;
 

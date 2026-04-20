@@ -1,11 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
+//   REQ-CAL-p00072: View Linking Code Button
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00074: Dashboard columns
 //   REQ-CAL-p00063: EDC Patient Ingestion
 //   REQ-CAL-p00079: Start Trial Workflow
 //
 // Widget tests for StudyCoordinatorPatientsTab (Study Coordinator Dashboard)
-// Tests column structure, search/filter, and patient display
+// Tests column structure, search/filter, patient display, and row interaction
 
 import 'dart:convert';
 
@@ -50,6 +51,18 @@ final _testPatients = [
     'site_name': 'Test Site One',
     'site_number': '001',
     'trial_started': false,
+    'has_active_linking_code': true, // Active linking code
+  },
+  {
+    'patient_id': 'PAT-005',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-005',
+    'mobile_linking_status': 'linking_in_progress',
+    'edc_synced_at': '2024-01-05T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false,
+    'has_active_linking_code': false, // Expired linking code
   },
   {
     'patient_id': 'PAT-004',
@@ -129,6 +142,7 @@ Future<void> _pumpPatientsTab(WidgetTester tester) async {
   final authService = AuthService(
     firebaseAuth: mockFirebaseAuth,
     httpClient: mockHttpClient,
+    enableInactivityTimer: false,
   );
   await authService.signIn('investigator@example.com', 'password');
 
@@ -276,6 +290,92 @@ void main() {
       });
     });
 
+    group('Expired Linking Code (CUR-965)', () {
+      testWidgets(
+        'shows Expired chip for linking_in_progress patient with no active code',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-005 has linking_in_progress + has_active_linking_code=false
+          expect(find.text('Expired'), findsOneWidget);
+          expect(find.byIcon(Icons.schedule), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'shows Pending chip for linking_in_progress patient with active code',
+        (WidgetTester tester) async {
+          await _pumpPatientsTab(tester);
+
+          // PAT-003 has linking_in_progress + has_active_linking_code=true
+          expect(find.text('Pending'), findsOneWidget);
+        },
+      );
+
+      testWidgets('shows Generate New Code button for expired linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // PAT-005 expired code → should show Generate New Code
+        expect(find.text('Generate New Code'), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsWidgets); // refresh icon
+      });
+
+      testWidgets('shows Show Code button for active linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // PAT-003 active code → should show Show Code
+        expect(find.text('Show Code'), findsOneWidget);
+        expect(find.byIcon(Icons.qr_code), findsOneWidget);
+      });
+    });
+
+    group('Patient Row Interaction (REQ-CAL-p00072, REQ-CAL-p00073)', () {
+      // CUR-1112: Checkbox column removed via showCheckboxColumn: false.
+      // Row tap still opens PatientActionsDialog without checkboxes.
+      testWidgets('no checkbox column is rendered (CUR-1112)', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        expect(find.byType(Checkbox), findsNothing);
+      });
+
+      testWidgets('tapping a patient row opens PatientActionsDialog', (
+        WidgetTester tester,
+      ) async {
+        await _pumpPatientsTab(tester);
+
+        // Tap on a patient row (PAT-001)
+        await tester.tap(find.text('PAT-001'));
+        await tester.pumpAndSettle();
+
+        // Should open PatientActionsDialog
+        expect(find.text('Patient Actions'), findsOneWidget);
+      });
+
+      testWidgets(
+        'connected patient with hasActiveLinkingCode shows Show Code in actions column (REQ-CAL-p00072)',
+        (WidgetTester tester) async {
+          // This test verifies that "Show Linking Code" is available
+          // for connected patients (Trial Active / Linked - Awaiting Start)
+          // who have a valid linking code, per REQ-CAL-p00072 and REQ-CAL-p00073
+          await _pumpPatientsTab(tester);
+
+          // Tap on PAT-002 (connected, trial_started=true = Trial Active)
+          await tester.tap(find.text('PAT-002'));
+          await tester.pumpAndSettle();
+
+          // PatientActionsDialog should show Show Linking Code for connected patients
+          expect(find.text('Patient Actions'), findsOneWidget);
+          expect(find.text('Show Linking Code'), findsOneWidget);
+        },
+      );
+    });
+
     group('Search and Filter', () {
       testWidgets('should display search field', (WidgetTester tester) async {
         await _pumpPatientsTab(tester);
@@ -305,7 +405,7 @@ void main() {
           // - PAT-001: not_connected
           // - PAT-003: linking_in_progress (Pending)
           // Both should be in Not Connected tab, so count should be 2
-          expect(find.text('Not Connected (2)'), findsOneWidget);
+          expect(find.text('Not Connected (3)'), findsOneWidget);
         },
       );
 

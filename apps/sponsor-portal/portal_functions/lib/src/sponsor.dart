@@ -2,6 +2,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-d00041: Sponsor Role Mapping Schema
+//   REQ-p01044-C: sponsors can configure inactivity timeout (1–30 minutes)
 //
 // Sponsor configuration handler - converted from Firebase sponsor.ts
 
@@ -37,7 +38,11 @@ class SponsorFeatureFlags {
   final int longDurationThresholdMinutes;
   final List<String> availableFonts;
 
-  const SponsorFeatureFlags({
+  // REQ-p01044-C: sponsor-configurable inactivity timeout (1–30 minutes).
+  // Defaults to 2 minutes (REQ-p01044-B).
+  final int inactivityTimeoutMinutes;
+
+  SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
     required this.requireOldEntryJustification,
@@ -45,7 +50,11 @@ class SponsorFeatureFlags {
     required this.enableLongDurationConfirmation,
     required this.longDurationThresholdMinutes,
     required this.availableFonts,
-  });
+    this.inactivityTimeoutMinutes = 2,
+  }) : assert(
+         inactivityTimeoutMinutes >= 1 && inactivityTimeoutMinutes <= 30,
+         'inactivityTimeoutMinutes must be between 1 and 30 (got $inactivityTimeoutMinutes)',
+       );
 
   Map<String, dynamic> toJson() => {
     'useReviewScreen': useReviewScreen,
@@ -55,11 +64,13 @@ class SponsorFeatureFlags {
     'enableLongDurationConfirmation': enableLongDurationConfirmation,
     'longDurationThresholdMinutes': longDurationThresholdMinutes,
     'availableFonts': availableFonts,
+    // REQ-p01044-C: returned to UI so AuthService can apply the correct timeout
+    'inactivityTimeoutMinutes': inactivityTimeoutMinutes,
   };
 }
 
-/// Default feature flags
-const _defaultFlags = SponsorFeatureFlags(
+/// Default feature flags — inactivityTimeoutMinutes defaults to 2 (REQ-p01044-B).
+final _defaultFlags = SponsorFeatureFlags(
   useReviewScreen: false,
   useAnimations: true,
   requireOldEntryJustification: false,
@@ -69,9 +80,10 @@ const _defaultFlags = SponsorFeatureFlags(
   availableFonts: ['Roboto', 'OpenDyslexic', 'AtkinsonHyperlegible'],
 );
 
-/// Sponsor-specific configurations
-/// In production, these would be stored in PostgreSQL
-const _sponsorConfigs = <String, SponsorFeatureFlags>{
+/// Sponsor-specific configurations.
+/// In production, these would be stored in PostgreSQL.
+/// [inactivityTimeoutMinutes] must be between 1 and 30 (REQ-p01044-C).
+final _sponsorConfigs = <String, SponsorFeatureFlags>{
   'curehht': _defaultFlags,
   'callisto': SponsorFeatureFlags(
     useReviewScreen: false,
@@ -81,6 +93,7 @@ const _sponsorConfigs = <String, SponsorFeatureFlags>{
     enableLongDurationConfirmation: true,
     longDurationThresholdMinutes: 60,
     availableFonts: ['Roboto', 'OpenDyslexic', 'AtkinsonHyperlegible'],
+    inactivityTimeoutMinutes: 30,
   ),
 };
 
@@ -150,7 +163,7 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
     const serviceContext = UserContext.service;
     final result = await db.executeWithContext(
       '''
-      SELECT sponsor_role_name, mapped_role::text
+      SELECT sponsor_role_name, mapped_role::text, description
       FROM sponsor_role_mapping
       WHERE sponsor_id = @sponsorId
         AND mapped_role != 'Developer Admin'
@@ -160,12 +173,16 @@ Future<Response> sponsorRoleMappingsHandler(Request request) async {
       context: serviceContext,
     );
 
-    final mappings = <Map<String, String>>[];
+    final mappings = <Map<String, dynamic>>[];
     for (final row in result) {
-      mappings.add({
+      final mapping = <String, dynamic>{
         'sponsorName': row[0] as String,
         'systemRole': row[1] as String,
-      });
+      };
+      if (row[2] != null) {
+        mapping['description'] = row[2] as String;
+      }
+      mappings.add(mapping);
     }
 
     return _jsonResponse({'sponsorId': sponsorId, 'mappings': mappings});

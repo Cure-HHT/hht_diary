@@ -58,9 +58,21 @@ variable "db_user" {
   default     = "app_user"
 }
 
-variable "db_password_secret_id" {
-  description = "Secret Manager secret ID for database password"
+variable "doppler_project_id" {
+  description = "Doppler project ID for runtime secret fetching"
   type        = string
+  default     = "hht-diary"
+}
+
+variable "doppler_config_name" {
+  description = "Doppler config name (matches environment: dev, qa, uat, prod)"
+  type        = string
+}
+
+variable "doppler_token_secret_id" {
+  description = "Secret Manager secret ID for the Doppler service token (the single SM secret)"
+  type        = string
+  default     = "DOPPLER_TOKEN"
 }
 
 variable "min_instances" {

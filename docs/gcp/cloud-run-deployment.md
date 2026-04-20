@@ -1,10 +1,11 @@
 # Cloud Run Deployment Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Status**: Active
+**Updated**: 2026-03-22
 **Created**: 2025-11-25
 
-> **Purpose**: Guide for deploying the Clinical Trial Diary Dart backend and Flutter web portal to Google Cloud Run.
+> **Purpose**: Authoritative guide for how Cloud Run services are deployed, managed, and secured in the Clinical Trial Diary Platform. Describes the correct Terraform ↔ GitHub ↔ GCP division of responsibility.
 
 ---
 
@@ -12,721 +13,507 @@
 
 The Clinical Trial Diary Platform deploys two Cloud Run services per sponsor:
 
-1. **API Server**: Dart backend handling database operations, authentication, and business logic
-2. **Web Portal**: Flutter web application for investigators and administrators
+1. **diary-server**: Dart backend handling database operations, authentication, and business logic
+2. **portal-server**: Flutter web application for investigators and administrators
 
-Both services use private connectivity to Cloud SQL and integrate with Identity Platform for authentication.
+**Ownership model**:
+
+| Concern                                      | Owner                          | How                                                                              |
+|----------------------------------------------|--------------------------------|----------------------------------------------------------------------------------|
+| Service shape (CPU, memory, SA, probes, VPC) | **Terraform**                  | `modules/cloud-run`                                                              |
+| Container image (version, tag)               | **CI/CD**                      | `deploy-run-service.yml` via `gcloud run deploy --image`                         |
+| Secrets (DB password, API keys)              | **Doppler**                    | Runtime fetch via Doppler SDK / `doppler run --`                                 |
+| Doppler service token                        | **Terraform → Secret Manager** | Single bootstrap secret per project                                              |
+| Database user/password                       | **Terraform**                  | `modules/cloud-sql` creates user; password from Doppler via `TF_VAR_DB_PASSWORD` |
+
+Terraform explicitly **ignores container image changes** (`lifecycle.ignore_changes`) so CI/CD can update images without Terraform drift.
 
 ---
 
 ## Architecture Overview
 
 ```
-                    ┌─────────────────────────────────────────────┐
-                    │           GCP Project (per sponsor)         │
-                    │                                             │
- Users ─────────────┼──▶ Cloud Run                               │
- (HTTPS)            │    ├─ API Server (Dart)                    │
-                    │    │   └─▶ Cloud SQL (private IP)          │
-                    │    │   └─▶ Secret Manager                  │
-                    │    │   └─▶ Identity Platform (verify JWT)  │
-                    │    │                                        │
-                    │    └─ Web Portal (Flutter/nginx)           │
-                    │        └─▶ API Server (internal)           │
-                    │                                             │
-                    │  Artifact Registry                          │
-                    │    └─ Container images                      │
-                    │                                             │
-                    └─────────────────────────────────────────────┘
+                    ┌─────────────────────────────────────────────────┐
+                    │           GCP Project (per sponsor/env)         │
+                    │                                                 │
+ Users ─────────────┼──▶ Cloud Run                                   │
+ (HTTPS)            │    ├─ diary-server (Dart)                      │
+                    │    │   ├─ Runtime SA (least-privilege)          │
+                    │    │   ├─▶ Cloud SQL (private IP via VPC)      │
+                    │    │   ├─▶ Doppler (runtime secret fetch)      │
+                    │    │   └─▶ Identity Platform (verify JWT)      │
+                    │    │                                            │
+                    │    └─ portal-server (Flutter/nginx)             │
+                    │        ├─ Runtime SA (least-privilege)          │
+                    │        └─▶ diary-server (internal)              │
+                    │                                                 │
+                    │  Secret Manager                                 │
+                    │    └─ DOPPLER_TOKEN (single bootstrap secret)   │
+                    │                                                 │
+ GitHub Actions ────┼──▶ WIF (OIDC) ──▶ Admin SA ──▶ gcloud deploy  │
+                    │                                                 │
+                    │  Artifact Registry (admin project)              │
+                    │    └─ ghcr-remote proxy ──▶ GHCR images        │
+                    │                                                 │
+                    └─────────────────────────────────────────────────┘
 ```
+
+---
+
+## Service Account Architecture
+
+There are **three distinct service account roles**. Understanding their separation is critical.
+
+### 1. Deployment SA (GitHub Actions → WIF)
+
+**Identity**: `github-actions-sa@cure-hht-admin.iam.gserviceaccount.com`
+**Authentication**: Workload Identity Federation (GitHub OIDC token → GCP)
+**No long-lived keys.** GitHub Actions presents a short-lived OIDC token that WIF exchanges for a GCP access token scoped to this SA.
+
+**Permissions** (granted in `sponsor-envs/main.tf`):
+- `roles/run.admin` — deploy/update Cloud Run services
+- `roles/iam.serviceAccountUser` — act as the runtime SA during deploy
+- `roles/cloudsql.client` — for `--set-cloudsql-instances` flag
+- `roles/vpcaccess.user` — for `--vpc-connector` flag
+
+**Terraform source**: `sponsor-envs/main.tf` — `google_project_iam_member.github_actions_*`
+
+### 2. Runtime SA (Cloud Run services run as)
+
+**Identity**: `{sponsor}-{env}-run-sa@{project}.iam.gserviceaccount.com`
+**Created by**: Terraform `modules/cloud-run/main.tf` — `google_service_account.cloud_run`
+
+This is the identity the Cloud Run containers **run as**. It should have only the permissions the application code needs at runtime.
+
+**Permissions**:
+- `roles/cloudsql.client` — connect to Cloud SQL via private IP
+- `roles/secretmanager.secretAccessor` — read DOPPLER_TOKEN from Secret Manager
+- `roles/logging.logWriter` — write structured logs
+- `roles/monitoring.metricWriter` — emit custom metrics
+- `roles/cloudtrace.agent` — distributed tracing (OpenTelemetry)
+
+**Security note**: Without a dedicated runtime SA, Cloud Run falls back to the **Compute Engine default SA**, which typically has `roles/editor` — far too broad for a clinical trial system. The dedicated SA enforces least-privilege.
+
+### 3. Terraform SA (infrastructure provisioning)
+
+**Identity**: Per-project SA created by bootstrap (`terraform-sa@{project}.iam.gserviceaccount.com`)
+**Used by**: `doppler run -- terraform apply` locally or CI
+**Permissions**: Cloud Run Admin, Cloud SQL Admin, Secret Manager Admin, IAM Admin (scoped to project)
+
+### Summary: SA Flow
+
+```
+GitHub OIDC token
+  └─▶ WIF Pool/Provider (admin project)
+        └─▶ impersonates Deployment SA
+              └─▶ gcloud run deploy --service-account=Runtime SA
+                    └─▶ Container runs AS Runtime SA
+                          └─▶ accesses Cloud SQL, Doppler, logs
+```
+
+---
+
+## Secrets Architecture: Doppler-First Design
+
+### Current Architecture (ACTIVE)
+
+The platform uses **Doppler as the single source of truth** for all application secrets. GCP Secret Manager stores exactly **one secret per project**: the Doppler service token.
+
+```
+Doppler (source of truth)
+  ├─ DB_PASSWORD, API keys, Firebase config, etc.
+  │
+  ├─ Development: `doppler run -- flutter run`
+  ├─ CI/Terraform: `doppler run -- terraform apply` (injects TF_VAR_*)
+  │
+  └─ Production (Cloud Run):
+       ├─ DOPPLER_TOKEN stored in Secret Manager (via Terraform)
+       ├─ Cloud Run env vars: DOPPLER_PROJECT_ID, DOPPLER_CONFIG_NAME
+       └─ App fetches all secrets from Doppler at startup
+```
+
+**Terraform resource** (`sponsor-envs/main.tf`):
+```hcl
+resource "google_secret_manager_secret" "doppler_token" {
+  secret_id = "DOPPLER_TOKEN"
+  project   = var.project_id
+  # ...
+}
+```
+
+### Why NOT Secret Manager for All Secrets
+
+The consultant's original design stored `DB_PASSWORD` directly in Secret Manager and referenced it via `secret_key_ref` in the Cloud Run module. This was replaced with the Doppler-first approach for these reasons:
+
+| Concern                  | Doppler-Only               | Secret Manager for All      | Hybrid (Doppler+SM) |
+|--------------------------|----------------------------|-----------------------------|---------------------|
+| **Systems to secure**    | 1 (Doppler)                | 1 (Secret Manager)          | 2 (both)            |
+| **Attack surface**       | Doppler API                | GCP IAM                     | Both surfaces       |
+| **Developer experience** | `doppler run --`           | `gcloud secrets...` + setup | Mixed               |
+| **Terraform state risk** | Secrets not in state       | Secrets in plaintext state  | Partial exposure    |
+| **Cold start / restart** | App fetches from Doppler   | Cloud Run injects from SM   | Depends on secret   |
+| **Rotation**             | Update in Doppler, restart | New SM version, redeploy    | Two rotation paths  |
+| **Audit**                | Doppler audit log          | Cloud Audit Logs            | Two audit systems   |
+| **Multi-cloud**          | Yes                        | GCP only                    | Partial             |
+| **FDA compliance**       | SOC 2, BAA available       | SOC 2 (GCP-wide)            | Both                |
+
+**Decision**: Doppler-only with a single DOPPLER_TOKEN in Secret Manager is the simplest, most auditable design. One system to secure, one audit trail, one rotation process.
+
+### Cold Start Implications
+
+When Cloud Run starts a new instance or restarts after a crash:
+- **Doppler approach**: App makes an HTTPS call to Doppler API to fetch secrets (~100-200ms). If Doppler is down, the container fails to start (Cloud Run retries with backoff).
+- **Secret Manager approach**: Cloud Run injects env vars from SM before container starts (no app code needed). If SM is down, container also fails.
+
+Both have a single-point-of-failure for secret retrieval at startup. The difference is ~100-200ms of additional startup time for Doppler, which is negligible compared to Dart JIT compilation (30-60s).
+
+### What the DB_PASSWORD Secret Is For
+
+The `DB_PASSWORD` is the PostgreSQL password for the `app_user` role in Cloud SQL. It is used:
+
+1. **By Terraform** (`modules/cloud-sql`): Creates the `google_sql_user.app_user` with this password
+2. **By the Dart server**: Connects to Cloud SQL via the Cloud SQL Auth Proxy (private IP)
+
+The database runs as a **managed Cloud SQL instance** (not a container). Cloud SQL is a fully managed PostgreSQL service — there are no "DB containers." The `gcloud sql` commands configure the managed instance; they don't create or run containers.
+
+---
+
+## Terraform ↔ CI/CD Division of Responsibility
+
+### What Terraform Owns
+
+Terraform manages the **infrastructure shape** — everything that doesn't change on every deploy:
+
+```hcl
+# infrastructure/terraform/modules/cloud-run/main.tf
+
+resource "google_cloud_run_v2_service" "diary_server" {
+  # Terraform owns:
+  #   - Service name, region, project
+  #   - Runtime service account
+  #   - CPU, memory, scaling limits
+  #   - VPC connector, egress settings
+  #   - Health probes (startup, liveness)
+  #   - Execution environment (Gen2)
+  #   - Environment variables (non-secret)
+  #   - Traffic routing (100% latest)
+
+  lifecycle {
+    ignore_changes = [
+      client,
+      template[0].containers[0].image,  # ← CI/CD owns this
+      template[0].containers[0].name,
+    ]
+  }
+}
+```
+
+### What CI/CD Owns
+
+CI/CD manages the **container image** — the thing that changes on every deploy:
+
+```yaml
+# .github/workflows/deploy-run-service.yml
+gcloud run deploy diary-server \
+  --image="$GAR_PATH" \          # ← CI/CD sets this
+  --set-env-vars="DOPPLER_PROJECT_ID=...,DOPPLER_CONFIG_NAME=...,SPONSOR_ID=..."
+```
+
+### The Handoff
+
+1. **First deploy**: `terraform apply` creates the Cloud Run service with a placeholder image
+2. **Subsequent deploys**: CI/CD runs `gcloud run deploy --image=NEW_TAG`, updating only the image
+3. **Infrastructure changes**: `terraform apply` updates probes, memory, SA, etc. — ignores image
+4. **No conflict**: The `lifecycle.ignore_changes` on `image` prevents Terraform from reverting CI/CD's image updates
+
+### Container Image Path
+
+Images flow through a **GHCR remote proxy** in the admin project's Artifact Registry:
+
+```
+GHCR (source)                    Artifact Registry (proxy)           Cloud Run
+ghcr.io/cure-hht/diary-server → europe-west9-docker.pkg.dev/       → pulls from proxy
+                                  cure-hht-admin/ghcr-remote/
+                                  cure-hht/diary-server:v1.2.3
+```
+
+CI/CD translates the `ghcr.io/...` path to the GAR proxy path before deploying.
+
+---
+
+## Current Deployment Status
+
+### What's Active (via gcloud/CI)
+
+The `deploy-run-service.yml` workflow currently deploys using `gcloud run deploy` directly. Terraform has **not yet been uncommented** for Cloud Run (`sponsor-envs/main.tf` lines 165-195 are commented out).
+
+Current live deploy command:
+```yaml
+gcloud run deploy $SERVICE_NAME \
+  --region=$GCP_REGION \
+  --project=$CALLISTO_TARGET_PROJECT_ID \
+  --image="$GAR_PATH" \
+  --cpu=2 --cpu-boost --memory=4Gi \
+  --min-instances=0 --max-instances=2 \
+  --set-cloudsql-instances=$CALLISTO_DB_CONNECTION_NAME \
+  --vpc-connector $CALLISTO_SERVERLESS_VPC_CONNECTOR \
+  --set-env-vars="DOPPLER_PROJECT_ID=hht-diary,DOPPLER_CONFIG_NAME=$ENV,SPONSOR_ID=callisto"
+```
+
+### What's Pending (Terraform Module)
+
+The `modules/cloud-run` module is ready but needs two fixes before uncommenting:
+
+1. **Replace `db_password_secret_id`** with Doppler env vars pattern (see "Secrets Architecture" above)
+2. **Wire the runtime SA** to the deployment workflow's `--service-account` flag
 
 ---
 
 ## Prerequisites
 
-1. **GCP Project Configured**: See docs/gcp/project-structure.md
-2. **Cloud SQL Instance Running**: See docs/gcp/cloud-sql-setup.md
-3. **Identity Platform Configured**: See docs/gcp/identity-platform-setup.md
-4. **APIs Enabled**:
-   ```bash
-   gcloud services enable \
-     run.googleapis.com \
-     artifactregistry.googleapis.com \
-     cloudbuild.googleapis.com \
-     secretmanager.googleapis.com \
-     vpcaccess.googleapis.com
-   ```
+1. **GCP Project Configured**: See `docs/gcp/project-structure.md`
+2. **Cloud SQL Instance Running**: See `docs/gcp/cloud-sql-setup.md`
+3. **Identity Platform Configured**: See `docs/gcp/identity-platform-setup.md`
+4. **Doppler Project/Config**: Secrets configured in Doppler for the sponsor/environment
+5. **WIF configured**: Admin project has GitHub OIDC pool/provider (see bootstrap)
+
+**Required APIs** (enabled by Terraform bootstrap):
+- `run.googleapis.com`
+- `artifactregistry.googleapis.com`
+- `secretmanager.googleapis.com`
+- `vpcaccess.googleapis.com`
+- `sqladmin.googleapis.com`
 
 ---
 
-## Service Account Setup
+## Terraform State Configuration
 
-### Create Service Accounts
+State is stored in GCS bucket `cure-hht-terraform-state`:
 
+| Workspace     | Prefix                | Backend                                       |
+|---------------|-----------------------|-----------------------------------------------|
+| bootstrap     | `bootstrap/{sponsor}` | `gcs {}` (configured via `-backend-config`)   |
+| admin-project | `admin-project`       | `gcs { bucket = "cure-hht-terraform-state" }` |
+| sponsor-envs  | varies                | `gcs {}` (configured via `-backend-config`)   |
+
+**Running Terraform** (sponsor-envs):
 ```bash
-export PROJECT_ID="hht-diary-orion-prod"
-export SPONSOR="orion"
-export ENV="prod"
+# Initialize with backend config
+doppler run -- terraform init \
+  -backend-config="bucket=cure-hht-terraform-state" \
+  -backend-config="prefix=sponsor-envs/callisto4-dev"
 
-# API Server service account
-gcloud iam service-accounts create api-server \
-  --display-name="API Server" \
-  --project=$PROJECT_ID
+# Plan
+doppler run -- terraform plan \
+  -var-file=sponsor-configs/callisto4-dev.tfvars
 
-# Portal service account
-gcloud iam service-accounts create portal-server \
-  --display-name="Portal Server" \
-  --project=$PROJECT_ID
-
-# CI/CD deployer
-gcloud iam service-accounts create cicd-deployer \
-  --display-name="CI/CD Deployer" \
-  --project=$PROJECT_ID
+# Apply
+doppler run -- terraform apply \
+  -var-file=sponsor-configs/callisto4-dev.tfvars
 ```
 
-### Grant Permissions
-
-```bash
-# API Server permissions
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:api-server@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/cloudsql.client"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:api-server@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:api-server@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/logging.logWriter"
-
-# CI/CD permissions
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:cicd-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/run.admin"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:cicd-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/artifactregistry.writer"
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:cicd-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountUser"
-```
+The `-backend-config` approach allows the same Terraform code to be used across sponsors/environments with different state prefixes.
 
 ---
 
-## Artifact Registry Setup
+## Security Implications
 
-### Create Repository
+### Service Account Risks
 
-```bash
-export REGION="europe-west1"  # EU region for GDPR compliance
+| Risk                                   | Mitigation                                              |
+|----------------------------------------|---------------------------------------------------------|
+| Default Compute SA has `roles/editor`  | Dedicated runtime SA with 5 specific roles              |
+| Deployment SA could be over-privileged | Scoped to run.admin + sa.user per project               |
+| SA key leakage                         | No keys — WIF for CI/CD, SA impersonation for Terraform |
+| Cross-sponsor access                   | Separate projects, separate SAs, no cross-project IAM   |
 
-gcloud artifacts repositories create ${SPONSOR}-images \
-  --repository-format=docker \
-  --location=$REGION \
-  --description="Container images for ${SPONSOR}" \
-  --project=$PROJECT_ID
-```
+### Secrets Risks
 
-### Configure Docker Authentication
+| Risk                           | Mitigation                                               |
+|--------------------------------|----------------------------------------------------------|
+| Doppler outage at cold start   | Cloud Run retries with backoff; min_instances=1 for prod |
+| DOPPLER_TOKEN leaked           | Stored in Secret Manager with IAM-scoped access          |
+| DB password in Terraform state | State in GCS with encryption; consider state encryption  |
+| Secrets in CI/CD logs          | Doppler env vars are non-secret identifiers only         |
 
-```bash
-gcloud auth configure-docker ${REGION}-docker.pkg.dev
-```
+### FDA 21 CFR Part 11 Compliance
 
----
-
-## API Server Deployment
-
-### Dockerfile
-
-```dockerfile
-# apps/api_server/Dockerfile
-FROM dart:stable AS build
-
-WORKDIR /app
-
-# Copy pubspec files
-COPY pubspec.* ./
-RUN dart pub get
-
-# Copy source code
-COPY . .
-
-# Build AOT compiled executable
-RUN dart compile exe bin/server.dart -o bin/server
-
-# Production image
-FROM debian:bookworm-slim
-
-# Install CA certificates for HTTPS
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Copy compiled binary
-COPY --from=build /app/bin/server /app/server
-
-# Cloud Run expects PORT environment variable
-ENV PORT=8080
-EXPOSE 8080
-
-CMD ["/app/server"]
-```
-
-### Build and Push
-
-```bash
-cd apps/api_server
-
-# Build image
-docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/api-server:latest .
-
-# Push to Artifact Registry
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/api-server:latest
-```
-
-### Deploy to Cloud Run
-
-```bash
-# Get Cloud SQL connection name
-INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${SPONSOR}-db-${ENV}"
-
-# Deploy API server
-gcloud run deploy api-${SPONSOR}-${ENV} \
-  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/api-server:latest \
-  --platform=managed \
-  --region=$REGION \
-  --project=$PROJECT_ID \
-  --service-account=api-server@${PROJECT_ID}.iam.gserviceaccount.com \
-  --add-cloudsql-instances=$INSTANCE_CONNECTION_NAME \
-  --vpc-connector=${SPONSOR}-vpc-connector \
-  --vpc-egress=private-ranges-only \
-  --set-secrets=DATABASE_PASSWORD=db-app-password:latest \
-  --set-env-vars="\
-DATABASE_HOST=/cloudsql/${INSTANCE_CONNECTION_NAME},\
-DATABASE_NAME=clinical_diary,\
-DATABASE_USER=app_user,\
-SPONSOR_ID=${SPONSOR},\
-ENVIRONMENT=${ENV}" \
-  --min-instances=1 \
-  --max-instances=10 \
-  --memory=512Mi \
-  --cpu=1 \
-  --timeout=60s \
-  --concurrency=80 \
-  --ingress=all \
-  --allow-unauthenticated
-```
-
-### Configure Custom Domain (Optional)
-
-```bash
-# Map custom domain
-gcloud run domain-mappings create \
-  --service=api-${SPONSOR}-${ENV} \
-  --domain=api.${SPONSOR}.clinicaltrial.app \
-  --region=$REGION \
-  --project=$PROJECT_ID
-```
+- **Audit trail**: All deploys tracked in GitHub Actions logs + Cloud Audit Logs
+- **Access control**: WIF + IAM, no shared credentials
+- **Data integrity**: Container images are immutable (SHA-tagged)
+- **Electronic signatures**: Git commit signatures + PR approvals
 
 ---
 
-## Web Portal Deployment
+## Monitoring and Troubleshooting
 
-### Dockerfile
-
-```dockerfile
-# apps/web_portal/Dockerfile
-
-## Stage 1: Build Flutter web app
-FROM ghcr.io/cirruslabs/flutter:stable AS builder
-
-WORKDIR /app
-
-# Copy pubspec files
-COPY pubspec.* ./
-RUN flutter pub get
-
-# Copy source code
-COPY . .
-
-# Build arguments for environment configuration
-ARG FIREBASE_API_KEY
-ARG FIREBASE_AUTH_DOMAIN
-ARG GCP_PROJECT_ID
-ARG FIREBASE_APP_ID
-ARG API_BASE_URL
-
-# Build web app
-RUN flutter build web --release --web-renderer html \
-    --dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY \
-    --dart-define=FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN \
-    --dart-define=GCP_PROJECT_ID=$GCP_PROJECT_ID \
-    --dart-define=FIREBASE_APP_ID=$FIREBASE_APP_ID \
-    --dart-define=API_BASE_URL=$API_BASE_URL
-
-## Stage 2: Serve with nginx
-FROM nginx:alpine
-
-# Copy built web app
-COPY --from=builder /app/build/web /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 8080
-
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### nginx Configuration
-
-```nginx
-# apps/web_portal/nginx.conf
-server {
-    listen 8080;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # SPA routing - serve index.html for all routes
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Security headers
-    add_header X-Frame-Options "DENY";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "strict-origin-when-cross-origin";
-    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.run.app https://*.googleapis.com; frame-ancestors 'none';";
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-### Build and Deploy Portal
+### View Service Status
 
 ```bash
-cd apps/web_portal
+# List services
+gcloud run services list --region=europe-west9 --project=$PROJECT_ID
 
-# Build with environment-specific configuration
-docker build \
-  --build-arg FIREBASE_API_KEY="AIza..." \
-  --build-arg FIREBASE_AUTH_DOMAIN="${PROJECT_ID}.firebaseapp.com" \
-  --build-arg GCP_PROJECT_ID="${PROJECT_ID}" \
-  --build-arg FIREBASE_APP_ID="1:123456789:web:abc123" \
-  --build-arg API_BASE_URL="https://api-${SPONSOR}-${ENV}-xxxxx-uc.a.run.app" \
-  -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/portal:latest .
+# Describe a service
+gcloud run services describe diary-server --region=europe-west9 --project=$PROJECT_ID
 
-# Push to Artifact Registry
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/portal:latest
-
-# Deploy to Cloud Run
-gcloud run deploy portal-${SPONSOR}-${ENV} \
-  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${SPONSOR}-images/portal:latest \
-  --platform=managed \
-  --region=$REGION \
-  --project=$PROJECT_ID \
-  --service-account=portal-server@${PROJECT_ID}.iam.gserviceaccount.com \
-  --min-instances=0 \
-  --max-instances=5 \
-  --memory=256Mi \
-  --cpu=1 \
-  --timeout=60s \
-  --concurrency=100 \
-  --ingress=all \
-  --allow-unauthenticated
+# View recent revisions
+gcloud run revisions list --service=diary-server --region=europe-west9 --project=$PROJECT_ID
 ```
-
----
-
-## VPC Connector Setup
-
-Required for private Cloud SQL access:
-
-```bash
-# Create VPC connector
-gcloud compute networks vpc-access connectors create ${SPONSOR}-vpc-connector \
-  --region=$REGION \
-  --network=default \
-  --range=10.8.0.0/28 \
-  --min-instances=2 \
-  --max-instances=10 \
-  --project=$PROJECT_ID
-```
-
----
-
-## CI/CD with GitHub Actions
-
-### Workflow Configuration
-
-```yaml
-# .github/workflows/deploy-cloud-run.yml
-name: Deploy to Cloud Run
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      sponsor:
-        description: 'Sponsor to deploy'
-        required: true
-        type: choice
-        options:
-          - orion
-          - andromeda
-      environment:
-        description: 'Environment'
-        required: true
-        type: choice
-        options:
-          - staging
-          - prod
-
-env:
-  REGION: europe-west1  # EU region for GDPR compliance
-
-jobs:
-  deploy-api:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Build and push API image
-        run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/api-server:${{ github.sha }} ./apps/api_server
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/api-server:${{ github.sha }}
-
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: api-${{ inputs.sponsor }}-${{ inputs.environment }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/api-server:${{ github.sha }}
-          region: ${{ env.REGION }}
-          project_id: ${{ vars.PROJECT_ID }}
-
-  deploy-portal:
-    runs-on: ubuntu-latest
-    needs: deploy-api
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Get API URL
-        id: api-url
-        run: |
-          API_URL=$(gcloud run services describe api-${{ inputs.sponsor }}-${{ inputs.environment }} --region=${{ env.REGION }} --format='value(status.url)')
-          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
-
-      - name: Build and push Portal image
-        run: |
-          docker build \
-            --build-arg API_BASE_URL=${{ steps.api-url.outputs.api_url }} \
-            --build-arg FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
-            --build-arg FIREBASE_AUTH_DOMAIN=${{ vars.PROJECT_ID }}.firebaseapp.com \
-            --build-arg GCP_PROJECT_ID=${{ vars.PROJECT_ID }} \
-            --build-arg FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/portal:${{ github.sha }} \
-            ./apps/web_portal
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/portal:${{ github.sha }}
-
-      - name: Deploy Portal to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: portal-${{ inputs.sponsor }}-${{ inputs.environment }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ inputs.sponsor }}-images/portal:${{ github.sha }}
-          region: ${{ env.REGION }}
-          project_id: ${{ vars.PROJECT_ID }}
-```
-
-### Workload Identity Federation Setup
-
-```bash
-# Create Workload Identity Pool
-gcloud iam workload-identity-pools create github-pool \
-  --location="global" \
-  --display-name="GitHub Actions Pool" \
-  --project=$PROJECT_ID
-
-# Create Provider
-gcloud iam workload-identity-pools providers create-oidc github-provider \
-  --location="global" \
-  --workload-identity-pool=github-pool \
-  --display-name="GitHub Provider" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
-  --issuer-uri="https://token.actions.githubusercontent.com" \
-  --project=$PROJECT_ID
-
-# Grant access to service account
-gcloud iam service-accounts add-iam-policy-binding cicd-deployer@${PROJECT_ID}.iam.gserviceaccount.com \
-  --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Cure-HHT/hht_diary" \
-  --project=$PROJECT_ID
-```
-
----
-
-## Terraform Configuration
-
-### Cloud Run Module
-
-```hcl
-# infrastructure/terraform/modules/cloud-run/main.tf
-resource "google_cloud_run_service" "api" {
-  name     = "api-${var.sponsor}-${var.environment}"
-  location = var.region
-  project  = var.project_id
-
-  template {
-    spec {
-      service_account_name = google_service_account.api.email
-
-      containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.sponsor}-images/api-server:${var.image_tag}"
-
-        resources {
-          limits = {
-            memory = var.api_memory
-            cpu    = var.api_cpu
-          }
-        }
-
-        env {
-          name  = "DATABASE_HOST"
-          value = "/cloudsql/${var.cloudsql_connection_name}"
-        }
-
-        env {
-          name  = "DATABASE_NAME"
-          value = "clinical_diary"
-        }
-
-        env {
-          name  = "DATABASE_USER"
-          value = "app_user"
-        }
-
-        env {
-          name = "DATABASE_PASSWORD"
-          value_from {
-            secret_key_ref {
-              name = "db-app-password"
-              key  = "latest"
-            }
-          }
-        }
-
-        env {
-          name  = "SPONSOR_ID"
-          value = var.sponsor
-        }
-
-        env {
-          name  = "ENVIRONMENT"
-          value = var.environment
-        }
-      }
-
-      container_concurrency = 80
-      timeout_seconds       = 60
-    }
-
-    metadata {
-      annotations = {
-        "autoscaling.knative.dev/minScale"        = var.min_instances
-        "autoscaling.knative.dev/maxScale"        = var.max_instances
-        "run.googleapis.com/cloudsql-instances"   = var.cloudsql_connection_name
-        "run.googleapis.com/vpc-access-connector" = var.vpc_connector_id
-        "run.googleapis.com/vpc-access-egress"    = "private-ranges-only"
-      }
-
-      labels = var.labels
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-
-  autogenerate_revision_name = true
-}
-
-resource "google_cloud_run_service_iam_member" "public" {
-  count    = var.allow_unauthenticated ? 1 : 0
-  service  = google_cloud_run_service.api.name
-  location = google_cloud_run_service.api.location
-  project  = var.project_id
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-```
-
----
-
-## Monitoring and Logging
 
 ### View Logs
 
 ```bash
-# API server logs
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=api-${SPONSOR}-${ENV}" \
-  --limit=50 \
-  --project=$PROJECT_ID
+# Recent errors
+gcloud logging read \
+  "resource.type=cloud_run_revision AND resource.labels.service_name=diary-server AND severity>=ERROR" \
+  --limit=20 --project=$PROJECT_ID
 
 # Structured log query
 gcloud logging read 'resource.type="cloud_run_revision" severity>=WARNING' \
-  --project=$PROJECT_ID \
-  --format="table(timestamp,severity,textPayload)"
-```
-
-### Create Dashboard
-
-Cloud Run automatically creates metrics. Create custom dashboard:
-
-```bash
-# Export dashboard JSON
-cat > dashboard.json << 'EOF'
-{
-  "displayName": "Cloud Run - ${SPONSOR}",
-  "gridLayout": {
-    "widgets": [
-      {
-        "title": "Request Count",
-        "xyChart": {
-          "dataSets": [{
-            "timeSeriesQuery": {
-              "timeSeriesFilter": {
-                "filter": "resource.type=\"cloud_run_revision\" metric.type=\"run.googleapis.com/request_count\""
-              }
-            }
-          }]
-        }
-      }
-    ]
-  }
-}
-EOF
-
-gcloud monitoring dashboards create --config-from-file=dashboard.json --project=$PROJECT_ID
-```
-
----
-
-## Troubleshooting
-
-### Service Won't Start
-
-```bash
-# Check recent logs
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=api-${SPONSOR}-${ENV} AND severity>=ERROR" \
-  --limit=20 \
-  --project=$PROJECT_ID
-
-# Check revision status
-gcloud run revisions list --service=api-${SPONSOR}-${ENV} --region=$REGION --project=$PROJECT_ID
+  --project=$PROJECT_ID --format="table(timestamp,severity,textPayload)"
 ```
 
 ### Database Connection Issues
 
 ```bash
 # Verify VPC connector
-gcloud compute networks vpc-access connectors describe ${SPONSOR}-vpc-connector \
-  --region=$REGION \
-  --project=$PROJECT_ID
+gcloud compute networks vpc-access connectors describe $VPC_CONNECTOR \
+  --region=europe-west9 --project=$PROJECT_ID
 
-# Test Cloud SQL connectivity
-gcloud run services update api-${SPONSOR}-${ENV} \
-  --add-cloudsql-instances=${PROJECT_ID}:${REGION}:${SPONSOR}-db-${ENV} \
-  --region=$REGION \
-  --project=$PROJECT_ID
-```
-
-### Cold Start Issues
-
-```bash
-# Increase minimum instances
-gcloud run services update api-${SPONSOR}-${ENV} \
-  --min-instances=1 \
-  --region=$REGION \
-  --project=$PROJECT_ID
+# Check Cloud SQL instance status
+gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID
 ```
 
 ---
 
-## Security Checklist
+## Appendix A: gcloud Script Equivalents
 
-- [ ] Service accounts created with minimal permissions
-- [ ] VPC connector configured for private database access
-- [ ] Secrets stored in Secret Manager (not environment variables)
-- [ ] Container images scanned for vulnerabilities
-- [ ] Ingress restricted appropriately
-- [ ] HTTPS enforced (automatic with Cloud Run)
-- [ ] Authentication middleware validates JWT tokens
-- [ ] CORS configured correctly
-- [ ] Security headers set in nginx (portal)
+The following `gcloud` commands show what Terraform does declaratively. **Do not run these manually** — they are for reference only. Use Terraform for all infrastructure changes.
+
+### Service Account Creation (Terraform: `modules/cloud-run/main.tf`)
+
+```bash
+# What Terraform does:
+gcloud iam service-accounts create ${SPONSOR}-${ENV}-run-sa \
+  --display-name="Cloud Run Service Account - ${SPONSOR} ${ENV}" \
+  --project=$PROJECT_ID
+
+# Grant roles
+for ROLE in roles/cloudsql.client roles/secretmanager.secretAccessor \
+            roles/logging.logWriter roles/monitoring.metricWriter roles/cloudtrace.agent; do
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:${SPONSOR}-${ENV}-run-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="$ROLE"
+done
+```
+
+### Cloud Run Service Creation (Terraform: `modules/cloud-run/main.tf`)
+
+```bash
+# What Terraform does for diary-server:
+gcloud run deploy diary-server \
+  --image=$DIARY_SERVER_IMAGE \
+  --region=europe-west9 \
+  --project=$PROJECT_ID \
+  --service-account=${SPONSOR}-${ENV}-run-sa@${PROJECT_ID}.iam.gserviceaccount.com \
+  --cpu=2 --memory=4Gi \
+  --min-instances=1 --max-instances=10 \
+  --cpu-boost \
+  --set-cloudsql-instances=$CLOUDSQL_CONNECTION_NAME \
+  --vpc-connector=$VPC_CONNECTOR \
+  --vpc-egress=private-ranges-only \
+  --execution-environment=gen2 \
+  --timeout=300s \
+  --set-env-vars="ENVIRONMENT=$ENV,SPONSOR=$SPONSOR,PROJECT_ID=$PROJECT_ID,DB_HOST=$DB_HOST,DB_PORT=5432,DB_NAME=$DB_NAME,DB_USER=$DB_USER,LOG_LEVEL=info" \
+  --ingress=all \
+  --allow-unauthenticated
+```
+
+### Workload Identity Federation (Terraform: `bootstrap/main.tf`)
+
+```bash
+# What Terraform does:
+gcloud iam workload-identity-pools create github-pool \
+  --location="global" \
+  --display-name="GitHub Actions Pool" \
+  --project=$ADMIN_PROJECT_ID
+
+gcloud iam workload-identity-pools providers create-oidc github-provider \
+  --location="global" \
+  --workload-identity-pool=github-pool \
+  --display-name="GitHub Provider" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --project=$ADMIN_PROJECT_ID
+
+gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Cure-HHT/hht_diary" \
+  --project=$ADMIN_PROJECT_ID
+```
+
+### VPC Connector (Terraform: `modules/vpc-network`)
+
+```bash
+# What Terraform does:
+gcloud compute networks vpc-access connectors create ${SPONSOR}-vpc-connector \
+  --region=europe-west9 \
+  --network=$VPC_NETWORK \
+  --range=$CONNECTOR_CIDR \
+  --min-instances=2 \
+  --max-instances=10 \
+  --project=$PROJECT_ID
+```
+
+### Artifact Registry GHCR Proxy (Terraform: `admin-project/main.tf`)
+
+```bash
+# What Terraform does in the admin project:
+gcloud artifacts repositories create ghcr-remote \
+  --repository-format=docker \
+  --mode=remote-repository \
+  --remote-repo-config-desc="GHCR proxy" \
+  --remote-docker-repo="https://ghcr.io" \
+  --location=europe-west9 \
+  --project=cure-hht-admin
+```
+
+---
+
+## Appendix B: Security Checklist
+
+- [x] Dedicated runtime SA with least-privilege roles
+- [x] WIF for CI/CD (no long-lived keys)
+- [x] VPC connector for private Cloud SQL access
+- [x] Single Doppler token in Secret Manager (not individual secrets)
+- [x] Container images scanned by Trivy in CI
+- [x] HTTPS enforced (automatic with Cloud Run)
+- [x] Authentication middleware validates JWT tokens
+- [x] CORS configured correctly
+- [x] Security headers set in nginx (portal)
+- [x] EU data residency enforced (europe-west9)
+- [ ] Runtime SA wired to Cloud Run (pending Terraform uncommenting)
+- [ ] Secret Manager `db_password_secret_id` replaced with Doppler pattern in module
 
 ---
 
 ## References
 
 - [Cloud Run Documentation](https://cloud.google.com/run/docs)
-- [Cloud Run Deployment](https://cloud.google.com/run/docs/deploying)
 - [Cloud Run + Cloud SQL](https://cloud.google.com/sql/docs/postgres/connect-run)
 - [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)
-- **Project Structure**: docs/gcp/project-structure.md
-- **Cloud SQL Setup**: docs/gcp/cloud-sql-setup.md
-- **Identity Platform**: docs/gcp/identity-platform-setup.md
+- [Doppler GCP Integration](https://docs.doppler.com/docs/gcp-secret-manager)
+- **Project Structure**: `docs/gcp/project-structure.md`
+- **Cloud SQL Setup**: `docs/gcp/cloud-sql-setup.md`
+- **Identity Platform**: `docs/gcp/identity-platform-setup.md`
+- **Secrets Comparison**: `docs/migration/doppler-vs-secret-manager.md`
+- **Terraform Modules**: `infrastructure/terraform/modules/cloud-run/`
 
 ---
 
 ## Change Log
 
 | Date | Version | Changes | Author |
-| --- | --- | --- | --- |
+| ---- | ------- | ------- | ------ |
 | 2025-11-25 | 1.0 | Initial Cloud Run deployment guide | Claude |
+| 2026-03-22 | 2.0 | Complete rewrite: correct Terraform↔CI/CD ownership model, Doppler-first secrets architecture, dedicated runtime SA documentation, gcloud scripts moved to appendix, security implications added, removed outdated Secret Manager patterns | Claude |

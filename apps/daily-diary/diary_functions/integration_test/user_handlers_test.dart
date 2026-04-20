@@ -12,12 +12,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:diary_functions/diary_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
   setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'diary-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+
     // Initialize database
     // For local dev, default to no SSL (docker container doesn't support it)
     final sslEnv = Platform.environment['DB_SSL'];
@@ -157,6 +165,159 @@ void main() {
   });
 
   group('linkHandler', () {
+    // CUR-1055: Prevent duplicate enrollment from same device
+    group('rejects duplicate enrollment from same device (CUR-1055)', () {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final deviceAppUuid = 'device-dup-test-$ts';
+      late String siteId;
+      late String patient1Id;
+      late String patient2Id;
+      late String code1;
+      late String code2;
+
+      setUpAll(() async {
+        siteId = 'SITE_CUR1055_$ts';
+        patient1Id = 'PAT1_CUR1055_$ts';
+        patient2Id = 'PAT2_CUR1055_$ts';
+
+        // Generate two 10-char linking codes with CA prefix
+        code1 = 'CA${ts.toRadixString(36).toUpperCase().padLeft(8, 'A')}'
+            .substring(0, 10);
+        code2 = 'CB${ts.toRadixString(36).toUpperCase().padLeft(8, 'B')}'
+            .substring(0, 10);
+
+        // Create test site
+        await Database.instance.execute(
+          '''
+          INSERT INTO sites (site_id, site_name, site_number, is_active, contact_info)
+          VALUES (@siteId, 'CUR-1055 Test Site', 'T1055-$ts', true, '{"phone": "+15551055"}')
+          ''',
+          parameters: {'siteId': siteId},
+        );
+
+        // Create two test patients at the same site
+        for (final entry in [
+          (patient1Id, 'EDC-1055-P1-$ts'),
+          (patient2Id, 'EDC-1055-P2-$ts'),
+        ]) {
+          await Database.instance.execute(
+            '''
+            INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
+            VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
+            ''',
+            parameters: {
+              'patientId': entry.$1,
+              'siteId': siteId,
+              'edcKey': entry.$2,
+            },
+          );
+        }
+
+        // Create portal user for generated_by FK
+        await Database.instance.execute('''
+          INSERT INTO portal_users (id, email, name, status)
+          VALUES ('00000000-0000-0000-0000-000000001055', 'test-1055@example.com', 'Test CUR-1055', 'active')
+          ON CONFLICT (id) DO NOTHING
+        ''');
+
+        // Create two linking codes
+        for (final entry in [(code1, patient1Id), (code2, patient2Id)]) {
+          final codeHash = sha256.convert(utf8.encode(entry.$1)).toString();
+          await Database.instance.execute(
+            '''
+            INSERT INTO patient_linking_codes (
+              patient_id, code, code_hash, generated_by,
+              generated_at, expires_at
+            )
+            VALUES (
+              @patientId, @code, @codeHash,
+              '00000000-0000-0000-0000-000000001055',
+              now(), now() + interval '24 hours'
+            )
+            ''',
+            parameters: {
+              'patientId': entry.$2,
+              'code': entry.$1,
+              'codeHash': codeHash,
+            },
+          );
+        }
+      });
+
+      tearDownAll(() async {
+        // Collect user IDs created during the test
+        final linkedCodes = await Database.instance.execute(
+          '''SELECT used_by_user_id FROM patient_linking_codes
+             WHERE patient_id IN (@p1, @p2)''',
+          parameters: {'p1': patient1Id, 'p2': patient2Id},
+        );
+        final userIds = linkedCodes
+            .map((row) => row[0])
+            .where((uid) => uid != null)
+            .toList();
+
+        // Clean up in reverse dependency order
+        for (final pid in [patient1Id, patient2Id]) {
+          await Database.instance.execute(
+            'DELETE FROM patient_linking_codes WHERE patient_id = @pid',
+            parameters: {'pid': pid},
+          );
+        }
+        for (final uid in userIds) {
+          await Database.instance.execute(
+            'DELETE FROM patient_linking_codes WHERE used_by_user_id = @uid',
+            parameters: {'uid': uid},
+          );
+          await Database.instance.execute(
+            'DELETE FROM app_users WHERE user_id = @uid',
+            parameters: {'uid': uid},
+          );
+        }
+        for (final pid in [patient1Id, patient2Id]) {
+          await Database.instance.execute(
+            'DELETE FROM patients WHERE patient_id = @pid',
+            parameters: {'pid': pid},
+          );
+        }
+        await Database.instance.execute(
+          'DELETE FROM sites WHERE site_id = @siteId',
+          parameters: {'siteId': siteId},
+        );
+      });
+
+      test('first enrollment succeeds', () async {
+        final request = createPostRequest('/api/v1/user/link', {
+          'code': code1,
+          'appUuid': deviceAppUuid,
+        });
+
+        final response = await linkHandler(request);
+        expect(response.statusCode, equals(200));
+
+        final json = await getResponseJson(response);
+        expect(json['success'], isTrue);
+        expect(json['patientId'], equals(patient1Id));
+      });
+
+      test('second enrollment from same device is rejected with 409', () async {
+        // Same device (appUuid) tries to enroll a different patient
+        final request = createPostRequest('/api/v1/user/link', {
+          'code': code2,
+          'appUuid': deviceAppUuid,
+        });
+
+        final response = await linkHandler(request);
+        expect(
+          response.statusCode,
+          equals(409),
+          reason: 'CUR-1055: Same device should not be able to enroll twice',
+        );
+
+        final json = await getResponseJson(response);
+        expect(json['error'], contains('already'));
+      });
+    });
+
     test('returns 405 for non-POST requests', () async {
       final request = Request(
         'GET',

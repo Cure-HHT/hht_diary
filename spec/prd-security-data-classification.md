@@ -1,3 +1,79 @@
+## REQ-p00016: Separation of Identity and Clinical Data
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p01085
+
+## Assertions
+
+A. The system SHALL store patient identity information separately from clinical trial data.
+
+B. The clinical database SHALL contain only de-identified participant records.
+
+C. The authentication system SHALL store patient names, email addresses, and contact information.
+
+D. The clinical database SHALL store only random participant IDs with observations.
+
+E. The clinical database SHALL NOT contain any direct linkage between participant ID and real identity.
+
+F. The mapping between identity and participant ID SHALL be accessible only through the secure authentication system.
+
+G. The system SHALL enable review of clinical data without exposing patient identities.
+
+H. The clinical database SHALL NOT contain patient names, email addresses, or direct identifiers.
+
+I. Participant IDs SHALL be randomly generated.
+
+J. Participant IDs SHALL NOT be derivable from personal information.
+
+K. The identity-to-participant mapping SHALL be isolated in the authentication system.
+
+L. Clinical data exports SHALL contain participant IDs only.
+
+M. Clinical data exports SHALL NOT contain real patient identities.
+
+N. A data breach of the clinical database SHALL NOT expose patient identities.
+
+## Rationale
+
+Privacy by design protects patient confidentiality by ensuring that clinical trial data cannot be directly linked to patient identities. This architectural separation means that even if the clinical database is accessed or breached, patient identities remain protected. The requirement supports HIPAA privacy requirements and reduces the impact of potential privacy breaches. Clinical staff can review trial data without unnecessary exposure to personal information, maintaining the minimum necessary principle for data access.
+
+*End* *Separation of Identity and Clinical Data* | **Hash**: 4a8b2335
+---
+## REQ-p00017: Data Encryption
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: p00016-A, p00016-N
+
+## Assertions
+
+A. The system SHALL encrypt sensitive data at rest in database storage.
+
+B. The system SHALL encrypt sensitive data in transit during transmission.
+
+C. The mobile app SHALL encrypt data on patient devices before transmission.
+
+D. The system SHALL transmit data over encrypted channels only.
+
+E. The system SHALL use TLS 1.2 or higher for all network communication.
+
+F. The system SHALL use HTTPS protocol for all network communication.
+
+G. The system SHALL encrypt database storage with sponsor-specific encryption keys.
+
+H. Encryption keys SHALL be unique per sponsor.
+
+I. The system SHALL manage encryption keys following industry best practices.
+
+J. The system SHALL rotate encryption keys according to security policy.
+
+K. The system SHALL NOT allow encryption to be disabled.
+
+## Rationale
+
+This requirement protects patient privacy (p00016) and clinical trial confidentiality during transmission and storage. Encryption provides an additional protection layer beyond access controls, ensuring data remains protected even if storage media or network traffic is intercepted. The multi-sponsor architecture requires sponsor-specific encryption keys to maintain data isolation. Industry best practices for key management ensure long-term security and compliance with FDA 21 CFR Part 11 requirements for electronic record protection.
+
+*End* *Data Encryption* | **Hash**: 55d8aea3
+---
 # Data Classification and Privacy Architecture
 
 **Version**: 1.0
@@ -58,81 +134,6 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 ## Privacy by Design
 
-# REQ-p00016: Separation of Identity and Clinical Data
-
-**Level**: PRD | **Status**: Draft | **Implements**: p80050
-
-## Rationale
-
-Privacy by design protects patient confidentiality by ensuring that clinical trial data cannot be directly linked to patient identities. This architectural separation means that even if the clinical database is accessed or breached, patient identities remain protected. The requirement supports HIPAA privacy requirements and reduces the impact of potential privacy breaches. Clinical staff can review trial data without unnecessary exposure to personal information, maintaining the minimum necessary principle for data access.
-
-## Assertions
-
-A. The system SHALL store patient identity information separately from clinical trial data.
-
-B. The clinical database SHALL contain only de-identified participant records.
-
-C. The authentication system SHALL store patient names, email addresses, and contact information.
-
-D. The clinical database SHALL store only random participant IDs with observations.
-
-E. The clinical database SHALL NOT contain any direct linkage between participant ID and real identity.
-
-F. The mapping between identity and participant ID SHALL be accessible only through the secure authentication system.
-
-G. The system SHALL enable review of clinical data without exposing patient identities.
-
-H. The clinical database SHALL NOT contain patient names, email addresses, or direct identifiers.
-
-I. Participant IDs SHALL be randomly generated.
-
-J. Participant IDs SHALL NOT be derivable from personal information.
-
-K. The identity-to-participant mapping SHALL be isolated in the authentication system.
-
-L. Clinical data exports SHALL contain participant IDs only.
-
-M. Clinical data exports SHALL NOT contain real patient identities.
-
-N. A data breach of the clinical database SHALL NOT expose patient identities.
-
-*End* *Separation of Identity and Clinical Data* | **Hash**: 4a8b2335
----
-
-# REQ-p00017: Data Encryption
-
-**Level**: PRD | **Status**: Draft | **Implements**: p00016
-
-## Rationale
-
-This requirement protects patient privacy (p00016) and clinical trial confidentiality during transmission and storage. Encryption provides an additional protection layer beyond access controls, ensuring data remains protected even if storage media or network traffic is intercepted. The multi-sponsor architecture requires sponsor-specific encryption keys to maintain data isolation. Industry best practices for key management ensure long-term security and compliance with FDA 21 CFR Part 11 requirements for electronic record protection.
-
-## Assertions
-
-A. The system SHALL encrypt sensitive data at rest in database storage.
-
-B. The system SHALL encrypt sensitive data in transit during transmission.
-
-C. The mobile app SHALL encrypt data on patient devices before transmission.
-
-D. The system SHALL transmit data over encrypted channels only.
-
-E. The system SHALL use TLS 1.2 or higher for all network communication.
-
-F. The system SHALL use HTTPS protocol for all network communication.
-
-G. The system SHALL encrypt database storage with sponsor-specific encryption keys.
-
-H. Encryption keys SHALL be unique per sponsor.
-
-I. The system SHALL manage encryption keys following industry best practices.
-
-J. The system SHALL rotate encryption keys according to security policy.
-
-K. The system SHALL NOT allow encryption to be disabled.
-
-*End* *Data Encryption* | **Hash**: 55d8aea3
----
 
 ### Separation of Identity and Data
 
