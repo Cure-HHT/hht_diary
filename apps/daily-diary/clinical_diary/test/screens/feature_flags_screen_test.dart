@@ -143,6 +143,28 @@ void main() {
         },
       );
 
+      testWidgets(
+        'CUR-1116: toggling Show Share with CureHHT switch updates service',
+        (tester) async {
+          await tester.pumpWidget(buildTestWidget());
+          await tester.pumpAndSettle();
+
+          expect(featureFlagService.showShareWithCureHHT, false);
+
+          final shareSwitch = find.widgetWithText(
+            SwitchListTile,
+            'Show "Share with CureHHT" Button',
+          );
+          await tester.scrollUntilVisible(shareSwitch, 100);
+          await tester.pumpAndSettle();
+
+          await tester.tap(shareSwitch);
+          await tester.pumpAndSettle();
+
+          expect(featureFlagService.showShareWithCureHHT, true);
+        },
+      );
+
       testWidgets('toggling Old Entry Justification switch updates service', (
         tester,
       ) async {
@@ -325,6 +347,10 @@ void main() {
         expect(
           featureFlagService.longDurationThresholdMinutes,
           FeatureFlags.defaultLongDurationThresholdMinutes,
+        );
+        expect(
+          featureFlagService.showShareWithCureHHT,
+          FeatureFlags.defaultShowShareWithCureHHT,
         );
       });
     });

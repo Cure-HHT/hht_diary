@@ -106,9 +106,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final enrollmentStatus = widget.enrollmentStatus;
     final enrollmentEndDateTime = widget.enrollmentEndDateTime;
 
+    // CUR-1116: sharing is only "active" when both the feature is enabled and
+    // the user has opted in — mirrors the UI gate in build().
+    final isEffectivelySharing =
+        FeatureFlagService.instance.showShareWithCureHHT &&
+        isSharingWithCureHHT;
+
     var text = 'Your health data is stored locally on your device.';
 
-    if (isSharingWithCureHHT) {
+    if (isEffectivelySharing) {
       text += ' Anonymized data is shared with CureHHT for research purposes.';
     }
 
@@ -125,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ' Clinical trial participation ended on $endDateStr. Previously shared data remains with researchers indefinitely for scientific analysis.';
     }
 
-    if (!isSharingWithCureHHT && !isEnrolledInTrial) {
+    if (!isEffectivelySharing && !isEnrolledInTrial) {
       text +=
           ' No data is shared with external parties unless you choose to participate in research or clinical trials.';
     }
@@ -273,8 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               minimumSize: const Size(double.infinity, 48),
                             ),
                           ),
-                        const SizedBox(height: 24),
                       ],
+                      const SizedBox(height: 24),
 
                       // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),

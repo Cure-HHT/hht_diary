@@ -356,6 +356,54 @@ void main() {
       );
     });
 
+    // CUR-1116: Verify privacy text respects isEffectivelySharing so that
+    // toggling the feature flag cannot cause a stale "data is shared" sentence.
+    group('CUR-1116: Privacy text with feature flag', () {
+      testWidgets('privacy text does not mention sharing when flag is false', (
+        tester,
+      ) async {
+        // Flag defaults to false via setUp.
+        await tester.pumpWidget(buildProfileScreen(isSharingWithCureHHT: true));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Anonymized data is shared with CureHHT'),
+          findsNothing,
+        );
+      });
+
+      testWidgets(
+        'privacy text mentions sharing when flag is true and user is sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            buildProfileScreen(isSharingWithCureHHT: true),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.textContaining('Anonymized data is shared with CureHHT'),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'privacy text says no data shared when flag is false and not enrolled',
+        (tester) async {
+          // Flag is false, isSharingWithCureHHT is false (default), not enrolled.
+          await tester.pumpWidget(buildProfileScreen());
+          await tester.pumpAndSettle();
+
+          expect(
+            find.textContaining('No data is shared with external parties'),
+            findsOneWidget,
+          );
+        },
+      );
+    });
+
     group('Navigation', () {
       testWidgets('back button calls onBack', (tester) async {
         var backCalled = false;
