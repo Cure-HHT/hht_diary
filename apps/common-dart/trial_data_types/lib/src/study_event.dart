@@ -22,7 +22,7 @@ class StudyEvent {
   // Phase 2 end-event wire-format constants (snake_case DB values).
   // These MUST match EndEvent.endOfTreatment.value / EndEvent.endOfStudy.value.
   // Dart const does not allow accessing enum fields at compile time, so the
-  // string literals are duplicated here. A test in study_event_test.dart
+  // string literals are duplicated here. A test in end_event_test.dart
   // asserts they stay in sync.
   static const endOfTreatment = 'end_of_treatment';
   static const endOfStudy = 'end_of_study';
@@ -32,11 +32,10 @@ class StudyEvent {
   /// Delegates to [EndEvent.displayName] so the label is defined in exactly
   /// one place. Falls back to the raw value for unknown inputs.
   static String endEventDisplayLabel(String endEventValue) {
-    try {
-      return EndEvent.fromValue(endEventValue).displayName;
-    } catch (_) {
-      return endEventValue;
+    for (final e in EndEvent.values) {
+      if (e.value == endEventValue) return e.displayName;
     }
+    return endEventValue;
   }
 
   /// Validates a study_event string against the "Cycle N Day 1" format.
