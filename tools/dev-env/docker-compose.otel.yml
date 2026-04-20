@@ -1,0 +1,38 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00047: Performance Monitoring — OpenTelemetry integration
+#   REQ-o00047F: End-to-end distributed tracing
+#
+# Grafana LGTM Stack for local OTel development.
+#
+# Bundles: OTel Collector, Grafana, Tempo (traces), Loki (logs),
+#          Prometheus/Mimir (metrics) — all in a single container.
+#
+# Usage:
+#   docker compose -f docker-compose.otel.yml up -d
+#
+# Endpoints:
+#   Grafana UI:    http://localhost:3000  (no login required)
+#   OTLP gRPC:    localhost:4317
+#   OTLP HTTP:    localhost:4318
+#
+# Dart servers export to the LGTM stack automatically via OTel defaults.
+#
+# See also: apps/common-dart/otel_common/tool/local_otel_demo.sh
+
+services:
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.8.1
+    container_name: otel-lgtm
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - clinical-diary-net
+
+networks:
+  clinical-diary-net:
+    driver: bridge

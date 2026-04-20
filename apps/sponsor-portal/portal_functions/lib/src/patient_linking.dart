@@ -16,7 +16,7 @@
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
 // Patient linking code handlers - generate and manage linking codes
-// for patient mobile app enrollment
+// for patient mobile app linking
 
 import 'dart:convert';
 import 'dart:io';
@@ -238,7 +238,7 @@ Future<Response> generatePatientLinkingCodeHandler(
       : 'GENERATE_LINKING_CODE';
   final justification = isReconnection
       ? 'Patient reconnected to mobile app: $reconnectReason'
-      : 'Patient linking code generated for mobile app enrollment';
+      : 'Patient linking code generated for mobile app linking';
 
   // Log to admin_action_log for audit trail (CUR-690)
   await db.executeWithContext(
@@ -1097,33 +1097,7 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
     context: serviceContext,
   );
 
-  // REQ-CAL-p00023: Send initial EQ questionnaire when trial starts
-  const eqVersion = '1.0.0';
-  final eqInsertResult = await db.executeWithContext(
-    '''
-    INSERT INTO questionnaire_instances (
-      patient_id, questionnaire_type, status, study_event,
-      version, sent_by, sent_at, created_at, updated_at
-    )
-    VALUES (
-      @patientId, 'eq'::questionnaire_type, 'sent', 'Baseline',
-      @version, @sentBy, @sentAt, @sentAt, @sentAt
-    )
-    RETURNING id
-    ''',
-    parameters: {
-      'patientId': patientId,
-      'version': eqVersion,
-      'sentBy': user.id,
-      'sentAt': now.toIso8601String(),
-    },
-    context: serviceContext,
-  );
-
-  final eqInstanceId = eqInsertResult.first[0] as String;
-  print('[PATIENT_LINKING] Created EQ questionnaire instance: $eqInstanceId');
-
-  // Send FCM notification to patient's device
+  // Send FCM notification to patient's device to inform trial has started
   String? fcmMessageId;
   final fcmTokenResult = await db.executeWithContext(
     '''
@@ -1141,8 +1115,8 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
     final notificationResult = await NotificationService.instance
         .sendQuestionnaireNotification(
           fcmToken: fcmToken,
-          questionnaireType: 'eq',
-          questionnaireInstanceId: eqInstanceId,
+          questionnaireType: 'trial_started',
+          questionnaireInstanceId: 'trial-$patientId',
           patientId: patientId,
         );
     fcmMessageId = notificationResult.messageId;
@@ -1153,7 +1127,7 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
   } else {
     print(
       '[PATIENT_LINKING] No FCM token found for patient $patientId. '
-      'Patient will discover questionnaire via sync.',
+      'Patient will discover trial start via sync.',
     );
   }
 
@@ -1179,11 +1153,9 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
         'trial_started_at': now.toIso8601String(),
         'started_by_email': user.email,
         'started_by_name': user.name,
-        'eq_instance_id': eqInstanceId,
-        'eq_version': eqVersion,
         'fcm_message_id': fcmMessageId,
       }),
-      'justification': 'Trial started for patient - EQ questionnaire sent',
+      'justification': 'Trial started for patient',
       'ipAddress': clientIp,
     },
     context: serviceContext,
@@ -1198,7 +1170,6 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
     'site_name': siteName,
     'trial_started': true,
     'trial_started_at': now.toIso8601String(),
-    'eq_instance_id': eqInstanceId,
   });
 }
 

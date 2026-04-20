@@ -1,0 +1,17 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Minimal gRPC health check server for Cloud Run liveness probes.
+# Responds to grpc.health.v1.Health/Check with SERVING status.
+
+name: grpc_health
+description: Standalone gRPC health check server for Cloud Run probes
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  grpc: ^4.2.0
+  protobuf: ^4.2.0

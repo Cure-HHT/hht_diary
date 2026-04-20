@@ -16,8 +16,10 @@ import 'dart:io';
 
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
+import 'package:otel_common/otel_common.dart';
 
 import 'database.dart';
+import 'portal_metrics.dart';
 
 /// FCM notification service configuration from environment
 class NotificationConfig {
@@ -100,7 +102,11 @@ class NotificationService {
     final tokenAge = DateTime.now().difference(_tokenCreatedAt!);
     final needsRefresh = tokenAge >= (_tokenLifetime - _tokenRefreshBuffer);
     if (needsRefresh) {
-      print('[FCM] Token age: ${tokenAge.inMinutes} minutes - needs refresh');
+      logWithTrace(
+        'INFO',
+        'FCM token needs refresh',
+        labels: {'token_age_minutes': tokenAge.inMinutes.toString()},
+      );
     }
     return needsRefresh;
   }
@@ -110,13 +116,18 @@ class NotificationService {
     if (_config == null || _config!.consoleMode) return;
     if (!_needsTokenRefresh()) return;
 
-    print('[FCM] Refreshing ADC token...');
+    logWithTrace('INFO', 'FCM refreshing ADC token');
     try {
       _httpClient = await _createAdcClient();
       _tokenCreatedAt = DateTime.now();
-      print('[FCM] Token refreshed successfully');
+      logWithTrace('INFO', 'FCM token refreshed successfully');
     } catch (e) {
-      print('[FCM] Failed to refresh token: $e');
+      reportAndRecordError(e, stackTrace: StackTrace.current);
+      logWithTrace(
+        'ERROR',
+        'FCM failed to refresh token',
+        labels: {'error': e.toString()},
+      );
     }
   }
 
@@ -129,24 +140,30 @@ class NotificationService {
     _config = config;
 
     if (!config.isConfigured) {
-      print('[FCM] Notification service disabled or not configured');
-      return;
-    }
-
-    if (config.consoleMode) {
-      print(
-        '[FCM] Console mode enabled - notifications will be logged to console',
+      logWithTrace(
+        'INFO',
+        'FCM notification service disabled or not configured',
       );
       return;
     }
 
+    if (config.consoleMode) {
+      logWithTrace('INFO', 'FCM console mode enabled');
+      return;
+    }
+
     try {
-      print('[FCM] Using Workload Identity Federation (ADC)');
+      logWithTrace('INFO', 'FCM using Workload Identity Federation (ADC)');
       _httpClient = await _createAdcClient();
       _tokenCreatedAt = DateTime.now();
-      print('[FCM] Notification service initialized successfully');
+      logWithTrace('INFO', 'FCM notification service initialized successfully');
     } catch (e) {
-      print('[FCM] Failed to initialize notification service: $e');
+      reportAndRecordError(e, stackTrace: StackTrace.current);
+      logWithTrace(
+        'ERROR',
+        'FCM failed to initialize notification service',
+        labels: {'error': e.toString()},
+      );
       _httpClient = null;
       _tokenCreatedAt = null;
     }
@@ -158,11 +175,11 @@ class NotificationService {
   /// or signJwt. The Cloud Run SA already has fcmSender role on
   /// cure-hht-admin, so a simple ADC token with cloud-platform scope works.
   Future<http.Client> _createAdcClient() async {
-    print('[FCM] Getting Application Default Credentials...');
+    logWithTrace('DEBUG', 'FCM getting Application Default Credentials');
     final client = await clientViaApplicationDefaultCredentials(
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     );
-    print('[FCM] ADC obtained successfully');
+    logWithTrace('DEBUG', 'FCM ADC obtained successfully');
     return client;
   }
 
@@ -263,17 +280,11 @@ class NotificationService {
 
     // Console mode - log to console instead of sending
     if (_config!.consoleMode) {
-      print('');
-      print('=' * 60);
-      print('[FCM CONSOLE MODE] Would send $messageType:');
-      print('  Token: ${fcmToken.substring(0, 20)}...');
-      print('  Patient: $patientId');
-      print('  Data: ${jsonEncode(data)}');
-      if (notificationTitle != null) {
-        print('  Notification: $notificationTitle - $notificationBody');
-      }
-      print('=' * 60);
-      print('');
+      logWithTrace(
+        'INFO',
+        'FCM console mode: would send $messageType',
+        labels: {'patient_id': patientId, 'message_type': messageType},
+      );
 
       await _logNotificationAudit(
         patientId: patientId,
@@ -325,7 +336,15 @@ class NotificationService {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
         final messageId = responseBody['name'] as String?;
-        print('[FCM] Sent $messageType to patient $patientId: $messageId');
+        fcmNotificationSent(messageType: messageType, status: 'sent');
+        logWithTrace(
+          'INFO',
+          'FCM sent $messageType',
+          labels: {
+            'patient_id': patientId,
+            'message_id': messageId ?? 'unknown',
+          },
+        );
 
         await _logNotificationAudit(
           patientId: patientId,
@@ -338,7 +357,16 @@ class NotificationService {
         return NotificationResult.success(messageId);
       } else {
         final error = 'FCM API error: ${response.statusCode} ${response.body}';
-        print('[FCM] Failed to send $messageType: $error');
+        fcmNotificationSent(messageType: messageType, status: 'failed');
+        reportError(Exception(error));
+        logWithTrace(
+          'ERROR',
+          'FCM failed to send $messageType',
+          labels: {
+            'patient_id': patientId,
+            'status_code': response.statusCode.toString(),
+          },
+        );
 
         await _logNotificationAudit(
           patientId: patientId,
@@ -350,9 +378,15 @@ class NotificationService {
 
         return NotificationResult.failure(error);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       final error = e.toString();
-      print('[FCM] Exception sending $messageType: $error');
+      fcmNotificationSent(messageType: messageType, status: 'error');
+      reportAndRecordError(e, stackTrace: stackTrace);
+      logWithTrace(
+        'ERROR',
+        'FCM exception sending $messageType',
+        labels: {'patient_id': patientId, 'error': error},
+      );
 
       await _logNotificationAudit(
         patientId: patientId,
@@ -405,7 +439,11 @@ class NotificationService {
         context: UserContext.service,
       );
     } catch (e) {
-      print('[FCM] Failed to log notification audit: $e');
+      logWithTrace(
+        'ERROR',
+        'FCM failed to log notification audit',
+        labels: {'error': e.toString()},
+      );
     }
   }
 }

@@ -21,10 +21,10 @@
 
 PROJECT_DEFS=(
     # Deployable apps
-    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-dart/append_only_datastore/lib/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/ .github/workflows/deploy-run-service.yml"
-    "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/sponsor-portal/portal-container/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
-    "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/ apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/daily-diary/diary-server-container/ .github/workflows/build-diary-server.yml .github/workflows/deploy-run-service.yml tools/build/"
-    "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/sponsor-portal/portal-container/ apps/edc/rave-integration/lib/ .github/workflows/build-portal-server.yml .github/workflows/deploy-run-service.yml tools/build/"
+    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-dart/append_only_datastore/lib/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/"
+    "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/common_widgets/lib/ tools/build/"
+    "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/ apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/daily-diary/diary-server-container/ tools/build/"
+    "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/ apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/edc/rave-integration/lib/ tools/build/"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/"
     "append_only_datastore|apps/common-dart/append_only_datastore/pubspec.yaml|apps/common-dart/append_only_datastore/"

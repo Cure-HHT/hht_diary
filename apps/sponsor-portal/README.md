@@ -9,7 +9,11 @@ Clinical Trial Sponsor Web Portal for managing users, sites, and trial data acce
 | `portal-ui/`        | Flutter web frontend                   | 75%+     |
 | `portal_server/`    | Shelf HTTP server                      | 95%+     |
 | `portal_functions/` | Business logic library                 | 85%+     |
-| `portal-container/` | Combined container (nginx + Dart + UI) | -        |
+
+The deployable container image is built in the sponsor repo (e.g.
+`hht_diary_callisto/deployment/docker/portal-final.Dockerfile`), which
+inherits from the `sponsor-ci` image published by this repo and embeds
+the sponsor's content tree.
 
 ## Quick Start
 
@@ -277,7 +281,7 @@ flutter run -d chrome \
 ### Production (Cloud Run)
 ```
 ┌─────────────────────────────────────────────────────┐
-│              portal-container (Cloud Run)            │
+│           portal-final image (Cloud Run)             │
 │                                                      │
 │  ┌─────────────────────────────────────────────┐    │
 │  │           nginx (port 8080)                  │    │

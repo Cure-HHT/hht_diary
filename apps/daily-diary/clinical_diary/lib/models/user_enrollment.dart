@@ -6,7 +6,9 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00065: Reactivate Patient
 
-/// Represents a user's enrollment/linking to a clinical trial
+import 'package:clinical_diary/config/sponsor_registry.dart';
+
+/// Represents a user's linking to a clinical trial
 class UserEnrollment {
   UserEnrollment({
     required this.userId,
@@ -43,7 +45,7 @@ class UserEnrollment {
   final String jwtToken;
   final DateTime enrolledAt;
 
-  /// Sponsor ID for this enrollment (e.g., 'callisto')
+  /// Sponsor ID for this linking (e.g., 'callisto')
   /// Determines which backend to use for API calls
   final String? sponsorId;
 
@@ -54,7 +56,7 @@ class UserEnrollment {
   /// Patient ID from linking code (links to patients table)
   final String? patientId;
 
-  /// Site ID where the patient is enrolled
+  /// Site ID where the patient is linked
   final String? siteId;
 
   /// Human-readable site name
@@ -70,8 +72,9 @@ class UserEnrollment {
   /// Distinct from patientId — this is what the user sees on the profile screen
   final String? linkingCode;
 
-  /// Whether this enrollment includes clinical trial linking
+  /// Whether this linking includes clinical trial connection
   bool get isLinkedToClinicalTrial => patientId != null && siteId != null;
+  SponsorInfo? get sponsorDetail => SponsorRegistry.getById(sponsorId ?? '');
 
   /// Convert to JSON for secure storage
   Map<String, dynamic> toJson() {
