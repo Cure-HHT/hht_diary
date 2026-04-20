@@ -65,9 +65,9 @@ jobs:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: '${{ vars.CUREHHT_ADMIN_SA_EMAIL }}'
 
-      - name: Generate GitHub App token
+      - name: 'Generate GitHub App token'
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: 'actions/create-github-app-token@v2'
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -78,18 +78,40 @@ jobs:
 
       - name: 'List files'
         if: inputs.debug == 'true'
-        run: find . -type f
+        run: |
+          find . -type f | sort
 
       - name: 'Configure Docker for Artifact Registry'
         run: |
           gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
 
+      - name: 'Prepare Docker build context'
+        run: |
+          set -euo pipefail
+
+          BUILD_CTX="$RUNNER_TEMP/db-schema-job-build"
+          rm -rf "$BUILD_CTX"
+          mkdir -p "$BUILD_CTX/apps/sponsor-portal/tool"
+
+          cp infrastructure/docker/db-schema-job/Dockerfile "$BUILD_CTX/Dockerfile"
+          cp infrastructure/docker/db-schema-job/entrypoint.sh "$BUILD_CTX/entrypoint.sh"
+          cp infrastructure/docker/db-schema-job/package.json "$BUILD_CTX/package.json"
+          cp apps/sponsor-portal/tool/seed_identity_users.js "$BUILD_CTX/apps/sponsor-portal/tool/seed_identity_users.js"
+
+          echo "=== Prepared Docker build context ==="
+          find "$BUILD_CTX" -type f | sort
+
       - name: 'Build and push deploy-db image'
         run: |
+          set -euo pipefail
+
+          BUILD_CTX="$RUNNER_TEMP/db-schema-job-build"
+
           docker build \
-            -t ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest \
-            infrastructure/docker/db-schema-job/
-          docker push ${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest
+            -t "${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest" \
+            "$BUILD_CTX"
+
+          docker push "${{ env.CUREHHT_ADMIN_REPO_PATH }}/db-schema-job:latest"
 
       - name: 'Consolidate schema'
         run: |

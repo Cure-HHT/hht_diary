@@ -5,7 +5,8 @@
 
 name: sponsor_portal_ui
 description: Clinical Trial Sponsor Web Portal
-version: 1.0.10+43
+publish_to: "none"
+version: 1.0.13+49
 
 environment:
   sdk: ^3.10.7
@@ -13,6 +14,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Shared widgets (EnvironmentBanner, etc.)
+  common_widgets:
+    path: ../../common-flutter/common_widgets
 
   # Firebase / Identity Platform
   firebase_core: ^4.3.0

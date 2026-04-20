@@ -15,8 +15,7 @@
 #   OTLP gRPC:    localhost:4317
 #   OTLP HTTP:    localhost:4318
 #
-# The otel_common package defaults to http://localhost:4317, so Dart
-# servers running locally will export traces here automatically.
+# Dart servers export to the LGTM stack automatically via OTel defaults.
 #
 # See also: apps/common-dart/otel_common/tool/local_otel_demo.sh
 

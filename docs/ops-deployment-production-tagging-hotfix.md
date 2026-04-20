@@ -219,12 +219,12 @@ git branch -d hotfix/v1.2.3-patch1
 - ✅ Include REQ references in commit messages
 - ✅ Tag with `-patch{N}` suffix (e.g., `v1.2.3-patch1`)
 - ✅ Merge back to main after hotfix
-- ✅ Archive to S3 (same as regular release)
+- ✅ Archive artifacts (same as regular release)
 
 ### MUST NOT
 - ❌ Update sponsor versions (breaks traceability)
 - ❌ Add new features (hotfixes are for bugs only)
-- ❌ Skip archival (FDA compliance requirement)
+- ❌ Skip archival (FDA compliance requirement — GCS audit buckets)
 
 ## Version Numbering
 
@@ -249,17 +249,15 @@ git branch -d hotfix/v1.2.3-patch1
 
 ### Release Archives
 
-Every tagged release is archived to per-sponsor S3 buckets:
+Every tagged release is archived via GitHub Releases with attached artifacts.
+GCP audit log buckets provide FDA-compliant long-term retention (25 years for production, locked).
 
-**Location**: `s3://{bucket}/builds/YYYY/MM/DD/hht-diary-{CODE}-{SHA}.tar.gz`
-
-**Contents:**
+**Artifacts:**
 - `app-release.apk`
 - `app-release.aab`
 - `sponsor-build-manifest.json`
-- `metadata.json`
 
-**Retention**: 7 years (FDA 21 CFR Part 11)
+**Retention**: GitHub Releases (permanent) + GCS audit buckets (25-year locked for prod)
 
 ### Audit Trail
 
@@ -362,9 +360,8 @@ gh release create v1.2.3 \
 - Document version roadmap
 
 ### 5. Archive Verification
-- Always verify S3 upload succeeded
-- Check archive integrity (download + extract)
-- Confirm 7-year retention policy applied
+- Verify GitHub Release was created with artifacts
+- Confirm GCS audit bucket retention policy (25 years for prod)
 
 ## Examples
 
@@ -439,4 +436,4 @@ git push
 - Tagging Workflow: `.github/workflows/tag-production-candidate.yml`
 - Build Workflow Docs: `docs/build-integrated-workflow.md`
 - Doppler Setup: `docs/doppler-setup.md`
-- S3 Archival: `sponsor/callisto/infrastructure/terraform/README.md`
+- Terraform IaC: `infrastructure/terraform/README.md`

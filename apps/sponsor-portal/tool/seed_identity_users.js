@@ -37,6 +37,7 @@ function parseArgs() {
     password: null,
     users: null,
     userNames: null,
+    deleteAll: false,
   };
 
   for (const arg of args) {
@@ -50,6 +51,8 @@ function parseArgs() {
       parsed.users = arg.split('=')[1].split(',').map(s => s.trim());
     } else if (arg.startsWith('--user-names=')) {
       parsed.userNames = arg.split('=')[1].split(',').map(s => s.trim());
+    } else if (arg === '--delete-all') {
+      parsed.deleteAll = true;
     } else if (arg === '--help' || arg === '-h') {
       printUsage();
       process.exit(0);
@@ -102,20 +105,23 @@ function validateArgs(args) {
     errors.push('--env, doppler config is required (dev, qa, uat, prod)');
   }
 
-  if (!args.password) {
-    errors.push('--password, user password is required');
-  }
+  // --delete-all only needs --project and --env
+  if (!args.deleteAll) {
+    if (!args.password) {
+      errors.push('--password, user password is required');
+    }
 
-  if (!args.users || args.users.length === 0) {
-    errors.push('--users are required (comma-separated email list)');
-  }
+    if (!args.users || args.users.length === 0) {
+      errors.push('--users are required (comma-separated email list)');
+    }
 
-  if (!args.userNames || args.userNames.length === 0) {
-    errors.push('--user-names are required (comma-separated name list)');
-  }
+    if (!args.userNames || args.userNames.length === 0) {
+      errors.push('--user-names are required (comma-separated name list)');
+    }
 
-  if (args.users && args.userNames && args.users.length !== args.userNames.length) {
-    errors.push(`--users has ${args.users.length} entries but --user-names has ${args.userNames.length} entries (must match)`);
+    if (args.users && args.userNames && args.users.length !== args.userNames.length) {
+      errors.push(`--users has ${args.users.length} entries but --user-names has ${args.userNames.length} entries (must match)`);
+    }
   }
 
   if (errors.length > 0) {
@@ -144,6 +150,29 @@ async function initializeAdmin(projectId) {
     console.error('  gcloud auth application-default login');
     return false;
   }
+}
+
+async function deleteAllUsers() {
+  let totalDeleted = 0;
+  let nextPageToken;
+
+  do {
+    const listResult = await admin.auth().listUsers(1000, nextPageToken);
+    if (listResult.users.length === 0) break;
+
+    const uids = listResult.users.map(u => u.uid);
+    const deleteResult = await admin.auth().deleteUsers(uids);
+    totalDeleted += deleteResult.successCount;
+
+    if (deleteResult.failureCount > 0) {
+      console.error(`  [WARN] ${deleteResult.failureCount} users failed to delete`);
+      deleteResult.errors.forEach(e => console.error(`    ${e.error.message}`));
+    }
+
+    nextPageToken = listResult.pageToken;
+  } while (nextPageToken);
+
+  return totalDeleted;
 }
 
 async function createOrUpdateUser(email, displayName, password) {
@@ -186,14 +215,29 @@ async function seedUsers() {
   const projectId = `${args.project}-${args.env}`;
 
   console.log('\n========================================');
-  console.log('  Seeding GCP Identity Platform Users');
+  if (args.deleteAll) {
+    console.log('  Deleting ALL Identity Platform Users');
+  } else {
+    console.log('  Seeding GCP Identity Platform Users');
+  }
   console.log('========================================\n');
   console.log(`Project: ${projectId}`);
-  console.log(`Users to create: ${args.users.length}\n`);
+  if (!args.deleteAll) {
+    console.log(`Users to create: ${args.users.length}\n`);
+  }
 
   const initialized = await initializeAdmin(projectId);
   if (!initialized) {
     process.exit(1);
+  }
+
+  if (args.deleteAll) {
+    console.log('\nDeleting all users...\n');
+    const deleted = await deleteAllUsers();
+    console.log(`\n========================================`);
+    console.log(`  Deleted ${deleted} users`);
+    console.log(`========================================\n`);
+    process.exit(0);
   }
 
   console.log('\nCreating users...\n');
