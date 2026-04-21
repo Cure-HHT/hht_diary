@@ -85,6 +85,11 @@ class FeatureFlags {
   /// When true, uses simplified one-page recording screen
   static const bool defaultUseOnePageRecordingScreen = false;
 
+  /// CUR-1116: Default: false - "Share with CureHHT" button hidden.
+  /// When true, the sharing button and related card are visible on the
+  /// Profile screen. Feature is not ready yet — keep off until finalized.
+  static const bool defaultShowShareWithCureHHT = false;
+
   /// CUR-528: Default available fonts - all fonts available
   static const List<FontOption> defaultAvailableFonts = FontOption.values;
 
@@ -134,6 +139,8 @@ class FeatureFlagService {
   // CUR-508: One-page recording screen flag
   bool _useOnePageRecordingScreen =
       FeatureFlags.defaultUseOnePageRecordingScreen;
+  // CUR-1116: Show "Share with CureHHT" button on Profile screen
+  bool _showShareWithCureHHT = FeatureFlags.defaultShowShareWithCureHHT;
   // CUR-528: Available fonts for this sponsor
   List<FontOption> _availableFonts = List.from(
     FeatureFlags.defaultAvailableFonts,
@@ -219,6 +226,15 @@ class FeatureFlagService {
     _useOnePageRecordingScreen = value;
   }
 
+  /// CUR-1116: "Share with CureHHT" button on Profile screen.
+  /// When true, the sharing button and related card are visible.
+  /// When false (default), they are hidden until the feature is ready.
+  bool get showShareWithCureHHT => _showShareWithCureHHT;
+
+  set showShareWithCureHHT(bool value) {
+    _showShareWithCureHHT = value;
+  }
+
   /// CUR-528: Available fonts for this sponsor
   /// Controls which font options users can select in Settings.
   /// If only contains Roboto or is empty, font selector should be hidden.
@@ -289,6 +305,9 @@ class FeatureFlagService {
       _useOnePageRecordingScreen =
           flags['useOnePageRecordingScreen'] as bool? ??
           FeatureFlags.defaultUseOnePageRecordingScreen;
+      _showShareWithCureHHT =
+          flags['showShareWithCureHHT'] as bool? ??
+          FeatureFlags.defaultShowShareWithCureHHT;
 
       // CUR-528: Parse available fonts from server
       final fontsRaw = flags['availableFonts'] as List<dynamic>?;
@@ -365,6 +384,7 @@ class FeatureFlagService {
     _longDurationThresholdMinutes =
         FeatureFlags.defaultLongDurationThresholdMinutes;
     _useOnePageRecordingScreen = FeatureFlags.defaultUseOnePageRecordingScreen;
+    _showShareWithCureHHT = FeatureFlags.defaultShowShareWithCureHHT;
     _availableFonts = List.from(FeatureFlags.defaultAvailableFonts);
     _currentSponsorId = null;
     _lastError = null;

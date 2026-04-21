@@ -391,6 +391,10 @@ class AppLocalizations {
       'featureFlagsUseOnePageRecordingScreen': 'Use One-Page Recording Screen',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Use simplified one-page recording screen instead of multi-page flow',
+      // CUR-1116
+      'featureFlagsShowShareWithCureHHT': 'Show "Share with CureHHT" Button',
+      'featureFlagsShowShareWithCureHHTDescription':
+          'Show sharing button and data-sharing card on the Profile screen',
       'featureFlagsOldEntryJustification': 'Old Entry Justification',
       'featureFlagsOldEntryJustificationDescription':
           'Require justification when editing entries older than one day',
@@ -801,6 +805,11 @@ class AppLocalizations {
           'Usar Pantalla de Registro de Una Pagina',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Usar pantalla de registro simplificada en lugar de flujo de varias paginas',
+      // CUR-1116
+      'featureFlagsShowShareWithCureHHT':
+          'Mostrar Boton "Compartir con CureHHT"',
+      'featureFlagsShowShareWithCureHHTDescription':
+          'Mostrar boton de compartir y tarjeta en la pantalla de Perfil',
       'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
       'featureFlagsOldEntryJustificationDescription':
           'Requerir justificacion al editar entradas de mas de un dia',
@@ -1223,6 +1232,11 @@ class AppLocalizations {
           "Utiliser Ecran d'Enregistrement Une Page",
       'featureFlagsUseOnePageRecordingScreenDescription':
           "Utiliser l'ecran d'enregistrement simplifie au lieu du flux multi-pages",
+      // CUR-1116
+      'featureFlagsShowShareWithCureHHT':
+          'Afficher le Bouton "Partager avec CureHHT"',
+      'featureFlagsShowShareWithCureHHTDescription':
+          "Afficher le bouton de partage et la carte sur l'ecran Profil",
       'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
       'featureFlagsOldEntryJustificationDescription':
           "Exiger une justification lors de la modification d'entrees de plus d'un jour",
@@ -1639,6 +1653,11 @@ class AppLocalizations {
           'Einseitigen Aufnahmebildschirm Verwenden',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Vereinfachten einseitigen Aufnahmebildschirm statt mehrseitigem Ablauf verwenden',
+      // CUR-1116
+      'featureFlagsShowShareWithCureHHT':
+          'Schaltflache "Mit CureHHT teilen" Anzeigen',
+      'featureFlagsShowShareWithCureHHTDescription':
+          'Schaltflache und Datenteilungskarte auf dem Profilbildschirm anzeigen',
       'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
       'featureFlagsOldEntryJustificationDescription':
           'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
@@ -2051,6 +2070,10 @@ class AppLocalizations {
       translate('featureFlagsUseOnePageRecordingScreen');
   String get featureFlagsUseOnePageRecordingScreenDescription =>
       translate('featureFlagsUseOnePageRecordingScreenDescription');
+  String get featureFlagsShowShareWithCureHHT =>
+      translate('featureFlagsShowShareWithCureHHT');
+  String get featureFlagsShowShareWithCureHHTDescription =>
+      translate('featureFlagsShowShareWithCureHHTDescription');
   String get featureFlagsOldEntryJustification =>
       translate('featureFlagsOldEntryJustification');
   String get featureFlagsOldEntryJustificationDescription =>
