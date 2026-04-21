@@ -33,6 +33,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final authService = context.watch<AuthService>();
     final theme = Theme.of(context);
 
+    // CUR-1118: Wait for Firebase to restore session before redirecting.
+    if (!authService.isAuthenticated && !authService.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     // Check authentication and admin role
     if (!authService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

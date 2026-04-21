@@ -245,11 +245,13 @@ class AuthService extends ChangeNotifier {
     Duration inactivityTimeout = const Duration(minutes: 2),
     bool enableInactivityTimer = true,
     Future<void> Function()? clearStorage,
+    bool isPageRefresh = false,
   }) : _sponsorId = sponsorId,
        _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
        _inactivityTimeout = inactivityTimeout,
        _enableInactivityTimer = enableInactivityTimer,
+       _isPageRefresh = isPageRefresh,
        // REQ-d00083-A..E, REQ-p01044-J..M: default is a no-op; main.dart injects
        // the real browser implementation on web.
        _clearStorage = clearStorage ?? _noopStorage {
@@ -258,6 +260,11 @@ class AuthService extends ChangeNotifier {
 
   final String _sponsorId;
   final bool _enableInactivityTimer;
+
+  /// CUR-1118: true when this page load is a same-tab refresh (F5/Cmd+R).
+  /// When false (fresh tab / post-close), stale Firebase sessions are cleared
+  /// inside _init() after Firebase has finished restoring from IndexedDB.
+  final bool _isPageRefresh;
   // REQ-d00083-A..E, REQ-p01044-J..M: injectable for testing, web impl by default
   final Future<void> Function() _clearStorage;
   final FirebaseAuth _auth;
@@ -268,6 +275,14 @@ class AuthService extends ChangeNotifier {
   PortalUser? _currentUser;
   bool _isLoading = false;
   String? _error;
+
+  /// True once the first authStateChanges event has been fully processed.
+  ///
+  /// CUR-1118: Firebase Auth restores its session from IndexedDB
+  /// asynchronously after a page refresh. Dashboard pages must wait for this
+  /// flag before deciding to redirect to /login, otherwise they see
+  /// isAuthenticated=false transiently and kick the user out on every refresh.
+  bool _isInitialized = false;
 
   /// The Firebase UID that this tab signed in with.
   /// Used to detect cross-tab session collisions (CUR-982).
@@ -357,6 +372,7 @@ class AuthService extends ChangeNotifier {
   PortalUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
+  bool get isInitialized => _isInitialized;
   String? get error => _error;
   String get sponsorId => _sponsorId;
 
@@ -430,6 +446,25 @@ class AuthService extends ChangeNotifier {
   /// Initialize auth state listener
   void _init() {
     _auth.authStateChanges().listen((User? user) async {
+      // CUR-1118: If this is a fresh tab (not a page refresh) and Firebase
+      // restored a stale session from IndexedDB, sign out now.
+      // We do this HERE (not in main.dart) because Firebase needs time to
+      // restore the session from IndexedDB before we can sign out of it.
+      // The !_isInitialized guard ensures this only fires on the FIRST
+      // authStateChanges event (initial restoration), not on subsequent
+      // events from explicit signIn() calls.
+      // The _clearStorage != _noopStorage guard ensures this only runs in
+      // the browser (where main.dart injects BrowserStorageService), not in
+      // unit tests which use the default no-op.
+      if (user != null &&
+          !_isPageRefresh &&
+          !_isInitialized &&
+          _sessionUid == null &&
+          _clearStorage != _noopStorage) {
+        await signOut();
+        return;
+      }
+
       if (user != null && _sessionUid != null && user.uid != _sessionUid) {
         // CUR-982: A different user signed in from another tab, overwriting
         // this tab's Firebase auth state via shared localStorage. Sign out
@@ -440,8 +475,18 @@ class AuthService extends ChangeNotifier {
         );
         await signOut();
       } else if (user != null) {
-        // Same user signed in - fetch portal user info
+        // Same user signed in or session restored — fetch portal user info.
+        // CUR-1118: Track the UID so cross-tab collision detection (CUR-982)
+        // works after a page refresh, not only after an explicit signIn().
+        _sessionUid ??= user.uid;
         await _fetchPortalUser();
+        // Ensure _isInitialized is set even if _fetchPortalUser() fails
+        // (e.g. 403 or network error), so dashboard pages stop showing
+        // a spinner and redirect to login instead of spinning forever.
+        if (!_isInitialized) {
+          _isInitialized = true;
+          notifyListeners();
+        }
       } else {
         // User signed out externally (e.g. token expiry, Firebase forced logout).
         // Cancel both timers and clear the warning flag so UserActivityListener
@@ -452,6 +497,7 @@ class AuthService extends ChangeNotifier {
         _warningTimer = null;
         _isWarning = false;
         _currentUser = null;
+        _isInitialized = true;
         notifyListeners();
       }
     });
@@ -803,6 +849,7 @@ class AuthService extends ChangeNotifier {
         if (_sponsorRoleNames.isEmpty) {
           await _fetchSponsorRoleMappings(idToken!);
         }
+        _isInitialized = true;
         notifyListeners();
         // REQ-p01044-C: apply sponsor-configurable inactivity timeout
         await _fetchSponsorTimeout();
