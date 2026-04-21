@@ -5,10 +5,12 @@
 //   REQ-p01065: Clinical Questionnaire System
 //   REQ-p01067: NOSE HHT Questionnaire Content
 //   REQ-p01068: HHT Quality of Life Questionnaire Content
+//   REQ-d00116: EntryTypeDefinition Schema
 
 /// Common data types for trial data shared between client and server.
 library;
 
+export 'src/entry_type_definition.dart';
 export 'src/question_category.dart';
 export 'src/question_definition.dart';
 export 'src/question_response.dart';

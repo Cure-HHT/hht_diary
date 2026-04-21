@@ -80,7 +80,7 @@ One new REQ, claimed via `discover_requirements("next available REQ-d")`. Also r
 - Create: `apps/common-dart/append_only_datastore/lib/src/materialization/entry_type_definition_lookup.dart`
 - Create: `apps/common-dart/append_only_datastore/test/materialization/entry_type_definition_lookup_test.dart`
 
-**Applicable assertions:** REQ-ETD-A (the lookup must agree with `EntryTypeDefinition.id`); REQ-MAT-A (materializer is pure — lookup provides the def it needs).
+**Applicable assertions:** REQ-d00116-A (the lookup must agree with `EntryTypeDefinition.id`); REQ-MAT-A (materializer is pure — lookup provides the def it needs).
 
 - [ ] **Baseline**: green.
 - [ ] **Create TASK_FILE**.

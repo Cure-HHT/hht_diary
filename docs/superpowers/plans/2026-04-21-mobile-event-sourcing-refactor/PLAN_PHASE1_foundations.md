@@ -77,7 +77,7 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
 - [ ] **Baseline**: confirm `git status` shows the branch checked out and no uncommitted changes except the plan files.
 - [ ] **Create TASK_FILE**: `PHASE1_TASK_2.md`.
 - [ ] **Find applicable existing assertions**: `discover_requirements("chain of custody provenance audit trail")` and `discover_requirements("entry type definition questionnaire widget")`. Record results in TASK_FILE as `APPLICABLE_ASSERTIONS: ...`.
-- [ ] **Claim next REQ-d numbers**: `discover_requirements("next available REQ-d")` returns the next two slots. Record in TASK_FILE as the real numbers for `REQ-PROV` and `REQ-ETD`, then substitute the real numbers everywhere in this plan before committing.
+- [ ] **Claim next REQ-d numbers**: `discover_requirements("next available REQ-d")` returns the next two slots. Record in TASK_FILE as the real numbers for `REQ-d00115` and `REQ-d00116`, then substitute the real numbers everywhere in this plan before committing.
 - [ ] **Write the spec**. Use `spec/requirements-spec.md` as the grammar reference. The file must include two REQs.
 
   **REQ 1 — `ProvenanceEntry`** assertions (expected A-F):
@@ -121,7 +121,7 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
 - [ ] **Create TASK_FILE**.
 - [ ] **Write `pubspec.yaml`**. Pure Dart (no Flutter SDK). Model after `trial_data_types/pubspec.yaml`:
   - `name: provenance`
-  - `description: "Chain-of-custody provenance types for cross-system event flow - REQ-d?????"` (the REQ-PROV number from Task 2)
+  - `description: "Chain-of-custody provenance types for cross-system event flow - REQ-d?????"` (the REQ-d00115 number from Task 2)
   - `version: 0.0.1`
   - `environment: sdk: ^3.10.1`
   - `dependencies: {}` (no runtime deps; the helper is a pure function)
@@ -143,11 +143,11 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
 - Modify: `apps/common-dart/provenance/lib/provenance.dart` (add export)
 - Create: `apps/common-dart/provenance/test/provenance_entry_test.dart`
 
-**Applicable assertions:** REQ-PROV-C, REQ-PROV-D, REQ-PROV-E, REQ-PROV-F.
+**Applicable assertions:** REQ-d00115-C, REQ-d00115-D, REQ-d00115-E, REQ-d00115-F.
 
 - [ ] **Baseline**: `(cd apps/common-dart/provenance && dart test)` — expected: no tests found (green trivially).
 - [ ] **Create TASK_FILE**.
-- [ ] **Write failing tests** for `ProvenanceEntry`. File: `test/provenance_entry_test.dart`. Each test group gets a `/// Verifies REQ-PROV-X` doc comment; each `test(...)` gets a `// Verifies:` comment above and the assertion ID at the start of the description string. Cover:
+- [ ] **Write failing tests** for `ProvenanceEntry`. File: `test/provenance_entry_test.dart`. Each test group gets a `/// Verifies REQ-d00115-X` doc comment; each `test(...)` gets a `// Verifies:` comment above and the assertion ID at the start of the description string. Cover:
   - Construct an entry with all required fields and confirm every getter round-trips.
   - `toJson() / fromJson()` round-trip preserves all fields including null `transform_version`.
   - `fromJson()` throws `FormatException` on a missing required field.
@@ -157,7 +157,7 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
   - `transform_version` is null-when-absent, non-null-when-present.
   - Two entries with identical fields are `==` (value equality) and have equal `hashCode`.
 - [ ] **Run tests**: `(cd apps/common-dart/provenance && dart test)`; expected: failures referencing undefined `ProvenanceEntry`.
-- [ ] **Implement `ProvenanceEntry`** as an immutable value class (final fields, `const` constructor, `==` and `hashCode` overrides). Above the class, a one-line `// Implements: REQ-PROV-C+D+E+F — <prose>` comment. Each non-trivial method (`toJson`, `fromJson`, `copyWith` if needed) gets its own per-function `// Implements:` if it embodies a specific assertion.
+- [ ] **Implement `ProvenanceEntry`** as an immutable value class (final fields, `const` constructor, `==` and `hashCode` overrides). Above the class, a one-line `// Implements: REQ-d00115-C+D+E+F — <prose>` comment. Each non-trivial method (`toJson`, `fromJson`, `copyWith` if needed) gets its own per-function `// Implements:` if it embodies a specific assertion.
 - [ ] **Run tests**; expected: all pass.
 - [ ] **Lint**: `(cd apps/common-dart/provenance && dart analyze)`; expected: no issues.
 - [ ] **Update library export**: add `export 'src/provenance_entry.dart';` to `lib/provenance.dart`.
@@ -174,20 +174,20 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
 - Modify: `apps/common-dart/provenance/lib/provenance.dart` (add export)
 - Create: `apps/common-dart/provenance/test/append_hop_test.dart`
 
-**Applicable assertions:** REQ-PROV-A, REQ-PROV-B.
+**Applicable assertions:** REQ-d00115-A, REQ-d00115-B.
 
 - [ ] **Baseline**: `(cd apps/common-dart/provenance && dart test)` — expected green from Task 4.
 - [ ] **Create TASK_FILE**.
 - [ ] **Write failing tests** for `appendHop(chain, hop) -> List<ProvenanceEntry>`. Cover:
   - Appending to an empty list yields a one-entry list.
   - Appending to a non-empty list yields a list with length + 1.
-  - The returned list is a new `List`, not a mutation of the input. The input list MUST compare equal to its pre-call state after the call returns (REQ-PROV-B: no mutation of prior entries).
+  - The returned list is a new `List`, not a mutation of the input. The input list MUST compare equal to its pre-call state after the call returns (REQ-d00115-B: no mutation of prior entries).
   - The newly-appended entry is at the tail.
   - Appending the same entry twice yields two equal entries at positions N and N+1 (no deduplication).
 - [ ] **Run tests**; expect failures for undefined `appendHop`.
 - [ ] **Implement** `appendHop()` as a pure function returning `List<ProvenanceEntry>.unmodifiable([...chain, hop])`. Above it:
   ```dart
-  // Implements: REQ-PROV-A+B — append exactly one ProvenanceEntry on each
+  // Implements: REQ-d00115-A+B — append exactly one ProvenanceEntry on each
   // hop; never mutate prior entries. Returned list is unmodifiable so callers
   // cannot break the invariant downstream either.
   ```
@@ -204,10 +204,10 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
 
 **Files:**
 - Create: `apps/common-dart/trial_data_types/lib/src/entry_type_definition.dart`
-- Modify: `apps/common-dart/trial_data_types/lib/trial_data_types.dart` (add export and REQ-ETD to header)
+- Modify: `apps/common-dart/trial_data_types/lib/trial_data_types.dart` (add export and REQ-d00116 to header)
 - Create: `apps/common-dart/trial_data_types/test/entry_type_definition_test.dart`
 
-**Applicable assertions:** REQ-ETD-A, REQ-ETD-B, REQ-ETD-C, REQ-ETD-D, REQ-ETD-F, REQ-ETD-G.
+**Applicable assertions:** REQ-d00116-A, REQ-d00116-B, REQ-d00116-C, REQ-d00116-D, REQ-d00116-F, REQ-d00116-G.
 
 (Assertion E — materializer fallback — is tested in Phase 3, not here. The type carries the `effective_date_path` field; the fallback behavior lives in the materializer.)
 
@@ -223,8 +223,8 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
   - `widget_config` round-trips arbitrary JSON (use a map with nested lists and strings as the fixture).
 - [ ] **Run tests**; expect failures.
 - [ ] **Implement `EntryTypeDefinition`** as an immutable value class. Per-function `// Implements:` markers for the constructor, `toJson`, and `fromJson`.
-  - Constructor annotation: `// Implements: REQ-ETD-A+B+C+F+G — carries the seven fields called out in the design doc §6.4.`
-  - `fromJson`: `// Implements: REQ-ETD-C+F — decoder rejects payloads missing the required widget_id / widget_config fields.`
+  - Constructor annotation: `// Implements: REQ-d00116-A+B+C+F+G — carries the seven fields called out in the design doc §6.4.`
+  - `fromJson`: `// Implements: REQ-d00116-C+F — decoder rejects payloads missing the required widget_id / widget_config fields.`
 - [ ] **Run tests**; expect pass.
 - [ ] **Lint**: `dart analyze` clean.
 - [ ] **Update library export**: add `export 'src/entry_type_definition.dart';` to `lib/trial_data_types.dart` and add `//   REQ-d?????: EntryTypeDefinition` to the file-level header block.
@@ -265,13 +265,13 @@ Expected: all baseline commands pass. If any test fails on the branch, stop and 
   Introduces pure-Dart data types used by all subsequent phases:
   - ProvenanceEntry value type + appendHop() helper (new provenance package)
   - EntryTypeDefinition value type (trial_data_types)
-  - spec/dev-event-sourcing-mobile.md with REQ-PROV and REQ-ETD
+  - spec/dev-event-sourcing-mobile.md with REQ-d00115 and REQ-d00116
 
   No runtime integration — this code is reached only by tests until Phase 5
   wires it into the EntryService write path.
   ```
 
-  Substitute the real REQ-d numbers (from Task 2's discover_requirements call) for REQ-PROV and REQ-ETD in the body before committing.
+  Substitute the real REQ-d numbers (from Task 2's discover_requirements call) for REQ-d00115 and REQ-d00116 in the body before committing.
 - [ ] **Force-push with lease**: `git push --force-with-lease`. CI runs on the draft PR.
 - [ ] **Comment on PR**: "Phase 1 ready for review — commit `<sha>`. Review focus: pure-Dart data types and their spec assertions. No runtime integration."
 - [ ] **Wait for phase review**. Address feedback by committing fixups and re-running the interactive rebase in place (the Phase 1 squashed commit stays as the single Phase 1 commit; fixup commits get folded in).

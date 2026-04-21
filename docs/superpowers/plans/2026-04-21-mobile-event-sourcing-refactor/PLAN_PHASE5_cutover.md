@@ -105,7 +105,7 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
 - Create: `apps/common-dart/append_only_datastore/lib/src/entry_type_registry.dart`
 - Create: `apps/common-dart/append_only_datastore/test/entry_type_registry_test.dart`
 
-**Applicable assertions:** REQ-ETD-A; REQ-BOOTSTRAP-B; REQ-MAT (consumer via `EntryTypeDefinitionLookup` interface).
+**Applicable assertions:** REQ-d00116-A; REQ-BOOTSTRAP-B; REQ-MAT (consumer via `EntryTypeDefinitionLookup` interface).
 
 - [ ] **Baseline**: green.
 - [ ] **Create TASK_FILE**.
@@ -132,7 +132,7 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
 - Modify/create: `apps/common-dart/trial_data_types/lib/src/entry_type_definition_loader.dart`
 - Create: `apps/common-dart/trial_data_types/test/entry_type_definition_loader_test.dart`
 
-**Applicable assertions:** REQ-ETD-A, B, C, D, F, G.
+**Applicable assertions:** REQ-d00116-A, B, C, D, F, G.
 
 - [ ] **Baseline**.
 - [ ] **Create TASK_FILE**.
@@ -190,7 +190,7 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
   - Parses into `List<EntryTypeDefinition>` with 3 items.
   - Each item's `id` is unique and matches expected values above.
 - [ ] **Run test**; expect failure.
-- [ ] **Write the loader**: async function returning `Future<List<EntryTypeDefinition>>`. Per-function `// Implements: REQ-ETD-A+B+C+F+G — load bundled entry-type definitions for the sponsor's enabled entry types.`
+- [ ] **Write the loader**: async function returning `Future<List<EntryTypeDefinition>>`. Per-function `// Implements: REQ-d00116-A+B+C+F+G — load bundled entry-type definitions for the sponsor's enabled entry types.`
 - [ ] **Run test**; pass.
 - [ ] **Commit**: "Add bundled EntryTypeDefinition assets and loader (CUR-1154)".
 

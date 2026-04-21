@@ -308,6 +308,8 @@
 | REQ-d00112 | Enrollment Token Revocation                        | dev-portal-api.md              | e8863441 |
 | REQ-d00113 | Deleted Questionnaire Submission Handling          | dev-questionnaire.md           | 6aaa85fd |
 | REQ-d00114 | Sync Request Device Binding Verification           | dev-portal-api.md              | b1a11feb |
+| REQ-d00115 | ProvenanceEntry Schema and Append Rules            | dev-event-sourcing-mobile.md   | e129e6a9 |
+| REQ-d00116 | EntryTypeDefinition Schema                         | dev-event-sourcing-mobile.md   | 0bb2f928 |
 
 ## User Journeys
 
