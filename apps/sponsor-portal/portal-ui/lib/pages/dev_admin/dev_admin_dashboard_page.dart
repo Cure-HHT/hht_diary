@@ -43,7 +43,7 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
     final user = authService.currentUser!;
     if (!user.hasRole(UserRole.developerAdmin)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/admin');
+        context.go('/common-dashboard', extra: UserRole.administrator);
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/auth_service.dart';
 import '../widgets/error_message.dart';
 
 /// Page for users to activate their accounts using an activation code
@@ -165,7 +166,7 @@ class _ActivationPageState extends State<ActivationPage> {
         // Account activated successfully - redirect directly to dashboard
         // The user is already authenticated via Firebase from account creation
         // Per REQ-CAL-p00029: "redirected to admin dashboard"
-        context.go('/admin');
+        context.go('/common-dashboard', extra: UserRole.administrator);
         return;
       }
 
