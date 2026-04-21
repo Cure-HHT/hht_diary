@@ -37,10 +37,14 @@ class TimezoneConverter {
   /// [at] Optional reference time whose date/time components are interpreted
   /// as wall-clock time in the target timezone (used to determine DST state).
   /// Defaults to the current moment.
+  ///
+  /// Requires prior initialization via [ensureInitialized] (called at app
+  /// startup in main.dart). Falls back to static [commonTimezones] offsets
+  /// if the IANA ID is not found in the database.
+  ///
   /// Returns null if timezone is not found.
   static int? getTimezoneOffsetMinutes(String? ianaId, {DateTime? at}) {
     if (ianaId == null) return null;
-    ensureInitialized();
     try {
       final location = tz.getLocation(ianaId);
       final tzDateTime = at != null
@@ -55,7 +59,7 @@ class TimezoneConverter {
             )
           : tz.TZDateTime.now(location);
       return tzDateTime.timeZoneOffset.inMinutes;
-    } catch (_) {
+    } on Exception catch (_) {
       // Fallback to static list if IANA ID not in timezone database
       final entry = commonTimezones
           .where((e) => e.ianaId == ianaId)

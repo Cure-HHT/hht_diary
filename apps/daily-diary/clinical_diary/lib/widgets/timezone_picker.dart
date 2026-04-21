@@ -670,7 +670,9 @@ String getTimezoneDisplayName(String ianaId) {
 /// Falls back to static [commonTimezones] list if the IANA ID is not found
 /// in the timezone database.
 String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
-  // initializeTimeZones() is idempotent — the package tracks its own init state.
+  // Direct call (not via TimezoneConverter.ensureInitialized) to avoid a
+  // circular import: timezone_converter.dart already imports this file.
+  // initializeTimeZones() is idempotent — safe to call multiple times.
   tz_data.initializeTimeZones();
   try {
     final location = tz.getLocation(ianaId);
@@ -690,7 +692,7 @@ String getTimezoneAbbreviation(String ianaId, {DateTime? at}) {
     if (!abbr.startsWith('+') && !abbr.startsWith('-')) {
       return abbr;
     }
-  } catch (_) {
+  } on Exception catch (_) {
     // IANA ID not found in timezone database — fall through to static lookup.
   }
   // Static fallback

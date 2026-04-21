@@ -57,14 +57,25 @@ class EventListItem extends StatelessWidget {
     // If no timezone info stored, don't show anything
     if (startTz == null && endTz == null) return null;
 
-    // Pass the event's stored time as `at` so DST state is determined at the
-    // moment of the event, not at the current time (e.g. avoids showing "PDT"
-    // for a January event when viewed in July).
+    // Convert stored (device-adjusted) time to the event's local wall-clock time
+    // before passing as `at`. getTimezoneAbbreviation interprets `at` components
+    // as wall-clock time in the target timezone, so passing the stored (device-local)
+    // time directly would give a wrong DST state near fall-back transitions.
     final startAbbr = startTz != null
-        ? getTimezoneAbbreviation(startTz, at: record.startTime)
+        ? getTimezoneAbbreviation(
+            startTz,
+            at: TimezoneConverter.toDisplayedDateTime(
+              record.startTime,
+              startTz,
+            ),
+          )
         : null;
+    final endEndTime = record.endTime ?? record.startTime;
     final endAbbr = endTz != null
-        ? getTimezoneAbbreviation(endTz, at: record.endTime ?? record.startTime)
+        ? getTimezoneAbbreviation(
+            endTz,
+            at: TimezoneConverter.toDisplayedDateTime(endEndTime, endTz),
+          )
         : null;
 
     // Check if timezones differ from device or from each other
