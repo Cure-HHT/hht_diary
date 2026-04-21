@@ -16,6 +16,7 @@ import 'package:clinical_diary/main.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -1392,207 +1393,208 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets(
-      'CUR-597: Stored time and home page should match entered EST time',
-      (tester) async {
-        // This test verifies that:
-        // 1. When device is PST and user enters time in EST
-        // 2. The stored time in datastore is correctly converted
-        // 3. The home page displays the time in EST (with timezone label)
-        //
-        // Example scenario:
-        // - Device time: 2:20 PM PST
-        // - User changes timezone to EST and adds 3 hours
-        // - Display shows: 5:20 PM EST
-        // - Stored time should be: 2:20 PM (device TZ adjusted)
-        // - Home page SHOULD show: 5:20 PM EST (converted back)
-        // - BUG: Home page shows: 2:20 PM EST (raw stored time, wrong!)
+    testWidgets('CUR-597: Stored time and home page should match entered EST time', (
+      tester,
+    ) async {
+      // This test verifies that:
+      // 1. When device is PST and user enters time in EST
+      // 2. The stored time in datastore is correctly converted
+      // 3. The home page displays the time in EST (with timezone label)
+      //
+      // Example scenario:
+      // - Device time: 2:20 PM PST
+      // - User changes timezone to EST and adds 3 hours
+      // - Display shows: 5:20 PM EST
+      // - Stored time should be: 2:20 PM (device TZ adjusted)
+      // - Home page SHOULD show: 5:20 PM EST (converted back)
+      // - BUG: Home page shows: 2:20 PM EST (raw stored time, wrong!)
 
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        // Launch the app
-        await tester.pumpWidget(const ClinicalDiaryApp());
-        await tester.pumpAndSettle();
+      // Launch the app
+      await tester.pumpWidget(const ClinicalDiaryApp());
+      await tester.pumpAndSettle();
 
-        // ===== STEP 1: Record a nosebleed =====
-        debugPrint('Step 1: Click Record Nosebleed');
-        await tester.tap(find.text('Record Nosebleed'));
-        await tester.pumpAndSettle();
+      // ===== STEP 1: Record a nosebleed =====
+      debugPrint('Step 1: Click Record Nosebleed');
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
 
-        // Capture the initial displayed time (should be close to "now" in PST)
-        String? initialTimeText;
-        for (final element in find.byType(Text).evaluate()) {
-          final textWidget = element.widget as Text;
-          final data = textWidget.data ?? '';
-          if (data.contains(':') &&
-              (data.contains('AM') || data.contains('PM'))) {
-            initialTimeText = data;
-            debugPrint('Initial time: $data');
-            break;
-          }
+      // Capture the initial displayed time (should be close to "now" in PST)
+      String? initialTimeText;
+      for (final element in find.byType(Text).evaluate()) {
+        final textWidget = element.widget as Text;
+        final data = textWidget.data ?? '';
+        if (data.contains(':') &&
+            (data.contains('AM') || data.contains('PM'))) {
+          initialTimeText = data;
+          debugPrint('Initial time: $data');
+          break;
         }
+      }
 
-        // ===== STEP 2: Change timezone to EST =====
-        debugPrint('Step 2: Change timezone to EST');
-        await changeTimezone(tester, 'New_York');
+      // ===== STEP 2: Change timezone to EST =====
+      debugPrint('Step 2: Change timezone to EST');
+      await changeTimezone(tester, 'New_York');
 
-        // ===== STEP 3: Add 3 hours (180 min) to simulate EST display =====
-        // PST + 3 hours = EST equivalent display
-        debugPrint('Step 3: Add 180 min to simulate EST offset');
-        for (var i = 0; i < 12; i++) {
-          await tester.tap(find.text('+15'));
-          await tester.pump();
+      // ===== STEP 3: Add 3 hours (180 min) to simulate EST display =====
+      // PST + 3 hours = EST equivalent display
+      debugPrint('Step 3: Add 180 min to simulate EST offset');
+      for (var i = 0; i < 12; i++) {
+        await tester.tap(find.text('+15'));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      // Capture the adjusted time - this is what user expects to save
+      String? adjustedTimeText;
+      for (final element in find.byType(Text).evaluate()) {
+        final textWidget = element.widget as Text;
+        final data = textWidget.data ?? '';
+        if (data.contains(':') &&
+            (data.contains('AM') || data.contains('PM'))) {
+          adjustedTimeText = data;
+          debugPrint('Adjusted time (EST display): $data');
+          break;
         }
+      }
+
+      // ===== STEP 4: Set Start Time =====
+      debugPrint('Step 4: Click Set Start Time');
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+
+      // ===== STEP 5: Select intensity =====
+      debugPrint('Step 5: Select intensity (Dripping)');
+      await tester.tap(find.text('Dripping'));
+      await tester.pumpAndSettle();
+
+      // ===== STEP 6: Set End Time (+5 min) =====
+      debugPrint('Step 6: Set End Time');
+      // Add 5 minutes to ensure non-zero duration
+      final plusFive = find.text('+5');
+      if (plusFive.evaluate().isNotEmpty) {
+        await tester.tap(plusFive);
         await tester.pumpAndSettle();
+      }
 
-        // Capture the adjusted time - this is what user expects to save
-        String? adjustedTimeText;
-        for (final element in find.byType(Text).evaluate()) {
-          final textWidget = element.widget as Text;
-          final data = textWidget.data ?? '';
-          if (data.contains(':') &&
-              (data.contains('AM') || data.contains('PM'))) {
-            adjustedTimeText = data;
-            debugPrint('Adjusted time (EST display): $data');
-            break;
-          }
+      // Click Set End Time button
+      final setEndButton = find.text('Set End Time');
+      expect(
+        setEndButton,
+        findsOneWidget,
+        reason: 'Set End Time button should exist',
+      );
+      await tester.tap(setEndButton);
+      await tester.pumpAndSettle();
+
+      // Should be back on home page now
+      debugPrint('Step 7: Verify back on home page');
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+      // ===== STEP 7: Verify stored time and timezone in datastore =====
+      debugPrint('Step 8: Verify stored time and timezone');
+      final allEvents = await Datastore.instance.repository.getAllEvents();
+
+      // Debug: Show all events in datastore
+      debugPrint('=== ALL EVENTS IN DATASTORE ===');
+      for (final event in allEvents) {
+        debugPrint('Event: type=${event.eventType}, data=${event.data}');
+      }
+      debugPrint('=== END ALL EVENTS ===');
+
+      final createEvents = allEvents
+          .where((e) => e.eventType == 'NosebleedRecorded')
+          .toList();
+
+      expect(
+        createEvents,
+        isNotEmpty,
+        reason:
+            'Should have at least one NosebleedRecorded event. '
+            'Found ${allEvents.length} total events: ${allEvents.map((e) => e.eventType).toList()}',
+      );
+
+      final latestCreate = createEvents.last;
+      final eventData = latestCreate.data;
+
+      // Check that timezone was stored
+      final storedTimezone = eventData['startTimeTimezone'];
+      debugPrint('Stored timezone: $storedTimezone');
+      expect(
+        storedTimezone,
+        equals('America/New_York'),
+        reason: 'Start timezone should be stored as America/New_York',
+      );
+
+      // Check the stored start time
+      final storedStartTime = eventData['startTime'];
+      debugPrint('Stored start time: $storedStartTime');
+
+      // The stored time should be the device-adjusted time
+      // If user displayed 5:20 PM EST, stored should be 2:20 PM PST
+      // The storedStartTime is an ISO string, parse it
+      final storedDateTime = DateTime.parse(storedStartTime as String);
+      debugPrint('Parsed stored time: $storedDateTime');
+
+      // ===== STEP 8: Verify home page display =====
+      debugPrint('Step 9: Verify home page display');
+
+      // Look for the event on the home page - should show Today's events
+      expect(
+        find.text('Today'),
+        findsOneWidget,
+        reason: 'Today section should exist',
+      );
+
+      // Find the time displayed on the home page
+      // The EventListItem shows time like "5:20 PM" with optional timezone
+      // We need to find the displayed time and verify it matches what user entered
+
+      // Look for the adjusted time (what user entered in EST)
+      // The home page should display this time WITH the EST timezone label
+      final homePageTimeMatches = find.text(adjustedTimeText ?? '');
+
+      // CUR-597 BUG: This will FAIL because home page shows stored time (PST)
+      // instead of converting it back to the event's timezone (EST)
+      debugPrint('Looking for adjusted time on home page: $adjustedTimeText');
+      debugPrint('=== Home page text widgets ===');
+      for (final element in find.byType(Text).evaluate().take(30)) {
+        final textWidget = element.widget as Text;
+        final data = textWidget.data ?? '';
+        if (data.isNotEmpty) {
+          debugPrint('Text: "$data"');
         }
+      }
 
-        // ===== STEP 4: Set Start Time =====
-        debugPrint('Step 4: Click Set Start Time');
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
+      expect(
+        homePageTimeMatches,
+        findsOneWidget,
+        reason:
+            'CUR-597 BUG: Home page should display the time user entered '
+            '($adjustedTimeText), but it shows the raw stored time '
+            '($initialTimeText) without timezone conversion.',
+      );
 
-        // ===== STEP 5: Select intensity =====
-        debugPrint('Step 5: Select intensity (Dripping)');
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
+      // Verify the timezone label is shown. Resolve the abbreviation at runtime
+      // so the test passes in any season (EDT in summer, EST in winter).
+      final expectedTzAbbr = getTimezoneAbbreviation('America/New_York');
+      final tzLabel = find.text(expectedTzAbbr);
+      expect(
+        tzLabel,
+        findsWidgets,
+        reason:
+            '$expectedTzAbbr timezone label should be displayed on home page '
+            'since event timezone (America/New_York) differs from device timezone',
+      );
 
-        // ===== STEP 6: Set End Time (+5 min) =====
-        debugPrint('Step 6: Set End Time');
-        // Add 5 minutes to ensure non-zero duration
-        final plusFive = find.text('+5');
-        if (plusFive.evaluate().isNotEmpty) {
-          await tester.tap(plusFive);
-          await tester.pumpAndSettle();
-        }
-
-        // Click Set End Time button
-        final setEndButton = find.text('Set End Time');
-        expect(
-          setEndButton,
-          findsOneWidget,
-          reason: 'Set End Time button should exist',
-        );
-        await tester.tap(setEndButton);
-        await tester.pumpAndSettle();
-
-        // Should be back on home page now
-        debugPrint('Step 7: Verify back on home page');
-        await tester.pumpAndSettle(const Duration(milliseconds: 500));
-
-        // ===== STEP 7: Verify stored time and timezone in datastore =====
-        debugPrint('Step 8: Verify stored time and timezone');
-        final allEvents = await Datastore.instance.repository.getAllEvents();
-
-        // Debug: Show all events in datastore
-        debugPrint('=== ALL EVENTS IN DATASTORE ===');
-        for (final event in allEvents) {
-          debugPrint('Event: type=${event.eventType}, data=${event.data}');
-        }
-        debugPrint('=== END ALL EVENTS ===');
-
-        final createEvents = allEvents
-            .where((e) => e.eventType == 'NosebleedRecorded')
-            .toList();
-
-        expect(
-          createEvents,
-          isNotEmpty,
-          reason:
-              'Should have at least one NosebleedRecorded event. '
-              'Found ${allEvents.length} total events: ${allEvents.map((e) => e.eventType).toList()}',
-        );
-
-        final latestCreate = createEvents.last;
-        final eventData = latestCreate.data;
-
-        // Check that timezone was stored
-        final storedTimezone = eventData['startTimeTimezone'];
-        debugPrint('Stored timezone: $storedTimezone');
-        expect(
-          storedTimezone,
-          equals('America/New_York'),
-          reason: 'Start timezone should be stored as America/New_York (EST)',
-        );
-
-        // Check the stored start time
-        final storedStartTime = eventData['startTime'];
-        debugPrint('Stored start time: $storedStartTime');
-
-        // The stored time should be the device-adjusted time
-        // If user displayed 5:20 PM EST, stored should be 2:20 PM PST
-        // The storedStartTime is an ISO string, parse it
-        final storedDateTime = DateTime.parse(storedStartTime as String);
-        debugPrint('Parsed stored time: $storedDateTime');
-
-        // ===== STEP 8: Verify home page display =====
-        debugPrint('Step 9: Verify home page display');
-
-        // Look for the event on the home page - should show Today's events
-        expect(
-          find.text('Today'),
-          findsOneWidget,
-          reason: 'Today section should exist',
-        );
-
-        // Find the time displayed on the home page
-        // The EventListItem shows time like "5:20 PM" with optional timezone
-        // We need to find the displayed time and verify it matches what user entered
-
-        // Look for the adjusted time (what user entered in EST)
-        // The home page should display this time WITH the EST timezone label
-        final homePageTimeMatches = find.text(adjustedTimeText ?? '');
-
-        // CUR-597 BUG: This will FAIL because home page shows stored time (PST)
-        // instead of converting it back to the event's timezone (EST)
-        debugPrint('Looking for adjusted time on home page: $adjustedTimeText');
-        debugPrint('=== Home page text widgets ===');
-        for (final element in find.byType(Text).evaluate().take(30)) {
-          final textWidget = element.widget as Text;
-          final data = textWidget.data ?? '';
-          if (data.isNotEmpty) {
-            debugPrint('Text: "$data"');
-          }
-        }
-
-        expect(
-          homePageTimeMatches,
-          findsOneWidget,
-          reason:
-              'CUR-597 BUG: Home page should display the time user entered '
-              '($adjustedTimeText EST), but it shows the raw stored time '
-              '($initialTimeText) without timezone conversion.',
-        );
-
-        // Also verify the timezone label is shown
-        final estLabel = find.text('EST');
-        expect(
-          estLabel,
-          findsWidgets,
-          reason:
-              'EST timezone label should be displayed on home page '
-              'since event timezone differs from device timezone',
-        );
-
-        debugPrint('CUR-597 test completed!');
-      },
-    );
+      debugPrint('CUR-597 test completed!');
+    });
   });
 
   // CUR-492: Negative duration bypass via back button

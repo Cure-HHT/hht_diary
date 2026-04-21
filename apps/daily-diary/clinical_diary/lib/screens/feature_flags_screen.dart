@@ -194,6 +194,19 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           ),
           const Divider(height: 1),
 
+          // CUR-1116: Show "Share with CureHHT" Button
+          SwitchListTile(
+            title: Text(l10n.featureFlagsShowShareWithCureHHT),
+            subtitle: Text(l10n.featureFlagsShowShareWithCureHHTDescription),
+            value: _featureFlagService.showShareWithCureHHT,
+            onChanged: (value) {
+              setState(() {
+                _featureFlagService.showShareWithCureHHT = value;
+              });
+            },
+          ),
+          const Divider(height: 1),
+
           // Validation Features Section
           _buildSectionHeader(l10n.featureFlagsSectionValidation),
 

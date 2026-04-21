@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00076: Participation Status Badge
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpTestFlavor();
 
+  // Reset the FeatureFlagService singleton before and after each test so that
+  // flag mutations in one test cannot pollute another (CUR-1116).
+  setUp(() => FeatureFlagService.instance.resetToDefaults());
+  tearDown(() => FeatureFlagService.instance.resetToDefaults());
+
   group('ProfileScreen', () {
     Widget buildProfileScreen({
       bool isEnrolledInTrial = false,
@@ -22,6 +28,7 @@ void main() {
       String? siteName,
       String? sitePhoneNumber,
       String? sponsorLogo,
+      bool isSharingWithCureHHT = false,
     }) {
       return wrapWithMaterialApp(
         ProfileScreen(
@@ -34,7 +41,7 @@ void main() {
           isEnrolledInTrial: isEnrolledInTrial,
           isDisconnected: isDisconnected,
           enrollmentStatus: enrollmentStatus,
-          isSharingWithCureHHT: false,
+          isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
           onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
@@ -94,6 +101,16 @@ void main() {
 
         expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
+
+      testWidgets(
+        'does not show Share with CureHHT button when not enrolled (CUR-1116)',
+        (tester) async {
+          await tester.pumpWidget(buildProfileScreen(isEnrolledInTrial: false));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
     });
 
     group('Participation Status Badge - Active', () {
@@ -174,6 +191,22 @@ void main() {
 
         expect(find.text('Enter New Linking Code'), findsNothing);
       });
+
+      testWidgets(
+        'does not show Share with CureHHT button when enrolled (CUR-1116)',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              enrollmentStatus: 'active',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
     });
 
     group('Participation Status Badge - Disconnected', () {
@@ -259,6 +292,116 @@ void main() {
 
         expect(buttonTapped, isTrue);
       });
+    });
+
+    // CUR-1116: Verify the feature flag actually gates the button.
+    // These tests complement the findsNothing assertions above by proving the
+    // button IS rendered when the flag is true, so deleting both the gate and
+    // the button code would be caught.
+    group('CUR-1116: Share with CureHHT feature flag gating', () {
+      testWidgets(
+        'shows Share with CureHHT button when flag is true and not sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            buildProfileScreen(isSharingWithCureHHT: false),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'shows Sharing with CureHHT card when flag is true and already sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              ProfileScreen(
+                onBack: () {},
+                onStartClinicalTrialEnrollment: () {},
+                onShowSettings: () {},
+                onShareWithCureHHT: () {},
+                onStopSharingWithCureHHT: () {},
+                isEnrolledInTrial: false,
+                isDisconnected: false,
+                enrollmentStatus: 'none',
+                isSharingWithCureHHT: true,
+                userName: 'Test User',
+                onUpdateUserName: (_) {},
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Sharing with CureHHT'), findsOneWidget);
+          // The "Share with CureHHT" button should not appear — the card
+          // replaces it when sharing is already active.
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'hides Share with CureHHT button when flag is false (default)',
+        (tester) async {
+          // Flag is already false from setUp — this guards the default state.
+          await tester.pumpWidget(buildProfileScreen());
+          await tester.pumpAndSettle();
+
+          expect(find.text('Share with CureHHT'), findsNothing);
+        },
+      );
+    });
+
+    // CUR-1116: Verify privacy text respects isEffectivelySharing so that
+    // toggling the feature flag cannot cause a stale "data is shared" sentence.
+    group('CUR-1116: Privacy text with feature flag', () {
+      testWidgets('privacy text does not mention sharing when flag is false', (
+        tester,
+      ) async {
+        // Flag defaults to false via setUp.
+        await tester.pumpWidget(buildProfileScreen(isSharingWithCureHHT: true));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Anonymized data is shared with CureHHT'),
+          findsNothing,
+        );
+      });
+
+      testWidgets(
+        'privacy text mentions sharing when flag is true and user is sharing',
+        (tester) async {
+          FeatureFlagService.instance.showShareWithCureHHT = true;
+
+          await tester.pumpWidget(
+            buildProfileScreen(isSharingWithCureHHT: true),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.textContaining('Anonymized data is shared with CureHHT'),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'privacy text says no data shared when flag is false and not enrolled',
+        (tester) async {
+          // Flag is false, isSharingWithCureHHT is false (default), not enrolled.
+          await tester.pumpWidget(buildProfileScreen());
+          await tester.pumpAndSettle();
+
+          expect(
+            find.textContaining('No data is shared with external parties'),
+            findsOneWidget,
+          );
+        },
+      );
     });
 
     group('Navigation', () {

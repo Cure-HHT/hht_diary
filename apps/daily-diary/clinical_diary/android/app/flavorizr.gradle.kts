@@ -18,7 +18,7 @@ android.apply {
         }
         create("uat") {
             dimension = "environment"
-            applicationId = "org.anspar.curehht.app-uat"
+            applicationId = "org.anspar.curehht.app.uat"
             resValue(type = "string", name = "app_name", value = "Clinical Diary")
         }
         create("prod") {

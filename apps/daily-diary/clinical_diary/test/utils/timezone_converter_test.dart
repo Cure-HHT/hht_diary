@@ -6,28 +6,76 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Ensure timezone DB is initialized before tests
+  setUpAll(TimezoneConverter.ensureInitialized);
+
   group('TimezoneConverter', () {
     // Use fixed device offset for deterministic tests
     // Simulating device in EST (UTC-5 = -300 minutes)
     const deviceOffsetEST = -300;
 
+    // Reference dates for deterministic DST testing
+    final winterDate = DateTime(2025, 12, 18);
+    final summerDate = DateTime(2025, 7, 1);
+
     group('getTimezoneOffsetMinutes', () {
-      test('returns correct offset for known timezones', () {
+      test('returns correct standard-time offset for known timezones', () {
         expect(
-          TimezoneConverter.getTimezoneOffsetMinutes('America/New_York'),
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'America/New_York',
+            at: winterDate,
+          ),
           equals(-300), // EST = UTC-5
         );
         expect(
-          TimezoneConverter.getTimezoneOffsetMinutes('Europe/Paris'),
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'Europe/Paris',
+            at: winterDate,
+          ),
           equals(60), // CET = UTC+1
         );
         expect(
-          TimezoneConverter.getTimezoneOffsetMinutes('Asia/Tokyo'),
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'Asia/Tokyo',
+            at: winterDate,
+          ),
           equals(540), // JST = UTC+9
         );
         expect(
-          TimezoneConverter.getTimezoneOffsetMinutes('Etc/UTC'),
+          TimezoneConverter.getTimezoneOffsetMinutes('Etc/UTC', at: winterDate),
           equals(0),
+        );
+      });
+
+      test('returns correct daylight-time offset during DST', () {
+        expect(
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'America/New_York',
+            at: summerDate,
+          ),
+          equals(-240), // EDT = UTC-4
+        );
+        expect(
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'America/Los_Angeles',
+            at: summerDate,
+          ),
+          equals(-420), // PDT = UTC-7
+        );
+        expect(
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'Europe/Paris',
+            at: summerDate,
+          ),
+          equals(120), // CEST = UTC+2
+        );
+        // Tokyo does not observe DST
+        expect(
+          TimezoneConverter.getTimezoneOffsetMinutes(
+            'Asia/Tokyo',
+            at: summerDate,
+          ),
+          equals(540), // JST = UTC+9 (no DST)
         );
       });
 
@@ -123,6 +171,23 @@ void main() {
         // Adjustment: -300 - 540 = -840 minutes = -14 hours
         // 8:11 PM - 14 hours = 6:11 AM same day
         expect(stored, equals(DateTime(2025, 12, 18, 6, 11)));
+      });
+
+      test('DST: PDT timezone on EDT device adjusts correctly in summer', () {
+        // User sees 4:13 PM PDT on July 1 (DST active)
+        // Device is in EDT (UTC-4 = -240)
+        final displayed = DateTime(2025, 7, 1, 16, 13);
+
+        final stored = TimezoneConverter.toStoredDateTime(
+          displayed,
+          'America/Los_Angeles', // PDT = UTC-7 during summer
+          deviceOffsetMinutes: -240, // EDT = UTC-4
+        );
+
+        // PDT offset = -420 (summer), EDT device = -240
+        // Adjustment: -240 - (-420) = 180 minutes = +3 hours
+        // 4:13 PM + 3h = 7:13 PM
+        expect(stored, equals(DateTime(2025, 7, 1, 19, 13)));
       });
     });
 
@@ -257,6 +322,60 @@ void main() {
         // 2:00 AM CET = 8:00 PM previous day in device local
         expect(storedCET, equals(DateTime(2025, 12, 17, 20, 0)));
       });
+
+      test('DST: changing from PDT to EDT uses summer offsets for both zones', () {
+        // July 1, 2025 — both US zones are in daylight time
+        // User recorded 4:13 PM PDT (America/Los_Angeles, UTC-7)
+        // Device is EDT (UTC-4 = -240)
+        // Stored = displayed + (deviceOffset - tzOffset) = 4:13 PM + (-240 - (-420)) = 4:13 PM + 3h = 7:13 PM
+        final storedPDT = DateTime(2025, 7, 1, 19, 13);
+
+        // User then changes timezone from PDT → EDT
+        final storedEDT = TimezoneConverter.recalculateForTimezoneChange(
+          storedPDT,
+          'America/Los_Angeles', // old: PDT (UTC-7)
+          'America/New_York', // new: EDT (UTC-4)
+          deviceOffsetMinutes: -240, // EDT device
+        );
+
+        // Displayed time was 4:13 PM PDT.
+        // Same wall-clock 4:13 PM in EDT: stored = 4:13 PM + (-240 - (-240)) = 4:13 PM
+        expect(storedEDT, equals(DateTime(2025, 7, 1, 16, 13)));
+
+        // Verify: displayed time is still 4:13 PM
+        final displayed = TimezoneConverter.toDisplayedDateTime(
+          storedEDT,
+          'America/New_York',
+          deviceOffsetMinutes: -240,
+        );
+        expect(displayed, equals(DateTime(2025, 7, 1, 16, 13)));
+      });
+
+      test('DST: recalculate across a DST boundary (PST → PDT)', () {
+        // An event recorded on March 7, 2026 (PST, UTC-8) at 11:00 PM.
+        // Device is also PST (UTC-8). Stored = displayed (no adjustment).
+        final storedPreDst = DateTime(2026, 3, 7, 23, 0);
+
+        // User corrects the timezone to America/Los_Angeles on March 12 (now PDT).
+        // The displayed time was 11:00 PM PST. Recalculate with old=PST, new=PDT timezone.
+        // But both map to the same IANA ID — the `at` date determines DST state.
+        // March 7 → PST (-480), March 12 → PDT (-420).
+        //
+        // Actually a more realistic scenario: old=null (no tz), new=America/Los_Angeles
+        // on a post-DST date where the stored time is in March (PST period).
+        // toDisplayedDateTime(stored, null) → returns stored as-is = 11:00 PM
+        // toStoredDateTime(11:00 PM, 'America/Los_Angeles', at: March 7) → PST offset
+        // device = PST (-480), tz = PST (-480) → no adjustment
+        final storedLA = TimezoneConverter.recalculateForTimezoneChange(
+          storedPreDst,
+          null, // old: no timezone
+          'America/Los_Angeles', // new: LA (PST on March 7)
+          deviceOffsetMinutes: -480, // device is PST
+        );
+
+        // 11:00 PM PST on March 7, device PST → no adjustment
+        expect(storedLA, equals(DateTime(2026, 3, 7, 23, 0)));
+      });
     });
 
     group('CUR-583 bug scenario', () {
@@ -324,6 +443,103 @@ void main() {
 
         // 8:11 PM to 2:11 AM next day = 6 hours = 360 minutes
         expect(durationMinutes, equals(360));
+      });
+    });
+
+    group('DST transition bug (March 2026 Pacific Time)', () {
+      // DST starts March 8, 2026 (2nd Sunday of March) for US Pacific Time
+      // Before: PST (UTC-8), After: PDT (UTC-7)
+
+      test('post-DST time uses PDT offset, not PST', () {
+        // March 12, 2026 — DST already active
+        final postDstDate = DateTime(2026, 3, 12, 16, 13); // 4:13 PM
+
+        final offset = TimezoneConverter.getTimezoneOffsetMinutes(
+          'America/Los_Angeles',
+          at: postDstDate,
+        );
+
+        // Should be PDT = UTC-7 = -420, NOT PST = UTC-8 = -480
+        expect(offset, equals(-420));
+      });
+
+      test('pre-DST time uses PST offset', () {
+        // March 7, 2026 — DST not yet active
+        final preDstDate = DateTime(2026, 3, 7, 16, 13);
+
+        final offset = TimezoneConverter.getTimezoneOffsetMinutes(
+          'America/Los_Angeles',
+          at: preDstDate,
+        );
+
+        expect(offset, equals(-480)); // PST = UTC-8
+      });
+
+      test(
+        'recording at 4:13 PM PDT stores correctly when device is in PDT',
+        () {
+          // This is the exact bug scenario from the report
+          final displayed = DateTime(2026, 3, 12, 16, 13); // 4:13 PM
+
+          final stored = TimezoneConverter.toStoredDateTime(
+            displayed,
+            'America/Los_Angeles',
+            deviceOffsetMinutes: -420, // Device is also in PDT
+          );
+
+          // Same timezone as device → no adjustment
+          expect(stored, equals(displayed));
+        },
+      );
+
+      test('roundtrip during DST preserves time', () {
+        final original = DateTime(2026, 3, 12, 16, 13); // 4:13 PM PDT
+        const timezone = 'America/Los_Angeles';
+        const deviceOffset = -420; // PDT
+
+        final stored = TimezoneConverter.toStoredDateTime(
+          original,
+          timezone,
+          deviceOffsetMinutes: deviceOffset,
+        );
+
+        final displayed = TimezoneConverter.toDisplayedDateTime(
+          stored,
+          timezone,
+          deviceOffsetMinutes: deviceOffset,
+        );
+
+        expect(displayed, equals(original));
+      });
+    });
+
+    group('"Fall back" DST transition (November 2024 Pacific Time)', () {
+      // DST ends Nov 3, 2024 — clocks fall back from 2:00 AM PDT to 1:00 AM PST.
+      // The hour 1:00–2:00 AM is repeated (ambiguous). A toDisplayedDateTime
+      // single-pass lookup using device-local stored time as `at` reference would
+      // land in the post-fallback window (PST) and return the wrong offset.
+      // The two-pass fix resolves this by refining with the approximate display time.
+
+      test('toDisplayedDateTime resolves ambiguous "fall back" hour correctly '
+          '(device UTC, target America/Los_Angeles)', () {
+        // Event: 1:30 AM PDT (UTC-7) on Nov 3, 2024
+        // UTC moment: 1:30 AM + 7h = 08:30 AM UTC
+        // Device is UTC (offset = 0), so stored = 08:30 AM UTC.
+        //
+        // Use DateTime.utc() so the test is machine-timezone-agnostic:
+        // 1:30 AM on fall-back day is ambiguous in local time (PDT vs PST),
+        // but 08:30 UTC is a single unambiguous epoch.
+        final stored = DateTime.utc(2024, 11, 3, 8, 30);
+        const deviceOffset = 0; // UTC
+
+        final displayed = TimezoneConverter.toDisplayedDateTime(
+          stored,
+          'America/Los_Angeles',
+          deviceOffsetMinutes: deviceOffset,
+        );
+
+        // Should recover 1:30 AM PDT (= 08:30 UTC), not 12:30 AM (incorrect PST lookup)
+        expect(displayed, equals(DateTime.utc(2024, 11, 3, 1, 30)));
       });
     });
   });
