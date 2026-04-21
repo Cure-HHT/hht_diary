@@ -33,9 +33,9 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-pass()  { ((PASS++)); echo -e "  ${GREEN}✅ PASS${NC}: $1"; }
-fail()  { ((FAIL++)); echo -e "  ${RED}❌ FAIL${NC}: $1"; }
-warn()  { ((WARN++)); echo -e "  ${YELLOW}⚠️  WARN${NC}: $1"; }
+pass()  { : $((PASS+=1)); echo -e "  ${GREEN}✅ PASS${NC}: $1"; }
+fail()  { : $((FAIL+=1)); echo -e "  ${RED}❌ FAIL${NC}: $1"; }
+warn()  { : $((WARN+=1)); echo -e "  ${YELLOW}⚠️  WARN${NC}: $1"; }
 info()  { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 header() { echo -e "\n${BOLD}═══ $1 ═══${NC}"; }
 
