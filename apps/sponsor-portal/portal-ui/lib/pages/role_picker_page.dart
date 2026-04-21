@@ -36,6 +36,11 @@ class _RolePickerPageState extends State<RolePickerPage> {
     final user = authService.currentUser;
     final theme = Theme.of(context);
 
+    // CUR-1118: Wait for Firebase to restore session before redirecting.
+    if (user == null && !authService.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     // If no user or only one role, redirect
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
