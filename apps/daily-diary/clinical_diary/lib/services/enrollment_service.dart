@@ -69,6 +69,18 @@ class EnrollmentService {
   /// REQ-d00078: Code is validated via SHA-256 hash lookup
   Future<UserEnrollment> enroll(String code) async {
     try {
+      // CUR-1055: Client-side duplicate enrollment check.
+      // If enrollment data already exists in secure storage, this device is already
+      // linked to a study. Reject immediately without hitting the server.
+      final existing = await getEnrollment();
+      if (existing != null) {
+        throw EnrollmentException(
+          'This phone is already enrolled in this study. '
+          'Please contact your site coordinator if this is incorrect.',
+          EnrollmentErrorType.deviceAlreadyEnrolled,
+        );
+      }
+
       // Normalize code: uppercase, remove dash
       final normalizedCode = code.toUpperCase().replaceAll('-', '').trim();
 
@@ -108,9 +120,19 @@ class EnrollmentService {
       debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
+        // Server returns two distinct 409 messages — use the body directly
+        // so the user sees the correct reason (code already used vs device already linked).
+        final errorBody = jsonDecode(response.body) as Map<String, dynamic>;
+        final serverMessage = errorBody['error']?.toString();
+        final isDeviceDuplicate =
+            serverMessage != null &&
+            serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
-          'This code has already been used. Please request a new code from your research coordinator.',
-          EnrollmentErrorType.codeAlreadyUsed,
+          serverMessage ??
+              'This code has already been used. Please request a new code from your research coordinator.',
+          isDeviceDuplicate
+              ? EnrollmentErrorType.deviceAlreadyEnrolled
+              : EnrollmentErrorType.codeAlreadyUsed,
         );
       }
 
@@ -336,6 +358,7 @@ class EnrollmentService {
 enum EnrollmentErrorType {
   invalidCode,
   codeAlreadyUsed,
+  deviceAlreadyEnrolled, // CUR-1055: this device is already linked to a study
   codeExpired,
   authRequired,
   serverError,

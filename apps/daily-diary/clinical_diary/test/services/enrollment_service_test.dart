@@ -241,6 +241,76 @@ void main() {
         );
       });
 
+      // CUR-1055: device already enrolled tests
+      test(
+        'throws deviceAlreadyEnrolled when enrollment already in storage',
+        () async {
+          // Pre-populate storage so the device appears already enrolled
+          final existing = UserEnrollment(
+            userId: 'existing-user',
+            jwtToken: 'existing-jwt',
+            enrolledAt: DateTime.now(),
+          );
+          mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
+
+          var httpCalled = false;
+          final mockClient = MockClient((request) async {
+            httpCalled = true;
+            return http.Response('{}', 200);
+          });
+
+          service = EnrollmentService(
+            secureStorage: mockStorage,
+            httpClient: mockClient,
+          );
+
+          await expectLater(
+            () => service.enroll('CAXXXXXXXX'),
+            throwsA(
+              allOf(
+                isA<EnrollmentException>(),
+                predicate<EnrollmentException>(
+                  (e) => e.type == EnrollmentErrorType.deviceAlreadyEnrolled,
+                ),
+              ),
+            ),
+          );
+
+          // Server must not be called — check happens client-side
+          expect(httpCalled, false);
+        },
+      );
+
+      test(
+        'throws deviceAlreadyEnrolled for 409 with "already linked" message',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response(
+              '{"error": "This device is already linked to a study. '
+              'Please contact your research coordinator if you need to re-link."}',
+              409,
+            );
+          });
+
+          service = EnrollmentService(
+            secureStorage: mockStorage,
+            httpClient: mockClient,
+          );
+
+          await expectLater(
+            () => service.enroll('CAXXXXXXXX'),
+            throwsA(
+              allOf(
+                isA<EnrollmentException>(),
+                predicate<EnrollmentException>(
+                  (e) => e.type == EnrollmentErrorType.deviceAlreadyEnrolled,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
       test('throws EnrollmentException with codeAlreadyUsed for 409', () async {
         final mockClient = MockClient((request) async {
           return http.Response('{"error": "Code already used"}', 409);
@@ -478,6 +548,10 @@ void main() {
       expect(
         EnrollmentErrorType.values,
         contains(EnrollmentErrorType.codeAlreadyUsed),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.deviceAlreadyEnrolled), // CUR-1055
       );
       expect(
         EnrollmentErrorType.values,
