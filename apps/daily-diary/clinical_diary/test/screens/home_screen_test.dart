@@ -283,6 +283,57 @@ void main() {
         expect(find.text('Account'), findsNothing);
       });
 
+      // CUR-1055: Enroll option must be hidden when device is already enrolled
+      testWidgets('hides enroll option when already enrolled', (tester) async {
+        setUpTestScreenSize(tester);
+        addTearDown(() => resetTestScreenSize(tester));
+
+        final oldOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          oldOnError?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = oldOnError);
+
+        // Pre-populate enrollment so _isEnrolled becomes true on init.
+        // isEnrolled() checks jwtToken != null; getEnrollment() returns enrollment.
+        final mockEnrollment = MockEnrollmentService()
+          ..jwtToken = 'test-jwt'
+          ..enrollment = UserEnrollment(
+            userId: 'test-user',
+            jwtToken: 'test-jwt',
+            enrolledAt: DateTime.now(),
+          );
+        addTearDown(mockEnrollment.dispose);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            HomeScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              taskService: TaskService(),
+              preferencesService: preferencesService,
+              onLocaleChanged: (_) {},
+              onThemeModeChanged: (_) {},
+              onLargerTextChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.pumpAndSettle();
+
+        // Enroll option must be absent — device is already linked
+        expect(
+          find.text('Link to Clinical Trial'),
+          findsNothing,
+          reason:
+              'Enroll menu item must be hidden when _isEnrolled=true '
+              'to prevent duplicate enrollment attempts',
+        );
+      });
+
       testWidgets('shows accessibility option', (tester) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
