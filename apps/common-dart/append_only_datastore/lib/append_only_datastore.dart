@@ -113,6 +113,22 @@ export 'src/infrastructure/database/database_provider.dart';
 // Infrastructure - Repositories
 export 'src/infrastructure/repositories/event_repository.dart';
 
+// Storage layer — StorageBackend contract, SembastBackend concrete
+// implementation, and the value types that flow through the contract
+// (CUR-1154).
+export 'src/storage/append_result.dart' show AppendResult;
+export 'src/storage/attempt_result.dart' show AttemptResult;
+export 'src/storage/diary_entry.dart' show DiaryEntry;
+export 'src/storage/exhausted_fifo_summary.dart' show ExhaustedFifoSummary;
+export 'src/storage/fifo_entry.dart' show FifoEntry;
+export 'src/storage/final_status.dart' show FinalStatus;
+export 'src/storage/sembast_backend.dart' show SembastBackend;
+export 'src/storage/send_result.dart'
+    show SendResult, SendOk, SendTransient, SendPermanent;
+export 'src/storage/storage_backend.dart' show StorageBackend;
+export 'src/storage/stored_event.dart' show StoredEvent;
+export 'src/storage/txn.dart' show Txn;
+
 // TODO: Export additional services as implemented
 // export 'src/infrastructure/sync/sync_service.dart';
 // export 'src/application/services/query_service.dart';

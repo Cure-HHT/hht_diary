@@ -231,6 +231,7 @@ class DataExportService {
       await repository.append(
         aggregateId:
             'diary-${record.startTime.year}-${record.startTime.month}-${record.startTime.day}',
+        entryType: 'epistaxis_event',
         eventType: eventType,
         data: data,
         userId: userId,

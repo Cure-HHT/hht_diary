@@ -61,7 +61,7 @@ Every data type gets per-function `// Implements:` markers. Every test gets a pe
 
 Three new REQs, claimed via `discover_requirements("next available REQ-d")` (record in TASK_FILE; substitute throughout the plan before commit). Also run `discover_requirements("storage backend transaction event append-only")` to find existing applicable assertions and cite them in TASK_FILE as `APPLICABLE_ASSERTIONS: ...`.
 
-**REQ-SB — `StorageBackend` transaction contract** (assertions A-F):
+**REQ-d00117 — `StorageBackend` transaction contract** (assertions A-F):
 - A: `StorageBackend.transaction(body)` SHALL execute `body` inside a single atomic Sembast transaction such that all `Txn`-bound writes commit together or roll back together.
 - B: A `Txn` handle SHALL NOT be valid outside the lexical scope of its `transaction()` body.
 - C: `StorageBackend.appendEvent(txn, event)` SHALL write to the event log and increment the sequence counter within the same `Txn`; either both land or neither lands.
@@ -69,13 +69,13 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - E: `StorageBackend.enqueueFifo(txn, destinationId, fifoEntry)` SHALL append the entry with `final_status = "pending"` and an empty `attempts[]` list.
 - F: Key-value bookkeeping (sequence counter, schema version) SHALL live in a Sembast store named `backend_state`. The name `metadata` SHALL NOT be used for this purpose to avoid collision with the event-level `metadata` field.
 
-**REQ-ES — event schema changes** (assertions A-D):
+**REQ-d00118 — event schema changes** (assertions A-D):
 - A: Events SHALL carry a first-class `entry_type` string field (e.g., `"epistaxis_event"`, `"nose_hht_survey"`).
 - B: Events SHALL NOT carry a `server_timestamp` field. The previous (device-clock) value SHALL be dropped; the server stamps its own `DEFAULT now()` on ingest.
 - C: Top-level event fields `client_timestamp`, `device_id`, `software_version` SHALL be populated as exact duplicates of `metadata.provenance[0].received_at`, `metadata.provenance[0].identifier`, `metadata.provenance[0].software_version`. This duplication is a migration bridge (design doc §11.2).
 - D: `aggregate_id` SHALL be a UUID for entries written via `EntryService.record()` (Phase 5). Entries written via the legacy `EventRepository.append()` path MAY continue to use the `diary-YYYY-M-D` date-bucket pattern until the legacy path is removed in Phase 5.
 
-**REQ-FIFO — per-destination FIFO semantics** (first round of assertions A-D; fuller set in Phase 4):
+**REQ-d00119 — per-destination FIFO semantics** (first round of assertions A-D; fuller set in Phase 4):
 - A: Each registered destination SHALL have exactly one FIFO store identified by `destination_id`.
 - B: A FIFO entry SHALL carry: `entry_id`, `event_id`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, `sent_at`.
 - C: `final_status` SHALL be one of `"pending"`, `"sent"`, `"exhausted"`. No other values are legal.
@@ -103,7 +103,7 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - Create: `apps/common-dart/append_only_datastore/lib/src/storage/exhausted_fifo_summary.dart`
 - Create: `apps/common-dart/append_only_datastore/test/storage/value_types_test.dart`
 
-**Applicable assertions:** REQ-FIFO-B, REQ-FIFO-C; reference REQ-SB-E.
+**Applicable assertions:** REQ-d00119-B, REQ-d00119-C; reference REQ-d00117-E.
 
 - [ ] **Baseline**: tests green from Task 1.
 - [ ] **Create TASK_FILE**.
@@ -117,8 +117,8 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
   - `ExhaustedFifoSummary` (fields: `destination_id`, `head_entry_id`, `head_event_id`, `exhausted_at`, `last_error`) — round-trip.
 - [ ] **Run tests**; expect compile failures for undefined types.
 - [ ] **Implement** each value class as immutable (`final` fields, `const` constructor, `==`/`hashCode`). Per-class `// Implements:` markers referencing the applicable REQ assertion.
-  - `FifoEntry` class annotation: `// Implements: REQ-FIFO-B+C — carries all nine columns; final_status typed to the three legal values.`
-  - `FinalStatus` enum annotation: `// Implements: REQ-FIFO-C — exactly three legal values: pending | sent | exhausted.`
+  - `FifoEntry` class annotation: `// Implements: REQ-d00119-B+C — carries all nine columns; final_status typed to the three legal values.`
+  - `FinalStatus` enum annotation: `// Implements: REQ-d00119-C — exactly three legal values: pending | sent | exhausted.`
 - [ ] **Run tests**; expect pass.
 - [ ] **Lint**: `flutter analyze` clean in this package.
 - [ ] **Commit**: "Add storage-layer value types (CUR-1154)".
@@ -133,19 +133,19 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - Modify: `apps/common-dart/append_only_datastore/lib/src/infrastructure/repositories/event_repository.dart` (the `StoredEvent` class definition)
 - Modify: `apps/common-dart/append_only_datastore/test/event_repository_test.dart`
 
-**Applicable assertions:** REQ-ES-A, REQ-ES-B, REQ-ES-C.
+**Applicable assertions:** REQ-d00118-A, REQ-d00118-B, REQ-d00118-C.
 
 - [ ] **Baseline**: tests green from Task 3.
 - [ ] **Create TASK_FILE**.
 - [ ] **Write failing tests** in `event_repository_test.dart` (new test cases; keep existing ones):
-  - Appending an event supplies an `entry_type` parameter and the resulting `StoredEvent.entryType` matches (REQ-ES-A).
-  - An appended event's `serverTimestamp` field is absent; attempting to access it is a compile error (the field must be removed from the class). Cover this with a doc-comment test assertion: a `// Verifies:` comment noting "this is a compile-time assertion: the class has no serverTimestamp field." Then in the test, confirm `toJson()` output map does NOT contain the key `"server_timestamp"` (REQ-ES-B).
-  - Top-level `device_id`, `client_timestamp`, `software_version` equal `metadata['provenance'][0]['identifier' / 'received_at' / 'software_version']` when provenance is supplied (REQ-ES-C). Note: this test asserts the duplication rule; it is checked by the `EventRepository.append` code path in Task 6, not by `StoredEvent` itself.
+  - Appending an event supplies an `entry_type` parameter and the resulting `StoredEvent.entryType` matches (REQ-d00118-A).
+  - An appended event's `serverTimestamp` field is absent; attempting to access it is a compile error (the field must be removed from the class). Cover this with a doc-comment test assertion: a `// Verifies:` comment noting "this is a compile-time assertion: the class has no serverTimestamp field." Then in the test, confirm `toJson()` output map does NOT contain the key `"server_timestamp"` (REQ-d00118-B).
+  - Top-level `device_id`, `client_timestamp`, `software_version` equal `metadata['provenance'][0]['identifier' / 'received_at' / 'software_version']` when provenance is supplied (REQ-d00118-C). Note: this test asserts the duplication rule; it is checked by the `EventRepository.append` code path in Task 6, not by `StoredEvent` itself.
 - [ ] **Run tests**; expect failures.
 - [ ] **Modify `StoredEvent`**:
   - Remove the `serverTimestamp` field. Update `toJson`/`fromJson` to stop writing/reading it. (Greenfield: no legacy-field tolerance required.)
   - Add `final String entryType` field. Update constructor signature, `toJson`, `fromJson`.
-  - Add class annotation: `// Implements: REQ-ES-A+B — first-class entry_type field; server_timestamp removed.`
+  - Add class annotation: `// Implements: REQ-d00118-A+B — first-class entry_type field; server_timestamp removed.`
 - [ ] **Update every existing `StoredEvent` constructor call** in this file and in tests to pass `entryType`. For existing code paths (nosebleed), `entryType = "epistaxis_event"` is the correct value; for QoL the existing code has no entry_type today — defer that to Phase 5 where QuestionnaireService is replaced.
 - [ ] **Run tests**; expect pass.
 - [ ] **Lint**: clean.
@@ -162,14 +162,14 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - Create: `apps/common-dart/append_only_datastore/lib/src/storage/txn.dart`
 - Create: `apps/common-dart/append_only_datastore/test/storage/storage_backend_contract_test.dart`
 
-**Applicable assertions:** REQ-SB-A, REQ-SB-B.
+**Applicable assertions:** REQ-d00117-A, REQ-d00117-B.
 
 - [ ] **Baseline**: tests green.
 - [ ] **Create TASK_FILE**.
 - [ ] **Write failing tests** using a tiny in-memory fake backend (`_InMemoryBackend` defined inline in the test file). The fake simulates `transaction()` semantics with a map-per-store and explicit commit/rollback. Tests:
-  - Successful body returns value and all writes are visible afterwards (REQ-SB-A happy path).
-  - Thrown exception inside body rolls back all writes (REQ-SB-A atomicity).
-  - Calling a `Txn`-bound method outside the `transaction()` scope throws `StateError` (REQ-SB-B).
+  - Successful body returns value and all writes are visible afterwards (REQ-d00117-A happy path).
+  - Thrown exception inside body rolls back all writes (REQ-d00117-A atomicity).
+  - Calling a `Txn`-bound method outside the `transaction()` scope throws `StateError` (REQ-d00117-B).
 - [ ] **Run tests**; expect failures for undefined classes.
 - [ ] **Implement** `StorageBackend` as an abstract class with the full method signature list per design-doc §7.3. Every method gets a `// Implements:` comment citing the relevant contract assertion.
 - [ ] **Implement `Txn`** as an abstract class with no exposed state (concrete backends store Sembast-transaction handles inside their own subclasses).
@@ -188,7 +188,7 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - Create: `apps/common-dart/append_only_datastore/lib/src/storage/sembast_backend.dart`
 - Create: `apps/common-dart/append_only_datastore/test/storage/sembast_backend_event_test.dart`
 
-**Applicable assertions:** REQ-SB-A, REQ-SB-C, REQ-SB-F; REQ-p00004-A+B+I (append-only + tamper prevention); REQ-d00004-A+D+E (Sembast offline-first, mirrors server schema).
+**Applicable assertions:** REQ-d00117-A, REQ-d00117-C, REQ-d00117-F; REQ-p00004-A+B+I (append-only + tamper prevention); REQ-d00004-A+D+E (Sembast offline-first, mirrors server schema).
 
 - [ ] **Baseline**: tests green.
 - [ ] **Create TASK_FILE**.
@@ -204,11 +204,11 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - [ ] **Implement `SembastBackend`**:
   - Constructor takes a `DatabaseFactory` and a path; opens the database lazily.
   - `StoreRef<int, Map<String, Object?>>('events')` unchanged.
-  - `StoreRef<String, Object?>('backend_state')` — renamed from `metadata` (REQ-SB-F).
+  - `StoreRef<String, Object?>('backend_state')` — renamed from `metadata` (REQ-d00117-F).
   - `StoreRef<String, Map<String, Object?>>('diary_entries')` — new (stubbed; no writes in Phase 2 beyond test coverage).
   - `StoreRef<int, Map<String, Object?>>` family for each FIFO — created on demand, named `fifo_{destination_id}`.
   - Concrete `_SembastTxn implements Txn` wraps Sembast's `Transaction`.
-  - Per-method `// Implements:` citations. For `appendEvent`: `// Implements: REQ-SB-C, REQ-p00004-A+B — append-only, sequence increment in same txn.`
+  - Per-method `// Implements:` citations. For `appendEvent`: `// Implements: REQ-d00117-C, REQ-p00004-A+B — append-only, sequence increment in same txn.`
 - [ ] **Run tests**; expect pass.
 - [ ] **Lint**: clean.
 - [ ] **Commit**: "SembastBackend: transaction + event methods (CUR-1154)".
@@ -223,7 +223,7 @@ Three new REQs, claimed via `discover_requirements("next available REQ-d")` (rec
 - Modify: `apps/common-dart/append_only_datastore/lib/src/storage/sembast_backend.dart`
 - Create: `apps/common-dart/append_only_datastore/test/storage/sembast_backend_entries_test.dart`
 
-**Applicable assertions:** REQ-SB-D.
+**Applicable assertions:** REQ-d00117-D.
 
 Note: this task adds the CRUD methods. The materializer that produces `DiaryEntry` rows lives in Phase 3. Phase 2 only tests the backend primitives in isolation.
 
@@ -231,11 +231,11 @@ Note: this task adds the CRUD methods. The materializer that produces `DiaryEntr
 - [ ] **Create TASK_FILE**.
 - [ ] **Write failing tests**:
   - `upsertEntry(txn, entry)` stores a row keyed by `entry_id`; reading back via `findEntries(entryType: ...)` returns it.
-  - Calling `upsertEntry` a second time with the same `entry_id` and different fields REPLACES the row (not merges). Verify by checking a field that was in the first write but not the second is absent (REQ-SB-D whole-row replace).
+  - Calling `upsertEntry` a second time with the same `entry_id` and different fields REPLACES the row (not merges). Verify by checking a field that was in the first write but not the second is absent (REQ-d00117-D whole-row replace).
   - `findEntries(entryType: "x")` filter matches only rows with that entryType.
   - `findEntries(isComplete: true)`, `findEntries(isDeleted: true)`, `findEntries(dateFrom: d1, dateTo: d2)` each work independently and in combination.
 - [ ] **Run tests**; expect failures.
-- [ ] **Implement** `upsertEntry`, `findEntries`. Per-method `// Implements: REQ-SB-D — whole-row replace.`
+- [ ] **Implement** `upsertEntry`, `findEntries`. Per-method `// Implements: REQ-d00117-D — whole-row replace.`
 - [ ] **Run tests**; expect pass.
 - [ ] **Lint**: clean.
 - [ ] **Commit**: "SembastBackend: diary_entries CRUD (CUR-1154)".
@@ -250,15 +250,15 @@ Note: this task adds the CRUD methods. The materializer that produces `DiaryEntr
 - Modify: `apps/common-dart/append_only_datastore/lib/src/storage/sembast_backend.dart`
 - Create: `apps/common-dart/append_only_datastore/test/storage/sembast_backend_fifo_test.dart`
 
-**Applicable assertions:** REQ-SB-E, REQ-FIFO-A, REQ-FIFO-B, REQ-FIFO-C, REQ-FIFO-D.
+**Applicable assertions:** REQ-d00117-E, REQ-d00119-A, REQ-d00119-B, REQ-d00119-C, REQ-d00119-D.
 
 - [ ] **Baseline**: tests green.
 - [ ] **Create TASK_FILE**.
 - [ ] **Write failing tests**:
-  - `enqueueFifo(txn, destId, entry)` stores the entry; a subsequent `readFifoHead(destId)` returns the first-enqueued entry (FIFO ordering, REQ-FIFO-A via per-store identity).
+  - `enqueueFifo(txn, destId, entry)` stores the entry; a subsequent `readFifoHead(destId)` returns the first-enqueued entry (FIFO ordering, REQ-d00119-A via per-store identity).
   - Enqueueing multiple entries preserves insertion order; `readFifoHead` always returns the oldest `pending`.
   - `appendAttempt(destId, entryId, attempt)` appends to the entry's `attempts[]` list. The entry's `final_status` remains unchanged by `appendAttempt`.
-  - `markFinal(destId, entryId, FinalStatus.sent)` sets `final_status` and `sent_at`; the entry is NOT deleted (REQ-FIFO-D — always retained as send-log).
+  - `markFinal(destId, entryId, FinalStatus.sent)` sets `final_status` and `sent_at`; the entry is NOT deleted (REQ-d00119-D — always retained as send-log).
   - After marking the head `sent`, the next `readFifoHead` call returns the next pending entry.
   - After marking the head `exhausted`, `readFifoHead` returns `null` (the FIFO is wedged — head is the exhausted entry, which is not `pending`).
   - `anyFifoExhausted()` returns `true` iff at least one FIFO across all destinations has any exhausted entry at its head.
@@ -281,7 +281,7 @@ Note: this task adds the CRUD methods. The materializer that produces `DiaryEntr
 - Modify: `apps/common-dart/append_only_datastore/test/event_repository_test.dart`
 - Modify: `apps/common-dart/append_only_datastore/lib/src/core/di/datastore.dart` — wire `StorageBackend` injection
 
-**Applicable assertions:** REQ-SB-A, REQ-SB-C, REQ-SB-F; existing `EventRepository` REQs stay (REQ-p00004-A+B+E+I+L, REQ-d00004-D+E).
+**Applicable assertions:** REQ-d00117-A, REQ-d00117-C, REQ-d00117-F; existing `EventRepository` REQs stay (REQ-p00004-A+B+E+I+L, REQ-d00004-D+E).
 
 - [ ] **Baseline**: tests green.
 - [ ] **Create TASK_FILE**.
@@ -295,7 +295,7 @@ Note: this task adds the CRUD methods. The materializer that produces `DiaryEntr
   - The sync-marker methods (`getUnsyncedEvents`, `markEventsSynced`, `getUnsyncedCount`) — these will be deleted in Phase 5 when FIFO-based sync replaces per-event sync markers. For Phase 2 they KEEP their current behavior by reading/writing a `syncedAt` field on the event. Add a `// TODO(CUR-1154, Phase 5): replaced by per-destination FIFO (REQ-p01001-D). Delete these methods when the last caller is migrated.`
   - Preserve the public API (method names, parameter lists, return types) byte-exact. All existing callers (`NosebleedService`, existing tests) MUST continue to work.
   - Each refactored method gets a per-function `// Implements:` marker.
-- [ ] **Rename Sembast `metadata` store → `backend_state`** everywhere it is referenced. Update DI wiring to open the new store name. Greenfield: no migration required. (REQ-SB-F.)
+- [ ] **Rename Sembast `metadata` store → `backend_state`** everywhere it is referenced. Update DI wiring to open the new store name. Greenfield: no migration required. (REQ-d00117-F.)
 - [ ] **Run tests**; expect pass — existing and new.
 - [ ] **Run `(cd apps/daily-diary/clinical_diary && flutter test)`** to confirm NosebleedService still works via the refactored repository. Expected: all green.
 - [ ] **Lint**: clean.
@@ -352,13 +352,13 @@ Note: this task adds the CRUD methods. The materializer that produces `DiaryEntr
   - EventRepository refactored to delegate through StorageBackend
   - Sembast "metadata" store renamed to "backend_state"
   - Event schema: added entry_type, dropped server_timestamp
-  - spec/dev-event-sourcing-mobile.md: REQ-SB, REQ-ES, REQ-FIFO
+  - spec/dev-event-sourcing-mobile.md: REQ-d00117, REQ-d00118, REQ-d00119
 
   Public API of EventRepository is byte-exact. FIFO and diary_entries
   methods on the backend are unit-tested but unwired until Phase 5.
   ```
 
-  Substitute real REQ-d numbers for REQ-SB, REQ-ES, REQ-FIFO before committing.
+  Substitute real REQ-d numbers for REQ-d00117, REQ-d00118, REQ-d00119 before committing.
 - [ ] **Force-push with lease**: `git push --force-with-lease`.
 - [ ] **Comment on PR**: "Phase 2 ready for review — commit `<sha>`. Range from Phase 1 end: `<phase1_sha>..<sha>`. Review focus: `StorageBackend` contract, `SembastBackend` correctness, the `metadata → backend_state` rename, and event-schema changes (`entry_type` added, `server_timestamp` dropped)."
 - [ ] **Wait for phase review**. Address feedback by committing fixups and re-running the interactive rebase in place.

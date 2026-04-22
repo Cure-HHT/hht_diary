@@ -1,6 +1,7 @@
 name: append_only_datastore
 description: "A Dart module for append-only offline data storage - REQ-p00006: Offline-First Data Entry"
-version: 0.0.2+2
+version: 0.1.0+3
+publish_to: none
 homepage:
 
 environment:
@@ -8,6 +9,9 @@ environment:
   flutter: ">=3.38.7"
 
 dependencies:
+  canonical_json_jcs:
+    path: ../canonical_json_jcs
+  collection: ^1.19.0
   crypto: ^3.0.7
   dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'
   flutter:

@@ -190,6 +190,7 @@ class NosebleedService {
     await _eventRepository.append(
       aggregateId:
           'diary-${startTime.year}-${startTime.month}-${startTime.day}',
+      entryType: 'epistaxis_event',
       eventType: 'NosebleedRecorded',
       data: {
         'recordId':
@@ -267,6 +268,7 @@ class NosebleedService {
     final userId = await _enrollmentService.getUserId() ?? 'anonymous';
     await _eventRepository.append(
       aggregateId: 'diary-deletion-${record.id}',
+      entryType: 'epistaxis_event',
       eventType: 'NosebleedDeleted',
       data: {
         'recordId':
@@ -514,6 +516,7 @@ class NosebleedService {
             await _eventRepository.append(
               aggregateId:
                   'diary-${cloudRecord.startTime.year}-${cloudRecord.startTime.month}-${cloudRecord.startTime.day}',
+              entryType: 'epistaxis_event',
               eventType: 'NosebleedRecorded',
               data: {
                 'recordId': cloudRecord.id, // Preserve cloud record ID

@@ -2,14 +2,19 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00004: Local-First Data Entry Implementation
 
-import 'dart:convert';
-
 import 'package:append_only_datastore/src/core/errors/datastore_exception.dart'
     as errors;
 import 'package:append_only_datastore/src/infrastructure/database/database_provider.dart';
+import 'package:append_only_datastore/src/storage/sembast_backend.dart';
+import 'package:append_only_datastore/src/storage/storage_backend.dart';
+import 'package:append_only_datastore/src/storage/stored_event.dart';
+import 'package:canonical_json_jcs/canonical_json_jcs.dart';
 import 'package:crypto/crypto.dart';
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
+
+export 'package:append_only_datastore/src/storage/stored_event.dart'
+    show StoredEvent;
 
 /// Repository for append-only event storage.
 ///
@@ -47,25 +52,37 @@ import 'package:uuid/uuid.dart';
 /// final unsynced = await repo.getUnsyncedEvents();
 /// ```
 class EventRepository {
-  EventRepository({required this.databaseProvider});
+  /// Construct over a [DatabaseProvider]. An optional [backend] can be
+  /// supplied by tests or by alternative deployments; when omitted the
+  /// repository constructs a [SembastBackend] over the provider's database.
+  EventRepository({required this.databaseProvider, StorageBackend? backend})
+    : _backend = backend ?? SembastBackend(database: databaseProvider.database);
 
   /// The database provider.
   final DatabaseProvider databaseProvider;
 
-  /// The Sembast store for events.
+  /// Backing storage. Owns the events store, the diary_entries view, the
+  /// per-destination FIFOs, and the backend_state KV where the per-device
+  /// sequence counter lives (REQ-d00117-F). All writes go through this.
+  final StorageBackend _backend;
+
+  /// Legacy direct handle to the events store for the per-event sync-marker
+  /// methods (getUnsyncedEvents/markEventsSynced/getUnsyncedCount) and for
+  /// the _getPreviousEventHash helper. Deleted in Phase 5 when FIFO-based
+  /// per-destination sync replaces per-event `synced_at` tracking.
+  // TODO(CUR-1154, Phase 5): remove _eventStore direct access together
+  // with the sync-marker methods once FIFO drain is the sole sync path.
   final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
       .store('events');
-
-  /// The Sembast store for metadata (sequence counter, etc).
-  final StoreRef<String, Object?> _metaStore = StoreRef<String, Object?>(
-    'metadata',
-  );
 
   /// UUID generator.
   static const _uuid = Uuid();
 
-  /// Key for the sequence counter in metadata store.
-  static const _sequenceKey = 'sequence_counter';
+  /// Re-entry guard: true while an append() call is in flight. See the
+  /// rationale in append() — single-client mobile doesn't have a concurrent
+  /// appender but this guard catches accidental fire-and-forget patterns
+  /// at the earliest possible point.
+  bool _appendInProgress = false;
 
   /// Append a new event to the store.
   ///
@@ -76,8 +93,18 @@ class EventRepository {
   ///
   /// Throws [errors.EventValidationException] if required fields are missing.
   /// Throws [errors.DatabaseException] if the write fails.
+  // Implements: REQ-d00118-A — entry_type is a required, first-class field
+  // on the event record, not buried inside metadata or data.
+  // Implements: REQ-d00118-B — no device-side server_timestamp is stamped;
+  // the ingesting server is the sole authority on server-side timestamps.
+  /// The returned [StoredEvent] carries `key: 0` as a placeholder; the real
+  /// Sembast auto-increment key is an internal implementation detail of the
+  /// backend and not part of the event's identity. Callers that need the
+  /// Sembast key for any reason should re-read via [getEventsForAggregate]
+  /// or [getAllEvents], which populate `key` from the underlying record.
   Future<StoredEvent> append({
     required String aggregateId,
+    required String entryType,
     required String eventType,
     required Map<String, dynamic> data,
     required String userId,
@@ -86,28 +113,39 @@ class EventRepository {
     DateTime? clientTimestamp,
     Map<String, dynamic>? metadata,
   }) async {
-    final db = databaseProvider.database;
+    // Single-client mobile: no concurrent appender, so reading the
+    // previous-event-hash outside the backend transaction is safe. If the
+    // backend ever serves multi-writer scenarios, this read should move
+    // inside the transaction (or be exposed on the backend contract).
+    //
+    // The re-entry guard below catches the single-process case where a
+    // caller accidentally fires two `append()` calls without awaiting the
+    // first — the interleaving would break the hash chain silently. All
+    // production call sites (NosebleedService, DataExportService) await
+    // their appends sequentially today.
+    if (_appendInProgress) {
+      throw StateError(
+        'EventRepository.append: concurrent call detected. The hash-chain '
+        'previous-hash read happens before the backend transaction; a '
+        'second concurrent append would read the same previous hash and '
+        'break chain integrity. Await the first append before starting '
+        'another.',
+      );
+    }
+    _appendInProgress = true;
+    final previousHash = await _getPreviousEventHash();
 
     try {
-      return await db.transaction((txn) async {
-        // Get next sequence number
-        final sequenceNumber = await _getNextSequenceNumber(txn);
-
-        // Get previous event hash for chain
-        final previousHash = await _getPreviousEventHash(txn);
-
-        // Generate event ID
+      return await _backend.transaction<StoredEvent>((txn) async {
+        final sequenceNumber = await _backend.nextSequenceNumber(txn);
         final eventId = _uuid.v4();
+        final clientTs = clientTimestamp?.toUtc() ?? DateTime.now().toUtc();
 
-        // Create timestamp
-        final serverTimestamp = DateTime.now().toUtc();
-        final clientTs = clientTimestamp?.toUtc() ?? serverTimestamp;
-
-        // Build event record
         final eventRecord = <String, dynamic>{
           'event_id': eventId,
           'aggregate_id': aggregateId,
           'aggregate_type': aggregateType ?? 'DiaryEntry',
+          'entry_type': entryType,
           'event_type': eventType,
           'sequence_number': sequenceNumber,
           'data': data,
@@ -115,22 +153,21 @@ class EventRepository {
           'user_id': userId,
           'device_id': deviceId,
           'client_timestamp': clientTs.toIso8601String(),
-          'server_timestamp': serverTimestamp.toIso8601String(),
           'previous_event_hash': previousHash,
           'synced_at': null,
         };
 
-        // Calculate hash (includes previous hash for chain)
         final eventHash = _calculateEventHash(eventRecord);
         eventRecord['event_hash'] = eventHash;
 
-        // Store the event
-        final key = await _eventStore.add(txn, eventRecord);
-
-        // Update sequence counter
-        await _metaStore.record(_sequenceKey).put(txn, sequenceNumber);
-
-        return StoredEvent.fromMap(eventRecord, key);
+        // Sembast assigns its own auto-increment key on the append; the key
+        // is an internal implementation detail and not part of the event's
+        // identity. Pass a placeholder 0 through StoredEvent.fromMap so the
+        // caller gets a StoredEvent instance; downstream code that needs
+        // the Sembast key re-reads via findEventsForAggregate.
+        final stored = StoredEvent.fromMap(eventRecord, 0);
+        await _backend.appendEvent(txn, stored);
+        return stored;
       });
     } catch (e, stackTrace) {
       if (e is errors.DatastoreException) rethrow;
@@ -139,36 +176,24 @@ class EventRepository {
         cause: e,
         stackTrace: stackTrace,
       );
+    } finally {
+      _appendInProgress = false;
     }
   }
 
   /// Get all events for a specific aggregate.
   ///
   /// Returns events in sequence order (oldest first).
-  Future<List<StoredEvent>> getEventsForAggregate(String aggregateId) async {
-    final db = databaseProvider.database;
-
-    try {
-      final finder = Finder(
-        filter: Filter.equals('aggregate_id', aggregateId),
-        sortOrders: [SortOrder('sequence_number')],
-      );
-
-      final records = await _eventStore.find(db, finder: finder);
-
-      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to query events for aggregate $aggregateId: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
+  Future<List<StoredEvent>> getEventsForAggregate(String aggregateId) =>
+      _backend.findEventsForAggregate(aggregateId);
 
   /// Get all events that haven't been synced to the server.
   ///
   /// Returns events in sequence order (oldest first).
+  // TODO(CUR-1154, Phase 5): per-event synced_at tracking is replaced by
+  // per-destination FIFO drain (REQ-p01001-D). Delete this method, the
+  // synced_at column on events, and the other two sync-marker methods
+  // when the last caller is migrated.
   Future<List<StoredEvent>> getUnsyncedEvents() async {
     final db = databaseProvider.database;
 
@@ -242,38 +267,10 @@ class EventRepository {
   /// Get all events in sequence order.
   ///
   /// Returns events oldest first.
-  Future<List<StoredEvent>> getAllEvents() async {
-    final db = databaseProvider.database;
+  Future<List<StoredEvent>> getAllEvents() => _backend.findAllEvents();
 
-    try {
-      final finder = Finder(sortOrders: [SortOrder('sequence_number')]);
-      final records = await _eventStore.find(db, finder: finder);
-
-      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to query all events: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  /// Get the latest sequence number.
-  Future<int> getLatestSequenceNumber() async {
-    final db = databaseProvider.database;
-
-    try {
-      final value = await _metaStore.record(_sequenceKey).get(db);
-      return (value as int?) ?? 0;
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to get latest sequence number: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
+  /// Get the latest sequence number — 0 if no events have been appended.
+  Future<int> getLatestSequenceNumber() => _backend.readSequenceCounter();
 
   /// Verify the integrity of the event chain.
   ///
@@ -301,31 +298,41 @@ class EventRepository {
     return true;
   }
 
-  /// Get the next sequence number within a transaction.
-  Future<int> _getNextSequenceNumber(DatabaseClient txn) async {
-    final current = await _metaStore.record(_sequenceKey).get(txn);
-    return ((current as int?) ?? 0) + 1;
-  }
-
-  /// Get the hash of the previous event within a transaction.
-  Future<String?> _getPreviousEventHash(DatabaseClient txn) async {
+  /// Read the current hash-chain tail — the event_hash of the event with
+  /// the highest sequence_number, or null when the store is empty. Read
+  /// outside the append transaction; safe under the single-client mobile
+  /// model because no concurrent writer can intervene between this read
+  /// and the append commit.
+  Future<String?> _getPreviousEventHash() async {
+    final db = databaseProvider.database;
     final finder = Finder(
       sortOrders: [SortOrder('sequence_number', false)],
       limit: 1,
     );
-
-    final records = await _eventStore.find(txn, finder: finder);
+    final records = await _eventStore.find(db, finder: finder);
     if (records.isEmpty) return null;
-
     return records.first.value['event_hash'] as String?;
   }
 
-  /// Calculate SHA-256 hash of event data.
+  /// Calculate SHA-256 hash of event data using RFC 8785 canonical JSON.
+  ///
+  /// The hash input is a deterministic, sorted-keys UTF-8 byte sequence so
+  /// any cross-platform receiver (Python, Postgres, Go, etc.) can
+  /// independently re-canonicalize the event record and recompute the
+  /// same digest. Dart's native `jsonEncode` preserves Map insertion order
+  /// and has platform-specific number-formatting quirks that would not
+  /// reproduce elsewhere; JCS pins those down.
+  // Implements: REQ-p00004-I — tamper-evident hash chain.
+  // Implements: REQ-d00120 — canonical hashing for cross-platform event
+  // verification via RFC 8785 (JCS).
   String _calculateEventHash(Map<String, dynamic> eventRecord) {
-    // Create a deterministic JSON representation (excluding the hash itself)
-    final hashInput = <String, dynamic>{
+    // The hashed subset excludes the hash itself and fields that are not
+    // part of the event identity (sync markers, aggregate_type label).
+    // entry_type is included so tampering with it is detected by the chain.
+    final hashInput = <String, Object?>{
       'event_id': eventRecord['event_id'],
       'aggregate_id': eventRecord['aggregate_id'],
+      'entry_type': eventRecord['entry_type'],
       'event_type': eventRecord['event_type'],
       'sequence_number': eventRecord['sequence_number'],
       'data': eventRecord['data'],
@@ -335,130 +342,11 @@ class EventRepository {
       'previous_event_hash': eventRecord['previous_event_hash'],
     };
 
-    final jsonString = jsonEncode(hashInput);
-    final bytes = utf8.encode(jsonString);
+    final bytes = canonicalizeBytes(hashInput);
     final digest = sha256.convert(bytes);
-
     return digest.toString();
   }
 }
 
-/// Represents a stored event with all fields populated.
-class StoredEvent {
-  const StoredEvent({
-    required this.key,
-    required this.eventId,
-    required this.aggregateId,
-    required this.aggregateType,
-    required this.eventType,
-    required this.sequenceNumber,
-    required this.data,
-    required this.metadata,
-    required this.userId,
-    required this.deviceId,
-    required this.clientTimestamp,
-    required this.serverTimestamp,
-    required this.eventHash,
-    this.previousEventHash,
-    this.syncedAt,
-  });
-
-  /// Create from a database record map.
-  factory StoredEvent.fromMap(Map<String, Object?> map, int key) {
-    return StoredEvent(
-      key: key,
-      eventId: map['event_id'] as String,
-      aggregateId: map['aggregate_id'] as String,
-      aggregateType: map['aggregate_type'] as String,
-      eventType: map['event_type'] as String,
-      sequenceNumber: map['sequence_number'] as int,
-      data: Map<String, dynamic>.from(map['data'] as Map),
-      metadata: Map<String, dynamic>.from(map['metadata'] as Map? ?? {}),
-      userId: map['user_id'] as String,
-      deviceId: map['device_id'] as String,
-      clientTimestamp: DateTime.parse(map['client_timestamp'] as String),
-      serverTimestamp: DateTime.parse(map['server_timestamp'] as String),
-      eventHash: map['event_hash'] as String,
-      previousEventHash: map['previous_event_hash'] as String?,
-      syncedAt: map['synced_at'] != null
-          ? DateTime.parse(map['synced_at'] as String)
-          : null,
-    );
-  }
-
-  /// Database key.
-  final int key;
-
-  /// Unique event ID (UUID v4).
-  final String eventId;
-
-  /// ID of the aggregate this event belongs to.
-  final String aggregateId;
-
-  /// Type of aggregate (e.g., 'DiaryEntry').
-  final String aggregateType;
-
-  /// Type of event (e.g., 'NosebleedRecorded').
-  final String eventType;
-
-  /// Monotonically increasing sequence number.
-  final int sequenceNumber;
-
-  /// Event payload data (JSON).
-  final Map<String, dynamic> data;
-
-  /// Additional metadata.
-  final Map<String, dynamic> metadata;
-
-  /// User who created this event.
-  final String userId;
-
-  /// Device that created this event.
-  final String deviceId;
-
-  /// Client-side timestamp when event was created.
-  final DateTime clientTimestamp;
-
-  /// Server-side timestamp (local clock on device).
-  final DateTime serverTimestamp;
-
-  /// SHA-256 hash of event for tamper detection.
-  final String eventHash;
-
-  /// Hash of previous event (for chain integrity).
-  final String? previousEventHash;
-
-  /// When this event was synced to the server (null if not synced).
-  final DateTime? syncedAt;
-
-  /// Whether this event has been synced.
-  bool get isSynced => syncedAt != null;
-
-  /// Convert to a map for storage/serialization.
-  Map<String, dynamic> toMap() {
-    return {
-      'event_id': eventId,
-      'aggregate_id': aggregateId,
-      'aggregate_type': aggregateType,
-      'event_type': eventType,
-      'sequence_number': sequenceNumber,
-      'data': data,
-      'metadata': metadata,
-      'user_id': userId,
-      'device_id': deviceId,
-      'client_timestamp': clientTimestamp.toIso8601String(),
-      'server_timestamp': serverTimestamp.toIso8601String(),
-      'event_hash': eventHash,
-      'previous_event_hash': previousEventHash,
-      'synced_at': syncedAt?.toIso8601String(),
-    };
-  }
-
-  /// Convert to JSON for API calls.
-  Map<String, dynamic> toJson() => toMap();
-
-  @override
-  String toString() {
-    return 'StoredEvent(eventId: $eventId, type: $eventType, seq: $sequenceNumber)';
-  }
-}
+// StoredEvent moved to lib/src/storage/stored_event.dart and re-exported
+// at the top of this file for backwards compatibility.

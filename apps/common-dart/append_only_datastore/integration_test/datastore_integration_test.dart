@@ -209,6 +209,7 @@ void main() {
         // Append an event
         final event = await Datastore.instance.repository.append(
           aggregateId: 'diary-entry-1',
+          entryType: 'epistaxis_event',
           eventType: 'NosebleedRecorded',
           data: {'severity': 'mild', 'duration': 10},
           userId: 'test-user',
