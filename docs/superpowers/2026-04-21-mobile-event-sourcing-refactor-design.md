@@ -534,3 +534,30 @@ Test coverage should include: append-only integrity under interrupt, materialize
 - Existing code: `apps/common-dart/append_only_datastore/lib/src/infrastructure/repositories/event_repository.dart`, `apps/daily-diary/clinical_diary/lib/services/nosebleed_service.dart`, `apps/daily-diary/clinical_diary/lib/services/questionnaire_service.dart`, `apps/daily-diary/clinical_diary/lib/services/notification_service.dart`, `apps/daily-diary/diary_functions/lib/src/user.dart` (existing sync handler).
 - Existing specs: `spec/prd-event-sourcing-system.md`, `spec/prd-diary-app.md`, `spec/prd-database.md`, `spec/dev-app.md`, `spec/dev-questionnaire.md`.
 - Memory: `project_event_sourcing_refactor_out_of_scope.md`, `project_event_schema_migration_strategy.md`, `project_greenfield_status.md`.
+
+---
+
+## Changelog
+
+Entries added here as this design's scope is extended by follow-on work. The body of the design above is preserved as-of its 2026-04-21 review and is NOT edited in place. Follow-on designs land in their own dated documents and record their changes here.
+
+### 2026-04-22 — Dynamic destinations + demo app (Phase 4.3 + 4.6 inserted)
+
+Follow-on design: `docs/superpowers/2026-04-22-dynamic-destinations-and-demo-design.md`.
+
+Two new phases inserted into the rebase-merge sequence between Phase 4 and Phase 5:
+- **Phase 4.3** — library additions: dynamic destination lifecycle (add/remove, schedule, historical replay on startDate, graceful and hard deactivation), batch FIFO model, unjam/rehabilitate ops; plus `EntryService` / `EntryTypeRegistry` / `bootstrapAppendOnlyDatastore` pulled forward from Phase 5.
+- **Phase 4.6** — demo app at `apps/common-dart/append_only_datastore/example/` exercising the full surface; acceptance via nine `USER_JOURNEYS.md` scenarios.
+
+Two decisions in the 2026-04-21 design are **inverted** by the 2026-04-22 follow-on:
+
+1. **§5 decision #8 (strict FIFO ordering; wedge on exhausted head) is inverted.** Exhausted rows become skip-on-read: `readFifoHead` returns the first `pending` row, past any exhausted ones. Drain continues past exhausted rows rather than wedging behind them. A permanent-rejection is an audit-logged batch loss, not an outage for the destination. Rationale: under the batch-FIFO model (one row = one wire transaction = up to N events), wedging on a single bad batch would block an unbounded number of events for an app update; skip-and-continue gives ops a visible signal (`anyFifoExhausted` flips true) without blocking delivery. See follow-on §5 decision #4 and §6.5.
+
+2. **§12.1 (FIFO wedge risk) is substantially reduced.** With skip-on-exhausted drain, the wedge failure mode described in this section largely disappears. The remaining wedge-equivalent is "every batch exhausts" — a systemic problem meriting a different response than the single-batch wedge. The deferred mitigation noted in this section (protocol-level "never return SendPermanent") is still valuable but no longer urgent.
+
+Several additions that cascade from the follow-on:
+- **FIFO row shape changes from one-event-per-row to one-batch-per-row.** `FifoEntry.event_ids` is a list; `wire_payload` covers the whole batch. Locked in Phase 4.3; `PLAN_PHASE4_sync.md` revised in parallel so Phase 4 implementation produces batch-FIFOs from the start. `Destination.transform` becomes `transform(List<Event>)`.
+- **`fill_cursor` per destination in `backend_state`.** Durable watermark recording the last `sequence_number` promoted into any FIFO row for this destination. Enables app-interrupt recovery of batch-assembly.
+- **`SyncPolicy` refactored to a value object** with optional override on `drain`/`syncCycle`. Small, strictly additive retrofit.
+- **Concurrency model documented:** Dart single-isolate + sembast transaction serialization + `syncCycle` reentrancy guard + one new guard (`markFinal` and `appendAttempt` tolerate missing row/store for the drain-mid-flight race).
+- **Phase 5 shrinks:** `EntryService`, `EntryTypeRegistry`, `bootstrapAppendOnlyDatastore` move out of Phase 5 into Phase 4.3. Phase 5 keeps the cutover work only (PrimaryDiaryServerDestination, portalInboundPoll, widget registry, triggers, screen updates, deletions, REQ-d00113 behavior update).

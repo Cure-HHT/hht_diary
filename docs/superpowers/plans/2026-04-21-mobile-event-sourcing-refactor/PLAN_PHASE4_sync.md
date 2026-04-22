@@ -75,10 +75,10 @@ Four REQs added to `spec/dev-event-sourcing-mobile.md`. Numbers claimed via `dis
 - A: A `Destination` SHALL expose a stable `id: String` used as the FIFO store identifier.
 - B: A `Destination` SHALL expose a `SubscriptionFilter` that deterministically selects which events to enqueue.
 - C: A `Destination` SHALL declare a `wire_format: String` identifier (e.g., `"json-v1"`).
-- D: `Destination.transform(event)` SHALL produce a `WirePayload` with `bytes`, `content_type`, and `transform_version`. The `transform_version` SHALL be recorded on the `FifoEntry` and appended to `ProvenanceEntry.transform_version` downstream.
-- E: `Destination.send(payload)` SHALL return a `SendResult` in `{SendOk, SendTransient, SendPermanent}`. Its categorization of underlying failures (HTTP codes, network errors, timeouts) is a per-destination concern.
+- D: `Destination.transform(List<Event> batch)` SHALL produce one `WirePayload` (with `bytes`, `content_type`, and `transform_version`) covering the whole batch. The `transform_version` SHALL be recorded on the `FifoEntry` and appended to `ProvenanceEntry.transform_version` downstream. *(Batch-FIFO model, locked in Phase 4.3; see `docs/superpowers/2026-04-22-dynamic-destinations-and-demo-design.md` §6.3.)*
+- E: `Destination.send(payload)` SHALL return a `SendResult` in `{SendOk, SendTransient, SendPermanent}`. Its categorization of underlying failures (HTTP codes, network errors, timeouts) is a per-destination concern. The `SendResult` covers the whole batch; partial-batch results are not a supported concept.
 - F: `SubscriptionFilter` SHALL support allow-listing by `entry_type` and/or `event_type`, plus an optional `predicate` escape-hatch function.
-- G: Destinations SHALL be registered at boot via `DestinationRegistry.register(...)`. The registry SHALL not mutate after boot-time registration completes.
+- G: Destinations SHALL be registered via `DestinationRegistry` either at boot (via `bootstrapAppendOnlyDatastore`) or at runtime (via `DestinationRegistry.addDestination`). *(Dynamic registration added in Phase 4.3.)*
 
 **REQ-POLICY — `SyncPolicy` constants** (assertions A-E):
 - A: `SyncPolicy.initialBackoff` SHALL be 60 seconds.
@@ -88,17 +88,17 @@ Four REQs added to `spec/dev-event-sourcing-mobile.md`. Numbers claimed via `dis
 - E: `SyncPolicy.maxAttempts` SHALL be 20 (aggregate lifetime retry count over the backoff curve, approximately one week total).
 
 **REQ-DRAIN — FIFO drain loop** (assertions A-H):
-- A: `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`. If the head is absent, SHALL return.
+- A: `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`. `readFifoHead` SHALL return the first `pending` FIFO row; exhausted rows are inert. If no pending row exists, SHALL return.
 - B: If the head's backoff (computed from `attempts.length` via `SyncPolicy.backoffFor(attempts.length)` plus the most recent `attempts[last].attempted_at`) has not elapsed, SHALL return without calling `destination.send()`.
 - C: On `SendOk`, SHALL call `backend.markFinal(id, entry_id, FinalStatus.sent)` and continue the loop.
-- D: On `SendPermanent`, SHALL call `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and return. The FIFO is now wedged (REQ-p01001-H synchronization visibility).
-- E: On `SendTransient` with `attempts.length + 1 >= SyncPolicy.maxAttempts`, SHALL call `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and return.
+- D: On `SendPermanent`, SHALL call `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and CONTINUE the loop to the next head. Exhausted rows are skipped on subsequent reads; the FIFO does NOT wedge. *(Inversion of parent §5 decision #8, locked in Phase 4.3; see `docs/superpowers/2026-04-22-dynamic-destinations-and-demo-design.md` §6.5.)*
+- E: On `SendTransient` with `attempts.length + 1 >= SyncPolicy.maxAttempts`, SHALL call `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and CONTINUE the loop (same skip-on-exhausted semantics as D).
 - F: On `SendTransient` otherwise, SHALL call `backend.appendAttempt(id, entry_id, attempt)` and return (backoff applied on next trigger).
-- G: `drain` SHALL always call `backend.appendAttempt(id, entry_id, attempt)` with the `AttemptResult` derived from the `SendResult` before either marking final or returning. The attempt log is append-only and SHALL record every call to `destination.send`.
-- H: `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry is still `pending` or `exhausted`.
+- G: `drain` SHALL always call `backend.appendAttempt(id, entry_id, attempt)` with the `AttemptResult` derived from the `SendResult` before either marking final or returning. The attempt log is append-only and SHALL record every call to `destination.send`. `appendAttempt` and `markFinal` SHALL be no-ops on a missing row or missing store (covers the drain-mid-flight race documented in `REQ-SKIPMISSING`).
+- H: `drain` SHALL preserve strict FIFO order within a destination's `pending` rows: no `pending` row SHALL be attempted while an earlier `pending` row has not been resolved. Exhausted rows are not part of the ordering: they are audit artifacts between `sent` and later `pending` rows.
 
 **REQ-SYNC — `sync_cycle()` orchestrator** (assertions A-E):
-- A: `syncCycle()` SHALL drain every registered destination concurrently (via `Future.wait` over `DestinationRegistry.all().map(drain)`).
+- A: `syncCycle()` SHALL process every registered destination concurrently (via `Future.wait` over `DestinationRegistry.all().map(...)`). Per destination, it SHALL invoke the drain loop (REQ-DRAIN). The parallel fill step (`fillBatch(dest)`, responsible for promoting unbatched events into FIFO rows) is specified separately in Phase 4.3's `REQ-BATCH` and is slotted into this same per-destination iteration when Phase 4.3 lands.
 - B: After outbound drains complete, `syncCycle()` SHALL call `portalInboundPoll()` (whose implementation is Phase 5).
 - C: `syncCycle()` SHALL have a single-isolate reentrancy guard: if invoked while a prior invocation is still in flight, the second call SHALL return immediately without side effects.
 - D: `syncCycle()` SHALL be callable from: app-lifecycle resume, a foreground 15-minute periodic timer, post-`record()` fire-and-forget, connectivity-restored event, FCM message receipt. The implementations of these trigger sites live in `clinical_diary` (Phase 5).
@@ -247,14 +247,16 @@ Four REQs added to `spec/dev-event-sourcing-mobile.md`. Numbers claimed via `dis
   - Simulates `transform()` as identity over the event's JSON representation.
 - [ ] **Write failing tests** (`drain_test.dart`). Fixture: a `SembastBackend` over in-memory Sembast, one enqueued entry, one `_FakeDestination` with a scripted outcome.
   - **Empty FIFO**: `drain(d)` returns immediately without calling `d.send`.
-  - **SendOk**: head is marked `sent`; `appendAttempt` was called; a subsequent `drain` call advances to the next entry.
-  - **SendPermanent**: head is marked `exhausted`; subsequent `drain` does not advance (FIFO wedged).
+  - **SendOk**: head is marked `sent`; `appendAttempt` was called; a subsequent `drain` call advances to the next pending entry.
+  - **SendPermanent**: head is marked `exhausted`; `drain` immediately continues to the next pending entry in the same invocation (skip-on-exhausted semantics per REQ-DRAIN-D).
   - **SendTransient below maxAttempts**: attempt is appended; `final_status` remains `pending`; a subsequent `drain` applies backoff — if backoff has not elapsed, it returns without calling `d.send` again.
-  - **SendTransient at maxAttempts**: after the Nth transient failure, head is marked `exhausted`.
+  - **SendTransient at maxAttempts**: after the Nth transient failure, head is marked `exhausted` and `drain` continues to the next pending entry.
   - **Backoff not elapsed**: after a transient, immediately re-run `drain`; expect `d.send` NOT called.
   - **Backoff elapsed** (simulate via injectable clock): `d.send` is called again and its scripted next outcome applies.
-  - **Strict FIFO order**: enqueue three entries in order A, B, C. Script A's first call as SendOk; drain — A marked sent, B becomes head. Script B as SendPermanent; drain — B marked exhausted, C is NOT attempted (wedged behind B).
-  - **Multi-destination independence**: d1 wedged on its head does not block d2 from draining normally.
+  - **Strict FIFO order within pending**: enqueue three entries A, B, C. Script A's first call as SendOk; drain — A marked sent. Script B as SendPermanent; drain — B marked exhausted, then C is attempted in the same invocation (skip past exhausted B). Verify C is NOT attempted BEFORE B is resolved.
+  - **Multi-destination independence**: d1 with all-rejecting scripted outcomes accumulates exhausted rows but does not block d2 from draining normally.
+  - **readFifoHead skips exhausted**: seed the FIFO with [sent, exhausted, pending]; `readFifoHead` returns the pending row, not the exhausted row.
+  - **markFinal tolerates missing row/store** (REQ-SKIPMISSING): call `markFinal` on a nonexistent row — expect no throw, no side effect. Same for `appendAttempt`. Same when the destination's FIFO store doesn't exist.
 - [ ] **Run tests**; expect failures.
 - [ ] **Implement `drain(destination, {required StorageBackend backend, Clock? clock})`**. Pseudocode in design §8.3 is the canonical algorithm. The clock parameter allows tests to advance time deterministically; production passes `null` (real clock).
   - Per-function: `// Implements: REQ-DRAIN-A+B+C+D+E+F+G+H — strict-order drain with backoff.`
