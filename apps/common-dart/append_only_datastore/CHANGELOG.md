@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.3.0 (2026-04-22) - CUR-1154 Phase 4: sync machinery
+
+Introduces the per-destination sync machinery. All new code is shipped
+but **unwired** — no production call site invokes `SyncCycle` in this
+phase. Phase 5 registers destinations and wires `SyncCycle.call()` to
+app-resume, a 15-minute foreground timer, connectivity-restored events,
+post-`record()` fire-and-forget, and FCM message receipt.
+
+New public surface (exported from `append_only_datastore.dart`):
+
+- `Destination` — abstract class with `id`, `filter`, `wireFormat`,
+  `transform(event) -> WirePayload`, `send(payload) -> Future<SendResult>`.
+- `WirePayload` — immutable value type carrying `bytes: Uint8List`,
+  `contentType: String`, and `transformVersion: String?`. Defensively
+  copies the bytes on construction.
+- `SubscriptionFilter` — concrete filter with `entryTypes`, `eventTypes`,
+  and optional `predicate`. `null` list means "match all"; empty list
+  means "match none" (REQ-d00122-F distinction).
+- `DestinationRegistry` — process-wide singleton. Boot-time registration,
+  frozen on first read; test-only `reset()` annotated
+  `@visibleForTesting`.
+- `SyncPolicy` — retry-curve constants and `backoffFor(attemptCount)`
+  with ±10% jitter and a `maxBackoff` cap.
+- `drain(destination, {backend, clock?})` — strict-FIFO drain loop.
+  Routes `SendOk` → sent, `SendPermanent` → exhausted, `SendTransient`
+  → append attempt (with backoff) or exhausted at `maxAttempts`.
+- `SyncCycle` — top-level orchestrator with `call()` entry point,
+  concurrent per-destination drain, and single-isolate reentrancy guard.
+  `portalInboundPoll()` is a Phase-5 stub.
+
+Phase-2 contract clarifications folded in:
+
+- `StorageBackend.nextSequenceNumber(txn)` now **reserves-and-increments**
+  the counter as a side effect (Phase-2 Prereq B, Option 1). A paired
+  `appendEvent(txn, event)` validates `event.sequenceNumber == reserved
+  counter value` and does not re-advance. A second `nextSequenceNumber`
+  call in the same transaction returns `current + 2` as expected.
+- `SembastBackend.enqueueFifo` now **owns** `sequence_in_queue`
+  (Phase-2 Prereq A, Option 1). The caller's `entry.sequenceInQueue` is
+  ignored; the backend assigns a monotonic per-FIFO value as
+  `max(existing key) + 1`. `FifoEntry.sequenceInQueue` is therefore a
+  read-side field: populated on `readFifoHead`, ignored on `enqueueFifo`
+  input.
+
+New spec:
+
+- `spec/dev-event-sourcing-mobile.md`: REQ-d00122 (Destination),
+  REQ-d00123 (SyncPolicy), REQ-d00124 (drain), REQ-d00125 (SyncCycle).
+
 ## 0.2.0 (2026-04-22) - CUR-1154 Phase 3: materialization
 
 Introduces the `diary_entries` materializer and the disaster-recovery

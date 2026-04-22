@@ -93,15 +93,20 @@ class SembastBackend extends StorageBackend {
 
   // -------- Events --------
 
-  /// Persist [event] and advance the sequence counter in a single
-  /// atomic transaction step (REQ-d00117-C). [event]'s `sequenceNumber`
-  /// MUST be exactly one greater than the current persisted counter value
-  /// (equivalently, it MUST equal the value returned by an immediately-
-  /// preceding [nextSequenceNumber] call inside the same [txn] body). An
-  /// out-of-range sequence number is treated as a caller bug and throws
-  /// `StateError`, preventing silent counter regression or duplicate
-  /// sequence numbers.
-  // Implements: REQ-d00117-C — appendEvent co-atomic with sequence counter.
+  /// Persist [event] inside [txn] and return its [AppendResult]. Under the
+  /// Phase-2 Prereq B reserve-and-increment contract, `event.sequenceNumber`
+  /// MUST equal the value returned by a prior [nextSequenceNumber] call in
+  /// the same transaction — i.e., it MUST equal the current persisted
+  /// counter value. [appendEvent] does not advance the counter; the advance
+  /// is owned by [nextSequenceNumber].
+  ///
+  /// A mismatch means the caller either skipped [nextSequenceNumber] or
+  /// consumed the reservation with a wrong `sequenceNumber`; both are
+  /// caller bugs, so `appendEvent` throws `StateError` rather than
+  /// silently accepting an out-of-range value.
+  // Implements: REQ-d00117-C — appendEvent co-atomic with sequence counter
+  // (advance owned by nextSequenceNumber; appendEvent consumes the
+  // reservation).
   // Implements: REQ-p00004-A+B — append-only event, hash chain stamped by
   // caller and persisted verbatim.
   @override
@@ -111,18 +116,16 @@ class SembastBackend extends StorageBackend {
         .record(_sequenceKey)
         .get(t._sembastTxn);
     final current = (currentRaw as int?) ?? 0;
-    final expected = current + 1;
-    if (event.sequenceNumber != expected) {
+    if (event.sequenceNumber != current) {
       throw StateError(
         'appendEvent: event.sequenceNumber (${event.sequenceNumber}) '
-        'must equal current counter + 1 ($expected). Prior counter: $current. '
-        'Did the caller forget to pair nextSequenceNumber with appendEvent?',
+        'must equal the reserved counter value ($current). '
+        'Did the caller forget to call nextSequenceNumber in this '
+        'transaction? (Phase-2 Prereq B, Option 1: reserve-and-increment; '
+        'appendEvent consumes a reservation, it does not create one.)',
       );
     }
     await _eventStore.add(t._sembastTxn, event.toMap());
-    await _backendStateStore
-        .record(_sequenceKey)
-        .put(t._sembastTxn, event.sequenceNumber);
     return AppendResult(
       sequenceNumber: event.sequenceNumber,
       eventHash: event.eventHash,
@@ -157,13 +160,24 @@ class SembastBackend extends StorageBackend {
     return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
   }
 
+  /// Reserve-and-increment the sequence counter within [txn]. Phase-2
+  /// Prereq B, Option 1: the counter is advanced as a side effect so that
+  /// a second call in the same transaction returns `current + 2`. A paired
+  /// [appendEvent] consumes the reservation without advancing again. If
+  /// the transaction rolls back, the counter rollback falls out of
+  /// Sembast's transactional semantics.
+  // Implements: REQ-d00117-C — reserve-and-increment sequence counter in a
+  // single atomic step with the subsequent appendEvent.
   @override
   Future<int> nextSequenceNumber(Txn txn) async {
     final t = _requireValidTxn(txn);
-    final current = await _backendStateStore
+    final currentRaw = await _backendStateStore
         .record(_sequenceKey)
         .get(t._sembastTxn);
-    return ((current as int?) ?? 0) + 1;
+    final current = (currentRaw as int?) ?? 0;
+    final reserved = current + 1;
+    await _backendStateStore.record(_sequenceKey).put(t._sembastTxn, reserved);
+    return reserved;
   }
 
   @override
@@ -299,6 +313,13 @@ class SembastBackend extends StorageBackend {
   /// the enqueue state per the storage contract (REQ-d00117-E). We register
   /// the destination on first use so anyFifoExhausted/exhaustedFifos can
   /// iterate all known FIFOs later.
+  ///
+  /// The backend owns `sequence_in_queue`. The caller's
+  /// `entry.sequenceInQueue` is ignored; the backend assigns the next value
+  /// as `max(existing store key) + 1` inside this transaction and writes
+  /// it into the persisted record. Storing records under the computed key
+  /// keeps the Sembast int key, the payload `sequence_in_queue`, and the
+  /// FIFO order in lockstep (Phase-2 Prereq A, Option 1).
   // Implements: REQ-d00117-E — enqueue initial state.
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
   @override
@@ -330,10 +351,11 @@ class SembastBackend extends StorageBackend {
         'enqueueFifo requires sentAt == null for a pending entry',
       );
     }
+    final store = _fifoStore(destinationId);
     // Reject a duplicate entry_id in the same FIFO. Without this check,
     // later appendAttempt/markFinal calls would quietly pick one of the
     // duplicates and the other would drift out of sync.
-    final existing = await _fifoStore(destinationId).find(
+    final existing = await store.find(
       t._sembastTxn,
       finder: Finder(
         filter: Filter.equals('entry_id', entry.entryId),
@@ -346,7 +368,17 @@ class SembastBackend extends StorageBackend {
         'entry_id=${entry.entryId}',
       );
     }
-    await _fifoStore(destinationId).add(t._sembastTxn, entry.toJson());
+    // Compute the next sequence_in_queue as max(existing key) + 1 so the
+    // value is monotonic across surviving (sent/exhausted) entries and
+    // the Sembast int key matches the payload's sequence_in_queue field.
+    final maxRec = await store.find(
+      t._sembastTxn,
+      finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
+    );
+    final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
+    final payload = entry.toJson();
+    payload['sequence_in_queue'] = assigned;
+    await store.record(assigned).put(t._sembastTxn, payload);
     await _registerFifoDestination(t, destinationId);
   }
 

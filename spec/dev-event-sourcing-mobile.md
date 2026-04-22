@@ -213,3 +213,129 @@ H. `rebuildMaterializedView` SHALL return the number of distinct `aggregate_id` 
 I. The `diary_entries` store SHALL be treated as a cache derivable from `event_log` by `rebuildMaterializedView`; production code that writes `diary_entries` outside the materializer SHALL be considered a violation of the cache contract.
 
 *End* *diary_entries Materialization from Event Log* | **Hash**: 632e4a22
+
+---
+
+# REQ-d00122: Destination Contract for Per-Destination Sync
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+REQ-p01001 mandates offline queuing and FIFO delivery, but it does not specify how the queue knows what to enqueue or how the bytes that leave the device are shaped. On mobile the answer is a `Destination` abstraction: one object per synchronization target (the primary diary server, a future analytics backend, etc.) that owns three responsibilities. First, it declares which events it cares about via a `SubscriptionFilter` — a deterministic predicate over `(entry_type, event_type, metadata tags)` — so that an event landing on the log is enqueued to exactly the destinations that want it, with no fan-out broadcast and no manual wiring. Second, it declares its wire format as an opaque string identifier (`"json-v1"`, `"proto-v2"`) and exposes a `transform(event)` method that turns an in-memory event into a `WirePayload` — the bytes, their content type, and the `transform_version` that produced them. Every downstream `ProvenanceEntry` carries that `transform_version`, so a receiver disputing a payload can always trace which version of which destination's transform produced it. Third, it exposes a `send(payload)` method whose return value categorizes the outcome as `SendOk`, `SendTransient` (retryable — HTTP 5xx, network error, timeout), or `SendPermanent` (not retryable — HTTP 4xx excluding rate-limits, schema mismatch). The drain loop reads that categorization and decides to mark-sent, back off and retry, or mark-exhausted and wedge the FIFO.
+
+Destinations are registered at app boot in a `DestinationRegistry` and the registry is frozen after the first read. The freeze is deliberate: registering mid-run would silently change which events are enqueued to which queues, potentially producing a FIFO where earlier entries were not subscribed and later entries were — a permanent ordering violation. Registration is a compile-time concern (sponsor-repo code decides what destinations exist for its trial); runtime never adds destinations. The registry being a process-wide singleton means tests must explicitly reset it between cases, which the test-only `reset()` method enables.
+
+This requirement defines the contract — what a `Destination` is obliged to expose and how the registry behaves. The actual FIFO drain loop (what happens when `send` is called) is specified in REQ-d00124; the retry timing curve is specified in REQ-d00123; the concrete `PrimaryDiaryServerDestination` that implements this contract against the real HTTP server is deferred to Phase 5.
+
+## Assertions
+
+A. A `Destination` SHALL expose a stable `id` string used as the identifier of its FIFO store; the id SHALL be unique across the `DestinationRegistry` and SHALL NOT change for the lifetime of the store.
+
+B. A `Destination` SHALL expose a `SubscriptionFilter` that deterministically selects which events to enqueue based on the event's `entry_type`, `event_type`, and optional caller-supplied predicate.
+
+C. A `Destination` SHALL declare a `wire_format` string identifier (e.g., `"json-v1"`); the value SHALL match the `wire_format` field on every `FifoEntry` produced for this destination.
+
+D. `Destination.transform(event)` SHALL return a `WirePayload` value with fields `bytes`, `content_type`, and `transform_version`; the `transform_version` SHALL be recorded on the resulting `FifoEntry` and appended to `ProvenanceEntry.transform_version` on the receiver side.
+
+E. `Destination.send(payload)` SHALL return a `SendResult` value of exactly one of the variants `SendOk`, `SendTransient`, or `SendPermanent`; the destination's categorization of underlying HTTP codes, network errors, and timeouts into those variants SHALL be a per-destination concern not dictated by this contract.
+
+F. A `SubscriptionFilter` SHALL support allow-listing by `entry_type` and/or `event_type`, SHALL support an optional escape-hatch `predicate` function, and SHALL distinguish an absent allow-list (match all) from an empty allow-list (match none).
+
+G. Destinations SHALL be registered at boot via `DestinationRegistry.register(destination)`; the registry SHALL freeze on first read (`all()` or `matchingDestinations(event)`) and any subsequent `register(...)` call SHALL raise an error.
+
+*End* *Destination Contract for Per-Destination Sync* | **Hash**: be13f13e
+
+---
+
+# REQ-d00123: SyncPolicy Retry Backoff Curve
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+REQ-p01001-E requires exponential backoff on failed synchronization attempts but deliberately leaves the curve shape, cap, jitter, and lifetime maximum unspecified — those are platform-level tuning decisions. On mobile the chosen curve is governed by two conflicting pressures. Too-frequent retries drain the battery, generate load against a diary server that is already signaling distress (503s, timeouts), and chew through the user's cellular data on entries that are not going to succeed in the next few minutes anyway. Too-slow retries starve pending entries of delivery attempts so that an entry that would have succeeded five minutes ago continues to sit in the FIFO for an hour, violating the reasonableness expectation of REQ-p00006 (Offline-First Data Entry) that sync "happens soon" when the device is online.
+
+The chosen curve: 60s initial backoff, ×5 multiplier per attempt, capped at 2h, ±10% jitter, 20 attempts maximum over approximately one week. Initial 60s is large enough that a transient server blip clears before the first retry; ×5 reaches the cap after four attempts so the curve spends most of its lifetime at the 2h cap rather than sprinting through dozens of short retries; ±10% jitter avoids the thundering-herd phenomenon where every device whose 10-minute backoff elapses at the same moment hits the server simultaneously. The 20-attempt cap puts a finite bound on the retry process — after approximately one week of failures the entry is marked `exhausted`, wedging the FIFO, which gates further drain attempts on that destination and raises a human-visible "sync failed" signal to the user per REQ-p01001-H.
+
+These constants are static module-level values, not runtime-configurable, because changing them mid-run would produce a user experience where a single entry's retry schedule mixed two different curves. Changing the curve requires a spec amendment and a coordinated app release. The values claimed here are from the design doc's §8.2 sync-policy table and carry the Phase-4 sign-off of design-review.
+
+## Assertions
+
+A. `SyncPolicy.initialBackoff` SHALL equal `Duration(seconds: 60)`.
+
+B. `SyncPolicy.backoffMultiplier` SHALL equal `5.0`.
+
+C. `SyncPolicy.maxBackoff` SHALL equal `Duration(hours: 2)`; computed backoff values SHALL be capped at this maximum.
+
+D. `SyncPolicy.jitterFraction` SHALL equal `0.1`; each backoff SHALL be multiplied by `1 + uniform(-jitterFraction, +jitterFraction)` to avoid synchronized retry storms across devices.
+
+E. `SyncPolicy.maxAttempts` SHALL equal `20`; an entry that accumulates this many `attempts` on its log SHALL be marked `exhausted` on the next transient-failure drain step, wedging its FIFO.
+
+F. `SyncPolicy.periodicInterval` SHALL equal `Duration(minutes: 15)` — the foreground sync-cycle cadence invoked from the Phase-5 trigger layer.
+
+*End* *SyncPolicy Retry Backoff Curve* | **Hash**: 1be73b3e
+
+---
+
+# REQ-d00124: Per-Destination FIFO Drain Loop
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+Given the `Destination` contract (REQ-d00122) and the retry curve (REQ-d00123), the drain loop is the component that actually moves bytes. One invocation operates on one destination's FIFO, reads the head entry, decides whether to call `send()` based on backoff elapsed since the last attempt, routes the `SendResult`, and appends an `AttemptResult` to the entry's attempts log regardless of outcome. The attempts log is append-only — `SHALL record every call to destination.send` — because it is the audit trail that satisfies REQ-p01001-M (log failed synchronization events with detailed error messages) and supplies the timestamps the next backoff computation reads.
+
+The drain loop's most important property is strict FIFO order. An entry is attempted if and only if every earlier entry in the queue has transitioned to `sent` or `exhausted`. Specifically: on `SendPermanent` or on the Nth transient failure, the head entry is marked `exhausted`, and `drain` returns. A subsequent `drain` call sees the exhausted head still sitting there (entries are never deleted — REQ-d00119-D) and returns without attempting the next entry. The FIFO is wedged. This wedge is load-bearing: silently skipping the wedged head and advancing to the next entry would reorder delivery, which would make a destination's reconstruction of history dependent on the set of failures the queue has seen — a property that cannot be reasoned about from the event log alone and would defeat REQ-p01001-D (FIFO delivery order).
+
+The wedge is resolved only by human intervention (manual re-enqueue or destination-side repair), not by any automatic "skip forward". The synchronization UI surfaces the wedge to the user per REQ-p01001-H, so the wedge is not a silent failure state; it is an escalation.
+
+Multi-destination behavior is by contrast fully independent: each destination's FIFO has its own wedge state, and one destination being wedged on its head does not block drain on any other destination. That property falls out of invoking `drain` per-destination within `sync_cycle` (REQ-d00125).
+
+## Assertions
+
+A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`.
+
+B. When the head's computed backoff (from `SyncPolicy.backoffFor(attempts.length)` plus the most recent `attempts[last].attempted_at`) has not elapsed, `drain` SHALL return without calling `destination.send`.
+
+C. On `SendOk`, `drain` SHALL mark the head entry `sent` via `backend.markFinal(id, entry_id, FinalStatus.sent)` and continue the loop to the next head entry.
+
+D. On `SendPermanent`, `drain` SHALL mark the head entry `exhausted` via `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and return; subsequent `drain` calls SHALL observe the wedge and SHALL NOT advance past the exhausted head.
+
+E. On `SendTransient` where `attempts.length + 1 >= SyncPolicy.maxAttempts`, `drain` SHALL mark the head entry `exhausted` and return.
+
+F. On `SendTransient` below the attempt limit, `drain` SHALL append the resulting `AttemptResult` via `backend.appendAttempt(id, entry_id, attempt)` and return; the entry remains `pending`; the next backoff interval SHALL apply to the next `drain` trigger.
+
+G. `drain` SHALL call `backend.appendAttempt(id, entry_id, attempt)` for every invocation of `destination.send`, regardless of outcome; the attempts log is append-only and SHALL record every send attempt made against an entry.
+
+H. `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry in the same FIFO is still `pending` or `exhausted`.
+
+*End* *Per-Destination FIFO Drain Loop* | **Hash**: 817fc56b
+
+---
+
+# REQ-d00125: sync_cycle() Orchestrator and Trigger Contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00049, REQ-p01001
+
+## Rationale
+
+The drain loop per destination (REQ-d00124) is the inner mechanism; `sync_cycle()` is the top-level orchestrator that fans out across all registered destinations, drains them concurrently, and then performs the portal inbound poll that picks up tombstones authored on the portal side (§11.1 of the design doc). It is the single entry point every trigger — app-lifecycle resume, the 15-minute foreground timer, connectivity-restored notification, post-`record()` fire-and-forget, FCM message receipt — calls into. Centralizing on one entry point means the reentrancy guard lives in exactly one place: `sync_cycle()` tracks whether a prior invocation is still in flight and, if so, immediately returns from the second call with no side effects. The guard exists because the trigger set is inherently racy (an FCM message and a connectivity-restored event can fire within milliseconds of each other), and allowing concurrent sync cycles would produce overlapping `send` calls that each see the same pending head entry and each record an attempt — inflating the attempts count against the `maxAttempts` cap without actually improving delivery.
+
+The "foreground-only" constraint — no WorkManager, no BGTaskScheduler — is a deliberate scope decision. Background isolate sync would require sponsor-specific keychain unlock flows on iOS, separate Dart isolate context for opening Sembast, and a second code path through the sync machinery that has its own failure modes and its own audit-trail contributions. All of that for the marginal benefit of syncing when the app is genuinely backgrounded on devices where the user has already moved on. The trade-off: the 15-minute foreground periodic timer and the app-resume trigger together guarantee that any entry queued while the app is in use is attempted within 15 minutes of the user opening the app; entries queued and then left on a fully-backgrounded-and-killed app wait until next launch. This is acceptable for patient diary data where intraday delivery latency is not a regulatory concern (REQ-p00006 guarantees data is not lost, not that it is delivered within minutes of creation).
+
+The `portalInboundPoll()` step is the tombstone-propagation mechanism: the diary server exposes a read-side API that returns tombstones authored on the portal (clinician-initiated deletions), and `sync_cycle()` runs that poll after outbound drains so any server-authored tombstone overlays land in the same cycle as the outbound entries they interact with. Its implementation is Phase 5; Phase 4 ships it as a stub returning immediately so the call site is in place.
+
+## Assertions
+
+A. `syncCycle()` SHALL drain every registered destination concurrently via `Future.wait` over `DestinationRegistry.all().map(drain)`; an exception thrown from one destination's `drain` SHALL NOT cancel any other destination's `drain`.
+
+B. After all outbound drains complete, `syncCycle()` SHALL invoke `portalInboundPoll()` — whose concrete implementation lands in Phase 5 and whose Phase-4 body is a no-op stub.
+
+C. `syncCycle()` SHALL hold a single-isolate reentrancy guard: when invoked while a prior invocation has not yet completed, the second invocation SHALL return immediately without triggering any new drain work or any new `portalInboundPoll` call.
+
+D. `syncCycle()` SHALL be callable — via wiring that lives in the Phase-5 trigger layer — from at least these five trigger sites: app-lifecycle resume, a foreground 15-minute periodic timer, post-`record()` fire-and-forget, connectivity-restored event, and FCM-message receipt (per REQ-p00049-A).
+
+E. `syncCycle()` SHALL NOT run from a background isolate; no `WorkManager` task, `BGTaskScheduler` task, or equivalent background execution path SHALL be registered for synchronization.
+
+*End* *sync_cycle() Orchestrator and Trigger Contract* | **Hash**: 03bfd328

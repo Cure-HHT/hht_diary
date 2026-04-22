@@ -78,20 +78,20 @@ abstract class StorageBackend {
     int? limit,
   });
 
-  /// Read-and-increment the per-device sequence counter within [txn] and
-  /// return the value assigned to the next event.
+  /// Reserve-and-increment the per-device sequence counter within [txn] and
+  /// return the reserved value.
   ///
-  /// This is exposed for callers that need to reserve a sequence number
-  /// *before* constructing the event (for example, to include it in the
-  /// hash-chain input). Callers who take this path SHALL pass the reserved
-  /// number through the constructed event to [appendEvent]; [appendEvent]
-  /// SHALL then persist the event without further advancing the counter.
+  /// Implementations SHALL advance the counter as a side effect so that a
+  /// second call in the same transaction returns `current + 2`. Callers
+  /// MUST pair this with a single [appendEvent] carrying the reserved
+  /// value; [appendEvent] SHALL NOT re-advance the counter. This makes
+  /// hash-chain-construction and the append a single atomic step with a
+  /// caller-visible reservation that cannot be silently double-consumed.
   ///
-  /// Callers who do not need advance reservation MAY skip [nextSequenceNumber]
-  /// entirely and rely on [appendEvent] to advance and stamp the counter as
-  /// a single step. Mixing the two paths in a single transaction (calling
-  /// [nextSequenceNumber] and then [appendEvent] in a way that causes
-  /// [appendEvent] to re-advance) is a caller bug.
+  /// Calling [appendEvent] without a prior [nextSequenceNumber] reservation
+  /// in the same transaction is a caller bug; implementations SHALL reject
+  /// it with a clear error rather than advancing the counter implicitly
+  /// (Phase-2 Prereq B, Option 1).
   Future<int> nextSequenceNumber(Txn txn);
 
   /// Current value of the per-device sequence counter — i.e., the
@@ -130,6 +130,14 @@ abstract class StorageBackend {
   /// non-empty; the enqueue step is defined to produce a pending entry with
   /// no attempt history, so a caller supplying anything else is a bug.
   /// Implementations MAY throw `ArgumentError` on violation.
+  ///
+  /// The backend owns `sequence_in_queue`. Callers pass a `FifoEntry` with
+  /// any value there; implementations SHALL assign a monotonically-
+  /// increasing value per FIFO and SHALL write that backend-assigned value
+  /// into the persisted record. `FifoEntry.sequenceInQueue` is therefore a
+  /// read-side field: on a [readFifoHead] result it reflects the actual
+  /// queue position; on an [enqueueFifo] input it is ignored (Phase-2
+  /// Prereq A, Option 1).
   Future<void> enqueueFifo(Txn txn, String destinationId, FifoEntry entry);
 
   /// Oldest pending entry in [destinationId]'s FIFO, or null if none. Returns

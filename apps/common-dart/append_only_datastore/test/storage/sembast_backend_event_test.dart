@@ -226,10 +226,15 @@ void main() {
       },
     );
 
-    // Verifies appendEvent rejects a stale/duplicate sequence number,
+    // Verifies appendEvent rejects a mismatched sequence number,
     // preventing silent counter regression if a caller forgets to pair
     // nextSequenceNumber with appendEvent.
-    test('appendEvent throws when sequenceNumber is not current+1', () async {
+    //
+    // Phase-2 Prereq B, Option 1: the counter is advanced by
+    // nextSequenceNumber, so appendEvent's check is "event.sequenceNumber
+    // == current counter value", not "current + 1".
+    test('appendEvent throws when sequenceNumber does not match the reserved '
+        'counter value (Prereq B, Option 1)', () async {
       await expectLater(
         backend.transaction((txn) async {
           // Skip nextSequenceNumber; pass a wrong value.
@@ -239,6 +244,37 @@ void main() {
       );
       // Nothing landed.
       expect(await backend.findAllEvents(), isEmpty);
+    });
+
+    // Verifies: REQ-d00117-C — nextSequenceNumber reserves-and-increments,
+    // so two calls in the same transaction advance the counter twice.
+    // Locks Phase-2 Prereq B, Option 1.
+    test('REQ-d00117-C: two nextSequenceNumber calls in one txn return '
+        'current+1 and current+2 (reserve-and-increment)', () async {
+      await backend.transaction((txn) async {
+        expect(await backend.nextSequenceNumber(txn), 1);
+        expect(await backend.nextSequenceNumber(txn), 2);
+      });
+      // The transaction committed, so the counter is at 2.
+      await backend.transaction((txn) async {
+        expect(await backend.nextSequenceNumber(txn), 3);
+      });
+    });
+
+    // Verifies: REQ-d00117-C — appendEvent does NOT re-advance the counter.
+    // The counter after `nextSeq -> appendEvent` equals the reserved value.
+    test('REQ-d00117-C: appendEvent consumes the reservation without '
+        're-advancing the counter (Prereq B, Option 1)', () async {
+      await backend.transaction((txn) async {
+        final seq = await backend.nextSequenceNumber(txn);
+        expect(seq, 1);
+        await backend.appendEvent(txn, _event('ev-1', seq));
+      });
+      // Counter is at 1 after the append. If appendEvent had re-advanced,
+      // the next nextSequenceNumber would return 3.
+      await backend.transaction((txn) async {
+        expect(await backend.nextSequenceNumber(txn), 2);
+      });
     });
 
     // Verifies: readLatestEventHash is transactional — the value reflects

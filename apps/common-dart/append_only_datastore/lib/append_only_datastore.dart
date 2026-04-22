@@ -107,6 +107,15 @@ export 'src/core/di/datastore.dart';
 export 'src/core/errors/datastore_exception.dart';
 export 'src/core/errors/sync_exception.dart';
 
+// Destinations — per-destination routing contract (Phase 4, CUR-1154).
+// FakeDestination lives in test/test_support/ and is intentionally NOT
+// exported.
+export 'src/destinations/destination.dart' show Destination;
+export 'src/destinations/destination_registry.dart' show DestinationRegistry;
+export 'src/destinations/subscription_filter.dart'
+    show SubscriptionFilter, SubscriptionPredicate;
+export 'src/destinations/wire_payload.dart' show WirePayload;
+
 // Infrastructure - Database
 export 'src/infrastructure/database/database_provider.dart';
 
@@ -138,8 +147,14 @@ export 'src/storage/storage_backend.dart' show StorageBackend;
 export 'src/storage/stored_event.dart' show StoredEvent;
 export 'src/storage/txn.dart' show Txn;
 
+// Sync — backoff curve, drain loop, and top-level orchestrator (Phase 4,
+// CUR-1154). Phase 5 wires triggers in clinical_diary that route into
+// SyncCycle.call().
+export 'src/sync/drain.dart' show ClockFn, drain;
+export 'src/sync/sync_cycle.dart' show SyncCycle;
+export 'src/sync/sync_policy.dart' show SyncPolicy;
+
 // TODO: Export additional services as implemented
-// export 'src/infrastructure/sync/sync_service.dart';
 // export 'src/application/services/query_service.dart';
 // export 'src/application/services/conflict_resolver.dart';
 // export 'src/application/models/version_vector.dart';

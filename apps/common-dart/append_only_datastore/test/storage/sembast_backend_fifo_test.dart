@@ -380,5 +380,62 @@ void main() {
       expect(await backend.anyFifoExhausted(), isFalse);
       expect(await backend.exhaustedFifos(), isEmpty);
     });
+
+    // -------- Phase-2 Prereq A, Option 1: backend-owned sequence_in_queue --
+
+    // Verifies that the backend ignores the caller-supplied
+    // `sequence_in_queue` on enqueue and assigns its own monotonic value.
+    // Locks Phase-2 Prereq A, Option 1: FifoEntry.sequenceInQueue is an
+    // output-only field on the read side; input values are ignored.
+    test('enqueueFifo ignores caller-supplied sequence_in_queue and assigns '
+        'its own monotonic value (Prereq A, Option 1)', () async {
+      // Caller passes nonsense values; backend overwrites with 1, 2, 3.
+      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 9999));
+      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: -7));
+      await enqueue('primary', mkEntry(entryId: 'e3', sequenceInQueue: 0));
+
+      // Inspect the raw store to verify the stored sequence_in_queue
+      // values are 1, 2, 3 regardless of caller input.
+      final db = backend.debugDatabase();
+      final raw = await StoreRef<int, Map<String, Object?>>(
+        'fifo_primary',
+      ).find(db);
+      expect(raw.map((r) => r.value['sequence_in_queue']).toList(), [1, 2, 3]);
+      expect(raw.map((r) => r.value['entry_id']).toList(), ['e1', 'e2', 'e3']);
+    });
+
+    // Verifies that sequence_in_queue continues to grow past surviving
+    // sent/exhausted entries — the backend's max-key+1 algorithm must not
+    // re-use a slot vacated by a terminal-state entry (entries are
+    // retained forever per REQ-d00119-D).
+    test('sequence_in_queue advances across sent/exhausted entries '
+        '(Prereq A, Option 1)', () async {
+      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 1));
+      // e2 should get sequence 2, not 1.
+      final db = backend.debugDatabase();
+      final raw = await StoreRef<int, Map<String, Object?>>(
+        'fifo_primary',
+      ).find(db);
+      final e2 = raw.firstWhere((r) => r.value['entry_id'] == 'e2');
+      expect(e2.value['sequence_in_queue'], 2);
+      expect(e2.key, 2);
+    });
+
+    // Verifies that the Sembast int key equals the payload's
+    // sequence_in_queue (they are in lockstep by design).
+    test('sequence_in_queue equals the Sembast store key (lockstep)', () async {
+      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 0));
+      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 0));
+
+      final db = backend.debugDatabase();
+      final raw = await StoreRef<int, Map<String, Object?>>(
+        'fifo_primary',
+      ).find(db);
+      for (final record in raw) {
+        expect(record.value['sequence_in_queue'], record.key);
+      }
+    });
   });
 }
