@@ -385,40 +385,33 @@ $DIR"
 fi
 
 # =====================================================
-# 4. Requirement Hash Update (elspais) — TEMPORARILY DISABLED (CUR-1154)
+# 4. Requirement Hash Update (elspais)
 # =====================================================
 # Auto-update stale requirement hashes before commit.
-# Disabled during the CUR-1154 mobile-event-sourcing refactor because the
-# working-tree .elspais.toml has a parse error ("invalid literal for int()
-# with base 10: '0.112.13'") from an in-progress MCP schema migration, which
-# makes every `elspais fix` invocation print a scary error banner. Spec
-# hashes are manually fixed by running `elspais fix REQ-dXXXXX` inline with
-# the task that introduces the REQ. Re-enable (uncomment) after the refactor
-# branch lands and .elspais.toml is fixed.
 
-# SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
-#
-# if [ -n "$SPEC_FILES_CHANGED" ]; then
-#     echo "📋 Updating requirement hashes..."
-#     echo ""
-#
-#     if command -v elspais &> /dev/null; then
-#         # Run hash fix and index regeneration (modify files in place)
-#         if ! elspais fix 2>&1; then
-#             echo ""
-#             echo "‼️  elspais fix FAILED — requirement hashes may be stale"
-#             echo ""
-#         fi
-#         # Re-stage any spec files modified by elspais fix (hashes, INDEX.md, etc.)
-#         git add spec/ 2>/dev/null || true
-#         echo "✅ Requirement hashes and INDEX.md updated!"
-#         echo ""
-#     else
-#         echo "⚠️  WARNING: elspais not installed - skipping hash update"
-#         echo "   Install: pip install elspais"
-#         echo ""
-#     fi
-# fi
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    echo "📋 Updating requirement hashes..."
+    echo ""
+
+    if command -v elspais &> /dev/null; then
+        # Run hash fix and index regeneration (modify files in place)
+        if ! elspais fix 2>&1; then
+            echo ""
+            echo "‼️  elspais fix FAILED — requirement hashes may be stale"
+            echo ""
+        fi
+        # Re-stage any spec files modified by elspais fix (hashes, INDEX.md, etc.)
+        git add spec/ 2>/dev/null || true
+        echo "✅ Requirement hashes and INDEX.md updated!"
+        echo ""
+    else
+        echo "⚠️  WARNING: elspais not installed - skipping hash update"
+        echo "   Install: pip install elspais"
+        echo ""
+    fi
+fi
 
 # =====================================================
 # 5. Markdown Linting (Built-in)

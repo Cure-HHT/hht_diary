@@ -27,31 +27,74 @@ class StoredEvent {
   });
 
   /// Create from a database record map.
+  ///
+  /// Every required field is explicitly type-checked via an `is!` guard and a
+  /// thrown [FormatException] naming the offending key. A malformed event
+  /// record surfaces as a typed error rather than a generic `CastError` or
+  /// `TypeError` at an unrelated call site, keeping diagnosis focused on the
+  /// actual bad field.
   factory StoredEvent.fromMap(Map<String, Object?> map, int key) {
-    final entryType = map['entry_type'];
-    if (entryType is! String) {
+    final eventId = _requireString(map, 'event_id');
+    final aggregateId = _requireString(map, 'aggregate_id');
+    final aggregateType = _requireString(map, 'aggregate_type');
+    final entryType = _requireString(map, 'entry_type');
+    final eventType = _requireString(map, 'event_type');
+    final sequenceNumber = _requireInt(map, 'sequence_number');
+    final data = _requireMap(map, 'data');
+    final metadataRaw = map['metadata'];
+    if (metadataRaw != null && metadataRaw is! Map) {
       throw const FormatException(
-        'StoredEvent: missing or non-string "entry_type"',
+        'StoredEvent: "metadata" must be a Map when present',
       );
+    }
+    final metadata = metadataRaw == null
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(metadataRaw as Map);
+    final userId = _requireString(map, 'user_id');
+    final deviceId = _requireString(map, 'device_id');
+    final clientTimestamp = _requireDateTime(map, 'client_timestamp');
+    final eventHash = _requireString(map, 'event_hash');
+    final previousHashRaw = map['previous_event_hash'];
+    if (previousHashRaw != null && previousHashRaw is! String) {
+      throw const FormatException(
+        'StoredEvent: "previous_event_hash" must be a String when present',
+      );
+    }
+    final syncedAtRaw = map['synced_at'];
+    if (syncedAtRaw != null && syncedAtRaw is! String) {
+      throw const FormatException(
+        'StoredEvent: "synced_at" must be an ISO 8601 String when present',
+      );
+    }
+    final DateTime? syncedAt;
+    if (syncedAtRaw == null) {
+      syncedAt = null;
+    } else {
+      try {
+        syncedAt = DateTime.parse(syncedAtRaw as String);
+      } on FormatException catch (e) {
+        throw FormatException(
+          'StoredEvent: "synced_at" is not a valid ISO 8601 string: '
+          '${e.message}',
+        );
+      }
     }
     return StoredEvent(
       key: key,
-      eventId: map['event_id'] as String,
-      aggregateId: map['aggregate_id'] as String,
-      aggregateType: map['aggregate_type'] as String,
+      eventId: eventId,
+      aggregateId: aggregateId,
+      aggregateType: aggregateType,
       entryType: entryType,
-      eventType: map['event_type'] as String,
-      sequenceNumber: map['sequence_number'] as int,
-      data: Map<String, dynamic>.from(map['data'] as Map),
-      metadata: Map<String, dynamic>.from(map['metadata'] as Map? ?? {}),
-      userId: map['user_id'] as String,
-      deviceId: map['device_id'] as String,
-      clientTimestamp: DateTime.parse(map['client_timestamp'] as String),
-      eventHash: map['event_hash'] as String,
-      previousEventHash: map['previous_event_hash'] as String?,
-      syncedAt: map['synced_at'] != null
-          ? DateTime.parse(map['synced_at'] as String)
-          : null,
+      eventType: eventType,
+      sequenceNumber: sequenceNumber,
+      data: Map<String, dynamic>.from(data),
+      metadata: metadata,
+      userId: userId,
+      deviceId: deviceId,
+      clientTimestamp: clientTimestamp,
+      eventHash: eventHash,
+      previousEventHash: previousHashRaw as String?,
+      syncedAt: syncedAt,
     );
   }
 
@@ -133,5 +176,45 @@ class StoredEvent {
   String toString() {
     return 'StoredEvent(eventId: $eventId, entryType: $entryType, '
         'eventType: $eventType, seq: $sequenceNumber)';
+  }
+}
+
+String _requireString(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value is! String) {
+    throw FormatException('StoredEvent: missing or non-string "$key"');
+  }
+  return value;
+}
+
+int _requireInt(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value is! int) {
+    throw FormatException('StoredEvent: missing or non-int "$key"');
+  }
+  return value;
+}
+
+Map<Object?, Object?> _requireMap(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value is! Map) {
+    throw FormatException('StoredEvent: missing or non-map "$key"');
+  }
+  return value;
+}
+
+DateTime _requireDateTime(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value is! String) {
+    throw FormatException(
+      'StoredEvent: missing or non-string "$key" (expected ISO 8601)',
+    );
+  }
+  try {
+    return DateTime.parse(value);
+  } on FormatException catch (e) {
+    throw FormatException(
+      'StoredEvent: "$key" is not a valid ISO 8601 string: ${e.message}',
+    );
   }
 }

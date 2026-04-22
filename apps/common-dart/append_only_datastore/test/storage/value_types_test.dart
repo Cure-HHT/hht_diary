@@ -5,6 +5,7 @@ import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
+import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -369,6 +370,101 @@ void main() {
       expect(describe(const SendOk()), 'ok');
       expect(describe(const SendTransient(error: 't')), 'transient:t');
       expect(describe(const SendPermanent(error: 'p')), 'permanent:p');
+    });
+  });
+
+  group('StoredEvent.fromMap validation', () {
+    final sampleMap = <String, Object?>{
+      'event_id': 'ev-1',
+      'aggregate_id': 'agg-1',
+      'aggregate_type': 'DiaryEntry',
+      'entry_type': 'epistaxis_event',
+      'event_type': 'finalized',
+      'sequence_number': 1,
+      'data': <String, Object?>{'k': 'v'},
+      'metadata': <String, Object?>{},
+      'user_id': 'u',
+      'device_id': 'd',
+      'client_timestamp': '2026-04-22T10:00:00Z',
+      'event_hash': 'hash-1',
+      'previous_event_hash': null,
+      'synced_at': null,
+    };
+
+    test('happy-path round-trip through fromMap + toMap', () {
+      final event = StoredEvent.fromMap(sampleMap, 42);
+      expect(event.key, 42);
+      expect(event.eventId, 'ev-1');
+      expect(event.sequenceNumber, 1);
+      expect(event.clientTimestamp, DateTime.utc(2026, 4, 22, 10));
+      expect(event.previousEventHash, isNull);
+      expect(event.syncedAt, isNull);
+    });
+
+    test('fromMap rejects missing event_id', () {
+      final bad = Map<String, Object?>.from(sampleMap)..remove('event_id');
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-string aggregate_type', () {
+      final bad = Map<String, Object?>.from(sampleMap)..['aggregate_type'] = 42;
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-int sequence_number', () {
+      final bad = Map<String, Object?>.from(sampleMap)
+        ..['sequence_number'] = '1';
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects missing data', () {
+      final bad = Map<String, Object?>.from(sampleMap)..remove('data');
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-map data', () {
+      final bad = Map<String, Object?>.from(sampleMap)..['data'] = 'not-a-map';
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap accepts absent metadata and defaults to empty map', () {
+      final noMetadata = Map<String, Object?>.from(sampleMap)
+        ..remove('metadata');
+      final event = StoredEvent.fromMap(noMetadata, 0);
+      expect(event.metadata, isEmpty);
+    });
+
+    test('fromMap rejects non-map metadata', () {
+      final bad = Map<String, Object?>.from(sampleMap)..['metadata'] = 7;
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects malformed client_timestamp', () {
+      final bad = Map<String, Object?>.from(sampleMap)
+        ..['client_timestamp'] = 'not-a-date';
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-string client_timestamp', () {
+      final bad = Map<String, Object?>.from(sampleMap)
+        ..['client_timestamp'] = 1234567890;
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-string previous_event_hash when present', () {
+      final bad = Map<String, Object?>.from(sampleMap)
+        ..['previous_event_hash'] = 123;
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects non-string synced_at when present', () {
+      final bad = Map<String, Object?>.from(sampleMap)..['synced_at'] = 123;
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
+    });
+
+    test('fromMap rejects malformed synced_at', () {
+      final bad = Map<String, Object?>.from(sampleMap)..['synced_at'] = 'nope';
+      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
     });
   });
 

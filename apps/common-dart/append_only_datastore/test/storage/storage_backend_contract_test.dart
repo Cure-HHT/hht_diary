@@ -198,6 +198,35 @@ class _InMemoryBackend extends StorageBackend {
     return sorted;
   }
 
+  @override
+  Future<String?> readLatestEventHash(Txn txn) async {
+    _assertOwnValid(txn)._check();
+    final staged = _staged!;
+    if (staged.isEmpty) return null;
+    final sorted = staged.values.toList()
+      ..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
+    return sorted.last.eventHash;
+  }
+
+  @override
+  Future<List<StoredEvent>> findAllEventsInTxn(
+    Txn txn, {
+    int? afterSequence,
+    int? limit,
+  }) async {
+    _assertOwnValid(txn)._check();
+    final staged = _staged!;
+    var sorted = staged.values.toList()
+      ..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
+    if (afterSequence != null) {
+      sorted = sorted.where((e) => e.sequenceNumber > afterSequence).toList();
+    }
+    if (limit != null && sorted.length > limit) {
+      sorted = sorted.sublist(0, limit);
+    }
+    return sorted;
+  }
+
   _InMemoryTxn _assertOwnValid(Txn txn) {
     if (txn is! _InMemoryTxn || txn._backend != this) {
       throw StateError('Txn does not belong to this backend');
@@ -216,6 +245,8 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<void> upsertEntry(Txn txn, DiaryEntry entry) =>
       throw UnimplementedError();
+  @override
+  Future<void> clearEntries(Txn txn) => throw UnimplementedError();
   @override
   Future<List<DiaryEntry>> findEntries({
     String? entryType,

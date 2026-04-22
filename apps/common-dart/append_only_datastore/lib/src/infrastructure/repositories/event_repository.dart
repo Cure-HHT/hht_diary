@@ -78,12 +78,6 @@ class EventRepository {
   /// UUID generator.
   static const _uuid = Uuid();
 
-  /// Re-entry guard: true while an append() call is in flight. See the
-  /// rationale in append() — single-client mobile doesn't have a concurrent
-  /// appender but this guard catches accidental fire-and-forget patterns
-  /// at the earliest possible point.
-  bool _appendInProgress = false;
-
   /// Append a new event to the store.
   ///
   /// This is the primary way to record data changes. Events are immutable
@@ -113,30 +107,14 @@ class EventRepository {
     DateTime? clientTimestamp,
     Map<String, dynamic>? metadata,
   }) async {
-    // Single-client mobile: no concurrent appender, so reading the
-    // previous-event-hash outside the backend transaction is safe. If the
-    // backend ever serves multi-writer scenarios, this read should move
-    // inside the transaction (or be exposed on the backend contract).
-    //
-    // The re-entry guard below catches the single-process case where a
-    // caller accidentally fires two `append()` calls without awaiting the
-    // first — the interleaving would break the hash chain silently. All
-    // production call sites (NosebleedService, DataExportService) await
-    // their appends sequentially today.
-    if (_appendInProgress) {
-      throw StateError(
-        'EventRepository.append: concurrent call detected. The hash-chain '
-        'previous-hash read happens before the backend transaction; a '
-        'second concurrent append would read the same previous hash and '
-        'break chain integrity. Await the first append before starting '
-        'another.',
-      );
-    }
-    _appendInProgress = true;
-    final previousHash = await _getPreviousEventHash();
-
     try {
       return await _backend.transaction<StoredEvent>((txn) async {
+        // Read the hash-chain tail and reserve the next sequence number
+        // inside the same transaction that will persist the new event. This
+        // makes the chain-construction and the append a single atomic step:
+        // no concurrent writer can interleave between tail-read and append,
+        // so the chain cannot fork even if callers fire concurrent appends.
+        final previousHash = await _backend.readLatestEventHash(txn);
         final sequenceNumber = await _backend.nextSequenceNumber(txn);
         final eventId = _uuid.v4();
         final clientTs = clientTimestamp?.toUtc() ?? DateTime.now().toUtc();
@@ -176,8 +154,6 @@ class EventRepository {
         cause: e,
         stackTrace: stackTrace,
       );
-    } finally {
-      _appendInProgress = false;
     }
   }
 
@@ -296,22 +272,6 @@ class EventRepository {
     }
 
     return true;
-  }
-
-  /// Read the current hash-chain tail — the event_hash of the event with
-  /// the highest sequence_number, or null when the store is empty. Read
-  /// outside the append transaction; safe under the single-client mobile
-  /// model because no concurrent writer can intervene between this read
-  /// and the append commit.
-  Future<String?> _getPreviousEventHash() async {
-    final db = databaseProvider.database;
-    final finder = Finder(
-      sortOrders: [SortOrder('sequence_number', false)],
-      limit: 1,
-    );
-    final records = await _eventStore.find(db, finder: finder);
-    if (records.isEmpty) return null;
-    return records.first.value['event_hash'] as String?;
   }
 
   /// Calculate SHA-256 hash of event data using RFC 8785 canonical JSON.

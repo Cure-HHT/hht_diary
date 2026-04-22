@@ -53,6 +53,31 @@ abstract class StorageBackend {
   /// `limit`. Returned in `sequence_number` order.
   Future<List<StoredEvent>> findAllEvents({int? afterSequence, int? limit});
 
+  /// Event hash of the highest-sequence-number event currently in the log,
+  /// or null when the event log is empty. Read inside [txn] so the value
+  /// reflects writes already staged in the same transaction body.
+  ///
+  /// Provided so that callers computing the hash-chain input for the next
+  /// event (i.e., `previous_event_hash`) can read the tail under the same
+  /// transaction that will append the new event. Reading the tail outside
+  /// the transaction would make the chain vulnerable to a concurrent writer
+  /// stamping a different previous-hash between the read and the commit.
+  Future<String?> readLatestEventHash(Txn txn);
+
+  /// Events in sequence_number order, read within [txn] so the result
+  /// reflects writes already staged in the same transaction body. Optionally
+  /// sliced by [afterSequence] (exclusive) and [limit] so callers can stream
+  /// the log in fixed-size chunks instead of materializing the whole log in
+  /// memory.
+  ///
+  /// Used by `rebuildMaterializedView` so the event snapshot folded into the
+  /// cache is coherent with the clear+upsert done under the same transaction.
+  Future<List<StoredEvent>> findAllEventsInTxn(
+    Txn txn, {
+    int? afterSequence,
+    int? limit,
+  });
+
   /// Read-and-increment the per-device sequence counter within [txn] and
   /// return the value assigned to the next event.
   ///
@@ -79,6 +104,12 @@ abstract class StorageBackend {
   /// Whole-row replace into `diary_entries` keyed on `entry.entryId`. Not a
   /// partial merge: every column in [entry] overwrites the previous row.
   Future<void> upsertEntry(Txn txn, DiaryEntry entry);
+
+  /// Remove every row from `diary_entries`. Used by
+  /// `rebuildMaterializedView` to replace the cache in one transaction
+  /// step; not intended as a runtime operation. The event log is
+  /// untouched.
+  Future<void> clearEntries(Txn txn);
 
   /// Query `diary_entries` with optional filters; all filters are combined
   /// with logical AND. Returned order is unspecified — callers that need a

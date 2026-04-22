@@ -113,6 +113,15 @@ export 'src/infrastructure/database/database_provider.dart';
 // Infrastructure - Repositories
 export 'src/infrastructure/repositories/event_repository.dart';
 
+// Materialization layer — pure fold function, entry-type-definition lookup
+// abstraction, and the disaster-recovery rebuild helper (CUR-1154).
+// MapEntryTypeDefinitionLookup is intentionally NOT exported — it lives
+// under test/test_support/ so production code cannot depend on it.
+export 'src/materialization/entry_type_definition_lookup.dart'
+    show EntryTypeDefinitionLookup;
+export 'src/materialization/materializer.dart' show Materializer;
+export 'src/materialization/rebuild.dart' show rebuildMaterializedView;
+
 // Storage layer — StorageBackend contract, SembastBackend concrete
 // implementation, and the value types that flow through the contract
 // (CUR-1154).

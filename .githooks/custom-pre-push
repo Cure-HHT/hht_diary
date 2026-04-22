@@ -29,20 +29,16 @@ echo ""
 # INDEX.md Validation
 # =====================================================
 
-# INDEX.md validation — TEMPORARILY DISABLED (CUR-1154). See pre-push for why.
-printf '%b\n' "${BLUE}Skipping INDEX.md validation (disabled for CUR-1154)...${NC}"
-echo ""
-
-# if command -v elspais &> /dev/null; then
-#     if ! elspais index --mode core validate 2>&1; then
-#         VALIDATION_FAILED=true
-#         printf '%b\n' "${RED}INDEX.md validation failed!${NC}"
-#     else
-#         printf '%b\n' "${GREEN}INDEX.md validation passed!${NC}"
-#     fi
-# else
-#     printf '%b\n' "${YELLOW}WARNING: elspais not installed - skipping INDEX.md validation${NC}"
-# fi
+if command -v elspais &> /dev/null; then
+    if ! elspais index --mode core validate 2>&1; then
+        VALIDATION_FAILED=true
+        printf '%b\n' "${RED}INDEX.md validation failed!${NC}"
+    else
+        printf '%b\n' "${GREEN}INDEX.md validation passed!${NC}"
+    fi
+else
+    printf '%b\n' "${YELLOW}WARNING: elspais not installed - skipping INDEX.md validation${NC}"
+fi
 echo ""
 
 # =====================================================

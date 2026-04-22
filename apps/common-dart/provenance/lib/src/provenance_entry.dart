@@ -70,6 +70,18 @@ class ProvenanceEntry {
   }
 
   final String hop;
+
+  /// The instant this hop received the event.
+  ///
+  /// Parsed from the `received_at` string by `DateTime.parse`, which
+  /// UTC-normalizes any offsetful ISO 8601 timestamp: the absolute instant
+  /// is preserved but the original offset is not retained on this field.
+  /// `toJson()` therefore re-emits the value as a `Z`-suffixed UTC string
+  /// via `toIso8601String()`, not as the original offset string.
+  ///
+  /// Consumers that need the source-side clock offset (e.g., an audit-trail
+  /// inspector displaying "which wall clock wrote this?") must read the raw
+  /// JSON string before parsing; it is not recoverable from this field.
   final DateTime receivedAt;
   final String identifier;
   final String softwareVersion;

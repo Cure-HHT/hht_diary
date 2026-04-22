@@ -167,6 +167,40 @@ class SembastBackend extends StorageBackend {
   }
 
   @override
+  Future<String?> readLatestEventHash(Txn txn) async {
+    final t = _requireValidTxn(txn);
+    final records = await _eventStore.find(
+      t._sembastTxn,
+      finder: Finder(
+        sortOrders: [SortOrder('sequence_number', false)],
+        limit: 1,
+      ),
+    );
+    if (records.isEmpty) return null;
+    return records.first.value['event_hash'] as String?;
+  }
+
+  @override
+  Future<List<StoredEvent>> findAllEventsInTxn(
+    Txn txn, {
+    int? afterSequence,
+    int? limit,
+  }) async {
+    final t = _requireValidTxn(txn);
+    final records = await _eventStore.find(
+      t._sembastTxn,
+      finder: Finder(
+        filter: afterSequence != null
+            ? Filter.greaterThan('sequence_number', afterSequence)
+            : null,
+        sortOrders: [SortOrder('sequence_number')],
+        limit: limit,
+      ),
+    );
+    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
+  }
+
+  @override
   Future<int> readSequenceCounter() async {
     final db = _database();
     final value = await _backendStateStore.record(_sequenceKey).get(db);
@@ -202,6 +236,15 @@ class SembastBackend extends StorageBackend {
     await _entriesStore
         .record(entry.entryId)
         .put(t._sembastTxn, entry.toJson());
+  }
+
+  /// Delete every row from `diary_entries` inside [txn].
+  // Implements: REQ-d00121-G — rebuild replaces the cache without reading
+  // prior contents.
+  @override
+  Future<void> clearEntries(Txn txn) async {
+    final t = _requireValidTxn(txn);
+    await _entriesStore.delete(t._sembastTxn);
   }
 
   /// Query `diary_entries` with optional filters, all combined with logical

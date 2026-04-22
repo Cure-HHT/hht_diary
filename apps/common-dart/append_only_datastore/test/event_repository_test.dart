@@ -740,19 +740,19 @@ void main() {
       },
     );
 
-    // Verifies the re-entry guard added alongside Task 9 review feedback.
-    test('concurrent append() throws StateError', () async {
+    // Verifies that concurrent append() calls serialize through the backend
+    // transaction and produce a single well-formed hash chain. The previous-
+    // hash read happens inside the same transaction that will append, so the
+    // second append always sees the first append's committed hash — no fork,
+    // no silent gap — even under interleaved Future scheduling.
+    test('concurrent append() produces a coherent hash chain', () async {
       final databaseProvider = _TestDatabaseProvider();
       await databaseProvider.initialize();
       addTearDown(databaseProvider.close);
 
       final repo = EventRepository(databaseProvider: databaseProvider);
 
-      // Fire two appends simultaneously — because the previous-hash read
-      // happens before the backend transaction, the second call entering
-      // before the first returns would break chain integrity. The guard
-      // in append() catches this; one of the two SHALL throw StateError.
-      final futures = [
+      final results = await Future.wait(<Future<StoredEvent>>[
         repo.append(
           aggregateId: 'agg-1',
           entryType: 'epistaxis_event',
@@ -769,12 +769,19 @@ void main() {
           userId: 'u',
           deviceId: 'd',
         ),
-      ];
-      final results = await Future.wait(
-        futures.map((f) => f.then((_) => true).catchError((_) => false)),
-      );
-      expect(results.where((ok) => ok).length, 1);
-      expect(results.where((ok) => !ok).length, 1);
+      ]);
+
+      expect(results.length, 2);
+      final all = await repo.getAllEvents();
+      expect(all.length, 2);
+      // Sequence numbers are 1 and 2 regardless of which append "won" first.
+      final seqs = all.map((e) => e.sequenceNumber).toList()..sort();
+      expect(seqs, [1, 2]);
+      // Second event's previous_event_hash equals the first event's hash.
+      final bySeq = {for (final e in all) e.sequenceNumber: e};
+      expect(bySeq[1]!.previousEventHash, isNull);
+      expect(bySeq[2]!.previousEventHash, equals(bySeq[1]!.eventHash));
+      expect(await repo.verifyIntegrity(), isTrue);
     });
   });
 }
@@ -791,8 +798,10 @@ class _SpyBackend extends StorageBackend {
   int appendEventCalls = 0;
   int findEventsForAggregateCalls = 0;
   int findAllEventsCalls = 0;
+  int findAllEventsInTxnCalls = 0;
   int nextSequenceNumberCalls = 0;
   int readSequenceCounterCalls = 0;
+  int readLatestEventHashCalls = 0;
 
   @override
   Future<T> transaction<T>(Future<T> Function(Txn txn) body) {
@@ -819,9 +828,29 @@ class _SpyBackend extends StorageBackend {
   }
 
   @override
+  Future<List<StoredEvent>> findAllEventsInTxn(
+    Txn txn, {
+    int? afterSequence,
+    int? limit,
+  }) {
+    findAllEventsInTxnCalls += 1;
+    return delegate.findAllEventsInTxn(
+      txn,
+      afterSequence: afterSequence,
+      limit: limit,
+    );
+  }
+
+  @override
   Future<int> nextSequenceNumber(Txn txn) {
     nextSequenceNumberCalls += 1;
     return delegate.nextSequenceNumber(txn);
+  }
+
+  @override
+  Future<String?> readLatestEventHash(Txn txn) {
+    readLatestEventHashCalls += 1;
+    return delegate.readLatestEventHash(txn);
   }
 
   @override
@@ -838,6 +867,8 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<void> upsertEntry(Txn txn, DiaryEntry entry) =>
       delegate.upsertEntry(txn, entry);
+  @override
+  Future<void> clearEntries(Txn txn) => delegate.clearEntries(txn);
   @override
   Future<List<DiaryEntry>> findEntries({
     String? entryType,

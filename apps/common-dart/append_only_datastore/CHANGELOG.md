@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.0 (2026-04-22) - CUR-1154 Phase 3: materialization
+
+Introduces the `diary_entries` materializer and the disaster-recovery
+rebuild helper. The materializer is shipped but **unwired** — no
+production call site invokes it in this phase. Phase 5 wires it into
+`EntryService.record()`'s transaction path.
+
+New public surface (exported from `append_only_datastore.dart`):
+
+- `Materializer` — pure static `apply({previous, event, def, firstEventTimestamp})`
+  folding a `StoredEvent` into the next `DiaryEntry` row. Whole-replacement
+  answer semantics; `tombstone` preserves prior fields and flips
+  `is_deleted = true`; `effective_date` resolves via dotted JSON path with
+  fallback to `firstEventTimestamp`.
+- `EntryTypeDefinitionLookup` — abstract single-method registry keyed by
+  `entry_type` id. Returns `null` when unknown; callers decide whether
+  null is an error at the use site.
+- `rebuildMaterializedView(backend, lookup)` — top-level helper that
+  replays every event through the materializer and atomically replaces
+  the `diary_entries` store. Returns the count of aggregates materialized.
+  Unknown `entry_type` in the event log raises `StateError`.
+
+StorageBackend surface change:
+
+- Added `clearEntries(Txn)` — delete all rows from `diary_entries`. Used
+  by `rebuildMaterializedView` for atomic view replacement; not intended
+  for runtime use.
+
+Dependency addition:
+
+- `trial_data_types` is now a regular dependency (was only implied).
+  The materializer references `EntryTypeDefinition` from that package.
+
+Spec:
+
+- `spec/dev-event-sourcing-mobile.md` REQ-d00121 (9 assertions) —
+  contract for the materializer and rebuild helper.
+
 ## 0.1.0 (2026-04-22) - CUR-1154 Phase 2: storage abstraction
 
 Introduces the `StorageBackend` abstraction and a concrete `SembastBackend`

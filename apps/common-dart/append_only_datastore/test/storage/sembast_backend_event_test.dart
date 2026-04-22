@@ -241,6 +241,120 @@ void main() {
       expect(await backend.findAllEvents(), isEmpty);
     });
 
+    // Verifies: readLatestEventHash is transactional — the value reflects
+    // writes staged in the same transaction body so a caller can build the
+    // next event's previous_event_hash atomically with the append that uses
+    // it.
+    test('readLatestEventHash returns null on an empty log', () async {
+      await backend.transaction((txn) async {
+        expect(await backend.readLatestEventHash(txn), isNull);
+      });
+    });
+
+    test('readLatestEventHash returns hash of highest-seq event', () async {
+      await backend.transaction((txn) async {
+        final s1 = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(txn, _event('ev-1', s1));
+      });
+      await backend.transaction((txn) async {
+        final s2 = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(txn, _event('ev-2', s2));
+      });
+      await backend.transaction((txn) async {
+        expect(await backend.readLatestEventHash(txn), 'hash-ev-2');
+      });
+    });
+
+    test('readLatestEventHash sees writes staged in the same txn', () async {
+      await backend.transaction((txn) async {
+        // Empty at start of body.
+        expect(await backend.readLatestEventHash(txn), isNull);
+        final s = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(txn, _event('ev-in-tx', s));
+        // Sees the just-appended event's hash without leaving the txn.
+        expect(await backend.readLatestEventHash(txn), 'hash-ev-in-tx');
+      });
+    });
+
+    test('readLatestEventHash rejects use outside its transaction', () async {
+      late Txn escaped;
+      await backend.transaction((txn) async {
+        escaped = txn;
+      });
+      await expectLater(backend.readLatestEventHash(escaped), throwsStateError);
+    });
+
+    test('findAllEventsInTxn returns events ordered by sequence_number '
+        'including txn-staged ones', () async {
+      await backend.transaction((txn) async {
+        final s1 = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(txn, _event('ev-1', s1));
+      });
+
+      // Inside a second transaction, append one more event and read all
+      // events — the staged event must be visible.
+      await backend.transaction((txn) async {
+        final s2 = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(txn, _event('ev-2', s2));
+        final all = await backend.findAllEventsInTxn(txn);
+        expect(all.map((e) => e.eventId), ['ev-1', 'ev-2']);
+        expect(all.map((e) => e.sequenceNumber), [1, 2]);
+      });
+    });
+
+    test('findAllEventsInTxn returns empty list when log is empty', () async {
+      await backend.transaction((txn) async {
+        expect(await backend.findAllEventsInTxn(txn), isEmpty);
+      });
+    });
+
+    test('findAllEventsInTxn rejects use outside its transaction', () async {
+      late Txn escaped;
+      await backend.transaction((txn) async {
+        escaped = txn;
+      });
+      await expectLater(backend.findAllEventsInTxn(escaped), throwsStateError);
+    });
+
+    test('findAllEventsInTxn paginates via afterSequence and limit — the full '
+        'log can be walked without ever holding more than `limit` events at '
+        'once', () async {
+      // Seed 7 events so we can exercise partial + final chunks.
+      for (var i = 1; i <= 7; i++) {
+        await backend.transaction((txn) async {
+          final s = await backend.nextSequenceNumber(txn);
+          await backend.appendEvent(txn, _event('ev-$i', s));
+        });
+      }
+
+      await backend.transaction((txn) async {
+        final chunk1 = await backend.findAllEventsInTxn(txn, limit: 3);
+        expect(chunk1.map((e) => e.sequenceNumber), [1, 2, 3]);
+
+        final chunk2 = await backend.findAllEventsInTxn(
+          txn,
+          afterSequence: chunk1.last.sequenceNumber,
+          limit: 3,
+        );
+        expect(chunk2.map((e) => e.sequenceNumber), [4, 5, 6]);
+
+        final chunk3 = await backend.findAllEventsInTxn(
+          txn,
+          afterSequence: chunk2.last.sequenceNumber,
+          limit: 3,
+        );
+        // Partial trailing chunk — fewer than `limit`, signals exhaustion.
+        expect(chunk3.map((e) => e.sequenceNumber), [7]);
+
+        final chunk4 = await backend.findAllEventsInTxn(
+          txn,
+          afterSequence: chunk3.last.sequenceNumber,
+          limit: 3,
+        );
+        expect(chunk4, isEmpty);
+      });
+    });
+
     test('close() closes the underlying database', () async {
       await backend.transaction((txn) async {
         final s = await backend.nextSequenceNumber(txn);

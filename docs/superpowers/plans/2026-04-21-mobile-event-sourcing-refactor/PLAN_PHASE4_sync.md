@@ -23,6 +23,32 @@ Add the per-destination fan-out machinery: the `Destination` interface, `Subscri
 
 Read [README.md](README.md), design doc §8 (sync architecture) in full. `SendResult`, `SendOk`, `SendTransient`, `SendPermanent`, `FinalStatus`, `AttemptResult`, `FifoEntry` all come from Phase 2 — do not redefine. `StorageBackend.readFifoHead / enqueueFifo / appendAttempt / markFinal / exhaustedFifos / anyFifoExhausted` all come from Phase 2.
 
+## Prerequisites carried over from Phase 2 review
+
+These two contract gaps were flagged during Phase 2 phase-review but deferred because they only become load-bearing once Phase 4 writes the enqueue side of the FIFO contract. Resolve them in Phase 4, before the drain loop lands.
+
+### Prereq A — FIFO `sequence_in_queue` ownership
+
+Today's `SembastBackend.readFifoHead` sorts by the `sequence_in_queue` payload field, not by the sembast auto-increment int key. `enqueueFifo` does `store.add(...)` (which assigns the key) but accepts whatever `sequence_in_queue` value the caller supplied on the `FifoEntry`. The two numbers happen to match in today's tests because tests pass `1, 2, 3, …` explicitly, but nothing enforces that. A Phase 4 caller that passes a stale, reused, or out-of-order `sequence_in_queue` breaks FIFO ordering silently.
+
+Decide between:
+
+- **(Option 1, preferred) Backend-owned sequence.** Drop `sequenceInQueue` from the `enqueueFifo(Txn, destinationId, FifoEntry)` input contract and assign it inside `SembastBackend.enqueueFifo` as `max(existing sequence_in_queue) + 1`, or simply as the sembast auto-increment key. `FifoEntry` keeps the field as output-only (populated on read, ignored on write). Update Phase 2's tests that pass explicit values.
+- **(Option 2) Caller-owned with backend enforcement.** Keep the caller-supplied value but make `enqueueFifo` reject any `sequence_in_queue <= max(existing sequence_in_queue)` with `StateError`.
+
+Task 3 (or wherever `enqueueFifo` first gets a production caller in Phase 4) SHALL either implement Option 1 or Option 2 and lock the choice with a test. Record the decision and its rationale in the Task's TASK_FILE.
+
+### Prereq B — `nextSequenceNumber` semantics
+
+`StorageBackend.nextSequenceNumber(txn)` is currently non-side-effecting: it reads the counter and returns `current + 1` without advancing. `appendEvent` then stamps the counter. Calling `nextSequenceNumber` twice in the same transaction returns the same value both times, and the second `appendEvent` will fail the strict-sequence check silently-late (the exception fires when `appendEvent` runs, not when the misuse happens). Phase 4's drain loop does not need this primitive, but if any Phase 4 code path composes `nextSequenceNumber` into a larger transaction (e.g., a hypothetical "enqueue-N-events" helper) the footgun surfaces.
+
+Decide between:
+
+- **(Option 1, preferred) Reserve-and-increment.** Make `nextSequenceNumber` advance the counter as a side effect. A second call in the same transaction returns `current + 2`, and `appendEvent` must accept the reserved number rather than re-incrementing. Rewrite the three call sites (`event_repository.dart`, `sembast_backend_event_test.dart` helpers, `rebuild_test.dart.appendEventViaBackend`) to expect the new semantics.
+- **(Option 2) Document "use once per tx" contract.** Keep the current read-only semantics and add a failing test `calling nextSequenceNumber twice in the same txn and using both values for appendEvent fails with a clear error` to lock the contract. Stronger error message in `appendEvent` pointing at this exact misuse.
+
+Task 3 (or the first task that touches `StorageBackend`) SHALL either implement Option 1 or Option 2 and document the decision in its TASK_FILE. Applicable assertion: none new — this is a contract-clarification, not a new requirement.
+
 ---
 
 ## Plan

@@ -175,3 +175,41 @@ C. A receiver implementing RFC 8785 in any language SHALL be able to reconstruct
 D. The canonicalization scheme used SHALL NOT be changed without a spec amendment and coordinated update across all implementations; changing the algorithm silently would break tamper-detection on all pre-existing events.
 
 *End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: e09d751a
+
+---
+
+# REQ-d00121: diary_entries Materialization from Event Log
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p00013
+
+## Rationale
+
+REQ-p00004-E requires the system to derive current data state by replaying events from the event store, and REQ-p00004-L requires the current view to be updated automatically when new events are created. On the mobile side the `diary_entries` store fulfils both: it is a materialized projection of the append-only `event_log`, rebuildable from events at any time, never written to except as the fold of some event sequence.
+
+A pure-function materializer is the mechanism that makes this hold. `Materializer.apply(previous, event, def, firstEventTimestamp) -> DiaryEntry` takes the prior view row (or null for the first event on an aggregate), the incoming event, the `EntryTypeDefinition` for its `entry_type`, and the `client_timestamp` of the first event on this aggregate; it returns the new view row deterministically. No I/O, no clock reads, no randomness — the same inputs always produce the same output, which is what lets the same function drive both the online write path (called from `EntryService.record()`'s transaction in a later phase) and the offline rebuild path (`rebuildMaterializedView`).
+
+The three event types fold differently: `finalized` and `checkpoint` both whole-replace `current_answers` (never merge field-by-field, matching §6.3's whole-replacement aggregate semantics) but differ in `is_complete`; `tombstone` preserves `current_answers` and `is_complete` but flips `is_deleted` to `true`. The `effective_date` is resolved by walking `EntryTypeDefinition.effective_date_path` as a dotted JSON path into `current_answers`; when the path is null or does not resolve (e.g. a checkpoint saved before the user entered the target field), the materializer falls back to the first-event `client_timestamp` on this aggregate, giving the calendar a stable placeholder until the entry completes.
+
+The `rebuildMaterializedView(backend, lookup)` helper is the disaster-recovery counterpart: it reads all events in sequence order, folds them per aggregate, and replaces the entire `diary_entries` store with the result. It is not a runtime operation — it is a developer tool and recovery mechanism. Its existence, plus the purity of `Materializer.apply`, is what makes `diary_entries` a cache rather than a source of truth. Production code that reads `diary_entries` is implicitly relying on the invariant that calling `rebuildMaterializedView` would produce the same result; any code that writes `diary_entries` by a means other than the materializer breaks that invariant and the cache contract with it.
+
+## Assertions
+
+A. `Materializer.apply(previous, event, def, firstEventTimestamp)` SHALL be a pure function of its inputs: it SHALL NOT perform I/O, read the clock, or consume random values, such that identical inputs always produce identical outputs.
+
+B. When `event.event_type` equals `"finalized"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `true` and whose `current_answers` equals `event.data.answers` in its entirety; fields present in a previous row's `current_answers` but absent from `event.data.answers` SHALL NOT be carried forward.
+
+C. When `event.event_type` equals `"checkpoint"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `false` and whose `current_answers` equals `event.data.answers` in its entirety, with the same whole-replacement semantics as assertion B.
+
+D. When `event.event_type` equals `"tombstone"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_deleted` is `true`; all other fields, including `current_answers` and `is_complete`, SHALL carry over unchanged from the previous row.
+
+E. For every event, the returned `DiaryEntry.latest_event_id` SHALL equal `event.event_id` and `DiaryEntry.updated_at` SHALL equal `event.client_timestamp`.
+
+F. `DiaryEntry.effective_date` SHALL be computed by resolving `EntryTypeDefinition.effective_date_path` as a dotted-path JSON traversal into `current_answers` and parsing the resolved value as a full `DateTime` (ISO 8601 instant); when the path is null, does not resolve, or yields a value that cannot be parsed as a `DateTime`, `effective_date` SHALL fall back to `firstEventTimestamp`. Callers that require a date-only (calendar day) view SHALL perform that truncation at read time; the stored value preserves the full instant so later time-of-day-aware queries remain possible.
+
+G. `rebuildMaterializedView(backend, lookup)` SHALL read all events ordered by `sequence_number`, fold them through `Materializer.apply`, and replace the entire `diary_entries` store with the result; prior contents of `diary_entries` SHALL NOT be read as input to the rebuild.
+
+H. `rebuildMaterializedView` SHALL return the number of distinct `aggregate_id` values materialized in the rebuild.
+
+I. The `diary_entries` store SHALL be treated as a cache derivable from `event_log` by `rebuildMaterializedView`; production code that writes `diary_entries` outside the materializer SHALL be considered a violation of the cache contract.
+
+*End* *diary_entries Materialization from Event Log* | **Hash**: 632e4a22
