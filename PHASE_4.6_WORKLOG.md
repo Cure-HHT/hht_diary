@@ -351,6 +351,12 @@ Fix:
 
 `flutter analyze` clean; unit tests untouched (this is a main.dart-only change).
 
+## Restart-safety fix (2026-04-23 — second smoke crash)
+
+Post-reentrancy-fix restart crashed at boot with `DestinationRegistry.setStartDate(Primary): startDate is already set to 2026-04-23T…; startDate is immutable once assigned (REQ-d00129-C)`. The registry persists schedules across process restarts (`addDestination` reads the persisted schedule back); unconditionally re-calling `setStartDate` at every boot is a one-shot-immutable violation on the second run.
+
+Fix: main.dart now reads `scheduleOf(id)` first and only calls `setStartDate` when `schedule.startDate == null` (i.e. a genuinely dormant first-boot schedule). On restart the persisted startDate is read back and the call is skipped — idempotent boot.
+
 ---
 
 ## Task 14: `flutter run -d linux` smoke test — handoff to user

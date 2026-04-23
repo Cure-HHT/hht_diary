@@ -51,11 +51,19 @@ Future<void> main() async {
   );
 
   // Start both destinations at now so any new event flows immediately.
-  // JNY-07 exercises past-startDate historical replay on a separately
-  // added destination (Task 13's add-destination dialog).
+  // setStartDate is one-shot immutable per REQ-d00129-C and the
+  // schedule persists across process restarts, so only call it when
+  // the registry hands back a dormant schedule (first boot on this
+  // db file). Restart after the initial boot reads the persisted
+  // startDate back and skips the call. JNY-07 exercises past-startDate
+  // historical replay on a separately-added destination.
   final now = DateTime.now().toUtc();
-  await datastore.destinations.setStartDate('Primary', now);
-  await datastore.destinations.setStartDate('Secondary', now);
+  for (final id in <String>['Primary', 'Secondary']) {
+    final schedule = await datastore.destinations.scheduleOf(id);
+    if (schedule.startDate == null) {
+      await datastore.destinations.setStartDate(id, now);
+    }
+  }
 
   final appState = AppState(
     registry: datastore.destinations,
