@@ -97,6 +97,10 @@
 ///
 library;
 
+// bootstrapAppendOnlyDatastore — single entry point for app main() to wire
+// the storage backend, the EntryTypeRegistry, and the initial destinations.
+export 'src/bootstrap.dart' show bootstrapAppendOnlyDatastore;
+
 // Core configuration
 export 'src/core/config/datastore_config.dart';
 
