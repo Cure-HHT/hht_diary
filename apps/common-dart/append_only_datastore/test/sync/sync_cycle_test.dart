@@ -8,6 +8,7 @@ import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/sync/sync_cycle.dart';
+import 'package:append_only_datastore/src/sync/sync_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
@@ -220,6 +221,56 @@ void main() {
         expect(healthy.sent, hasLength(1));
         // The healthy destination's head is marked sent.
         expect(await backend.readFifoHead('healthy'), isNull);
+      },
+    );
+
+    // Verifies: REQ-d00126-B — SyncCycle propagates an injected SyncPolicy
+    // through to the drain-loop's maxAttempts check. With a cap of 2 and
+    // one pre-existing transient attempt, the next transient attempt made
+    // by the cycle should wedge the entry.
+    test(
+      'REQ-d00126-B: SyncCycle propagates injected policy to drain',
+      () async {
+        final dest = FakeDestination(
+          id: 'fake',
+          script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
+        );
+        DestinationRegistry.instance.register(dest);
+
+        await backend.transaction((txn) async {
+          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e1'));
+        });
+        // Pre-load one transient attempt so the next attempt trips the cap.
+        await backend.appendAttempt(
+          'fake',
+          'e1',
+          AttemptResult(
+            attemptedAt: DateTime.utc(2026, 1, 1),
+            outcome: 'transient',
+            errorMessage: 'pre-seeded',
+            httpStatus: 503,
+          ),
+        );
+
+        const tinyPolicy = SyncPolicy(
+          initialBackoff: Duration(seconds: 60),
+          backoffMultiplier: 5.0,
+          maxBackoff: Duration(hours: 2),
+          jitterFraction: 0.1,
+          maxAttempts: 2,
+          periodicInterval: Duration(minutes: 15),
+        );
+
+        final sync = SyncCycle(
+          backend: backend,
+          registry: DestinationRegistry.instance,
+          clock: () => DateTime.utc(2027, 1, 1),
+          policy: tinyPolicy,
+        );
+        await sync.call();
+        expect(dest.sent, hasLength(1));
+        // Entry should be wedged (exhausted) — head returns null.
+        expect(await backend.readFifoHead('fake'), isNull);
       },
     );
 

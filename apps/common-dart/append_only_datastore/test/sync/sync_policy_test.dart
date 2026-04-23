@@ -4,39 +4,93 @@ import 'package:append_only_datastore/src/sync/sync_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('SyncPolicy constants', () {
+  group('SyncPolicy.defaults constants', () {
     // Verifies: REQ-d00123-A — initialBackoff is 60 seconds.
-    test('REQ-d00123-A: initialBackoff == Duration(seconds: 60)', () {
-      expect(SyncPolicy.initialBackoff, const Duration(seconds: 60));
+    test('REQ-d00123-A: defaults.initialBackoff == Duration(seconds: 60)', () {
+      expect(SyncPolicy.defaults.initialBackoff, const Duration(seconds: 60));
     });
 
     // Verifies: REQ-d00123-B — backoffMultiplier is 5.0.
-    test('REQ-d00123-B: backoffMultiplier == 5.0', () {
-      expect(SyncPolicy.backoffMultiplier, 5.0);
+    test('REQ-d00123-B: defaults.backoffMultiplier == 5.0', () {
+      expect(SyncPolicy.defaults.backoffMultiplier, 5.0);
     });
 
     // Verifies: REQ-d00123-C — maxBackoff is 2 hours.
-    test('REQ-d00123-C: maxBackoff == Duration(hours: 2)', () {
-      expect(SyncPolicy.maxBackoff, const Duration(hours: 2));
+    test('REQ-d00123-C: defaults.maxBackoff == Duration(hours: 2)', () {
+      expect(SyncPolicy.defaults.maxBackoff, const Duration(hours: 2));
     });
 
     // Verifies: REQ-d00123-D — jitterFraction is 0.1.
-    test('REQ-d00123-D: jitterFraction == 0.1', () {
-      expect(SyncPolicy.jitterFraction, 0.1);
+    test('REQ-d00123-D: defaults.jitterFraction == 0.1', () {
+      expect(SyncPolicy.defaults.jitterFraction, 0.1);
     });
 
     // Verifies: REQ-d00123-E — maxAttempts is 20.
-    test('REQ-d00123-E: maxAttempts == 20', () {
-      expect(SyncPolicy.maxAttempts, 20);
+    test('REQ-d00123-E: defaults.maxAttempts == 20', () {
+      expect(SyncPolicy.defaults.maxAttempts, 20);
     });
 
     // Verifies: REQ-d00123-F — periodicInterval is 15 minutes.
-    test('REQ-d00123-F: periodicInterval == Duration(minutes: 15)', () {
-      expect(SyncPolicy.periodicInterval, const Duration(minutes: 15));
-    });
+    test(
+      'REQ-d00123-F: defaults.periodicInterval == Duration(minutes: 15)',
+      () {
+        expect(
+          SyncPolicy.defaults.periodicInterval,
+          const Duration(minutes: 15),
+        );
+      },
+    );
   });
 
-  group('SyncPolicy.backoffFor', () {
+  group('REQ-d00126-A: SyncPolicy is a value class', () {
+    // Verifies: REQ-d00126-A — SyncPolicy has a const constructor and can be
+    // instantiated with custom field values.
+    test(
+      'REQ-d00126-A: const constructor accepts all fields and exposes them',
+      () {
+        const custom = SyncPolicy(
+          initialBackoff: Duration(seconds: 10),
+          backoffMultiplier: 2.0,
+          maxBackoff: Duration(minutes: 30),
+          jitterFraction: 0.2,
+          maxAttempts: 7,
+          periodicInterval: Duration(minutes: 5),
+        );
+        expect(custom.initialBackoff, const Duration(seconds: 10));
+        expect(custom.backoffMultiplier, 2.0);
+        expect(custom.maxBackoff, const Duration(minutes: 30));
+        expect(custom.jitterFraction, 0.2);
+        expect(custom.maxAttempts, 7);
+        expect(custom.periodicInterval, const Duration(minutes: 5));
+      },
+    );
+
+    // Verifies: REQ-d00126-A — SyncPolicy.defaults is a static const instance.
+    test('REQ-d00126-A: SyncPolicy.defaults is a static const instance', () {
+      const ref = SyncPolicy.defaults;
+      expect(ref, isA<SyncPolicy>());
+      // Identity is preserved for a static const — same reference each access.
+      expect(identical(SyncPolicy.defaults, ref), isTrue);
+    });
+
+    // Verifies: REQ-d00126-A — defaults values equal the REQ-d00123 constants.
+    test(
+      'REQ-d00126-A: defaults field values equal the REQ-d00123 constants',
+      () {
+        expect(SyncPolicy.defaults.initialBackoff, const Duration(seconds: 60));
+        expect(SyncPolicy.defaults.backoffMultiplier, 5.0);
+        expect(SyncPolicy.defaults.maxBackoff, const Duration(hours: 2));
+        expect(SyncPolicy.defaults.jitterFraction, 0.1);
+        expect(SyncPolicy.defaults.maxAttempts, 20);
+        expect(
+          SyncPolicy.defaults.periodicInterval,
+          const Duration(minutes: 15),
+        );
+      },
+    );
+  });
+
+  group('SyncPolicy.backoffFor (instance method)', () {
     // Deterministic fixed-seed Random produces reproducible jitter.
     Random seeded() => Random(42);
 
@@ -62,32 +116,32 @@ void main() {
 
     // backoffFor(0) ≈ 60s ± 10%.
     test('backoffFor(0) ≈ 60s ± 10% jitter', () {
-      final d = SyncPolicy.backoffFor(0, random: seeded());
+      final d = SyncPolicy.defaults.backoffFor(0, random: seeded());
       expectWithinJitter(d, const Duration(seconds: 60));
     });
 
     // backoffFor(1) ≈ 300s (60*5) ± 10%.
     test('backoffFor(1) ≈ 300s (60*5) ± 10%', () {
-      final d = SyncPolicy.backoffFor(1, random: seeded());
+      final d = SyncPolicy.defaults.backoffFor(1, random: seeded());
       expectWithinJitter(d, const Duration(seconds: 300));
     });
 
     // backoffFor(2) ≈ 1500s (5m*5 = 25m) ± 10%.
     test('backoffFor(2) ≈ 1500s (60*5*5) ± 10%', () {
-      final d = SyncPolicy.backoffFor(2, random: seeded());
+      final d = SyncPolicy.defaults.backoffFor(2, random: seeded());
       expectWithinJitter(d, const Duration(seconds: 1500));
     });
 
     // backoffFor(3) caps at 2h (raw would be 7500s > 7200s cap).
     test('backoffFor(3) ≈ capped at 7200s (2h) ± 10%', () {
-      final d = SyncPolicy.backoffFor(3, random: seeded());
+      final d = SyncPolicy.defaults.backoffFor(3, random: seeded());
       expectWithinJitter(d, const Duration(hours: 2));
     });
 
     // backoffFor(n) for large n stays at the cap (± 10%).
     test('backoffFor(n) stays at cap for large n', () {
       for (final n in [3, 5, 10, 19, 20]) {
-        final d = SyncPolicy.backoffFor(n, random: seeded());
+        final d = SyncPolicy.defaults.backoffFor(n, random: seeded());
         expectWithinJitter(
           d,
           const Duration(hours: 2),
@@ -98,8 +152,8 @@ void main() {
 
     // Jitter is deterministic when a seed is supplied.
     test('same seed produces the same jitter', () {
-      final a = SyncPolicy.backoffFor(2, random: Random(7));
-      final b = SyncPolicy.backoffFor(2, random: Random(7));
+      final a = SyncPolicy.defaults.backoffFor(2, random: Random(7));
+      final b = SyncPolicy.defaults.backoffFor(2, random: Random(7));
       expect(a, b);
     });
 
@@ -108,7 +162,7 @@ void main() {
     test('jitter is actually applied (values vary across random seeds)', () {
       final values = <int>{};
       for (var i = 0; i < 200; i++) {
-        final d = SyncPolicy.backoffFor(0, random: Random(i));
+        final d = SyncPolicy.defaults.backoffFor(0, random: Random(i));
         values.add(d.inMilliseconds);
       }
       // If jitter were zero, every seed would produce the same value.
@@ -119,7 +173,7 @@ void main() {
     // seeds.
     test('jitter draws stay within ±jitterFraction bound', () {
       for (var i = 0; i < 500; i++) {
-        final d = SyncPolicy.backoffFor(1, random: Random(i));
+        final d = SyncPolicy.defaults.backoffFor(1, random: Random(i));
         expectWithinJitter(
           d,
           const Duration(seconds: 300),
@@ -132,7 +186,7 @@ void main() {
     test(
       'backoffFor without a seed returns a value within the jitter range',
       () {
-        final d = SyncPolicy.backoffFor(0);
+        final d = SyncPolicy.defaults.backoffFor(0);
         expectWithinJitter(d, const Duration(seconds: 60));
       },
     );
@@ -141,9 +195,29 @@ void main() {
     // a degenerate near-zero backoff.
     test('backoffFor rejects negative attemptCount', () {
       expect(
-        () => SyncPolicy.backoffFor(-1, random: seeded()),
+        () => SyncPolicy.defaults.backoffFor(-1, random: seeded()),
         throwsArgumentError,
       );
+    });
+
+    // Verifies: REQ-d00126-A — a custom SyncPolicy instance reads the
+    // curve from its own instance fields, not from the defaults.
+    test('REQ-d00126-A: custom policy uses its own fields for backoffFor', () {
+      const fast = SyncPolicy(
+        initialBackoff: Duration(seconds: 1),
+        backoffMultiplier: 2.0,
+        maxBackoff: Duration(seconds: 10),
+        jitterFraction: 0.0, // disable jitter for a deterministic check
+        maxAttempts: 5,
+        periodicInterval: Duration(minutes: 1),
+      );
+      expect(fast.backoffFor(0), const Duration(seconds: 1));
+      expect(fast.backoffFor(1), const Duration(seconds: 2));
+      expect(fast.backoffFor(2), const Duration(seconds: 4));
+      expect(fast.backoffFor(3), const Duration(seconds: 8));
+      // Capped:
+      expect(fast.backoffFor(4), const Duration(seconds: 10));
+      expect(fast.backoffFor(10), const Duration(seconds: 10));
     });
   });
 }

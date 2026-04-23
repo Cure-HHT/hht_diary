@@ -242,7 +242,7 @@ void main() {
         });
         // Pre-load attempts: we append maxAttempts-1 transient records so
         // the next drain-triggered transient is the one that wedges.
-        const preloadAttempts = SyncPolicy.maxAttempts - 1;
+        final preloadAttempts = SyncPolicy.defaults.maxAttempts - 1;
         for (var i = 0; i < preloadAttempts; i++) {
           await backend.appendAttempt('fake', 'e1', _attemptResultFactory(i));
         }
@@ -379,6 +379,83 @@ void main() {
         expect(d2.sent, hasLength(1));
         expect(await backend.readFifoHead('d1'), isNull); // wedged
         expect(await backend.readFifoHead('d2'), isNull); // sent (drained)
+      },
+    );
+
+    // Verifies: REQ-d00126-B — an injected SyncPolicy's maxAttempts is what
+    // drain consults (not the defaults). Pre-seed attempts[] to one below a
+    // smaller injected cap; next transient attempt should wedge the entry.
+    test('REQ-d00126-B: drain honors injected policy.maxAttempts', () async {
+      final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
+      await backend.transaction((txn) async {
+        await backend.enqueueFifo(
+          txn,
+          'fake',
+          _mkFifoEntry(entryId: 'e1', eventId: 'ev-1', enqueuedAt: enqueuedAt),
+        );
+      });
+
+      const smallPolicy = SyncPolicy(
+        initialBackoff: Duration(seconds: 60),
+        backoffMultiplier: 5.0,
+        maxBackoff: Duration(hours: 2),
+        jitterFraction: 0.1,
+        maxAttempts: 3, // smaller cap than defaults.maxAttempts (20)
+        periodicInterval: Duration(minutes: 15),
+      );
+      // Pre-load attempts: smallPolicy.maxAttempts - 1 transient records.
+      for (var i = 0; i < smallPolicy.maxAttempts - 1; i++) {
+        await backend.appendAttempt('fake', 'e1', _attemptResultFactory(i));
+      }
+      // Clock well past any backoff window.
+      final longAfter = DateTime.utc(2027, 1, 1);
+      final dest = FakeDestination(
+        script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
+      );
+
+      await drain(
+        dest,
+        backend: backend,
+        clock: () => longAfter,
+        policy: smallPolicy,
+      );
+      expect(dest.sent, hasLength(1));
+      // With a cap of 3 and 3 total attempts, the entry is wedged (head null).
+      expect(await backend.readFifoHead('fake'), isNull);
+    });
+
+    // Verifies: REQ-d00126-B — a null policy falls back to SyncPolicy.defaults.
+    // Sanity-check that omitting `policy` reads the defaults (20 attempts).
+    test(
+      'REQ-d00126-B: null policy falls back to SyncPolicy.defaults',
+      () async {
+        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
+        await backend.transaction((txn) async {
+          await backend.enqueueFifo(
+            txn,
+            'fake',
+            _mkFifoEntry(
+              entryId: 'e1',
+              eventId: 'ev-1',
+              enqueuedAt: enqueuedAt,
+            ),
+          );
+        });
+        // Pre-load 2 attempts: well below the default cap of 20, so a
+        // transient should leave the entry pending (head still present).
+        for (var i = 0; i < 2; i++) {
+          await backend.appendAttempt('fake', 'e1', _attemptResultFactory(i));
+        }
+        final longAfter = DateTime.utc(2027, 1, 1);
+        final dest = FakeDestination(
+          script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
+        );
+
+        await drain(dest, backend: backend, clock: () => longAfter);
+        expect(dest.sent, hasLength(1));
+        final head = await backend.readFifoHead('fake');
+        expect(head, isNotNull);
+        expect(head!.finalStatus, FinalStatus.pending);
       },
     );
 

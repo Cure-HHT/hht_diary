@@ -2,6 +2,7 @@ import 'package:append_only_datastore/src/destinations/destination.dart';
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/sync/drain.dart';
+import 'package:append_only_datastore/src/sync/sync_policy.dart';
 
 /// Top-level sync orchestrator.
 ///
@@ -20,17 +21,22 @@ import 'package:append_only_datastore/src/sync/drain.dart';
 // post-drain inbound poll, single-isolate reentrancy guard, no background
 // isolate.
 class SyncCycle {
+  // Implements: REQ-d00126-B — optional SyncPolicy? policy parameter; null
+  // falls back to SyncPolicy.defaults inside drain().
   SyncCycle({
     required StorageBackend backend,
     required DestinationRegistry registry,
     ClockFn? clock,
+    SyncPolicy? policy,
   }) : _backend = backend,
        _registry = registry,
-       _clock = clock;
+       _clock = clock,
+       _policy = policy;
 
   final StorageBackend _backend;
   final DestinationRegistry _registry;
   final ClockFn? _clock;
+  final SyncPolicy? _policy;
 
   bool _inFlight = false;
 
@@ -61,7 +67,12 @@ class SyncCycle {
 
   Future<void> _drainOrSwallow(Destination destination) async {
     try {
-      await drain(destination, backend: _backend, clock: _clock);
+      await drain(
+        destination,
+        backend: _backend,
+        clock: _clock,
+        policy: _policy,
+      );
     } catch (_) {
       // Per REQ-d00125-A, one destination's failure does not cancel
       // another's drain. We swallow here so Future.wait does not abort;

@@ -29,13 +29,20 @@ typedef ClockFn = DateTime Function();
 /// implementation: once an entry is `exhausted`, later pending entries are
 /// never read, so they are never attempted until an operator resolves the
 /// wedge.
+///
+/// [policy] is an optional [SyncPolicy] override; when null, the drain
+/// loop falls back to [SyncPolicy.defaults] (REQ-d00126-B).
 // Implements: REQ-d00124-A+B+C+D+E+F+G+H — strict-FIFO drain with backoff.
+// Implements: REQ-d00126-B — optional SyncPolicy? parameter; null falls
+// back to SyncPolicy.defaults.
 Future<void> drain(
   Destination destination, {
   required StorageBackend backend,
   ClockFn? clock,
+  SyncPolicy? policy,
 }) async {
   final now = clock ?? () => DateTime.now().toUtc();
+  final effective = policy ?? SyncPolicy.defaults;
   while (true) {
     final head = await backend.readFifoHead(destination.id);
     if (head == null) return;
@@ -43,7 +50,7 @@ Future<void> drain(
     // Backoff check: only the N-th attempt's timestamp matters; skip if
     // the entry has never been attempted (fresh head).
     if (head.attempts.isNotEmpty) {
-      final backoff = SyncPolicy.backoffFor(head.attempts.length);
+      final backoff = effective.backoffFor(head.attempts.length);
       final nextAllowed = head.attempts.last.attemptedAt.add(backoff);
       if (now().isBefore(nextAllowed)) return;
     }
@@ -89,7 +96,7 @@ Future<void> drain(
         // head.attempts.length is the count BEFORE this attempt was
         // appended. After appendAttempt, the entry has attempts.length+1.
         // The spec: "attempts.length + 1 >= maxAttempts -> exhausted".
-        if (head.attempts.length + 1 >= SyncPolicy.maxAttempts) {
+        if (head.attempts.length + 1 >= effective.maxAttempts) {
           await backend.markFinal(
             destination.id,
             head.entryId,
