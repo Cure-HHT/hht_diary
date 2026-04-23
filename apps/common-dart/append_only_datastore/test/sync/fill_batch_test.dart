@@ -1,6 +1,5 @@
 import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
 import 'package:append_only_datastore/src/destinations/subscription_filter.dart';
-import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
@@ -139,7 +138,7 @@ void main() {
       expect(head, isNotNull);
       expect(head!.eventIds, ['e1', 'e2', 'e3']);
       expect(head.eventIdRange, (firstSeq: 1, lastSeq: 3));
-      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.finalStatus, isNull);
       // Cursor advances to the batch's last sequence_number.
       expect(await backend.readFillCursor('fake'), 3);
     });

@@ -1008,7 +1008,7 @@ class _SpyBackend extends StorageBackend {
     Txn txn,
     String destinationId,
     String entryId,
-    FinalStatus status,
+    FinalStatus? status,
   ) => delegate.setFinalStatusTxn(txn, destinationId, entryId, status);
 }
 

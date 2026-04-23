@@ -637,6 +637,6 @@ class _DelegatingBackend extends StorageBackend {
     Txn txn,
     String destinationId,
     String entryId,
-    FinalStatus status,
+    FinalStatus? status,
   ) => _inner.setFinalStatusTxn(txn, destinationId, entryId, status);
 }

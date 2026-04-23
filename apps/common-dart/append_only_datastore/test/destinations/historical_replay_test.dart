@@ -116,9 +116,10 @@ void main() {
         expect((rows[0]['event_ids']! as List).cast<String>(), ['e1', 'e2']);
         expect((rows[1]['event_ids']! as List).cast<String>(), ['e3', 'e4']);
         expect((rows[2]['event_ids']! as List).cast<String>(), ['e5']);
-        // Every row is pending (live drain will handle delivery later).
+        // Every row is pre-terminal (final_status == null); live drain
+        // will handle delivery later.
         for (final r in rows) {
-          expect(r['final_status'], 'pending');
+          expect(r['final_status'], isNull);
         }
         // fill_cursor advanced to the last replayed event's sequence_number.
         expect(await backend.readFillCursor('x'), 5);

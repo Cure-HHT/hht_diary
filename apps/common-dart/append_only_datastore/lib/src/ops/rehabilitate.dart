@@ -44,22 +44,17 @@ Future<void> rehabilitateExhaustedRow(
           'not found on destination. (REQ-d00132-A)',
     );
   }
-  if (row.finalStatus != FinalStatus.exhausted) {
+  if (row.finalStatus != FinalStatus.wedged) {
     throw ArgumentError.value(
       fifoRowId,
       'fifoRowId',
       'rehabilitateExhaustedRow($destinationId, $fifoRowId): row is '
-          '${row.finalStatus.toJson()}, not exhausted; only exhausted '
-          'rows can be rehabilitated. (REQ-d00132-A)',
+          '${row.finalStatus?.toJson() ?? "pre-terminal"}, not wedged; '
+          'only wedged rows can be rehabilitated. (REQ-d00132-A)',
     );
   }
   await backend.transaction(
-    (txn) => backend.setFinalStatusTxn(
-      txn,
-      destinationId,
-      fifoRowId,
-      FinalStatus.pending,
-    ),
+    (txn) => backend.setFinalStatusTxn(txn, destinationId, fifoRowId, null),
   );
 }
 
@@ -87,12 +82,7 @@ Future<int> rehabilitateAllExhausted(
   if (exhausted.isEmpty) return 0;
   await backend.transaction((txn) async {
     for (final row in exhausted) {
-      await backend.setFinalStatusTxn(
-        txn,
-        destinationId,
-        row.entryId,
-        FinalStatus.pending,
-      );
+      await backend.setFinalStatusTxn(txn, destinationId, row.entryId, null);
     }
   });
   return exhausted.length;

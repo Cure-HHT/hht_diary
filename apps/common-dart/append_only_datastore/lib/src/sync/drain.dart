@@ -101,18 +101,18 @@ Future<void> drain(
         await backend.markFinal(
           destination.id,
           head.entryId,
-          FinalStatus.exhausted,
+          FinalStatus.wedged,
         );
         continue;
       case SendTransient():
         // head.attempts.length is the count BEFORE this attempt was
         // appended. After appendAttempt, the entry has attempts.length+1.
-        // The spec: "attempts.length + 1 >= maxAttempts -> exhausted".
+        // The spec: "attempts.length + 1 >= maxAttempts -> wedged".
         if (head.attempts.length + 1 >= effective.maxAttempts) {
           await backend.markFinal(
             destination.id,
             head.entryId,
-            FinalStatus.exhausted,
+            FinalStatus.wedged,
           );
           continue;
         }

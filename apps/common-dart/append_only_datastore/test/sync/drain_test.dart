@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
-import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/sync/drain.dart';
@@ -139,7 +138,7 @@ void main() {
       final head = await backend.readFifoHead('fake');
       expect(head, isNotNull);
       expect(head!.attempts, hasLength(1));
-      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.finalStatus, isNull);
 
       // Re-drain immediately after (clock = firstAttemptAt + 1s). Backoff
       // is 60s from the last attempt; 1s after is well inside the window.
@@ -381,7 +380,7 @@ void main() {
         expect(dest.sent, hasLength(1));
         final head = await backend.readFifoHead('fake');
         expect(head, isNotNull);
-        expect(head!.finalStatus, FinalStatus.pending);
+        expect(head!.finalStatus, isNull);
       },
     );
 

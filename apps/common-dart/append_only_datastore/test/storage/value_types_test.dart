@@ -48,17 +48,18 @@ void main() {
   });
 
   group('FinalStatus', () {
-    // Verifies: REQ-d00119-C — exactly three legal values: pending, sent,
-    // exhausted.
+    // Verifies: REQ-d00119-C — exactly three legal non-null values:
+    // sent, wedged, tombstoned. `null` (pre-terminal) is handled at
+    // the FifoEntry.finalStatus level, not as an enum value here.
     test('REQ-d00119-C: FinalStatus has exactly three values', () {
       expect(FinalStatus.values.length, 3);
     });
 
     // Verifies: REQ-d00119-C — value names match the wire-format strings.
-    test('REQ-d00119-C: value names are pending|sent|exhausted', () {
-      expect(FinalStatus.pending.name, 'pending');
+    test('REQ-d00119-C: value names are sent|wedged|tombstoned', () {
       expect(FinalStatus.sent.name, 'sent');
-      expect(FinalStatus.exhausted.name, 'exhausted');
+      expect(FinalStatus.wedged.name, 'wedged');
+      expect(FinalStatus.tombstoned.name, 'tombstoned');
     });
 
     test('JSON round-trip via name', () {
@@ -238,7 +239,9 @@ void main() {
         transformVersion: 'transform-v1',
         enqueuedAt: enqueuedAt,
         attempts: attempts ?? const <AttemptResult>[],
-        finalStatus: status ?? FinalStatus.pending,
+        // Phase-4.7 Task 3: finalStatus is nullable; null means
+        // pre-terminal. Pass `status: ...` to override to a terminal.
+        finalStatus: status,
         sentAt: sentAt,
       );
     }
@@ -276,11 +279,15 @@ void main() {
       expect(decoded.sentAt, attemptedAt);
     });
 
-    // Verifies: REQ-d00119-C — final_status is the FinalStatus enum, not a raw
-    // string; this prevents unchecked strings from sneaking past the type.
-    test('REQ-d00119-C: final_status is typed as FinalStatus', () {
-      final e = makeSample();
-      expect(e.finalStatus, isA<FinalStatus>());
+    // Verifies: REQ-d00119-C — final_status is typed as FinalStatus?
+    // (nullable); a non-null value is an enum instance. Pre-terminal
+    // rows carry null; a terminal row carries one of the three enum
+    // values.
+    test('REQ-d00119-C: final_status is typed as FinalStatus?', () {
+      final pre = makeSample();
+      expect(pre.finalStatus, isNull);
+      final terminal = makeSample(status: FinalStatus.sent, sentAt: enqueuedAt);
+      expect(terminal.finalStatus, isA<FinalStatus>());
     });
 
     test('transform_version optional and round-trips as null', () {
@@ -294,7 +301,7 @@ void main() {
         transformVersion: null,
         enqueuedAt: enqueuedAt,
         attempts: const <AttemptResult>[],
-        finalStatus: FinalStatus.pending,
+        finalStatus: null,
         sentAt: null,
       );
       final decoded = FifoEntry.fromJson(e.toJson());

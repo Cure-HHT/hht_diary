@@ -90,7 +90,7 @@ FifoEntry singleEventFifoEntry({
   String? transformVersion,
   DateTime? enqueuedAt,
   List<AttemptResult>? attempts,
-  FinalStatus finalStatus = FinalStatus.pending,
+  FinalStatus? finalStatus,
   DateTime? sentAt,
 }) => FifoEntry(
   entryId: entryId,

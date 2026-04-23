@@ -381,7 +381,7 @@ class _InMemoryBackend extends StorageBackend {
     Txn txn,
     String destinationId,
     String entryId,
-    FinalStatus status,
+    FinalStatus? status,
   ) => throw UnimplementedError();
 }
 

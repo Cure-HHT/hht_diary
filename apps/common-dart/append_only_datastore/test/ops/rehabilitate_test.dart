@@ -94,7 +94,7 @@ _setupDestinationWithMixedFifo(
         httpStatus: 500,
       ),
     );
-    await backend.markFinal(destination.id, entryId, FinalStatus.exhausted);
+    await backend.markFinal(destination.id, entryId, FinalStatus.wedged);
   }
   for (var i = 0; i < pendingCount; i++) {
     seq += 1;
@@ -204,7 +204,7 @@ void main() {
 
         final after = await _readAllFifoRows(backend, setup.destination.id);
         expect(after.length, 1);
-        expect(after.single['final_status'], FinalStatus.pending.toJson());
+        expect(after.single['final_status'], isNull);
         // attempts[] preserved byte-for-byte: same length and equal elements.
         final afterAttempts = (after.single['attempts'] as List).toList();
         expect(afterAttempts, equals(originalAttempts));
@@ -234,7 +234,7 @@ void main() {
         backend: backend,
       );
       final after = await _readAllFifoRows(backend, setup.destination.id);
-      expect(after.single['final_status'], FinalStatus.pending.toJson());
+      expect(after.single['final_status'], isNull);
     });
   });
 
@@ -274,7 +274,7 @@ void main() {
         // No exhausted rows remain.
         expect(
           rows
-              .where((r) => r['final_status'] == FinalStatus.exhausted.toJson())
+              .where((r) => r['final_status'] == FinalStatus.wedged.toJson())
               .length,
           0,
         );
@@ -286,12 +286,7 @@ void main() {
           1,
         );
         // Pending count = 2 original + 3 rehabilitated = 5.
-        expect(
-          rows
-              .where((r) => r['final_status'] == FinalStatus.pending.toJson())
-              .length,
-          5,
-        );
+        expect(rows.where((r) => r['final_status'] == null).length, 5);
       },
     );
 
@@ -319,12 +314,7 @@ void main() {
               .length,
           1,
         );
-        expect(
-          rows
-              .where((r) => r['final_status'] == FinalStatus.pending.toJson())
-              .length,
-          2,
-        );
+        expect(rows.where((r) => r['final_status'] == null).length, 2);
       },
     );
 

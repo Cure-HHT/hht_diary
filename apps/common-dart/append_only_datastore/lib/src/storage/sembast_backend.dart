@@ -54,6 +54,15 @@ class SembastBackend extends StorageBackend {
   static const _schemaVersionKey = 'schema_version';
   static const _knownFifosKey = 'known_fifo_destinations';
 
+  // Per-destination monotonic `sequence_in_queue` counter key, stored in
+  // `backend_state` as `fifo_seq_counter_<destinationId>`. Used by
+  // `enqueueFifoTxn` to assign a never-reused sequence_in_queue value
+  // (REQ-d00119-E): the counter advances on every enqueue and is never
+  // reset, so a row deleted by the REQ-d00144-C trail sweep cannot have
+  // its slot re-used by a later enqueue.
+  static String _fifoSeqCounterKey(String destinationId) =>
+      'fifo_seq_counter_$destinationId';
+
   final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
       .store('events');
   final StoreRef<String, Object?> _backendStateStore =
@@ -423,6 +432,14 @@ class SembastBackend extends StorageBackend {
     await _backendStateStore
         .record(_fillCursorKey(destinationId))
         .delete(t._sembastTxn);
+    // Drop the per-destination sequence_in_queue counter so a later
+    // addDestination of the same id starts at 1 rather than inheriting
+    // the old counter. REQ-d00119-E's "never reused" invariant is
+    // scoped to a destination's lifetime; a fresh addDestination is a
+    // fresh lifetime.
+    await _backendStateStore
+        .record(_fifoSeqCounterKey(destinationId))
+        .delete(t._sembastTxn);
     // Remove the id from the known-FIFOs registry so exhausted-FIFO
     // iteration does not hit a dropped store.
     final current =
@@ -714,15 +731,27 @@ class SembastBackend extends StorageBackend {
         'entry_id=$entryId',
       );
     }
-    // Compute the next sequence_in_queue as max(existing key) + 1 so
-    // the value is monotonic across surviving (sent/exhausted)
-    // entries and the Sembast int key matches the payload's
-    // sequence_in_queue field.
-    final maxRec = await store.find(
-      t._sembastTxn,
-      finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
+    // Assign the next sequence_in_queue from a persisted per-destination
+    // counter (backend_state/fifo_seq_counter_<destinationId>). The
+    // counter advances strictly monotonically and is NEVER reset: even
+    // when a row is deleted (trail sweep per REQ-d00144-C, or the
+    // legacy unjam `deletePendingRowsTxn`), the deleted slot is NOT
+    // re-used. The resulting invariant (REQ-d00119-E) is load-bearing
+    // for event-log cursor math and for the send-log's auditability —
+    // two different rows with the same sequence_in_queue would produce
+    // ambiguous "which row was deleted?" diagnostics.
+    //
+    // Storing the counter in backend_state rather than deriving from
+    // max(existing key) + 1 at read time closes the reuse path: the
+    // previous derivation would reassign slot N if row N was deleted
+    // and row N was the current max.
+    // Implements: REQ-d00119-E — sequence_in_queue monotonic; never reused.
+    final counterRec = _backendStateStore.record(
+      _fifoSeqCounterKey(destinationId),
     );
-    final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
+    final currentCounter = (await counterRec.get(t._sembastTxn) as int?) ?? 0;
+    final assigned = currentCounter + 1;
+    await counterRec.put(t._sembastTxn, assigned);
     final entry = FifoEntry(
       entryId: entryId,
       eventIds: eventIds,
@@ -733,7 +762,7 @@ class SembastBackend extends StorageBackend {
       transformVersion: wirePayload.transformVersion,
       enqueuedAt: enqueuedAt,
       attempts: const <AttemptResult>[],
-      finalStatus: FinalStatus.pending,
+      finalStatus: null,
       sentAt: null,
     );
     await store.record(assigned).put(t._sembastTxn, entry.toJson());
@@ -763,23 +792,24 @@ class SembastBackend extends StorageBackend {
     return (value as List?)?.cast<String>().toList() ?? const <String>[];
   }
 
-  /// Oldest pending entry in [destinationId]'s FIFO, or null when every
-  /// row is terminal (a mix of `sent` and/or `exhausted`) or the FIFO is
-  /// empty. Both `sent` and `exhausted` rows are SKIPPED; only a `pending`
-  /// row is returned.
+  /// Oldest pre-terminal entry in [destinationId]'s FIFO, or null when
+  /// every row is terminal (any mix of `sent`, `wedged`, and/or
+  /// `tombstoned`) or the FIFO is empty. All non-null-finalStatus rows
+  /// are SKIPPED; only a row whose `final_status` IS NULL is returned.
   ///
   /// Pre-Phase-4.3-Task-8, this method returned null as soon as it
-  /// encountered an exhausted row — the FIFO was "wedged" at the
+  /// encountered a terminal row — the FIFO was "wedged" at the
   /// backend level. From Task 8 forward, the wedge is enforced by the
   /// drain loop's switch-case (SendPermanent / SendTransient-at-max
   /// stops drain), not by readFifoHead; this lets the batch-FIFO
-  /// continue-past-exhausted semantics be introduced without changing
+  /// continue-past-terminal semantics be introduced without changing
   /// the method's caller-facing contract in drain.
   // Implements: REQ-d00124-A — readFifoHead returns the first row whose
-  // final_status == pending in sequence_in_queue order; sent and
-  // exhausted rows are skipped. Drain's wedge behavior is preserved by
-  // drain.dart's SendPermanent / SendTransient-at-max returning rather
-  // than by readFifoHead returning null at the first exhausted row.
+  // final_status == null in sequence_in_queue order; any row with a
+  // non-null terminal status (sent, wedged, tombstoned) is skipped.
+  // Drain's wedge behavior is preserved by drain.dart's SendPermanent /
+  // SendTransient-at-max returning rather than by readFifoHead
+  // returning null at the first wedged row.
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) async {
     final db = _database();
@@ -787,7 +817,7 @@ class SembastBackend extends StorageBackend {
     final records = await store.find(
       db,
       finder: Finder(
-        filter: Filter.equals('final_status', FinalStatus.pending.toJson()),
+        filter: Filter.isNull('final_status'),
         sortOrders: [SortOrder('sequence_in_queue')],
         limit: 1,
       ),
@@ -864,10 +894,10 @@ class SembastBackend extends StorageBackend {
   /// branch covers both "unknown destination" and "row deleted from a
   /// known destination". No separate "store exists?" probe is needed.
   ///
-  /// The one-way transition rule (pending -> terminal only) is
+  /// The one-way transition rule (null -> terminal only) is
   /// preserved: an already-terminal entry still throws `StateError` to
   /// prevent silent re-stamping of `sent_at`.
-  // Implements: REQ-d00119-D — non-pending entries are retained as
+  // Implements: REQ-d00119-D — non-null terminal entries are retained as
   // permanent send-log records.
   // Implements: REQ-d00127-A — markFinal is a no-op on missing row /
   // missing FIFO store, with a warning-level diagnostic.
@@ -877,13 +907,12 @@ class SembastBackend extends StorageBackend {
     String entryId,
     FinalStatus status,
   ) async {
-    if (status == FinalStatus.pending) {
-      throw ArgumentError.value(
-        status,
-        'status',
-        'markFinal requires a terminal status (sent or exhausted)',
-      );
-    }
+    // markFinal transitions a pre-terminal row (final_status == null)
+    // into one of the three non-null terminal states. `null` is not a
+    // legal target — it is the INITIAL state and is set only by
+    // enqueueFifo. The non-null target is enforced by the parameter
+    // type `FinalStatus` (non-nullable); the type system makes a
+    // runtime null-check unnecessary here.
     final db = _database();
     await db.transaction((sembastTxn) async {
       final store = _fifoStore(destinationId);
@@ -900,13 +929,14 @@ class SembastBackend extends StorageBackend {
       }
       final record = records.single;
       final updated = Map<String, Object?>.from(record.value);
-      final currentStatus = FinalStatus.fromJson(
-        updated['final_status']! as String,
-      );
-      // final_status is one-way: pending -> sent|exhausted. Re-transitioning
-      // a terminal entry would silently re-stamp sent_at and corrupt the
-      // send-log timestamp, so reject it.
-      if (currentStatus != FinalStatus.pending) {
+      final currentRaw = updated['final_status'];
+      final currentStatus = currentRaw == null
+          ? null
+          : FinalStatus.fromJson(currentRaw as String);
+      // final_status is one-way: null -> sent|wedged|tombstoned.
+      // Re-transitioning a terminal entry would silently re-stamp sent_at
+      // and corrupt the send-log timestamp, so reject it.
+      if (currentStatus != null) {
         throw StateError(
           'markFinal($destinationId, $entryId, $status): entry is already '
           '$currentStatus; final_status transitions are one-way.',
@@ -977,9 +1007,7 @@ class SembastBackend extends StorageBackend {
     // FIFO store is an `intMapStoreFactory` so the return is `int`.
     return store.delete(
       t._sembastTxn,
-      finder: Finder(
-        filter: Filter.equals('final_status', FinalStatus.pending.toJson()),
-      ),
+      finder: Finder(filter: Filter.isNull('final_status')),
     );
   }
 
@@ -1064,7 +1092,7 @@ class SembastBackend extends StorageBackend {
     final records = await _fifoStore(destinationId).find(
       db,
       finder: Finder(
-        filter: Filter.equals('final_status', FinalStatus.exhausted.toJson()),
+        filter: Filter.equals('final_status', FinalStatus.wedged.toJson()),
         sortOrders: [SortOrder('sequence_in_queue')],
       ),
     );
@@ -1073,38 +1101,43 @@ class SembastBackend extends StorageBackend {
         .toList();
   }
 
-  /// Flip the target row's `final_status` from `exhausted` to
-  /// `pending` inside [txn]. Rejects any other [status] — the
-  /// one-way `pending -> sent|exhausted` path is owned by
-  /// [markFinal] and is deliberately kept separate so its invariants
-  /// are not weakened by a second write path.
+  /// Flip the target row's `final_status` from `wedged` back to the
+  /// pre-terminal state (`null`) inside [txn]. Rejects any non-null
+  /// [status] — the one-way `null -> sent|wedged|tombstoned` path is
+  /// owned by [markFinal] and is deliberately kept separate so its
+  /// invariants are not weakened by a second write path.
   ///
   /// Preserves the row's `attempts[]` unchanged (REQ-d00132-B) and
   /// clears `sent_at` (a rehabilitated row is no longer terminal,
   /// so a stale `sent_at` would confuse the send-log; in practice
-  /// `sent_at` is null on every exhausted row — the column is only
+  /// `sent_at` is null on every wedged row — the column is only
   /// ever set on `sent` — but the clear is defensive).
   ///
   /// Throws [StateError] on a missing target row: rehabilitate's
   /// caller verifies existence via [readFifoRow] before opening the
   /// transaction, so a missing row here indicates a concurrent delete
   /// race that rehabilitate does not close.
-  // Implements: REQ-d00132-B — `exhausted -> pending` flip; preserves
-  // attempts[], clears sent_at. Reject non-pending status to keep
-  // markFinal's one-way rule intact.
+  ///
+  /// This method's narrow contract (wedged -> null) is inherited from
+  /// Phase-4.6 rehabilitate. Phase-4.7 Task 6 will widen it to
+  /// participate in tombstoneAndRefill; for now its sole caller remains
+  /// rehabilitate.
+  // Implements: REQ-d00132-B — `wedged -> null` flip; preserves
+  // attempts[], clears sent_at. Rejects non-null status so
+  // markFinal's one-way rule is not weakened.
   @override
   Future<void> setFinalStatusTxn(
     Txn txn,
     String destinationId,
     String entryId,
-    FinalStatus status,
+    FinalStatus? status,
   ) async {
-    if (status != FinalStatus.pending) {
+    if (status != null) {
       throw ArgumentError.value(
         status,
         'status',
-        'setFinalStatusTxn only supports rehabilitate (exhausted -> '
-            'pending); use markFinal for pending -> sent|exhausted '
+        'setFinalStatusTxn only supports rehabilitate (wedged -> '
+            'null); use markFinal for null -> sent|wedged|tombstoned '
             'transitions.',
       );
     }
@@ -1124,18 +1157,19 @@ class SembastBackend extends StorageBackend {
     }
     final record = records.single;
     final updated = Map<String, Object?>.from(record.value);
-    updated['final_status'] = status.toJson();
-    // Clear sent_at defensively: an exhausted row should not have one,
+    updated['final_status'] = null;
+    // Clear sent_at defensively: a wedged row should not have one,
     // but if any ever leaks through, leaving it here would make the
-    // newly-pending row look like it had already been sent.
+    // newly-pre-terminal row look like it had already been sent.
     updated['sent_at'] = null;
     // attempts[] is deliberately NOT touched — REQ-d00132-B.
     await store.record(record.key).put(t._sembastTxn, updated);
   }
 
-  /// The first non-sent entry in the FIFO when it is `exhausted`. Returns
+  /// The first non-sent entry in the FIFO when it is `wedged`. Returns
   /// null when either the FIFO has no entries, all entries are `sent`, or
-  /// the earliest non-sent entry is `pending` (not wedged).
+  /// the earliest non-sent entry is pre-terminal (null final_status) or
+  /// tombstoned (not wedged).
   Future<FifoEntry?> _exhaustedHead(String destinationId) async {
     final db = _database();
     final records = await _fifoStore(
@@ -1143,13 +1177,20 @@ class SembastBackend extends StorageBackend {
     ).find(db, finder: Finder(sortOrders: [SortOrder('sequence_in_queue')]));
     for (final record in records) {
       final entry = FifoEntry.fromJson(Map<String, Object?>.from(record.value));
-      switch (entry.finalStatus) {
+      final status = entry.finalStatus;
+      if (status == null) {
+        // Earliest non-sent row is pre-terminal: FIFO not wedged at head.
+        return null;
+      }
+      switch (status) {
         case FinalStatus.sent:
           continue;
-        case FinalStatus.exhausted:
+        case FinalStatus.wedged:
           return entry;
-        case FinalStatus.pending:
-          return null;
+        case FinalStatus.tombstoned:
+          // Tombstoned rows live in the audit trail but do not by
+          // themselves wedge the FIFO; skip past and keep looking.
+          continue;
       }
     }
     return null;

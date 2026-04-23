@@ -13,6 +13,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// - REQ-d00128-C — `wirePayload` is one payload covering the whole batch;
 ///   no per-event wire payload is stored.
 ///
+/// Phase 4.7 Task 3 additionally verifies REQ-d00119-C under the nullable
+/// enum refactor:
+///
+/// - `FinalStatus` has exactly `{sent, wedged, tombstoned}`.
+/// - `FifoEntry.finalStatus` is nullable; `null` means "not-yet-terminal".
+///
 /// These tests run in addition to (not in place of) `value_types_test.dart`'s
 /// `FifoEntry` group, which now also exercises the new shape.
 void main() {
@@ -33,7 +39,7 @@ void main() {
       transformVersion: 'transform-v1',
       enqueuedAt: enqueuedAt,
       attempts: const <AttemptResult>[],
-      finalStatus: FinalStatus.pending,
+      finalStatus: null,
       sentAt: null,
     );
   }
@@ -63,7 +69,7 @@ void main() {
           transformVersion: null,
           enqueuedAt: enqueuedAt,
           attempts: const <AttemptResult>[],
-          finalStatus: FinalStatus.pending,
+          finalStatus: null,
           sentAt: null,
         ),
         throwsArgumentError,
@@ -86,7 +92,7 @@ void main() {
             transformVersion: null,
             enqueuedAt: enqueuedAt,
             attempts: const <AttemptResult>[],
-            finalStatus: FinalStatus.pending,
+            finalStatus: null,
             sentAt: null,
           ),
           throwsArgumentError,
@@ -228,6 +234,80 @@ void main() {
     test('parsed eventIds list is unmodifiable', () {
       final decoded = FifoEntry.fromJson(makeBatch().toJson());
       expect(() => decoded.eventIds.add('x'), throwsUnsupportedError);
+    });
+  });
+
+  // Phase 4.7 Task 3 — FinalStatus nullable + {sent, wedged, tombstoned}.
+  group('FifoEntry nullable final_status (Phase 4.7 Task 3)', () {
+    // Verifies: REQ-d00119-C — finalStatus is nullable; null means "not
+    // yet terminal". Drain may attempt a row whose finalStatus is null;
+    // non-null terminal values are retained forever as audit records.
+    test(
+      'REQ-d00119-C: finalStatus is nullable; null is not a terminal state',
+      () {
+        final entry = FifoEntry(
+          entryId: 'e1',
+          eventIds: const ['ev1'],
+          eventIdRange: (firstSeq: 1, lastSeq: 1),
+          sequenceInQueue: 1,
+          wirePayload: const {'k': 'v'},
+          wireFormat: 'json-v1',
+          transformVersion: 'v1',
+          enqueuedAt: DateTime.utc(2026, 4, 23, 10),
+          attempts: const [],
+          finalStatus: null,
+          sentAt: null,
+        );
+        expect(entry.finalStatus, isNull);
+      },
+    );
+
+    // Verifies: REQ-d00119-C — the enum has exactly three values, and
+    // `pending` / `exhausted` are NOT among them (pending is now null,
+    // exhausted is renamed to wedged).
+    test('REQ-d00119-C: FinalStatus enum has exactly {sent, wedged, '
+        'tombstoned}', () {
+      expect(FinalStatus.values.toSet(), {
+        FinalStatus.sent,
+        FinalStatus.wedged,
+        FinalStatus.tombstoned,
+      });
+    });
+
+    // Verifies: REQ-d00119-C — fromJson rejects the legacy wire-format
+    // strings 'pending' and 'exhausted' so a stale persisted row with an
+    // old value cannot quietly load as something else.
+    test(
+      'REQ-d00119-C: FinalStatus.fromJson rejects pending and exhausted',
+      () {
+        expect(() => FinalStatus.fromJson('pending'), throwsFormatException);
+        expect(() => FinalStatus.fromJson('exhausted'), throwsFormatException);
+        expect(FinalStatus.fromJson('sent'), FinalStatus.sent);
+        expect(FinalStatus.fromJson('wedged'), FinalStatus.wedged);
+        expect(FinalStatus.fromJson('tombstoned'), FinalStatus.tombstoned);
+      },
+    );
+
+    // Verifies: REQ-d00119-C — FifoEntry.fromJson accepts null
+    // final_status and round-trips through toJson as explicit null
+    // (not omission).
+    test('REQ-d00119-C: FifoEntry.fromJson accepts null final_status', () {
+      final json = {
+        'entry_id': 'e1',
+        'event_ids': ['ev1'],
+        'event_id_range': {'first_seq': 1, 'last_seq': 1},
+        'sequence_in_queue': 1,
+        'wire_payload': {'k': 'v'},
+        'wire_format': 'json-v1',
+        'transform_version': 'v1',
+        'enqueued_at': '2026-04-23T10:00:00.000Z',
+        'attempts': <Map<String, Object?>>[],
+        'final_status': null,
+        'sent_at': null,
+      };
+      final entry = FifoEntry.fromJson(json);
+      expect(entry.finalStatus, isNull);
+      expect(entry.toJson()['final_status'], isNull);
     });
   });
 }

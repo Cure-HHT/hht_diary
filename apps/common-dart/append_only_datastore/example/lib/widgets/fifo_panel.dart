@@ -495,8 +495,11 @@ class _FifoRowTile extends StatelessWidget {
     if (status == 'sent') {
       prefix = '[SENT] ';
       color = DemoColors.sent;
-    } else if (status == 'exhausted') {
-      prefix = '[exh]  ';
+    } else if (status == 'wedged') {
+      prefix = '[wdg]  ';
+      color = DemoColors.exhausted;
+    } else if (status == 'tombstoned') {
+      prefix = '[tmb]  ';
       color = DemoColors.exhausted;
     } else if (attemptsLen > 0) {
       prefix = '> ';
@@ -525,7 +528,7 @@ class _FifoRowTile extends StatelessWidget {
                 ),
               ),
             ),
-            if (status == 'exhausted')
+            if (status == 'wedged')
               TextButton(
                 onPressed: onRehabilitate,
                 child: const Text(

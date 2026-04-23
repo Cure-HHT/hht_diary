@@ -46,7 +46,7 @@ void main() {
       expect(head!.entryId, 'e1');
       expect(head.eventIds, ['e1']);
       expect(head.eventIdRange, (firstSeq: 1, lastSeq: 1));
-      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.finalStatus, isNull);
       expect(head.attempts, isEmpty);
       expect(head.sentAt, isNull);
       // Returned entry equals the persisted head modulo DateTime precision
@@ -123,7 +123,7 @@ void main() {
 
       final head = await backend.readFifoHead('primary');
       expect(head?.attempts, [attempt]);
-      expect(head?.finalStatus, FinalStatus.pending);
+      expect(head?.finalStatus, isNull);
 
       // Second attempt also appends, preserving order.
       final attempt2 = AttemptResult(
@@ -236,7 +236,7 @@ void main() {
 
     test('markFinal exhausted does NOT set sent_at', () async {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e1', FinalStatus.wedged);
 
       // Raw store name must match SembastBackend._fifoStore(destinationId).
       final db = backend.debugDatabase();
@@ -267,12 +267,12 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
 
-      await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e1', FinalStatus.wedged);
 
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
       expect(head!.entryId, 'e2');
-      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.finalStatus, isNull);
     });
 
     // Verifies: REQ-d00124-A — after Phase-4.3 Task 8, when every row is
@@ -286,7 +286,7 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await backend.markFinal('primary', 'e2', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
       await backend.markFinal('primary', 'e3', FinalStatus.sent);
 
       expect(await backend.readFifoHead('primary'), isNull);
@@ -305,14 +305,14 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e4', sequenceNumber: 4);
 
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await backend.markFinal('primary', 'e2', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
       await backend.markFinal('primary', 'e3', FinalStatus.sent);
       // e4 is left pending.
 
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
       expect(head!.entryId, 'e4');
-      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.finalStatus, isNull);
     });
 
     // Verifies: REQ-d00127-A — markFinal on a missing row is a no-op, does
@@ -327,7 +327,7 @@ void main() {
       // e1 still at head, still pending.
       final head = await backend.readFifoHead('primary');
       expect(head?.entryId, 'e1');
-      expect(head?.finalStatus, FinalStatus.pending);
+      expect(head?.finalStatus, isNull);
     });
 
     // Verifies: REQ-d00127-A — markFinal against a FIFO store that was
@@ -358,7 +358,7 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       await expectLater(
-        backend.markFinal('primary', 'e1', FinalStatus.exhausted),
+        backend.markFinal('primary', 'e1', FinalStatus.wedged),
         throwsStateError,
       );
     });
@@ -371,7 +371,7 @@ void main() {
 
       expect(await backend.anyFifoExhausted(), isFalse);
 
-      await backend.markFinal('A', 'a1', FinalStatus.exhausted);
+      await backend.markFinal('A', 'a1', FinalStatus.wedged);
       expect(await backend.anyFifoExhausted(), isTrue);
     });
 
@@ -391,8 +391,8 @@ void main() {
           httpStatus: 400,
         ),
       );
-      await backend.markFinal('A', 'a1', FinalStatus.exhausted);
-      await backend.markFinal('C', 'c1', FinalStatus.exhausted);
+      await backend.markFinal('A', 'a1', FinalStatus.wedged);
+      await backend.markFinal('C', 'c1', FinalStatus.wedged);
 
       final summaries = await backend.exhaustedFifos();
       final byDest = {for (final s in summaries) s.destinationId: s};
@@ -418,7 +418,7 @@ void main() {
         eventId: 'e-bare',
         sequenceNumber: 1,
       );
-      await backend.markFinal('primary', 'e-bare', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e-bare', FinalStatus.wedged);
 
       final summary = (await backend.exhaustedFifos()).single;
       expect(summary.destinationId, 'primary');
@@ -490,6 +490,67 @@ void main() {
       for (final record in raw) {
         expect(record.value['sequence_in_queue'], record.key);
       }
+    });
+
+    // Verifies: REQ-d00119-E — sequence_in_queue is monotonic per
+    // destination and NEVER reused. Even when a row is deleted from the
+    // underlying Sembast store (as the REQ-d00144-C trail sweep will
+    // do), a subsequent enqueue must NOT re-use the deleted row's
+    // sequence_in_queue value. This test performs a raw `store.delete`
+    // bypassing the backend API to simulate the deletion path, then
+    // verifies the next enqueue picks up the next never-seen value
+    // rather than refilling the vacated slot.
+    test('REQ-d00119-E: sequence_in_queue is monotonic per destination, '
+        'never reused', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
+
+      final db = backend.debugDatabase();
+      final store = StoreRef<int, Map<String, Object?>>('fifo_primary');
+      final before = await store.find(db);
+      expect(before.map((r) => r.value['sequence_in_queue']).toList(), [
+        1,
+        2,
+        3,
+      ]);
+
+      // Raw delete of row whose sequence_in_queue is 2 (entry_id 'e2').
+      // This simulates the REQ-d00144-C trail-sweep deletion path
+      // without depending on that API (which is introduced in Task 6).
+      await store.record(2).delete(db);
+
+      final afterDelete = await store.find(db);
+      expect(afterDelete.map((r) => r.value['sequence_in_queue']).toList(), [
+        1,
+        3,
+      ]);
+
+      // Fourth enqueue MUST get sequence_in_queue 4 — NOT 2 (the
+      // deleted slot) and NOT 3 (max-key after delete + 1 under the
+      // old derivation would also be 4, but only because 3 already
+      // exists; the defining test is the next-next one below).
+      await enqueueSingle(backend, 'primary', eventId: 'e4', sequenceNumber: 4);
+      final afterFirstEnqueue = await store.find(db);
+      final e4Record = afterFirstEnqueue.firstWhere(
+        (r) => r.value['entry_id'] == 'e4',
+      );
+      expect(e4Record.value['sequence_in_queue'], 4);
+      expect(e4Record.key, 4);
+
+      // Now delete row 4 (the row we just inserted, currently the
+      // max-key row). Under a buggy "max(existing key) + 1"
+      // derivation, the next enqueue would assign 4 again — reusing
+      // the slot. The persisted counter prevents that: the next
+      // enqueue must get 5.
+      await store.record(4).delete(db);
+      await enqueueSingle(backend, 'primary', eventId: 'e5', sequenceNumber: 5);
+      final afterSecondEnqueue = await store.find(db);
+      final e5Record = afterSecondEnqueue.firstWhere(
+        (r) => r.value['entry_id'] == 'e5',
+      );
+      expect(e5Record.value['sequence_in_queue'], 5);
+      expect(e5Record.key, 5);
     });
 
     // -------- REQ-d00127-C: warning log on missing-row no-op --------

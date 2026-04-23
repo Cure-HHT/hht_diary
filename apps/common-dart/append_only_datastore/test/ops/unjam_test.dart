@@ -90,7 +90,7 @@ _setupDestinationWithMixedFifo(
       eventId: 'exh-e$seq',
       sequenceNumber: seq,
     );
-    await backend.markFinal(destination.id, 'exh-e$seq', FinalStatus.exhausted);
+    await backend.markFinal(destination.id, 'exh-e$seq', FinalStatus.wedged);
   }
   // Pending rows.
   for (var i = 0; i < pendingCount; i++) {
@@ -206,16 +206,11 @@ void main() {
       );
       expect(
         rows
-            .where((r) => r['final_status'] == FinalStatus.exhausted.toJson())
+            .where((r) => r['final_status'] == FinalStatus.wedged.toJson())
             .length,
         3,
       );
-      expect(
-        rows
-            .where((r) => r['final_status'] == FinalStatus.pending.toJson())
-            .length,
-        0,
-      );
+      expect(rows.where((r) => r['final_status'] == null).length, 0);
     });
 
     // Verifies: REQ-d00131-D — unjam rewinds fill_cursor to the max of

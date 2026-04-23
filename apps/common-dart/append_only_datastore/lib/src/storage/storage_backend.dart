@@ -452,14 +452,14 @@ abstract class StorageBackend {
   Future<List<FifoEntry>> exhaustedRowsOf(String destinationId);
 
   /// Set the row's `final_status` to [status] inside [txn]. This method
-  /// is narrowly scoped to the `exhausted -> pending` flip used by
-  /// rehabilitate: implementations SHALL reject any [status] other than
-  /// [FinalStatus.pending] with `ArgumentError`. The one-way rule for
-  /// `pending -> sent|exhausted` remains owned by [markFinal]; the two
-  /// paths are deliberately separate so the one-way contract on
+  /// is narrowly scoped to the `wedged -> null` (pre-terminal) flip used
+  /// by rehabilitate: implementations SHALL reject any non-null [status]
+  /// with `ArgumentError`. The one-way rule for
+  /// `null -> sent|wedged|tombstoned` remains owned by [markFinal]; the
+  /// two paths are deliberately separate so the one-way contract on
   /// [markFinal] is not weakened.
   ///
-  /// On the permitted `-> pending` transition, implementations SHALL
+  /// On the permitted `-> null` transition, implementations SHALL
   /// preserve the row's `attempts[]` unchanged (REQ-d00132-B) and
   /// SHALL clear any `sent_at` timestamp (a rehabilitated row is no
   /// longer terminal, so a stale `sent_at` would confuse the send-log).
@@ -469,12 +469,12 @@ abstract class StorageBackend {
   /// existence via [readFifoRow] before opening the transaction, so a
   /// missing row at this point indicates a concurrent delete race that
   /// rehabilitate does not close.
-  // Implements: REQ-d00132-B — `exhausted -> pending` flip, preserves
+  // Implements: REQ-d00132-B — `wedged -> null` flip, preserves
   // attempts[], clears sent_at.
   Future<void> setFinalStatusTxn(
     Txn txn,
     String destinationId,
     String entryId,
-    FinalStatus status,
+    FinalStatus? status,
   );
 }

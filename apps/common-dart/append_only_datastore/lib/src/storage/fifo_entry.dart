@@ -18,18 +18,21 @@ typedef EventIdRange = ({int firstSeq, int lastSeq});
 ///
 /// Each row is a transformed copy of a contiguous slice of the event log
 /// destined for a specific synchronization target. Rows are appended in
-/// strict order on write and are never reordered. Once delivered they are
-/// marked `FinalStatus.sent` but retained as send-log records; on
-/// permanent failure they are marked `FinalStatus.exhausted` and the
-/// FIFO head wedges (drain loop stops for this destination until the
-/// entry is resolved by operator action).
+/// strict order on write and are never reordered. `finalStatus` is
+/// nullable; `null` means "not-yet-terminal" (drain may attempt the
+/// row). Once delivered they are marked `FinalStatus.sent`; on
+/// permanent failure they are marked `FinalStatus.wedged`; rows excised
+/// by a trail sweep are marked `FinalStatus.tombstoned`. All non-null
+/// terminal states are retained forever as send-log / audit records
+/// (REQ-d00119-D).
 ///
 /// Phase-4.3 Task 6 migrated this type from a single-event-per-row shape
 /// to a batch-per-row shape: `eventIds` is a non-empty `List<String>`,
 /// `eventIdRange` is an `(firstSeq, lastSeq)` record, and `wirePayload`
 /// is one payload for the whole batch (no per-event payload is stored).
 // Implements: REQ-d00119-B+C — carries the documented columns;
-// final_status typed to the three legal values (pending|sent|exhausted).
+// final_status is nullable (null means not-yet-terminal; non-null
+// values are one of {sent, wedged, tombstoned}).
 // Implements: REQ-d00128-A — eventIds is non-empty; enforced via
 // ArgumentError at construction and FormatException on fromJson.
 // Implements: REQ-d00128-B — eventIdRange is a (first_seq, last_seq) pair.
@@ -153,11 +156,14 @@ class FifoEntry {
       throw const FormatException('FifoEntry: missing or non-List "attempts"');
     }
     final finalStatusRaw = json['final_status'];
-    if (finalStatusRaw is! String) {
+    if (finalStatusRaw != null && finalStatusRaw is! String) {
       throw const FormatException(
-        'FifoEntry: missing or non-string "final_status"',
+        'FifoEntry: "final_status" must be a String or null',
       );
     }
+    final finalStatus = finalStatusRaw == null
+        ? null
+        : FinalStatus.fromJson(finalStatusRaw as String);
     final sentAtRaw = json['sent_at'];
     if (sentAtRaw != null && sentAtRaw is! String) {
       throw const FormatException(
@@ -182,7 +188,7 @@ class FifoEntry {
       transformVersion: transformVersionRaw as String?,
       enqueuedAt: DateTime.parse(enqueuedAtRaw),
       attempts: attempts,
-      finalStatus: FinalStatus.fromJson(finalStatusRaw),
+      finalStatus: finalStatus,
       sentAt: sentAtRaw == null ? null : DateTime.parse(sentAtRaw as String),
     );
   }
@@ -233,11 +239,14 @@ class FifoEntry {
   /// REQ-d00119-D.
   final List<AttemptResult> attempts;
 
-  /// Terminal state of this entry. On enqueue `pending`; moves to `sent` or
-  /// `exhausted` on terminal drain-loop decision.
-  final FinalStatus finalStatus;
+  /// Terminal state of this entry. `null` on enqueue and while the row is
+  /// still a drain candidate; moves to `sent`, `wedged`, or `tombstoned`
+  /// on a terminal transition. Non-null terminal values are retained
+  /// forever as audit records (REQ-d00119-D).
+  final FinalStatus? finalStatus;
 
-  /// When the entry was marked `sent`; null while pending or exhausted.
+  /// When the entry was marked `sent`; null while pre-terminal, wedged,
+  /// or tombstoned.
   final DateTime? sentAt;
 
   /// Encode to snake_case JSON. Optional fields emit explicit null.
@@ -254,7 +263,7 @@ class FifoEntry {
     'transform_version': transformVersion,
     'enqueued_at': enqueuedAt.toIso8601String(),
     'attempts': attempts.map((a) => a.toJson()).toList(),
-    'final_status': finalStatus.toJson(),
+    'final_status': finalStatus?.toJson(),
     'sent_at': sentAt?.toIso8601String(),
   };
 

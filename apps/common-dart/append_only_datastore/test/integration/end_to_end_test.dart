@@ -118,7 +118,7 @@ void main() {
       final pendingHead = await backend.readFifoHead('primary');
       expect(pendingHead, isNotNull);
       expect(pendingHead!.eventIds, [appended.eventId]);
-      expect(pendingHead.finalStatus, FinalStatus.pending);
+      expect(pendingHead.finalStatus, isNull);
 
       // Step 5: SyncCycle.call drains the FIFO. The destination's
       // scripted `SendOk` flips the row to sent.
