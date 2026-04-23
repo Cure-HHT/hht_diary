@@ -168,13 +168,13 @@ Adopting [RFC 8785 (JSON Canonicalization Scheme, JCS)](https://www.rfc-editor.o
 
 A. The `event_hash` field on every persisted event SHALL be computed as SHA-256 over the UTF-8 bytes of the RFC 8785 (JCS) canonical JSON serialization of the event's identity fields.
 
-B. The identity fields hashed SHALL be exactly `event_id`, `aggregate_id`, `entry_type`, `event_type`, `sequence_number`, `data`, `user_id`, `device_id`, `client_timestamp`, and `previous_event_hash`; no other fields SHALL be included in the hash input.
+B. The identity fields hashed SHALL be exactly `event_id`, `aggregate_id`, `entry_type`, `event_type`, `sequence_number`, `data`, `initiator`, `flow_token`, `client_timestamp`, `previous_event_hash`, and `metadata`; no other fields SHALL be included in the hash input. `user_id` and `device_id` are no longer top-level on `StoredEvent` (replaced by `initiator` and `metadata.provenance[0].identifier` respectively).
 
 C. A receiver implementing RFC 8785 in any language SHALL be able to reconstruct the canonical byte sequence from the received identity fields and independently verify the `event_hash` value.
 
 D. The canonicalization scheme used SHALL NOT be changed without a spec amendment and coordinated update across all implementations; changing the algorithm silently would break tamper-detection on all pre-existing events.
 
-*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: e09d751a
+*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: 422f82d4
 
 ---
 
@@ -582,12 +582,164 @@ Id-collision on a destination registration is promoted from a warning to a hard 
 
 ## Assertions
 
-A. `bootstrapAppendOnlyDatastore({backend, entryTypes, destinations})` SHALL be the single entry point for initializing the datastore from an app's `main()`.
+A. `bootstrapAppendOnlyDatastore({backend, source, entryTypes, destinations, materializers?, syncCycleTrigger?})` SHALL be the single entry point for initializing the datastore from an app's `main()`, and SHALL return an `AppendOnlyDatastore` facade carrying `eventStore`, `entryTypes`, `destinations`, and `securityContexts`.
 
-B. `bootstrapAppendOnlyDatastore` SHALL register every supplied `EntryTypeDefinition` into the `EntryTypeRegistry` before any `Destination` is registered.
+B. `bootstrapAppendOnlyDatastore` SHALL auto-register the three reserved system entry types (`security_context_redacted`, `security_context_compacted`, `security_context_purged`; all `materialize: false`) BEFORE iterating the caller-supplied list, and SHALL register every caller-supplied `EntryTypeDefinition` into the `EntryTypeRegistry` before any `Destination` is registered.
 
 C. `bootstrapAppendOnlyDatastore` SHALL register every supplied `Destination` into the `DestinationRegistry` via `addDestination`. The registry SHALL remain open to subsequent runtime `addDestination` calls per REQ-d00129-A.
 
-D. If any two destinations supplied to `bootstrapAppendOnlyDatastore` share an `id`, the call SHALL throw; the app SHALL NOT proceed to UI rendering.
+D. If any two destinations supplied to `bootstrapAppendOnlyDatastore` share an `id`, OR if any caller-supplied `EntryTypeDefinition` id collides with a reserved system entry-type id, the call SHALL throw `ArgumentError` (with an explicit "reserved" message in the id-collision case); the app SHALL NOT proceed to UI rendering.
 
-*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 9ead5ddd
+*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 1f9f50c9
+
+## REQ-d00135: Initiator Polymorphic Actor Type
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+
+## Assertions
+
+A. `Initiator` SHALL be a Dart 3 sealed class with exactly three variants: `UserInitiator`, `AutomationInitiator`, `AnonymousInitiator`.
+
+B. Each `Initiator` variant SHALL round-trip through a JSON map carrying a `type` discriminator (`"user"`, `"automation"`, `"anonymous"`) and the variant's fields; the encoding SHALL match the design-doc shape (e.g., `{"type": "user", "user_id": "..."}`).
+
+C. Every mobile call site that previously supplied a `userId: String` SHALL be migrated to supply `initiator: UserInitiator(userId)`; no top-level `user_id` field SHALL remain on `StoredEvent`.
+
+D. `AutomationInitiator.triggeringEventId` SHALL be nullable; when non-null it identifies an upstream event's `event_id` that caused the automation's action.
+
+E. `AnonymousInitiator.ipAddress` SHALL be nullable; `null` SHALL be the pre-auth value used by the PIN-login screen and similar flows.
+
+F. `Initiator.fromJson` SHALL throw `FormatException` on an unknown `type` discriminator and on a missing required field per variant.
+
+*End* *Initiator Polymorphic Actor Type* | **Hash**: 0b5663cc
+---
+
+## REQ-d00136: flowToken Correlation Field
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00013
+
+## Assertions
+
+A. `StoredEvent.flowToken` SHALL be a nullable `String?` column carried on the event record.
+
+B. The format convention `'<aggregate-or-flow-name>:<id>'` (e.g., `'invite:ABC123'`) SHALL be documented in the library and in this requirement; the library SHALL NOT enforce the format at runtime.
+
+C. Callers that participate in a multi-event business flow SHALL stamp the same `flowToken` value on every event of the flow so that audit queries can select the flow as a unit.
+
+D. `SembastBackend` SHALL expose an efficient lookup by `flow_token` in the events store (`WHERE flow_token = ?` queries SHALL NOT require a full scan).
+
+E. `flow_token` SHALL be part of the `event_hash` inputs so tampering with the token breaks the hash chain.
+
+*End* *flowToken Correlation Field* | **Hash**: 0bf4ed09
+---
+
+## REQ-d00137: EventSecurityContext Sidecar Store
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+
+## Assertions
+
+A. `EventSecurityContext` rows SHALL live in a separate storage namespace (sembast store `security_context`), not as columns on the `event_log` store.
+
+B. The foreign-key direction SHALL be `security_context.event_id -> event_log.event_id`; the event row SHALL hold no reference back to security.
+
+C. `EventStore.append` SHALL write the event row AND (when `security != null`) the security row in one backend transaction; any throw SHALL roll back both rows.
+
+D. `SecurityContextStore.read(eventId)` SHALL return the row or `null` when no row exists for that event; a missing row SHALL NOT be an error.
+
+E. Security-context mutations (write, update, delete) SHALL be performed only by `EventStore` so that each mutation commits atomically with the event-log row that describes it; the public `SecurityContextStore` interface SHALL expose read-only methods.
+
+F. `SecurityContextStore.queryAudit({initiator?, flowToken?, ipAddress?, from?, to?, limit, cursor?})` SHALL return a `PagedAudit` of `AuditRow(event, context)` pairs sorted by `recordedAt` descending; `limit` SHALL be constrained to `[1, 1000]`; `cursor` SHALL be opaque; a corrupt cursor SHALL throw `ArgumentError`.
+
+*End* *EventSecurityContext Sidecar Store* | **Hash**: 387fcb92
+---
+
+## REQ-d00138: Security Retention Policy and Redaction Audit
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+
+## Assertions
+
+A. `SecurityRetentionPolicy` SHALL be an immutable value type carrying `fullRetention` (default 90 days), `truncatedRetention` (default 365 days additional), `truncateIpv4LastOctet` (default true), `truncateIpv6Suffix` (default true, `/48` mask), `dropUserAgentAfterFull` (default true), `dropGeoAfterFull` (default false), and `dropAllAfterTruncated` (default true); a `SecurityRetentionPolicy.defaults` static constant SHALL expose the defaults as a single value.
+
+B. `EventStore.applyRetentionPolicy` SHALL truncate `EventSecurityContext` rows whose age exceeds `fullRetention`, applying each policy flag (IP truncation, UA drop, geo drop) to the row in place.
+
+C. `EventStore.applyRetentionPolicy` SHALL delete `EventSecurityContext` rows whose age exceeds `fullRetention + truncatedRetention`.
+
+D. `EventStore.clearSecurityContext(eventId, reason, redactedBy)` SHALL delete the security row for `eventId` AND append exactly one `security_context_redacted` event (with `aggregateType='security_context'`, `aggregateId=eventId`, `eventType='finalized'`, `data={'reason': <reason>}`, `initiator=redactedBy`) inside the same transaction.
+
+E. A non-empty compact sweep SHALL emit exactly one `security_context_compacted` event recording the count and cutoff; an empty compact sweep SHALL emit no event.
+
+F. A non-empty purge sweep SHALL emit exactly one `security_context_purged` event recording the count and cutoff; an empty purge sweep SHALL emit no event.
+
+G. Redaction, compact, and purge events SHALL themselves be immutable `event_log` rows (not `security_context` rows) so the action of redaction is permanently auditable even after the underlying security data is gone.
+
+*End* *Security Retention Policy and Redaction Audit* | **Hash**: 3ca5bb98
+---
+
+## REQ-d00139: No-Secrets Invariant on Event Data and flowToken
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+
+## Assertions
+
+A. Event `data` and `flowToken` SHALL NOT contain unhashed credentials, OTPs, recovery tokens, session tokens, or any other value whose mere knowledge confers authority.
+
+B. The rationale: read-only access to the event log is broad (SIEM pipelines, audit backups, read replicas, compliance exports, human auditors with SELECT privileges); defense-in-depth requires keeping secrets out even when full-database compromise would dominate the immediate threat.
+
+C. Hashes (SHA-256 or stronger, with sufficient input entropy to resist precomputation) MAY appear in event `data` when needed for later verification correlation; the library SHALL NOT enforce this invariant at runtime — callers (actions lib, direct-write automation handlers) own the contract.
+
+*End* *No-Secrets Invariant on Event Data and flowToken* | **Hash**: 8c4df58e
+---
+
+## REQ-d00140: Pluggable Materializer Contract
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01006
+
+## Assertions
+
+A. `Materializer` SHALL be an abstract base class with `String get viewName`, `bool appliesTo(StoredEvent event)`, and `Future<void> applyInTxn(Txn, StorageBackend, {event, def, aggregateHistory})`.
+
+B. `EventStore` SHALL accept `List<Materializer> materializers` at construction and SHALL invoke each matching materializer's `applyInTxn` inside the append transaction.
+
+C. When an event's `EntryTypeDefinition.materialize == false`, NO materializer SHALL be invoked for that event regardless of `appliesTo`.
+
+D. `rebuildView(materializer, backend, lookup)` SHALL replay the event log into exactly one view; running the function twice on the same log SHALL produce the same view rows (idempotent).
+
+E. A throw from any materializer's `applyInTxn` SHALL roll back the entire append transaction — no event row, no security row, no other view rows.
+
+F. `StorageBackend` SHALL expose generic view methods `readViewRowInTxn(txn, viewName, key)`, `upsertViewRowInTxn(txn, viewName, key, row)`, `deleteViewRowInTxn(txn, viewName, key)`, `findViewRows(viewName, {limit, offset})`, and `clearViewInTxn(txn, viewName)` so materializers can read and write view rows without the backend knowing about specific views.
+
+*End* *Pluggable Materializer Contract* | **Hash**: fccf62b4
+---
+
+## REQ-d00141: EventStore Append Contract
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+
+## Assertions
+
+A. The class named `EntryService` SHALL be renamed to `EventStore` and SHALL live at `apps/common-dart/append_only_datastore/lib/src/event_store.dart`.
+
+B. `EventStore.append({entryType, aggregateId, aggregateType, eventType, data, initiator, flowToken?, metadata?, security?, checkpointReason?, changeReason?, dedupeByContent=false})` SHALL be the single public write method serving both mobile widgets and portal callers; it SHALL return the persisted `StoredEvent` or `null` when a `dedupeByContent` no-op was detected.
+
+C. Mobile widget call sites SHALL pass per-field arguments directly; there SHALL NOT be an intermediate `EventDraft` value type on the mobile write path.
+
+D. Neither `EventStore` nor `SecurityContextStore` SHALL gate access by user role, scope, or tenancy; access control SHALL live in the widget / request-handler layer (permission-blind invariant).
+
+*End* *EventStore Append Contract* | **Hash**: 6e0f8625
+---
+
+## REQ-d00142: Source Stamping Provenance Identity
+
+**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+
+## Assertions
+
+A. The class named `DeviceInfo` SHALL be renamed to `Source` and SHALL carry exactly three fields: `hopId: String`, `identifier: String`, `softwareVersion: String`; `Source` SHALL NOT carry a `userId` field.
+
+B. `Source.hopId` SHALL enumerate at least `'mobile-device'` and `'portal-server'` as well-known values; other hop identifiers are permitted.
+
+C. `Source.softwareVersion` SHALL conform to the REQ-d00115-E format (`"<package-name>@<semver>[+<build>]"`); `Source` SHALL NOT validate this at runtime — the shape is a permanent caller obligation enforced downstream.
+
+*End* *Source Stamping Provenance Identity* | **Hash**: 65bc37d4
+---

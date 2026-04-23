@@ -103,6 +103,7 @@ void main() {
         'widget_config': {'variant': 'full'},
         'effective_date_path': 'startTime',
         'destination_tags': ['clinical'],
+        'materialize': true,
       });
     });
 
@@ -355,6 +356,79 @@ void main() {
           expect(withEmpty.toJson()['destination_tags'], isEmpty);
         },
       );
+    });
+  });
+
+  group('REQ-d00140-C: materialize flag', () {
+    test('defaults to true', () {
+      const def = EntryTypeDefinition(
+        id: 'x',
+        version: '1',
+        name: 'X',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+      );
+      expect(def.materialize, isTrue);
+    });
+
+    test('false round-trips through JSON', () {
+      const def = EntryTypeDefinition(
+        id: 'x',
+        version: '1',
+        name: 'X',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+        materialize: false,
+      );
+      expect(def.materialize, isFalse);
+      final map = def.toJson();
+      expect(map['materialize'], isFalse);
+      final roundTripped = EntryTypeDefinition.fromJson(map);
+      expect(roundTripped.materialize, isFalse);
+    });
+
+    test('absent "materialize" in JSON defaults to true', () {
+      final def = EntryTypeDefinition.fromJson(<String, Object?>{
+        'id': 'x',
+        'version': '1',
+        'name': 'X',
+        'widget_id': 'w',
+        'widget_config': const <String, Object?>{},
+      });
+      expect(def.materialize, isTrue);
+    });
+
+    test('non-bool "materialize" is rejected', () {
+      expect(
+        () => EntryTypeDefinition.fromJson(<String, Object?>{
+          'id': 'x',
+          'version': '1',
+          'name': 'X',
+          'widget_id': 'w',
+          'widget_config': const <String, Object?>{},
+          'materialize': 'yes',
+        }),
+        throwsFormatException,
+      );
+    });
+
+    test('materialize participates in equality', () {
+      const a = EntryTypeDefinition(
+        id: 'x',
+        version: '1',
+        name: 'X',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+      );
+      const b = EntryTypeDefinition(
+        id: 'x',
+        version: '1',
+        name: 'X',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+        materialize: false,
+      );
+      expect(a, isNot(b));
     });
   });
 }

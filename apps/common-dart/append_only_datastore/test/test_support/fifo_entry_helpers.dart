@@ -5,6 +5,7 @@ import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 
@@ -38,8 +39,7 @@ StoredEvent storedEventFixture({
   sequenceNumber: sequenceNumber,
   data: const <String, dynamic>{},
   metadata: const <String, dynamic>{},
-  userId: 'u',
-  deviceId: 'd',
+  initiator: const UserInitiator('u'),
   clientTimestamp: DateTime.utc(2026, 4, 22),
   eventHash: 'hash-$eventId',
 );

@@ -35,12 +35,20 @@ void main() {
         batchCapacity: 5,
       );
 
-      // Step 1: bootstrap wires the type registry and destination registry.
-      final (typeReg, destReg) = await bootstrapAppendOnlyDatastore(
+      // Step 1: bootstrap wires the type registry, destination registry,
+      // security-context store, and EventStore into AppendOnlyDatastore.
+      final ds = await bootstrapAppendOnlyDatastore(
         backend: backend,
+        source: const Source(
+          hopId: 'mobile-device',
+          identifier: 'device-e2e',
+          softwareVersion: 'clinical_diary@1.0.0+1',
+        ),
         entryTypes: [demoNoteDefn],
         destinations: [dest],
       );
+      final typeReg = ds.entryTypes;
+      final destReg = ds.destinations;
 
       // Step 2: open the destination by setting startDate to one hour
       // before the recording clock. Replay runs synchronously inside

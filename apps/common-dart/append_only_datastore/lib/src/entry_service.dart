@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:append_only_datastore/src/entry_type_registry.dart';
-import 'package:append_only_datastore/src/materialization/materializer.dart';
+import 'package:append_only_datastore/src/materialization/diary_entries_materializer.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/sync/drain.dart';
@@ -217,14 +218,9 @@ class EntryService {
         'sequence_number': sequenceNumber,
         'data': data,
         'metadata': metadata,
-        'user_id': deviceInfo.userId,
-        // REQ-d00133-I: migration-bridge top-level fields populated from
-        // metadata.provenance[0]. received_at mirrors client_timestamp,
-        // identifier mirrors device_id, software_version mirrors
-        // provenance software_version.
-        'device_id': provenance0.identifier,
+        'initiator': UserInitiator(deviceInfo.userId).toJson(),
+        'flow_token': null,
         'client_timestamp': provenance0.receivedAt.toIso8601String(),
-        'software_version': provenance0.softwareVersion,
         'previous_event_hash': previousHash,
       };
       final eventHash = _eventHash(recordMap);
@@ -249,7 +245,7 @@ class EntryService {
       final firstEventTs = aggregateHistory.isEmpty
           ? event.clientTimestamp
           : aggregateHistory.first.clientTimestamp;
-      final nextRow = Materializer.apply(
+      final nextRow = DiaryEntriesMaterializer.foldPure(
         previous: priorRow,
         event: event,
         def: def,
@@ -297,12 +293,13 @@ class EntryService {
     return sha256.convert(bytes).toString();
   }
 
-  /// Event-hash digest over the identity fields enumerated in REQ-d00120-B.
-  /// The hashed subset is exactly the ten fields named by that assertion;
-  /// no other fields SHALL enter the hash input. `software_version` is a
-  /// migration-bridge field and is EXCLUDED from the hash per REQ-d00120-B.
+  /// Event-hash digest over the identity fields enumerated in REQ-d00120-B
+  /// (Phase 4.4 revision): event_id, aggregate_id, entry_type, event_type,
+  /// sequence_number, data, initiator, flow_token, client_timestamp,
+  /// previous_event_hash, metadata. Device identity and software version
+  /// live inside metadata.provenance[0] and are covered transitively.
   // Implements: REQ-d00120-A+B — SHA-256 over JCS-canonical bytes of the
-  // identity-field subset exactly as enumerated in REQ-d00120-B.
+  // identity-field subset enumerated in the Phase 4.4 revision of REQ-d00120-B.
   String _eventHash(Map<String, Object?> recordMap) {
     final hashInput = <String, Object?>{
       'event_id': recordMap['event_id'],
@@ -311,10 +308,11 @@ class EntryService {
       'event_type': recordMap['event_type'],
       'sequence_number': recordMap['sequence_number'],
       'data': recordMap['data'],
-      'user_id': recordMap['user_id'],
-      'device_id': recordMap['device_id'],
+      'initiator': recordMap['initiator'],
+      'flow_token': recordMap['flow_token'],
       'client_timestamp': recordMap['client_timestamp'],
       'previous_event_hash': recordMap['previous_event_hash'],
+      'metadata': recordMap['metadata'],
     };
     final bytes = canonicalizeBytes(hashInput);
     return sha256.convert(bytes).toString();

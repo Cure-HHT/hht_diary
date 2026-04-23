@@ -41,8 +41,13 @@ void main() {
         expect(event.entryType, equals('epistaxis_event'));
         expect(event.eventType, equals('TestEvent'));
         expect(event.data, equals({'key': 'value'}));
-        expect(event.userId, equals('user-456'));
-        expect(event.deviceId, equals('device-789'));
+        // Phase 4.4: userId wrapped internally into UserInitiator;
+        // deviceId stamped into metadata.provenance[0].identifier.
+        expect(event.initiator, equals(const UserInitiator('user-456')));
+        final prov =
+            (event.metadata['provenance'] as List).first
+                as Map<String, Object?>;
+        expect(prov['identifier'], equals('device-789'));
         expect(event.sequenceNumber, equals(1));
         expect(event.eventHash, isNotEmpty);
         expect(event.previousEventHash, isNull);
@@ -470,9 +475,12 @@ void main() {
             clientTimestamp: clientTs,
           );
 
-          // Independently re-compute the expected hash. If EventRepository
-          // ever silently reverts to jsonEncode or changes the hashed
-          // subset, this assertion breaks.
+          // Independently re-compute the expected hash per the Phase 4.4
+          // identity-field set (REQ-d00120-B revised): event_id,
+          // aggregate_id, entry_type, event_type, sequence_number, data,
+          // initiator, flow_token, client_timestamp, previous_event_hash,
+          // metadata. device_id lives in metadata.provenance[0] and is
+          // covered transitively.
           final expectedBytes = canonicalizeBytes(<String, Object?>{
             'event_id': event.eventId,
             'aggregate_id': 'agg-1',
@@ -483,10 +491,14 @@ void main() {
               'intensity': 'mild',
               'notes': 'stub',
             },
-            'user_id': 'u-1',
-            'device_id': 'd-1',
+            'initiator': const <String, Object?>{
+              'type': 'user',
+              'user_id': 'u-1',
+            },
+            'flow_token': null,
             'client_timestamp': clientTs.toIso8601String(),
             'previous_event_hash': null,
+            'metadata': event.metadata,
           });
           final expected = sha256.convert(expectedBytes).toString();
           expect(event.eventHash, equals(expected));
@@ -603,8 +615,8 @@ void main() {
         sequenceNumber: 42,
         data: {'severity': 'mild', 'duration': 10},
         metadata: {'source': 'mobile'},
-        userId: 'user-789',
-        deviceId: 'device-abc',
+        initiator: const UserInitiator('user-789'),
+        flowToken: 'invite:ABC',
         clientTimestamp: DateTime.utc(2024, 1, 15, 10, 30),
         eventHash: 'abc123hash',
         previousEventHash: 'xyz789hash',
@@ -620,8 +632,8 @@ void main() {
       expect(restored.sequenceNumber, equals(original.sequenceNumber));
       expect(restored.data, equals(original.data));
       expect(restored.metadata, equals(original.metadata));
-      expect(restored.userId, equals(original.userId));
-      expect(restored.deviceId, equals(original.deviceId));
+      expect(restored.initiator, equals(original.initiator));
+      expect(restored.flowToken, equals(original.flowToken));
       expect(restored.eventHash, equals(original.eventHash));
       expect(restored.previousEventHash, equals(original.previousEventHash));
       expect(restored.isSynced, equals(original.isSynced));
@@ -638,11 +650,9 @@ void main() {
         sequenceNumber: 1,
         data: {},
         metadata: {},
-        userId: 'user',
-        deviceId: 'device',
+        initiator: const UserInitiator('user'),
         clientTimestamp: DateTime.now(),
         eventHash: 'hash',
-        syncedAt: null,
       );
 
       final synced = StoredEvent(
@@ -655,8 +665,7 @@ void main() {
         sequenceNumber: 2,
         data: {},
         metadata: {},
-        userId: 'user',
-        deviceId: 'device',
+        initiator: const UserInitiator('user'),
         clientTimestamp: DateTime.now(),
         eventHash: 'hash2',
         syncedAt: DateTime.now(),
@@ -892,6 +901,31 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
       delegate.readEntryInTxn(txn, entryId);
+  @override
+  Future<Map<String, dynamic>?> readViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+  ) => delegate.readViewRowInTxn(txn, viewName, key);
+  @override
+  Future<void> upsertViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+    Map<String, dynamic> row,
+  ) => delegate.upsertViewRowInTxn(txn, viewName, key, row);
+  @override
+  Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key) =>
+      delegate.deleteViewRowInTxn(txn, viewName, key);
+  @override
+  Future<List<Map<String, dynamic>>> findViewRows(
+    String viewName, {
+    int? limit,
+    int? offset,
+  }) => delegate.findViewRows(viewName, limit: limit, offset: offset);
+  @override
+  Future<void> clearViewInTxn(Txn txn, String viewName) =>
+      delegate.clearViewInTxn(txn, viewName);
   @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,

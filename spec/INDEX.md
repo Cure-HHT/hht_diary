@@ -313,7 +313,7 @@
 | REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | edab4770 |
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
 | REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 5b87a65d |
-| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | e09d751a |
+| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 422f82d4 |
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | 632e4a22 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 1be73b3e |
@@ -327,7 +327,15 @@
 | REQ-d00131 | Unjam Destination Operation                             | dev-event-sourcing-mobile.md   | 467a0d85 |
 | REQ-d00132 | Rehabilitate Exhausted FIFO Row                         | dev-event-sourcing-mobile.md   | 978d782e |
 | REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | f132a4cf |
-| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 9ead5ddd |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 1f9f50c9 |
+| REQ-d00135 | Initiator Polymorphic Actor Type                        | dev-event-sourcing-mobile.md   | 0b5663cc |
+| REQ-d00136 | flowToken Correlation Field                             | dev-event-sourcing-mobile.md   | 0bf4ed09 |
+| REQ-d00137 | EventSecurityContext Sidecar Store                      | dev-event-sourcing-mobile.md   | 387fcb92 |
+| REQ-d00138 | Security Retention Policy and Redaction Audit           | dev-event-sourcing-mobile.md   | 3ca5bb98 |
+| REQ-d00139 | No-Secrets Invariant on Event Data and flowToken        | dev-event-sourcing-mobile.md   | 8c4df58e |
+| REQ-d00140 | Pluggable Materializer Contract                         | dev-event-sourcing-mobile.md   | fccf62b4 |
+| REQ-d00141 | EventStore Append Contract                              | dev-event-sourcing-mobile.md   | 6e0f8625 |
+| REQ-d00142 | Source Stamping Provenance Identity                     | dev-event-sourcing-mobile.md   | 65bc37d4 |
 
 ## User Journeys
 

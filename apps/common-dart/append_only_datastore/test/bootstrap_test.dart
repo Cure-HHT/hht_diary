@@ -12,6 +12,12 @@ Future<SembastBackend> _openBackend() async {
   return SembastBackend(database: db);
 }
 
+const Source _source = Source(
+  hopId: 'mobile-device',
+  identifier: 'd',
+  softwareVersion: 'v',
+);
+
 EntryTypeDefinition _defn(String id) => EntryTypeDefinition(
   id: id,
   version: '1',
@@ -21,9 +27,7 @@ EntryTypeDefinition _defn(String id) => EntryTypeDefinition(
 );
 
 /// Destination that throws on the first read of [id]. Used to abort the
-/// destination loop at a deterministic point so the test can assert
-/// type-registration side effects that would or would not be present
-/// depending on which loop ran first.
+/// destination loop at a deterministic point.
 class _ThrowOnIdAccess extends FakeDestination {
   _ThrowOnIdAccess() : super(id: 'unused', script: const []);
 
@@ -33,8 +37,61 @@ class _ThrowOnIdAccess extends FakeDestination {
 
 void main() {
   group('bootstrapAppendOnlyDatastore', () {
-    test('REQ-d00134-A+C: wires entry types and destinations into both '
-        'registries; destination registry stays open', () async {
+    test(
+      'REQ-d00134-A: returns AppendOnlyDatastore facade carrying eventStore, '
+      'entryTypes, destinations, securityContexts',
+      () async {
+        final backend = await _openBackend();
+        final ds = await bootstrapAppendOnlyDatastore(
+          backend: backend,
+          source: _source,
+          entryTypes: [_defn('demo_note')],
+          destinations: const <Destination>[],
+        );
+        expect(ds.eventStore, isA<EventStore>());
+        expect(ds.entryTypes, isA<EntryTypeRegistry>());
+        expect(ds.destinations, isA<DestinationRegistry>());
+        expect(ds.securityContexts, isA<SecurityContextStore>());
+        expect(ds.entryTypes.isRegistered('demo_note'), isTrue);
+      },
+    );
+
+    test('REQ-d00134-B: auto-registers 3 reserved system entry types BEFORE '
+        'caller-supplied list', () async {
+      final backend = await _openBackend();
+      final ds = await bootstrapAppendOnlyDatastore(
+        backend: backend,
+        source: _source,
+        entryTypes: [_defn('demo_note')],
+        destinations: const <Destination>[],
+      );
+      expect(ds.entryTypes.isRegistered('security_context_redacted'), isTrue);
+      expect(ds.entryTypes.isRegistered('security_context_compacted'), isTrue);
+      expect(ds.entryTypes.isRegistered('security_context_purged'), isTrue);
+    });
+
+    test('REQ-d00134-D: caller-supplied id colliding with reserved id throws '
+        'ArgumentError with "reserved" message', () async {
+      final backend = await _openBackend();
+      await expectLater(
+        bootstrapAppendOnlyDatastore(
+          backend: backend,
+          source: _source,
+          entryTypes: [_defn('security_context_redacted')],
+          destinations: const <Destination>[],
+        ),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message.toString(),
+            'message',
+            contains('reserved'),
+          ),
+        ),
+      );
+    });
+
+    test('REQ-d00134-A+C: wires entry types and destinations; registry stays '
+        'open', () async {
       final backend = await _openBackend();
       final types = [_defn('demo_note'), _defn('red_button')];
       final dests = [
@@ -42,28 +99,27 @@ void main() {
         FakeDestination(id: 'analytics', script: const []),
       ];
 
-      final (typeReg, destReg) = await bootstrapAppendOnlyDatastore(
+      final ds = await bootstrapAppendOnlyDatastore(
         backend: backend,
+        source: _source,
         entryTypes: types,
         destinations: dests,
       );
 
-      expect(typeReg, isA<EntryTypeRegistry>());
-      expect(destReg, isA<DestinationRegistry>());
-      expect(typeReg.all(), hasLength(2));
-      expect(typeReg.isRegistered('demo_note'), isTrue);
-      expect(typeReg.isRegistered('red_button'), isTrue);
-      expect(destReg.all(), hasLength(2));
-      expect(destReg.byId('primary'), same(dests[0]));
-      expect(destReg.byId('analytics'), same(dests[1]));
+      // 2 caller-supplied + 3 system = 5 total
+      expect(ds.entryTypes.all(), hasLength(5));
+      expect(ds.entryTypes.isRegistered('demo_note'), isTrue);
+      expect(ds.entryTypes.isRegistered('red_button'), isTrue);
+      expect(ds.destinations.all(), hasLength(2));
+      expect(ds.destinations.byId('primary'), same(dests[0]));
+      expect(ds.destinations.byId('analytics'), same(dests[1]));
       expect(await backend.readSchedule('primary'), isA<DestinationSchedule>());
 
-      // REQ-d00134-C: registry remains open to subsequent runtime
-      // addDestination calls.
-      await destReg.addDestination(
+      // Registry remains open to subsequent runtime addDestination calls.
+      await ds.destinations.addDestination(
         FakeDestination(id: 'late', script: const []),
       );
-      expect(destReg.all(), hasLength(3));
+      expect(ds.destinations.all(), hasLength(3));
     });
 
     test('REQ-d00134-B: type-loop runs first — duplicate type id throws '
@@ -75,58 +131,41 @@ void main() {
       await expectLater(
         bootstrapAppendOnlyDatastore(
           backend: backend,
+          source: _source,
           entryTypes: types,
           destinations: dests,
         ),
         throwsArgumentError,
       );
-      // No destination schedule was persisted, proving the destination
-      // loop never ran. If the destination loop had run first, the
-      // dormant schedule for 'primary' would be in the backend even
-      // after the type-registration throw.
       expect(await backend.readSchedule('primary'), isNull);
     });
 
-    test(
-      'REQ-d00134-B: when the destination loop throws, every supplied '
-      'entry type was registered first (positive-path ordering proof)',
-      () async {
-        final backend = await _openBackend();
-        final types = [_defn('demo_note'), _defn('red_button')];
-        final dests = <Destination>[_ThrowOnIdAccess()];
+    test('REQ-d00134-B: when the destination loop throws, supplied types were '
+        'registered first (ordering proof)', () async {
+      final backend = await _openBackend();
+      final types = [_defn('demo_note'), _defn('red_button')];
+      final dests = <Destination>[_ThrowOnIdAccess()];
 
-        // bootstrap will throw inside the destination loop because the
-        // destination's `id` getter throws when the registry calls it.
-        // After the throw, the type registry that was being built is
-        // discarded — but if the type loop had not run first, no test
-        // setup could have observed the failure occurring inside the
-        // destination loop. The test asserts the throw happens at the
-        // expected point AND that no destination schedule was written
-        // (proving the destination loop reached its first iteration but
-        // never advanced past it).
-        await expectLater(
-          bootstrapAppendOnlyDatastore(
-            backend: backend,
-            entryTypes: types,
-            destinations: dests,
-          ),
-          throwsA(isA<StateError>()),
-        );
-        expect(await backend.readSchedule('unused'), isNull);
-
-        // Now run bootstrap again with no throwing destination and the
-        // same backend; the resulting type registry contains both types
-        // because bootstrap re-runs type registration before
-        // destinations every time.
-        final (typeReg, _) = await bootstrapAppendOnlyDatastore(
+      await expectLater(
+        bootstrapAppendOnlyDatastore(
           backend: backend,
+          source: _source,
           entryTypes: types,
-          destinations: const [],
-        );
-        expect(typeReg.isRegistered('demo_note'), isTrue);
-        expect(typeReg.isRegistered('red_button'), isTrue);
-      },
-    );
+          destinations: dests,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(await backend.readSchedule('unused'), isNull);
+
+      final ds = await bootstrapAppendOnlyDatastore(
+        backend: backend,
+        source: _source,
+        entryTypes: types,
+        destinations: const <Destination>[],
+      );
+      expect(ds.entryTypes.isRegistered('demo_note'), isTrue);
+      expect(ds.entryTypes.isRegistered('red_button'), isTrue);
+    });
 
     test('REQ-d00134-D: duplicate destination id throws', () async {
       final backend = await _openBackend();
@@ -138,6 +177,7 @@ void main() {
       await expectLater(
         bootstrapAppendOnlyDatastore(
           backend: backend,
+          source: _source,
           entryTypes: const [],
           destinations: dests,
         ),
@@ -159,16 +199,12 @@ void main() {
         await expectLater(
           bootstrapAppendOnlyDatastore(
             backend: backend,
+            source: _source,
             entryTypes: const [],
             destinations: dests,
           ),
           throwsArgumentError,
         );
-        // Sequential registration: 'first' and 'second' both got
-        // persisted before the duplicate-'second' threw. A parallel
-        // implementation would also persist the duplicate's read
-        // attempt before any throw, so this test pins the sequential
-        // semantics in the doc comment.
         expect(await backend.readSchedule('first'), isNotNull);
         expect(await backend.readSchedule('second'), isNotNull);
       },

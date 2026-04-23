@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:append_only_datastore/src/destinations/destination.dart';
 import 'package:append_only_datastore/src/destinations/subscription_filter.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -107,8 +108,7 @@ StoredEvent _mkEvent(String eventId) => StoredEvent(
   sequenceNumber: 1,
   data: const <String, dynamic>{},
   metadata: const <String, dynamic>{},
-  userId: 'u1',
-  deviceId: 'd1',
+  initiator: const UserInitiator('u1'),
   clientTimestamp: DateTime.utc(2026, 4, 22),
   eventHash: 'hash',
 );

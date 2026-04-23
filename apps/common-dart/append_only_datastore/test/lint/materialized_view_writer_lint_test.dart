@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// REQ-d00121-I.
 ///
 /// The `diary_entries` store is a materialized view — a cache of the event
-/// log. Writes must flow through `Materializer.apply` inside either the
+/// log. Writes must flow through `DiaryEntriesMaterializer.foldPure` inside either the
 /// disaster-recovery rebuild (`rebuildMaterializedView`) or the online write
 /// path (Phase 5's `EntryService.record`). Any other production code that
 /// calls `StorageBackend.upsertEntry` or `StorageBackend.clearEntries`
@@ -28,11 +28,11 @@ const Set<String> _allowlist = {
   'apps/common-dart/append_only_datastore/lib/src/storage/storage_backend.dart',
   // Concrete backend implementation.
   'apps/common-dart/append_only_datastore/lib/src/storage/sembast_backend.dart',
-  // Disaster-recovery rebuild path — folds events through Materializer.apply
+  // Disaster-recovery rebuild path — folds events through DiaryEntriesMaterializer.foldPure
   // and replaces the view atomically.
   'apps/common-dart/append_only_datastore/lib/src/materialization/rebuild.dart',
   // Online write path — EntryService.record folds each event through
-  // Materializer.apply inside the same transaction as the append
+  // DiaryEntriesMaterializer.foldPure inside the same transaction as the append
   // (REQ-d00133-D, Phase 4.3 Task 16).
   'apps/common-dart/append_only_datastore/lib/src/entry_service.dart',
 };
@@ -72,7 +72,7 @@ void main() {
           'REQ-d00121-I: the following production files invoke '
           'upsertEntry(...) or clearEntries(...) on diary_entries. '
           'Those methods mutate the materialized view cache — writes must '
-          'flow through Materializer.apply (i.e., rebuildMaterializedView '
+          'flow through DiaryEntriesMaterializer.foldPure (i.e., rebuildMaterializedView '
           'or EntryService.record). If a listed file is a legitimate '
           'writer, add its repo-relative path to _allowlist in this '
           'test.\nOffenders: $offenders',

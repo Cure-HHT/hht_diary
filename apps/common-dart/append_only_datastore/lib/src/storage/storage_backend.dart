@@ -141,6 +141,50 @@ abstract class StorageBackend {
   /// Returns null when the row does not exist.
   Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId);
 
+  // -------- Generic view storage (Phase 4.4) --------
+  //
+  // Materializers read and write view rows via these methods. The view
+  // namespace is flat — one store per `viewName`, keyed on a caller-
+  // supplied string. The backend does not own schema for view rows; the
+  // materializer and its readers interpret the row map. Reserved view
+  // names: `diary_entries` (owned by `DiaryEntriesMaterializer`) and
+  // `security_context` (reserved for the sidecar store).
+
+  /// Read one row from [viewName] by [key] inside [txn], or null when
+  /// the row is absent.
+  // Implements: REQ-d00140-F — generic view-row read.
+  Future<Map<String, dynamic>?> readViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+  );
+
+  /// Whole-row upsert into [viewName] at [key] inside [txn].
+  // Implements: REQ-d00140-F — generic view-row upsert.
+  Future<void> upsertViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+    Map<String, dynamic> row,
+  );
+
+  /// Delete the row at [key] in [viewName] inside [txn].
+  // Implements: REQ-d00140-F — generic view-row delete.
+  Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key);
+
+  /// Iterate rows in [viewName] with optional `limit` / `offset`.
+  /// Non-transactional.
+  // Implements: REQ-d00140-F — generic view-row iteration.
+  Future<List<Map<String, dynamic>>> findViewRows(
+    String viewName, {
+    int? limit,
+    int? offset,
+  });
+
+  /// Empty all rows in [viewName] inside [txn]. Other views are untouched.
+  // Implements: REQ-d00140-F — generic view clear.
+  Future<void> clearViewInTxn(Txn txn, String viewName);
+
   // -------- FIFO (per destination) --------
 
   /// Append a batch-shaped entry to destination [destinationId]'s FIFO

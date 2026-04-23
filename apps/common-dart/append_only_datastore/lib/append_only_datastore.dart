@@ -98,8 +98,10 @@
 library;
 
 // bootstrapAppendOnlyDatastore — single entry point for app main() to wire
-// the storage backend, the EntryTypeRegistry, and the initial destinations.
-export 'src/bootstrap.dart' show bootstrapAppendOnlyDatastore;
+// the storage backend, EntryTypeRegistry, destinations, security context
+// store, and EventStore. Returns an AppendOnlyDatastore facade.
+export 'src/bootstrap.dart'
+    show AppendOnlyDatastore, bootstrapAppendOnlyDatastore;
 
 // Core configuration
 export 'src/core/config/datastore_config.dart';
@@ -122,11 +124,14 @@ export 'src/destinations/subscription_filter.dart'
     show SubscriptionFilter, SubscriptionPredicate;
 export 'src/destinations/wire_payload.dart' show WirePayload;
 
-// Entry Type Registry + EntryService.record — the sole write API for
-// widgets producing new events. Phase 4.3 Task 16 ships the minimal
-// EntryTypeRegistry surface; Task 17 will polish if needed.
+// Entry Type Registry + EntryService.record — the legacy Phase 4.3 write
+// path. Phase 4.4 added EventStore (see `src/event_store.dart`) as the new
+// write API; `EntryService.record` remains for back-compat until Phase 5
+// cuts clinical_diary over.
 export 'src/entry_service.dart' show DeviceInfo, EntryService, SyncCycleTrigger;
 export 'src/entry_type_registry.dart' show EntryTypeRegistry;
+export 'src/event_store.dart'
+    show EventStore, EventStoreSyncCycleTrigger, RetentionResult;
 
 // Infrastructure - Database
 export 'src/infrastructure/database/database_provider.dart';
@@ -134,14 +139,38 @@ export 'src/infrastructure/database/database_provider.dart';
 // Infrastructure - Repositories
 export 'src/infrastructure/repositories/event_repository.dart';
 
-// Materialization layer — pure fold function, entry-type-definition lookup
-// abstraction, and the disaster-recovery rebuild helper (CUR-1154).
+// Materialization layer — pluggable fold contract, concrete materializer
+// for diary_entries, entry-type-definition lookup, and the
+// disaster-recovery rebuild helpers (CUR-1154).
 // MapEntryTypeDefinitionLookup is intentionally NOT exported — it lives
 // under test/test_support/ so production code cannot depend on it.
+export 'src/materialization/diary_entries_materializer.dart'
+    show DiaryEntriesMaterializer;
 export 'src/materialization/entry_type_definition_lookup.dart'
     show EntryTypeDefinitionLookup;
 export 'src/materialization/materializer.dart' show Materializer;
-export 'src/materialization/rebuild.dart' show rebuildMaterializedView;
+export 'src/materialization/rebuild.dart'
+    show rebuildMaterializedView, rebuildView;
+
+// Security module — Phase 4.4 Tasks 11-15: EventSecurityContext value
+// type, SecurityDetails caller input, SecurityRetentionPolicy sweeps,
+// SecurityContextStore read-only surface, sembast concrete impl, reserved
+// system entry types for redaction/compact/purge audit events.
+export 'src/security/event_security_context.dart' show EventSecurityContext;
+export 'src/security/security_context_store.dart'
+    show AuditRow, PagedAudit, SecurityContextStore;
+export 'src/security/security_details.dart' show SecurityDetails;
+export 'src/security/security_retention_policy.dart'
+    show SecurityRetentionPolicy;
+export 'src/security/sembast_security_context_store.dart'
+    show SembastSecurityContextStore;
+export 'src/security/system_entry_types.dart'
+    show
+        kReservedSystemEntryTypeIds,
+        kSecurityContextCompactedEntryType,
+        kSecurityContextPurgedEntryType,
+        kSecurityContextRedactedEntryType,
+        kSystemEntryTypes;
 
 // Storage layer — StorageBackend contract, SembastBackend concrete
 // implementation, and the value types that flow through the contract
@@ -152,9 +181,12 @@ export 'src/storage/diary_entry.dart' show DiaryEntry;
 export 'src/storage/exhausted_fifo_summary.dart' show ExhaustedFifoSummary;
 export 'src/storage/fifo_entry.dart' show EventIdRange, FifoEntry;
 export 'src/storage/final_status.dart' show FinalStatus;
+export 'src/storage/initiator.dart'
+    show Initiator, UserInitiator, AutomationInitiator, AnonymousInitiator;
 export 'src/storage/sembast_backend.dart' show SembastBackend;
 export 'src/storage/send_result.dart'
     show SendResult, SendOk, SendTransient, SendPermanent;
+export 'src/storage/source.dart' show Source;
 export 'src/storage/storage_backend.dart' show StorageBackend;
 export 'src/storage/stored_event.dart' show StoredEvent;
 export 'src/storage/txn.dart' show Txn;

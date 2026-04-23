@@ -1,4 +1,5 @@
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/sync/fill_batch.dart';
@@ -37,8 +38,7 @@ Future<StoredEvent> _appendEvent(
       sequenceNumber: seq,
       data: const <String, dynamic>{},
       metadata: const <String, dynamic>{},
-      userId: 'u',
-      deviceId: 'd',
+      initiator: const UserInitiator('u'),
       clientTimestamp: clientTimestamp,
       eventHash: 'hash-$eventId',
     );

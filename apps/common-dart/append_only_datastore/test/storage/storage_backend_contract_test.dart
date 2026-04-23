@@ -6,6 +6,7 @@ import 'package:append_only_datastore/src/storage/diary_entry.dart';
 import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
@@ -141,8 +142,7 @@ StoredEvent _sampleEvent({required String eventId}) => StoredEvent(
   sequenceNumber: 0,
   data: const <String, dynamic>{},
   metadata: const <String, dynamic>{},
-  userId: 'u',
-  deviceId: 'd',
+  initiator: const UserInitiator('u'),
   clientTimestamp: DateTime.utc(2026, 4, 22),
   eventHash: 'hash-$eventId',
 );
@@ -264,6 +264,31 @@ class _InMemoryBackend extends StorageBackend {
   }) => throw UnimplementedError();
   @override
   Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
+      throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>?> readViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> upsertViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+    Map<String, dynamic> row,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key) =>
+      throw UnimplementedError();
+  @override
+  Future<List<Map<String, dynamic>>> findViewRows(
+    String viewName, {
+    int? limit,
+    int? offset,
+  }) => throw UnimplementedError();
+  @override
+  Future<void> clearViewInTxn(Txn txn, String viewName) =>
       throw UnimplementedError();
   @override
   Future<FifoEntry> enqueueFifo(

@@ -26,6 +26,7 @@ class EntryTypeDefinition {
     required this.widgetConfig,
     this.effectiveDatePath,
     this.destinationTags,
+    this.materialize = true,
   });
 
   // Implements: REQ-d00116-A+B+C+D+E — decode from snake_case JSON; reject
@@ -74,6 +75,13 @@ class EntryTypeDefinition {
       );
     }
 
+    final materializeRaw = json['materialize'];
+    if (materializeRaw != null && materializeRaw is! bool) {
+      throw const FormatException(
+        'EntryTypeDefinition: "materialize" must be a bool when present',
+      );
+    }
+
     return EntryTypeDefinition(
       id: id,
       version: version,
@@ -82,6 +90,7 @@ class EntryTypeDefinition {
       widgetConfig: widgetConfig,
       effectiveDatePath: effectiveDatePathRaw as String?,
       destinationTags: destinationTags,
+      materialize: (materializeRaw as bool?) ?? true,
     );
   }
 
@@ -110,6 +119,13 @@ class EntryTypeDefinition {
   /// this entry type declares no routing-hint tags.
   final List<String>? destinationTags;
 
+  /// When `false`, no materializer runs for events of this entry type.
+  /// Used by reserved system entry types (e.g., `security_context_redacted`)
+  /// that must land in the event log as immutable audit rows but write no
+  /// view state. Defaults to `true`.
+  // Implements: REQ-d00140-C — def.materialize=false skips all materializers.
+  final bool materialize;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
     'version': version,
@@ -118,6 +134,7 @@ class EntryTypeDefinition {
     'widget_config': widgetConfig,
     'effective_date_path': effectiveDatePath,
     'destination_tags': destinationTags,
+    'materialize': materialize,
   };
 
   @override
@@ -130,7 +147,8 @@ class EntryTypeDefinition {
           widgetId == other.widgetId &&
           _deepEq.equals(widgetConfig, other.widgetConfig) &&
           effectiveDatePath == other.effectiveDatePath &&
-          _deepEq.equals(destinationTags, other.destinationTags);
+          _deepEq.equals(destinationTags, other.destinationTags) &&
+          materialize == other.materialize;
 
   @override
   int get hashCode => Object.hash(
@@ -141,6 +159,7 @@ class EntryTypeDefinition {
     _deepEq.hash(widgetConfig),
     effectiveDatePath,
     _deepEq.hash(destinationTags),
+    materialize,
   );
 
   @override
@@ -149,7 +168,8 @@ class EntryTypeDefinition {
       'id: $id, version: $version, name: $name, '
       'widgetId: $widgetId, widgetConfig: $widgetConfig, '
       'effectiveDatePath: $effectiveDatePath, '
-      'destinationTags: $destinationTags)';
+      'destinationTags: $destinationTags, '
+      'materialize: $materialize)';
 }
 
 const DeepCollectionEquality _deepEq = DeepCollectionEquality();

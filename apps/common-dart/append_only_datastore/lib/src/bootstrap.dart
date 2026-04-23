@@ -1,52 +1,92 @@
 import 'package:append_only_datastore/src/destinations/destination.dart';
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/entry_type_registry.dart';
-import 'package:append_only_datastore/src/storage/storage_backend.dart';
+import 'package:append_only_datastore/src/event_store.dart';
+import 'package:append_only_datastore/src/materialization/materializer.dart';
+import 'package:append_only_datastore/src/security/security_context_store.dart';
+import 'package:append_only_datastore/src/security/sembast_security_context_store.dart';
+import 'package:append_only_datastore/src/security/system_entry_types.dart';
+import 'package:append_only_datastore/src/storage/sembast_backend.dart';
+import 'package:append_only_datastore/src/storage/source.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-/// Wire the storage backend, the `EntryTypeRegistry`, and the initial
-/// set of `Destination`s for an app's `main()`. Returns the two
-/// registries the rest of the app reads through.
+/// Facade returned by `bootstrapAppendOnlyDatastore`. Exposes the four
+/// collaborators an app reads through after startup: the write API
+/// (`eventStore`), the registries (`entryTypes`, `destinations`), and the
+/// security-context sidecar surface (`securityContexts`).
+// Implements: REQ-d00134-A (Phase 4.4 revised) — AppendOnlyDatastore facade.
+class AppendOnlyDatastore {
+  const AppendOnlyDatastore({
+    required this.eventStore,
+    required this.entryTypes,
+    required this.destinations,
+    required this.securityContexts,
+  });
+
+  final EventStore eventStore;
+  final EntryTypeRegistry entryTypes;
+  final DestinationRegistry destinations;
+  final SecurityContextStore securityContexts;
+}
+
+/// Wire the storage backend, the `EntryTypeRegistry`, the initial set of
+/// `Destination`s, the security-context store, and the `EventStore`.
+/// Returns an `AppendOnlyDatastore` facade the rest of the app reads
+/// through.
 ///
-/// Types register before destinations so that a destination whose
-/// construction or filter resolution needs the registry can rely on
-/// every supplied `EntryTypeDefinition` being present at the moment its
-/// own `addDestination` runs (REQ-d00134-B).
+/// Reserved system entry types (security-context audit events) are
+/// auto-registered BEFORE the caller-supplied list. Id collision with a
+/// reserved id throws `ArgumentError` with a "reserved" message.
 ///
-/// Destination id collisions surface as `ArgumentError` from
-/// `DestinationRegistry.addDestination` (REQ-d00129-A) and are NOT
-/// caught here — bootstrap fails fast so a misconfigured app crashes
-/// at startup rather than rendering UI on top of a half-initialized
-/// datastore (REQ-d00134-D).
-///
-/// Destinations are registered sequentially rather than via
-/// `Future.wait`. Sequential iteration causes the first id collision
-/// (or any backend exception) to throw immediately, preserving the
-/// fail-fast guarantee in REQ-d00134-D. `Future.wait` would race every
-/// `addDestination` to completion before propagating the first error
-/// and could persist schedule rows for valid destinations that follow
-/// the collision in source order.
-///
-/// The returned `DestinationRegistry` remains open to subsequent
-/// runtime `addDestination` / `setStartDate` / `setEndDate` calls per
-/// REQ-d00129; bootstrap is the *initial* registration pass, not a
-/// freeze (REQ-d00134-C).
-// Implements: REQ-d00134-A — single entry point for datastore init.
-// Implements: REQ-d00134-B — entry types registered before destinations.
-// Implements: REQ-d00134-C — addDestination remains available after bootstrap.
-// Implements: REQ-d00134-D — duplicate destination id throws.
-Future<(EntryTypeRegistry, DestinationRegistry)> bootstrapAppendOnlyDatastore({
-  required StorageBackend backend,
+/// Destinations are registered sequentially, preserving fail-fast on id
+/// collision (REQ-d00134-D).
+// Implements: REQ-d00134-A (Phase 4.4) — single entry point; facade return.
+// Implements: REQ-d00134-B (Phase 4.4) — auto-register system entry types
+//   before caller-supplied types.
+// Implements: REQ-d00134-D (Phase 4.4) — caller id colliding with reserved
+//   id throws ArgumentError with "reserved" message.
+Future<AppendOnlyDatastore> bootstrapAppendOnlyDatastore({
+  required SembastBackend backend,
+  required Source source,
   required List<EntryTypeDefinition> entryTypes,
   required List<Destination> destinations,
+  List<Materializer> materializers = const <Materializer>[],
+  EventStoreSyncCycleTrigger? syncCycleTrigger,
 }) async {
   final typeRegistry = EntryTypeRegistry();
-  for (final defn in entryTypes) {
+  for (final defn in kSystemEntryTypes) {
     typeRegistry.register(defn);
   }
+  for (final defn in entryTypes) {
+    if (kReservedSystemEntryTypeIds.contains(defn.id)) {
+      throw ArgumentError.value(
+        defn.id,
+        'defn.id',
+        'entryType id "${defn.id}" is reserved for system events',
+      );
+    }
+    typeRegistry.register(defn);
+  }
+
+  final securityContexts = SembastSecurityContextStore(backend: backend);
+  final eventStore = EventStore(
+    backend: backend,
+    entryTypes: typeRegistry,
+    source: source,
+    securityContexts: securityContexts,
+    materializers: materializers,
+    syncCycleTrigger: syncCycleTrigger,
+  );
+
   final destinationRegistry = DestinationRegistry(backend: backend);
   for (final destination in destinations) {
     await destinationRegistry.addDestination(destination);
   }
-  return (typeRegistry, destinationRegistry);
+
+  return AppendOnlyDatastore(
+    eventStore: eventStore,
+    entryTypes: typeRegistry,
+    destinations: destinationRegistry,
+    securityContexts: securityContexts,
+  );
 }

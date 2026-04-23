@@ -1,5 +1,6 @@
 import 'package:append_only_datastore/src/materialization/rebuild.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,8 +61,7 @@ void main() {
             sequenceNumber: seq,
             data: data,
             metadata: const <String, dynamic>{},
-            userId: 'u1',
-            deviceId: 'd1',
+            initiator: const UserInitiator('u1'),
             clientTimestamp: clientTimestamp,
             eventHash: 'hash-$eventId',
           ),
@@ -336,7 +336,7 @@ void main() {
     );
 
     // Verifies: REQ-d00121-G+H — chunked streaming read preserves the "read
-    // all events ordered by sequence_number, fold through Materializer.apply"
+    // all events ordered by sequence_number, fold through DiaryEntriesMaterializer.foldPure"
     // contract across chunk boundaries; final view and count are unaffected
     // by the chunking.
     test('REQ-d00121-G+H: event log larger than the streaming chunk size is '

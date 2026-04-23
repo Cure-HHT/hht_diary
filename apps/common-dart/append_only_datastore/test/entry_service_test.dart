@@ -370,11 +370,10 @@ void main() {
             (stored!.metadata['provenance'] as List)[0] as Map<String, Object?>;
         expect(stored.clientTimestamp, now);
         expect(prov0['received_at'], stored.clientTimestamp.toIso8601String());
-        expect(stored.deviceId, prov0['identifier']);
-        expect(stored.softwareVersion, prov0['software_version']);
-        // And they equal the DeviceInfo supplied at construction.
-        expect(stored.deviceId, 'device-1');
-        expect(stored.softwareVersion, 'clinical_diary@1.2.3+4');
+        // Phase 4.4: deviceId / softwareVersion live in provenance[0], not as
+        // top-level fields on StoredEvent.
+        expect(prov0['identifier'], 'device-1');
+        expect(prov0['software_version'], 'clinical_diary@1.2.3+4');
         await fx.backend.close();
       },
     );
@@ -499,6 +498,36 @@ class _DelegatingBackend extends StorageBackend {
   @override
   Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
       _inner.readEntryInTxn(txn, entryId);
+
+  @override
+  Future<Map<String, dynamic>?> readViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+  ) => _inner.readViewRowInTxn(txn, viewName, key);
+
+  @override
+  Future<void> upsertViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+    Map<String, dynamic> row,
+  ) => _inner.upsertViewRowInTxn(txn, viewName, key, row);
+
+  @override
+  Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key) =>
+      _inner.deleteViewRowInTxn(txn, viewName, key);
+
+  @override
+  Future<List<Map<String, dynamic>>> findViewRows(
+    String viewName, {
+    int? limit,
+    int? offset,
+  }) => _inner.findViewRows(viewName, limit: limit, offset: offset);
+
+  @override
+  Future<void> clearViewInTxn(Txn txn, String viewName) =>
+      _inner.clearViewInTxn(txn, viewName);
 
   @override
   Future<FifoEntry> enqueueFifo(

@@ -1,5 +1,6 @@
-import 'package:append_only_datastore/src/materialization/materializer.dart';
+import 'package:append_only_datastore/src/materialization/diary_entries_materializer.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
@@ -34,8 +35,7 @@ void main() {
       sequenceNumber: sequenceNumber,
       data: data ?? <String, dynamic>{'answers': <String, Object?>{}},
       metadata: const <String, dynamic>{},
-      userId: 'user-1',
-      deviceId: 'device-1',
+      initiator: const UserInitiator('user-1'),
       clientTimestamp:
           clientTimestamp ?? DateTime.parse('2026-04-22T10:00:00Z'),
       eventHash: 'hash-$eventId',
@@ -44,7 +44,7 @@ void main() {
 
   final firstTs = DateTime.parse('2026-04-22T10:00:00Z');
 
-  group('Materializer.apply finalized event', () {
+  group('DiaryEntriesMaterializer.foldPure finalized event', () {
     // Verifies: REQ-d00121-B+E — finalized sets is_complete=true, whole-
     // replaces current_answers, stamps latest_event_id and updated_at.
     test(
@@ -63,7 +63,7 @@ void main() {
         );
         final def = defFor('epistaxis_event');
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: def,
@@ -115,7 +115,7 @@ void main() {
           },
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: previous,
           event: event,
           def: defFor('epistaxis_event'),
@@ -134,7 +134,7 @@ void main() {
     );
   });
 
-  group('Materializer.apply checkpoint event', () {
+  group('DiaryEntriesMaterializer.foldPure checkpoint event', () {
     // Verifies: REQ-d00121-C — checkpoint sets is_complete=false and whole-
     // replaces current_answers with event.data.answers.
     test(
@@ -149,7 +149,7 @@ void main() {
           },
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: defFor('epistaxis_event'),
@@ -164,7 +164,7 @@ void main() {
     );
   });
 
-  group('Materializer.apply tombstone event', () {
+  group('DiaryEntriesMaterializer.foldPure tombstone event', () {
     // Verifies: REQ-d00121-D+E — tombstone flips is_deleted=true, carries
     // over current_answers and is_complete, stamps latest_event_id/updated_at.
     test(
@@ -191,7 +191,7 @@ void main() {
           data: <String, dynamic>{'answers': <String, Object?>{}},
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: previous,
           event: event,
           def: defFor('epistaxis_event'),
@@ -223,7 +223,7 @@ void main() {
           data: <String, dynamic>{'answers': <String, Object?>{}},
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: defFor('epistaxis_event'),
@@ -238,7 +238,7 @@ void main() {
     );
   });
 
-  group('Materializer.apply effective_date resolution', () {
+  group('DiaryEntriesMaterializer.foldPure effective_date resolution', () {
     // Verifies: REQ-d00121-F — single-segment effective_date_path resolves
     // into current_answers and parses the value as a full DateTime.
     test(
@@ -254,7 +254,7 @@ void main() {
           },
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
@@ -278,7 +278,7 @@ void main() {
           },
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: defFor('nose_hht_survey', effectiveDatePath: 'answers.date'),
@@ -297,7 +297,7 @@ void main() {
         data: <String, dynamic>{'answers': <String, Object?>{}},
       );
 
-      final entry = Materializer.apply(
+      final entry = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
         def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
@@ -317,7 +317,7 @@ void main() {
         },
       );
 
-      final entry = Materializer.apply(
+      final entry = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
         def: defFor('epistaxis_event'),
@@ -338,7 +338,7 @@ void main() {
           },
         );
 
-        final entry = Materializer.apply(
+        final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
           def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
@@ -350,8 +350,8 @@ void main() {
     );
   });
 
-  group('Materializer.apply purity', () {
-    // Verifies: REQ-d00121-A — Materializer.apply is pure; identical inputs
+  group('DiaryEntriesMaterializer.foldPure purity', () {
+    // Verifies: REQ-d00121-A — DiaryEntriesMaterializer.foldPure is pure; identical inputs
     // always produce identical (deep-equal) outputs.
     test('REQ-d00121-A: identical inputs produce identical outputs (deep '
         'equality, repeated call)', () {
@@ -363,13 +363,13 @@ void main() {
       );
       final def = defFor('epistaxis_event', effectiveDatePath: 'startTime');
 
-      final first = Materializer.apply(
+      final first = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
         def: def,
         firstEventTimestamp: firstTs,
       );
-      final second = Materializer.apply(
+      final second = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
         def: def,

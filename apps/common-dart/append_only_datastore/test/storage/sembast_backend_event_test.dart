@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
@@ -421,8 +422,7 @@ StoredEvent _event(
     sequenceNumber: sequenceNumber,
     data: const <String, dynamic>{},
     metadata: const <String, dynamic>{},
-    userId: 'u',
-    deviceId: 'd',
+    initiator: const UserInitiator('u'),
     clientTimestamp: DateTime.utc(2026, 4, 22),
     eventHash: 'hash-$eventId',
   );

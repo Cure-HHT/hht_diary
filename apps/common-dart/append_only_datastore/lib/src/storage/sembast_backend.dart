@@ -115,6 +115,14 @@ class SembastBackend extends StorageBackend {
     return txn;
   }
 
+  /// Return the underlying sembast [Transaction] for [txn]. Used by
+  /// adjacent sembast-family stores (e.g. `SembastSecurityContextStore`)
+  /// that need to commit writes atomically with this backend's
+  /// transaction. NOT part of the abstract `StorageBackend` contract —
+  /// only sembast-side code should reach for this.
+  // ignore: library_private_types_in_public_api
+  Transaction unwrapSembastTxn(Txn txn) => _requireValidTxn(txn)._sembastTxn;
+
   // -------- Events --------
 
   /// Persist [event] inside [txn] and return its [AppendResult]. Under the
@@ -504,6 +512,76 @@ class SembastBackend extends StorageBackend {
     final raw = await _entriesStore.record(entryId).get(t._sembastTxn);
     if (raw == null) return null;
     return DiaryEntry.fromJson(raw);
+  }
+
+  // -------- Generic view storage (Phase 4.4) --------
+
+  final Map<String, StoreRef<String, Map<String, Object?>>> _viewStoreCache =
+      <String, StoreRef<String, Map<String, Object?>>>{};
+
+  StoreRef<String, Map<String, Object?>> _viewStore(String viewName) =>
+      _viewStoreCache.putIfAbsent(
+        viewName,
+        () => stringMapStoreFactory.store(viewName),
+      );
+
+  // Implements: REQ-d00140-F — readViewRowInTxn generic view-row read.
+  @override
+  Future<Map<String, dynamic>?> readViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+  ) async {
+    final t = _requireValidTxn(txn);
+    final raw = await _viewStore(viewName).record(key).get(t._sembastTxn);
+    if (raw == null) return null;
+    return Map<String, dynamic>.from(raw);
+  }
+
+  // Implements: REQ-d00140-F — upsertViewRowInTxn whole-row upsert.
+  @override
+  Future<void> upsertViewRowInTxn(
+    Txn txn,
+    String viewName,
+    String key,
+    Map<String, dynamic> row,
+  ) async {
+    final t = _requireValidTxn(txn);
+    await _viewStore(
+      viewName,
+    ).record(key).put(t._sembastTxn, Map<String, Object?>.from(row));
+  }
+
+  // Implements: REQ-d00140-F — deleteViewRowInTxn row-scoped delete.
+  @override
+  Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key) async {
+    final t = _requireValidTxn(txn);
+    await _viewStore(viewName).record(key).delete(t._sembastTxn);
+  }
+
+  // Implements: REQ-d00140-F — findViewRows iteration with limit/offset.
+  @override
+  Future<List<Map<String, dynamic>>> findViewRows(
+    String viewName, {
+    int? limit,
+    int? offset,
+  }) async {
+    final db = _database();
+    final records = await _viewStore(viewName).find(
+      db,
+      finder: Finder(limit: limit, offset: offset),
+    );
+    return records
+        .map((r) => Map<String, dynamic>.from(r.value))
+        .toList(growable: false);
+  }
+
+  // Implements: REQ-d00140-F — clearViewInTxn view-scoped clear; other
+  // views untouched.
+  @override
+  Future<void> clearViewInTxn(Txn txn, String viewName) async {
+    final t = _requireValidTxn(txn);
+    await _viewStore(viewName).delete(t._sembastTxn);
   }
 
   // -------- FIFO --------

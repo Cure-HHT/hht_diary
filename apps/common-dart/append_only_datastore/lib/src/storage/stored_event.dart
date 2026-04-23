@@ -1,12 +1,19 @@
+import 'package:append_only_datastore/src/storage/initiator.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 /// Represents a stored event with all fields populated.
 ///
-/// Pure data — no Sembast or Flutter dependency — so it can travel through
-/// the `StorageBackend` contract without leaking backend details into the
-/// abstraction. Lives in `lib/src/storage/` alongside the other value types
-/// (`DiaryEntry`, `FifoEntry`, etc.).
+/// Pure data — no Sembast or Flutter dependency on its shape — so it can
+/// travel through the `StorageBackend` contract without leaking backend
+/// details into the abstraction. Lives in `lib/src/storage/` alongside the
+/// other value types (`DiaryEntry`, `FifoEntry`, etc.).
 // Implements: REQ-d00118-A — first-class entry_type field on the event record.
 // Implements: REQ-d00118-B — server_timestamp is NOT stored on the event;
 // the ingesting server is the sole authority on its own timestamp.
+// Implements: REQ-d00135-C — top-level user_id replaced by initiator; no
+// top-level user_id remains on StoredEvent.
+// Implements: REQ-d00136-A — flowToken is a nullable String? column on the
+// event record.
 class StoredEvent {
   const StoredEvent({
     required this.key,
@@ -18,19 +25,18 @@ class StoredEvent {
     required this.sequenceNumber,
     required this.data,
     required this.metadata,
-    required this.userId,
-    required this.deviceId,
+    required this.initiator,
     required this.clientTimestamp,
     required this.eventHash,
-    this.softwareVersion = '',
+    this.flowToken,
     this.previousEventHash,
     this.syncedAt,
   });
 
   /// Create from a database record map.
   ///
-  /// Every required field is explicitly type-checked via an `is!` guard and a
-  /// thrown [FormatException] naming the offending key. A malformed event
+  /// Every required field is explicitly type-checked via an `is!` guard and
+  /// a thrown [FormatException] naming the offending key. A malformed event
   /// record surfaces as a typed error rather than a generic `CastError` or
   /// `TypeError` at an unrelated call site, keeping diagnosis focused on the
   /// actual bad field.
@@ -51,21 +57,27 @@ class StoredEvent {
     final metadata = metadataRaw == null
         ? <String, dynamic>{}
         : Map<String, dynamic>.from(metadataRaw as Map);
-    final userId = _requireString(map, 'user_id');
-    final deviceId = _requireString(map, 'device_id');
-    final clientTimestamp = _requireDateTime(map, 'client_timestamp');
-    final eventHash = _requireString(map, 'event_hash');
-    // REQ-d00118-C / REQ-d00133-I — software_version is a migration-bridge
-    // top-level field populated from metadata.provenance[0] by
-    // EntryService.record. Optional on legacy records written before the
-    // EntryService path was introduced; stored as empty string when absent.
-    final softwareVersionRaw = map['software_version'];
-    if (softwareVersionRaw != null && softwareVersionRaw is! String) {
+
+    final initiatorRaw = map['initiator'];
+    if (initiatorRaw is! Map) {
       throw const FormatException(
-        'StoredEvent: "software_version" must be a String when present',
+        'StoredEvent: missing or non-map "initiator"',
       );
     }
-    final softwareVersion = (softwareVersionRaw as String?) ?? '';
+    final initiator = Initiator.fromJson(
+      Map<String, dynamic>.from(initiatorRaw),
+    );
+
+    final flowTokenRaw = map['flow_token'];
+    if (flowTokenRaw != null && flowTokenRaw is! String) {
+      throw const FormatException(
+        'StoredEvent: "flow_token" must be a String when present',
+      );
+    }
+
+    final clientTimestamp = _requireDateTime(map, 'client_timestamp');
+    final eventHash = _requireString(map, 'event_hash');
+
     final previousHashRaw = map['previous_event_hash'];
     if (previousHashRaw != null && previousHashRaw is! String) {
       throw const FormatException(
@@ -101,15 +113,53 @@ class StoredEvent {
       sequenceNumber: sequenceNumber,
       data: Map<String, dynamic>.from(data),
       metadata: metadata,
-      userId: userId,
-      deviceId: deviceId,
+      initiator: initiator,
+      flowToken: flowTokenRaw as String?,
       clientTimestamp: clientTimestamp,
       eventHash: eventHash,
-      softwareVersion: softwareVersion,
       previousEventHash: previousHashRaw as String?,
       syncedAt: syncedAt,
     );
   }
+
+  /// Test-only factory for constructing a `StoredEvent` with caller-
+  /// supplied fields — no real hash chain, no sequence bookkeeping.
+  /// Downstream packages' in-memory `StorageBackend` doubles use this
+  /// to seed events without re-implementing hash chaining.
+  @visibleForTesting
+  factory StoredEvent.synthetic({
+    required String eventId,
+    required String aggregateId,
+    required String entryType,
+    required Initiator initiator,
+    required DateTime clientTimestamp,
+    required String eventHash,
+    int key = 0,
+    String aggregateType = 'DiaryEntry',
+    String eventType = 'finalized',
+    int sequenceNumber = 0,
+    Map<String, dynamic>? data,
+    Map<String, dynamic>? metadata,
+    String? flowToken,
+    String? previousEventHash,
+    DateTime? syncedAt,
+  }) => StoredEvent(
+    key: key,
+    eventId: eventId,
+    aggregateId: aggregateId,
+    aggregateType: aggregateType,
+    entryType: entryType,
+    eventType: eventType,
+    sequenceNumber: sequenceNumber,
+    data: data ?? const <String, dynamic>{},
+    metadata: metadata ?? const <String, dynamic>{},
+    initiator: initiator,
+    flowToken: flowToken,
+    clientTimestamp: clientTimestamp,
+    eventHash: eventHash,
+    previousEventHash: previousEventHash,
+    syncedAt: syncedAt,
+  );
 
   /// Database key.
   final int key;
@@ -128,8 +178,7 @@ class StoredEvent {
   final String entryType;
 
   /// User-intent discriminator for the event: 'finalized' | 'checkpoint' |
-  /// 'tombstone' in the target design, though legacy writers currently supply
-  /// NosebleedRecorded/NosebleedDeleted until Phase 5 cuts over.
+  /// 'tombstone'.
   final String eventType;
 
   /// Monotonically increasing sequence number.
@@ -138,23 +187,21 @@ class StoredEvent {
   /// Event payload data (JSON).
   final Map<String, dynamic> data;
 
-  /// Additional metadata.
+  /// Additional metadata; typically carries `change_reason` and
+  /// `provenance[]`.
   final Map<String, dynamic> metadata;
 
-  /// User who created this event.
-  final String userId;
-
-  /// Device that created this event.
-  final String deviceId;
+  /// Actor that initiated this event. Replaces the Phase-4.3 top-level
+  /// `userId` field.
+  final Initiator initiator;
 
   /// Client-side timestamp when event was created.
   final DateTime clientTimestamp;
 
-  /// Software version that authored this event, populated from
-  /// `metadata.provenance[0].software_version` by `EntryService.record`
-  /// (REQ-d00118-C, REQ-d00133-I). Empty string on legacy records written
-  /// before the EntryService path was introduced.
-  final String softwareVersion;
+  /// Correlation token linking events that belong to the same multi-step
+  /// business flow (e.g., `invite:ABC123`). Nullable; the library does not
+  /// enforce format.
+  final String? flowToken;
 
   /// SHA-256 hash of event for tamper detection.
   final String eventHash;
@@ -162,7 +209,8 @@ class StoredEvent {
   /// Hash of previous event (for chain integrity).
   final String? previousEventHash;
 
-  /// When this event was synced to the server (null if not synced).
+  /// When this event was synced to the server (null if not synced). Legacy
+  /// field, scheduled for Phase 5 removal.
   final DateTime? syncedAt;
 
   /// Whether this event has been synced.
@@ -179,10 +227,9 @@ class StoredEvent {
       'sequence_number': sequenceNumber,
       'data': data,
       'metadata': metadata,
-      'user_id': userId,
-      'device_id': deviceId,
+      'initiator': initiator.toJson(),
+      'flow_token': flowToken,
       'client_timestamp': clientTimestamp.toIso8601String(),
-      'software_version': softwareVersion,
       'event_hash': eventHash,
       'previous_event_hash': previousEventHash,
       'synced_at': syncedAt?.toIso8601String(),

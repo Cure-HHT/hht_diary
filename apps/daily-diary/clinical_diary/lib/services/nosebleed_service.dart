@@ -108,7 +108,13 @@ class NosebleedService {
       isDeleted: data['isDeleted'] as bool? ?? false,
       deleteReason: data['deleteReason'] as String?,
       parentRecordId: data['parentRecordId'] as String?,
-      deviceUuid: event.deviceId,
+      // Phase 4.4: deviceId moved off StoredEvent to metadata.provenance[0].
+      // Phase 5 will rewire widgets onto EventStore; this is the interim read.
+      deviceUuid:
+          ((event.metadata['provenance'] as List?)?.firstOrNull
+                  as Map<String, Object?>?)?['identifier']
+              as String? ??
+          '',
       createdAt: event.clientTimestamp,
       syncedAt: event.syncedAt,
       // CUR-516: Read timezone for UI restoration on incomplete records

@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/materialization/diary_entries_materializer.dart';
 import 'package:append_only_datastore/src/materialization/entry_type_definition_lookup.dart';
 import 'package:append_only_datastore/src/materialization/materializer.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
@@ -94,7 +95,7 @@ Future<int> rebuildMaterializedView(
           event.aggregateId,
           () => event.clientTimestamp,
         );
-        byAggregate[event.aggregateId] = Materializer.apply(
+        byAggregate[event.aggregateId] = DiaryEntriesMaterializer.foldPure(
           previous: byAggregate[event.aggregateId],
           event: event,
           def: def,
@@ -111,5 +112,74 @@ Future<int> rebuildMaterializedView(
     }
 
     return byAggregate.length;
+  });
+}
+
+/// Rebuild exactly one view by replaying the event log through
+/// [materializer]. Clears the view, then calls `materializer.applyInTxn`
+/// for every event where `materializer.appliesTo(event)` returns true.
+/// Events whose `EntryTypeDefinition.materialize == false` are skipped
+/// (REQ-d00140-C). Runs in one backend transaction.
+///
+/// Returns the number of events processed. Idempotent — running twice on
+/// the same log produces the same view rows.
+// Implements: REQ-d00140-D — rebuildView per-view, idempotent; materializer-
+// parameterized replay.
+// Implements: REQ-d00140-C — materialize=false on the entry type skips
+// this materializer entirely.
+Future<int> rebuildView(
+  Materializer materializer,
+  StorageBackend backend,
+  EntryTypeDefinitionLookup lookup,
+) async {
+  return backend.transaction<int>((txn) async {
+    await backend.clearViewInTxn(txn, materializer.viewName);
+    final historyByAggregate = <String, List<StoredEvent>>{};
+    var processed = 0;
+
+    int? lastSeq;
+    while (true) {
+      final chunk = await backend.findAllEventsInTxn(
+        txn,
+        afterSequence: lastSeq,
+        limit: _rebuildChunkSize,
+      );
+      if (chunk.isEmpty) break;
+
+      for (final event in chunk) {
+        final def = lookup.lookup(event.entryType);
+        if (def == null) {
+          throw StateError(
+            'rebuildView: unknown entry_type "${event.entryType}" on '
+            'event ${event.eventId} (aggregate ${event.aggregateId}, '
+            'seq ${event.sequenceNumber}).',
+          );
+        }
+        if (!def.materialize) {
+          continue;
+        }
+        if (!materializer.appliesTo(event)) {
+          continue;
+        }
+        final history = historyByAggregate.putIfAbsent(
+          event.aggregateId,
+          () => <StoredEvent>[],
+        );
+        await materializer.applyInTxn(
+          txn,
+          backend,
+          event: event,
+          def: def,
+          aggregateHistory: List<StoredEvent>.unmodifiable(history),
+        );
+        history.add(event);
+        processed += 1;
+      }
+
+      if (chunk.length < _rebuildChunkSize) break;
+      lastSeq = chunk.last.sequenceNumber;
+    }
+
+    return processed;
   });
 }

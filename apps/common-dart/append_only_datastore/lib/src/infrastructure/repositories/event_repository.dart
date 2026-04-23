@@ -5,11 +5,13 @@
 import 'package:append_only_datastore/src/core/errors/datastore_exception.dart'
     as errors;
 import 'package:append_only_datastore/src/infrastructure/database/database_provider.dart';
+import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
 import 'package:crypto/crypto.dart';
+import 'package:provenance/provenance.dart';
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
 
@@ -119,6 +121,27 @@ class EventRepository {
         final eventId = _uuid.v4();
         final clientTs = clientTimestamp?.toUtc() ?? DateTime.now().toUtc();
 
+        // Phase 4.4 drive-by: top-level userId/deviceId are replaced by
+        // initiator (UserInitiator) and metadata.provenance[0].identifier
+        // respectively. The public append() signature keeps its userId/
+        // deviceId parameters to avoid disturbing NosebleedService (Phase 5
+        // cutover); they are wrapped internally into the new envelope.
+        final initiator = UserInitiator(userId);
+        final provenance0 = ProvenanceEntry(
+          hop: 'mobile-device',
+          receivedAt: clientTs,
+          identifier: deviceId,
+          softwareVersion: '',
+        );
+        // Phase 4.4: inject `change_reason: 'initial'` so the hash-chain
+        // input matches the `EventStore.append` path (events written
+        // through either API hash identically for semantically equal
+        // inputs).
+        final effectiveMetadata = <String, dynamic>{
+          ...?metadata,
+          'change_reason': (metadata?['change_reason'] as String?) ?? 'initial',
+          'provenance': <Map<String, dynamic>>[provenance0.toJson()],
+        };
         final eventRecord = <String, dynamic>{
           'event_id': eventId,
           'aggregate_id': aggregateId,
@@ -127,9 +150,9 @@ class EventRepository {
           'event_type': eventType,
           'sequence_number': sequenceNumber,
           'data': data,
-          'metadata': metadata ?? <String, dynamic>{},
-          'user_id': userId,
-          'device_id': deviceId,
+          'metadata': effectiveMetadata,
+          'initiator': initiator.toJson(),
+          'flow_token': null,
           'client_timestamp': clientTs.toIso8601String(),
           'previous_event_hash': previousHash,
           'synced_at': null,
@@ -289,6 +312,11 @@ class EventRepository {
     // The hashed subset excludes the hash itself and fields that are not
     // part of the event identity (sync markers, aggregate_type label).
     // entry_type is included so tampering with it is detected by the chain.
+    // Phase 4.4 identity-field set (REQ-d00120-B revised): event_id,
+    // aggregate_id, entry_type, event_type, sequence_number, data,
+    // initiator, flow_token, client_timestamp, previous_event_hash,
+    // metadata. Device identity / software version live inside
+    // metadata.provenance[0] and are covered transitively.
     final hashInput = <String, Object?>{
       'event_id': eventRecord['event_id'],
       'aggregate_id': eventRecord['aggregate_id'],
@@ -296,10 +324,11 @@ class EventRepository {
       'event_type': eventRecord['event_type'],
       'sequence_number': eventRecord['sequence_number'],
       'data': eventRecord['data'],
-      'user_id': eventRecord['user_id'],
-      'device_id': eventRecord['device_id'],
+      'initiator': eventRecord['initiator'],
+      'flow_token': eventRecord['flow_token'],
       'client_timestamp': eventRecord['client_timestamp'],
       'previous_event_hash': eventRecord['previous_event_hash'],
+      'metadata': eventRecord['metadata'],
     };
 
     final bytes = canonicalizeBytes(hashInput);
