@@ -203,26 +203,52 @@ Future<Response> linkHandler(Request request) async {
     String authCode;
 
     if (appUuid != null) {
-      // CUR-1055: Atomic create-or-get to prevent race condition.
-      // ON CONFLICT returns the EXISTING row's user_id/auth_code when the same
-      // app_uuid is already registered, preventing duplicate app_user creation.
-      // The unique index (migration 008) enforces the constraint at the DB level.
-      final upsertResult = await db.execute(
-        '''
-        INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
-        VALUES (@newUserId, @newAuthCode, @appUuid, now(), now())
-        ON CONFLICT (app_uuid) WHERE app_uuid IS NOT NULL
-        DO UPDATE SET last_active_at = now()
-        RETURNING user_id, auth_code
-        ''',
-        parameters: {
-          'newUserId': generateUserId(),
-          'newAuthCode': generateAuthCode(),
-          'appUuid': appUuid,
-        },
+      // CUR-1055: Find-or-create app_user for this device.
+      // SELECT first to avoid ON CONFLICT syntax which requires the arbiter
+      // index to be resolved at parse time — incompatible with the Dart
+      // postgres v3 extended query protocol for named parameters.
+      // The UNIQUE constraint on app_uuid still prevents duplicate rows if
+      // two concurrent requests race past the SELECT.
+      final existing = await db.execute(
+        'SELECT user_id, auth_code FROM app_users WHERE app_uuid = @appUuid',
+        parameters: {'appUuid': appUuid},
       );
-      userId = upsertResult.first[0] as String;
-      authCode = upsertResult.first[1] as String;
+
+      if (existing.isNotEmpty) {
+        userId = existing.first[0] as String;
+        authCode = existing.first[1] as String;
+        await db.execute(
+          'UPDATE app_users SET last_active_at = now() WHERE user_id = @userId',
+          parameters: {'userId': userId},
+        );
+      } else {
+        final newUserId = generateUserId();
+        final newAuthCode = generateAuthCode();
+        try {
+          await db.execute(
+            '''
+            INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
+            VALUES (@userId, @authCode, @appUuid, now(), now())
+            ''',
+            parameters: {
+              'userId': newUserId,
+              'authCode': newAuthCode,
+              'appUuid': appUuid,
+            },
+          );
+          userId = newUserId;
+          authCode = newAuthCode;
+        } catch (_) {
+          // Race condition: concurrent request inserted first.
+          // Re-select to get the winner's user_id/auth_code.
+          final retry = await db.execute(
+            'SELECT user_id, auth_code FROM app_users WHERE app_uuid = @appUuid',
+            parameters: {'appUuid': appUuid},
+          );
+          userId = retry.first[0] as String;
+          authCode = retry.first[1] as String;
+        }
+      }
     } else {
       // No appUuid - create anonymous user
       userId = generateUserId();

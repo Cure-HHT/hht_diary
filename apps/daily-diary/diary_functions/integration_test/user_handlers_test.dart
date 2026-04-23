@@ -141,7 +141,8 @@ void main() {
     final request = createPostRequest('/api/v1/auth/register', {
       'username': username,
       'passwordHash': passwordHash,
-      'appUuid': 'test-app-uuid',
+      'appUuid':
+          generateUserId(), // unique per call to avoid duplicate constraint
     });
 
     final response = await registerHandler(request);
@@ -473,7 +474,8 @@ void main() {
         () async {
           final request = createPostRequest('/api/v1/user/link', {
             'code': testCode,
-            'appUuid': 'test-app-cur1049',
+            'appUuid':
+                'test-app-cur1049-${DateTime.now().millisecondsSinceEpoch}',
           });
 
           final response = await linkHandler(request);
