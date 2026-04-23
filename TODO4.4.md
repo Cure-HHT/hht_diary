@@ -80,6 +80,45 @@ Storage backends are responsible for indexing the column / JSONB key for efficie
 
 Audit query "what happened to invite ABC123" becomes one SELECT, no graph walk.
 
+### 2b. `EventDraft` shape (consumed by `appendWithSecurity`)
+
+The portal actions library (CUR-1159 Sub-project A) expects `EventDraft` to be a public value type with at least these fields and methods:
+
+```text
+class EventDraft
+  final String aggregateId
+  final String aggregateType
+  final String entryType
+  final String eventType
+  final Map<String, dynamic> data
+  final String? flowToken
+  final Map<String, dynamic>? metadata
+  final Initiator? initiator                 nullable; dispatcher fills if absent
+
+  EventDraft({
+    required aggregateId, aggregateType, entryType, eventType, data,
+    flowToken, metadata, initiator,
+  })
+
+  /// Returns a new EventDraft with the supplied fields overridden.
+  /// Used by the actions-lib dispatcher to stamp initiator, flowToken,
+  /// and merged metadata onto drafts produced by an action's execute().
+  EventDraft copyWith({
+    String? aggregateId,
+    String? aggregateType,
+    String? entryType,
+    String? eventType,
+    Map<String, dynamic>? data,
+    String? flowToken,
+    Map<String, dynamic>? metadata,
+    Initiator? initiator,
+  })
+```
+
+Hash chain fields (`event_hash`, `previous_event_hash`, `sequence_number`) are NOT on `EventDraft`; the events lib computes those at append time and writes them onto the resulting `StoredEvent`. `appendWithSecurity` returns the persisted `StoredEvent`; the actions-lib dispatcher reads `stored.eventId` to populate idempotency-record bookkeeping.
+
+For test-fixture convenience, the events lib SHOULD also provide a `StoredEvent.synthetic({...})` factory that constructs a StoredEvent with caller-supplied fields (no real hashing) — this lets downstream packages write in-memory `StorageBackend` doubles without re-implementing the hash chain. Mark it `@visibleForTesting`.
+
 ### 3. `EventSecurityContext` sibling store
 
 New module: `apps/common-dart/append_only_datastore/lib/src/security/`.

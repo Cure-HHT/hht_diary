@@ -49,6 +49,10 @@ class DestinationRegistry {
   /// registered (REQ-d00129-A).
   // Implements: REQ-d00129-A — addDestination at any time after
   // bootstrap; duplicate id rejected with ArgumentError.
+  // Implements: REQ-d00129-C — addDestination preserves any persisted
+  // schedule across process restart, so setStartDate's one-shot
+  // immutability survives bootstrap re-running addDestination with the
+  // same id. Only seeds a dormant schedule when no schedule is persisted.
   Future<void> addDestination(Destination destination) async {
     if (_destinations.containsKey(destination.id)) {
       throw ArgumentError.value(
@@ -59,9 +63,14 @@ class DestinationRegistry {
       );
     }
     _destinations[destination.id] = destination;
-    const dormant = DestinationSchedule();
-    _schedules[destination.id] = dormant;
-    await backend.writeSchedule(destination.id, dormant);
+    final persisted = await backend.readSchedule(destination.id);
+    if (persisted != null) {
+      _schedules[destination.id] = persisted;
+    } else {
+      const dormant = DestinationSchedule();
+      _schedules[destination.id] = dormant;
+      await backend.writeSchedule(destination.id, dormant);
+    }
   }
 
   /// All registered destinations, in registration order. Returned list
@@ -157,22 +166,31 @@ class DestinationRegistry {
     );
     final isActive = updated.isActiveAt(now);
 
+    // Classify the two endDate snapshots (pre-call and post-call) as
+    // scheduled-for-future-close or not. "Scheduled" here means "has a
+    // future endDate"; it is independent of whether the destination is
+    // currently active or dormant.
+    final wasScheduled =
+        current.endDate != null && current.endDate!.isAfter(now);
+    final isScheduled = endDate.isAfter(now);
+
     final SetEndDateResult result;
     if (wasActive && !isActive) {
-      // Active -> closed at or before now.
+      // Active → closed at or before now.
       result = SetEndDateResult.closed;
     } else if (!wasActive && isActive) {
-      // Previously closed, now reopened with future endDate; fall through
-      // to scheduled.
+      // Previously closed (or dormant), now has a future endDate that
+      // reopens / schedules a close window.
       result = SetEndDateResult.scheduled;
-    } else if (endDate.isAfter(now)) {
-      // Future endDate and no active-vs-closed transition: the close is
-      // scheduled for later.
+    } else if (isScheduled && !wasScheduled) {
+      // No active/closed transition, but the endDate is newly in the
+      // future (e.g., first assignment to a dormant destination, or
+      // replacing a past endDate with a future one without crossing now).
       result = SetEndDateResult.scheduled;
     } else {
-      // No state change relative to now — e.g., a past endDate replaced
-      // with another past endDate, or a future endDate replaced with
-      // another future endDate without crossing now.
+      // No state change relative to now AND no new close scheduled —
+      // covers past → past, future → future without crossing now, and
+      // first-time past on a dormant destination.
       result = SetEndDateResult.applied;
     }
     _schedules[id] = updated;

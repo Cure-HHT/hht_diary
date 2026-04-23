@@ -246,5 +246,61 @@ void main() {
         );
       },
     );
+
+    // Verifies: REQ-d00129-C — startDate immutability survives a process
+    // restart. A fresh registry bound to the same backend must NOT let
+    // setStartDate overwrite a previously-persisted startDate.
+    test('REQ-d00129-C: setStartDate remains one-shot immutable across '
+        'a fresh registry bound to the same backend (cold-restart)', () async {
+      await registry.addDestination(FakeDestination(id: 'x', script: []));
+      final originalStart = DateTime.utc(2026, 1, 1);
+      await registry.setStartDate('x', originalStart);
+
+      // Simulate a process restart: construct a new registry over the
+      // same backend, re-run bootstrap's addDestination call.
+      final restarted = DestinationRegistry(backend: backend);
+      await restarted.addDestination(FakeDestination(id: 'x', script: []));
+
+      // The persisted schedule must be preserved.
+      final restored = await restarted.scheduleOf('x');
+      expect(restored.startDate, originalStart);
+
+      // Re-assignment is still rejected.
+      await expectLater(
+        restarted.setStartDate('x', DateTime.utc(2027, 1, 1)),
+        throwsStateError,
+      );
+    });
+
+    // Verifies: REQ-d00129-F — replacing a future-dated endDate with
+    // another future-dated endDate on an active destination does not
+    // change the active-vs-closed classification AND does not newly
+    // schedule a close (a close is already scheduled); the return code
+    // is `applied`, not `scheduled`.
+    test(
+      'REQ-d00129-F: setEndDate returns applied when replacing a future '
+      'endDate with another future endDate on an active destination',
+      () async {
+        await registry.addDestination(FakeDestination(id: 'x', script: []));
+        await registry.setStartDate(
+          'x',
+          DateTime.now().subtract(const Duration(hours: 1)),
+        );
+
+        // First future endDate — scheduled.
+        final firstResult = await registry.setEndDate(
+          'x',
+          DateTime.now().add(const Duration(days: 7)),
+        );
+        expect(firstResult, SetEndDateResult.scheduled);
+
+        // Different future endDate — no state change, already scheduled.
+        final secondResult = await registry.setEndDate(
+          'x',
+          DateTime.now().add(const Duration(days: 14)),
+        );
+        expect(secondResult, SetEndDateResult.applied);
+      },
+    );
   });
 }

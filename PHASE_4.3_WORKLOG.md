@@ -194,7 +194,14 @@ Subagent review of commit `c8ff70ca` returned one HIGH, one MEDIUM, one NIT. No 
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `92f28eca` returned one CRITICAL, one HIGH, one MEDIUM. All three addressed.
+
+**Addressed:**
+- **CRITICAL — `startDate` immutability broken across process restart.** `addDestination` unconditionally overwrote any persisted schedule with a dormant one, so bootstrap's re-run wiped the `setStartDate` value. Now `addDestination` reads the persisted schedule first: if one exists, it seeds the in-memory cache from persistence and skips the write; only when no schedule is persisted does it seed the dormant default. Added a REQ-d00129-C cold-restart test.
+- **HIGH — `setEndDate` returned `scheduled` for future→future replacement on an active destination.** REQ-d00129-F says `applied` is the right code when no active/closed transition happens AND no new close is newly scheduled. Added a `wasScheduled` predicate: `scheduled` now fires only when `endDate` newly becomes future (i.e., `isScheduled && !wasScheduled`). Added a REQ-d00129-F test for the future→future case.
+- **MEDIUM — no cold-restart test.** Covered by the REQ-d00129-C test above (register, setStartDate, simulate restart with a fresh registry over the same backend, re-addDestination with the same id, verify persisted startDate survives and re-assignment throws).
+
+Test count: 343 → 345 (+2).
 
 ---
 
