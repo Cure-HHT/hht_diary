@@ -292,5 +292,27 @@ void main() {
         expect(result.rewoundTo, 1); // only one sent row at seq 1
       },
     );
+
+    // Verifies: REQ-d00131-B+D — unjam on an empty FIFO is a clean-slate
+    // no-op: deletedPending == 0, rewoundTo == -1. Exercises the path
+    // where the destination was registered but no rows were ever enqueued.
+    test('REQ-d00131-B+D: unjam on an empty FIFO returns '
+        '{deletedPending: 0, rewoundTo: -1}', () async {
+      final setup = await _setupDestinationWithMixedFifo(
+        backend,
+        sentCount: 0,
+        exhaustedCount: 0,
+        pendingCount: 0,
+      );
+      await setup.registry.deactivateDestination(setup.destination.id);
+      final result = await unjamDestination(
+        setup.destination.id,
+        registry: setup.registry,
+        backend: backend,
+      );
+      expect(result.deletedPending, 0);
+      expect(result.rewoundTo, -1);
+      expect(await backend.readFillCursor(setup.destination.id), -1);
+    });
   });
 }

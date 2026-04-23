@@ -909,9 +909,23 @@ class SembastBackend extends StorageBackend {
     );
     if (records.isEmpty) return null;
     final rangeRaw = records.single.value['event_id_range'];
-    if (rangeRaw is! Map) return null;
+    if (rangeRaw is! Map) {
+      debugLogSink?.call(
+        'maxSentSequenceTxn: sent row on $destinationId has malformed '
+        'event_id_range (not a Map); treating as no sent rows. This '
+        'should not happen under the current FifoEntry shape.',
+      );
+      return null;
+    }
     final lastSeq = rangeRaw['last_seq'];
-    if (lastSeq is! int) return null;
+    if (lastSeq is! int) {
+      debugLogSink?.call(
+        'maxSentSequenceTxn: sent row on $destinationId has missing or '
+        'non-int event_id_range.last_seq; treating as no sent rows. '
+        'This should not happen under the current FifoEntry shape.',
+      );
+      return null;
+    }
     return lastSeq;
   }
 

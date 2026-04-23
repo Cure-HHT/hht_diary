@@ -280,7 +280,13 @@ Subagent review of commit `9a6c191f` returned no findings at or above the 80-con
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `7ebd89a1` returned one LOW and one NIT. No CRITICAL / HIGH / MEDIUM. Both addressed.
+
+**Addressed:**
+- **LOW — `maxSentSequenceTxn` silently returned null on malformed `event_id_range`.** Added `debugLogSink` warnings for both the "not a Map" and "last_seq not an int" paths, consistent with the REQ-d00127-C diagnostic pattern already in this class.
+- **NIT — empty-FIFO clean-slate case untested.** Added a 7th test covering `sentCount: 0, exhaustedCount: 0, pendingCount: 0` that asserts `deletedPending == 0` and `rewoundTo == -1`.
+
+Test count: 364 → 365 (+1).
 
 ---
 
