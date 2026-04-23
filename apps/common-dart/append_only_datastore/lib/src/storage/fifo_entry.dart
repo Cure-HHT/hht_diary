@@ -30,8 +30,8 @@ typedef EventIdRange = ({int firstSeq, int lastSeq});
 /// is one payload for the whole batch (no per-event payload is stored).
 // Implements: REQ-d00119-B+C — carries the documented columns;
 // final_status typed to the three legal values (pending|sent|exhausted).
-// Implements: REQ-d00128-A — eventIds is non-empty; asserted at
-// construction and rechecked on fromJson.
+// Implements: REQ-d00128-A — eventIds is non-empty; enforced via
+// ArgumentError at construction and FormatException on fromJson.
 // Implements: REQ-d00128-B — eventIdRange is a (first_seq, last_seq) pair.
 // Implements: REQ-d00128-C — wirePayload is one payload covering the
 // entire batch.
@@ -48,10 +48,28 @@ class FifoEntry {
     required this.attempts,
     required this.finalStatus,
     required this.sentAt,
-  }) : assert(
-         eventIds.isNotEmpty,
-         'FifoEntry.eventIds must be non-empty (REQ-d00128-A)',
-       );
+  }) {
+    // Implements: REQ-d00128-A — reject empty batches at construction.
+    // Explicit ArgumentError rather than assert so the invariant is
+    // enforced in release builds too, not just debug.
+    if (eventIds.isEmpty) {
+      throw ArgumentError.value(
+        eventIds,
+        'eventIds',
+        'FifoEntry.eventIds must be non-empty (REQ-d00128-A)',
+      );
+    }
+    // Implements: REQ-d00128-B — event_id_range is drawn from the batch's
+    // sequence numbers; the pair MUST be ordered (firstSeq <= lastSeq).
+    if (eventIdRange.firstSeq > eventIdRange.lastSeq) {
+      throw ArgumentError.value(
+        eventIdRange,
+        'eventIdRange',
+        'eventIdRange.firstSeq (${eventIdRange.firstSeq}) must be '
+            '<= lastSeq (${eventIdRange.lastSeq}) (REQ-d00128-B)',
+      );
+    }
+  }
 
   /// Decode from snake_case JSON. `wirePayload`, `attempts`, and
   /// `eventIds` are wrapped unmodifiable so downstream callers cannot
@@ -169,8 +187,11 @@ class FifoEntry {
     );
   }
 
-  /// The aggregate_id of the originating entry. Used for operator diagnostics
-  /// and to correlate a FIFO row back to its diary_entries view row.
+  /// Stable row identifier used by `markFinal`, `appendAttempt`, and operator
+  /// diagnostics. For single-event batches it equals the lone event's
+  /// `event_id`; for multi-event batches it equals `eventIds.first`. A
+  /// future task may introduce a distinct batch id; until then this row
+  /// identifier is documented here and on `sembast_backend.enqueueFifo`.
   final String entryId;
 
   /// Event_ids of every event included in this batch row, in the order they

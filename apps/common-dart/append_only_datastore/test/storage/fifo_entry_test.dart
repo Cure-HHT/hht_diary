@@ -66,9 +66,33 @@ void main() {
           finalStatus: FinalStatus.pending,
           sentAt: null,
         ),
-        throwsA(isA<AssertionError>()),
+        throwsArgumentError,
       );
     });
+
+    // Verifies: REQ-d00128-B — the eventIdRange constructor invariant
+    // (firstSeq <= lastSeq) is enforced at runtime, not just by convention.
+    test(
+      'REQ-d00128-B: constructing FifoEntry with firstSeq > lastSeq throws',
+      () {
+        expect(
+          () => FifoEntry(
+            entryId: 'entry-1',
+            eventIds: const <String>['e1'],
+            eventIdRange: (firstSeq: 5, lastSeq: 3),
+            sequenceInQueue: 1,
+            wirePayload: const <String, Object?>{},
+            wireFormat: 'json-v1',
+            transformVersion: null,
+            enqueuedAt: enqueuedAt,
+            attempts: const <AttemptResult>[],
+            finalStatus: FinalStatus.pending,
+            sentAt: null,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
 
     // Verifies: REQ-d00128-A — fromJson rejects an absent, wrong-typed, or
     // empty event_ids field with a FormatException.

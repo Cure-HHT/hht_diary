@@ -106,7 +106,16 @@ Subagent review of commit `ce486bf0` returned one MEDIUM. No CRITICAL, no HIGH. 
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `a0ae8c1e` returned one HIGH, two MEDIUM, one LOW, one NIT. No CRITICAL. All five findings addressed.
+
+**Addressed:**
+- **HIGH — `eventIds` non-empty was `assert`-only (stripped in release).** Replaced with explicit `ArgumentError` in the `FifoEntry` constructor body. The invariant now fires in release builds.
+- **MEDIUM — `firstSeq > lastSeq` on `eventIdRange` was never validated.** Added an `ArgumentError` check in the constructor; added a new REQ-d00128-B test exercising the reversed-range case.
+- **MEDIUM — `entryId` field doc comment said "aggregate_id of the originating entry", which is stale.** Rewrote the doc to name it the row identifier derived from `eventIds.first`, with a forward note that a future task may introduce a distinct batch id.
+- **LOW — REQ-d00119-B still listed the old `event_id` scalar field.** Updated to `event_ids` + `event_id_range`, with a cross-reference to REQ-d00128. `elspais fix` recomputed the hash.
+- **NIT — test expected `AssertionError`.** Changed to `throwsArgumentError`, consistent with finding 1.
+
+Test count: 319 → 320 (+1 for the new REQ-d00128-B reversed-range test).
 
 ---
 

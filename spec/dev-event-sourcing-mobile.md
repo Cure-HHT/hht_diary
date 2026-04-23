@@ -142,13 +142,13 @@ A dedicated Sembast store per destination, keyed by integer insertion order, pro
 
 A. Each registered synchronization destination SHALL have exactly one associated FIFO store identified by its `destination_id`.
 
-B. A FIFO entry SHALL carry the fields `entry_id`, `event_id`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, and `sent_at`.
+B. A FIFO entry SHALL carry the fields `entry_id`, `event_ids`, `event_id_range`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, and `sent_at`. The `event_ids` and `event_id_range` fields hold the batch contract defined in REQ-d00128; a single-event batch is a batch of length one.
 
 C. The `final_status` field SHALL take exactly one of the values `"pending"`, `"sent"`, or `"exhausted"`; no other values SHALL be legal.
 
 D. Once a FIFO entry's `final_status` has transitioned out of `"pending"`, the entry SHALL NOT be deleted from its FIFO store; the entry SHALL be retained as a permanent send-log record.
 
-*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 27595d15
+*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 5b87a65d
 
 ---
 

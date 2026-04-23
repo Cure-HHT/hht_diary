@@ -312,7 +312,7 @@
 | REQ-d00116 | EntryTypeDefinition Schema                              | dev-event-sourcing-mobile.md   | 0bb2f928 |
 | REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | edab4770 |
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
-| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 27595d15 |
+| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 5b87a65d |
 | REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | e09d751a |
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | 632e4a22 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | be13f13e |
