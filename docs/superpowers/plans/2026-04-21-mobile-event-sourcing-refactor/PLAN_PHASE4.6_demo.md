@@ -50,21 +50,21 @@ The demo validates existing REQs from Phases 4 and 4.3 via the nine acceptance j
 | REQ-p00013 | Complete data change history | JNY-01, JNY-06 |
 | REQ-p01001 | Offline event queue w/ automatic sync | JNY-03, JNY-04 |
 | REQ-d00004 | Local-first data entry implementation | JNY-01 |
-| REQ-ENTRY | EntryService.record contract (Phase 4.3) | JNY-01, JNY-02 |
-| REQ-BOOTSTRAP | bootstrapAppendOnlyDatastore contract | All journeys (boot path) |
-| REQ-SYNCPOLICY | SyncPolicy injectable value object | JNY-04, JNY-05 |
-| REQ-SYNCCYCLE | syncCycle trigger + fan-out | JNY-01, JNY-02 |
-| REQ-DEST | Destination interface | JNY-02, JNY-03 |
-| REQ-DYNDEST | addDestination / setStartDate / setEndDate / deleteDestination | JNY-03, JNY-07, JNY-08, JNY-09 |
-| REQ-REPLAY | Historical replay on past startDate | JNY-07 |
-| REQ-TIMEWINDOW | client_timestamp-based window filtering | JNY-08 |
-| REQ-BATCH | canAddToBatch + maxAccumulateTime + transform(List<Event>) | JNY-03, JNY-07 |
-| REQ-FIFO | Per-destination FIFO semantics | JNY-01, JNY-03, JNY-04 |
-| REQ-UNJAM | Unjam preserves exhausted, rewinds cursor | JNY-09 |
-| REQ-REHAB | Rehabilitate flips exhausted -> pending | JNY-09 |
-| REQ-SKIPMISSING | markFinal / appendAttempt tolerate missing | JNY-09 (race with delete/unjam) |
+| REQ-d00133 | EntryService.record Contract | JNY-01, JNY-02 |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract | All journeys (boot path) |
+| REQ-d00126 | SyncPolicy Injectable Value Object | JNY-04, JNY-05 |
+| REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract | JNY-01, JNY-02 |
+| REQ-d00122 | Destination Contract for Per-Destination Sync | JNY-02, JNY-03 |
+| REQ-d00129 | Dynamic Destination Lifecycle (addDestination / setStartDate / setEndDate / deleteDestination) | JNY-03, JNY-07, JNY-08, JNY-09 |
+| REQ-d00130 | Historical Replay on Past startDate | JNY-07 |
+| REQ-d00129-I | Time-window filtering clause of Dynamic Destination Lifecycle | JNY-08 |
+| REQ-d00128 | Batch Shape: canAddToBatch, maxAccumulateTime, transform(List&lt;StoredEvent&gt;) | JNY-03, JNY-07 |
+| REQ-d00119 | Per-Destination FIFO Queue Semantics | JNY-01, JNY-03, JNY-04 |
+| REQ-d00131 | Unjam Destination Operation | JNY-09 |
+| REQ-d00132 | Rehabilitate Exhausted FIFO Row | JNY-09 |
+| REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row | JNY-09 (race with delete/unjam) |
 
-The exact `REQ-d?????` numbers claimed in Phase 4.3 are substituted into this table at Task 1 after a `git log` check.
+REQ-d number substitution performed at Task 1 against `spec/dev-event-sourcing-mobile.md` and library REQ-citation headers. Mapping table recorded in `PHASE_4.6_WORKLOG.md` Task 1 section.
 
 ---
 
