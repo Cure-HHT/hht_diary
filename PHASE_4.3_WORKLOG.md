@@ -25,6 +25,19 @@ Subagent review of commit `a3a06038` returned three findings (no CRITICAL, no HI
 
 ---
 
+## Task 3 — Spec additions: nine new REQ-d topics
+
+### Status
+- `spec/dev-event-sourcing-mobile.md` carries REQ-d00115 through REQ-d00134. The nine new entries (REQ-d00126..REQ-d00134) cover `SyncPolicy` as a value object, `markFinal`/`appendAttempt` missing-row tolerance, batch-FIFO shape + `fill_cursor`, the dynamic destination lifecycle and its time window, historical replay on past `startDate`, `unjamDestination`, `rehabilitate*`, `EntryService.record` (with D revised per design §6.8), and `bootstrapAppendOnlyDatastore`. Assertion text matches PLAN_PHASE4.3 verbatim.
+- `spec/INDEX.md` lists all nine new REQs with content hashes computed by `elspais fix`. File is auto-regenerated; do not hand-edit.
+- `elspais checks` passes 31/31 with 310 requirements validated.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:

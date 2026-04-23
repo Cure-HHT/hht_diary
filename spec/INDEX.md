@@ -319,6 +319,15 @@
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 1be73b3e |
 | REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 817fc56b |
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract          | dev-event-sourcing-mobile.md   | 03bfd328 |
+| REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 8ab70c79 |
+| REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | bee6ba5e |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | cb119791 |
+| REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | d0843f75 |
+| REQ-d00130 | Historical Replay on Past startDate                     | dev-event-sourcing-mobile.md   | 254b541a |
+| REQ-d00131 | Unjam Destination Operation                             | dev-event-sourcing-mobile.md   | 467a0d85 |
+| REQ-d00132 | Rehabilitate Exhausted FIFO Row                         | dev-event-sourcing-mobile.md   | 978d782e |
+| REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | f132a4cf |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 9ead5ddd |
 
 ## User Journeys
 

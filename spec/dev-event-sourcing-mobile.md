@@ -339,3 +339,255 @@ D. `syncCycle()` SHALL be callable — via wiring that lives in the Phase-5 trig
 E. `syncCycle()` SHALL NOT run from a background isolate; no `WorkManager` task, `BGTaskScheduler` task, or equivalent background execution path SHALL be registered for synchronization.
 
 *End* *sync_cycle() Orchestrator and Trigger Contract* | **Hash**: 03bfd328
+
+---
+
+# REQ-d00126: SyncPolicy Injectable Value Object
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+REQ-d00123 fixes the retry-backoff curve constants that production uses. Phase 4 modelled those constants as static class members on `SyncPolicy`, which made the curve impossible to override in unit tests without either editing the file under test or abandoning the assertion that `drain` actually respects the configured curve. Tests that want to verify transient-retry cadence need a fast curve (milliseconds, not a 60-second initial backoff) or they do not complete in reasonable time. The Phase 4.3 demo and future concrete destinations also need a principled way to pass a non-default policy through without monkey-patching the sync machinery.
+
+The resolution is to model `SyncPolicy` as a `const` value object with instance fields, keep the production constants on a single `static const defaults` instance, and widen `drain` / `syncCycle` to accept an optional `SyncPolicy? policy` that falls back to `SyncPolicy.defaults` when null. Tests inject a fast policy; production passes nothing. The curve itself (REQ-d00123) is unchanged — `SyncPolicy.defaults` still evaluates to exactly the REQ-d00123 constants.
+
+## Assertions
+
+A. `SyncPolicy` SHALL be a value class with `final` fields and a `const` constructor. Default values SHALL be provided as `SyncPolicy.defaults`, a `static const` instance whose field values equal the constants named in REQ-d00123.
+
+B. `drain()` and `syncCycle()` SHALL accept an optional `SyncPolicy? policy` parameter; when null, they SHALL fall back to `SyncPolicy.defaults`.
+
+C. Phase-4 call sites that referenced `SyncPolicy.initialBackoff` (and siblings) as static members SHALL migrate to the `SyncPolicy.defaults.initialBackoff` instance-member form in one refactoring pass; no `@Deprecated` shims SHALL be introduced.
+
+*End* *SyncPolicy Injectable Value Object* | **Hash**: 8ab70c79
+
+---
+
+# REQ-d00127: markFinal and appendAttempt Tolerate Missing FIFO Row
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+The drain loop (REQ-d00124) calls `destination.send(wirePayload)` outside any storage transaction because `send()` is a network round-trip that can take seconds. Immediately after `send()` returns, `drain` opens a transaction to append an `AttemptResult` and, if the result is terminal, to mark the row `sent` or `exhausted`. In the interval between the `send` returning and that transaction opening, a concurrent user-initiated operation — `unjamDestination` deleting pending rows, or `deleteDestination` destroying the whole FIFO store — can remove the row `drain` is about to write to. Without tolerance for missing rows, the subsequent `markFinal` or `appendAttempt` throws, drain abends with an error that has no operational meaning (the work was done; the user asked for the row to be gone), and the caller sees a stack trace for what is the correct outcome.
+
+The resolution is narrowly scoped: both operations no-op cleanly on a missing row or missing FIFO store, emit a diagnostic `warning`-level log line naming the race they close, and return without throwing. This is not a license to silently drop data — only the two specific ops documented here behave this way, and they behave this way only because the row's absence means the work has already been subsumed by a user operation that is allowed to remove it.
+
+## Assertions
+
+A. `StorageBackend.markFinal(destId, entryId, finalStatus)` SHALL be a no-op (return without throwing) if the FIFO row identified by `entryId` does not exist in the destination's FIFO store, and SHALL be a no-op if the FIFO store for `destId` does not exist.
+
+B. `StorageBackend.appendAttempt(destId, entryId, attempt)` SHALL be a no-op on a missing row or missing FIFO store, with the same tolerance as `markFinal`.
+
+C. Both methods SHALL emit a `warning`-level diagnostic log line when they no-op due to a missing target, naming the method, the row id, the destination id, and the expected race (`drain/unjam` or `drain/delete`).
+
+*End* *markFinal and appendAttempt Tolerate Missing FIFO Row* | **Hash**: bee6ba5e
+
+---
+
+# REQ-d00128: FIFO Batch Shape and Fill Cursor
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+REQ-d00119 (Phase 2) defined a FIFO row as holding exactly one event, with a single `event_id` and a single `wire_payload`. Phase 4.3 migrates that shape to hold a batch — one row covers one or more events and carries exactly one wire payload for the whole batch. The motivation is destination-side: a destination whose server endpoint natively accepts a batch of events in one request should not be forced to send N separate requests for N events when the events arrive within a short window. The drain loop still treats one row as one wire transaction; what changes is that one wire transaction can now deliver several events.
+
+The batch shape demands a `fill_cursor` per destination, recording the highest `sequence_number` that has already been promoted into any FIFO row for this destination (pending, sent, or exhausted). Without a cursor, the logic that decides which events have not yet been enqueued for this destination would be forced to scan every FIFO row and cross-reference the event log, which does not scale. The cursor is per-destination because subscription filters and start/end windows (REQ-DYNDEST) give each destination its own view of the event log. Idempotency of `fillBatch` — the act of promoting events into FIFO rows — depends on the cursor behaving transactionally alongside the FIFO-row write.
+
+Batch assembly is destination-controlled: the destination declares a `canAddToBatch(currentBatch, candidate)` predicate, invoked per candidate, and a `maxAccumulateTime` hold on single-event batches so a destination that prefers to ship batches of two or more is not prematurely flushed when only one event is available.
+
+## Assertions
+
+A. `FifoEntry.event_ids` SHALL be a non-empty `List<String>` identifying every event included in the batch; each element SHALL be an `event_id` from the event log.
+
+B. `FifoEntry.event_id_range` SHALL be a pair `(first_seq: int, last_seq: int)` drawn from the `sequence_number` values of the contained events; the pair SHALL be used for cursor advancement math.
+
+C. `FifoEntry.wire_payload` SHALL be one `WirePayload` covering every event in the batch; no per-event wire payload SHALL be stored.
+
+D. `Destination.transform(List<Event> batch)` SHALL produce one `WirePayload`; it SHALL NOT be called with an empty batch.
+
+E. `Destination.canAddToBatch(List<Event> currentBatch, Event candidate)` SHALL be invoked by `fillBatch` for each candidate under consideration; returning `false` SHALL end the current batch (flushing it if `maxAccumulateTime` permits) and SHALL leave the candidate available for the next tick.
+
+F. `Destination.maxAccumulateTime: Duration` SHALL be honored by `fillBatch`: a single-event batch SHALL NOT flush until `now() - batch.first.client_timestamp >= maxAccumulateTime` OR `canAddToBatch` has already returned `false` for a subsequent candidate (indicating a size cap).
+
+G. The storage backend SHALL persist a `fill_cursor_{destination_id}: int` value under `backend_state` for each registered destination; the value SHALL be the largest `sequence_number` that has been promoted into any FIFO row for that destination, or `-1` when no row has yet been enqueued.
+
+H. `fillBatch(destination)` SHALL be idempotent: repeated invocations with no new matching events SHALL produce no new FIFO rows and SHALL NOT advance `fill_cursor`.
+
+*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: cb119791
+
+---
+
+# REQ-d00129: Dynamic Destination Lifecycle
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+Phase 4 froze the `DestinationRegistry` on first read because a mid-run registration would silently change which events are enqueued to which queues. Phase 4.3 relaxes this to support a lifecycle that is driven by trial and enrollment state: a destination may be added late (e.g., a portal-audit destination brought online partway through a patient's study), may have a `startDate` that places it in dormant or scheduled state until the date is reached, may have a retroactive `startDate` that triggers historical replay over already-queued events, and may be deactivated at a scheduled future time without discarding in-flight work.
+
+Immutability of `startDate` once set is load-bearing. If `startDate` could be moved earlier, the FIFO's contract that every enqueued event matches the destination's time window at enqueue time would weaken to a contract about the *current* window — forcing either a re-scan of already-enqueued rows when the window changed or acceptance of rows the current window would exclude. Both options break the audit trail. Fixing `startDate` at its first assignment avoids this; callers who need a different `startDate` register a different destination.
+
+Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their sent/exhausted destinations. `setEndDate` returns a result code so callers can distinguish "destination just became closed" (wire-in-flight state, drain will complete and stop) from "destination is now scheduled to close at a future date" (still active until the deadline).
+
+Hard deletion is gated because some destinations carry regulatory audit weight and must not be purged in one call; the `allowHardDelete` field is an explicit opt-in that the destination's class declares, not a flag the caller toggles.
+
+## Assertions
+
+A. `DestinationRegistry.addDestination(Destination d)` SHALL register `d` at any time after bootstrap; if another destination with `d.id` is already registered, the call SHALL throw `ArgumentError`.
+
+B. `Destination.allowHardDelete: bool get` SHALL default to `false` in the abstract class contract; concrete destinations that permit hard deletion SHALL override the getter to `true`.
+
+C. `DestinationRegistry.setStartDate(String id, DateTime startDate)` SHALL throw `StateError` if the destination already has a non-null `startDate`. Once set, `startDate` SHALL be immutable for the lifetime of this destination registration.
+
+D. If `setStartDate` is called with `startDate <= now()`, the library SHALL trigger historical replay synchronously in the same transaction (per REQ-d00130).
+
+E. If `setStartDate` is called with `startDate > now()`, no replay SHALL occur; subsequent events accumulate in `event_log` and are batched into the FIFO only after wall-clock time has crossed `startDate` (enforced by `fillBatch`'s time-window check).
+
+F. `DestinationRegistry.setEndDate(String id, DateTime endDate)` SHALL return a `SetEndDateResult` enum; possible values are `closed` (endDate <= now), `scheduled` (endDate > now), and `applied` (no state change relative to the current wall-clock).
+
+G. `DestinationRegistry.deactivateDestination(String id)` SHALL be equivalent to `setEndDate(id, DateTime.now())` and SHALL return `SetEndDateResult.closed`.
+
+H. `DestinationRegistry.deleteDestination(String id)` SHALL throw `StateError` if the destination's `allowHardDelete == false`. When allowed, the call SHALL unregister the destination and delete its FIFO store in one transaction.
+
+I. `fillBatch(destination)` SHALL filter candidate events by `event.client_timestamp >= dest.startDate AND event.client_timestamp <= min(dest.endDate, now())`; events outside this window SHALL NOT be enqueued to this destination.
+
+*End* *Dynamic Destination Lifecycle* | **Hash**: d0843f75
+
+---
+
+# REQ-d00130: Historical Replay on Past startDate
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+When a destination is registered with a `startDate` in the past, the library SHALL replay every matching event from the event log into the destination's FIFO in one transaction, building batches with the destination's own `canAddToBatch` and `transform` so the resulting rows are indistinguishable from rows that would have been produced had the destination been live the whole time. Running replay inside a sembast transaction provides the serialization guarantee needed to avoid double-enqueue: a `record()` call landing concurrently waits behind the replay transaction, and when it proceeds its own `fillBatch` walks from the cursor the replay has already advanced.
+
+Replay is scoped to Phase-4.3 library correctness; portal-initiated replay or re-materialization is out of scope and covered by the out-of-scope memory note dated 2026-04-21.
+
+## Assertions
+
+A. Historical replay SHALL be a single-transaction walk of `event_log` from `fill_cursor + 1` forward, filtering by the destination's `subscriptionFilter` AND the time window from REQ-d00129-I.
+
+B. Replay SHALL use the destination's own `canAddToBatch` and `transform` to produce FIFO rows identical in shape to those produced by `fillBatch` during live operation.
+
+C. A new event appended during replay (same Dart isolate, under sembast transaction serialization) SHALL NOT be double-enqueued: the concurrent `record()` transaction SHALL wait behind the replay transaction, and when it runs, its `fillBatch` SHALL re-evaluate candidates strictly after the `fill_cursor` the replay advanced to.
+
+*End* *Historical Replay on Past startDate* | **Hash**: 254b541a
+
+---
+
+# REQ-d00131: Unjam Destination Operation
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+A destination whose head row is marked `exhausted` is wedged against further drain progress until a human-directed repair runs. In the batch-FIFO Phase 4.3 world, drain continues past exhausted rows (the "skip-exhausted" revision from PLAN_PHASE4_sync.md), so the wedge is logical rather than positional: exhausted rows accumulate, and recovery is a matter of removing pending rows that will never succeed and rewinding `fill_cursor` back to the last successful delivery so `fillBatch` can promote the still-relevant events afresh.
+
+`unjamDestination` encodes that recovery procedure. Its precondition — the destination must be deactivated — exists because deleting pending rows while drain is actively running risks a race between the delete and a drain transaction that has already read the row's `wire_payload` and is mid-`send`. Deactivation stops new drain work from starting on this destination, which closes the race. `markFinal`'s tolerance for missing rows (REQ-d00127) closes the narrower race for drains already mid-flight.
+
+Exhausted rows are preserved so the audit trail of *what failed* remains intact; only pending rows are deleted because those never reached a terminal state and therefore carry no audit weight. Rewinding `fill_cursor` to the sequence_number of the last successfully-sent row restores the invariant that `fill_cursor` equals "up to where delivery is known-good".
+
+## Assertions
+
+A. `unjamDestination(String id)` SHALL throw `StateError` if the destination is active (`endDate == null` or `endDate > now()`); the destination MUST be deactivated before unjam runs.
+
+B. Inside one storage transaction, `unjamDestination` SHALL delete every FIFO row whose `final_status` is `pending` on this destination.
+
+C. Inside the same transaction, `unjamDestination` SHALL leave every FIFO row whose `final_status` is `exhausted` untouched.
+
+D. Inside the same transaction, `unjamDestination` SHALL rewind `fill_cursor` to the largest `event_id_range.last_seq` among rows whose `final_status` is `sent` on this destination, or to `-1` when no such row exists.
+
+E. `unjamDestination` SHALL return an `UnjamResult { deletedPending: int, rewoundTo: int }` describing the number of pending rows deleted and the new value of `fill_cursor`.
+
+*End* *Unjam Destination Operation* | **Hash**: 467a0d85
+
+---
+
+# REQ-d00132: Rehabilitate Exhausted FIFO Row
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+Rehabilitation is the lighter-weight counterpart to unjam: it flips a specific exhausted row back to pending so drain can re-attempt it. The typical use case is a destination-side fix — the server's endpoint was returning 5xx, the operator has patched the server, and the library operator wants the existing exhausted rows to drain through on the fixed endpoint rather than relying on `fillBatch` re-building them (which would change their `event_id_range` and produce duplicate deliveries).
+
+Unlike unjam, rehabilitation does not require deactivation: the operation is a targeted status flip that does not delete any data, and does not race with drain in any way that risks correctness — a concurrent drain reading the row right after rehab gets the newly-pending row, which is exactly what is wanted.
+
+## Assertions
+
+A. `rehabilitateExhaustedRow(String destId, String fifoRowId)` SHALL throw `ArgumentError` if the row does not exist or if its `final_status != exhausted`.
+
+B. On success, the row's `final_status` SHALL be set to `pending`; the row's `attempts[]` list SHALL be preserved unchanged.
+
+C. `rehabilitateAllExhausted(String destId)` SHALL flip every row whose `final_status == exhausted` on this destination to `pending` and SHALL return the count of rows flipped.
+
+D. Rehabilitation SHALL be permitted on an active destination (no deactivation precondition).
+
+*End* *Rehabilitate Exhausted FIFO Row* | **Hash**: 978d782e
+
+---
+
+# REQ-d00133: EntryService.record Contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p00006, REQ-p01001
+
+## Rationale
+
+`EntryService.record` is the sole write API invoked by widgets: it hides the atomic event-assembly, the materializer run, the sequence-counter advance, and the no-op detection behind one call whose semantics are stable across the widget/destination/transport evolutions that follow. Pulling it forward from Phase 5 into Phase 4.3 is driven by the Phase 4.6 demo, which needs to exercise this write path against the demo destination without the Phase 5 cutover dependencies (server destinations, trigger wiring, screen updates) landing first.
+
+The assertion that diverges most from the original Phase-5 spec is D: the Phase-4.3 design defers destination fan-out out of the write transaction and into the next `fillBatch` tick. The rationale (design §6.8) is that the fan-out step needs to consult per-destination subscription filters and batch rules, which each involve work the write transaction should not own. Deferring fan-out to `fillBatch` localizes the write path's failure modes to the materializer and storage, simplifies the `EntryService` surface, and preserves the observable property that a successful `record()` call has appended an event even if the destination write is still pending.
+
+No-op detection compares a canonical content hash across the tuple `(event_type, canonical(answers), checkpoint_reason, change_reason)`; duplicate identical calls on the same aggregate return successfully without writing, which keeps UI retries idempotent.
+
+## Assertions
+
+A. `EntryService.record({entryType, aggregateId, eventType, answers, checkpointReason?, changeReason?})` SHALL be the sole write API invoked by widgets producing new events.
+
+B. `EntryService` SHALL assign `event_id`, `sequence_number`, `previous_event_hash`, `event_hash`, and the first `ProvenanceEntry` atomically before the write.
+
+C. `eventType` SHALL be one of `finalized`, `checkpoint`, `tombstone`; any other value SHALL cause `EntryService.record` to throw `ArgumentError` before any I/O.
+
+D. `EntryService.record` SHALL perform the local write path in one `StorageBackend.transaction()`: append event, run materializer, upsert the `diary_entries` row, and increment the sequence counter. Per-destination FIFO fan-out SHALL be deferred to `fillBatch`, invoked on the next `syncCycle` tick; the transaction SHALL NOT invoke any destination's `transform` or `send`.
+
+E. A failure inside step D — raised by the materializer or the storage layer — SHALL abort the whole write: no event SHALL be appended and no materializer output SHALL be visible to subsequent reads.
+
+F. `EntryService.record` SHALL detect no-ops: if the canonical content hash of `(event_type, canonical(answers), checkpoint_reason, change_reason)` equals the hash of the most recent event on the same aggregate, the call SHALL return successfully without writing.
+
+G. After a successful write, `EntryService.record` SHALL invoke `syncCycle()` fire-and-forget (`unawaited`); the caller SHALL NOT rely on sync completion before the call returns.
+
+H. `EntryService.record` SHALL validate that `entryType` is registered in the `EntryTypeRegistry` before accepting the write; an unregistered `entryType` SHALL cause the call to throw `ArgumentError` before any I/O.
+
+I. `EntryService.record` SHALL populate the event's migration-bridge top-level fields (`client_timestamp`, `device_id`, `software_version`) from `metadata.provenance[0]`.
+
+*End* *EntryService.record Contract* | **Hash**: f132a4cf
+
+---
+
+# REQ-d00134: bootstrapAppendOnlyDatastore Contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+`bootstrapAppendOnlyDatastore` is the single entry point an app's `main()` calls to wire together the storage backend, the `EntryTypeRegistry`, and the initial set of `Destination`s. Centralizing initialization on one function avoids the failure mode where different apps discover their own subset of the required setup and omit steps (e.g., registering entry types after destinations, which would let a destination start enqueuing events whose types are not registered).
+
+Types register before destinations. Destinations that require entry-type information during construction (for subscription filters, transform configuration) need the registry populated already; the reverse ordering would need forward references.
+
+Id-collision on a destination registration is promoted from a warning to a hard throw during bootstrap so a misconfigured app crashes at startup rather than rendering UI on top of a half-initialized datastore.
+
+## Assertions
+
+A. `bootstrapAppendOnlyDatastore({backend, entryTypes, destinations})` SHALL be the single entry point for initializing the datastore from an app's `main()`.
+
+B. `bootstrapAppendOnlyDatastore` SHALL register every supplied `EntryTypeDefinition` into the `EntryTypeRegistry` before any `Destination` is registered.
+
+C. `bootstrapAppendOnlyDatastore` SHALL register every supplied `Destination` into the `DestinationRegistry` via `addDestination`. The registry SHALL remain open to subsequent runtime `addDestination` calls per REQ-d00129-A.
+
+D. If any two destinations supplied to `bootstrapAppendOnlyDatastore` share an `id`, the call SHALL throw; the app SHALL NOT proceed to UI rendering.
+
+*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 9ead5ddd
