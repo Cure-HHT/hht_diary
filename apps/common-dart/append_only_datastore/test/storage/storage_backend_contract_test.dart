@@ -337,6 +337,19 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
       throw UnimplementedError();
+  @override
+  Future<FifoEntry?> readFifoRow(String destinationId, String entryId) =>
+      throw UnimplementedError();
+  @override
+  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) =>
+      throw UnimplementedError();
+  @override
+  Future<void> setFinalStatusTxn(
+    Txn txn,
+    String destinationId,
+    String entryId,
+    FinalStatus status,
+  ) => throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {

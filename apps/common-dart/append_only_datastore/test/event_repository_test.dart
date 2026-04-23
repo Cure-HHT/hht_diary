@@ -954,6 +954,19 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
       delegate.maxSentSequenceTxn(txn, destinationId);
+  @override
+  Future<FifoEntry?> readFifoRow(String destinationId, String entryId) =>
+      delegate.readFifoRow(destinationId, entryId);
+  @override
+  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) =>
+      delegate.exhaustedRowsOf(destinationId);
+  @override
+  Future<void> setFinalStatusTxn(
+    Txn txn,
+    String destinationId,
+    String entryId,
+    FinalStatus status,
+  ) => delegate.setFinalStatusTxn(txn, destinationId, entryId, status);
 }
 
 /// Test database provider that uses in-memory Sembast database.

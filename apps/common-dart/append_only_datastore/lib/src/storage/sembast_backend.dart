@@ -929,6 +929,110 @@ class SembastBackend extends StorageBackend {
     return lastSeq;
   }
 
+  // -------- Rehabilitate helpers (REQ-d00132) --------
+
+  /// Read a single FIFO row identified by [entryId] on [destinationId],
+  /// or `null` when no such row exists. Non-transactional.
+  ///
+  /// In Sembast a never-written FIFO store simply has zero records,
+  /// so the unknown-destination case and the unknown-row case both
+  /// fall through to the `records.isEmpty` branch without needing a
+  /// separate store-exists probe.
+  // Implements: REQ-d00132-A — readFifoRow returns null on unknown
+  // row / unknown destination; rehabilitate promotes null to
+  // ArgumentError at the call site.
+  @override
+  Future<FifoEntry?> readFifoRow(String destinationId, String entryId) async {
+    final db = _database();
+    final records = await _fifoStore(destinationId).find(
+      db,
+      finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
+    );
+    if (records.isEmpty) return null;
+    return FifoEntry.fromJson(Map<String, Object?>.from(records.single.value));
+  }
+
+  /// Return every `exhausted` row on [destinationId] in
+  /// `sequence_in_queue` ascending order. Empty list when no exhausted
+  /// row exists.
+  // Implements: REQ-d00132-C — exhaustedRowsOf enumerates the bulk-rehab
+  // targets; order is stable (sequence_in_queue asc) so callers iterating
+  // them observe deterministic FIFO-order rehabilitation.
+  @override
+  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) async {
+    final db = _database();
+    final records = await _fifoStore(destinationId).find(
+      db,
+      finder: Finder(
+        filter: Filter.equals('final_status', FinalStatus.exhausted.toJson()),
+        sortOrders: [SortOrder('sequence_in_queue')],
+      ),
+    );
+    return records
+        .map((r) => FifoEntry.fromJson(Map<String, Object?>.from(r.value)))
+        .toList();
+  }
+
+  /// Flip the target row's `final_status` from `exhausted` to
+  /// `pending` inside [txn]. Rejects any other [status] — the
+  /// one-way `pending -> sent|exhausted` path is owned by
+  /// [markFinal] and is deliberately kept separate so its invariants
+  /// are not weakened by a second write path.
+  ///
+  /// Preserves the row's `attempts[]` unchanged (REQ-d00132-B) and
+  /// clears `sent_at` (a rehabilitated row is no longer terminal,
+  /// so a stale `sent_at` would confuse the send-log; in practice
+  /// `sent_at` is null on every exhausted row — the column is only
+  /// ever set on `sent` — but the clear is defensive).
+  ///
+  /// Throws [StateError] on a missing target row: rehabilitate's
+  /// caller verifies existence via [readFifoRow] before opening the
+  /// transaction, so a missing row here indicates a concurrent delete
+  /// race that rehabilitate does not close.
+  // Implements: REQ-d00132-B — `exhausted -> pending` flip; preserves
+  // attempts[], clears sent_at. Reject non-pending status to keep
+  // markFinal's one-way rule intact.
+  @override
+  Future<void> setFinalStatusTxn(
+    Txn txn,
+    String destinationId,
+    String entryId,
+    FinalStatus status,
+  ) async {
+    if (status != FinalStatus.pending) {
+      throw ArgumentError.value(
+        status,
+        'status',
+        'setFinalStatusTxn only supports rehabilitate (exhausted -> '
+            'pending); use markFinal for pending -> sent|exhausted '
+            'transitions.',
+      );
+    }
+    final t = _requireValidTxn(txn);
+    final store = _fifoStore(destinationId);
+    final records = await store.find(
+      t._sembastTxn,
+      finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
+    );
+    if (records.isEmpty) {
+      throw StateError(
+        'setFinalStatusTxn($destinationId, $entryId, $status): target '
+        'row not found. Rehabilitate callers must verify existence via '
+        'readFifoRow before opening the transaction; a missing row '
+        'here indicates a concurrent delete race.',
+      );
+    }
+    final record = records.single;
+    final updated = Map<String, Object?>.from(record.value);
+    updated['final_status'] = status.toJson();
+    // Clear sent_at defensively: an exhausted row should not have one,
+    // but if any ever leaks through, leaving it here would make the
+    // newly-pending row look like it had already been sent.
+    updated['sent_at'] = null;
+    // attempts[] is deliberately NOT touched — REQ-d00132-B.
+    await store.record(record.key).put(t._sembastTxn, updated);
+  }
+
   /// The first non-sent entry in the FIFO when it is `exhausted`. Returns
   /// null when either the FIFO has no entries, all entries are `sent`, or
   /// the earliest non-sent entry is `pending` (not wedged).

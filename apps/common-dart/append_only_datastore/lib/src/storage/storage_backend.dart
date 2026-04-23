@@ -361,4 +361,59 @@ abstract class StorageBackend {
   // Implements: REQ-d00131-D — max(event_id_range.last_seq) over sent
   // rows, or null when none exist.
   Future<int?> maxSentSequenceTxn(Txn txn, String destinationId);
+
+  // -------- Rehabilitate helpers (REQ-d00132) --------
+
+  /// Read a single FIFO row identified by [entryId] on [destinationId],
+  /// or `null` when no such row exists (either the FIFO store was never
+  /// written to, or the row was deleted). Non-transactional.
+  ///
+  /// Used by `rehabilitateExhaustedRow` to validate that the target row
+  /// exists and is in `exhausted` state before opening the transaction
+  /// that flips it back to `pending`. Exposed as an explicit row-read
+  /// rather than reusing `readFifoHead` because rehabilitate targets a
+  /// specific row by id, not the head.
+  // Implements: REQ-d00132-A — readFifoRow backs rehabilitate's
+  // existence check; `null` is translated by the op into
+  // ArgumentError at the call site.
+  Future<FifoEntry?> readFifoRow(String destinationId, String entryId);
+
+  /// Return every FIFO row whose `final_status == exhausted` on
+  /// [destinationId], sorted by `sequence_in_queue` ascending. Returns
+  /// an empty list when no exhausted row exists (including the
+  /// never-registered-store case). Non-transactional.
+  ///
+  /// Used by `rehabilitateAllExhausted` to enumerate the rehabilitation
+  /// targets before flipping each of them back to `pending` inside a
+  /// single transaction.
+  // Implements: REQ-d00132-C — exhaustedRowsOf is the bulk-rehab
+  // enumeration helper; returns every exhausted row in queue order.
+  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId);
+
+  /// Set the row's `final_status` to [status] inside [txn]. This method
+  /// is narrowly scoped to the `exhausted -> pending` flip used by
+  /// rehabilitate: implementations SHALL reject any [status] other than
+  /// [FinalStatus.pending] with `ArgumentError`. The one-way rule for
+  /// `pending -> sent|exhausted` remains owned by [markFinal]; the two
+  /// paths are deliberately separate so the one-way contract on
+  /// [markFinal] is not weakened.
+  ///
+  /// On the permitted `-> pending` transition, implementations SHALL
+  /// preserve the row's `attempts[]` unchanged (REQ-d00132-B) and
+  /// SHALL clear any `sent_at` timestamp (a rehabilitated row is no
+  /// longer terminal, so a stale `sent_at` would confuse the send-log).
+  ///
+  /// Implementations SHALL throw [StateError] when the target row is
+  /// absent — rehabilitate's caller is expected to have verified
+  /// existence via [readFifoRow] before opening the transaction, so a
+  /// missing row at this point indicates a concurrent delete race that
+  /// rehabilitate does not close.
+  // Implements: REQ-d00132-B — `exhausted -> pending` flip, preserves
+  // attempts[], clears sent_at.
+  Future<void> setFinalStatusTxn(
+    Txn txn,
+    String destinationId,
+    String entryId,
+    FinalStatus status,
+  );
 }
