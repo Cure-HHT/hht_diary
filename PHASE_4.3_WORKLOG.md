@@ -95,6 +95,21 @@ Subagent review of commit `ce486bf0` returned one MEDIUM. No CRITICAL, no HIGH. 
 
 ---
 
+## Task 6 — FifoEntry batch shape migration (REQ-d00128)
+
+### Status
+- `FifoEntry` carries `eventIds: List<String>` (non-empty), `eventIdRange: ({int firstSeq, int lastSeq})`, and a single `wirePayload` / `wireFormat` / `transformVersion` per row covering the whole batch. The `entryId` row identifier is derived from the first event of the batch. Constructor rejects empty batches at construction; sembast persistence uses `event_ids` (array) and `event_id_range` (`{first_seq, last_seq}` object).
+- `StorageBackend.enqueueFifo(destinationId, List<StoredEvent> batch, WirePayload wirePayload)` returns the constructed `FifoEntry`; the backend opens its own transaction, assigns `sequence_in_queue`, and rejects empty batches with `ArgumentError`. `SembastBackend.enqueueFifo` decodes `WirePayload.bytes` to a `Map` for row storage.
+- Test helpers `singleEventFifoEntry`, `storedEventFixture`, `wirePayloadJson`, and `enqueueSingle` live in `test/test_support/fifo_entry_helpers.dart` to keep existing single-event test sites concise under the new signature.
+- Three pre-existing Phase-4 tests that enforced caller-supplied `FifoEntry` invariants (pending/attempts-empty/sent-at-null) were removed because the new signature constructs the row internally, eliminating the caller-supplied values those tests rejected.
+- `flutter test` inside `append_only_datastore` passes 319 tests. `dart analyze` and `flutter analyze` are clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
