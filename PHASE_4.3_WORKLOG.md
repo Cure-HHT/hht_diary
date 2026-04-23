@@ -176,6 +176,9 @@ Subagent review of commit `c8ff70ca` returned one HIGH, one MEDIUM, one NIT. No 
 - **MEDIUM — `canAddToBatch([], candidate)` semantics undocumented.** Added a paragraph to the method's doc comment stating that a `false` return on an empty `currentBatch` is legal but means the destination will never form a row; most destinations should return `true` for the empty-current case.
 - **NIT — `_DefaultDestination.transform` silently accepted empty batches.** Added the `ArgumentError` guard so it matches the pattern established by `FakeDestination` and `_EchoDestination`.
 
+### Incidental commit content
+- `TODO4.4.md` (user-authored Phase 4.4 scope note) was in the worktree and got swept into the review-fix commit by `git add -A`. Unrelated to Task 9; kept in the commit to avoid history juggling.
+
 ---
 
 ## Per-task controller workflow (user instructions — re-read each task)
