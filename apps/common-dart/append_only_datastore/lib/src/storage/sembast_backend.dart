@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
@@ -8,6 +10,15 @@ import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
 import 'package:sembast/sembast.dart';
+
+/// Package-private default log sink used when a [SembastBackend] instance
+/// has not overridden [SembastBackend.debugLogSink]. Routes through
+/// `dart:developer` at the warning level (`level: 900`).
+// Implements: REQ-d00127-C — warning-level diagnostic when markFinal or
+// appendAttempt no-op on a missing target.
+void _defaultLogSink(String message) {
+  developer.log(message, name: 'SembastBackend', level: 900);
+}
 
 /// Concrete Sembast-backed implementation of [StorageBackend].
 ///
@@ -65,6 +76,16 @@ class SembastBackend extends StorageBackend {
   /// inspect raw store contents. Not for production use.
   // ignore: library_private_types_in_public_api
   Database debugDatabase() => _database();
+
+  /// Visible-for-testing sink for the warning-level diagnostic emitted by
+  /// [markFinal] and [appendAttempt] when they no-op on a missing target
+  /// (REQ-d00127-C). Defaults to the package-private [_defaultLogSink],
+  /// which writes through `dart:developer` at `level: 900` (warning).
+  /// Tests install a `List<String>.add` closure to capture emitted lines
+  /// without depending on a global logger. Setting this to `null`
+  /// suppresses diagnostics entirely.
+  // Implements: REQ-d00127-C — debugLogSink for test capture.
+  void Function(String)? debugLogSink = _defaultLogSink;
 
   // -------- transaction --------
 
@@ -434,6 +455,21 @@ class SembastBackend extends StorageBackend {
 
   /// Append [attempt] to the entry's attempts[]. Does not change
   /// finalStatus. Runs in its own transaction.
+  ///
+  /// Tolerates a missing target row or a never-registered FIFO store
+  /// (REQ-d00127-B): in both cases this method returns without throwing
+  /// and emits a warning-level diagnostic via [debugLogSink]. This closes
+  /// the drain/unjam + drain/delete race documented in design §6.6 —
+  /// drain `await send()`s outside any storage transaction, and a
+  /// concurrent user operation (unjamDestination, deleteDestination) may
+  /// remove the row before drain's subsequent `appendAttempt` runs.
+  ///
+  /// In Sembast, stores are lazily-created namespaces: a store that was
+  /// never written to simply has zero records, so the `records.isEmpty`
+  /// branch covers both "unknown destination" and "row deleted from a
+  /// known destination". No separate "store exists?" probe is needed.
+  // Implements: REQ-d00127-B — appendAttempt is a no-op on missing row /
+  // missing FIFO store, with a warning-level diagnostic.
   @override
   Future<void> appendAttempt(
     String destinationId,
@@ -448,9 +484,12 @@ class SembastBackend extends StorageBackend {
         finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
       );
       if (records.isEmpty) {
-        throw StateError(
-          'FIFO $destinationId has no entry with entry_id=$entryId',
+        debugLogSink?.call(
+          'appendAttempt: entry $entryId absent from FIFO '
+          '$destinationId; skipping (expected during drain/unjam or '
+          'drain/delete race)',
         );
+        return;
       }
       final record = records.single;
       final updated = Map<String, Object?>.from(record.value);
@@ -468,8 +507,27 @@ class SembastBackend extends StorageBackend {
   /// Transition entry's finalStatus to [status]. For `sent`, also stamps
   /// `sent_at = DateTime.now().toUtc()`. The entry is RETAINED: no delete
   /// ever happens through this path (REQ-d00119-D).
+  ///
+  /// Tolerates a missing target row or a never-registered FIFO store
+  /// (REQ-d00127-A): in both cases this method returns without throwing
+  /// and emits a warning-level diagnostic via [debugLogSink]. This closes
+  /// the drain/unjam + drain/delete race documented in design §6.6 —
+  /// drain `await send()`s outside any storage transaction, and a
+  /// concurrent user operation (unjamDestination, deleteDestination) may
+  /// remove the row before drain's subsequent `markFinal` runs.
+  ///
+  /// In Sembast, stores are lazily-created namespaces: a store that was
+  /// never written to simply has zero records, so the `records.isEmpty`
+  /// branch covers both "unknown destination" and "row deleted from a
+  /// known destination". No separate "store exists?" probe is needed.
+  ///
+  /// The one-way transition rule (pending -> terminal only) is
+  /// preserved: an already-terminal entry still throws `StateError` to
+  /// prevent silent re-stamping of `sent_at`.
   // Implements: REQ-d00119-D — non-pending entries are retained as
   // permanent send-log records.
+  // Implements: REQ-d00127-A — markFinal is a no-op on missing row /
+  // missing FIFO store, with a warning-level diagnostic.
   @override
   Future<void> markFinal(
     String destinationId,
@@ -491,9 +549,11 @@ class SembastBackend extends StorageBackend {
         finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
       );
       if (records.isEmpty) {
-        throw StateError(
-          'FIFO $destinationId has no entry with entry_id=$entryId',
+        debugLogSink?.call(
+          'markFinal: entry $entryId absent from FIFO $destinationId; '
+          'skipping (expected during drain/unjam or drain/delete race)',
         );
+        return;
       }
       final record = records.single;
       final updated = Map<String, Object?>.from(record.value);

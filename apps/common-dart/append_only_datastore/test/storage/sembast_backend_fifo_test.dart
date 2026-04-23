@@ -175,17 +175,46 @@ void main() {
       expect(head2?.attempts, [attempt, attempt2]);
     });
 
-    test('appendAttempt throws when entry does not exist', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
-      await expectLater(
-        backend.appendAttempt(
+    // Verifies: REQ-d00127-B — appendAttempt on a missing row is a no-op,
+    // does NOT throw. Closes the drain/unjam + drain/delete race (design
+    // §6.6): drain awaits send() outside a transaction, so a concurrent
+    // user op may remove the target row before drain's subsequent
+    // appendAttempt transaction runs.
+    test(
+      'REQ-d00127-B: appendAttempt no-ops when entry does not exist',
+      () async {
+        await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+        // Must not throw.
+        await backend.appendAttempt(
           'primary',
           'nonexistent',
           AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
-        ),
-        throwsStateError,
-      );
-    });
+        );
+        // The FIFO is otherwise untouched: e1 is still pending with no
+        // attempts.
+        final head = await backend.readFifoHead('primary');
+        expect(head?.entryId, 'e1');
+        expect(head?.attempts, isEmpty);
+      },
+    );
+
+    // Verifies: REQ-d00127-B — appendAttempt against a FIFO store that
+    // was never registered (destination that never existed, or whose
+    // store was destroyed) is a no-op. In Sembast a never-written store
+    // has zero records, so the records.isEmpty path covers both.
+    test(
+      'REQ-d00127-B: appendAttempt no-ops when FIFO store does not exist',
+      () async {
+        // 'ghost-dest' was never enqueued to.
+        await backend.appendAttempt(
+          'ghost-dest',
+          'any-entry',
+          AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
+        );
+        // Nothing materialized in the unknown store.
+        expect(await backend.readFifoHead('ghost-dest'), isNull);
+      },
+    );
 
     // -------- markFinal --------
 
@@ -272,12 +301,31 @@ void main() {
       },
     );
 
-    test('markFinal throws when entry does not exist', () async {
-      await expectLater(
-        backend.markFinal('primary', 'ghost', FinalStatus.sent),
-        throwsStateError,
-      );
+    // Verifies: REQ-d00127-A — markFinal on a missing row is a no-op, does
+    // NOT throw. Closes the drain/unjam + drain/delete race (design §6.6):
+    // drain awaits send() outside a transaction, so a concurrent user op
+    // may remove the target row before drain's subsequent markFinal
+    // transaction runs.
+    test('REQ-d00127-A: markFinal no-ops when entry does not exist', () async {
+      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      // Must not throw.
+      await backend.markFinal('primary', 'ghost', FinalStatus.sent);
+      // e1 still at head, still pending.
+      final head = await backend.readFifoHead('primary');
+      expect(head?.entryId, 'e1');
+      expect(head?.finalStatus, FinalStatus.pending);
     });
+
+    // Verifies: REQ-d00127-A — markFinal against a FIFO store that was
+    // never registered is a no-op. In Sembast a never-written store has
+    // zero records, so the records.isEmpty path covers this case too.
+    test(
+      'REQ-d00127-A: markFinal no-ops when FIFO store does not exist',
+      () async {
+        await backend.markFinal('ghost-dest', 'any-entry', FinalStatus.sent);
+        expect(await backend.readFifoHead('ghost-dest'), isNull);
+      },
+    );
 
     // Verifies: REQ-d00119-D — final_status transitions are one-way. A
     // second markFinal on an already-terminal entry would silently re-stamp
@@ -436,6 +484,66 @@ void main() {
       for (final record in raw) {
         expect(record.value['sequence_in_queue'], record.key);
       }
+    });
+
+    // -------- REQ-d00127-C: warning log on missing-row no-op --------
+
+    // Verifies: REQ-d00127-C — both markFinal and appendAttempt emit a
+    // warning-level diagnostic that names the method, the entry id, and
+    // the destination id when they no-op due to a missing target. Tests
+    // install a capture closure via debugLogSink so the assertion doesn't
+    // depend on any global logger.
+    test('REQ-d00127-C: markFinal emits a warning that names method, '
+        'entry id, and destination id when it no-ops', () async {
+      final logs = <String>[];
+      backend.debugLogSink = logs.add;
+
+      await backend.markFinal('primary', 'ghost', FinalStatus.sent);
+
+      expect(logs, hasLength(1));
+      final line = logs.single;
+      expect(line, contains('markFinal'));
+      expect(line, contains('ghost'));
+      expect(line, contains('primary'));
+      expect(line, contains('drain/unjam'));
+    });
+
+    test('REQ-d00127-C: appendAttempt emits a warning that names method, '
+        'entry id, and destination id when it no-ops', () async {
+      final logs = <String>[];
+      backend.debugLogSink = logs.add;
+
+      await backend.appendAttempt(
+        'primary',
+        'ghost',
+        AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
+      );
+
+      expect(logs, hasLength(1));
+      final line = logs.single;
+      expect(line, contains('appendAttempt'));
+      expect(line, contains('ghost'));
+      expect(line, contains('primary'));
+      expect(line, contains('drain/unjam'));
+    });
+
+    // Verifies: REQ-d00127-C — the warning is NOT emitted on a successful
+    // happy-path call. Prevents a future regression where a code change
+    // flipped the no-op branch in both directions.
+    test('REQ-d00127-C: no warning is emitted on a happy-path markFinal / '
+        'appendAttempt', () async {
+      final logs = <String>[];
+      backend.debugLogSink = logs.add;
+
+      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await backend.appendAttempt(
+        'primary',
+        'e1',
+        AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
+      );
+      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+
+      expect(logs, isEmpty);
     });
   });
 }

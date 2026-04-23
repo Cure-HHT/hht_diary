@@ -147,6 +147,16 @@ abstract class StorageBackend {
 
   /// Append [attempt] to the `attempts[]` list of the entry identified by
   /// `(destinationId, entryId)`. Does not change `final_status`.
+  ///
+  /// Implementations SHALL be a no-op (return without throwing) when the
+  /// FIFO row identified by `entryId` does not exist in the destination's
+  /// FIFO store, and SHALL be a no-op when the FIFO store for
+  /// `destinationId` does not exist (REQ-d00127-B). This tolerates the
+  /// drain/unjam + drain/delete race: drain `await send()`s outside a
+  /// storage transaction, and a concurrent user operation may remove the
+  /// target row before drain's subsequent `appendAttempt` transaction
+  /// runs. Implementations SHALL emit a warning-level diagnostic when
+  /// they no-op (REQ-d00127-C).
   Future<void> appendAttempt(
     String destinationId,
     String entryId,
@@ -157,6 +167,16 @@ abstract class StorageBackend {
   /// [FinalStatus.sent] the entry's `sent_at` is also set. Entries
   /// transitioned to terminal status are retained forever as send-log
   /// records (REQ-d00119-D); they are never deleted.
+  ///
+  /// Implementations SHALL be a no-op (return without throwing) when the
+  /// FIFO row identified by `entryId` does not exist in the destination's
+  /// FIFO store, and SHALL be a no-op when the FIFO store for
+  /// `destinationId` does not exist (REQ-d00127-A) — see the matching
+  /// note on [appendAttempt] for the race this closes. Implementations
+  /// SHALL emit a warning-level diagnostic when they no-op
+  /// (REQ-d00127-C). The one-way-transition rule for an already-terminal
+  /// entry (pending -> sent|exhausted only; no re-transition) is
+  /// orthogonal to this tolerance and remains enforced.
   Future<void> markFinal(
     String destinationId,
     String entryId,
