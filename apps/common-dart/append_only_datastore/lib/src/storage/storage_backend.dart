@@ -157,6 +157,26 @@ abstract class StorageBackend {
     WirePayload wirePayload,
   );
 
+  /// Transactional variant of [enqueueFifo]: participates in the
+  /// surrounding transaction's atomicity so the FIFO-row write and the
+  /// accompanying writes (e.g., fill_cursor advance in `fillBatch`) commit
+  /// or roll back together. Same contract as [enqueueFifo] otherwise:
+  /// rejects empty [batch], rejects duplicate `entry_id` in the same FIFO,
+  /// assigns monotonically-increasing `sequence_in_queue`, and registers
+  /// the destination on first use.
+  ///
+  /// Implementations SHALL centralize row-construction logic here;
+  /// [enqueueFifo] delegates to [enqueueFifoTxn] inside its own
+  /// `transaction((txn) => ...)` wrapper.
+  // Implements: REQ-d00128-A+B+C — transactional batch-per-row enqueue
+  // (co-atomic with the surrounding transaction; used by fillBatch).
+  Future<FifoEntry> enqueueFifoTxn(
+    Txn txn,
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  );
+
   /// First `pending` entry in [destinationId]'s FIFO in
   /// `sequence_in_queue` order, or null when no pending entry remains
   /// (the FIFO is empty, or every row is terminal — `sent` and/or

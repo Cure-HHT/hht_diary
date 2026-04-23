@@ -153,6 +153,7 @@ export 'src/storage/txn.dart' show Txn;
 // CUR-1154). Phase 5 wires triggers in clinical_diary that route into
 // SyncCycle.call().
 export 'src/sync/drain.dart' show ClockFn, drain;
+export 'src/sync/fill_batch.dart' show fillBatch;
 export 'src/sync/sync_cycle.dart' show SyncCycle;
 export 'src/sync/sync_policy.dart' show SyncPolicy;
 

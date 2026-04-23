@@ -890,6 +890,13 @@ class _SpyBackend extends StorageBackend {
     WirePayload wirePayload,
   ) => delegate.enqueueFifo(destinationId, batch, wirePayload);
   @override
+  Future<FifoEntry> enqueueFifoTxn(
+    Txn txn,
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  ) => delegate.enqueueFifoTxn(txn, destinationId, batch, wirePayload);
+  @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       delegate.readFifoHead(destinationId);
   @override

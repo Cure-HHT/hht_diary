@@ -264,6 +264,13 @@ class _InMemoryBackend extends StorageBackend {
     WirePayload wirePayload,
   ) => throw UnimplementedError();
   @override
+  Future<FifoEntry> enqueueFifoTxn(
+    Txn txn,
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  ) => throw UnimplementedError();
+  @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       throw UnimplementedError();
   @override

@@ -490,31 +490,66 @@ class SembastBackend extends StorageBackend {
   /// row covers every event in [batch] and carries a single [wirePayload]
   /// (REQ-d00128-C).
   ///
-  /// Opens its own atomic transaction. Phase-4.3 later adds an
-  /// `enqueueFifoTxn(txn, ...)` overload for callers (replay,
-  /// fill_batch) that are already composing a larger transaction; this
-  /// public method is the standalone variant.
+  /// Opens its own atomic transaction and delegates the actual row
+  /// construction to [enqueueFifoTxn]. Callers already composing a larger
+  /// transaction (replay, fill_batch) SHALL use [enqueueFifoTxn] so the
+  /// enqueue and any accompanying writes (e.g., fill_cursor advance)
+  /// commit co-atomically.
   ///
   /// The backend owns `sequence_in_queue`: it is assigned as
-  /// `max(existing store key) + 1` inside the internal transaction, so
-  /// the Sembast int key and the payload `sequence_in_queue` are in
-  /// lockstep (Phase-2 Prereq A, Option 1).
+  /// `max(existing store key) + 1` inside the transaction, so the
+  /// Sembast int key and the payload `sequence_in_queue` are in lockstep
+  /// (Phase-2 Prereq A, Option 1).
   ///
   /// The returned `FifoEntry` is the persisted record. Callers that
   /// need to advance a per-destination cursor use
   /// `result.eventIdRange.lastSeq` as the inclusive upper bound of the
   /// batch on the event log.
   ///
-  /// Rejects (throws `ArgumentError`):
+  /// Rejects (throws `ArgumentError` / `StateError`):
   /// - empty [batch] (REQ-d00128-A);
   /// - `entryId` collision within the destination's FIFO (would let a
   ///   later `markFinal` / `appendAttempt` pick the wrong row).
   // Implements: REQ-d00117-E — enqueue initial state (pending, no
   // attempts, no sent_at).
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
-  // Implements: REQ-d00128-A+B+C — batch-per-row enqueue.
+  // Implements: REQ-d00128-A+B+C — batch-per-row enqueue (standalone
+  // variant; opens its own transaction and delegates to enqueueFifoTxn).
   @override
   Future<FifoEntry> enqueueFifo(
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  ) async {
+    return _database().transaction((sembastTxn) async {
+      final txn = _SembastTxn._(sembastTxn);
+      try {
+        return await enqueueFifoTxn(txn, destinationId, batch, wirePayload);
+      } finally {
+        txn._invalidate();
+      }
+    });
+  }
+
+  /// Transactional variant of [enqueueFifo]: participates in the
+  /// surrounding [txn] so the FIFO-row write and the caller's
+  /// accompanying writes commit or roll back together. Used by
+  /// `fillBatch` to keep the enqueue + fill_cursor advance co-atomic,
+  /// and (in a later task) by replay to compose a larger walk of the
+  /// event log into a single transaction.
+  ///
+  /// Centralizes all row-construction logic: empty-batch rejection,
+  /// duplicate-entryId rejection, `sequence_in_queue` assignment,
+  /// wire-payload decoding, and the known-FIFOs registry bookkeeping
+  /// all live here; [enqueueFifo] is a thin `transaction(...)` wrapper.
+  // Implements: REQ-d00117-E — enqueue initial state (pending, no
+  // attempts, no sent_at).
+  // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
+  // Implements: REQ-d00128-A+B+C — batch-per-row enqueue (transactional
+  // variant; used by fillBatch to co-commit enqueue + fill_cursor).
+  @override
+  Future<FifoEntry> enqueueFifoTxn(
+    Txn txn,
     String destinationId,
     List<StoredEvent> batch,
     WirePayload wirePayload,
@@ -526,6 +561,7 @@ class SembastBackend extends StorageBackend {
         'enqueueFifo requires a non-empty batch (REQ-d00128-A)',
       );
     }
+    final t = _requireValidTxn(txn);
     final eventIds = batch.map((e) => e.eventId).toList(growable: false);
     final eventIdRange = (
       firstSeq: batch.first.sequenceNumber,
@@ -564,47 +600,45 @@ class SembastBackend extends StorageBackend {
     // batch yet).
     final entryId = batch.first.eventId;
     final enqueuedAt = DateTime.now().toUtc();
-    return _database().transaction((sembastTxn) async {
-      final store = _fifoStore(destinationId);
-      // Reject a duplicate entry_id in the same FIFO. Without this
-      // check, later appendAttempt/markFinal calls would quietly pick
-      // one of the duplicates and the other would drift out of sync.
-      final existing = await store.find(
-        sembastTxn,
-        finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
+    final store = _fifoStore(destinationId);
+    // Reject a duplicate entry_id in the same FIFO. Without this
+    // check, later appendAttempt/markFinal calls would quietly pick
+    // one of the duplicates and the other would drift out of sync.
+    final existing = await store.find(
+      t._sembastTxn,
+      finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
+    );
+    if (existing.isNotEmpty) {
+      throw StateError(
+        'FIFO $destinationId already has an entry with '
+        'entry_id=$entryId',
       );
-      if (existing.isNotEmpty) {
-        throw StateError(
-          'FIFO $destinationId already has an entry with '
-          'entry_id=$entryId',
-        );
-      }
-      // Compute the next sequence_in_queue as max(existing key) + 1 so
-      // the value is monotonic across surviving (sent/exhausted)
-      // entries and the Sembast int key matches the payload's
-      // sequence_in_queue field.
-      final maxRec = await store.find(
-        sembastTxn,
-        finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
-      );
-      final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
-      final entry = FifoEntry(
-        entryId: entryId,
-        eventIds: eventIds,
-        eventIdRange: eventIdRange,
-        sequenceInQueue: assigned,
-        wirePayload: payloadMap,
-        wireFormat: wirePayload.contentType,
-        transformVersion: wirePayload.transformVersion,
-        enqueuedAt: enqueuedAt,
-        attempts: const <AttemptResult>[],
-        finalStatus: FinalStatus.pending,
-        sentAt: null,
-      );
-      await store.record(assigned).put(sembastTxn, entry.toJson());
-      await _registerFifoDestinationSembast(sembastTxn, destinationId);
-      return entry;
-    });
+    }
+    // Compute the next sequence_in_queue as max(existing key) + 1 so
+    // the value is monotonic across surviving (sent/exhausted)
+    // entries and the Sembast int key matches the payload's
+    // sequence_in_queue field.
+    final maxRec = await store.find(
+      t._sembastTxn,
+      finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
+    );
+    final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
+    final entry = FifoEntry(
+      entryId: entryId,
+      eventIds: eventIds,
+      eventIdRange: eventIdRange,
+      sequenceInQueue: assigned,
+      wirePayload: payloadMap,
+      wireFormat: wirePayload.contentType,
+      transformVersion: wirePayload.transformVersion,
+      enqueuedAt: enqueuedAt,
+      attempts: const <AttemptResult>[],
+      finalStatus: FinalStatus.pending,
+      sentAt: null,
+    );
+    await store.record(assigned).put(t._sembastTxn, entry.toJson());
+    await _registerFifoDestinationSembast(t._sembastTxn, destinationId);
+    return entry;
   }
 
   Future<void> _registerFifoDestinationSembast(
