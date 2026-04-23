@@ -170,6 +170,21 @@ Four `const EntryTypeDefinition` top-level instances — `demoNoteType`, `redBut
 
 ---
 
+## Task 7: `demo_sync_policy.dart` — defaults + notifier
+
+`lib/demo_sync_policy.dart` declares:
+
+- `demoDefaultSyncPolicy`: `const SyncPolicy(initialBackoff: 1s, backoffMultiplier: 1.0, maxBackoff: 10s, jitterFraction: 0.0, maxAttempts: 1_000_000, periodicInterval: 1s)` per design §7.7. Short backoff so retry cadence is observable live without waiting minutes.
+- `demoPolicyNotifier`: `final ValueNotifier<SyncPolicy>` seeded with `demoDefaultSyncPolicy`. Task 12's sync-policy bar mutates this; `main.dart`'s Timer tick reads it at every cycle.
+
+Shipped `SyncPolicy` carries a sixth `periodicInterval` field not called out in the plan (foreground cadence, REQ-d00123-F). Demo seeds it to 1s — a no-op for the reviewer because `main.dart` runs its own Timer.periodic — but the constructor needs every required field.
+
+`test/demo_sync_policy_test.dart` — 8 tests cover all six default fields, `demoPolicyNotifier` initial-value identity, `ValueNotifier<SyncPolicy>` type, and listener-notification semantics on `.value = ...` (uses a local notifier to avoid process-wide leakage).
+
+**Final state**: example — 59 tests pass (+8 from Task 6); `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
