@@ -139,6 +139,20 @@ Task 9 template in the plan will be adjusted to this shape during implementation
 
 ---
 
+## Task 5: `demo_types.dart` — entry type definitions
+
+Four `const EntryTypeDefinition` top-level instances — `demoNoteType`, `redButtonType`, `greenButtonType`, `blueButtonType` — plus `allDemoEntryTypes` (registered at bootstrap) and `demoAggregateTypeByEntryTypeId` (lookup used by the Task 12 action buttons when calling `eventStore.append(aggregateType:)`).
+
+`EntryTypeDefinition` (from `trial_data_types`) does **not** carry an `aggregateType` field in the shipped REQ-d00116 shape; the CQRS discriminator the plan describes lives on the event, not on the type definition. `EventStore.append` (REQ-d00141-B) takes `aggregateType` as a per-call argument, so the demo keeps a plain id-keyed map and passes the looked-up value into each `append` call.
+
+`demo_note` maps to `'DiaryEntry'` and materializes (has `effectiveDatePath: 'date'`). The three action buttons each have `widgetId: 'action_button_v1'`, `effectiveDatePath: null`, and distinct aggregate types (`RedButtonPressed` / `GreenButtonPressed` / `BlueButtonPressed`) — this is the JNY-02 CQRS invariant.
+
+`test/demo_types_test.dart` — 18 tests cover per-type id/widgetId/effectiveDatePath, per-id aggregate-type lookup, non-'DiaryEntry' action predicates, and the all-entries list shape (4 entries, unique ids, expected contents).
+
+**Final state**: example — 37 tests pass (+18 from Task 4); `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
