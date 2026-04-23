@@ -153,6 +153,23 @@ Four `const EntryTypeDefinition` top-level instances — `demoNoteType`, `redBut
 
 ---
 
+## Task 6: `demo_destination.dart` — DemoDestination class
+
+`lib/demo_destination.dart` declares `enum Connection { ok, broken, rejecting }` and `class DemoDestination implements Destination`:
+
+- `id`, `allowHardDelete` final fields; `wireFormat = 'demo-json-v1'`; `filter = const SubscriptionFilter()` (null allow-lists = match everything).
+- Four `ValueNotifier` fields live-tunable from UI: `connection`, `sendLatency`, `batchSize`, `maxAccumulateTimeN`.
+- `maxAccumulateTime` getter reads the notifier value each call.
+- `canAddToBatch` returns `currentBatch.length < batchSize.value` — empty batch always accepts; full batch rejects next candidate.
+- `transform(batch)` encodes `{"batch": [event1.toJson(), ...]}` as UTF-8 JSON, contentType `application/json`, transformVersion `demo-v1`.
+- `send(payload)` switches on `connection.value`: `ok` → awaits `sendLatency` then `SendOk`; `broken` → `SendTransient(error: 'simulated disconnect')` immediately; `rejecting` → `SendPermanent(error: 'simulated rejection')` immediately.
+
+`test/demo_destination_test.dart` — 14 tests cover identity (id, wireFormat, filter), `allowHardDelete` default + opt-in, `canAddToBatch` at batchSize 1/5 and empty-batch edge, `maxAccumulateTime` notifier reading, `transform` round-trip (contentType, transformVersion, JSON-decoded batch length + per-event-id verification), all three `send` branches with latency/timing assertions, and initial-value constructor seeding.
+
+**Final state**: example — 51 tests pass (+14 from Task 5); `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
