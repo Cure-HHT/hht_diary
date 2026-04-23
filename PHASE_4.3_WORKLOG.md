@@ -220,7 +220,14 @@ Test count: 343 → 345 (+2).
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `0d9d3b06` returned two MEDIUM and one NIT. No CRITICAL or HIGH (four "HIGH"-labeled findings were all confidence-0 spot-checks that the reviewer flagged and then cleared). All three actionable findings addressed.
+
+**Addressed:**
+- **MEDIUM — REQ-d00128-F flush-on-expiry path untested.** Added a test where `clock` is advanced past `maxAccumulateTime` for a single-event batch; asserts the FIFO row is written and `fill_cursor` advances to the event's sequence.
+- **MEDIUM — REQ-d00128-H idempotency-after-filter-advance untested.** Extended the non-matching-tail test with a second `fillBatch` call; asserts the cursor remains at 2 and no new FIFO row appears.
+- **NIT — dormant-path test was vacuous (no events).** Added an event to the event_log so the dormant-schedule early-exit is the only thing preventing a write.
+
+Test count: 354 → 355 (+1 new flush-on-expiry test; the other two were in-place extensions).
 
 ---
 

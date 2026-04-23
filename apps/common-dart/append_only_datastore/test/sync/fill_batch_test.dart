@@ -68,9 +68,16 @@ void main() {
     test(
       'REQ-d00128-H: fillBatch with no new matching events is a no-op',
       () async {
+        // Append events to the log so the dormant-schedule early-exit
+        // is the only thing preventing a FIFO write (not vacuous).
+        await _appendEvent(
+          backend,
+          eventId: 'e1',
+          clientTimestamp: DateTime.utc(2026, 4, 22, 11),
+        );
         final dest = FakeDestination(id: 'fake');
         const schedule = DestinationSchedule();
-        // No events appended, no schedule start date set: should be a no-op.
+        // Dormant schedule: should be a no-op despite candidates.
         await fillBatch(
           dest,
           backend: backend,
@@ -163,6 +170,33 @@ void main() {
       // Cursor is NOT advanced: the candidate is still a live match that
       // we want to re-evaluate on the next tick.
       expect(await backend.readFillCursor('fake'), -1);
+    });
+
+    // Verifies: REQ-d00128-F — once maxAccumulateTime has elapsed, a
+    // single-event batch flushes: a FIFO row is written and the
+    // fill_cursor advances to the event's sequence_number.
+    test('REQ-d00128-F: fillBatch flushes a 1-event batch once '
+        'maxAccumulateTime has elapsed', () async {
+      final ts = DateTime.utc(2026, 4, 22, 11, 50);
+      await _appendEvent(backend, eventId: 'e1', clientTimestamp: ts);
+
+      final dest = FakeDestination(
+        id: 'fake',
+        batchCapacity: 10,
+        maxAccumulateTime: const Duration(minutes: 5),
+      );
+      final schedule = DestinationSchedule(startDate: DateTime.utc(2026, 4, 1));
+      // Clock advanced 10 minutes past the event; age (10min) > 5min.
+      await fillBatch(
+        dest,
+        backend: backend,
+        schedule: schedule,
+        clock: () => DateTime.utc(2026, 4, 22, 12),
+      );
+      final head = await backend.readFifoHead('fake');
+      expect(head, isNotNull);
+      expect(head!.eventIds, ['e1']);
+      expect(await backend.readFillCursor('fake'), 1);
     });
 
     // Verifies: REQ-d00129-I — events with client_timestamp < startDate
@@ -366,6 +400,17 @@ void main() {
       expect(await backend.readFifoHead('fake'), isNull);
       // Cursor advances past the skipped non-matching events so
       // subsequent fillBatch calls don't rescan them.
+      expect(await backend.readFillCursor('fake'), 2);
+
+      // Idempotency (REQ-d00128-H): a repeat call with no new candidates
+      // does not re-advance the cursor and does not enqueue anything.
+      await fillBatch(
+        dest,
+        backend: backend,
+        schedule: schedule,
+        clock: () => DateTime.utc(2026, 4, 22, 12),
+      );
+      expect(await backend.readFifoHead('fake'), isNull);
       expect(await backend.readFillCursor('fake'), 2);
     });
   });
