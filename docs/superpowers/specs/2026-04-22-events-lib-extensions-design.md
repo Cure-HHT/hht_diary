@@ -214,7 +214,7 @@ lib/src/event_store.dart                                [RENAME from
     });
 ```
 
-One `append` method serves both mobile widgets (typically `dedupeByContent: true`, no security) and portal callers (security details supplied, dedupe off). `EventDraft` is NOT introduced in Phase 4.4 — it's a portal-actions-lib internal concern (Sub-project A) that defines its own EventDraft and translates to `append` per-field args.
+One `append` method serves both mobile widgets (typically `dedupeByContent: true`, no security) and portal callers (security details supplied, dedupe off).
 
 ### 4.6 `EntryTypeDefinition` gains a flag
 
@@ -839,7 +839,7 @@ Carried forward from `TODO4.4.md` and confirmed during this brainstorm:
 
 1. **PostgreSQL `StorageBackend` implementation** — separate "port to portal" ticket.
 2. **Periodic retention CRON wiring** — ops ticket; this phase only specifies the API.
-3. **Portal actions library** (Sub-project A of CUR-1159) — implemented separately in the portal worktree after this lands. `EventDraft` lives there.
+3. **Portal actions library** (Sub-project A of CUR-1159) — implemented separately in the portal worktree after this lands.
 4. **Diary-sync mobile→portal ingestion endpoint** — its own ticket.
 5. **OpenTelemetry stamping of events with trace/span context** — future enhancement.
 6. **Encryption-at-rest of the security context** — separate ticket if needed.
@@ -850,10 +850,6 @@ Carried forward from `TODO4.4.md` and confirmed during this brainstorm:
 
 ## 11. Sequencing
 
-This phase depends on Phase 4.3 being complete (the existing `EntryService.record` and `StorageBackend` are in their post-4.3 shape that this phase modifies). Phase 4.5 (storage failure handling) follows. Phase 4.6 (demo) follows Phase 4.5.
+Phase 4.5 (storage failure handling) follows. 
+Phase 4.6 (demo) follows Phase 4.5.
 
-After Phase 4.4 lands on `main`, the portal worktree's CUR-1159 Sub-project A becomes unblocked.
-
-## 12. Acceptance
-
-This design is complete when a `PLAN_PHASE4.4_*.md` has been written via `superpowers:writing-plans`, the implementation has been TDD'd through, all new REQ assertions pass their tests, the mobile call-site migrations identified above have been completed, and the PR has been merged to `main`.
