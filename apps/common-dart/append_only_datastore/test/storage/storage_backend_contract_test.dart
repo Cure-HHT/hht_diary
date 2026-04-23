@@ -241,6 +241,11 @@ class _InMemoryBackend extends StorageBackend {
   Future<List<StoredEvent>> findEventsForAggregate(String aggregateId) =>
       throw UnimplementedError();
   @override
+  Future<List<StoredEvent>> findEventsForAggregateInTxn(
+    Txn txn,
+    String aggregateId,
+  ) => throw UnimplementedError();
+  @override
   Future<int> nextSequenceNumber(Txn txn) => throw UnimplementedError();
   @override
   Future<int> readSequenceCounter() => throw UnimplementedError();
@@ -257,6 +262,9 @@ class _InMemoryBackend extends StorageBackend {
     DateTime? dateFrom,
     DateTime? dateTo,
   }) => throw UnimplementedError();
+  @override
+  Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
+      throw UnimplementedError();
   @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,

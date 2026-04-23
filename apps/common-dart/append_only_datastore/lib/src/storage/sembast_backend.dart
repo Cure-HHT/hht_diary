@@ -168,6 +168,20 @@ class SembastBackend extends StorageBackend {
   }
 
   @override
+  Future<List<StoredEvent>> findEventsForAggregateInTxn(
+    Txn txn,
+    String aggregateId,
+  ) async {
+    final t = _requireValidTxn(txn);
+    final finder = Finder(
+      filter: Filter.equals('aggregate_id', aggregateId),
+      sortOrders: [SortOrder('sequence_number')],
+    );
+    final records = await _eventStore.find(t._sembastTxn, finder: finder);
+    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
+  }
+
+  @override
   Future<List<StoredEvent>> findAllEvents({
     int? afterSequence,
     int? limit,
@@ -482,6 +496,14 @@ class SembastBackend extends StorageBackend {
     final finder = filters.isEmpty ? null : Finder(filter: Filter.and(filters));
     final records = await _entriesStore.find(db, finder: finder);
     return records.map((r) => DiaryEntry.fromJson(r.value)).toList();
+  }
+
+  @override
+  Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) async {
+    final t = _requireValidTxn(txn);
+    final raw = await _entriesStore.record(entryId).get(t._sembastTxn);
+    if (raw == null) return null;
+    return DiaryEntry.fromJson(raw);
   }
 
   // -------- FIFO --------

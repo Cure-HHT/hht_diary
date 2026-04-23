@@ -323,7 +323,12 @@ Test count: 372 → 373 (+1).
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `a7ca5680` returned one CRITICAL and two HIGH. All three addressed.
+
+**Addressed:**
+- **CRITICAL — `findEventsForAggregate` was called outside the transaction, so the no-op check + `firstEventTs` computation had TOCTOU against a concurrent writer on the same aggregate.** Moved both reads inside the transaction via a new `StorageBackend.findEventsForAggregateInTxn(txn, aggregateId)` method. `record` now returns `Future<StoredEvent?>` (null on no-op) so the body can signal the duplicate path from inside the transaction without any pre-txn read.
+- **HIGH — `event_hash` input included `software_version`, violating REQ-d00120-B's explicit identity-field enumeration.** Removed `software_version` from `_eventHash`'s hashInput map. The migration-bridge field remains stored on the event record as a top-level field (REQ-d00133-I) and under tamper detection via its presence in `metadata.provenance[0]`, which is what the portal-side verifier will hash in the future.
+- **HIGH — `findEntries()` non-transactional read inside the write transaction.** Replaced with a new `StorageBackend.readEntryInTxn(txn, entryId)` method that reads one diary_entries row by id within the surrounding transaction. `_InMemoryBackend` / `_SpyBackend` / `_DelegatingBackend` test stubs updated to carry the two new abstract methods.
 
 ---
 

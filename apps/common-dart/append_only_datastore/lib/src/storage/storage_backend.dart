@@ -51,6 +51,16 @@ abstract class StorageBackend {
   /// Events for one aggregate, sorted by `sequence_number` ascending.
   Future<List<StoredEvent>> findEventsForAggregate(String aggregateId);
 
+  /// Events for one aggregate, read within [txn] so the result reflects
+  /// writes already staged in the same transaction body. Sorted by
+  /// `sequence_number` ascending. Used by callers (e.g., `EntryService`)
+  /// that need hash-chain / no-op-detection reads to be coherent with
+  /// the same-transaction append.
+  Future<List<StoredEvent>> findEventsForAggregateInTxn(
+    Txn txn,
+    String aggregateId,
+  );
+
   /// All events, optionally sliced by `afterSequence` (exclusive) and
   /// `limit`. Returned in `sequence_number` order.
   Future<List<StoredEvent>> findAllEvents({int? afterSequence, int? limit});
@@ -123,6 +133,13 @@ abstract class StorageBackend {
     DateTime? dateFrom,
     DateTime? dateTo,
   });
+
+  /// Read a single `diary_entries` row by `entryId` within [txn] so
+  /// in-transaction callers (e.g., `EntryService.record` folding the
+  /// materializer's `priorRow` lookup into the same transaction as the
+  /// append + upsert) see writes staged earlier in the same body.
+  /// Returns null when the row does not exist.
+  Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId);
 
   // -------- FIFO (per destination) --------
 

@@ -444,6 +444,12 @@ class _DelegatingBackend extends StorageBackend {
       _inner.findEventsForAggregate(aggregateId);
 
   @override
+  Future<List<StoredEvent>> findEventsForAggregateInTxn(
+    Txn txn,
+    String aggregateId,
+  ) => _inner.findEventsForAggregateInTxn(txn, aggregateId);
+
+  @override
   Future<List<StoredEvent>> findAllEvents({int? afterSequence, int? limit}) =>
       _inner.findAllEvents(afterSequence: afterSequence, limit: limit);
 
@@ -489,6 +495,10 @@ class _DelegatingBackend extends StorageBackend {
     dateFrom: dateFrom,
     dateTo: dateTo,
   );
+
+  @override
+  Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
+      _inner.readEntryInTxn(txn, entryId);
 
   @override
   Future<FifoEntry> enqueueFifo(

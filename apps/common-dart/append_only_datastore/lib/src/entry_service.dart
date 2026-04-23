@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:append_only_datastore/src/entry_type_registry.dart';
 import 'package:append_only_datastore/src/materialization/materializer.dart';
-import 'package:append_only_datastore/src/storage/diary_entry.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/sync/drain.dart';
@@ -147,31 +146,6 @@ class EntryService {
     final def = entryTypes.byId(entryType)!;
     final effectiveChangeReason = changeReason ?? 'initial';
 
-    // REQ-d00133-F: canonical-content no-op detection. Compare against
-    // the most recent event on the aggregate, BEFORE opening the
-    // transaction — the check is read-only and a duplicate would
-    // contribute no work inside the transaction anyway.
-    final aggregateHistory = await backend.findEventsForAggregate(aggregateId);
-    final candidateHash = _contentHash(
-      eventType: eventType,
-      answers: answers,
-      checkpointReason: checkpointReason,
-      changeReason: effectiveChangeReason,
-    );
-    if (aggregateHistory.isNotEmpty) {
-      final prior = aggregateHistory.last;
-      final priorHash = _contentHash(
-        eventType: prior.eventType,
-        answers: _extractAnswers(prior.data),
-        checkpointReason: prior.data['checkpoint_reason'] as String?,
-        changeReason: (prior.metadata['change_reason'] as String?) ?? 'initial',
-      );
-      if (candidateHash == priorHash) {
-        // No-op: duplicate content; return without writing.
-        return null;
-      }
-    }
-
     // Build the first ProvenanceEntry OUTSIDE the transaction — it depends
     // only on wall-clock time and DeviceInfo, and keeping it out of the
     // transaction keeps the transaction body short.
@@ -182,11 +156,43 @@ class EntryService {
       identifier: deviceInfo.deviceId,
       softwareVersion: deviceInfo.softwareVersion,
     );
+    final candidateHash = _contentHash(
+      eventType: eventType,
+      answers: answers,
+      checkpointReason: checkpointReason,
+      changeReason: effectiveChangeReason,
+    );
 
-    // REQ-d00133-B + D + E: atomic local write. Event assembly runs
-    // inside the transaction so the hash-chain tail read and the
-    // sequence-counter reservation commit together with the append.
-    final appended = await backend.transaction<StoredEvent>((txn) async {
+    // REQ-d00133-B + D + E + F: atomic local write. Event assembly,
+    // no-op detection, hash-chain tail read, and sequence-counter
+    // reservation all happen inside the transaction so the read set
+    // is coherent with the append (no TOCTOU against a concurrent
+    // writer on the same aggregate).
+    final appended = await backend.transaction<StoredEvent?>((txn) async {
+      // REQ-d00133-F: canonical-content no-op detection. Read INSIDE
+      // the transaction so a concurrent writer that lands before us
+      // cannot slip in a duplicate that this check misses.
+      final aggregateHistory = await backend.findEventsForAggregateInTxn(
+        txn,
+        aggregateId,
+      );
+      if (aggregateHistory.isNotEmpty) {
+        final prior = aggregateHistory.last;
+        final priorHash = _contentHash(
+          eventType: prior.eventType,
+          answers: _extractAnswers(prior.data),
+          checkpointReason: prior.data['checkpoint_reason'] as String?,
+          changeReason:
+              (prior.metadata['change_reason'] as String?) ?? 'initial',
+        );
+        if (candidateHash == priorHash) {
+          // No-op: duplicate content; return without writing. Returning
+          // null from the transaction body rolls back nothing (we did no
+          // writes) and signals the caller to skip the post-write sync.
+          return null;
+        }
+      }
+
       final previousHash = await backend.readLatestEventHash(txn);
       final sequenceNumber = await backend.nextSequenceNumber(txn);
       final eventId = _uuid.v4();
@@ -231,19 +237,15 @@ class EntryService {
       // transaction as the append so the view is coherent with the log
       // at commit time. The diary_entries row is keyed on aggregateId;
       // a rolled-back transaction (REQ-d00133-E) leaves neither the
-      // event nor the view row visible to subsequent reads.
-      final priorRows = await backend.findEntries();
-      final priorRow = priorRows.cast<DiaryEntry?>().firstWhere(
-        (r) => r?.entryId == aggregateId,
-        orElse: () => null,
-      );
+      // event nor the view row visible to subsequent reads. Read the
+      // prior row INSIDE the transaction so the read set stays coherent
+      // with the append.
+      final priorRow = await backend.readEntryInTxn(txn, aggregateId);
       // First-event fallback for effective_date resolution: the oldest
       // event on the aggregate supplies the fallback timestamp. When
       // this is the aggregate's first event, that is `event.clientTimestamp`
       // itself; on subsequent events we use the earliest prior event's
-      // client_timestamp (aggregateHistory was read outside the transaction,
-      // but for this purpose the "first event timestamp" is monotonically
-      // stable — prior events cannot be deleted from the log).
+      // client_timestamp from the in-transaction aggregateHistory read.
       final firstEventTs = aggregateHistory.isEmpty
           ? event.clientTimestamp
           : aggregateHistory.first.clientTimestamp;
@@ -257,6 +259,12 @@ class EntryService {
 
       return event;
     });
+
+    if (appended == null) {
+      // No-op duplicate detected inside the transaction; no event
+      // appended, so no sync cycle to trigger.
+      return null;
+    }
 
     // REQ-d00133-G: kick the sync cycle fire-and-forget. Errors from the
     // sync cycle SHALL NOT bubble into the caller; drain's internal
@@ -289,11 +297,12 @@ class EntryService {
     return sha256.convert(bytes).toString();
   }
 
-  /// Event-hash digest over the hashed subset of [recordMap]. Mirrors
-  /// the shape used by the existing `EventRepository._calculateEventHash`
-  /// so events written by either path verify against the same chain.
-  /// Includes `software_version` so the migration-bridge field is under
-  /// tamper detection from day one.
+  /// Event-hash digest over the identity fields enumerated in REQ-d00120-B.
+  /// The hashed subset is exactly the ten fields named by that assertion;
+  /// no other fields SHALL enter the hash input. `software_version` is a
+  /// migration-bridge field and is EXCLUDED from the hash per REQ-d00120-B.
+  // Implements: REQ-d00120-A+B — SHA-256 over JCS-canonical bytes of the
+  // identity-field subset exactly as enumerated in REQ-d00120-B.
   String _eventHash(Map<String, Object?> recordMap) {
     final hashInput = <String, Object?>{
       'event_id': recordMap['event_id'],
@@ -305,7 +314,6 @@ class EntryService {
       'user_id': recordMap['user_id'],
       'device_id': recordMap['device_id'],
       'client_timestamp': recordMap['client_timestamp'],
-      'software_version': recordMap['software_version'],
       'previous_event_hash': recordMap['previous_event_hash'],
     };
     final bytes = canonicalizeBytes(hashInput);

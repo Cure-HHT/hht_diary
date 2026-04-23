@@ -822,6 +822,12 @@ class _SpyBackend extends StorageBackend {
   }
 
   @override
+  Future<List<StoredEvent>> findEventsForAggregateInTxn(
+    Txn txn,
+    String aggregateId,
+  ) => delegate.findEventsForAggregateInTxn(txn, aggregateId);
+
+  @override
   Future<List<StoredEvent>> findAllEvents({int? afterSequence, int? limit}) {
     findAllEventsCalls += 1;
     return delegate.findAllEvents(afterSequence: afterSequence, limit: limit);
@@ -883,6 +889,9 @@ class _SpyBackend extends StorageBackend {
     dateFrom: dateFrom,
     dateTo: dateTo,
   );
+  @override
+  Future<DiaryEntry?> readEntryInTxn(Txn txn, String entryId) =>
+      delegate.readEntryInTxn(txn, entryId);
   @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
