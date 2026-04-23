@@ -341,7 +341,14 @@ Subagent review of commit `a7ca5680` returned one CRITICAL and two HIGH. All thr
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `be7301df` returned three HIGH findings.
+
+**Addressed:**
+- **HIGH — duplicate-rejection test did not verify post-throw state.** Now asserts `registry.all()` still has length 1 and `byId('demo_note') == same(original)` after the ArgumentError.
+- **HIGH — insertion-order test compared `.id` strings rather than identity.** Now uses `orderedEquals([first, second, third])` over the definition objects, asserting both order and reference equality.
+
+**Not addressed:**
+- **HIGH — reviewer claimed `expect(view.clear, throwsUnsupportedError)` would not invoke the tear-off.** Factually incorrect: Dart's `throws*` matcher calls the function regardless of whether it is a closure or a tear-off. The test passes (empirically confirmed), proving the matcher does invoke the tear-off. No change needed.
 
 ---
 

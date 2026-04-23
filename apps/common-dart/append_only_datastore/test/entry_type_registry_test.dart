@@ -40,8 +40,13 @@ void main() {
     // the same entry type and the later one would silently win. Loud
     // failure at registration catches the config bug at boot.
     test('register of duplicate id throws ArgumentError', () {
-      registry.register(_defn('demo_note'));
+      final original = _defn('demo_note');
+      registry.register(original);
       expect(() => registry.register(_defn('demo_note')), throwsArgumentError);
+      // State is unchanged by the throw: the original is still the
+      // only entry and byId still returns it.
+      expect(registry.all(), hasLength(1));
+      expect(registry.byId('demo_note'), same(original));
     });
 
     // Verifies: isRegistered returns true iff a definition is present
@@ -64,7 +69,10 @@ void main() {
         ..register(first)
         ..register(second)
         ..register(third);
-      expect(registry.all().map((d) => d.id), ['first', 'second', 'third']);
+      // orderedEquals uses == and preserves order; combined with
+      // EntryTypeDefinition having no custom operator==, this asserts
+      // both the ordering and identity-level reference equality.
+      expect(registry.all(), orderedEquals([first, second, third]));
     });
 
     // Verifies: the list returned by all() is unmodifiable so a caller
