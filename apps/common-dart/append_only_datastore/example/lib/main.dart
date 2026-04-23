@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 // Implements: REQ-d00134 — single init point: registers entry types,
 // destinations, materializer. Implements: REQ-d00125 — 1-second tick
@@ -61,6 +62,8 @@ Future<void> main() async {
     policyNotifier: demoPolicyNotifier,
   );
 
+  final entryTypeLookup = _RegistryLookup(datastore.entryTypes);
+
   final tick = Timer.periodic(const Duration(seconds: 1), (_) async {
     try {
       for (final dest in datastore.destinations.all()) {
@@ -80,8 +83,20 @@ Future<void> main() async {
       datastore: datastore,
       backend: backend,
       appState: appState,
+      entryTypeLookup: entryTypeLookup,
       dbPath: dbPath,
       tickController: tick,
     ),
   );
+}
+
+/// Adapter letting `rebuildMaterializedView` consume an
+/// `EntryTypeRegistry` through the `EntryTypeDefinitionLookup` abstract
+/// surface. EntryTypeRegistry already exposes `byId`; this just wires
+/// the interface.
+class _RegistryLookup implements EntryTypeDefinitionLookup {
+  const _RegistryLookup(this.registry);
+  final EntryTypeRegistry registry;
+  @override
+  EntryTypeDefinition? lookup(String entryTypeId) => registry.byId(entryTypeId);
 }

@@ -3,10 +3,14 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:append_only_datastore_demo/app_state.dart';
+import 'package:append_only_datastore_demo/demo_sync_policy.dart';
+import 'package:append_only_datastore_demo/widgets/detail_panel.dart';
 import 'package:append_only_datastore_demo/widgets/event_stream_panel.dart';
 import 'package:append_only_datastore_demo/widgets/fifo_panel.dart';
 import 'package:append_only_datastore_demo/widgets/materialized_panel.dart';
 import 'package:append_only_datastore_demo/widgets/styles.dart';
+import 'package:append_only_datastore_demo/widgets/sync_policy_bar.dart';
+import 'package:append_only_datastore_demo/widgets/top_action_bar.dart';
 import 'package:flutter/material.dart';
 
 /// Root widget. Constructor-passthrough for all collaborators so the
@@ -17,6 +21,7 @@ class DemoApp extends StatefulWidget {
     required this.datastore,
     required this.backend,
     required this.appState,
+    required this.entryTypeLookup,
     required this.dbPath,
     required this.tickController,
     super.key,
@@ -25,6 +30,7 @@ class DemoApp extends StatefulWidget {
   final AppendOnlyDatastore datastore;
   final SembastBackend backend;
   final AppState appState;
+  final EntryTypeDefinitionLookup entryTypeLookup;
   final String dbPath;
   final Timer tickController;
 
@@ -52,8 +58,14 @@ class _DemoAppState extends State<DemoApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const _PlaceholderBanner(label: 'TOP ACTION BAR (Task 12)'),
-              const _PlaceholderBanner(label: 'SYNC POLICY BAR (Task 12)'),
+              TopActionBar(
+                datastore: widget.datastore,
+                backend: widget.backend,
+                entryTypesLookup: widget.entryTypeLookup,
+                appState: widget.appState,
+                onResetAll: resetAll,
+              ),
+              SyncPolicyBar(notifier: demoPolicyNotifier),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,10 +102,12 @@ class _DemoAppState extends State<DemoApp> {
                         ),
                       ),
                     ),
-                    const SizedBox(
+                    SizedBox(
                       width: 320,
-                      child: _PlaceholderBanner(
-                        label: 'DETAIL PANEL (Task 13)',
+                      child: DetailPanel(
+                        backend: widget.backend,
+                        appState: widget.appState,
+                        policyNotifier: demoPolicyNotifier,
                       ),
                     ),
                   ],
@@ -118,23 +132,5 @@ class _DemoAppState extends State<DemoApp> {
     if (file.existsSync()) {
       await file.delete();
     }
-  }
-}
-
-/// Thin banner widget used by Task 9 scaffolding to mark layout slots
-/// that will be filled by Tasks 10-13.
-class _PlaceholderBanner extends StatelessWidget {
-  const _PlaceholderBanner({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: DemoColors.bg, border: demoBorder),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(12),
-      child: Text(label, style: DemoText.header),
-    );
   }
 }

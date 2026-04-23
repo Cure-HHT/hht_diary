@@ -289,6 +289,53 @@ Ops functions imported via `package:append_only_datastore/src/ops/...` with `// 
 
 ---
 
+## Task 12: `top_action_bar.dart` + `sync_policy_bar.dart`
+
+`lib/widgets/top_action_bar.dart` — two-row bar:
+
+- **Row 1 (demo_note lifecycle)**: title / body / mood text fields; `[Start]` / `[Complete]` / `[Delete]` buttons. All three use `datastore.eventStore.append(aggregateType: 'DiaryEntry', ...)` — the Phase 4.4 write API. `EntryService.record` hardcodes `aggregate_type = 'DiaryEntry'` (line 215 of `entry_service.dart`), so it cannot produce the action-type events JNY-02 needs; the demo standardizes on `EventStore.append` for every write path.
+- **Row 2 (actions + system)**: `[RED]` / `[GREEN]` / `[BLUE]` action buttons (each press → new aggregate id, `entryType` `<color>_button_pressed`, `aggregateType` from `demoAggregateTypeByEntryTypeId`); `[Add destination]` (opens `AddDestinationDialog`); `[Rebuild view]` (calls `rebuildMaterializedView(backend, entryTypeLookup)` positionally, surfaces count via SnackBar); `[Reset all]` with a confirm dialog that routes to `DemoApp.resetAll()`.
+
+Button-dim logic: `[Complete]` and `[Delete]` are disabled when no aggregate is selected.
+
+`lib/widgets/sync_policy_bar.dart` — five live-tunable sliders:
+
+- `init` (initialBackoff 100-30000 ms)
+- `mult` (backoffMultiplier 1.0-5.0)
+- `max` (maxBackoff 1-120 s)
+- `jit` (jitterFraction 0.0-1.0)
+- `attempts` (maxAttempts 1-1,000,000, log-scaled: `value = log(p.maxAttempts)/log(1M)` mapped through `pow(1M, value)` on change)
+
+Every slider drag constructs a fresh `SyncPolicy` value (carrying the unchanged `periodicInterval`) and stores it on `demoPolicyNotifier`. The `main.dart` Timer reads `demoPolicyNotifier.value` at next tick; drain applies the new curve immediately.
+
+---
+
+## Task 13: `add_destination_dialog.dart` + `detail_panel.dart`
+
+`lib/widgets/add_destination_dialog.dart` — modal:
+
+- id text field (required; inline error on empty).
+- `allowHardDelete` checkbox.
+- Optional `initialStartDate` ISO-8601 input — non-empty + valid → `setStartDate` called after add.
+- Catches `ArgumentError` from registry `addDestination` (duplicate id) and surfaces inline.
+
+`lib/widgets/detail_panel.dart` — rightmost column (width 320):
+
+- 500ms polling gives the live summary (events count, aggregates count, `anyFifoExhausted` + list of exhausted destination ids, current policy snapshot) when no selection is active.
+- On `selectedAggregateId` → scans `backend.findEntries()` for the match, renders the `DiaryEntry` row as pretty JSON (entry_id, entry_type, is_complete, is_deleted, updated_at, current_answers, latest_event_id).
+- On `selectedEventId` → scans `backend.findAllEvents(limit: 100000)` for the event and renders its full `StoredEvent.toMap()` (event_id, sequence_number, aggregate_id, aggregate_type, entry_type, event_type, client_timestamp, event_hash, previous_event_hash, data, metadata).
+- On `selectedFifoRowId` → scans every destination's FIFO store via `backend.debugDatabase()` and renders the full row map.
+
+Inner `_AsyncJson` stateful helper handles the async load + pretty-print; `didUpdateWidget` reloads on selection change.
+
+`main.dart` now builds a `_RegistryLookup` adapter over `EntryTypeRegistry.byId` and passes it to `DemoApp` so `rebuildMaterializedView` can consume it.
+
+`app.dart`: placeholders gone; `_PlaceholderBanner` class deleted as unused.
+
+**Final state**: example — 69 tests pass (unchanged — widget code per §4.2 no-tests non-goal); `flutter analyze` clean. Demo compile-ready end-to-end; Task 14 is the `flutter run -d linux` smoke.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
