@@ -43,10 +43,17 @@ void main() {
       );
 
       // Step 2: open the destination by setting startDate to one hour
-      // ago. Replay runs synchronously inside setStartDate but finds no
-      // events (event log is empty), so the side effect is just the
-      // schedule write.
+      // before the recording clock. Replay runs synchronously inside
+      // setStartDate but finds no events (event log is empty), so the
+      // side effect is just the schedule write.
       final startDate = DateTime.utc(2026, 4, 22, 9);
+      final recordingClock = DateTime.utc(2026, 4, 22, 9, 30);
+      // fillBatch's window upper bound is min(endDate, now()); using a
+      // later clock than the event's clientTimestamp gives the
+      // [startDate, upper] window non-zero margin around the event so
+      // a future off-by-one in the boundary check (isAfter vs >=)
+      // surfaces here rather than silently dropping the event.
+      final fillBatchClock = DateTime.utc(2026, 4, 22, 10);
       await destReg.setStartDate('primary', startDate);
 
       final schedule = await destReg.scheduleOf('primary');
@@ -67,7 +74,7 @@ void main() {
         syncCycleTrigger: () async {
           triggerCalls.add(DateTime.now());
         },
-        clock: () => DateTime.utc(2026, 4, 22, 10),
+        clock: () => recordingClock,
       );
 
       final appended = await svc.record(
@@ -81,6 +88,14 @@ void main() {
       expect(appended.entryType, 'demo_note');
       expect(triggerCalls, hasLength(1));
 
+      // The returned StoredEvent is constructed inside the transaction
+      // body; if the underlying append silently dropped the row, the
+      // returned object would still be valid. Assert the event log has
+      // the event so a broken appendEvent surfaces here.
+      final logEvents = await backend.findAllEvents();
+      expect(logEvents, hasLength(1));
+      expect(logEvents.single.eventId, appended.eventId);
+
       // Step 4: fillBatch promotes the event log entry into the
       // destination's FIFO. SyncCycle is drain-only (Phase 4 wiring), so
       // the test drives fillBatch explicitly before invoking drain.
@@ -88,7 +103,7 @@ void main() {
         dest,
         backend: backend,
         schedule: schedule,
-        clock: () => DateTime.utc(2026, 4, 22, 10),
+        clock: () => fillBatchClock,
       );
 
       // FIFO head is now pending — proves fillBatch enqueued the row.
@@ -102,12 +117,16 @@ void main() {
       final sync = SyncCycle(
         backend: backend,
         registry: destReg,
-        clock: () => DateTime.utc(2026, 4, 22, 10),
+        clock: () => fillBatchClock,
       );
       await sync.call();
 
       // Step 6: assertions proving the round trip succeeded end-to-end.
-      // (a) destination.send was invoked exactly once with the wire payload.
+      // (a) destination.send was invoked exactly once with the wire
+      // payload AND returned the scripted SendOk. Asserted first so a
+      // silent failure inside SyncCycle._drainOrSwallow (which catches
+      // every drain exception) surfaces with a clearer message than the
+      // downstream "row still pending" check would.
       expect(dest.sent, hasLength(1));
       expect(dest.returned, [const SendOk()]);
 

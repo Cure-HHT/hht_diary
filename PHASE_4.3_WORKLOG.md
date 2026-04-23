@@ -375,6 +375,30 @@ Test count: 393 → 394 (+1; the broken `_RegistrySnapshotting` test was replace
 
 ---
 
+## Task 19 — End-to-end integration smoke test
+
+### Status
+- `test/integration/end_to_end_test.dart` covers the Phase-4.3 composition: `bootstrapAppendOnlyDatastore` → `setStartDate(past)` → `EntryService.record` → `fillBatch` → `SyncCycle.call` (drain) → `Destination.send` → row marked `sent`. Asserts on every wire: returned `StoredEvent`, event log row, fire-and-forget `syncCycleTrigger` invocation, FIFO-row pending state, destination `sent`+`returned` lists, FIFO head null after drain, no exhausted rows, materialized `diary_entries` row, and `fill_cursor` advance.
+- Recording clock (`09:30`) is earlier than the fillBatch/drain clock (`10:00`) so the `[startDate, upper]` window has non-zero margin around the event's `clientTimestamp` — a future off-by-one in `fillBatch`'s boundary check surfaces here rather than silently dropping the event.
+- `flutter test` inside `append_only_datastore` passes 395 tests (+1 new integration test). `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+Subagent review of commit `4ca753ae` returned three HIGH (one self-downgraded by the reviewer from CRITICAL), one MEDIUM, one NIT.
+
+**Addressed:**
+- **HIGH — `dest.sent` length assertion came too late.** `SyncCycle._drainOrSwallow` swallows every drain exception; if drain throws, the test would only fail at the FIFO-state checks with a confusing message instead of pointing at the silent swallow. Reordered so `dest.sent`/`dest.returned` are asserted immediately after `sync.call()`, before any backend reads.
+- **HIGH — `clientTimestamp == upper` boundary brittleness.** Recording clock was identical to the `fillBatch` `now` clock, so the event's `clientTimestamp` sat exactly on the window upper bound. A future change of `isAfter` to `>=` in `fillBatch`'s filter would silently drop the event. Split clocks: record at `09:30`, fillBatch+drain at `10:00`, giving the window 30 minutes of margin around the event.
+- **HIGH — no assertion that `record()` actually wrote to the event log.** Added `expect(await backend.findAllEvents(), hasLength(1))` plus an `eventId` cross-check after `record()` returns so a broken `appendEvent` path (silent rollback returning the staged-but-not-committed event) surfaces here rather than leaking to a downstream "fillBatch promoted nothing" failure.
+
+**Not addressed:**
+- **MEDIUM — database filename uses `microsecondsSinceEpoch`-based uniqueness when in-memory backend isolation is per-call anyway.** The exact same pattern is used by `entry_service_test.dart` line 53 and at every other in-memory backend call site in this package. Consistency with the established convention takes priority over a marginal cleanup; a refactor that touched every call site would also need to touch `entry_service_test.dart`, `sync_cycle_test.dart`, etc., which is out of scope for this commit.
+- **NIT — temporal coupling on system wall-clock relative to hard-coded `2026-04-22T09:00Z`.** Today's date is 2026-04-22 (per the workflow context), so the past-startDate path runs as expected. The `setStartDate` real-clock dependency is a Phase-4 design carry-over (see Task 12), not an integration-test concern; mocking `DateTime.now()` for `DestinationRegistry.setStartDate` would require a wider refactor of the registry.
+
+Test count: 394 → 395 (+1).
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
