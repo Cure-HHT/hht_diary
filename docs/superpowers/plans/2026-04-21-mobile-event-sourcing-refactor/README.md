@@ -31,8 +31,10 @@ Rejected alternatives:
 | 1 | [PLAN_PHASE1_foundations.md](PLAN_PHASE1_foundations.md) | New `provenance` package + `EntryTypeDefinition` data type | None — pure additions |
 | 2 | [PLAN_PHASE2_storage_backend.md](PLAN_PHASE2_storage_backend.md) | `StorageBackend` abstract + `SembastBackend` concrete; `EventRepository` delegates through it | Low — behavior preserved |
 | 3 | [PLAN_PHASE3_materialization.md](PLAN_PHASE3_materialization.md) | `DiaryEntry` view, materializer, `rebuildMaterializedView()` | Low — view populated but not yet read by UI |
-| 4 | [PLAN_PHASE4_sync.md](PLAN_PHASE4_sync.md) | `Destination`, `SubscriptionFilter`, `DestinationRegistry`, `FifoEntry`, `SyncPolicy`, drain loop, `sync_cycle()` | Low — machinery in place, nothing calls it yet |
-| 5 | [PLAN_PHASE5_cutover.md](PLAN_PHASE5_cutover.md) | `EntryService`, `EntryTypeRegistry`, `PrimaryDiaryServerDestination`, widget registry, triggers, screen updates, delete `NosebleedService` / `QuestionnaireService` | High — behavior change, old code removed |
+| 4 | [PLAN_PHASE4_sync.md](PLAN_PHASE4_sync.md) | `Destination`, `SubscriptionFilter`, `DestinationRegistry`, `FifoEntry`, `SyncPolicy`, drain loop, `sync_cycle()` (batch-FIFO + skip-exhausted per 2026-04-22 design) | Low — machinery in place, nothing calls it yet |
+| 4.3 | [PLAN_PHASE4.3_library.md](PLAN_PHASE4.3_library.md) | Dynamic destinations, batch-FIFO migration, unjam/rehabilitate, `EntryService`/`EntryTypeRegistry`/`bootstrap` pulled forward | Medium — large library phase |
+| 4.6 | [PLAN_PHASE4.6_demo.md](PLAN_PHASE4.6_demo.md) | Flutter Linux-desktop demo app at `append_only_datastore/example/` | Low — no production callers |
+| 5 | [PLAN_PHASE5_cutover.md](PLAN_PHASE5_cutover.md) | `PrimaryDiaryServerDestination`, `portalInboundPoll`, widget registry, triggers, screen updates, delete `NosebleedService` / `QuestionnaireService` (shrunk: EntryService/Registry/bootstrap moved to 4.3) | High — behavior change, old code removed |
 
 Each phase must be green before the next starts: all tests pass, `flutter analyze` clean, CI green on the draft PR.
 

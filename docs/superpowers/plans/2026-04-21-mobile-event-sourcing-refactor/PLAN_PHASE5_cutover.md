@@ -6,6 +6,13 @@
 **Status**: Not Started
 **Depends on**: Phase 4 squashed and phase-reviewed
 
+> **Note (2026-04-22):** Three tasks originally in this phase were moved to Phase 4.3 so the Phase 4.6 demo can exercise them:
+> - Task 3 (`EntryTypeRegistry` creation) → now Phase 4.3 Task 17.
+> - Task 5 (`EntryService` creation) → now Phase 4.3 Task 16 (REQ-ENTRY-D revised per design §6.8: local-only transaction; FIFO fan-out deferred to `fillBatch`).
+> - Task 6 (`bootstrapAppendOnlyDatastore` creation) → now Phase 4.3 Task 18.
+>
+> These tasks are preserved below with a `> Moved to Phase 4.3 (2026-04-22)` prefix so a Phase 5 reader can see what is handled upstream. Phase 5 now consumes these artifacts (registers real `EntryTypeDefinition` assets, wires `EntryService` into screens, registers the `PrimaryDiaryServerDestination`) rather than creating them.
+
 ## Scope
 
 The cutover phase. Introduce `EntryService.record()` as the single write API, the `EntryTypeRegistry` and its bundled JSON assets, the first concrete `PrimaryDiaryServerDestination` with REQ-d00113 response translation, the `portalInboundPoll()` implementation for tombstones, widget registry + `EpistaxisFormWidget` + `SurveyRendererWidget`, boot-time bootstrap in `main.dart`, trigger wiring in `clinical_diary/services/triggers.dart`, screen updates to read from the `diary_entries` view and call `EntryService.record()`, and deletion of `NosebleedService` and `QuestionnaireService`.
@@ -98,6 +105,8 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
 ---
 
 ### Task 3: `EntryTypeRegistry`
+
+> Moved to Phase 4.3 (2026-04-22)
 
 **TASK_FILE**: `PHASE5_TASK_3.md`
 
@@ -198,6 +207,8 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
 
 ### Task 5: `EntryService` with no-op detection and full write path
 
+> Moved to Phase 4.3 (2026-04-22) — REQ-ENTRY-D revised per design §6.8: local-only transaction; FIFO fan-out deferred to `fillBatch`.
+
 **TASK_FILE**: `PHASE5_TASK_5.md`
 
 **Files:**
@@ -232,6 +243,8 @@ Update the existing C, D, E assertions in `spec/dev-questionnaire.md` to reflect
 ---
 
 ### Task 6: `bootstrapAppendOnlyDatastore()` entry point
+
+> Moved to Phase 4.3 (2026-04-22)
 
 **TASK_FILE**: `PHASE5_TASK_6.md`
 
