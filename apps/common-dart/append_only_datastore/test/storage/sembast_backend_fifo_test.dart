@@ -586,5 +586,17 @@ void main() {
       // primary is unchanged.
       expect(await backend.readFillCursor('primary'), 10);
     });
+
+    // Verifies: REQ-d00128-G — writeFillCursor rejects negative values
+    // smaller than the -1 sentinel so a bogus caller cannot store a value
+    // outside the fill_cursor's legal domain of [-1, infinity).
+    test('REQ-d00128-G: writeFillCursor rejects sequenceNumber < -1', () async {
+      await expectLater(
+        backend.writeFillCursor('primary', -2),
+        throwsArgumentError,
+      );
+      // The failed write left the cursor unchanged.
+      expect(await backend.readFillCursor('primary'), -1);
+    });
   });
 }

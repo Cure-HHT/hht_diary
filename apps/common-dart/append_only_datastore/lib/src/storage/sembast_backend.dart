@@ -282,6 +282,7 @@ class SembastBackend extends StorageBackend {
   // (standalone variant; opens its own transaction).
   @override
   Future<void> writeFillCursor(String destinationId, int sequenceNumber) async {
+    _validateFillCursorValue(sequenceNumber);
     await _database().transaction((sembastTxn) async {
       await _backendStateStore
           .record(_fillCursorKey(destinationId))
@@ -300,10 +301,28 @@ class SembastBackend extends StorageBackend {
     String destinationId,
     int sequenceNumber,
   ) async {
+    _validateFillCursorValue(sequenceNumber);
     final t = _requireValidTxn(txn);
     await _backendStateStore
         .record(_fillCursorKey(destinationId))
         .put(t._sembastTxn, sequenceNumber);
+  }
+
+  /// The fill cursor's legal domain is `[-1, ∞)`: `-1` is the "no row
+  /// enqueued" / "rewound to pre-start" sentinel per REQ-d00128-G and
+  /// REQ-d00131-D; all other values are `sequence_number`s drawn from the
+  /// event log, which are non-negative ints. Reject anything smaller than
+  /// `-1` at write time so a bogus caller value cannot land as a stored
+  /// cursor and confuse downstream fillBatch / unjam logic.
+  void _validateFillCursorValue(int sequenceNumber) {
+    if (sequenceNumber < -1) {
+      throw ArgumentError.value(
+        sequenceNumber,
+        'sequenceNumber',
+        'fill_cursor must be >= -1 (-1 = unset or rewound to pre-start; '
+            'all other values are event sequence_numbers)',
+      );
+    }
   }
 
   // -------- diary_entries --------

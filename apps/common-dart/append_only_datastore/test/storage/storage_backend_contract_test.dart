@@ -287,6 +287,10 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<void> writeSchemaVersion(Txn txn, int version) =>
       throw UnimplementedError();
+  // Fill-cursor behavioral tests live in sembast_backend_fifo_test.dart
+  // (REQ-d00128-G: default/round-trip/transactional-rollback/per-destination).
+  // When a second StorageBackend implementation lands, replicate those
+  // behaviors here as implementation-agnostic contract tests.
   @override
   Future<int> readFillCursor(String destinationId) =>
       throw UnimplementedError();

@@ -221,6 +221,12 @@ abstract class StorageBackend {
   /// for [destinationId]. Returns `-1` when no cursor value has yet been
   /// written, i.e., no row has yet been enqueued for this destination.
   ///
+  /// Note: `-1` is both the default-when-unset sentinel and the only
+  /// legal pre-start rewind value (e.g., `unjamDestination` rewinding a
+  /// destination with no sent rows per REQ-d00131-D). Callers that need
+  /// to distinguish "never written" from "explicitly rewound to -1" MUST
+  /// do so via other bookkeeping; this method treats them as equivalent.
+  ///
   /// Persisted under `backend_state` key `fill_cursor_<destinationId>`.
   /// Non-transactional, read-only.
   // Implements: REQ-d00128-G — per-destination fill cursor persisted under

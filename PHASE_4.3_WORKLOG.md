@@ -128,7 +128,16 @@ Test count: 319 → 320 (+1 for the new REQ-d00128-B reversed-range test).
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `120681e1` returned two MEDIUM and one NIT. No CRITICAL, no HIGH.
+
+**Addressed:**
+- **MEDIUM — `-1` sentinel conflation between "unset" and "explicit rewind".** Updated `readFillCursor` dartdoc to document the overlap. Added a `_validateFillCursorValue` guard that rejects `sequenceNumber < -1` on both `writeFillCursor` and `writeFillCursorTxn`, so the legal domain is explicit rather than implicit. Added a REQ-d00128-G test covering the rejection.
+- **MEDIUM — no contract test for fill_cursor behavior.** Added a comment in `storage_backend_contract_test.dart` pointing at where the behavioral tests live (sembast_backend_fifo_test.dart) and noting that a second `StorageBackend` implementation should replicate the tests as implementation-agnostic contract tests. Full contract-test implementation deferred until a second backend exists.
+
+**Not addressed:**
+- **NIT — `writeFillCursor` bypasses the shared `transaction()` wrapper.** Reviewer explicitly rated "not a bug", noting the standalone method's own docstring already says it opens its own transaction. Low value for the effort.
+
+Test count: 324 → 325 (+1 for the new REQ-d00128-G validation test).
 
 ---
 
