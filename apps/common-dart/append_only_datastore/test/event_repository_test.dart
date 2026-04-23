@@ -948,6 +948,12 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) =>
       delegate.deleteFifoStoreTxn(txn, destinationId);
+  @override
+  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) =>
+      delegate.deletePendingRowsTxn(txn, destinationId);
+  @override
+  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
+      delegate.maxSentSequenceTxn(txn, destinationId);
 }
 
 /// Test database provider that uses in-memory Sembast database.

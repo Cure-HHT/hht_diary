@@ -331,6 +331,12 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) =>
       throw UnimplementedError();
+  @override
+  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) =>
+      throw UnimplementedError();
+  @override
+  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
+      throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {

@@ -855,6 +855,66 @@ class SembastBackend extends StorageBackend {
     return result;
   }
 
+  // -------- Unjam helpers (REQ-d00131) --------
+
+  /// Delete every `pending` row in [destinationId]'s FIFO inside [txn]
+  /// and return the number of rows deleted. Rows in terminal states
+  /// (`sent`, `exhausted`) are untouched — those are audit records
+  /// preserved across an unjam. Returns `0` on an unknown destination
+  /// (Sembast store is lazily-created, so an absent store simply has
+  /// zero records).
+  // Implements: REQ-d00131-B — delete every pending row in one
+  // transactional step; returns the count deleted for UnjamResult.
+  // Implements: REQ-d00131-C — `sent` and `exhausted` rows are not
+  // candidates for deletion: the filter pins `final_status` to
+  // `pending` exclusively.
+  @override
+  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) async {
+    final t = _requireValidTxn(txn);
+    final store = _fifoStore(destinationId);
+    // Sembast's `StoreRef.delete(..., finder: ...)` returns the count of
+    // deleted records for stores with scalar keys. On this backend the
+    // FIFO store is an `intMapStoreFactory` so the return is `int`.
+    return store.delete(
+      t._sembastTxn,
+      finder: Finder(
+        filter: Filter.equals('final_status', FinalStatus.pending.toJson()),
+      ),
+    );
+  }
+
+  /// Return the largest `event_id_range.last_seq` across rows whose
+  /// `final_status == sent` in [destinationId]'s FIFO, read inside
+  /// [txn]. Returns `null` when the destination has no `sent` rows
+  /// (including the "never successfully delivered" case and the
+  /// never-registered-store case).
+  ///
+  /// Implemented as a `find` sorted by `event_id_range.last_seq`
+  /// descending with `limit: 1`. Sembast supports dotted field paths
+  /// into stored `Map<String, Object?>` values, so the sort orders
+  /// on the nested `last_seq` field directly.
+  // Implements: REQ-d00131-D — max(event_id_range.last_seq) across
+  // sent rows; null -> caller substitutes -1 for the rewind target.
+  @override
+  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) async {
+    final t = _requireValidTxn(txn);
+    final store = _fifoStore(destinationId);
+    final records = await store.find(
+      t._sembastTxn,
+      finder: Finder(
+        filter: Filter.equals('final_status', FinalStatus.sent.toJson()),
+        sortOrders: [SortOrder('event_id_range.last_seq', false)],
+        limit: 1,
+      ),
+    );
+    if (records.isEmpty) return null;
+    final rangeRaw = records.single.value['event_id_range'];
+    if (rangeRaw is! Map) return null;
+    final lastSeq = rangeRaw['last_seq'];
+    if (lastSeq is! int) return null;
+    return lastSeq;
+  }
+
   /// The first non-sent entry in the FIFO when it is `exhausted`. Returns
   /// null when either the FIFO has no entries, all entries are `sent`, or
   /// the earliest non-sent entry is `pending` (not wedged).
