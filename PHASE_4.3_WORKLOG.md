@@ -263,7 +263,11 @@ Subagent review of commit `9add0114` returned one HIGH, two MEDIUM, one NIT. No 
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `9a6c191f` returned no findings at or above the 80-confidence threshold. The `return → continue` flip is implemented correctly in all three expected locations; the four updated tests each assert `dest.sent.hasLength(2)` to exercise the continue-past-exhausted path end-to-end; REQ-d00124-D/E/H remain mutually consistent.
+
+**No changes needed.**
+
+**Noted for future debugging (low confidence):** the reviewer flagged a theoretical infinite-loop path if `markFinal(exhausted)` no-oped without the row also being deleted (leaving the row `pending` and re-visited by `readFifoHead`). Analysis of both documented races (`unjamDestination`, `deleteDestination`) confirmed each terminates safely: unjam deletes the row so `readFifoHead` returns null; deleteDestination drops the store so `readFifoHead` returns null. No action needed; documented here so a future regression that broke this invariant would be diagnosable.
 
 ---
 
