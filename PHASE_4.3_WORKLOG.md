@@ -271,6 +271,19 @@ Subagent review of commit `9a6c191f` returned no findings at or above the 80-con
 
 ---
 
+## Task 14 — unjamDestination (REQ-d00131)
+
+### Status
+- `lib/src/ops/unjam.dart` exposes `unjamDestination(destId, registry, backend)`: validates the destination is deactivated (endDate <= now); otherwise throws `StateError`. Inside one transaction it deletes all pending rows, leaves exhausted rows intact, rewinds `fill_cursor` to the max `event_id_range.last_seq` among sent rows (or `-1`), and returns `UnjamResult {deletedPending, rewoundTo}`.
+- `StorageBackend.deletePendingRowsTxn` uses sembast `StoreRef.delete(txn, finder)` returning the count. `StorageBackend.maxSentSequenceTxn` uses `SortOrder('event_id_range.last_seq', false)` with `limit: 1` so sembast returns the max via its dotted-path sort without materializing all rows.
+- `flutter test` inside `append_only_datastore` passes 364 tests (+6 new tests for REQ-d00131-A..E, including the zero-sent rewind-to-minus-one case). `dart analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
