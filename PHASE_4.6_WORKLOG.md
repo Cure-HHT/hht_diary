@@ -336,6 +336,23 @@ Inner `_AsyncJson` stateful helper handles the async load + pretty-print; `didUp
 
 ---
 
+## Sync tick reentrancy fix (2026-04-23 — Task 14 smoke regression)
+
+First smoke-run surfaced a `Bad state: markFinal(... FinalStatus.sent): entry is already FinalStatus.sent; final_status transitions are one-way.` stack trace from `drain` called inside the Timer.
+
+Root cause: my `main.dart` Timer.periodic had no reentrancy guard. With `DemoDestination`'s default `sendLatency = 10s`, a tick can take ≥ 10s to complete; the next 1s-scheduled Timer fires concurrently. Two drain invocations on the same destination both observe the same pending head, both call `destination.send()`, both attempt `markFinal(...sent)` — the second throws because `final_status` transitions are one-way.
+
+This is exactly the race `SyncCycle`'s `_inFlight` guard solves (REQ-d00125-C: "allowing concurrent sync cycles would produce overlapping send calls that each see the same pending head entry and each record an attempt"). Bypassing `SyncCycle` (needed for per-tick live policy from `demoPolicyNotifier`) meant the guard had to be rebuilt in demo code.
+
+Fix:
+
+- `syncInFlight` boolean in the Timer closure; ticks that land while a prior run is still in flight return immediately (matches `SyncCycle.call` line 52).
+- `fillBatch` + `drain` now run concurrently across destinations via `Future.wait`, matching `SyncCycle`'s per-destination fan-out (REQ-d00125-A). Sembast serializes writes internally; `destination.send()` is outside the transaction, so concurrent destinations genuinely overlap their simulated-network waits — which is what JNY-01's "both FIFOs drain independently" expects.
+
+`flutter analyze` clean; unit tests untouched (this is a main.dart-only change).
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.

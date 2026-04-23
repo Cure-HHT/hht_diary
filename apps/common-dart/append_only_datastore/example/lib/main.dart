@@ -64,17 +64,43 @@ Future<void> main() async {
 
   final entryTypeLookup = _RegistryLookup(datastore.entryTypes);
 
+  // Reentrancy guard: when a tick takes longer than the 1-second
+  // interval (e.g. a destination's sendLatency is 10s), the next
+  // Timer.periodic fire would start drain concurrently on the same
+  // destination; both invocations would observe the same pending head,
+  // both would call send(), and both would call markFinal — which is
+  // one-way and throws on the second write. SyncCycle's REQ-d00125-C
+  // reentrancy guard solves this for the production code path; the
+  // demo replicates that guard here because it calls drain directly
+  // (needed for per-tick policy hot-swap from the slider bar).
+  var syncInFlight = false;
   final tick = Timer.periodic(const Duration(seconds: 1), (_) async {
+    if (syncInFlight) return;
+    syncInFlight = true;
     try {
-      for (final dest in datastore.destinations.all()) {
-        final schedule = await datastore.destinations.scheduleOf(dest.id);
-        await fillBatch(dest, backend: backend, schedule: schedule);
-      }
-      for (final dest in datastore.destinations.all()) {
-        await drain(dest, backend: backend, policy: demoPolicyNotifier.value);
-      }
+      final destinations = datastore.destinations.all();
+      // fillBatch runs concurrently across destinations — each has its
+      // own FIFO and fill_cursor; sembast serializes writes internally.
+      await Future.wait(
+        destinations.map((dest) async {
+          final schedule = await datastore.destinations.scheduleOf(dest.id);
+          await fillBatch(dest, backend: backend, schedule: schedule);
+        }),
+      );
+      // drain runs concurrently too, matching SyncCycle.call's
+      // REQ-d00125-A per-destination fan-out. send() is outside the
+      // transaction so concurrent destinations genuinely overlap
+      // their network-simulation waits.
+      await Future.wait(
+        destinations.map(
+          (dest) =>
+              drain(dest, backend: backend, policy: demoPolicyNotifier.value),
+        ),
+      );
     } catch (e, s) {
       stderr.writeln('[demo] sync tick error: $e\n$s');
+    } finally {
+      syncInFlight = false;
     }
   });
 
