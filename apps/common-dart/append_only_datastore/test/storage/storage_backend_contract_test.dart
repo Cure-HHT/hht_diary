@@ -3,13 +3,13 @@ import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
-import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/initiator.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
+import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -321,8 +321,7 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<bool> anyFifoExhausted() => throw UnimplementedError();
   @override
-  Future<List<ExhaustedFifoSummary>> exhaustedFifos() =>
-      throw UnimplementedError();
+  Future<List<WedgedFifoSummary>> wedgedFifos() => throw UnimplementedError();
   @override
   Future<int> readSchemaVersion() => throw UnimplementedError();
   @override

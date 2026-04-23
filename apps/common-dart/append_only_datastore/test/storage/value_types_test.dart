@@ -1,11 +1,11 @@
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
-import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
+import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -482,46 +482,46 @@ void main() {
     });
   });
 
-  group('ExhaustedFifoSummary', () {
-    final exhaustedAt = DateTime.utc(2026, 4, 21, 12);
+  group('WedgedFifoSummary', () {
+    final wedgedAt = DateTime.utc(2026, 4, 21, 12);
 
     test('round-trip preserves all five fields', () {
-      final s = ExhaustedFifoSummary(
+      final s = WedgedFifoSummary(
         destinationId: 'primary',
         headEntryId: 'entry-99',
         headEventId: 'event-100',
-        exhaustedAt: exhaustedAt,
+        wedgedAt: wedgedAt,
         lastError: 'HTTP 400: bad request',
       );
-      final decoded = ExhaustedFifoSummary.fromJson(s.toJson());
+      final decoded = WedgedFifoSummary.fromJson(s.toJson());
       expect(decoded, equals(s));
       expect(decoded.destinationId, 'primary');
       expect(decoded.headEntryId, 'entry-99');
       expect(decoded.headEventId, 'event-100');
-      expect(decoded.exhaustedAt, exhaustedAt);
+      expect(decoded.wedgedAt, wedgedAt);
       expect(decoded.lastError, 'HTTP 400: bad request');
     });
 
     test('equals-by-value', () {
-      final a = ExhaustedFifoSummary(
+      final a = WedgedFifoSummary(
         destinationId: 'd',
         headEntryId: 'e',
         headEventId: 'ev',
-        exhaustedAt: exhaustedAt,
+        wedgedAt: wedgedAt,
         lastError: 'err',
       );
-      final b = ExhaustedFifoSummary(
+      final b = WedgedFifoSummary(
         destinationId: 'd',
         headEntryId: 'e',
         headEventId: 'ev',
-        exhaustedAt: exhaustedAt,
+        wedgedAt: wedgedAt,
         lastError: 'err',
       );
-      final c = ExhaustedFifoSummary(
+      final c = WedgedFifoSummary(
         destinationId: 'd2',
         headEntryId: 'e',
         headEventId: 'ev',
-        exhaustedAt: exhaustedAt,
+        wedgedAt: wedgedAt,
         lastError: 'err',
       );
       expect(a, equals(b));

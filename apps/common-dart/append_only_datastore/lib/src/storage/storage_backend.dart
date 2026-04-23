@@ -3,11 +3,11 @@ import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
-import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
+import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 
 /// Abstract persistence contract for the mobile event-sourcing pipeline.
 ///
@@ -210,7 +210,7 @@ abstract class StorageBackend {
   /// Implementations SHALL assign a monotonically-increasing
   /// `sequence_in_queue` per FIFO, SHALL reject an empty [batch] with
   /// `ArgumentError`, and SHALL register the destination on first use
-  /// so `anyFifoExhausted`/`exhaustedFifos` can iterate all known FIFOs.
+  /// so `anyFifoExhausted`/`wedgedFifos` can iterate all known FIFOs.
   // Implements: REQ-d00128-A+B+C — batch-per-row enqueue contract.
   Future<FifoEntry> enqueueFifo(
     String destinationId,
@@ -292,8 +292,8 @@ abstract class StorageBackend {
   /// True iff any registered destination's FIFO head is `exhausted`.
   Future<bool> anyFifoExhausted();
 
-  /// One summary per wedged FIFO for operator diagnostics.
-  Future<List<ExhaustedFifoSummary>> exhaustedFifos();
+  /// Summarize every destination whose head row is wedged.
+  Future<List<WedgedFifoSummary>> wedgedFifos();
 
   // -------- Backend state (KV bookkeeping) --------
 

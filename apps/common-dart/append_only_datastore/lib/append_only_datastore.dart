@@ -178,7 +178,6 @@ export 'src/security/system_entry_types.dart'
 export 'src/storage/append_result.dart' show AppendResult;
 export 'src/storage/attempt_result.dart' show AttemptResult;
 export 'src/storage/diary_entry.dart' show DiaryEntry;
-export 'src/storage/exhausted_fifo_summary.dart' show ExhaustedFifoSummary;
 export 'src/storage/fifo_entry.dart' show EventIdRange, FifoEntry;
 export 'src/storage/final_status.dart' show FinalStatus;
 export 'src/storage/initiator.dart'
@@ -197,6 +196,7 @@ export 'src/storage/storage_exception.dart'
         classifyStorageException;
 export 'src/storage/stored_event.dart' show StoredEvent;
 export 'src/storage/txn.dart' show Txn;
+export 'src/storage/wedged_fifo_summary.dart' show WedgedFifoSummary;
 
 // Sync — backoff curve, drain loop, and top-level orchestrator (Phase 4,
 // CUR-1154). Phase 5 wires triggers in clinical_diary that route into

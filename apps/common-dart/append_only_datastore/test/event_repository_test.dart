@@ -957,8 +957,7 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<bool> anyFifoExhausted() => delegate.anyFifoExhausted();
   @override
-  Future<List<ExhaustedFifoSummary>> exhaustedFifos() =>
-      delegate.exhaustedFifos();
+  Future<List<WedgedFifoSummary>> wedgedFifos() => delegate.wedgedFifos();
   @override
   Future<int> readFillCursor(String destinationId) =>
       delegate.readFillCursor(destinationId);

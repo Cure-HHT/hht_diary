@@ -7,13 +7,13 @@ import 'package:append_only_datastore/src/entry_type_registry.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
-import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
+import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:trial_data_types/trial_data_types.dart';
@@ -566,8 +566,7 @@ class _DelegatingBackend extends StorageBackend {
   Future<bool> anyFifoExhausted() => _inner.anyFifoExhausted();
 
   @override
-  Future<List<ExhaustedFifoSummary>> exhaustedFifos() =>
-      _inner.exhaustedFifos();
+  Future<List<WedgedFifoSummary>> wedgedFifos() => _inner.wedgedFifos();
 
   @override
   Future<int> readSchemaVersion() => _inner.readSchemaVersion();

@@ -58,7 +58,7 @@ class _DetailPanelState extends State<DetailPanel> {
     try {
       final events = await widget.backend.findAllEvents(limit: 100000);
       final anyExhausted = await widget.backend.anyFifoExhausted();
-      final exhausted = await widget.backend.exhaustedFifos();
+      final exhausted = await widget.backend.wedgedFifos();
       final aggCount = events.map((e) => e.aggregateId).toSet().length;
       final text = <String>[
         'events:        ${events.length}',

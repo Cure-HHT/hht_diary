@@ -6,12 +6,12 @@ import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
-import 'package:append_only_datastore/src/storage/exhausted_fifo_summary.dart';
 import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
+import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:sembast/sembast.dart';
 
 /// Package-private default log sink used when a [SembastBackend] instance
@@ -420,7 +420,7 @@ class SembastBackend extends StorageBackend {
 
   /// Drop the entire `fifo_<destinationId>` Sembast store inside [txn]
   /// and remove [destinationId] from the known-FIFOs registry so
-  /// `anyFifoExhausted` / `exhaustedFifos` no longer iterate it.
+  /// `anyFifoExhausted` / `wedgedFifos` no longer iterate it.
   // Implements: REQ-d00129-H — atomic FIFO-store drop.
   @override
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) async {
@@ -959,26 +959,26 @@ class SembastBackend extends StorageBackend {
   }
 
   @override
-  Future<List<ExhaustedFifoSummary>> exhaustedFifos() async {
-    final result = <ExhaustedFifoSummary>[];
+  Future<List<WedgedFifoSummary>> wedgedFifos() async {
+    final result = <WedgedFifoSummary>[];
     for (final dest in await _knownFifoDestinations()) {
       final head = await _exhaustedHead(dest);
       if (head == null) continue;
       final hasAttempts = head.attempts.isNotEmpty;
       result.add(
-        ExhaustedFifoSummary(
+        WedgedFifoSummary(
           destinationId: dest,
           headEntryId: head.entryId,
           // For batch rows, the summary reports the first event_id as a
           // stable single-string identifier for operators. Multi-event
           // batches' full id list is accessible via readFifoHead.
           headEventId: head.eventIds.first,
-          exhaustedAt: hasAttempts
+          wedgedAt: hasAttempts
               ? head.attempts.last.attemptedAt
               : head.enqueuedAt,
           lastError: hasAttempts
               ? (head.attempts.last.errorMessage ?? '<no error message>')
-              : '<exhausted with no attempts recorded>',
+              : '<wedged with no attempts recorded>',
         ),
       );
     }

@@ -363,7 +363,7 @@ void main() {
       );
     });
 
-    // -------- anyFifoExhausted + exhaustedFifos --------
+    // -------- anyFifoExhausted + wedgedFifos --------
 
     test('anyFifoExhausted true iff any FIFO is wedged', () async {
       await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
@@ -375,7 +375,7 @@ void main() {
       expect(await backend.anyFifoExhausted(), isTrue);
     });
 
-    test('exhaustedFifos returns one summary per wedged FIFO', () async {
+    test('wedgedFifos returns one summary per wedged FIFO', () async {
       await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
       await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
       await enqueueSingle(backend, 'C', eventId: 'c1', sequenceNumber: 1);
@@ -394,7 +394,7 @@ void main() {
       await backend.markFinal('A', 'a1', FinalStatus.wedged);
       await backend.markFinal('C', 'c1', FinalStatus.wedged);
 
-      final summaries = await backend.exhaustedFifos();
+      final summaries = await backend.wedgedFifos();
       final byDest = {for (final s in summaries) s.destinationId: s};
       expect(byDest.keys.toSet(), {'A', 'C'});
       expect(byDest['A']!.headEntryId, 'a1');
@@ -402,15 +402,15 @@ void main() {
       // the batch — for a single-event batch, this equals the entry_id.
       expect(byDest['A']!.headEventId, 'a1');
       expect(byDest['A']!.lastError, 'HTTP 400: bad request');
-      expect(byDest['A']!.exhaustedAt, DateTime.utc(2026, 4, 22, 12, 30));
+      expect(byDest['A']!.wedgedAt, DateTime.utc(2026, 4, 22, 12, 30));
     });
 
-    test('exhaustedFifos returns empty when nothing is wedged', () async {
+    test('wedgedFifos returns empty when nothing is wedged', () async {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      expect(await backend.exhaustedFifos(), isEmpty);
+      expect(await backend.wedgedFifos(), isEmpty);
     });
 
-    test('exhaustedFifos reports sensible fallbacks when exhausted with no '
+    test('wedgedFifos reports sensible fallbacks when wedged with no '
         'attempts', () async {
       await enqueueSingle(
         backend,
@@ -420,7 +420,7 @@ void main() {
       );
       await backend.markFinal('primary', 'e-bare', FinalStatus.wedged);
 
-      final summary = (await backend.exhaustedFifos()).single;
+      final summary = (await backend.wedgedFifos()).single;
       expect(summary.destinationId, 'primary');
       expect(summary.headEntryId, 'e-bare');
       expect(summary.headEventId, 'e-bare');
@@ -431,7 +431,7 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       expect(await backend.anyFifoExhausted(), isFalse);
-      expect(await backend.exhaustedFifos(), isEmpty);
+      expect(await backend.wedgedFifos(), isEmpty);
     });
 
     // -------- Phase-2 Prereq A, Option 1: backend-owned sequence_in_queue --
