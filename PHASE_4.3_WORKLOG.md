@@ -399,6 +399,59 @@ Test count: 394 → 395 (+1).
 
 ---
 
+## Task 20 — Phase-squash prep
+
+### Status — verification pass complete
+
+Cross-phase invariants verified at branch head (`ac38ee87`, current as of this entry):
+
+- `(cd apps/common-dart/append_only_datastore && flutter test)` — 395 tests pass.
+- `(cd apps/common-dart/provenance && dart test)` — 31 tests pass.
+- `(cd apps/common-dart/trial_data_types && dart test)` — 54 tests pass.
+- `(cd apps/daily-diary/clinical_diary && flutter test)` — 1098 tests pass (1 skipped, pre-existing).
+- `(cd apps/daily-diary/clinical_diary && flutter analyze)` — zero issues.
+- `(cd apps/common-dart/append_only_datastore && dart analyze)` and `flutter analyze` — zero issues.
+- `git fetch origin main && git log origin/main..HEAD` — branch is 57 commits ahead of `origin/main`, 0 commits behind. No rebase required.
+
+### Cross-phase invariant requiring interactive verification
+
+The invariant "the installed `clinical_diary` app still boots and records a nosebleed through the legacy `NosebleedService` path" needs the app to be run on a device or simulator. The Phase-4.3 changes are additive — nothing in this phase touches `NosebleedService`, the home screen, or the legacy record path — so unit tests covering those surfaces (`flutter test` above) are the strongest available proxy. A device boot check before the Phase-5 cutover that removes `NosebleedService` is the right gate; for the Phase 4.3 PR, the unit-test coverage suffices.
+
+### Steps NOT performed (require explicit user authorization)
+
+The plan calls for these final steps; none has been run because each is a destructive or visible-to-others action that needs user authorization, and the user's standing preference is to avoid commit-history juggling on already-shared commits:
+
+1. **Interactive rebase / squash of all 46 Phase 4.3 commits into one** — would rewrite the entire branch history. Late review-fix commits would be folded into earlier "Task N" commits, hiding the per-task review-cycle audit trail this worklog deliberately mirrors. Final-state correctness is already established by the verification pass above; the squash only affects log appearance.
+2. **`git push --force-with-lease`** — force-push to a published branch. Needs explicit confirmation that the squash is desired AND that the rewritten history won't strand any reviewers mid-comment thread.
+3. **PR comment** — visible-to-others action announcing the squash. Should only be posted after the squash decision is confirmed.
+
+### Phase 4.3 surface delivered
+
+A regression-checkable Phase 4.3 single-line summary (suitable for whatever final commit message format the user chooses):
+
+- `SyncPolicy` value object (REQ-d00126).
+- `markFinal` / `appendAttempt` tolerate missing rows (REQ-d00127).
+- `FifoEntry` batch shape: `event_ids`, `event_id_range`, single `wirePayload` per row (REQ-d00128).
+- `fill_cursor` persistence in `backend_state` (REQ-d00128-G).
+- `readFifoHead` skips exhausted rows (REQ-d00124-A).
+- `Destination` interface widened: `maxAccumulateTime`, `allowHardDelete`, `canAddToBatch`, batch-aware `transform` (REQ-d00122-D, REQ-d00128-D/E/F).
+- `DestinationRegistry` dynamic lifecycle: `addDestination`, `setStartDate` (one-shot immutable), `setEndDate` returning `SetEndDateResult`, `deactivateDestination`, `deleteDestination` (REQ-d00129).
+- `fillBatch` algorithm + historical replay on past `startDate` (REQ-d00128, REQ-d00129-D/E/I, REQ-d00130).
+- Drain continues past exhausted rows (REQ-d00124-D+E revised).
+- `unjamDestination` (REQ-d00131) and `rehabilitateExhaustedRow` / `rehabilitateAllExhausted` (REQ-d00132).
+- `EntryService.record` with TOCTOU-safe no-op detection and deferred FIFO fan-out (REQ-d00133).
+- `EntryTypeRegistry` (REQ-d00133-H pre-validation target).
+- `bootstrapAppendOnlyDatastore` single entry point (REQ-d00134).
+- End-to-end integration test pinning the composition (no new REQs).
+
+Total append_only_datastore test count: 305 (Phase 4 baseline) → 395 (+90 net new tests for Phase 4.3).
+
+### Review decisions
+
+No code review for Task 20 — this task is verification + meta-work with no production-code changes. The only file touched is `PHASE_4.3_WORKLOG.md`.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
