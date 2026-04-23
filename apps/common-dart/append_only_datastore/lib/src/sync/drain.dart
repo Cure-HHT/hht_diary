@@ -18,17 +18,24 @@ typedef ClockFn = DateTime Function();
 /// [Destination.send], record the attempt, and route the result into a
 /// `sent` or `exhausted` final-status as appropriate. Returns when:
 ///
-/// - the FIFO is empty (no head); or
-/// - the head is wedged (previous entry exhausted — `readFifoHead` returns
-///   null in that case); or
-/// - the head's backoff has not elapsed; or
-/// - the most recent [Destination.send] returned [SendTransient] or
-///   [SendPermanent]. A [SendOk] continues the loop to the next head.
+/// - the FIFO has no pending rows (`readFifoHead` returns null after
+///   skipping `sent` and `exhausted` rows — REQ-d00124-A); or
+/// - the pending head's backoff has not elapsed; or
+/// - the most recent [Destination.send] returned [SendTransient] below
+///   the `maxAttempts` cap (backoff applies on the next drain tick).
 ///
-/// Strict FIFO order (REQ-d00124-H) falls out of `readFifoHead`'s
-/// implementation: once an entry is `exhausted`, later pending entries are
-/// never read, so they are never attempted until an operator resolves the
-/// wedge.
+/// On [SendOk] the head is marked `sent` and the loop advances. On
+/// [SendPermanent] or [SendTransient]-at-`maxAttempts` the head is
+/// marked `exhausted` and the loop *continues*: `readFifoHead` skips
+/// the exhausted row on the next iteration and returns the next pending
+/// row in `sequence_in_queue` order (REQ-d00124-D+E). A single drain
+/// pass therefore attempts every pending row until one of the terminal
+/// conditions above fires.
+///
+/// Strict FIFO order (REQ-d00124-H): within a single drain pass, rows
+/// are attempted in `sequence_in_queue` order. Exhausted rows are
+/// skipped in-place — their position in the sequence is preserved for
+/// audit purposes, but they do not block later pending rows.
 ///
 /// [policy] is an optional [SyncPolicy] override; when null, the drain
 /// loop falls back to [SyncPolicy.defaults] (REQ-d00126-B).
@@ -81,6 +88,11 @@ Future<void> drain(
     await backend.appendAttempt(destination.id, head.entryId, attempt);
 
     // Route the outcome.
+    // Implements: REQ-d00124-D+E — exhausting the head row (SendPermanent
+    // or SendTransient-at-maxAttempts) marks it final and CONTINUES to
+    // the next pending row; readFifoHead (REQ-d00124-A) skips exhausted
+    // rows on the next iteration, so drain advances through the FIFO in
+    // sequence_in_queue order rather than wedging on an exhausted head.
     switch (result) {
       case SendOk():
         await backend.markFinal(destination.id, head.entryId, FinalStatus.sent);
@@ -91,7 +103,7 @@ Future<void> drain(
           head.entryId,
           FinalStatus.exhausted,
         );
-        return;
+        continue;
       case SendTransient():
         // head.attempts.length is the count BEFORE this attempt was
         // appended. After appendAttempt, the entry has attempts.length+1.
@@ -102,7 +114,9 @@ Future<void> drain(
             head.entryId,
             FinalStatus.exhausted,
           );
+          continue;
         }
+        // Below the attempt cap: backoff applies on the next drain tick.
         return;
     }
   }

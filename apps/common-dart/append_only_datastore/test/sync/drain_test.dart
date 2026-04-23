@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
@@ -93,36 +95,30 @@ void main() {
     );
 
     // Verifies: REQ-d00124-D — SendPermanent marks the head exhausted and
-    // drain returns. The drain loop's switch-case (SendPermanent -> return)
-    // is what enforces the wedge, not readFifoHead: after Phase-4.3 Task 8,
-    // readFifoHead skips exhausted rows and returns the next pending. The
-    // wedge is still load-bearing because drain returns after the
-    // SendPermanent on e1 without attempting e2 — even though e2 is now
-    // visible at the head after drain returns. Task 13 will flip the
-    // SendPermanent case from `return` to `continue` for the batch-FIFO
-    // continue-past-exhausted semantics; until then, the drain-level
-    // wedge assertion below is what pins REQ-d00124-D.
-    test('REQ-d00124-D: SendPermanent marks head exhausted and drain returns '
-        'without attempting later pending rows', () async {
+    // drain CONTINUES to the next pending row. After Phase-4.3 Task 8
+    // readFifoHead skips exhausted rows, and after Task 13 the drain
+    // loop's SendPermanent case flips from `return` to `continue` — so
+    // a SendPermanent on e1 marks e1 exhausted, the drain loop iterates
+    // back to `readFifoHead`, which returns e2 (the next pending row),
+    // and drain attempts e2 in the same call.
+    test('REQ-d00124-D: SendPermanent marks head exhausted and drain '
+        'continues to the next pending row', () async {
       await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
       await _enqueueRow(backend, 'fake', entryId: 'e2', sequenceNumber: 2);
       final dest = FakeDestination(
-        script: [const SendPermanent(error: 'HTTP 400')],
+        script: [
+          const SendPermanent(error: 'HTTP 400'),
+          const SendOk(),
+        ],
       );
 
       await drain(dest, backend: backend);
-      // Exactly one send call: e1. e2 was NOT attempted because drain
-      // returned immediately after routing the SendPermanent.
-      expect(dest.sent, hasLength(1));
+      // Two send calls: e1 (SendPermanent) and e2 (SendOk). e2 was
+      // attempted because drain continued past the exhausted e1.
+      expect(dest.sent, hasLength(2));
 
-      // e1 is exhausted; e2 is still pending and is now visible at the
-      // head under Task-8's readFifoHead semantics (exhausted rows are
-      // skipped). This is the head-level change — the drain-level wedge
-      // is enforced above by `dest.sent.length == 1`.
-      final head = await backend.readFifoHead('fake');
-      expect(head, isNotNull);
-      expect(head!.entryId, 'e2');
-      expect(head.finalStatus, FinalStatus.pending);
+      // e1 is exhausted; e2 is sent; no pending rows remain.
+      expect(await backend.readFifoHead('fake'), isNull);
     });
 
     // Verifies: REQ-d00124-F+B — SendTransient below maxAttempts: attempt
@@ -182,36 +178,45 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00124-E — SendTransient AT maxAttempts → exhausted.
-    // Simulated by pre-loading the attempts[] to maxAttempts-1 so the next
-    // transient trips the cap.
-    test(
-      'REQ-d00124-E: SendTransient at maxAttempts marks entry exhausted',
-      () async {
-        await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
-        // Pre-load attempts: we append maxAttempts-1 transient records so
-        // the next drain-triggered transient is the one that wedges.
-        final preloadAttempts = SyncPolicy.defaults.maxAttempts - 1;
-        for (var i = 0; i < preloadAttempts; i++) {
-          await backend.appendAttempt('fake', 'e1', _attemptResultFactory(i));
-        }
-        // Clock well past any backoff window.
-        final longAfter = DateTime.utc(2027, 1, 1);
-        final dest = FakeDestination(
-          script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
-        );
+    // Verifies: REQ-d00124-E — SendTransient AT maxAttempts → exhausted,
+    // and drain CONTINUES to the next pending row. Simulated by
+    // pre-loading e1's attempts[] to maxAttempts-1 so the next transient
+    // trips the cap; e2 is enqueued behind it so the continue-past-
+    // exhausted path is observable as a send call against e2.
+    test('REQ-d00124-E: SendTransient at maxAttempts marks entry exhausted '
+        'and drain continues to the next pending row', () async {
+      await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
+      await _enqueueRow(backend, 'fake', entryId: 'e2', sequenceNumber: 2);
+      // Pre-load attempts on e1: maxAttempts-1 transient records so the
+      // next drain-triggered transient is the one that exhausts e1.
+      final preloadAttempts = SyncPolicy.defaults.maxAttempts - 1;
+      for (var i = 0; i < preloadAttempts; i++) {
+        await backend.appendAttempt('fake', 'e1', _attemptResultFactory(i));
+      }
+      // Clock well past any backoff window.
+      final longAfter = DateTime.utc(2027, 1, 1);
+      final dest = FakeDestination(
+        script: [
+          const SendTransient(error: 'HTTP 503', httpStatus: 503),
+          const SendOk(),
+        ],
+      );
 
-        await drain(dest, backend: backend, clock: () => longAfter);
-        expect(dest.sent, hasLength(1));
-        // Only row is now exhausted and no pending row follows it;
-        // readFifoHead skips exhausted rows and returns null when no
-        // pending remains (REQ-d00124-A, Task 8 semantics).
-        expect(await backend.readFifoHead('fake'), isNull);
-      },
-    );
+      await drain(dest, backend: backend, clock: () => longAfter);
+      // Two send calls: e1 (SendTransient-at-max → exhausted) and e2
+      // (SendOk). e2 was attempted because drain continued past the
+      // exhausted e1.
+      expect(dest.sent, hasLength(2));
+      // e1 is exhausted; e2 is sent; no pending rows remain.
+      expect(await backend.readFifoHead('fake'), isNull);
+    });
 
     // Verifies: REQ-d00124-G — every send call records an attempt, no matter
-    // the outcome. Here: one SendOk, one SendPermanent, one SendTransient.
+    // the outcome. Here: SendOk (e1), SendPermanent (e2), SendOk (e3).
+    // Under Task-13 continue-past-exhausted semantics, drain attempts all
+    // three rows in one pass: e1 is sent, e2 is exhausted, drain continues
+    // to e3 (the next pending) and sends it. Each send call appends one
+    // AttemptResult.
     test('REQ-d00124-G: every send call appends an AttemptResult', () async {
       var seq = 0;
       for (final id in ['e1', 'e2', 'e3']) {
@@ -221,7 +226,8 @@ void main() {
       final dest = FakeDestination(
         script: [
           const SendOk(),
-          const SendPermanent(error: 'HTTP 400'), // wedges at e2
+          const SendPermanent(error: 'HTTP 400'), // exhausts e2
+          const SendOk(), // drain continues past e2 and sends e3
         ],
       );
 
@@ -231,8 +237,7 @@ void main() {
         clock: () => DateTime.utc(2026, 4, 22, 11),
       );
 
-      // Inspect the raw store: e1 has 1 attempt (ok), e2 has 1 attempt
-      // (permanent), e3 has 0 attempts (never reached because FIFO wedged).
+      // Inspect the raw store: each of e1, e2, e3 has exactly 1 attempt.
       final db = backend.debugDatabase();
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_fake',
@@ -244,13 +249,19 @@ void main() {
       }
       expect(attemptsByEntry['e1'], 1);
       expect(attemptsByEntry['e2'], 1);
-      expect(attemptsByEntry['e3'], 0);
+      expect(attemptsByEntry['e3'], 1);
     });
 
-    // Verifies: REQ-d00124-H — strict FIFO order. A wedge on one entry
-    // prevents any later entry from being attempted.
+    // Verifies: REQ-d00124-H — strict FIFO order. Drain attempts pending
+    // rows in sequence_in_queue order. Under Task-13 continue-past-
+    // exhausted semantics, drain still honors FIFO ordering: an earlier
+    // pending row is always attempted before a later pending row, and an
+    // exhausted row is skipped in-place (its slot in the drain pass is
+    // its sequence_in_queue position). Scripted SendPermanent on e1,
+    // SendOk on e2, SendOk on e3 proves the ordering: the payloads land
+    // in the destination in the same order the rows were enqueued.
     test(
-      'REQ-d00124-H: strict FIFO — wedge on e1 prevents attempting e2/e3',
+      'REQ-d00124-H: strict FIFO — drain attempts e1, e2, e3 in enqueue order',
       () async {
         var seq = 0;
         for (final id in ['e1', 'e2', 'e3']) {
@@ -258,7 +269,11 @@ void main() {
           await _enqueueRow(backend, 'fake', entryId: id, sequenceNumber: seq);
         }
         final dest = FakeDestination(
-          script: [const SendPermanent(error: 'HTTP 400')],
+          script: [
+            const SendPermanent(error: 'HTTP 400'), // e1 -> exhausted
+            const SendOk(), // e2 -> sent
+            const SendOk(), // e3 -> sent
+          ],
         );
 
         await drain(
@@ -266,8 +281,19 @@ void main() {
           backend: backend,
           clock: () => DateTime.utc(2026, 4, 22, 11),
         );
-        expect(dest.sent, hasLength(1));
-        // e2 and e3 are NOT attempted.
+        // Three send calls, in the order e1, e2, e3. The WirePayload
+        // content reflects the row's event_id JSON encoding; decode it
+        // to confirm the drain called send in FIFO order.
+        expect(dest.sent, hasLength(3));
+        final orderedEventIds = dest.sent
+            .map(
+              (p) =>
+                  (jsonDecode(utf8.decode(p.bytes))
+                          as Map<String, Object?>)['event_id']
+                      as String,
+            )
+            .toList();
+        expect(orderedEventIds, ['e1', 'e2', 'e3']);
       },
     );
 

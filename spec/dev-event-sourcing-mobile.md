@@ -286,31 +286,31 @@ F. `SyncPolicy.periodicInterval` SHALL equal `Duration(minutes: 15)` — the for
 
 Given the `Destination` contract (REQ-d00122) and the retry curve (REQ-d00123), the drain loop is the component that actually moves bytes. One invocation operates on one destination's FIFO, reads the head entry, decides whether to call `send()` based on backoff elapsed since the last attempt, routes the `SendResult`, and appends an `AttemptResult` to the entry's attempts log regardless of outcome. The attempts log is append-only — `SHALL record every call to destination.send` — because it is the audit trail that satisfies REQ-p01001-M (log failed synchronization events with detailed error messages) and supplies the timestamps the next backoff computation reads.
 
-The drain loop's most important property is strict FIFO order. An entry is attempted if and only if every earlier entry in the queue has transitioned to `sent` or `exhausted`. Specifically: on `SendPermanent` or on the Nth transient failure, the head entry is marked `exhausted`, and `drain` returns. A subsequent `drain` call sees the exhausted head still sitting there (entries are never deleted — REQ-d00119-D) and returns without attempting the next entry. The FIFO is wedged. This wedge is load-bearing: silently skipping the wedged head and advancing to the next entry would reorder delivery, which would make a destination's reconstruction of history dependent on the set of failures the queue has seen — a property that cannot be reasoned about from the event log alone and would defeat REQ-p01001-D (FIFO delivery order).
+The drain loop's most important property is strict FIFO order. Within a single drain pass, pending entries are attempted in `sequence_in_queue` order; an entry is attempted only after every earlier entry in the same FIFO has reached a terminal state (`sent` or `exhausted`). Specifically: on `SendPermanent` or on the Nth transient failure, the head entry is marked `exhausted` and the drain loop continues to the next pending row in the same invocation — `readFifoHead` (REQ-d00124-A) skips terminal rows and returns the next pending row, and the drain loop iterates back to that read. Exhausted rows remain in the store forever (entries are never deleted — REQ-d00119-D), preserving the audit trail of failed deliveries at their original sequence position, but they do not block later pending rows from being attempted. This "continue past exhausted" semantics preserves REQ-p01001-D (FIFO delivery order) because the order in which `destination.send` is invoked across pending rows still matches `sequence_in_queue` order; what changes is that a permanently-failed row no longer also halts delivery of every later row that happens to sit behind it.
 
-The wedge is resolved only by human intervention (manual re-enqueue or destination-side repair), not by any automatic "skip forward". The synchronization UI surfaces the wedge to the user per REQ-p01001-H, so the wedge is not a silent failure state; it is an escalation.
+An exhausted row is the queue's record that a specific payload could not be delivered despite the full retry curve. It is surfaced to the user per REQ-p01001-H (synchronization UI) so the exhaustion is not a silent failure state; it is an escalation. Resolution of an exhausted row (manual re-enqueue or destination-side repair) is not automatic — but under continue-past-exhausted semantics, one exhausted row no longer blocks delivery of unrelated later rows in the same FIFO.
 
-Multi-destination behavior is by contrast fully independent: each destination's FIFO has its own wedge state, and one destination being wedged on its head does not block drain on any other destination. That property falls out of invoking `drain` per-destination within `sync_cycle` (REQ-d00125).
+Multi-destination behavior is independent by construction: each destination's FIFO has its own set of pending and exhausted rows, and one destination's exhausted rows do not affect drain on any other destination. That property falls out of invoking `drain` per-destination within `sync_cycle` (REQ-d00125).
 
 ## Assertions
 
-A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`. The "head" returned by `backend.readFifoHead` SHALL be the first row whose `final_status == pending` in `sequence_in_queue` order; rows whose `final_status` is `sent` or `exhausted` SHALL be skipped. `readFifoHead` SHALL NOT stop at the first `exhausted` row; the drain-loop "wedge" on an exhausted head is preserved by the drain loop's response to `SendPermanent` / `SendTransient`-at-max (REQ-d00124-D+E), not by `readFifoHead` returning `null` at the first terminal row.
+A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`. The "head" returned by `backend.readFifoHead` SHALL be the first row whose `final_status == pending` in `sequence_in_queue` order; rows whose `final_status` is `sent` or `exhausted` SHALL be skipped. `readFifoHead` SHALL NOT stop at the first `exhausted` row; exhausted rows remain in the store for audit (REQ-d00119-D) but do not block later pending rows from being read as the head.
 
 B. When the head's computed backoff (from `SyncPolicy.backoffFor(attempts.length)` plus the most recent `attempts[last].attempted_at`) has not elapsed, `drain` SHALL return without calling `destination.send`.
 
 C. On `SendOk`, `drain` SHALL mark the head entry `sent` via `backend.markFinal(id, entry_id, FinalStatus.sent)` and continue the loop to the next head entry.
 
-D. On `SendPermanent`, `drain` SHALL mark the head entry `exhausted` via `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and return; subsequent `drain` calls SHALL observe the wedge and SHALL NOT advance past the exhausted head.
+D. On `SendPermanent`, `drain` SHALL mark the head entry `exhausted` via `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and CONTINUE to the next pending row in the same drain invocation; `readFifoHead` (REQ-d00124-A) skips the exhausted row on the next iteration and returns the next pending row in `sequence_in_queue` order. An exhausted row SHALL NOT block later pending rows from being attempted.
 
-E. On `SendTransient` where `attempts.length + 1 >= SyncPolicy.maxAttempts`, `drain` SHALL mark the head entry `exhausted` and return.
+E. On `SendTransient` where `attempts.length + 1 >= SyncPolicy.maxAttempts`, `drain` SHALL mark the head entry `exhausted` and CONTINUE to the next pending row, with the same continue-past-exhausted semantics as D.
 
 F. On `SendTransient` below the attempt limit, `drain` SHALL append the resulting `AttemptResult` via `backend.appendAttempt(id, entry_id, attempt)` and return; the entry remains `pending`; the next backoff interval SHALL apply to the next `drain` trigger.
 
 G. `drain` SHALL call `backend.appendAttempt(id, entry_id, attempt)` for every invocation of `destination.send`, regardless of outcome; the attempts log is append-only and SHALL record every send attempt made against an entry.
 
-H. `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry in the same FIFO is still `pending` or `exhausted`.
+H. `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry in the same FIFO is still `pending`. Exhausted rows at earlier `sequence_in_queue` positions SHALL be skipped in-place (they remain in the store for audit) and SHALL NOT block later pending rows from being attempted.
 
-*End* *Per-Destination FIFO Drain Loop* | **Hash**: 4d863265
+*End* *Per-Destination FIFO Drain Loop* | **Hash**: c8938a28
 
 ---
 
