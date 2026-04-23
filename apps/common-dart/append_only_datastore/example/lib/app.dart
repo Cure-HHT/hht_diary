@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:append_only_datastore_demo/app_state.dart';
+import 'package:append_only_datastore_demo/widgets/event_stream_panel.dart';
+import 'package:append_only_datastore_demo/widgets/materialized_panel.dart';
 import 'package:append_only_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
 
@@ -43,34 +45,36 @@ class _DemoAppState extends State<DemoApp> {
           primary: DemoColors.accent,
         ),
       ),
-      home: const Scaffold(
+      home: Scaffold(
         backgroundColor: DemoColors.bg,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _PlaceholderBanner(label: 'TOP ACTION BAR (Task 12)'),
-              _PlaceholderBanner(label: 'SYNC POLICY BAR (Task 12)'),
+              const _PlaceholderBanner(label: 'TOP ACTION BAR (Task 12)'),
+              const _PlaceholderBanner(label: 'SYNC POLICY BAR (Task 12)'),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Expanded(
-                      child: _PlaceholderBanner(
-                        label: 'MATERIALIZED (Task 10)',
+                      child: MaterializedPanel(
+                        backend: widget.backend,
+                        appState: widget.appState,
                       ),
                     ),
                     Expanded(
-                      child: _PlaceholderBanner(
-                        label: 'EVENT STREAM (Task 10)',
+                      child: EventStreamPanel(
+                        backend: widget.backend,
+                        appState: widget.appState,
                       ),
                     ),
-                    Expanded(
+                    const Expanded(
                       child: _PlaceholderBanner(
                         label: 'FIFO PANEL x N (Task 11)',
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 320,
                       child: _PlaceholderBanner(
                         label: 'DETAIL PANEL (Task 13)',

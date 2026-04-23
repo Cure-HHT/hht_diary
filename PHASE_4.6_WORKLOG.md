@@ -237,6 +237,28 @@ Direct deps added to `example/pubspec.yaml`: `path`, `path_provider`, `sembast` 
 
 ---
 
+## Task 10: MATERIALIZED + EVENTS read panels
+
+`lib/widgets/materialized_panel.dart`:
+
+- `StatefulWidget` with `Timer.periodic(500ms)` that calls `backend.findEntries(entryType: 'demo_note')` and stores the list.
+- Listens to `appState` for selection repaint.
+- Header `MATERIALIZED` in `DemoText.header`; rows render `agg-<short8> [ok|ptl|del]` per design §7.5.
+- Row tint flips to `DemoColors.selected` when `appState.selectedAggregateId` matches. Tap → `selectAggregate(entryId)`.
+
+`lib/widgets/event_stream_panel.dart`:
+
+- Same shape; `Timer.periodic(500ms)` → `backend.findAllEvents(limit: 500)`; sorted by `sequenceNumber`.
+- Header `EVENTS`; rows render `#<seq> <short_event_type> <aggregate_type> <short_agg_id>`.
+- Row tint on `appState.selectedEventId` match. Tap → `selectEvent(eventId)`.
+- Renders every event regardless of `aggregate_type` (JNY-02 needs action events visible here, next to their distinct aggregate types).
+
+Both panels wired into `app.dart`'s observation grid as the first two columns; FIFO + DETAIL slots still placeholders.
+
+**Final state**: example — `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
