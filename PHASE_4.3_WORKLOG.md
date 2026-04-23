@@ -63,7 +63,17 @@ REQ-d00128 and REQ-d00129 bodies changed; `elspais fix` recomputed hashes; no ot
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `ff1b37b9` returned one HIGH, one MEDIUM, one NIT. No CRITICAL.
+
+**Addressed:**
+- **HIGH — comment in `sync_cycle.dart` claimed exceptions are rethrown but `_drainOrSwallow` silently swallows them.** Fixed the misleading comment inside `call()` to point readers at `_drainOrSwallow` and note that exceptions are swallowed rather than re-thrown. The underlying behavior (swallowing backend exceptions in addition to `destination.send` exceptions) is a Phase-4 scope concern and is **logged below as out-of-scope** for Phase 4.3.
+- **MEDIUM — `_OrderRecordingSyncCycle` test subclass did not forward `super.policy`.** Initially added `super.policy`, but `dart analyze` correctly flagged it as an unused optional parameter (no caller passes it). Reverted. If a future test needs policy injection through this subclass, the parameter can be added at that point; adding it speculatively now introduces dead code.
+
+**Not addressed:**
+- **NIT — test comment about `backoffFor(3)` cap arithmetic.** Reviewer concluded "the test assertion itself is correct; the comment is just a notation curiosity, not a defect." No change.
+
+### Out-of-scope for Phase 4.3 (log for follow-up)
+- `SyncCycle._drainOrSwallow` silently swallows all exceptions from `drain`, including backend write errors that are not captured by drain's inner `try/catch` on `destination.send`. For the audit trail this means a Sembast-layer write failure inside `drain` is lost. Fixing this is out of Phase 4.3 scope (it would touch Phase-4 behavior); file a follow-up ticket after the refactor lands.
 
 ---
 

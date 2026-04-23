@@ -54,9 +54,9 @@ class SyncCycle {
     try {
       final destinations = _registry.all();
       // REQ-d00125-A: concurrent per-destination drain. A thrown
-      // exception from one drain does not cancel the others — we collect
-      // and rethrow after all finish, matching `Future.wait(eagerError: false)`
-      // semantics.
+      // exception from one drain does not cancel the others. See
+      // `_drainOrSwallow` for how exceptions are handled on a per-
+      // destination basis (currently swallowed, not re-thrown).
       await Future.wait(destinations.map(_drainOrSwallow));
       // REQ-d00125-B: inbound poll happens AFTER outbound drains complete.
       await portalInboundPoll();
