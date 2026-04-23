@@ -31,8 +31,10 @@ const Set<String> _allowlist = {
   // Disaster-recovery rebuild path — folds events through Materializer.apply
   // and replaces the view atomically.
   'apps/common-dart/append_only_datastore/lib/src/materialization/rebuild.dart',
-  // Phase 5 will add the online write path here:
-  //   'apps/daily-diary/clinical_diary/lib/services/entry_service.dart'
+  // Online write path — EntryService.record folds each event through
+  // Materializer.apply inside the same transaction as the append
+  // (REQ-d00133-D, Phase 4.3 Task 16).
+  'apps/common-dart/append_only_datastore/lib/src/entry_service.dart',
 };
 
 /// Mutations on the `diary_entries` store. Matched syntactically — any

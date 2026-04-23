@@ -118,6 +118,12 @@ export 'src/destinations/subscription_filter.dart'
     show SubscriptionFilter, SubscriptionPredicate;
 export 'src/destinations/wire_payload.dart' show WirePayload;
 
+// Entry Type Registry + EntryService.record — the sole write API for
+// widgets producing new events. Phase 4.3 Task 16 ships the minimal
+// EntryTypeRegistry surface; Task 17 will polish if needed.
+export 'src/entry_service.dart' show DeviceInfo, EntryService, SyncCycleTrigger;
+export 'src/entry_type_registry.dart' show EntryTypeRegistry;
+
 // Infrastructure - Database
 export 'src/infrastructure/database/database_provider.dart';
 

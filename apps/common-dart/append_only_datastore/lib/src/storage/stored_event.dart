@@ -22,6 +22,7 @@ class StoredEvent {
     required this.deviceId,
     required this.clientTimestamp,
     required this.eventHash,
+    this.softwareVersion = '',
     this.previousEventHash,
     this.syncedAt,
   });
@@ -54,6 +55,17 @@ class StoredEvent {
     final deviceId = _requireString(map, 'device_id');
     final clientTimestamp = _requireDateTime(map, 'client_timestamp');
     final eventHash = _requireString(map, 'event_hash');
+    // REQ-d00118-C / REQ-d00133-I — software_version is a migration-bridge
+    // top-level field populated from metadata.provenance[0] by
+    // EntryService.record. Optional on legacy records written before the
+    // EntryService path was introduced; stored as empty string when absent.
+    final softwareVersionRaw = map['software_version'];
+    if (softwareVersionRaw != null && softwareVersionRaw is! String) {
+      throw const FormatException(
+        'StoredEvent: "software_version" must be a String when present',
+      );
+    }
+    final softwareVersion = (softwareVersionRaw as String?) ?? '';
     final previousHashRaw = map['previous_event_hash'];
     if (previousHashRaw != null && previousHashRaw is! String) {
       throw const FormatException(
@@ -93,6 +105,7 @@ class StoredEvent {
       deviceId: deviceId,
       clientTimestamp: clientTimestamp,
       eventHash: eventHash,
+      softwareVersion: softwareVersion,
       previousEventHash: previousHashRaw as String?,
       syncedAt: syncedAt,
     );
@@ -137,6 +150,12 @@ class StoredEvent {
   /// Client-side timestamp when event was created.
   final DateTime clientTimestamp;
 
+  /// Software version that authored this event, populated from
+  /// `metadata.provenance[0].software_version` by `EntryService.record`
+  /// (REQ-d00118-C, REQ-d00133-I). Empty string on legacy records written
+  /// before the EntryService path was introduced.
+  final String softwareVersion;
+
   /// SHA-256 hash of event for tamper detection.
   final String eventHash;
 
@@ -163,6 +182,7 @@ class StoredEvent {
       'user_id': userId,
       'device_id': deviceId,
       'client_timestamp': clientTimestamp.toIso8601String(),
+      'software_version': softwareVersion,
       'event_hash': eventHash,
       'previous_event_hash': previousEventHash,
       'synced_at': syncedAt?.toIso8601String(),
