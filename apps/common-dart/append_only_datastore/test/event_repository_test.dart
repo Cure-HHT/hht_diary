@@ -884,8 +884,11 @@ class _SpyBackend extends StorageBackend {
     dateTo: dateTo,
   );
   @override
-  Future<void> enqueueFifo(Txn txn, String destinationId, FifoEntry entry) =>
-      delegate.enqueueFifo(txn, destinationId, entry);
+  Future<FifoEntry> enqueueFifo(
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  ) => delegate.enqueueFifo(destinationId, batch, wirePayload);
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       delegate.readFifoHead(destinationId);

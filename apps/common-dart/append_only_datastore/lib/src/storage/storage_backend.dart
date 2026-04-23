@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
@@ -124,21 +125,36 @@ abstract class StorageBackend {
 
   // -------- FIFO (per destination) --------
 
-  /// Append [entry] to destination [destinationId]'s FIFO (REQ-d00117-E).
-  /// Conforming implementations SHALL reject the write if
-  /// `entry.finalStatus != FinalStatus.pending` or `entry.attempts` is
-  /// non-empty; the enqueue step is defined to produce a pending entry with
-  /// no attempt history, so a caller supplying anything else is a bug.
-  /// Implementations MAY throw `ArgumentError` on violation.
+  /// Append a batch-shaped entry to destination [destinationId]'s FIFO
+  /// (REQ-d00117-E). The batch covers every event in [batch], which MUST
+  /// be non-empty (REQ-d00128-A). The returned `FifoEntry` carries the
+  /// backend-assigned `sequence_in_queue` and the constructed
+  /// `event_ids` (REQ-d00128-A) + `event_id_range` (REQ-d00128-B) +
+  /// `wire_payload` (REQ-d00128-C) fields.
   ///
-  /// The backend owns `sequence_in_queue`. Callers pass a `FifoEntry` with
-  /// any value there; implementations SHALL assign a monotonically-
-  /// increasing value per FIFO and SHALL write that backend-assigned value
-  /// into the persisted record. `FifoEntry.sequenceInQueue` is therefore a
-  /// read-side field: on a [readFifoHead] result it reflects the actual
-  /// queue position; on an [enqueueFifo] input it is ignored (Phase-2
-  /// Prereq A, Option 1).
-  Future<void> enqueueFifo(Txn txn, String destinationId, FifoEntry entry);
+  /// The backend opens its own atomic transaction for the write so
+  /// callers that are not already composing a larger transaction can
+  /// enqueue in one call. Callers composing a larger transaction (e.g.,
+  /// replay, fill_batch) will use the transactional variant added later
+  /// in Phase 4.3.
+  ///
+  /// Implementations SHALL extract `event_ids` from
+  /// `batch.map((e) => e.eventId)` and `event_id_range` from
+  /// `(firstSeq: batch.first.sequenceNumber, lastSeq: batch.last
+  /// .sequenceNumber)` — callers are responsible for passing a batch
+  /// whose elements are in ascending `sequence_number` order
+  /// (contiguity is enforced by the fill-batch path, not this method).
+  ///
+  /// Implementations SHALL assign a monotonically-increasing
+  /// `sequence_in_queue` per FIFO, SHALL reject an empty [batch] with
+  /// `ArgumentError`, and SHALL register the destination on first use
+  /// so `anyFifoExhausted`/`exhaustedFifos` can iterate all known FIFOs.
+  // Implements: REQ-d00128-A+B+C — batch-per-row enqueue contract.
+  Future<FifoEntry> enqueueFifo(
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  );
 
   /// Oldest pending entry in [destinationId]'s FIFO, or null if none. Returns
   /// null when the head of the FIFO is non-pending (e.g., `exhausted`), i.e.

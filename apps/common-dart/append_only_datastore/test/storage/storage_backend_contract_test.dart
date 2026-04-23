@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
@@ -256,8 +257,11 @@ class _InMemoryBackend extends StorageBackend {
     DateTime? dateTo,
   }) => throw UnimplementedError();
   @override
-  Future<void> enqueueFifo(Txn txn, String destinationId, FifoEntry entry) =>
-      throw UnimplementedError();
+  Future<FifoEntry> enqueueFifo(
+    String destinationId,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
+  ) => throw UnimplementedError();
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       throw UnimplementedError();

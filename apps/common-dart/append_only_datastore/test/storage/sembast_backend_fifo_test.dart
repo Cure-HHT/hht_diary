@@ -1,9 +1,10 @@
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
-import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
+
+import '../test_support/fifo_entry_helpers.dart';
 
 void main() {
   group('SembastBackend FIFO', () {
@@ -22,105 +23,66 @@ void main() {
       await backend.close();
     });
 
-    FifoEntry mkEntry({
-      required String entryId,
-      required int sequenceInQueue,
-      FinalStatus finalStatus = FinalStatus.pending,
-      DateTime? sentAt,
-      List<AttemptResult> attempts = const <AttemptResult>[],
-    }) {
-      return FifoEntry(
-        entryId: entryId,
-        eventId: 'event-$entryId',
-        sequenceInQueue: sequenceInQueue,
-        wirePayload: const <String, Object?>{'k': 'v'},
-        wireFormat: 'json-v1',
-        transformVersion: null,
-        enqueuedAt: DateTime.utc(2026, 4, 22, 10, sequenceInQueue),
-        attempts: attempts,
-        finalStatus: finalStatus,
-        sentAt: sentAt,
-      );
-    }
-
-    Future<void> enqueue(String destId, FifoEntry entry) =>
-        backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, destId, entry);
-        });
+    // Phase-4.3 Task 6 shifted enqueueFifo from a caller-constructed
+    // FifoEntry to (destId, List<StoredEvent>, WirePayload). Under the new
+    // contract, the backend derives:
+    //   entry_id       = batch.first.eventId
+    //   event_ids      = batch.map((e) => e.eventId)
+    //   event_id_range = (first.sequenceNumber, last.sequenceNumber)
+    // So a single-event test like "enqueue eventId=ev-1 at seq=1" produces
+    // a row with entry_id == 'ev-1' and event_ids == ['ev-1'].
 
     // -------- enqueueFifo + validation --------
 
     test('enqueueFifo + readFifoHead round-trip', () async {
-      final e = mkEntry(entryId: 'e1', sequenceInQueue: 1);
-      await enqueue('primary', e);
+      final enqueued = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       final head = await backend.readFifoHead('primary');
-      expect(head, equals(e));
+      expect(head, isNotNull);
+      expect(head!.entryId, 'e1');
+      expect(head.eventIds, ['e1']);
+      expect(head.eventIdRange, (firstSeq: 1, lastSeq: 1));
+      expect(head.finalStatus, FinalStatus.pending);
+      expect(head.attempts, isEmpty);
+      expect(head.sentAt, isNull);
+      // Returned entry equals the persisted head modulo DateTime precision
+      // (both derived from DateTime.now() inside the transaction).
+      expect(head.entryId, enqueued.entryId);
+      expect(head.sequenceInQueue, enqueued.sequenceInQueue);
     });
 
-    // Verifies: REQ-d00117-E + REQ-d00119-C — enqueueFifo rejects a
-    // non-pending entry; the storage contract states that an entry enters
-    // the FIFO pending with an empty attempts list.
-    test('enqueueFifo rejects non-pending entry', () async {
-      final badStatus = mkEntry(
-        entryId: 'e1',
-        sequenceInQueue: 1,
-        finalStatus: FinalStatus.sent,
-      );
-      await expectLater(
-        backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'primary', badStatus);
-        }),
-        throwsArgumentError,
-      );
-    });
-
-    test('enqueueFifo rejects entry with non-empty attempts', () async {
-      final badAttempts = mkEntry(
-        entryId: 'e1',
-        sequenceInQueue: 1,
-        attempts: [
-          AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
-        ],
-      );
-      await expectLater(
-        backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'primary', badAttempts);
-        }),
-        throwsArgumentError,
-      );
-    });
-
-    test('enqueueFifo rejects entry with non-null sent_at', () async {
-      final badSentAt = mkEntry(
-        entryId: 'e1',
-        sequenceInQueue: 1,
-        sentAt: DateTime.utc(2026, 4, 22, 11),
-      );
-      await expectLater(
-        backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'primary', badSentAt);
-        }),
-        throwsArgumentError,
-      );
-    });
+    // Verifies: REQ-d00128-A — an empty batch is rejected at enqueueFifo
+    // rather than silently producing a zero-event row.
+    test(
+      'REQ-d00128-A: enqueueFifo rejects an empty batch with ArgumentError',
+      () async {
+        await expectLater(
+          backend.enqueueFifo(
+            'primary',
+            const [],
+            wirePayloadJson(const {'k': 'v'}),
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
 
     test('enqueueFifo rejects duplicate entry_id in same FIFO', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      // Second enqueue with the same eventId -> derived entryId collides.
       await expectLater(
-        backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'primary',
-            mkEntry(entryId: 'e1', sequenceInQueue: 2),
-          );
-        }),
+        enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 2),
         throwsStateError,
       );
     });
 
     test('same entry_id is allowed in DIFFERENT FIFOs', () async {
-      await enqueue('A', mkEntry(entryId: 'shared', sequenceInQueue: 1));
-      await enqueue('B', mkEntry(entryId: 'shared', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'A', eventId: 'shared', sequenceNumber: 1);
+      await enqueueSingle(backend, 'B', eventId: 'shared', sequenceNumber: 1);
       expect((await backend.readFifoHead('A'))?.entryId, 'shared');
       expect((await backend.readFifoHead('B'))?.entryId, 'shared');
     });
@@ -130,17 +92,17 @@ void main() {
     // Verifies: REQ-d00119-A — insertion order is preserved; readFifoHead
     // returns the oldest pending entry each time.
     test('REQ-d00119-A: multiple enqueues preserve insertion order', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 2));
-      await enqueue('primary', mkEntry(entryId: 'e3', sequenceInQueue: 3));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
       final head = await backend.readFifoHead('primary');
       expect(head?.entryId, 'e1');
     });
 
     test('per-destination isolation', () async {
-      await enqueue('A', mkEntry(entryId: 'a-only', sequenceInQueue: 1));
-      await enqueue('B', mkEntry(entryId: 'b-only', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'A', eventId: 'a-only', sequenceNumber: 1);
+      await enqueueSingle(backend, 'B', eventId: 'b-only', sequenceNumber: 1);
 
       expect((await backend.readFifoHead('A'))?.entryId, 'a-only');
       expect((await backend.readFifoHead('B'))?.entryId, 'b-only');
@@ -149,7 +111,7 @@ void main() {
     // -------- appendAttempt --------
 
     test('appendAttempt appends without changing final_status', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
 
       final attempt = AttemptResult(
         attemptedAt: DateTime.utc(2026, 4, 22, 11),
@@ -183,7 +145,12 @@ void main() {
     test(
       'REQ-d00127-B: appendAttempt no-ops when entry does not exist',
       () async {
-        await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+        await enqueueSingle(
+          backend,
+          'primary',
+          eventId: 'e1',
+          sequenceNumber: 1,
+        );
         // Must not throw.
         await backend.appendAttempt(
           'primary',
@@ -222,7 +189,7 @@ void main() {
     // flips final_status and, for sent, stamps sent_at. The entry lives
     // on as a send-log record.
     test('REQ-d00119-D: markFinal sent retains the entry', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
 
       // After marking sent, readFifoHead moves past it to the next pending.
@@ -231,24 +198,24 @@ void main() {
       // The entry persists: a follow-up appendAttempt on a different entry
       // works while e1 stays parked. We verify by querying the raw FIFO
       // via a second enqueue + head read.
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 2));
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
       final nextHead = await backend.readFifoHead('primary');
       expect(nextHead?.entryId, 'e2');
     });
 
     test('markFinal sent sets sent_at', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       final before = DateTime.now().toUtc();
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       final after = DateTime.now().toUtc();
 
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 2));
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
       await backend.markFinal('primary', 'e2', FinalStatus.sent);
 
       // We can't easily query non-pending entries through readFifoHead, so
       // inspect the second e2 entry - it should have sent_at set between
       // before/after.
-      await enqueue('primary', mkEntry(entryId: 'e3', sequenceInQueue: 3));
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
       final head = await backend.readFifoHead('primary');
       expect(head?.entryId, 'e3');
       // e1 and e2 are retained but not visible at head. The sent_at check
@@ -268,7 +235,7 @@ void main() {
     });
 
     test('markFinal exhausted does NOT set sent_at', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
 
       // Raw store name must match SembastBackend._fifoStore(destinationId).
@@ -280,8 +247,8 @@ void main() {
     });
 
     test('after markFinal sent, readFifoHead returns next pending', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 2));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
 
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
 
@@ -292,8 +259,18 @@ void main() {
     test(
       'after markFinal exhausted, readFifoHead returns null (wedged)',
       () async {
-        await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
-        await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 2));
+        await enqueueSingle(
+          backend,
+          'primary',
+          eventId: 'e1',
+          sequenceNumber: 1,
+        );
+        await enqueueSingle(
+          backend,
+          'primary',
+          eventId: 'e2',
+          sequenceNumber: 2,
+        );
 
         await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
 
@@ -307,7 +284,7 @@ void main() {
     // may remove the target row before drain's subsequent markFinal
     // transaction runs.
     test('REQ-d00127-A: markFinal no-ops when entry does not exist', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       // Must not throw.
       await backend.markFinal('primary', 'ghost', FinalStatus.sent);
       // e1 still at head, still pending.
@@ -332,7 +309,7 @@ void main() {
     // sent_at, corrupting the send-log timestamp; reject it instead.
     test('markFinal rejects a second transition '
         '(pending -> sent -> sent blocked)', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       await expectLater(
         backend.markFinal('primary', 'e1', FinalStatus.sent),
@@ -341,7 +318,7 @@ void main() {
     });
 
     test('markFinal rejects sent -> exhausted transition', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       await expectLater(
         backend.markFinal('primary', 'e1', FinalStatus.exhausted),
@@ -352,8 +329,8 @@ void main() {
     // -------- anyFifoExhausted + exhaustedFifos --------
 
     test('anyFifoExhausted true iff any FIFO is wedged', () async {
-      await enqueue('A', mkEntry(entryId: 'a1', sequenceInQueue: 1));
-      await enqueue('B', mkEntry(entryId: 'b1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
 
       expect(await backend.anyFifoExhausted(), isFalse);
 
@@ -362,9 +339,9 @@ void main() {
     });
 
     test('exhaustedFifos returns one summary per wedged FIFO', () async {
-      await enqueue('A', mkEntry(entryId: 'a1', sequenceInQueue: 1));
-      await enqueue('B', mkEntry(entryId: 'b1', sequenceInQueue: 1));
-      await enqueue('C', mkEntry(entryId: 'c1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'C', eventId: 'c1', sequenceNumber: 1);
 
       // Record an attempt on A's head so the summary has a lastError.
       await backend.appendAttempt(
@@ -384,46 +361,37 @@ void main() {
       final byDest = {for (final s in summaries) s.destinationId: s};
       expect(byDest.keys.toSet(), {'A', 'C'});
       expect(byDest['A']!.headEntryId, 'a1');
-      expect(byDest['A']!.headEventId, 'event-a1');
+      // Under Task-6 semantics, the summary reports the first event_id of
+      // the batch — for a single-event batch, this equals the entry_id.
+      expect(byDest['A']!.headEventId, 'a1');
       expect(byDest['A']!.lastError, 'HTTP 400: bad request');
       expect(byDest['A']!.exhaustedAt, DateTime.utc(2026, 4, 22, 12, 30));
     });
 
     test('exhaustedFifos returns empty when nothing is wedged', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       expect(await backend.exhaustedFifos(), isEmpty);
     });
 
     test('exhaustedFifos reports sensible fallbacks when exhausted with no '
         'attempts', () async {
-      final enqueuedAt = DateTime.utc(2026, 4, 22, 10, 1);
-      await enqueue(
+      await enqueueSingle(
+        backend,
         'primary',
-        FifoEntry(
-          entryId: 'e-bare',
-          eventId: 'event-e-bare',
-          sequenceInQueue: 1,
-          wirePayload: const <String, Object?>{'k': 'v'},
-          wireFormat: 'json-v1',
-          transformVersion: null,
-          enqueuedAt: enqueuedAt,
-          attempts: const <AttemptResult>[],
-          finalStatus: FinalStatus.pending,
-          sentAt: null,
-        ),
+        eventId: 'e-bare',
+        sequenceNumber: 1,
       );
       await backend.markFinal('primary', 'e-bare', FinalStatus.exhausted);
 
       final summary = (await backend.exhaustedFifos()).single;
       expect(summary.destinationId, 'primary');
       expect(summary.headEntryId, 'e-bare');
-      expect(summary.headEventId, 'event-e-bare');
-      expect(summary.exhaustedAt, enqueuedAt);
+      expect(summary.headEventId, 'e-bare');
       expect(summary.lastError, contains('no attempts'));
     });
 
     test('a FIFO with only sent entries is NOT wedged', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
       expect(await backend.anyFifoExhausted(), isFalse);
       expect(await backend.exhaustedFifos(), isEmpty);
@@ -431,19 +399,20 @@ void main() {
 
     // -------- Phase-2 Prereq A, Option 1: backend-owned sequence_in_queue --
 
-    // Verifies that the backend ignores the caller-supplied
-    // `sequence_in_queue` on enqueue and assigns its own monotonic value.
-    // Locks Phase-2 Prereq A, Option 1: FifoEntry.sequenceInQueue is an
-    // output-only field on the read side; input values are ignored.
-    test('enqueueFifo ignores caller-supplied sequence_in_queue and assigns '
-        'its own monotonic value (Prereq A, Option 1)', () async {
-      // Caller passes nonsense values; backend overwrites with 1, 2, 3.
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 9999));
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: -7));
-      await enqueue('primary', mkEntry(entryId: 'e3', sequenceInQueue: 0));
+    // Verifies that the backend assigns sequence_in_queue monotonically
+    // starting at 1, regardless of any caller-side sequencing concerns.
+    // Task-6's new signature no longer accepts a caller-supplied
+    // sequence_in_queue at all (the backend constructs the FifoEntry), so
+    // this test collapses from "caller supplies nonsense; backend
+    // overwrites" to "backend assigns 1, 2, 3 monotonically".
+    test('enqueueFifo assigns its own monotonic sequence_in_queue '
+        '(Prereq A, Option 1)', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
       // Inspect the raw store to verify the stored sequence_in_queue
-      // values are 1, 2, 3 regardless of caller input.
+      // values are 1, 2, 3.
       final db = backend.debugDatabase();
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
@@ -458,9 +427,9 @@ void main() {
     // retained forever per REQ-d00119-D).
     test('sequence_in_queue advances across sent/exhausted entries '
         '(Prereq A, Option 1)', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
       // e2 should get sequence 2, not 1.
       final db = backend.debugDatabase();
       final raw = await StoreRef<int, Map<String, Object?>>(
@@ -474,8 +443,8 @@ void main() {
     // Verifies that the Sembast int key equals the payload's
     // sequence_in_queue (they are in lockstep by design).
     test('sequence_in_queue equals the Sembast store key (lockstep)', () async {
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 0));
-      await enqueue('primary', mkEntry(entryId: 'e2', sequenceInQueue: 0));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
 
       final db = backend.debugDatabase();
       final raw = await StoreRef<int, Map<String, Object?>>(
@@ -537,7 +506,7 @@ void main() {
       final logs = <String>[];
       backend.debugLogSink = logs.add;
 
-      await enqueue('primary', mkEntry(entryId: 'e1', sequenceInQueue: 1));
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await backend.appendAttempt(
         'primary',
         'e1',

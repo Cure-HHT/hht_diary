@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
-import 'package:append_only_datastore/src/storage/fifo_entry.dart';
-import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/sync/sync_cycle.dart';
@@ -13,23 +11,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
+import '../test_support/fifo_entry_helpers.dart';
 
 Future<SembastBackend> _openBackend(String path) async {
   final db = await newDatabaseFactoryMemory().openDatabase(path);
   return SembastBackend(database: db);
 }
 
-FifoEntry _entry(String destId, String entryId) => FifoEntry(
-  entryId: entryId,
-  eventId: 'ev-$destId-$entryId',
-  sequenceInQueue: 0,
+/// Enqueue a single-event row through Phase-4.3 Task-6's batch-aware
+/// `enqueueFifo`. `entry_id` is derived from `eventId` under the new
+/// semantics, so we pass `eventId: entryId` to keep the row identity
+/// stable across the call sites below.
+Future<void> _enqueueOne(
+  SembastBackend backend,
+  String destId,
+  String entryId, {
+  int sequenceNumber = 1,
+}) => enqueueSingle(
+  backend,
+  destId,
+  eventId: entryId,
+  sequenceNumber: sequenceNumber,
   wirePayload: <String, Object?>{'who': destId, 'which': entryId},
   wireFormat: 'fake-v1',
   transformVersion: 'fake-v1',
-  enqueuedAt: DateTime.utc(2026, 4, 22, 10),
-  attempts: const <AttemptResult>[],
-  finalStatus: FinalStatus.pending,
-  sentAt: null,
 );
 
 void main() {
@@ -67,10 +72,8 @@ void main() {
           ..register(slow)
           ..register(fast);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'slow', _entry('slow', 'e1'));
-          await backend.enqueueFifo(txn, 'fast', _entry('fast', 'e1'));
-        });
+        await _enqueueOne(backend, 'slow', 'e1');
+        await _enqueueOne(backend, 'fast', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
@@ -102,9 +105,7 @@ void main() {
         final dest = _RecordingDestination(order, id: 'fake');
         DestinationRegistry.instance.register(dest);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e1'));
-        });
+        await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = _OrderRecordingSyncCycle(
           backend: backend,
@@ -131,9 +132,7 @@ void main() {
         );
         DestinationRegistry.instance.register(dest);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e1'));
-        });
+        await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
@@ -168,9 +167,7 @@ void main() {
         );
         DestinationRegistry.instance.register(dest);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e1'));
-        });
+        await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
@@ -181,9 +178,7 @@ void main() {
         expect(dest.sent, hasLength(1));
 
         // Enqueue a second entry, then cycle again.
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e2'));
-        });
+        await _enqueueOne(backend, 'fake', 'e2', sequenceNumber: 2);
         await sync.call();
         expect(dest.sent, hasLength(2));
       },
@@ -204,10 +199,8 @@ void main() {
           ..register(boomed)
           ..register(healthy);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'boomed', _entry('boomed', 'e1'));
-          await backend.enqueueFifo(txn, 'healthy', _entry('healthy', 'e1'));
-        });
+        await _enqueueOne(backend, 'boomed', 'e1');
+        await _enqueueOne(backend, 'healthy', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
@@ -237,9 +230,7 @@ void main() {
         );
         DestinationRegistry.instance.register(dest);
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(txn, 'fake', _entry('fake', 'e1'));
-        });
+        await _enqueueOne(backend, 'fake', 'e1');
         // Pre-load one transient attempt so the next attempt trips the cap.
         await backend.appendAttempt(
           'fake',

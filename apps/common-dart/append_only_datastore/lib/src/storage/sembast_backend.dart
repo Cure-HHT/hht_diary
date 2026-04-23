@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/diary_entry.dart';
@@ -329,95 +331,140 @@ class SembastBackend extends StorageBackend {
 
   // -------- FIFO --------
 
-  /// Append [entry] to destination [destinationId]'s FIFO. The entry MUST
-  /// arrive with `finalStatus == pending` and `attempts == []` — this is
-  /// the enqueue state per the storage contract (REQ-d00117-E). We register
-  /// the destination on first use so anyFifoExhausted/exhaustedFifos can
-  /// iterate all known FIFOs later.
+  /// Append a batch-shaped row to destination [destinationId]'s FIFO. The
+  /// row covers every event in [batch] and carries a single [wirePayload]
+  /// (REQ-d00128-C).
   ///
-  /// The backend owns `sequence_in_queue`. The caller's
-  /// `entry.sequenceInQueue` is ignored; the backend assigns the next value
-  /// as `max(existing store key) + 1` inside this transaction and writes
-  /// it into the persisted record. Storing records under the computed key
-  /// keeps the Sembast int key, the payload `sequence_in_queue`, and the
-  /// FIFO order in lockstep (Phase-2 Prereq A, Option 1).
-  // Implements: REQ-d00117-E — enqueue initial state.
+  /// Opens its own atomic transaction. Phase-4.3 later adds an
+  /// `enqueueFifoTxn(txn, ...)` overload for callers (replay,
+  /// fill_batch) that are already composing a larger transaction; this
+  /// public method is the standalone variant.
+  ///
+  /// The backend owns `sequence_in_queue`: it is assigned as
+  /// `max(existing store key) + 1` inside the internal transaction, so
+  /// the Sembast int key and the payload `sequence_in_queue` are in
+  /// lockstep (Phase-2 Prereq A, Option 1).
+  ///
+  /// The returned `FifoEntry` is the persisted record. Callers that
+  /// need to advance a per-destination cursor use
+  /// `result.eventIdRange.lastSeq` as the inclusive upper bound of the
+  /// batch on the event log.
+  ///
+  /// Rejects (throws `ArgumentError`):
+  /// - empty [batch] (REQ-d00128-A);
+  /// - `entryId` collision within the destination's FIFO (would let a
+  ///   later `markFinal` / `appendAttempt` pick the wrong row).
+  // Implements: REQ-d00117-E — enqueue initial state (pending, no
+  // attempts, no sent_at).
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
+  // Implements: REQ-d00128-A+B+C — batch-per-row enqueue.
   @override
-  Future<void> enqueueFifo(
-    Txn txn,
+  Future<FifoEntry> enqueueFifo(
     String destinationId,
-    FifoEntry entry,
+    List<StoredEvent> batch,
+    WirePayload wirePayload,
   ) async {
-    final t = _requireValidTxn(txn);
-    if (entry.finalStatus != FinalStatus.pending) {
+    if (batch.isEmpty) {
       throw ArgumentError.value(
-        entry.finalStatus,
-        'entry.finalStatus',
-        'enqueueFifo requires a pending entry '
-            '(REQ-d00117-E / REQ-d00119-C)',
+        batch,
+        'batch',
+        'enqueueFifo requires a non-empty batch (REQ-d00128-A)',
       );
     }
-    if (entry.attempts.isNotEmpty) {
-      throw ArgumentError.value(
-        entry.attempts,
-        'entry.attempts',
-        'enqueueFifo requires an empty attempts[] list',
-      );
-    }
-    if (entry.sentAt != null) {
-      throw ArgumentError.value(
-        entry.sentAt,
-        'entry.sentAt',
-        'enqueueFifo requires sentAt == null for a pending entry',
-      );
-    }
-    final store = _fifoStore(destinationId);
-    // Reject a duplicate entry_id in the same FIFO. Without this check,
-    // later appendAttempt/markFinal calls would quietly pick one of the
-    // duplicates and the other would drift out of sync.
-    final existing = await store.find(
-      t._sembastTxn,
-      finder: Finder(
-        filter: Filter.equals('entry_id', entry.entryId),
-        limit: 1,
-      ),
+    final eventIds = batch.map((e) => e.eventId).toList(growable: false);
+    final eventIdRange = (
+      firstSeq: batch.first.sequenceNumber,
+      lastSeq: batch.last.sequenceNumber,
     );
-    if (existing.isNotEmpty) {
-      throw StateError(
-        'FIFO $destinationId already has an entry with '
-        'entry_id=${entry.entryId}',
+    // The stored `wire_payload` is a Map (structured JSON); we decode the
+    // WirePayload bytes back to a Map for persistence so drain's read
+    // path can re-encode deterministically. The bytes MUST be valid JSON
+    // encoding a Map — destinations that transform to bytes representing
+    // a top-level JSON object conform; other shapes are rejected with
+    // ArgumentError rather than corrupting the FIFO row.
+    Map<String, Object?> payloadMap;
+    try {
+      final decoded = jsonDecode(utf8.decode(wirePayload.bytes));
+      if (decoded is! Map) {
+        throw ArgumentError.value(
+          wirePayload,
+          'wirePayload',
+          'enqueueFifo requires wirePayload.bytes to encode a JSON object '
+              '(Map); got ${decoded.runtimeType}',
+        );
+      }
+      payloadMap = Map<String, Object?>.from(decoded);
+    } on FormatException catch (e) {
+      throw ArgumentError.value(
+        wirePayload,
+        'wirePayload',
+        'enqueueFifo requires wirePayload.bytes to be UTF-8 JSON: '
+            '${e.message}',
       );
     }
-    // Compute the next sequence_in_queue as max(existing key) + 1 so the
-    // value is monotonic across surviving (sent/exhausted) entries and
-    // the Sembast int key matches the payload's sequence_in_queue field.
-    final maxRec = await store.find(
-      t._sembastTxn,
-      finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
-    );
-    final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
-    final payload = entry.toJson();
-    payload['sequence_in_queue'] = assigned;
-    await store.record(assigned).put(t._sembastTxn, payload);
-    await _registerFifoDestination(t, destinationId);
+    // Use the first event_id in the batch as the row's entry_id (stable
+    // correlation into diary_entries for single-event batches; for
+    // multi-event batches a future task may introduce a distinct batch
+    // id, but none of the Phase-4 call sites construct a multi-event
+    // batch yet).
+    final entryId = batch.first.eventId;
+    final enqueuedAt = DateTime.now().toUtc();
+    return _database().transaction((sembastTxn) async {
+      final store = _fifoStore(destinationId);
+      // Reject a duplicate entry_id in the same FIFO. Without this
+      // check, later appendAttempt/markFinal calls would quietly pick
+      // one of the duplicates and the other would drift out of sync.
+      final existing = await store.find(
+        sembastTxn,
+        finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
+      );
+      if (existing.isNotEmpty) {
+        throw StateError(
+          'FIFO $destinationId already has an entry with '
+          'entry_id=$entryId',
+        );
+      }
+      // Compute the next sequence_in_queue as max(existing key) + 1 so
+      // the value is monotonic across surviving (sent/exhausted)
+      // entries and the Sembast int key matches the payload's
+      // sequence_in_queue field.
+      final maxRec = await store.find(
+        sembastTxn,
+        finder: Finder(sortOrders: [SortOrder(Field.key, false)], limit: 1),
+      );
+      final assigned = maxRec.isEmpty ? 1 : (maxRec.first.key) + 1;
+      final entry = FifoEntry(
+        entryId: entryId,
+        eventIds: eventIds,
+        eventIdRange: eventIdRange,
+        sequenceInQueue: assigned,
+        wirePayload: payloadMap,
+        wireFormat: wirePayload.contentType,
+        transformVersion: wirePayload.transformVersion,
+        enqueuedAt: enqueuedAt,
+        attempts: const <AttemptResult>[],
+        finalStatus: FinalStatus.pending,
+        sentAt: null,
+      );
+      await store.record(assigned).put(sembastTxn, entry.toJson());
+      await _registerFifoDestinationSembast(sembastTxn, destinationId);
+      return entry;
+    });
   }
 
-  Future<void> _registerFifoDestination(
-    _SembastTxn t,
+  Future<void> _registerFifoDestinationSembast(
+    Transaction sembastTxn,
     String destinationId,
   ) async {
     final current =
-        (await _backendStateStore.record(_knownFifosKey).get(t._sembastTxn)
+        (await _backendStateStore.record(_knownFifosKey).get(sembastTxn)
                 as List?)
             ?.cast<String>()
             .toList() ??
         <String>[];
     if (!current.contains(destinationId)) {
       current.add(destinationId);
-      await _backendStateStore
-          .record(_knownFifosKey)
-          .put(t._sembastTxn, current);
+      await _backendStateStore.record(_knownFifosKey).put(sembastTxn, current);
     }
   }
 
@@ -596,7 +643,10 @@ class SembastBackend extends StorageBackend {
         ExhaustedFifoSummary(
           destinationId: dest,
           headEntryId: head.entryId,
-          headEventId: head.eventId,
+          // For batch rows, the summary reports the first event_id as a
+          // stable single-string identifier for operators. Multi-event
+          // batches' full id list is accessible via readFifoHead.
+          headEventId: head.eventIds.first,
           exhaustedAt: hasAttempts
               ? head.attempts.last.attemptedAt
               : head.enqueuedAt,

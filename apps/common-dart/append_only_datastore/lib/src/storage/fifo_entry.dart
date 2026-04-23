@@ -2,21 +2,44 @@ import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:collection/collection.dart';
 
-/// One row in a destination's FIFO store.
+/// Inclusive pair of sequence numbers drawn from the events in a batch
+/// FIFO row. `firstSeq` is the minimum `sequence_number` across the batch
+/// and `lastSeq` is the maximum; for a single-event batch they are equal.
 ///
-/// Each entry is a transformed, wire-ready copy of an event destined for
-/// a specific synchronization target. Entries are enqueued in strict order
-/// on write and are never reordered. Once delivered they are marked
-/// `FinalStatus.sent` but retained as send-log records; on permanent
-/// failure they are marked `FinalStatus.exhausted` and the FIFO head
-/// wedges (drain loop stops for this destination until the entry is
-/// resolved by operator action).
-// Implements: REQ-d00119-B+C — carries the ten documented columns;
+/// Declared as a Dart 3 record typedef so callers read the pair positionally
+/// (or via the named fields) without needing a dedicated class. Cursor-
+/// advancement math in the drain/fill-batch paths uses `lastSeq` as the
+/// inclusive upper bound of the batch (REQ-d00128-B).
+// Implements: REQ-d00128-B — event_id_range is a (first_seq, last_seq) pair.
+typedef EventIdRange = ({int firstSeq, int lastSeq});
+
+/// One row in a destination's FIFO store — a batch of one or more events
+/// transformed together into a single wire-ready payload.
+///
+/// Each row is a transformed copy of a contiguous slice of the event log
+/// destined for a specific synchronization target. Rows are appended in
+/// strict order on write and are never reordered. Once delivered they are
+/// marked `FinalStatus.sent` but retained as send-log records; on
+/// permanent failure they are marked `FinalStatus.exhausted` and the
+/// FIFO head wedges (drain loop stops for this destination until the
+/// entry is resolved by operator action).
+///
+/// Phase-4.3 Task 6 migrated this type from a single-event-per-row shape
+/// to a batch-per-row shape: `eventIds` is a non-empty `List<String>`,
+/// `eventIdRange` is an `(firstSeq, lastSeq)` record, and `wirePayload`
+/// is one payload for the whole batch (no per-event payload is stored).
+// Implements: REQ-d00119-B+C — carries the documented columns;
 // final_status typed to the three legal values (pending|sent|exhausted).
+// Implements: REQ-d00128-A — eventIds is non-empty; asserted at
+// construction and rechecked on fromJson.
+// Implements: REQ-d00128-B — eventIdRange is a (first_seq, last_seq) pair.
+// Implements: REQ-d00128-C — wirePayload is one payload covering the
+// entire batch.
 class FifoEntry {
-  const FifoEntry({
+  FifoEntry({
     required this.entryId,
-    required this.eventId,
+    required this.eventIds,
+    required this.eventIdRange,
     required this.sequenceInQueue,
     required this.wirePayload,
     required this.wireFormat,
@@ -25,11 +48,15 @@ class FifoEntry {
     required this.attempts,
     required this.finalStatus,
     required this.sentAt,
-  });
+  }) : assert(
+         eventIds.isNotEmpty,
+         'FifoEntry.eventIds must be non-empty (REQ-d00128-A)',
+       );
 
-  /// Decode from snake_case JSON. `wirePayload` and `attempts` are wrapped
-  /// unmodifiable so downstream callers cannot mutate the record in place.
-  /// Throws [FormatException] on missing or wrong-typed fields.
+  /// Decode from snake_case JSON. `wirePayload`, `attempts`, and
+  /// `eventIds` are wrapped unmodifiable so downstream callers cannot
+  /// mutate the record in place. Throws [FormatException] on missing
+  /// or wrong-typed fields, or when `event_ids` is empty (REQ-d00128-A).
   factory FifoEntry.fromJson(Map<String, Object?> json) {
     final entryId = json['entry_id'];
     if (entryId is! String) {
@@ -37,10 +64,40 @@ class FifoEntry {
         'FifoEntry: missing or non-string "entry_id"',
       );
     }
-    final eventId = json['event_id'];
-    if (eventId is! String) {
+    final eventIdsRaw = json['event_ids'];
+    if (eventIdsRaw is! List) {
+      throw const FormatException('FifoEntry: missing or non-List "event_ids"');
+    }
+    if (eventIdsRaw.isEmpty) {
       throw const FormatException(
-        'FifoEntry: missing or non-string "event_id"',
+        'FifoEntry: "event_ids" must be non-empty (REQ-d00128-A)',
+      );
+    }
+    final eventIds = <String>[];
+    for (final e in eventIdsRaw) {
+      if (e is! String) {
+        throw const FormatException(
+          'FifoEntry: every element of "event_ids" must be a String',
+        );
+      }
+      eventIds.add(e);
+    }
+    final eventIdRangeRaw = json['event_id_range'];
+    if (eventIdRangeRaw is! Map) {
+      throw const FormatException(
+        'FifoEntry: missing or non-Map "event_id_range"',
+      );
+    }
+    final firstSeq = eventIdRangeRaw['first_seq'];
+    if (firstSeq is! int) {
+      throw const FormatException(
+        'FifoEntry: "event_id_range.first_seq" must be an int',
+      );
+    }
+    final lastSeq = eventIdRangeRaw['last_seq'];
+    if (lastSeq is! int) {
+      throw const FormatException(
+        'FifoEntry: "event_id_range.last_seq" must be an int',
       );
     }
     final seqInQueue = json['sequence_in_queue'];
@@ -97,7 +154,8 @@ class FifoEntry {
     );
     return FifoEntry(
       entryId: entryId,
-      eventId: eventId,
+      eventIds: List<String>.unmodifiable(eventIds),
+      eventIdRange: (firstSeq: firstSeq, lastSeq: lastSeq),
       sequenceInQueue: seqInQueue,
       wirePayload: Map<String, Object?>.unmodifiable(
         Map<String, Object?>.from(wirePayloadRaw),
@@ -115,14 +173,28 @@ class FifoEntry {
   /// and to correlate a FIFO row back to its diary_entries view row.
   final String entryId;
 
-  /// Event_id of the event that produced this FIFO row. Preserved for
-  /// audit and for idempotent redelivery.
-  final String eventId;
+  /// Event_ids of every event included in this batch row, in the order they
+  /// were batched. Always non-empty (REQ-d00128-A) — enforced at
+  /// construction and rechecked on `fromJson`. Preserved for audit and for
+  /// idempotent redelivery.
+  // Implements: REQ-d00128-A — non-empty list identifying every event in
+  // the batch.
+  final List<String> eventIds;
+
+  /// Inclusive `(first_seq, last_seq)` pair drawn from the sequence_numbers
+  /// of the events in this batch. Used for cursor advancement math in the
+  /// drain and fill-batch paths — `lastSeq` is the upper bound of the batch
+  /// on the event log. For a single-event batch, `firstSeq == lastSeq`.
+  // Implements: REQ-d00128-B — (first_seq, last_seq) pair for cursor math.
+  final EventIdRange eventIdRange;
 
   /// Insertion-order position in this FIFO; monotonic per destination.
   final int sequenceInQueue;
 
-  /// Transformed wire payload ready to hand to `destination.send()`.
+  /// Transformed wire payload ready to hand to `destination.send()`. One
+  /// payload covers every event in the batch (REQ-d00128-C); per-event
+  /// wire payloads are NOT stored.
+  // Implements: REQ-d00128-C — one payload per batch row.
   final Map<String, Object?> wirePayload;
 
   /// Wire-format discriminator (e.g., `"json-v1"`, `"fhir-r4"`).
@@ -150,7 +222,11 @@ class FifoEntry {
   /// Encode to snake_case JSON. Optional fields emit explicit null.
   Map<String, Object?> toJson() => <String, Object?>{
     'entry_id': entryId,
-    'event_id': eventId,
+    'event_ids': eventIds,
+    'event_id_range': <String, Object?>{
+      'first_seq': eventIdRange.firstSeq,
+      'last_seq': eventIdRange.lastSeq,
+    },
     'sequence_in_queue': sequenceInQueue,
     'wire_payload': wirePayload,
     'wire_format': wireFormat,
@@ -166,7 +242,8 @@ class FifoEntry {
       identical(this, other) ||
       other is FifoEntry &&
           entryId == other.entryId &&
-          eventId == other.eventId &&
+          const ListEquality<String>().equals(eventIds, other.eventIds) &&
+          eventIdRange == other.eventIdRange &&
           sequenceInQueue == other.sequenceInQueue &&
           _deepEquals.equals(wirePayload, other.wirePayload) &&
           wireFormat == other.wireFormat &&
@@ -182,7 +259,8 @@ class FifoEntry {
   @override
   int get hashCode => Object.hash(
     entryId,
-    eventId,
+    const ListEquality<String>().hash(eventIds),
+    eventIdRange,
     sequenceInQueue,
     _deepEquals.hash(wirePayload),
     wireFormat,
@@ -195,7 +273,9 @@ class FifoEntry {
 
   @override
   String toString() =>
-      'FifoEntry(entryId: $entryId, eventId: $eventId, '
+      'FifoEntry(entryId: $entryId, eventIds: $eventIds, '
+      'eventIdRange: (firstSeq: ${eventIdRange.firstSeq}, '
+      'lastSeq: ${eventIdRange.lastSeq}), '
       'sequenceInQueue: $sequenceInQueue, wireFormat: $wireFormat, '
       'finalStatus: $finalStatus, attempts: ${attempts.length})';
 }

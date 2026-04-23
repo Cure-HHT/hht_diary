@@ -138,7 +138,7 @@ export 'src/storage/append_result.dart' show AppendResult;
 export 'src/storage/attempt_result.dart' show AttemptResult;
 export 'src/storage/diary_entry.dart' show DiaryEntry;
 export 'src/storage/exhausted_fifo_summary.dart' show ExhaustedFifoSummary;
-export 'src/storage/fifo_entry.dart' show FifoEntry;
+export 'src/storage/fifo_entry.dart' show EventIdRange, FifoEntry;
 export 'src/storage/final_status.dart' show FinalStatus;
 export 'src/storage/sembast_backend.dart' show SembastBackend;
 export 'src/storage/send_result.dart'

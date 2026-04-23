@@ -1,6 +1,5 @@
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
-import 'package:append_only_datastore/src/storage/fifo_entry.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
@@ -10,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
+import '../test_support/fifo_entry_helpers.dart';
 
 /// Fixture — a fresh in-memory SembastBackend per test.
 Future<SembastBackend> _openBackend(String path) async {
@@ -17,21 +17,23 @@ Future<SembastBackend> _openBackend(String path) async {
   return SembastBackend(database: db);
 }
 
-FifoEntry _mkFifoEntry({
+/// Enqueue a single-event row via the Phase-4.3 Task-6 batch-aware
+/// `enqueueFifo`. Under the new semantics, `entry_id` is derived from the
+/// lead event's `eventId`, so we enqueue with `eventId: entryId` to keep
+/// the row's identity stable across the call sites below.
+Future<void> _enqueueRow(
+  SembastBackend backend,
+  String destId, {
   required String entryId,
-  required String eventId,
-  required DateTime enqueuedAt,
-}) => FifoEntry(
-  entryId: entryId,
-  eventId: eventId,
-  sequenceInQueue: 0, // backend-assigned; ignored on input.
-  wirePayload: <String, Object?>{'event_id': eventId},
+  required int sequenceNumber,
+}) => enqueueSingle(
+  backend,
+  destId,
+  eventId: entryId,
+  sequenceNumber: sequenceNumber,
+  wirePayload: <String, Object?>{'event_id': entryId},
   wireFormat: 'fake-v1',
   transformVersion: 'fake-v1',
-  enqueuedAt: enqueuedAt,
-  attempts: const <AttemptResult>[],
-  finalStatus: FinalStatus.pending,
-  sentAt: null,
 );
 
 void main() {
@@ -59,17 +61,7 @@ void main() {
     test(
       'REQ-d00124-C: SendOk marks head sent and advances to the next head',
       () async {
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'fake',
-            _mkFifoEntry(
-              entryId: 'e1',
-              eventId: 'ev-1',
-              enqueuedAt: DateTime.utc(2026, 4, 22, 10),
-            ),
-          );
-        });
+        await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
         final dest = FakeDestination(script: [const SendOk()]);
 
         await drain(dest, backend: backend);
@@ -85,19 +77,11 @@ void main() {
     test(
       'REQ-d00124-C: drain loops across multiple SendOks in one call',
       () async {
-        await backend.transaction((txn) async {
-          for (final id in ['e1', 'e2', 'e3']) {
-            await backend.enqueueFifo(
-              txn,
-              'fake',
-              _mkFifoEntry(
-                entryId: id,
-                eventId: 'ev-$id',
-                enqueuedAt: DateTime.utc(2026, 4, 22, 10),
-              ),
-            );
-          }
-        });
+        var seq = 0;
+        for (final id in ['e1', 'e2', 'e3']) {
+          seq += 1;
+          await _enqueueRow(backend, 'fake', entryId: id, sequenceNumber: seq);
+        }
         final dest = FakeDestination(
           script: [const SendOk(), const SendOk(), const SendOk()],
         );
@@ -112,26 +96,8 @@ void main() {
     // subsequent drain does not advance past the wedge.
     test('REQ-d00124-D: SendPermanent wedges the FIFO; subsequent drain is a '
         'no-op', () async {
-      await backend.transaction((txn) async {
-        await backend.enqueueFifo(
-          txn,
-          'fake',
-          _mkFifoEntry(
-            entryId: 'e1',
-            eventId: 'ev-1',
-            enqueuedAt: DateTime.utc(2026, 4, 22, 10),
-          ),
-        );
-        await backend.enqueueFifo(
-          txn,
-          'fake',
-          _mkFifoEntry(
-            entryId: 'e2',
-            eventId: 'ev-2',
-            enqueuedAt: DateTime.utc(2026, 4, 22, 10),
-          ),
-        );
-      });
+      await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
+      await _enqueueRow(backend, 'fake', entryId: 'e2', sequenceNumber: 2);
       final dest = FakeDestination(
         script: [const SendPermanent(error: 'HTTP 400')],
       );
@@ -150,16 +116,9 @@ void main() {
     // is appended, entry remains pending, backoff gates next drain.
     test('REQ-d00124-F+B: SendTransient appends attempt; next drain honors '
         'backoff and does not call send again', () async {
-      final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
       final firstAttemptAt = DateTime.utc(2026, 4, 22, 10, 0, 5);
 
-      await backend.transaction((txn) async {
-        await backend.enqueueFifo(
-          txn,
-          'fake',
-          _mkFifoEntry(entryId: 'e1', eventId: 'ev-1', enqueuedAt: enqueuedAt),
-        );
-      });
+      await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
       final dest = FakeDestination(
         script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
       );
@@ -187,24 +146,13 @@ void main() {
     test(
       'REQ-d00124-B: after backoff elapses, drain calls send again',
       () async {
-        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
         final firstAttemptAt = DateTime.utc(2026, 4, 22, 10, 0, 5);
         // SyncPolicy.backoffFor(1) is roughly 300s (60 * 5).
         final afterBackoff = firstAttemptAt.add(
           const Duration(seconds: 300 * 2),
         ); // 10 minutes — well past
 
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'fake',
-            _mkFifoEntry(
-              entryId: 'e1',
-              eventId: 'ev-1',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-        });
+        await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
         final dest = FakeDestination(
           script: [
             const SendTransient(error: 'HTTP 503', httpStatus: 503),
@@ -227,19 +175,7 @@ void main() {
     test(
       'REQ-d00124-E: SendTransient at maxAttempts marks entry exhausted',
       () async {
-        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'fake',
-            _mkFifoEntry(
-              entryId: 'e1',
-              eventId: 'ev-1',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-        });
+        await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
         // Pre-load attempts: we append maxAttempts-1 transient records so
         // the next drain-triggered transient is the one that wedges.
         final preloadAttempts = SyncPolicy.defaults.maxAttempts - 1;
@@ -262,20 +198,11 @@ void main() {
     // Verifies: REQ-d00124-G — every send call records an attempt, no matter
     // the outcome. Here: one SendOk, one SendPermanent, one SendTransient.
     test('REQ-d00124-G: every send call appends an AttemptResult', () async {
-      final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-      await backend.transaction((txn) async {
-        for (final id in ['e1', 'e2', 'e3']) {
-          await backend.enqueueFifo(
-            txn,
-            'fake',
-            _mkFifoEntry(
-              entryId: id,
-              eventId: 'ev-$id',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-        }
-      });
+      var seq = 0;
+      for (final id in ['e1', 'e2', 'e3']) {
+        seq += 1;
+        await _enqueueRow(backend, 'fake', entryId: id, sequenceNumber: seq);
+      }
       final dest = FakeDestination(
         script: [
           const SendOk(),
@@ -310,20 +237,11 @@ void main() {
     test(
       'REQ-d00124-H: strict FIFO — wedge on e1 prevents attempting e2/e3',
       () async {
-        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-        await backend.transaction((txn) async {
-          for (final id in ['e1', 'e2', 'e3']) {
-            await backend.enqueueFifo(
-              txn,
-              'fake',
-              _mkFifoEntry(
-                entryId: id,
-                eventId: 'ev-$id',
-                enqueuedAt: enqueuedAt,
-              ),
-            );
-          }
-        });
+        var seq = 0;
+        for (final id in ['e1', 'e2', 'e3']) {
+          seq += 1;
+          await _enqueueRow(backend, 'fake', entryId: id, sequenceNumber: seq);
+        }
         final dest = FakeDestination(
           script: [const SendPermanent(error: 'HTTP 400')],
         );
@@ -345,35 +263,17 @@ void main() {
     test(
       'multi-destination independence: wedge on d1 does not block d2',
       () async {
-        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'd1',
-            _mkFifoEntry(
-              entryId: 'e1',
-              eventId: 'ev-1',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-          await backend.enqueueFifo(
-            txn,
-            'd2',
-            _mkFifoEntry(
-              entryId: 'e2',
-              eventId: 'ev-2',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-        });
+        final clockTime = DateTime.utc(2026, 4, 22, 10);
+        await _enqueueRow(backend, 'd1', entryId: 'e1', sequenceNumber: 1);
+        await _enqueueRow(backend, 'd2', entryId: 'e2', sequenceNumber: 2);
         final d1 = FakeDestination(
           id: 'd1',
           script: [const SendPermanent(error: 'HTTP 400')],
         );
         final d2 = FakeDestination(id: 'd2', script: [const SendOk()]);
 
-        await drain(d1, backend: backend, clock: () => enqueuedAt);
-        await drain(d2, backend: backend, clock: () => enqueuedAt);
+        await drain(d1, backend: backend, clock: () => clockTime);
+        await drain(d2, backend: backend, clock: () => clockTime);
 
         expect(d1.sent, hasLength(1));
         expect(d2.sent, hasLength(1));
@@ -386,14 +286,7 @@ void main() {
     // drain consults (not the defaults). Pre-seed attempts[] to one below a
     // smaller injected cap; next transient attempt should wedge the entry.
     test('REQ-d00126-B: drain honors injected policy.maxAttempts', () async {
-      final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-      await backend.transaction((txn) async {
-        await backend.enqueueFifo(
-          txn,
-          'fake',
-          _mkFifoEntry(entryId: 'e1', eventId: 'ev-1', enqueuedAt: enqueuedAt),
-        );
-      });
+      await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
 
       const smallPolicy = SyncPolicy(
         initialBackoff: Duration(seconds: 60),
@@ -429,18 +322,7 @@ void main() {
     test(
       'REQ-d00126-B: null policy falls back to SyncPolicy.defaults',
       () async {
-        final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-        await backend.transaction((txn) async {
-          await backend.enqueueFifo(
-            txn,
-            'fake',
-            _mkFifoEntry(
-              entryId: 'e1',
-              eventId: 'ev-1',
-              enqueuedAt: enqueuedAt,
-            ),
-          );
-        });
+        await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
         // Pre-load 2 attempts: well below the default cap of 20, so a
         // transient should leave the entry pending (head still present).
         for (var i = 0; i < 2; i++) {
@@ -463,14 +345,7 @@ void main() {
     // and continues rather than crashing the caller.
     test('drain treats a thrown exception as SendTransient and records an '
         'attempt', () async {
-      final enqueuedAt = DateTime.utc(2026, 4, 22, 10);
-      await backend.transaction((txn) async {
-        await backend.enqueueFifo(
-          txn,
-          'fake',
-          _mkFifoEntry(entryId: 'e1', eventId: 'ev-1', enqueuedAt: enqueuedAt),
-        );
-      });
+      await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
       final dest = _ThrowingDestination();
 
       await drain(

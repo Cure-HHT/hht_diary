@@ -229,7 +229,9 @@ void main() {
     }) {
       return FifoEntry(
         entryId: 'entry-1',
-        eventId: 'event-1',
+        // Phase-4.3 Task 6: batch shape — REQ-d00128-A + B.
+        eventIds: const ['event-1'],
+        eventIdRange: (firstSeq: 1, lastSeq: 1),
         sequenceInQueue: 1,
         wirePayload: const <String, Object?>{'k': 'v'},
         wireFormat: 'json-v1',
@@ -241,9 +243,12 @@ void main() {
       );
     }
 
-    // Verifies: REQ-d00119-B — all ten documented columns are present and
-    // preserved across a JSON round-trip.
-    test('REQ-d00119-B: round-trip preserves all ten fields', () {
+    // Verifies: REQ-d00119-B + REQ-d00128-A+B+C — the documented columns
+    // are present and preserved across a JSON round-trip under the batch
+    // shape: event_ids replaces event_id, event_id_range is persisted as
+    // a first_seq/last_seq Map, and wire_payload covers the batch.
+    test('REQ-d00119-B + REQ-d00128-A+B+C: round-trip preserves all columns '
+        'under batch shape', () {
       final e = makeSample(
         attempts: [
           AttemptResult(
@@ -259,7 +264,8 @@ void main() {
       final decoded = FifoEntry.fromJson(e.toJson());
       expect(decoded, equals(e));
       expect(decoded.entryId, 'entry-1');
-      expect(decoded.eventId, 'event-1');
+      expect(decoded.eventIds, ['event-1']);
+      expect(decoded.eventIdRange, (firstSeq: 1, lastSeq: 1));
       expect(decoded.sequenceInQueue, 1);
       expect(decoded.wirePayload, {'k': 'v'});
       expect(decoded.wireFormat, 'json-v1');
@@ -280,7 +286,8 @@ void main() {
     test('transform_version optional and round-trips as null', () {
       final e = FifoEntry(
         entryId: 'e',
-        eventId: 'ev',
+        eventIds: const ['ev'],
+        eventIdRange: (firstSeq: 0, lastSeq: 0),
         sequenceInQueue: 0,
         wirePayload: const <String, Object?>{},
         wireFormat: 'json-v1',
