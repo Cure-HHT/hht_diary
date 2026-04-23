@@ -512,7 +512,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
         # runs, so lock files resolve the correct dependency versions.
 
         for project_def in "${PROJECT_DEFS[@]}"; do
-            IFS='|' read -r name pubspec triggers <<< "$project_def"
+            IFS='|' read -r name pubspec code_dirs triggers <<< "$project_def"
 
             FULL_PUBSPEC="$REPO_ROOT/$pubspec"
 
@@ -521,15 +521,15 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 continue
             fi
 
-            # Determine what changed: code (own source) vs any trigger (infra/dep)
-            own_dir=$(dirname "$pubspec")/
+            # Determine what changed: own source (semver+build) vs external
+            # trigger (build only). Non-source own-dir changes produce neither.
             code_changed=false
             any_trigger=false
 
-            if has_code_changes "$own_dir" "$BUMP_CHANGED_FILES"; then
+            if has_code_changes "$code_dirs" "$BUMP_CHANGED_FILES"; then
                 code_changed=true
                 any_trigger=true
-            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES" "$own_dir"; then
+            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES"; then
                 any_trigger=true
             fi
 

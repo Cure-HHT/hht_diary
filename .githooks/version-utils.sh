@@ -35,39 +35,40 @@ extract_semver() {
 }
 
 # IMPLEMENTS: REQ-o00017-G (validate requirements before accepting commits)
-# has_code_changes <own_dir> <changed_files>
-# Returns 0 if files in the project's own directory changed
-# (excluding pubspec.yaml/pubspec.lock to avoid self-trigger).
+# has_code_changes <code_dirs> <changed_files>
+# Returns 0 if any file in changed_files lies under any of the declared
+# code_dirs (own-project source/ship paths from project-defs.sh, e.g.
+# lib/, bin/, assets/, web/). Non-source own-dir changes (test/, tool/,
+# README, analysis_options.yaml, pubspec.*) never match because they are
+# outside the code_dirs list.
 has_code_changes() {
-    local own_dir="$1"
+    local code_dirs="$1"
     local changed_files="$2"
 
-    local relevant
-    relevant=$(echo "$changed_files" | grep "^${own_dir}" | grep -v "pubspec\.yaml" | grep -v "pubspec\.lock" || true)
-    [ -n "$relevant" ]
+    local dir
+    for dir in $code_dirs; do
+        if echo "$changed_files" | grep -q "^${dir}"; then
+            return 0
+        fi
+    done
+    return 1
 }
 
-# has_any_trigger <trigger_paths> <changed_files> <own_dir>
-# Returns 0 if any trigger path matches (code, dependency, or infra).
-# Uses self-trigger exclusion for own_dir.
+# has_any_trigger <trigger_paths> <changed_files>
+# Returns 0 if any file in changed_files lies under any external trigger
+# path (dependency lib/assets, infra, platform-native build inputs).
+# Triggers are purely external: the project's own root is not a trigger,
+# so no self-exclusion logic is needed. Own-dir source is handled by
+# has_code_changes; own-dir non-source files (test/, tool/, README)
+# produce no bump.
 has_any_trigger() {
     local triggers="$1"
     local changed_files="$2"
-    local own_dir="$3"
 
-    local trigger relevant
+    local trigger
     for trigger in $triggers; do
         if echo "$changed_files" | grep -q "^${trigger}"; then
-            if [ "$trigger" = "$own_dir" ]; then
-                # Own directory: exclude pubspec changes (avoid self-trigger)
-                relevant=$(echo "$changed_files" | grep "^${trigger}" | grep -v "pubspec\.yaml" | grep -v "pubspec\.lock" || true)
-            else
-                # Dependency/infra directory: allow all changes including pubspec bumps (cascade)
-                relevant=$(echo "$changed_files" | grep "^${trigger}" || true)
-            fi
-            if [ -n "$relevant" ]; then
-                return 0
-            fi
+            return 0
         fi
     done
     return 1

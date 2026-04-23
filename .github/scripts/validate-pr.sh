@@ -172,15 +172,14 @@ source "$REPO_ROOT/.githooks/version-utils.sh"
 VERSION_FAILED=false
 
 for project_def in "${PROJECT_DEFS[@]}"; do
-  IFS='|' read -r name pubspec triggers <<< "$project_def"
-  own_dir=$(dirname "$pubspec")/
+  IFS='|' read -r name pubspec code_dirs triggers <<< "$project_def"
 
   code_changed=false
   any_trigger=false
-  if has_code_changes "$own_dir" "$CHANGED_FILES"; then
+  if has_code_changes "$code_dirs" "$CHANGED_FILES"; then
     code_changed=true
     any_trigger=true
-  elif has_any_trigger "$triggers" "$CHANGED_FILES" "$own_dir"; then
+  elif has_any_trigger "$triggers" "$CHANGED_FILES"; then
     any_trigger=true
   fi
 
