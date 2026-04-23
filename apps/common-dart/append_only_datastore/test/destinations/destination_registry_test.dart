@@ -4,9 +4,11 @@ import 'package:append_only_datastore/src/destinations/destination.dart';
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/destinations/subscription_filter.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
+import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sembast/sembast_memory.dart';
 
 class _StubDestination extends Destination {
   _StubDestination(this._id, {SubscriptionFilter? filter})
@@ -42,128 +44,77 @@ class _StubDestination extends Destination {
   Future<SendResult> send(WirePayload payload) async => const SendOk();
 }
 
-StoredEvent _mkEvent({
-  String entryType = 'epistaxis_event',
-  String eventType = 'finalized',
-}) => StoredEvent(
-  key: 1,
-  eventId: 'ev-1',
-  aggregateId: 'agg-1',
-  aggregateType: 'DiaryEntry',
-  entryType: entryType,
-  eventType: eventType,
-  sequenceNumber: 1,
-  data: const <String, dynamic>{},
-  metadata: const <String, dynamic>{},
-  userId: 'u1',
-  deviceId: 'd1',
-  clientTimestamp: DateTime.utc(2026, 4, 22),
-  eventHash: 'hash',
-);
+Future<SembastBackend> _openBackend(String path) async {
+  final db = await newDatabaseFactoryMemory().openDatabase(path);
+  return SembastBackend(database: db);
+}
 
 void main() {
-  group('DestinationRegistry', () {
-    setUp(DestinationRegistry.instance.reset);
+  group('DestinationRegistry (instance-based, REQ-d00129)', () {
+    late SembastBackend backend;
+    late DestinationRegistry registry;
+    var dbCounter = 0;
 
-    // Verifies: REQ-d00122-G — register + all() round-trip.
-    test('REQ-d00122-G: register adds a destination and all() returns it', () {
-      final d = _StubDestination('primary');
-      DestinationRegistry.instance.register(d);
-      expect(DestinationRegistry.instance.all(), contains(d));
+    setUp(() async {
+      dbCounter += 1;
+      backend = await _openBackend('registry-$dbCounter.db');
+      registry = DestinationRegistry(backend: backend);
     });
 
-    // Verifies: REQ-d00122-A — destination ids are unique in the registry.
+    tearDown(() async {
+      await backend.close();
+    });
+
+    // Verifies: REQ-d00129-A — addDestination + all() round-trip.
     test(
-      'REQ-d00122-A: registering two destinations with the same id throws',
-      () {
-        DestinationRegistry.instance.register(_StubDestination('primary'));
-        expect(
-          () => DestinationRegistry.instance.register(
-            _StubDestination('primary'),
-          ),
+      'REQ-d00129-A: addDestination adds a destination and all() returns it',
+      () async {
+        final d = _StubDestination('primary');
+        await registry.addDestination(d);
+        expect(registry.all(), contains(d));
+      },
+    );
+
+    // Verifies: REQ-d00129-A — destination ids are unique; duplicate
+    // addDestination throws ArgumentError.
+    test(
+      'REQ-d00129-A: addDestination with duplicate id throws ArgumentError',
+      () async {
+        await registry.addDestination(_StubDestination('primary'));
+        await expectLater(
+          registry.addDestination(_StubDestination('primary')),
           throwsArgumentError,
         );
       },
     );
 
-    // Verifies: REQ-d00122-G — freeze on first all() read; post-freeze
-    // register throws StateError.
-    test('REQ-d00122-G: first all() read freezes the registry; subsequent '
-        'register() throws', () {
-      DestinationRegistry.instance.register(_StubDestination('primary'));
-      // First read freezes.
-      DestinationRegistry.instance.all();
-      expect(
-        () => DestinationRegistry.instance.register(_StubDestination('other')),
-        throwsStateError,
-      );
+    // Verifies: REQ-d00129-A — the registry does NOT freeze on first
+    // read. Subsequent addDestination after all() succeeds.
+    test('REQ-d00129-A: first all() read does NOT freeze the registry; a '
+        'subsequent addDestination succeeds', () async {
+      await registry.addDestination(_StubDestination('primary'));
+      registry.all(); // would freeze under the Phase-4 contract
+      await registry.addDestination(_StubDestination('secondary'));
+      expect(registry.all().map((d) => d.id), ['primary', 'secondary']);
     });
 
-    // Verifies: matchingDestinations filters by each destination's filter.
-    test(
-      'matchingDestinations returns only destinations whose filter matches',
-      () {
-        final primary = _StubDestination(
-          'primary',
-          filter: const SubscriptionFilter(entryTypes: ['epistaxis_event']),
-        );
-        final surveys = _StubDestination(
-          'surveys',
-          filter: const SubscriptionFilter(entryTypes: ['nose_hht_survey']),
-        );
-        DestinationRegistry.instance
-          ..register(primary)
-          ..register(surveys);
-
-        final match = DestinationRegistry.instance.matchingDestinations(
-          _mkEvent(entryType: 'epistaxis_event'),
-        );
-        expect(match, [primary]);
-
-        final matchSurvey = DestinationRegistry.instance.matchingDestinations(
-          _mkEvent(entryType: 'nose_hht_survey'),
-        );
-        expect(matchSurvey, [surveys]);
-      },
-    );
-
-    // Verifies: REQ-d00122-G — first matchingDestinations read also freezes.
-    test('REQ-d00122-G: matchingDestinations also freezes the registry', () {
-      DestinationRegistry.instance.register(_StubDestination('primary'));
-      DestinationRegistry.instance.matchingDestinations(_mkEvent());
-      expect(
-        () => DestinationRegistry.instance.register(_StubDestination('other')),
-        throwsStateError,
-      );
-    });
-
-    // The returned all() list is unmodifiable so callers cannot mutate
-    // the frozen registry post-read.
-    test('all() returns an unmodifiable view', () {
-      DestinationRegistry.instance.register(_StubDestination('primary'));
-      final dests = DestinationRegistry.instance.all();
+    // all() returns an unmodifiable view so callers cannot mutate the
+    // registry by mutating the returned list.
+    test('all() returns an unmodifiable view', () async {
+      await registry.addDestination(_StubDestination('primary'));
+      final dests = registry.all();
       expect(
         () => dests.add(_StubDestination('other')),
         throwsUnsupportedError,
       );
     });
 
-    test('matchingDestinations works on an empty registry (returns empty)', () {
-      expect(
-        DestinationRegistry.instance.matchingDestinations(_mkEvent()),
-        isEmpty,
-      );
-    });
-
-    // reset() is the test-only method; confirm it unfreezes and clears.
-    test('reset() clears registrations and unfreezes', () {
-      DestinationRegistry.instance.register(_StubDestination('primary'));
-      DestinationRegistry.instance.all(); // freezes
-      DestinationRegistry.instance.reset();
-      // Register again after reset — no StateError, list contains only
-      // the new registration.
-      DestinationRegistry.instance.register(_StubDestination('fresh'));
-      expect(DestinationRegistry.instance.all().map((d) => d.id), ['fresh']);
+    // byId returns null for unknown ids, the destination for known ids.
+    test('byId returns null for unknown ids', () async {
+      expect(registry.byId('ghost'), isNull);
+      final d = _StubDestination('primary');
+      await registry.addDestination(d);
+      expect(registry.byId('primary'), same(d));
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
@@ -261,4 +262,53 @@ abstract class StorageBackend {
     String destinationId,
     int sequenceNumber,
   );
+
+  // -------- Destination schedules (REQ-d00129) --------
+
+  /// Read the persisted `DestinationSchedule` for [destinationId], or
+  /// null when no schedule has ever been written. Non-transactional.
+  ///
+  /// Schedules are persisted under `backend_state` key
+  /// `schedule_<destinationId>` as the JSON form produced by
+  /// `DestinationSchedule.toJson`.
+  // Implements: REQ-d00129-A+C+F — readSchedule backs registry
+  // scheduleOf/setStartDate/setEndDate persistence.
+  Future<DestinationSchedule?> readSchedule(String destinationId);
+
+  /// Write [schedule] for [destinationId] inside its own atomic
+  /// transaction. Callers already composing a transaction SHALL use
+  /// [writeScheduleTxn] to keep the write co-atomic with adjacent
+  /// schedule / FIFO mutations.
+  // Implements: REQ-d00129-A — initial dormant schedule persistence.
+  Future<void> writeSchedule(
+    String destinationId,
+    DestinationSchedule schedule,
+  );
+
+  /// Transactional variant of [writeSchedule]: participates in the
+  /// surrounding transaction's atomicity so a schedule write and the
+  /// ops that accompany it (e.g. FIFO-store drop in
+  /// `deleteDestination`) commit or roll back together.
+  // Implements: REQ-d00129-C+F+H — transactional schedule write for
+  // setStartDate / setEndDate / deleteDestination.
+  Future<void> writeScheduleTxn(
+    Txn txn,
+    String destinationId,
+    DestinationSchedule schedule,
+  );
+
+  /// Delete the `schedule_<destinationId>` record inside [txn]. Used by
+  /// `deleteDestination` to drop schedule state and the FIFO store in
+  /// one atomic step.
+  // Implements: REQ-d00129-H — atomic drop of schedule + FIFO store.
+  Future<void> deleteScheduleTxn(Txn txn, String destinationId);
+
+  /// Drop the FIFO store for [destinationId] entirely inside [txn].
+  /// Implementations SHALL remove every row and drop the store itself
+  /// (not just the currently-present records), so a subsequent
+  /// `readFifoHead` on the same id returns null without seeing any
+  /// trailing state.
+  // Implements: REQ-d00129-H — atomic FIFO-store drop in
+  // deleteDestination.
+  Future<void> deleteFifoStoreTxn(Txn txn, String destinationId);
 }

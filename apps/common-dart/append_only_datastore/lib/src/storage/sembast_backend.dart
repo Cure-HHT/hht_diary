@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
@@ -322,6 +323,96 @@ class SembastBackend extends StorageBackend {
         'fill_cursor must be >= -1 (-1 = unset or rewound to pre-start; '
             'all other values are event sequence_numbers)',
       );
+    }
+  }
+
+  // -------- Destination schedules (REQ-d00129) --------
+
+  static String _scheduleKey(String destinationId) => 'schedule_$destinationId';
+
+  /// Read the persisted `DestinationSchedule` for [destinationId], or
+  /// null when no schedule record exists. Non-transactional.
+  // Implements: REQ-d00129-A+C+F — schedule read backs
+  // DestinationRegistry.scheduleOf.
+  @override
+  Future<DestinationSchedule?> readSchedule(String destinationId) async {
+    final db = _database();
+    final value = await _backendStateStore
+        .record(_scheduleKey(destinationId))
+        .get(db);
+    if (value == null) return null;
+    return DestinationSchedule.fromJson(
+      Map<String, Object?>.from(value as Map),
+    );
+  }
+
+  /// Persist [schedule] for [destinationId] inside its own atomic
+  /// transaction (standalone variant).
+  // Implements: REQ-d00129-A — initial dormant-schedule persistence.
+  @override
+  Future<void> writeSchedule(
+    String destinationId,
+    DestinationSchedule schedule,
+  ) async {
+    await _database().transaction((sembastTxn) async {
+      await _backendStateStore
+          .record(_scheduleKey(destinationId))
+          .put(sembastTxn, schedule.toJson());
+    });
+  }
+
+  /// Persist [schedule] inside [txn] so the write participates in the
+  /// surrounding transaction's atomicity.
+  // Implements: REQ-d00129-C+F+H — transactional schedule write.
+  @override
+  Future<void> writeScheduleTxn(
+    Txn txn,
+    String destinationId,
+    DestinationSchedule schedule,
+  ) async {
+    final t = _requireValidTxn(txn);
+    await _backendStateStore
+        .record(_scheduleKey(destinationId))
+        .put(t._sembastTxn, schedule.toJson());
+  }
+
+  /// Delete the persisted schedule record for [destinationId] inside
+  /// [txn]. Used by `deleteDestination`.
+  // Implements: REQ-d00129-H — atomic schedule-record drop.
+  @override
+  Future<void> deleteScheduleTxn(Txn txn, String destinationId) async {
+    final t = _requireValidTxn(txn);
+    await _backendStateStore
+        .record(_scheduleKey(destinationId))
+        .delete(t._sembastTxn);
+  }
+
+  /// Drop the entire `fifo_<destinationId>` Sembast store inside [txn]
+  /// and remove [destinationId] from the known-FIFOs registry so
+  /// `anyFifoExhausted` / `exhaustedFifos` no longer iterate it.
+  // Implements: REQ-d00129-H — atomic FIFO-store drop.
+  @override
+  Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) async {
+    final t = _requireValidTxn(txn);
+    await _fifoStore(destinationId).drop(t._sembastTxn);
+    // Also drop the fill-cursor record so a later addDestination of the
+    // same id starts from a clean slate rather than inheriting a stale
+    // cursor.
+    await _backendStateStore
+        .record(_fillCursorKey(destinationId))
+        .delete(t._sembastTxn);
+    // Remove the id from the known-FIFOs registry so exhausted-FIFO
+    // iteration does not hit a dropped store.
+    final current =
+        (await _backendStateStore.record(_knownFifosKey).get(t._sembastTxn)
+                as List?)
+            ?.cast<String>()
+            .toList() ??
+        <String>[];
+    if (current.remove(destinationId)) {
+      await _backendStateStore
+          .record(_knownFifosKey)
+          .put(t._sembastTxn, current);
     }
   }
 

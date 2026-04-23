@@ -921,6 +921,26 @@ class _SpyBackend extends StorageBackend {
     String destinationId,
     int sequenceNumber,
   ) => delegate.writeFillCursorTxn(txn, destinationId, sequenceNumber);
+  @override
+  Future<DestinationSchedule?> readSchedule(String destinationId) =>
+      delegate.readSchedule(destinationId);
+  @override
+  Future<void> writeSchedule(
+    String destinationId,
+    DestinationSchedule schedule,
+  ) => delegate.writeSchedule(destinationId, schedule);
+  @override
+  Future<void> writeScheduleTxn(
+    Txn txn,
+    String destinationId,
+    DestinationSchedule schedule,
+  ) => delegate.writeScheduleTxn(txn, destinationId, schedule);
+  @override
+  Future<void> deleteScheduleTxn(Txn txn, String destinationId) =>
+      delegate.deleteScheduleTxn(txn, destinationId);
+  @override
+  Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) =>
+      delegate.deleteFifoStoreTxn(txn, destinationId);
 }
 
 /// Test database provider that uses in-memory Sembast database.

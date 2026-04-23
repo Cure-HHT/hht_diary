@@ -40,12 +40,13 @@ Future<void> _enqueueOne(
 void main() {
   group('SyncCycle', () {
     late SembastBackend backend;
+    late DestinationRegistry registry;
     var dbCounter = 0;
 
     setUp(() async {
       dbCounter += 1;
       backend = await _openBackend('sync-cycle-$dbCounter.db');
-      DestinationRegistry.instance.reset();
+      registry = DestinationRegistry(backend: backend);
     });
 
     tearDown(() async {
@@ -68,16 +69,15 @@ void main() {
         );
         final fast = FakeDestination(id: 'fast', script: [const SendOk()]);
 
-        DestinationRegistry.instance
-          ..register(slow)
-          ..register(fast);
+        await registry.addDestination(slow);
+        await registry.addDestination(fast);
 
         await _enqueueOne(backend, 'slow', 'e1');
         await _enqueueOne(backend, 'fast', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2026, 4, 22, 10),
         );
         final cycleFuture = sync.call();
@@ -103,13 +103,13 @@ void main() {
       () async {
         final order = <String>[];
         final dest = _RecordingDestination(order, id: 'fake');
-        DestinationRegistry.instance.register(dest);
+        await registry.addDestination(dest);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = _OrderRecordingSyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2026, 4, 22, 10),
           order: order,
         );
@@ -130,13 +130,13 @@ void main() {
           script: [const SendOk()],
           blockBeforeSend: () => gate.future,
         );
-        DestinationRegistry.instance.register(dest);
+        await registry.addDestination(dest);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2026, 4, 22, 10),
         );
         final first = sync.call();
@@ -165,13 +165,13 @@ void main() {
           id: 'fake',
           script: [const SendOk(), const SendOk()],
         );
-        DestinationRegistry.instance.register(dest);
+        await registry.addDestination(dest);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2026, 4, 22, 10),
         );
         await sync.call();
@@ -195,16 +195,15 @@ void main() {
           id: 'healthy',
           script: [const SendOk()],
         );
-        DestinationRegistry.instance
-          ..register(boomed)
-          ..register(healthy);
+        await registry.addDestination(boomed);
+        await registry.addDestination(healthy);
 
         await _enqueueOne(backend, 'boomed', 'e1');
         await _enqueueOne(backend, 'healthy', 'e1');
 
         final sync = SyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2026, 4, 22, 10),
         );
         await sync.call();
@@ -228,7 +227,7 @@ void main() {
           id: 'fake',
           script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
         );
-        DestinationRegistry.instance.register(dest);
+        await registry.addDestination(dest);
 
         await _enqueueOne(backend, 'fake', 'e1');
         // Pre-load one transient attempt so the next attempt trips the cap.
@@ -254,7 +253,7 @@ void main() {
 
         final sync = SyncCycle(
           backend: backend,
-          registry: DestinationRegistry.instance,
+          registry: registry,
           clock: () => DateTime.utc(2027, 1, 1),
           policy: tinyPolicy,
         );
@@ -268,10 +267,7 @@ void main() {
     // Defensive: when no destinations are registered, the cycle is a
     // near-no-op (just invokes portalInboundPoll).
     test('empty registry: cycle runs portalInboundPoll and exits', () async {
-      final sync = SyncCycle(
-        backend: backend,
-        registry: DestinationRegistry.instance,
-      );
+      final sync = SyncCycle(backend: backend, registry: registry);
       await sync.call(); // no throw, no error
     });
   });

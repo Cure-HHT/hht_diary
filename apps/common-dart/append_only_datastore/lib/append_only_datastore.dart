@@ -112,6 +112,8 @@ export 'src/core/errors/sync_exception.dart';
 // exported.
 export 'src/destinations/destination.dart' show Destination;
 export 'src/destinations/destination_registry.dart' show DestinationRegistry;
+export 'src/destinations/destination_schedule.dart'
+    show DestinationSchedule, SetEndDateResult, UnjamResult;
 export 'src/destinations/subscription_filter.dart'
     show SubscriptionFilter, SubscriptionPredicate;
 export 'src/destinations/wire_payload.dart' show WirePayload;

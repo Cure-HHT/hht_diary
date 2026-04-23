@@ -1,3 +1,4 @@
+import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/append_result.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
@@ -303,6 +304,26 @@ class _InMemoryBackend extends StorageBackend {
     String destinationId,
     int sequenceNumber,
   ) => throw UnimplementedError();
+  @override
+  Future<DestinationSchedule?> readSchedule(String destinationId) =>
+      throw UnimplementedError();
+  @override
+  Future<void> writeSchedule(
+    String destinationId,
+    DestinationSchedule schedule,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> writeScheduleTxn(
+    Txn txn,
+    String destinationId,
+    DestinationSchedule schedule,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> deleteScheduleTxn(Txn txn, String destinationId) =>
+      throw UnimplementedError();
+  @override
+  Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) =>
+      throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {
