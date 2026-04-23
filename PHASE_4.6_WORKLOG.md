@@ -97,6 +97,34 @@ Task 9 template in the plan will be adjusted to this shape during implementation
 
 ---
 
+## Task 2: Scaffold the `example/` Flutter Linux-desktop app
+
+`flutter create --platforms=linux --org com.example --project-name append_only_datastore_demo .` ran inside `apps/common-dart/append_only_datastore/example/`. Scaffold is clean:
+
+- `pubspec.yaml` with `flutter` + `flutter_test` deps (Task 3 rewrites to add `append_only_datastore` + `trial_data_types` path deps).
+- `analysis_options.yaml` with default lints (Task 3 switches to inherit parent package's config).
+- `lib/main.dart` emptied to `// Rewritten in Task 9.`.
+- `test/widget_test.dart` deleted (design §4.2 non-goal).
+- `linux/` runner scaffold (CMakeLists + `main.cc` + `my_application.cc/h`).
+- `.metadata` and `README.md` from the scaffold kept as-is.
+- `.gitignore` extended: `.flutter-plugins`, `.packages`, `/linux/flutter/ephemeral/`.
+
+`flutter pub get` and `flutter analyze` inside the example — no issues found.
+
+---
+
+## Task 3: Wire `example/pubspec.yaml` to parent package
+
+`example/pubspec.yaml` has a path dep on `append_only_datastore` (`../`) and a direct path dep on `trial_data_types` (`../../trial_data_types`) — the latter is required because `EntryTypeDefinition` lives in `trial_data_types`, not in the datastore barrel, and the demo constructs instances of it at Task 5.
+
+`flutter_lints: ^6.0.0` kept in `dev_dependencies` — needed to resolve the `package:flutter_lints/flutter.yaml` include chained in via `../analysis_options.yaml`. Dev-deps are not transitive, so the example declares its own copy; dropping it breaks analyze with `include_file_not_found`. Commented in pubspec.
+
+`example/analysis_options.yaml` reduced to `include: ../analysis_options.yaml` — demo is held to the same strict lint bar as the library (`strict-casts`, `strict-inference`, `require_trailing_commas`, `prefer_const_constructors`, long linter list).
+
+`flutter pub get` resolves cleanly; `flutter analyze` — no issues found.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
