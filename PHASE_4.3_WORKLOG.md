@@ -141,6 +141,20 @@ Test count: 324 → 325 (+1 for the new REQ-d00128-G validation test).
 
 ---
 
+## Task 8 — readFifoHead skips exhausted rows (REQ-d00124-A)
+
+### Status
+- `SembastBackend.readFifoHead` returns the first row with `final_status == pending`, ordered by `sequence_in_queue`, or null when no pending rows remain. Sent and exhausted rows are skipped. `StorageBackend.readFifoHead` dartdoc revised to match.
+- `spec/dev-event-sourcing-mobile.md` REQ-d00124-A is revised to describe the new head semantics; `elspais fix` updated REQ-d00124's content hash.
+- Drain-loop switch cases are untouched (Task 13 will flip the SendPermanent / SendTransient-at-max cases to `continue`); readFifoHead's change alone enables the upcoming refactor while preserving drain's current wedge behavior at the switch level.
+- `flutter test` inside `append_only_datastore` passes 327 tests. A Phase-4 drain-wedge test was rewritten to the new semantics (drain still returns after SendPermanent — that part moves to Task 13 — but the "readFifoHead returns null after wedge" assertion was replaced with "readFifoHead returns the next pending row").
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
