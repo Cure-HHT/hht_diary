@@ -2,21 +2,23 @@ import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 
-/// The byte-level payload a Destination produces for one event.
+/// The byte-level payload a Destination produces for one event batch.
 ///
-/// `WirePayload` is a transport type between `Destination.transform(event)`
-/// and the FIFO enqueue call that persists the bytes into the destination's
-/// queue. The bytes are opaque to the datastore — the shape is determined
-/// by the destination's wire format — but the accompanying `contentType`
-/// and `transformVersion` stamps are preserved on the resulting
-/// `FifoEntry` so the receiver can identify how the bytes were produced.
+/// `WirePayload` is a transport type between
+/// `Destination.transform(List<StoredEvent> batch)` and the FIFO enqueue
+/// call that persists the bytes into the destination's queue. The bytes
+/// are opaque to the datastore — the shape is determined by the
+/// destination's wire format — but the accompanying `contentType` and
+/// `transformVersion` stamps are preserved on the resulting `FifoEntry`
+/// so the receiver can identify how the bytes were produced.
 ///
 /// This type is not a JSON value: it carries raw bytes. The `FifoEntry`
 /// stores the bytes under `wire_payload`, the `contentType` under
 /// `wire_format`, and the `transformVersion` under `transform_version`.
-// Implements: REQ-d00122-D — transform() returns bytes + content_type +
-// transform_version; transform_version flows through FifoEntry into
-// downstream ProvenanceEntry stamping.
+// Implements: REQ-d00122-D — transform(List<StoredEvent>) returns bytes +
+// content_type + transform_version covering the whole batch;
+// transform_version flows through FifoEntry into downstream
+// ProvenanceEntry stamping.
 class WirePayload {
   WirePayload({
     required Uint8List bytes,

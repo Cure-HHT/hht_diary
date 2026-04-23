@@ -13,6 +13,11 @@ import 'package:append_only_datastore/src/storage/stored_event.dart';
 /// `send` call. Records every `send` invocation with its payload and the
 /// wall-clock time it was observed (for assertions about call ordering
 /// and payload shape).
+///
+/// Batching: [batchCapacity] controls the size at which
+/// [canAddToBatch] returns `false`; default is `1`, matching legacy
+/// single-event behavior for the drain tests that do not exercise
+/// batching.
 class FakeDestination extends Destination {
   FakeDestination({
     this.id = 'fake',
@@ -20,6 +25,9 @@ class FakeDestination extends Destination {
     this.wireFormat = 'fake-v1',
     List<SendResult>? script,
     Future<void> Function()? blockBeforeSend,
+    this.batchCapacity = 1,
+    this.maxAccumulateTime = Duration.zero,
+    this.allowHardDelete = false,
   }) : _script = script ?? <SendResult>[],
        _filter = filter ?? const SubscriptionFilter(),
        _blockBeforeSend = blockBeforeSend;
@@ -29,6 +37,20 @@ class FakeDestination extends Destination {
 
   @override
   final String wireFormat;
+
+  /// Cap on events accepted into a single batch by [canAddToBatch].
+  /// Default `1` preserves single-event FIFO semantics for tests that
+  /// do not care about batching.
+  final int batchCapacity;
+
+  // Implements: REQ-d00128-F — maxAccumulateTime declared on the fake.
+  @override
+  final Duration maxAccumulateTime;
+
+  // Implements: REQ-d00129-B — explicit override (default false) so the
+  // abstract-class default is exercised on other destinations.
+  @override
+  final bool allowHardDelete;
 
   final SubscriptionFilter _filter;
   final List<SendResult> _script;
@@ -45,20 +67,33 @@ class FakeDestination extends Destination {
   @override
   SubscriptionFilter get filter => _filter;
 
+  // Implements: REQ-d00128-E — canAddToBatch admits up to batchCapacity.
   @override
-  WirePayload transform(StoredEvent event) {
-    // Identity transform over event.data JSON. Not actually used by the
-    // drain tests because enqueue-side population is driven by fixtures,
-    // but provided so a test can opt into transform()-and-send() flow if
-    // they want to.
+  bool canAddToBatch(List<StoredEvent> currentBatch, StoredEvent candidate) =>
+      currentBatch.length < batchCapacity;
+
+  // Implements: REQ-d00128-D / REQ-d00122-D — batch-aware transform.
+  @override
+  Future<WirePayload> transform(List<StoredEvent> batch) {
+    if (batch.isEmpty) {
+      throw ArgumentError(
+        'FakeDestination($id).transform called with empty batch',
+      );
+    }
+    // Identity transform over the batch. Not actually used by the drain
+    // tests because enqueue-side population is driven by fixtures, but
+    // provided so a test can opt into transform()-and-send() flow if it
+    // wants to.
     final json = jsonEncode(<String, Object?>{
-      'event_id': event.eventId,
-      'data': event.data,
+      'event_ids': batch.map((e) => e.eventId).toList(),
+      'data': batch.map((e) => e.data).toList(),
     });
-    return WirePayload(
-      bytes: Uint8List.fromList(utf8.encode(json)),
-      contentType: 'application/json',
-      transformVersion: 'fake-v1',
+    return Future<WirePayload>.value(
+      WirePayload(
+        bytes: Uint8List.fromList(utf8.encode(json)),
+        contentType: 'application/json',
+        transformVersion: 'fake-v1',
+      ),
     );
   }
 

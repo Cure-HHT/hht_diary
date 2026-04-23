@@ -236,7 +236,7 @@ B. A `Destination` SHALL expose a `SubscriptionFilter` that deterministically se
 
 C. A `Destination` SHALL declare a `wire_format` string identifier (e.g., `"json-v1"`); the value SHALL match the `wire_format` field on every `FifoEntry` produced for this destination.
 
-D. `Destination.transform(event)` SHALL return a `WirePayload` value with fields `bytes`, `content_type`, and `transform_version`; the `transform_version` SHALL be recorded on the resulting `FifoEntry` and appended to `ProvenanceEntry.transform_version` on the receiver side.
+D. `Destination.transform(List<StoredEvent> batch)` SHALL return a `WirePayload` covering the entire batch, with fields `bytes`, `content_type`, and `transform_version`; `transform_version` SHALL be recorded on the resulting `FifoEntry` and appended to `ProvenanceEntry.transform_version` on the receiver side. The batch SHALL be non-empty (REQ-d00128-D).
 
 E. `Destination.send(payload)` SHALL return a `SendResult` value of exactly one of the variants `SendOk`, `SendTransient`, or `SendPermanent`; the destination's categorization of underlying HTTP codes, network errors, and timeouts into those variants SHALL be a per-destination concern not dictated by this contract.
 
@@ -244,7 +244,7 @@ F. A `SubscriptionFilter` SHALL support allow-listing by `entry_type` and/or `ev
 
 G. Destinations SHALL be registered at boot via `DestinationRegistry.register(destination)`; the registry SHALL freeze on first read (`all()` or `matchingDestinations(event)`) and any subsequent `register(...)` call SHALL raise an error.
 
-*End* *Destination Contract for Per-Destination Sync* | **Hash**: be13f13e
+*End* *Destination Contract for Per-Destination Sync* | **Hash**: 2584b5d8
 
 ---
 

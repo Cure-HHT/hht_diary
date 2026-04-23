@@ -25,8 +25,15 @@ class _StubDestination extends Destination {
   String get wireFormat => 'stub-v1';
 
   @override
-  WirePayload transform(StoredEvent event) => WirePayload(
-    bytes: Uint8List.fromList(event.eventId.codeUnits),
+  Duration get maxAccumulateTime => Duration.zero;
+
+  @override
+  bool canAddToBatch(List<StoredEvent> currentBatch, StoredEvent candidate) =>
+      currentBatch.isEmpty;
+
+  @override
+  Future<WirePayload> transform(List<StoredEvent> batch) async => WirePayload(
+    bytes: Uint8List.fromList(batch.first.eventId.codeUnits),
     contentType: 'text/plain',
     transformVersion: 'stub-v1',
   );
