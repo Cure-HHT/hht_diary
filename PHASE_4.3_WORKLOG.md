@@ -34,7 +34,22 @@ Subagent review of commit `a3a06038` returned three findings (no CRITICAL, no HI
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `9f39991b` returned two HIGH, three MEDIUM, one LOW, one NIT. No CRITICAL.
+
+**Addressed:**
+- **HIGH — REQ-d00128-F parenthetical rationale in assertion.** Stripped "(indicating a size cap)".
+- **HIGH — REQ-d00129-D / REQ-d00130-A circular citation.** Removed "(per REQ-d00130)" from REQ-d00129-D. REQ-d00130's inbound reference to REQ-d00129-I is left intact — it remains a one-directional citation (the replay assertion references the window definition), not a cycle.
+- **MEDIUM — REQ-d00128 Rationale used symbolic label `REQ-DYNDEST`.** Replaced with canonical `REQ-d00129`.
+- **MEDIUM — REQ-d00129-F `applied` enum semantics unclear.** Added a Rationale paragraph spelling out all three `SetEndDateResult` variants with concrete triggering scenarios.
+- **MEDIUM — Task 3 "Review decisions" placeholder.** Filled in with this block; workflow-designed two-commit cycle.
+
+**Not addressed:**
+- **LOW — REQ-d00133-I "migration-bridge" fields are unenforceable per REQ-d00118-C.** REQ-d00118-C's enforceability note explicitly ends "becomes active when the `EntryService.record()` path introduces `ProvenanceEntry` stamping in a later phase" — REQ-d00133 *is* that phase. REQ-d00133-I is exactly the assertion that makes REQ-d00118-C testable, and the tests live in Phase 4.3 Task 16 (`EntryService.record`). The two assertions are complementary, not contradictory.
+- **NIT — REQ-d00134-C cites REQ-d00129-A.** Single one-directional cross-assertion reference is standard spec style (refine → refined-by); the reviewer's own circularity standard is met (one direction only).
+
+### Hash updates
+
+REQ-d00128 and REQ-d00129 bodies changed; `elspais fix` recomputed hashes; no other REQs affected.
 
 ---
 

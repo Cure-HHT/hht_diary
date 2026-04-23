@@ -321,8 +321,8 @@
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract          | dev-event-sourcing-mobile.md   | 03bfd328 |
 | REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 8ab70c79 |
 | REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | bee6ba5e |
-| REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | cb119791 |
-| REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | d0843f75 |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | d36f1dde |
+| REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | 17ee5d1c |
 | REQ-d00130 | Historical Replay on Past startDate                     | dev-event-sourcing-mobile.md   | 254b541a |
 | REQ-d00131 | Unjam Destination Operation                             | dev-event-sourcing-mobile.md   | 467a0d85 |
 | REQ-d00132 | Rehabilitate Exhausted FIFO Row                         | dev-event-sourcing-mobile.md   | 978d782e |

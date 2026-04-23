@@ -394,7 +394,7 @@ C. Both methods SHALL emit a `warning`-level diagnostic log line when they no-op
 
 REQ-d00119 (Phase 2) defined a FIFO row as holding exactly one event, with a single `event_id` and a single `wire_payload`. Phase 4.3 migrates that shape to hold a batch — one row covers one or more events and carries exactly one wire payload for the whole batch. The motivation is destination-side: a destination whose server endpoint natively accepts a batch of events in one request should not be forced to send N separate requests for N events when the events arrive within a short window. The drain loop still treats one row as one wire transaction; what changes is that one wire transaction can now deliver several events.
 
-The batch shape demands a `fill_cursor` per destination, recording the highest `sequence_number` that has already been promoted into any FIFO row for this destination (pending, sent, or exhausted). Without a cursor, the logic that decides which events have not yet been enqueued for this destination would be forced to scan every FIFO row and cross-reference the event log, which does not scale. The cursor is per-destination because subscription filters and start/end windows (REQ-DYNDEST) give each destination its own view of the event log. Idempotency of `fillBatch` — the act of promoting events into FIFO rows — depends on the cursor behaving transactionally alongside the FIFO-row write.
+The batch shape demands a `fill_cursor` per destination, recording the highest `sequence_number` that has already been promoted into any FIFO row for this destination (pending, sent, or exhausted). Without a cursor, the logic that decides which events have not yet been enqueued for this destination would be forced to scan every FIFO row and cross-reference the event log, which does not scale. The cursor is per-destination because subscription filters and start/end windows (REQ-d00129) give each destination its own view of the event log. Idempotency of `fillBatch` — the act of promoting events into FIFO rows — depends on the cursor behaving transactionally alongside the FIFO-row write.
 
 Batch assembly is destination-controlled: the destination declares a `canAddToBatch(currentBatch, candidate)` predicate, invoked per candidate, and a `maxAccumulateTime` hold on single-event batches so a destination that prefers to ship batches of two or more is not prematurely flushed when only one event is available.
 
@@ -410,13 +410,13 @@ D. `Destination.transform(List<Event> batch)` SHALL produce one `WirePayload`; i
 
 E. `Destination.canAddToBatch(List<Event> currentBatch, Event candidate)` SHALL be invoked by `fillBatch` for each candidate under consideration; returning `false` SHALL end the current batch (flushing it if `maxAccumulateTime` permits) and SHALL leave the candidate available for the next tick.
 
-F. `Destination.maxAccumulateTime: Duration` SHALL be honored by `fillBatch`: a single-event batch SHALL NOT flush until `now() - batch.first.client_timestamp >= maxAccumulateTime` OR `canAddToBatch` has already returned `false` for a subsequent candidate (indicating a size cap).
+F. `Destination.maxAccumulateTime: Duration` SHALL be honored by `fillBatch`: a single-event batch SHALL NOT flush until `now() - batch.first.client_timestamp >= maxAccumulateTime` OR `canAddToBatch` has already returned `false` for a subsequent candidate.
 
 G. The storage backend SHALL persist a `fill_cursor_{destination_id}: int` value under `backend_state` for each registered destination; the value SHALL be the largest `sequence_number` that has been promoted into any FIFO row for that destination, or `-1` when no row has yet been enqueued.
 
 H. `fillBatch(destination)` SHALL be idempotent: repeated invocations with no new matching events SHALL produce no new FIFO rows and SHALL NOT advance `fill_cursor`.
 
-*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: cb119791
+*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: d36f1dde
 
 ---
 
@@ -430,7 +430,7 @@ Phase 4 froze the `DestinationRegistry` on first read because a mid-run registra
 
 Immutability of `startDate` once set is load-bearing. If `startDate` could be moved earlier, the FIFO's contract that every enqueued event matches the destination's time window at enqueue time would weaken to a contract about the *current* window — forcing either a re-scan of already-enqueued rows when the window changed or acceptance of rows the current window would exclude. Both options break the audit trail. Fixing `startDate` at its first assignment avoids this; callers who need a different `startDate` register a different destination.
 
-Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their sent/exhausted destinations. `setEndDate` returns a result code so callers can distinguish "destination just became closed" (wire-in-flight state, drain will complete and stop) from "destination is now scheduled to close at a future date" (still active until the deadline).
+Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their sent/exhausted destinations. `setEndDate` returns a result code so callers can distinguish three outcomes. `closed` fires when the call transitions the destination from "currently active" to "currently closed" — i.e. the new `endDate` is at or before `now()` and the destination was not previously closed. `scheduled` fires when the new `endDate` is in the future (the destination is currently active and will close at a later wall-clock time) or when a previously-closed destination is reopened with a future `endDate`. `applied` fires when the call does not change the destination's current active-vs-closed state relative to `now()` — for example, overwriting an existing past `endDate` with a different past `endDate`, or replacing a future-dated `endDate` with another future-dated `endDate` without crossing the `now()` boundary. The three codes are exclusive; every call returns exactly one.
 
 Hard deletion is gated because some destinations carry regulatory audit weight and must not be purged in one call; the `allowHardDelete` field is an explicit opt-in that the destination's class declares, not a flag the caller toggles.
 
@@ -442,7 +442,7 @@ B. `Destination.allowHardDelete: bool get` SHALL default to `false` in the abstr
 
 C. `DestinationRegistry.setStartDate(String id, DateTime startDate)` SHALL throw `StateError` if the destination already has a non-null `startDate`. Once set, `startDate` SHALL be immutable for the lifetime of this destination registration.
 
-D. If `setStartDate` is called with `startDate <= now()`, the library SHALL trigger historical replay synchronously in the same transaction (per REQ-d00130).
+D. If `setStartDate` is called with `startDate <= now()`, the library SHALL trigger historical replay synchronously in the same transaction.
 
 E. If `setStartDate` is called with `startDate > now()`, no replay SHALL occur; subsequent events accumulate in `event_log` and are batched into the FIFO only after wall-clock time has crossed `startDate` (enforced by `fillBatch`'s time-window check).
 
@@ -454,7 +454,7 @@ H. `DestinationRegistry.deleteDestination(String id)` SHALL throw `StateError` i
 
 I. `fillBatch(destination)` SHALL filter candidate events by `event.client_timestamp >= dest.startDate AND event.client_timestamp <= min(dest.endDate, now())`; events outside this window SHALL NOT be enqueued to this destination.
 
-*End* *Dynamic Destination Lifecycle* | **Hash**: d0843f75
+*End* *Dynamic Destination Lifecycle* | **Hash**: 17ee5d1c
 
 ---
 
