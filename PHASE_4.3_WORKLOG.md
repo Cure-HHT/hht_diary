@@ -1,6 +1,6 @@
 # Phase 4.3 Worklog
 
-One section per task. Current state only — no diff narration.
+One section per completed task. Current state only — no diff narration.
 
 ---
 
@@ -13,16 +13,28 @@ One section per task. Current state only — no diff narration.
 - `spec/dev-event-sourcing-mobile.md` already exists from Phase 1 — no action needed.
 
 ### Review decisions
-- *(pending — this worklog entry was written before dispatching the review subagent)*
+
+Subagent review of commit `a3a06038` returned three findings (no CRITICAL, no HIGH).
+
+**Addressed:**
+- **MEDIUM — pending "Review decisions" field.** This block is now filled in (addressing the concern).
+- **NIT — "One section per task" header overclaims completeness.** Header softened to "One section per completed task".
+
+**Not addressed:**
+- **LOW — commit-message task-numbering discrepancy is self-referential.** No action required; the reviewer explicitly rated this as "internally consistent and defensible". The annotation-only approach is deliberate.
 
 ---
 
-## Per-task controller workflow (repeat each task)
+## Per-task controller workflow (user instructions — re-read each task)
 
-After each task's implementation commit:
-1. Append a "Status" block for the task to this worklog (current state, not history).
-2. Commit the worklog and TASK_FILE together with the implementation.
-3. Launch a subagent to review the commit. Tell it **not** to read `docs/` — the review must be unbiased by the plan's framing.
-4. Decide which review comments to address and which to defer. Log both lists under a "Review decisions" block in this worklog.
-5. Commit the review-fix changes (and updated worklog).
-6. Re-read this per-task workflow and proceed to the next task.
+> After each phase I want you to:
+> - append to `PHASE_4.3_WORKLOG.md` a very brief outline of the work done. Don't say "it was like that before, now its like this." Just say "it works like this". I.e. don't keep repeating history, just report the status.
+> - commit the changes
+> - Launch a sub-agent to review the commit. Tell it NOT to read the `docs/` folder. I want an unbiased code review.
+> - decide which of the review comments to address and which to not address. Log both to WORKLOG.
+> - commit again
+> - include these instructions at the end of WORKLOG each phase.
+> - re-read these instructions.
+> Then proceed to the next phase.
+
+("phase" here denotes each numbered task of Phase 4.3; the full Phase 4.3 is a single commit after the phase-squash at Task 20.)
