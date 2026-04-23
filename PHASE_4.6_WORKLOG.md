@@ -185,6 +185,32 @@ Shipped `SyncPolicy` carries a sixth `periodicInterval` field not called out in 
 
 ---
 
+## Task 8: `app_state.dart` — ChangeNotifier with selection + registry binding
+
+`lib/app_state.dart` declares `class AppState extends ChangeNotifier`:
+
+- Three nullable `String` selection fields (`selectedAggregateId`, `selectedEventId`, `selectedFifoRowId`); public getters.
+- Four mutators — `selectAggregate`, `selectEvent`, `selectFifoRow`, `clearSelection` — each sets the chosen field, nulls the other two (mutually exclusive cross-panel selection), and calls `notifyListeners()` once.
+- `destinations` getter filters `registry.all()` through `whereType<DemoDestination>()` so the UI controls (sliders, schedule editors, ops drawer) are typed to `DemoDestination` knobs.
+- `addDestination(DemoDestination)` awaits the registry's async `addDestination` and notifies.
+- `policyNotifier` is held as a final field; widget tasks read it directly.
+
+`test/app_state_test.dart` — 10 tests with a real `DestinationRegistry` backed by `sembast_memory` (shipped test pattern from the library test corpus):
+
+- All three initial selections null.
+- Each mutator selects its field and clears the other two (3 tests).
+- `clearSelection` resets and notifies once.
+- Each setter notifies exactly once per call.
+- `destinations` empty when registry is empty; reflects added `DemoDestination`s in registration order (including `allowHardDelete: true`).
+- `addDestination` notifies after the registry call resolves.
+- `policyNotifier` identity round-trip.
+
+`sembast` added as a direct dev dep so `depend_on_referenced_packages` is satisfied (lint requires transitive imports to declare themselves).
+
+**Final state**: example — 69 tests pass (+10 from Task 7); `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:

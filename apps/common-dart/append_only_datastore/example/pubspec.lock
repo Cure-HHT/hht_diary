@@ -457,7 +457,7 @@ packages:
     source: hosted
     version: "0.6.0"
   sembast:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: sembast
       sha256: "139cf71496105de32e7a08a4e3a1ead0f81c4a616ec9703ed07e8f0d10cdd505"
