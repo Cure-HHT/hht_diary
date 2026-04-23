@@ -290,6 +290,19 @@ Test count: 364 → 365 (+1).
 
 ---
 
+## Task 15 — rehabilitate exhausted rows (REQ-d00132)
+
+### Status
+- `lib/src/ops/rehabilitate.dart` exposes `rehabilitateExhaustedRow(destId, fifoRowId)` and `rehabilitateAllExhausted(destId)`. Both flip `final_status` from `exhausted` back to `pending`, preserve `attempts[]`, and are permitted on an active destination (unlike unjam). Unknown row or non-exhausted status throws `ArgumentError` without opening a transaction.
+- `StorageBackend.readFifoRow`, `exhaustedRowsOf`, `setFinalStatusTxn` are the new storage primitives. `setFinalStatusTxn` is narrowly scoped to `exhausted → pending` (rejects other statuses with `ArgumentError`) so `markFinal`'s one-way invariant stays intact.
+- `flutter test` inside `append_only_datastore` passes 372 tests (+7 new REQ-d00132 tests). `dart analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
