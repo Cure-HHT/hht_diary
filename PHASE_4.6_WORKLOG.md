@@ -259,6 +259,36 @@ Both panels wired into `app.dart`'s observation grid as the first two columns; F
 
 ---
 
+## Task 11: `fifo_panel.dart`
+
+One per destination. Stateful widget whose build pulls from:
+
+- `widget.appState.registry.scheduleOf(id)` every 500ms → schedule label (`DORMANT` / `SCHEDULED until …` / `ACTIVE` / `CLOSED @ …`).
+- `intMapStoreFactory.store('fifo_<id>').find(widget.backend.debugDatabase())` every 500ms → FIFO rows as raw maps. No shipped `listFifoRows` API; the demo reaches into `debugDatabase()` (documented as "for tests that need to inspect raw stores"). Rows render per design §7.5 state prefixes (`[SENT]` green, `[exh]` magenta, `> ` red+retrying, `[pend]` white).
+- Listens to all four destination `ValueNotifier`s (`connection`, `sendLatency`, `batchSize`, `maxAccumulateTimeN`) so slider drags propagate immediately.
+
+Column stack top-down:
+
+1. Title (`destination.id.toUpperCase()` in `DemoText.header`).
+2. Schedule state label in accent yellow.
+3. Start-date text editor — ISO-8601 input, visible while the destination is DORMANT or future-SCHEDULED. `[Set]` button calls `registry.setStartDate`.
+4. End-date text editor — always visible. `[Set]` calls `registry.setEndDate` and flashes the `SetEndDateResult` (`scheduled` / `closed`) in a 2-second banner.
+5. Connection dropdown bound to `destination.connection`.
+6. Three sliders: `sendLatency` (0-30s in ms), `batchSize` (1-50), `maxAccumulateTimeN` (0-30s). Each slider's numeric label renders the current int value.
+7. Collapsible ops drawer (`ops ▸` / `ops ▾`) with `[Unjam]`, `[Rehabilitate all]`, and — gated on `destination.allowHardDelete` — `[Delete destination]`.
+8. Transient banner slot for op-result messages.
+9. Scrolling FIFO row list with per-row inline `rehab` button on exhausted rows.
+
+Tapping a row → `appState.selectFifoRow(entryId)`; blue-tint on match.
+
+Ops functions imported via `package:append_only_datastore/src/ops/...` with `// ignore: implementation_imports` — they're not exported from the barrel. Library tests use the same pattern; the demo matches convention.
+
+`app.dart` wires one `FifoPanel` per `appState.destinations` entry, wrapped in `ListenableBuilder(listenable: appState)` so add/delete destination rebuilds the column strip. Panels key on destination id to preserve state across rebuilds.
+
+**Final state**: example — `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:

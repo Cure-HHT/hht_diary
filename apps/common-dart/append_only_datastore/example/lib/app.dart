@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:append_only_datastore_demo/app_state.dart';
 import 'package:append_only_datastore_demo/widgets/event_stream_panel.dart';
+import 'package:append_only_datastore_demo/widgets/fifo_panel.dart';
 import 'package:append_only_datastore_demo/widgets/materialized_panel.dart';
 import 'package:append_only_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
@@ -69,9 +70,24 @@ class _DemoAppState extends State<DemoApp> {
                         appState: widget.appState,
                       ),
                     ),
-                    const Expanded(
-                      child: _PlaceholderBanner(
-                        label: 'FIFO PANEL x N (Task 11)',
+                    Expanded(
+                      flex: 2,
+                      child: ListenableBuilder(
+                        listenable: widget.appState,
+                        builder: (context, _) => Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            for (final dest in widget.appState.destinations)
+                              Expanded(
+                                child: FifoPanel(
+                                  destination: dest,
+                                  backend: widget.backend,
+                                  appState: widget.appState,
+                                  key: ValueKey<String>(dest.id),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(
