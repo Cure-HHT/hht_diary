@@ -169,7 +169,12 @@ Subagent review of commit `6cde4e34` returned one LOW and one NIT. No CRITICAL, 
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `c8ff70ca` returned one HIGH, one MEDIUM, one NIT. No CRITICAL. All three addressed.
+
+**Addressed:**
+- **HIGH — `transform` empty-batch contract said "implementations MAY throw".** Changed to "SHALL throw" with rationale (silent empty-bytes payload would corrupt FIFO audit semantics). The fakes already enforce it; the doc now matches.
+- **MEDIUM — `canAddToBatch([], candidate)` semantics undocumented.** Added a paragraph to the method's doc comment stating that a `false` return on an empty `currentBatch` is legal but means the destination will never form a row; most destinations should return `true` for the empty-current case.
+- **NIT — `_DefaultDestination.transform` silently accepted empty batches.** Added the `ArgumentError` guard so it matches the pattern established by `FakeDestination` and `_EchoDestination`.
 
 ---
 

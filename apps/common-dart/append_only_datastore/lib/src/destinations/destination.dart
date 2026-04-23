@@ -78,6 +78,14 @@ abstract class Destination {
   /// batch (the candidate remains available for the next batch / tick).
   /// The predicate SHALL be deterministic and pure — identical inputs
   /// SHALL produce identical outputs across invocations.
+  ///
+  /// On the first call of a new batch, [currentBatch] is empty. A
+  /// destination that returns `false` for an empty `currentBatch` will
+  /// never have any row enqueued — this is a legal configuration (it
+  /// means the destination refuses to batch this candidate), but it
+  /// silently results in no FIFO row being formed on this tick. Most
+  /// destinations SHOULD return `true` when `currentBatch.isEmpty` to
+  /// accept at least the first event.
   // Implements: REQ-d00128-E — canAddToBatch is the destination-owned
   // batch admission predicate.
   bool canAddToBatch(List<StoredEvent> currentBatch, StoredEvent candidate);
@@ -89,9 +97,11 @@ abstract class Destination {
   /// `transform_version` stamp uniquely identifies the transform that
   /// produced the bytes.
   ///
-  /// The batch SHALL be non-empty — callers (drain / fillBatch) SHALL
-  /// NOT invoke `transform` with an empty list, and implementations MAY
-  /// throw [ArgumentError] on that precondition violation.
+  /// The batch SHALL be non-empty. Callers (drain / fillBatch) SHALL NOT
+  /// invoke `transform` with an empty list. Implementations SHALL throw
+  /// [ArgumentError] on that precondition violation, as defense-in-depth
+  /// for callers that mistakenly pass `[]` — a silent empty-bytes payload
+  /// would corrupt the FIFO row's audit semantics.
   ///
   /// The method is `async` because real destinations may do per-batch
   /// async work (e.g., signing, key-store lookup); pure-Dart test doubles

@@ -80,11 +80,18 @@ class _DefaultDestination extends Destination {
       false;
 
   @override
-  Future<WirePayload> transform(List<StoredEvent> batch) async => WirePayload(
-    bytes: Uint8List.fromList(const <int>[]),
-    contentType: 'application/octet-stream',
-    transformVersion: 'defaults-v1',
-  );
+  Future<WirePayload> transform(List<StoredEvent> batch) async {
+    if (batch.isEmpty) {
+      throw ArgumentError(
+        '_DefaultDestination.transform called with empty batch',
+      );
+    }
+    return WirePayload(
+      bytes: Uint8List.fromList(const <int>[]),
+      contentType: 'application/octet-stream',
+      transformVersion: 'defaults-v1',
+    );
+  }
 
   @override
   Future<SendResult> send(WirePayload payload) async => const SendOk();
