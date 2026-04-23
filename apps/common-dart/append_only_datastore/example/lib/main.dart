@@ -39,8 +39,26 @@ Future<void> main() async {
     softwareVersion: 'append_only_datastore_demo@0.1.0+1',
   );
 
-  final primary = DemoDestination(id: 'Primary');
-  final secondary = DemoDestination(id: 'Secondary', allowHardDelete: true);
+  // Distinct subscription filters let the two destinations demonstrate
+  // routing: `green_button_pressed` overlaps both, so each appended event
+  // lands in zero, one, or both FIFOs depending on its entry type.
+  final primary = DemoDestination(
+    id: 'Primary',
+    filter: const SubscriptionFilter(
+      entryTypes: <String>[
+        'demo_note',
+        'red_button_pressed',
+        'green_button_pressed',
+      ],
+    ),
+  );
+  final secondary = DemoDestination(
+    id: 'Secondary',
+    allowHardDelete: true,
+    filter: const SubscriptionFilter(
+      entryTypes: <String>['green_button_pressed', 'blue_button_pressed'],
+    ),
+  );
 
   final datastore = await bootstrapAppendOnlyDatastore(
     backend: backend,

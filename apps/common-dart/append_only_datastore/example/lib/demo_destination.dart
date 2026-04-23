@@ -16,6 +16,7 @@ class DemoDestination implements Destination {
   DemoDestination({
     required this.id,
     this.allowHardDelete = false,
+    this.filter = const SubscriptionFilter(),
     Duration initialSendLatency = const Duration(seconds: 10),
     int initialBatchSize = 1,
     Duration initialAccumulate = Duration.zero,
@@ -32,7 +33,7 @@ class DemoDestination implements Destination {
   final bool allowHardDelete;
 
   @override
-  SubscriptionFilter get filter => const SubscriptionFilter();
+  final SubscriptionFilter filter;
 
   @override
   String get wireFormat => 'demo-json-v1';
