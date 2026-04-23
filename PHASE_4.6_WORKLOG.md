@@ -211,6 +211,32 @@ Shipped `SyncPolicy` carries a sixth `periodicInterval` field not called out in 
 
 ---
 
+## Task 9: `main.dart` + `app.dart` — bootstrap and root widget
+
+`lib/main.dart`:
+
+- Resolves the Linux app-support dir via `path_provider`, creates `append_only_datastore_demo/demo.db`, logs the path.
+- Opens sembast via `databaseFactoryIo` and constructs a `SembastBackend`.
+- Instantiates two boot destinations (`Primary` allowHardDelete:false, `Secondary` allowHardDelete:true).
+- Calls `bootstrapAppendOnlyDatastore(backend, source, entryTypes: allDemoEntryTypes, destinations, materializers: [DiaryEntriesMaterializer()])`.
+- Sets both destinations' `startDate` to `DateTime.now().toUtc()`.
+- Constructs `AppState(registry: datastore.destinations, policyNotifier: demoPolicyNotifier)`.
+- Runs a `Timer.periodic(1s)` that per-tick calls `fillBatch` then `drain` on every destination. Drain reads the live policy from `demoPolicyNotifier.value` so slider changes take effect next tick.
+
+SyncCycle is **not** used by the demo. `SyncCycle.call` captures `policy` at construction time (Phase 4 wiring) and does not drive `fillBatch` (library test corpus explicitly orchestrates `fillBatch → drain` in sequence). The demo's direct tick loop matches the needed shape for live policy hot-swap + per-tick fillBatch.
+
+`lib/app.dart`:
+
+- `DemoApp` is a `StatefulWidget` with constructor passthrough for `datastore`, `backend` (typed `SembastBackend` for the `.close()` hook), `appState`, `dbPath`, `tickController`. No provider/riverpod dep — Tasks 10-13 read these from the widget tree directly.
+- `MaterialApp` with dark theme; `Scaffold` body is a `Column` of `[TopActionBar placeholder, SyncPolicyBar placeholder, Expanded(Row of 4 column placeholders: MATERIALIZED, EVENTS, FIFO-per-destination, DETAIL)]`. Each placeholder uses `demoBorder` + `DemoText.header` so the palette lock is exercised as-shipped.
+- `resetAll()` method cancels the tick, closes the backend, deletes the db file. Wired to the Task 12 `[Reset all]` button.
+
+Direct deps added to `example/pubspec.yaml`: `path`, `path_provider`, `sembast` — shape-forced by `depend_on_referenced_packages`. `flutter_lints` remains in dev_deps.
+
+**Final state**: example — `flutter analyze` clean; no new tests (widget code per design non-goal §4.2). Compile-only verification; `flutter run -d linux` smoke is Task 14.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:

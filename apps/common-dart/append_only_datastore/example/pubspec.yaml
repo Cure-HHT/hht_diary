@@ -14,6 +14,11 @@ dependencies:
     path: ../
   trial_data_types:
     path: ../../trial_data_types
+  # Direct deps required by the depend_on_referenced_packages lint; the
+  # parent package already exposes all three transitively.
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  sembast: ^3.7.3
 
 dev_dependencies:
   flutter_test:
@@ -22,10 +27,6 @@ dev_dependencies:
   # chained in via ../analysis_options.yaml. Dev-deps are not transitive,
   # so the example declares its own copy.
   flutter_lints: ^6.0.0
-  # Test-only memory backend used by app_state_test. Parent's production
-  # dep is transitively available but the depend_on_referenced_packages
-  # lint requires a direct declaration.
-  sembast: ^3.7.3
 
 flutter:
   uses-material-design: true
