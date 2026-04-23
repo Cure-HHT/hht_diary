@@ -205,6 +205,25 @@ Test count: 343 → 345 (+2).
 
 ---
 
+## Task 11 — fillBatch algorithm (REQ-d00128 + REQ-d00129-I)
+
+### Status
+- `lib/src/sync/fill_batch.dart` implements `fillBatch(destination, backend, schedule, clock)`:
+  - Walks the event log past `fill_cursor` for the destination.
+  - Filters candidates by the destination's `filter` and the `[startDate, min(endDate, now)]` window.
+  - Assembles a batch greedily via `canAddToBatch` until the destination says stop.
+  - Holds single-event batches until `maxAccumulateTime` elapses.
+  - Non-matching tail advances `fill_cursor` without enqueuing (idempotent).
+  - Enqueue and cursor-advance happen in one transaction via `enqueueFifoTxn` + `writeFillCursorTxn`.
+- `StorageBackend.enqueueFifoTxn(Txn, destId, batch, wirePayload)` is the transactional variant; `enqueueFifo` now delegates to it so row-construction lives in one place.
+- `flutter test` inside `append_only_datastore` passes 354 tests (+9 new REQ-d00128-E/F/G/H + REQ-d00129-I tests). `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
