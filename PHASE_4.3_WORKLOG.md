@@ -119,6 +119,19 @@ Test count: 319 → 320 (+1 for the new REQ-d00128-B reversed-range test).
 
 ---
 
+## Task 7 — fill_cursor persistence (REQ-d00128-G)
+
+### Status
+- `StorageBackend` exposes `readFillCursor(destId)`, `writeFillCursor(destId, seq)`, and `writeFillCursorTxn(txn, destId, seq)`. `SembastBackend` implements them against the existing `backend_state` store under key `fill_cursor_$destId`. An unset cursor reads as `-1`. The transactional variant writes through the surrounding `Txn` so a rollback restores the pre-transaction value.
+- Test-only `_InMemoryBackend` and `_SpyBackend` subclasses implement the new abstract methods (unimplemented stubs and forwarders respectively) so the contract remains satisfied.
+- `flutter test` inside `append_only_datastore` passes 324 tests (+4 new REQ-d00128-G tests: unset default, round-trip, transactional rollback, per-destination isolation). `dart analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
