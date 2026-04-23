@@ -332,6 +332,19 @@ Subagent review of commit `a7ca5680` returned one CRITICAL and two HIGH. All thr
 
 ---
 
+## Task 17 — EntryTypeRegistry
+
+### Status
+- `EntryTypeRegistry` class itself was pulled forward during Task 16 so `EntryService.record`'s REQ-d00133-H validation had a target. Surface: `register`, `byId`, `isRegistered`, `all` — `register` rejects duplicate ids with `ArgumentError`; `all()` returns an unmodifiable view in insertion order.
+- New `test/entry_type_registry_test.dart` adds seven behavioral tests covering the full surface including the unmodifiable-view guarantee and the empty-registry reports.
+- `flutter test` inside `append_only_datastore` passes 389 tests (+7). `dart analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
