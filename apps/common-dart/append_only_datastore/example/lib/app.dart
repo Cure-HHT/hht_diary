@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:append_only_datastore_demo/app_state.dart';
@@ -12,6 +13,20 @@ import 'package:append_only_datastore_demo/widgets/styles.dart';
 import 'package:append_only_datastore_demo/widgets/sync_policy_bar.dart';
 import 'package:append_only_datastore_demo/widgets/top_action_bar.dart';
 import 'package:flutter/material.dart';
+
+const double _kMinColumnWidth = 80;
+const double _kDividerWidth = 5;
+
+/// Default widths for each column in pixels. DETAIL has no entry here
+/// because it's rendered in an Expanded — it takes whatever's left so
+/// it auto-grows on wider windows.
+const Map<String, double> _kDefaultColumnWidths = <String, double>{
+  'materialized': 200,
+  'events': 280,
+  // FIFO panels use a dynamic key 'fifo_<destination_id>'; fallback
+  // default below in _widthOf.
+};
+const double _kDefaultFifoColumnWidth = 260;
 
 /// Root widget. Constructor-passthrough for all collaborators so the
 /// demo stays free of provider/riverpod deps (plan Task 3 rule: keep
@@ -39,6 +54,40 @@ class DemoApp extends StatefulWidget {
 }
 
 class _DemoAppState extends State<DemoApp> {
+  /// Per-column width overrides. Keyed on column id:
+  /// `'materialized'`, `'events'`, or `'fifo_<destination_id>'`.
+  /// DETAIL is Expanded (no entry).
+  final Map<String, double> _widths = <String, double>{};
+
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild when destinations are added/removed so new FIFO columns
+    // and their dividers slot in.
+    widget.appState.addListener(_onAppState);
+  }
+
+  @override
+  void dispose() {
+    widget.appState.removeListener(_onAppState);
+    super.dispose();
+  }
+
+  void _onAppState() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  double _widthOf(String id, {required double fallback}) =>
+      _widths[id] ?? _kDefaultColumnWidths[id] ?? fallback;
+
+  void _resize(String id, double deltaX, double fallback) {
+    setState(() {
+      final current = _widthOf(id, fallback: fallback);
+      _widths[id] = math.max(_kMinColumnWidth, current + deltaX);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -69,53 +118,66 @@ class _DemoAppState extends State<DemoApp> {
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Expanded(
-                      child: MaterializedPanel(
-                        backend: widget.backend,
-                        appState: widget.appState,
-                      ),
-                    ),
-                    Expanded(
-                      child: EventStreamPanel(
-                        backend: widget.backend,
-                        appState: widget.appState,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: ListenableBuilder(
-                        listenable: widget.appState,
-                        builder: (context, _) => Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            for (final dest in widget.appState.destinations)
-                              Expanded(
-                                child: FifoPanel(
-                                  destination: dest,
-                                  backend: widget.backend,
-                                  appState: widget.appState,
-                                  key: ValueKey<String>(dest.id),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 320,
-                      child: DetailPanel(
-                        backend: widget.backend,
-                        appState: widget.appState,
-                        policyNotifier: demoPolicyNotifier,
-                      ),
-                    ),
-                  ],
+                  children: _buildColumns(),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  List<Widget> _buildColumns() {
+    return <Widget>[
+      SizedBox(
+        width: _widthOf('materialized', fallback: 200),
+        child: MaterializedPanel(
+          backend: widget.backend,
+          appState: widget.appState,
+        ),
+      ),
+      _divider('materialized', fallback: 200),
+      SizedBox(
+        width: _widthOf('events', fallback: 280),
+        child: EventStreamPanel(
+          backend: widget.backend,
+          appState: widget.appState,
+        ),
+      ),
+      _divider('events', fallback: 280),
+      for (final dest in widget.appState.destinations) ...<Widget>[
+        SizedBox(
+          width: _widthOf(
+            'fifo_${dest.id}',
+            fallback: _kDefaultFifoColumnWidth,
+          ),
+          child: FifoPanel(
+            destination: dest,
+            backend: widget.backend,
+            appState: widget.appState,
+            key: ValueKey<String>(dest.id),
+          ),
+        ),
+        _divider('fifo_${dest.id}', fallback: _kDefaultFifoColumnWidth),
+      ],
+      Expanded(
+        child: DetailPanel(
+          backend: widget.backend,
+          appState: widget.appState,
+          policyNotifier: demoPolicyNotifier,
+        ),
+      ),
+    ];
+  }
+
+  Widget _divider(String leftId, {required double fallback}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (d) => _resize(leftId, d.delta.dx, fallback),
+        child: Container(width: _kDividerWidth, color: DemoColors.border),
       ),
     );
   }

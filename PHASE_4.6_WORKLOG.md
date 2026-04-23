@@ -387,6 +387,14 @@ Test: `selectFifoRow` takes two args; updated the three call sites and added a `
 
 ---
 
+## Resizable columns + wider DETAIL (2026-04-23 — smoke feedback)
+
+Columns are now user-draggable. Defaults: MATERIALIZED 200px, EVENTS 280px, each FIFO column 260px; DETAIL is wrapped in `Expanded` so it auto-fills the remainder (default on a 1920px window: ~700px+). Between each fixed column a 5px white divider is a `MouseRegion(cursor: resizeColumn) + GestureDetector` — horizontal drag mutates the left column's width with a 80px minimum. Widths live in `_DemoAppState._widths` keyed by column id (`'materialized'`, `'events'`, `'fifo_<destination_id>'`), so adding a destination doesn't lose existing widths.
+
+`flutter analyze` clean, 69 tests still pass (the change is app.dart-only).
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.
