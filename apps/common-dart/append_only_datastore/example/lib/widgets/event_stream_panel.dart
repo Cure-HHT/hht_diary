@@ -61,8 +61,9 @@ class _EventStreamPanelState extends State<EventStreamPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Most-recent first: sort descending by sequenceNumber.
     final sorted = <StoredEvent>[..._events]
-      ..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
+      ..sort((a, b) => b.sequenceNumber.compareTo(a.sequenceNumber));
     return Container(
       decoration: BoxDecoration(color: DemoColors.bg, border: demoBorder),
       padding: const EdgeInsets.all(8),

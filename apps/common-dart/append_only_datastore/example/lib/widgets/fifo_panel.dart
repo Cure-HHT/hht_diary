@@ -402,24 +402,38 @@ class _FifoPanelState extends State<FifoPanel> {
   }
 
   Widget _rowList() {
-    final sorted = <Map<String, Object?>>[..._rows]
+    // Sort ascending by sequence_in_queue so the running cumulative
+    // event count is meaningful (events accumulated from queue start
+    // up to and including this row). Display reversed so most-recent
+    // is on top.
+    final asc = <Map<String, Object?>>[..._rows]
       ..sort(
         (a, b) => (a['sequence_in_queue'] as int? ?? 0).compareTo(
           b['sequence_in_queue'] as int? ?? 0,
         ),
       );
+    final cumulativeByEntryId = <String, int>{};
+    var running = 0;
+    for (final r in asc) {
+      final ids = r['event_ids'];
+      running += ids is List ? ids.length : 0;
+      cumulativeByEntryId[r['entry_id']! as String] = running;
+    }
+    final display = asc.reversed.toList();
     return ListView.builder(
-      itemCount: sorted.length,
+      itemCount: display.length,
       itemBuilder: (context, i) => _FifoRowTile(
-        row: sorted[i],
-        selected: widget.appState.selectedFifoRowId == sorted[i]['entry_id'],
+        row: display[i],
+        cumulativeEvents:
+            cumulativeByEntryId[display[i]['entry_id']! as String] ?? 0,
+        selected: widget.appState.selectedFifoRowId == display[i]['entry_id'],
         onTap: () =>
-            widget.appState.selectFifoRow(sorted[i]['entry_id'] as String?),
+            widget.appState.selectFifoRow(display[i]['entry_id'] as String?),
         onRehabilitate: () async {
           try {
             await rehabilitateExhaustedRow(
               widget.destination.id,
-              sorted[i]['entry_id']! as String,
+              display[i]['entry_id']! as String,
               backend: widget.backend,
             );
             _flashBanner('row rehabilitated');
@@ -436,12 +450,14 @@ class _FifoPanelState extends State<FifoPanel> {
 class _FifoRowTile extends StatelessWidget {
   const _FifoRowTile({
     required this.row,
+    required this.cumulativeEvents,
     required this.selected,
     required this.onTap,
     required this.onRehabilitate,
   });
 
   final Map<String, Object?> row;
+  final int cumulativeEvents;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onRehabilitate;
@@ -471,7 +487,8 @@ class _FifoRowTile extends StatelessWidget {
       color = DemoColors.fg;
     }
 
-    final label = '$prefix#$seq  events:$count  attempts:$attemptsLen';
+    final label =
+        '$prefix#$seq: events: $count ($cumulativeEvents)  attempts:$attemptsLen';
     return InkWell(
       onTap: onTap,
       child: Container(

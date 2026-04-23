@@ -61,8 +61,9 @@ class _MaterializedPanelState extends State<MaterializedPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Most-recent first: sort descending by updatedAt.
     final sorted = <DiaryEntry>[..._rows]
-      ..sort((a, b) => a.entryId.compareTo(b.entryId));
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return Container(
       decoration: BoxDecoration(color: DemoColors.bg, border: demoBorder),
       padding: const EdgeInsets.all(8),

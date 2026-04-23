@@ -367,6 +367,16 @@ Fix: `initState` adds `appState.addListener(_onAppState)`; `dispose` removes it;
 
 ---
 
+## UI tweak (2026-04-23 — smoke feedback)
+
+Three panels now render most-recent-on-top:
+
+- MATERIALIZED sorts descending by `DiaryEntry.updatedAt`.
+- EVENTS sorts descending by `StoredEvent.sequenceNumber`.
+- FIFO rows sort descending by `sequence_in_queue` for display; cumulative event counts are computed on an ascending pass first so each row's cumulative reflects "events shipped from queue start up through this row." Row label now reads `[state] #<seq>: events: <local> (<cumul>)  attempts:<n>` — e.g. `[SENT] #28: events: 2 (38)  attempts:1`. The cumulative number lets a reviewer read off queue-vs-event-log progress at a glance.
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.
