@@ -359,6 +359,14 @@ Fix: main.dart now reads `scheduleOf(id)` first and only calls `setStartDate` wh
 
 ---
 
+## TopActionBar listener fix (2026-04-23 — smoke)
+
+`[Complete]` / `[Delete]` appeared permanently disabled. Root cause: `TopActionBar` is a `StatefulWidget` but never subscribed to `appState`, so the `dim: widget.appState.selectedAggregateId == null` check was evaluated once at initial build (selection null → buttons dim) and never re-evaluated. `[Start]` calls `selectAggregate` correctly, but the bar didn't rebuild.
+
+Fix: `initState` adds `appState.addListener(_onAppState)`; `dispose` removes it; `_onAppState` does a no-arg `setState`. Same pattern as the other panels.
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.

@@ -37,11 +37,26 @@ class _TopActionBarState extends State<TopActionBar> {
   final Random _rng = Random();
 
   @override
+  void initState() {
+    super.initState();
+    // Subscribe so [Complete] / [Delete] enable when an aggregate is
+    // selected (via [Start] or by tapping a MATERIALIZED row) and
+    // disable again when selection clears.
+    widget.appState.addListener(_onAppState);
+  }
+
+  @override
   void dispose() {
+    widget.appState.removeListener(_onAppState);
     _title.dispose();
     _body.dispose();
     _mood.dispose();
     super.dispose();
+  }
+
+  void _onAppState() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   String _uuidish() {
