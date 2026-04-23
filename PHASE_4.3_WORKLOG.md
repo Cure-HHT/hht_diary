@@ -231,6 +231,20 @@ Test count: 354 → 355 (+1 new flush-on-expiry test; the other two were in-plac
 
 ---
 
+## Task 12 — Historical replay on past startDate (REQ-d00129-D, REQ-d00130)
+
+### Status
+- `lib/src/sync/historical_replay.dart` exposes `runHistoricalReplay(txn, destination, schedule, backend)`: runs inside the caller's transaction, walks `findAllEventsInTxn` past `fill_cursor`, filters by `destination.filter` and `[startDate, min(endDate, now())]`, assembles greedy batches via `canAddToBatch`, transforms each, enqueues via `enqueueFifoTxn`, and advances `fill_cursor` to the last in-window seq (or past the non-matching tail).
+- Unlike live `fillBatch`, replay iterates all in-window candidates in one pass and does NOT honor `maxAccumulateTime` — the final trailing batch flushes even when single-event.
+- `DestinationRegistry.setStartDate` opens a transaction that does `writeScheduleTxn` and, when `startDate <= now`, `runHistoricalReplay`. Future-dated `startDate` skips replay per REQ-d00129-E. In-memory cache update moved post-commit so rollbacks don't desync.
+- `flutter test` inside `append_only_datastore` passes 358 tests (+3 new tests for REQ-d00129-D, REQ-d00129-E, REQ-d00130-C). `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
