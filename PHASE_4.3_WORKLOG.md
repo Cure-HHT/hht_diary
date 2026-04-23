@@ -253,6 +253,20 @@ Subagent review of commit `9add0114` returned one HIGH, two MEDIUM, one NIT. No 
 
 ---
 
+## Task 13 — drain continues past exhausted (REQ-d00124-D+E)
+
+### Status
+- `drain`'s switch cases for `SendPermanent` and `SendTransient`-at-max now `continue` the loop rather than `return`. Combined with Task 8's `readFifoHead` skip-exhausted behavior, drain proceeds to the next pending row in sequence order instead of wedging on an exhausted head. `SendTransient` below the attempt cap still returns so the backoff applies on the next tick.
+- `spec/dev-event-sourcing-mobile.md` REQ-d00124-A/D/E/H and the Rationale are revised to describe the continue-past-exhausted semantics; `elspais fix` updated REQ-d00124's content hash.
+- Drain tests rewritten in-place (4 test bodies updated, no tests added or removed): REQ-d00124-D and E now enqueue two rows and assert drain continues past the first; REQ-d00124-G script extended to 3 entries; REQ-d00124-H reframed from "wedge prevents later attempts" to FIFO ordering across send calls with JSON decode on `wirePayload.bytes`.
+- `flutter test` inside `append_only_datastore` passes 358 tests. `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
