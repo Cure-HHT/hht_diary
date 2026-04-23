@@ -717,7 +717,7 @@ G. Every `StorageException` instance SHALL preserve the original `cause: Object`
 *End* *Storage Failure Taxonomy* | **Hash**: 59ed82f7
 ---
 
-# REQ-d00144: tombstoneAndRefill Operation
+## REQ-d00144: tombstoneAndRefill Operation
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
 
