@@ -77,6 +77,21 @@ Subagent review of commit `ff1b37b9` returned one HIGH, one MEDIUM, one NIT. No 
 
 ---
 
+## Task 5 — markFinal/appendAttempt tolerate missing (REQ-d00127)
+
+### Status
+- `SembastBackend.markFinal` and `SembastBackend.appendAttempt` no-op cleanly when the targeted FIFO row is absent, whether because the destination's store has never had writes (sembast lazy-creates stores on first write, so "unknown destination" manifests as `records.isEmpty`) or the row was deleted by a concurrent `unjamDestination` / `deleteDestination`.
+- Both methods log at warning level via a package-level `_defaultLogSink` that writes through `developer.log`. A `debugLogSink` test hook on the backend captures the log in a `List<String>.add` closure without touching global logger state.
+- The one-way `pending → sent|exhausted` rule in `markFinal` is retained: re-transitioning an already-terminal entry still throws `StateError`. Only the missing-row branch changed.
+- Abstract `StorageBackend` documents the race this closes inline on the contract's doc comments.
+- `flutter test` inside `append_only_datastore` passes 310 tests. `dart analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
