@@ -311,6 +311,22 @@ Test count: 372 → 373 (+1).
 
 ---
 
+## Task 16 — EntryService.record (REQ-d00133)
+
+### Status
+- `lib/src/entry_service.dart` exposes `EntryService.record(...)`: validates `eventType` and `entryType` before any I/O, detects duplicate content via canonical hash (no-op), and assembles the event atomically. Inside one `StorageBackend.transaction`: reserves the sequence number, reads the previous event's hash, stamps `event_id` + `previous_event_hash` + `event_hash` + first `ProvenanceEntry`, appends the event, and runs the materializer (which upserts `diary_entries`). Returns the stamped `StoredEvent?` — null signals a no-op duplicate.
+- Per-destination FIFO fan-out is explicitly NOT performed inside the transaction (REQ-d00133-D revised per design §6.8); `fillBatch` promotes events on the next `syncCycle` tick.
+- After a successful write, `EntryService.record` invokes its injected `SyncCycleTrigger` fire-and-forget via `unawaited`.
+- Minimal `EntryTypeRegistry` (register / isRegistered / byId / all) lives in `lib/src/entry_type_registry.dart`; Task 17 adds any further polish.
+- `StoredEvent.softwareVersion` is a new optional top-level field (default `''`) so the ~20 legacy construction sites don't need cascading updates; `EntryService` is the required-in-practice write path per REQ-d00118-C's deferred-enforcement clause.
+- `flutter test` inside `append_only_datastore` passes 382 tests (+9 new, one per REQ-d00133-A..I). `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
