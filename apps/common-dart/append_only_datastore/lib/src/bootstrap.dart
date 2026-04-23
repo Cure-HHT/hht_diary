@@ -19,6 +19,14 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// at startup rather than rendering UI on top of a half-initialized
 /// datastore (REQ-d00134-D).
 ///
+/// Destinations are registered sequentially rather than via
+/// `Future.wait`. Sequential iteration causes the first id collision
+/// (or any backend exception) to throw immediately, preserving the
+/// fail-fast guarantee in REQ-d00134-D. `Future.wait` would race every
+/// `addDestination` to completion before propagating the first error
+/// and could persist schedule rows for valid destinations that follow
+/// the collision in source order.
+///
 /// The returned `DestinationRegistry` remains open to subsequent
 /// runtime `addDestination` / `setStartDate` / `setEndDate` calls per
 /// REQ-d00129; bootstrap is the *initial* registration pass, not a

@@ -352,6 +352,29 @@ Subagent review of commit `be7301df` returned three HIGH findings.
 
 ---
 
+## Task 18 — bootstrapAppendOnlyDatastore (REQ-d00134)
+
+### Status
+- `lib/src/bootstrap.dart` exposes `bootstrapAppendOnlyDatastore({backend, entryTypes, destinations})` returning `Future<(EntryTypeRegistry, DestinationRegistry)>`. Types are registered first (REQ-d00134-B), then destinations are registered sequentially via `DestinationRegistry.addDestination` (REQ-d00134-C). Sequential iteration preserves the fail-fast guarantee in REQ-d00134-D — the first id collision throws immediately and bootstrap does not proceed; `Future.wait` would race every backend read to completion before propagating the first error.
+- `bootstrapAppendOnlyDatastore` is exported from the public barrel `package:append_only_datastore/append_only_datastore.dart`.
+- `flutter test` inside `append_only_datastore` passes 394 tests (+5 new bootstrap tests). `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+Subagent review of commit `ce915f31` returned one HIGH, two MEDIUM, one NIT. No CRITICAL.
+
+**Addressed:**
+- **HIGH — REQ-d00134-B test did not actually prove ordering.** Original test asserted on the type registry *after* bootstrap returned (the closure captured a future-assigned variable; the assertion ran post-await on the final state). Rewrote with two real ordering proofs: (1) the duplicate-type-id failure-fast test asserts no destination schedule was persisted, proving the type loop ran before the destination loop; (2) a new `_ThrowOnIdAccess` destination subclass aborts the destination loop at its first iteration, then a second bootstrap call confirms the type-registration path is unaffected.
+- **MEDIUM — sequential-vs-parallel rationale undocumented.** Added a paragraph to `bootstrap.dart`'s doc comment explaining why sequential iteration is mandatory (preserves fail-fast under REQ-d00134-D; `Future.wait` would persist schedule rows for valid destinations beyond the colliding id before the throw propagates). Added a `REQ-d00134-D: id collision after a successful first registration leaves the first destination persisted` test that pins the sequential semantics so a future "optimization" that switched to `Future.wait` would fail this test.
+- **NIT — test imports bypassed the public barrel.** Switched `bootstrap_test.dart` from `package:append_only_datastore/src/...` to `package:append_only_datastore/append_only_datastore.dart` so the test exercises the public surface bootstrap is meant to be the single entry point of.
+
+**Not addressed:**
+- **MEDIUM — `SembastBackend` exported from public barrel is a coupling smell.** Pre-existing condition; not introduced or worsened by this commit. Refactoring the public-barrel surface is out of scope for Phase 4.3 Task 18.
+
+Test count: 393 → 394 (+1; the broken `_RegistrySnapshotting` test was replaced rather than extended, and the sequential-registration test is the +1).
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
