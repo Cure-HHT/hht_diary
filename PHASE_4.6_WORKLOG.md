@@ -125,6 +125,20 @@ Task 9 template in the plan will be adjusted to this shape during implementation
 
 ---
 
+## Task 4: `styles.dart` — palette tripwire
+
+`lib/widgets/styles.dart` declares three static-only surfaces:
+
+- `DemoColors` — 12 `static const Color` fields covering the design §7.4 palette (bg, fg, accent, sent, pending, retrying, exhausted, selected, border; action-button red/green/blue).
+- `DemoText` — `bodyFontSize = 20.0`, `headerFontSize = 24.0`, `fontFamilyMonospace = 'monospace'`, plus two `static const TextStyle`s (`body` white on bg; `header` accent-yellow).
+- `demoBorder` — `final Border` via `Border.all(color: DemoColors.border, width: 3.0)` — rectangular, 3px white, same on all four sides.
+
+`test/styles_test.dart` — 19 tripwire tests asserting every hex, both font sizes (header within inclusive [24, 28]), both TextStyles' fontSize + fontFamily round-trips, and the per-side Border width+color. Each group header cites "design §7.4 palette lock".
+
+**Final state**: example — 19 tests pass; `flutter analyze` clean.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
