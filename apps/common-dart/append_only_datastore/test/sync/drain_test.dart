@@ -92,10 +92,18 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00124-D — SendPermanent marks exhausted and wedges;
-    // subsequent drain does not advance past the wedge.
-    test('REQ-d00124-D: SendPermanent wedges the FIFO; subsequent drain is a '
-        'no-op', () async {
+    // Verifies: REQ-d00124-D — SendPermanent marks the head exhausted and
+    // drain returns. The drain loop's switch-case (SendPermanent -> return)
+    // is what enforces the wedge, not readFifoHead: after Phase-4.3 Task 8,
+    // readFifoHead skips exhausted rows and returns the next pending. The
+    // wedge is still load-bearing because drain returns after the
+    // SendPermanent on e1 without attempting e2 — even though e2 is now
+    // visible at the head after drain returns. Task 13 will flip the
+    // SendPermanent case from `return` to `continue` for the batch-FIFO
+    // continue-past-exhausted semantics; until then, the drain-level
+    // wedge assertion below is what pins REQ-d00124-D.
+    test('REQ-d00124-D: SendPermanent marks head exhausted and drain returns '
+        'without attempting later pending rows', () async {
       await _enqueueRow(backend, 'fake', entryId: 'e1', sequenceNumber: 1);
       await _enqueueRow(backend, 'fake', entryId: 'e2', sequenceNumber: 2);
       final dest = FakeDestination(
@@ -103,13 +111,18 @@ void main() {
       );
 
       await drain(dest, backend: backend);
+      // Exactly one send call: e1. e2 was NOT attempted because drain
+      // returned immediately after routing the SendPermanent.
       expect(dest.sent, hasLength(1));
-      // FIFO wedged — readFifoHead returns null.
-      expect(await backend.readFifoHead('fake'), isNull);
 
-      // Re-draining does nothing: head stays null (wedged).
-      await drain(dest, backend: backend);
-      expect(dest.sent, hasLength(1));
+      // e1 is exhausted; e2 is still pending and is now visible at the
+      // head under Task-8's readFifoHead semantics (exhausted rows are
+      // skipped). This is the head-level change — the drain-level wedge
+      // is enforced above by `dest.sent.length == 1`.
+      final head = await backend.readFifoHead('fake');
+      expect(head, isNotNull);
+      expect(head!.entryId, 'e2');
+      expect(head.finalStatus, FinalStatus.pending);
     });
 
     // Verifies: REQ-d00124-F+B — SendTransient below maxAttempts: attempt

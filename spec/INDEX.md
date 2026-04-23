@@ -317,7 +317,7 @@
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | 632e4a22 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | be13f13e |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 1be73b3e |
-| REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 817fc56b |
+| REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 4d863265 |
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract          | dev-event-sourcing-mobile.md   | 03bfd328 |
 | REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 8ab70c79 |
 | REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | bee6ba5e |

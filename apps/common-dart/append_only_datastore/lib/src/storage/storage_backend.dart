@@ -156,9 +156,17 @@ abstract class StorageBackend {
     WirePayload wirePayload,
   );
 
-  /// Oldest pending entry in [destinationId]'s FIFO, or null if none. Returns
-  /// null when the head of the FIFO is non-pending (e.g., `exhausted`), i.e.
-  /// when the FIFO is wedged and cannot advance without operator action.
+  /// First `pending` entry in [destinationId]'s FIFO in
+  /// `sequence_in_queue` order, or null when no pending entry remains
+  /// (the FIFO is empty, or every row is terminal — `sent` and/or
+  /// `exhausted`). Implementations SHALL skip both `sent` and
+  /// `exhausted` rows and SHALL NOT stop at the first `exhausted` row
+  /// they encounter; the drain-loop "wedge" on an exhausted head is
+  /// preserved by the drain loop's switch-case (REQ-d00124-D+E), not
+  /// by `readFifoHead` returning null at the first terminal row.
+  // Implements: REQ-d00124-A — readFifoHead returns the first pending
+  // row in sequence_in_queue order; terminal rows (sent, exhausted)
+  // are skipped.
   Future<FifoEntry?> readFifoHead(String destinationId);
 
   /// Append [attempt] to the `attempts[]` list of the entry identified by

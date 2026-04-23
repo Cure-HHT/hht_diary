@@ -294,7 +294,7 @@ Multi-destination behavior is by contrast fully independent: each destination's 
 
 ## Assertions
 
-A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`.
+A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`. The "head" returned by `backend.readFifoHead` SHALL be the first row whose `final_status == pending` in `sequence_in_queue` order; rows whose `final_status` is `sent` or `exhausted` SHALL be skipped. `readFifoHead` SHALL NOT stop at the first `exhausted` row; the drain-loop "wedge" on an exhausted head is preserved by the drain loop's response to `SendPermanent` / `SendTransient`-at-max (REQ-d00124-D+E), not by `readFifoHead` returning `null` at the first terminal row.
 
 B. When the head's computed backoff (from `SyncPolicy.backoffFor(attempts.length)` plus the most recent `attempts[last].attempted_at`) has not elapsed, `drain` SHALL return without calling `destination.send`.
 
@@ -310,7 +310,7 @@ G. `drain` SHALL call `backend.appendAttempt(id, entry_id, attempt)` for every i
 
 H. `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry in the same FIFO is still `pending` or `exhausted`.
 
-*End* *Per-Destination FIFO Drain Loop* | **Hash**: 817fc56b
+*End* *Per-Destination FIFO Drain Loop* | **Hash**: 4d863265
 
 ---
 

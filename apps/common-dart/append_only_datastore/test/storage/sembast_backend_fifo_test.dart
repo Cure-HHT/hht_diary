@@ -256,27 +256,64 @@ void main() {
       expect(head?.entryId, 'e2');
     });
 
-    test(
-      'after markFinal exhausted, readFifoHead returns null (wedged)',
-      () async {
-        await enqueueSingle(
-          backend,
-          'primary',
-          eventId: 'e1',
-          sequenceNumber: 1,
-        );
-        await enqueueSingle(
-          backend,
-          'primary',
-          eventId: 'e2',
-          sequenceNumber: 2,
-        );
+    // Verifies: REQ-d00124-A — after Phase-4.3 Task 8, an exhausted row at
+    // the head is SKIPPED; readFifoHead returns the next pending row. The
+    // drain-loop "wedge" behavior (SendPermanent / SendTransient-at-max
+    // stops drain) is preserved by drain.dart's switch-case, not by
+    // readFifoHead returning null. This test pairs with the "no pending
+    // rows remain" variant below.
+    test('REQ-d00124-A: readFifoHead skips an exhausted head and returns the '
+        'next pending row', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
 
-        await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e1', FinalStatus.exhausted);
 
-        expect(await backend.readFifoHead('primary'), isNull);
-      },
-    );
+      final head = await backend.readFifoHead('primary');
+      expect(head, isNotNull);
+      expect(head!.entryId, 'e2');
+      expect(head.finalStatus, FinalStatus.pending);
+    });
+
+    // Verifies: REQ-d00124-A — after Phase-4.3 Task 8, when every row is
+    // terminal (mix of sent / exhausted) and no pending row remains,
+    // readFifoHead returns null. This is the "FIFO exhausted of work"
+    // signal to drain.
+    test('REQ-d00124-A: readFifoHead returns null when no pending rows remain '
+        '(only exhausted and sent rows present)', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
+
+      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', 'e2', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e3', FinalStatus.sent);
+
+      expect(await backend.readFifoHead('primary'), isNull);
+    });
+
+    // Verifies: REQ-d00124-A — readFifoHead skips a mix of sent and
+    // exhausted rows in sequence_in_queue order and returns the first
+    // pending row it encounters. Pinpoints "skip past any terminal row,
+    // not just the first one" so a future regression that special-cased
+    // only the head position would be caught.
+    test('REQ-d00124-A: readFifoHead skips a run of mixed terminal rows and '
+        'returns the first pending in sequence_in_queue order', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
+      await enqueueSingle(backend, 'primary', eventId: 'e4', sequenceNumber: 4);
+
+      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', 'e2', FinalStatus.exhausted);
+      await backend.markFinal('primary', 'e3', FinalStatus.sent);
+      // e4 is left pending.
+
+      final head = await backend.readFifoHead('primary');
+      expect(head, isNotNull);
+      expect(head!.entryId, 'e4');
+      expect(head.finalStatus, FinalStatus.pending);
+    });
 
     // Verifies: REQ-d00127-A — markFinal on a missing row is a no-op, does
     // NOT throw. Closes the drain/unjam + drain/delete race (design §6.6):

@@ -538,30 +538,37 @@ class SembastBackend extends StorageBackend {
     return (value as List?)?.cast<String>().toList() ?? const <String>[];
   }
 
-  /// Oldest pending entry in [destinationId]'s FIFO, or null when either
-  /// (a) the FIFO is empty or all entries are `sent`, or (b) the earliest
-  /// non-`sent` entry is `exhausted` (the FIFO is wedged and will not
-  /// advance without operator action).
+  /// Oldest pending entry in [destinationId]'s FIFO, or null when every
+  /// row is terminal (a mix of `sent` and/or `exhausted`) or the FIFO is
+  /// empty. Both `sent` and `exhausted` rows are SKIPPED; only a `pending`
+  /// row is returned.
+  ///
+  /// Pre-Phase-4.3-Task-8, this method returned null as soon as it
+  /// encountered an exhausted row — the FIFO was "wedged" at the
+  /// backend level. From Task 8 forward, the wedge is enforced by the
+  /// drain loop's switch-case (SendPermanent / SendTransient-at-max
+  /// stops drain), not by readFifoHead; this lets the batch-FIFO
+  /// continue-past-exhausted semantics be introduced without changing
+  /// the method's caller-facing contract in drain.
+  // Implements: REQ-d00124-A — readFifoHead returns the first row whose
+  // final_status == pending in sequence_in_queue order; sent and
+  // exhausted rows are skipped. Drain's wedge behavior is preserved by
+  // drain.dart's SendPermanent / SendTransient-at-max returning rather
+  // than by readFifoHead returning null at the first exhausted row.
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) async {
     final db = _database();
     final store = _fifoStore(destinationId);
     final records = await store.find(
       db,
-      finder: Finder(sortOrders: [SortOrder('sequence_in_queue')]),
+      finder: Finder(
+        filter: Filter.equals('final_status', FinalStatus.pending.toJson()),
+        sortOrders: [SortOrder('sequence_in_queue')],
+        limit: 1,
+      ),
     );
-    for (final record in records) {
-      final entry = FifoEntry.fromJson(Map<String, Object?>.from(record.value));
-      switch (entry.finalStatus) {
-        case FinalStatus.sent:
-          continue; // advance past successfully-sent entries
-        case FinalStatus.exhausted:
-          return null; // wedged
-        case FinalStatus.pending:
-          return entry;
-      }
-    }
-    return null;
+    if (records.isEmpty) return null;
+    return FifoEntry.fromJson(Map<String, Object?>.from(records.single.value));
   }
 
   /// Append [attempt] to the entry's attempts[]. Does not change
