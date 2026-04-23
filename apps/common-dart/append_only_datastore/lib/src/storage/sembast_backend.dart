@@ -261,6 +261,51 @@ class SembastBackend extends StorageBackend {
         .put(t._sembastTxn, version);
   }
 
+  static String _fillCursorKey(String destinationId) =>
+      'fill_cursor_$destinationId';
+
+  /// Read the per-destination fill cursor. Returns -1 when the key is absent
+  /// (no row has yet been enqueued for this destination). Non-transactional.
+  // Implements: REQ-d00128-G — per-destination fill cursor read, -1 sentinel.
+  @override
+  Future<int> readFillCursor(String destinationId) async {
+    final db = _database();
+    final value = await _backendStateStore
+        .record(_fillCursorKey(destinationId))
+        .get(db);
+    return (value as int?) ?? -1;
+  }
+
+  /// Write the per-destination fill cursor inside its own atomic
+  /// transaction.
+  // Implements: REQ-d00128-G — per-destination fill cursor write
+  // (standalone variant; opens its own transaction).
+  @override
+  Future<void> writeFillCursor(String destinationId, int sequenceNumber) async {
+    await _database().transaction((sembastTxn) async {
+      await _backendStateStore
+          .record(_fillCursorKey(destinationId))
+          .put(sembastTxn, sequenceNumber);
+    });
+  }
+
+  /// Write the per-destination fill cursor inside [txn] so the advance is
+  /// co-atomic with the surrounding transaction. Rolls back with the rest
+  /// of the transaction body on a throw.
+  // Implements: REQ-d00128-G — per-destination fill cursor write
+  // (transactional variant; participates in surrounding atomicity).
+  @override
+  Future<void> writeFillCursorTxn(
+    Txn txn,
+    String destinationId,
+    int sequenceNumber,
+  ) async {
+    final t = _requireValidTxn(txn);
+    await _backendStateStore
+        .record(_fillCursorKey(destinationId))
+        .put(t._sembastTxn, sequenceNumber);
+  }
+
   // -------- diary_entries --------
 
   /// Whole-row replace into `diary_entries` keyed on `entry.entryId`

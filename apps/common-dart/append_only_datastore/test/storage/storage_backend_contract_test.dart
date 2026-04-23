@@ -287,6 +287,18 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<void> writeSchemaVersion(Txn txn, int version) =>
       throw UnimplementedError();
+  @override
+  Future<int> readFillCursor(String destinationId) =>
+      throw UnimplementedError();
+  @override
+  Future<void> writeFillCursor(String destinationId, int sequenceNumber) =>
+      throw UnimplementedError();
+  @override
+  Future<void> writeFillCursorTxn(
+    Txn txn,
+    String destinationId,
+    int sequenceNumber,
+  ) => throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {

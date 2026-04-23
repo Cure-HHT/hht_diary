@@ -516,5 +516,75 @@ void main() {
 
       expect(logs, isEmpty);
     });
+
+    // -------- fill_cursor (REQ-d00128-G) --------
+
+    // Verifies: REQ-d00128-G — readFillCursor returns -1 when no cursor has
+    // ever been written for the destination, signalling "no row has yet been
+    // enqueued into this FIFO".
+    test('REQ-d00128-G: readFillCursor returns -1 when unset', () async {
+      expect(await backend.readFillCursor('primary'), -1);
+    });
+
+    // Verifies: REQ-d00128-G — writeFillCursor persists the value under
+    // backend_state/fill_cursor_<destId>; readFillCursor observes it.
+    test(
+      'REQ-d00128-G: writeFillCursor then readFillCursor round-trips',
+      () async {
+        await backend.writeFillCursor('primary', 42);
+        expect(await backend.readFillCursor('primary'), 42);
+
+        // A second write replaces the prior value (monotonic advance is
+        // caller policy; the backend contract just stores what it's given).
+        await backend.writeFillCursor('primary', 100);
+        expect(await backend.readFillCursor('primary'), 100);
+      },
+    );
+
+    // Verifies: REQ-d00128-G — the transactional writeFillCursorTxn variant
+    // participates in the surrounding transaction's atomicity. If the
+    // transaction body throws, the cursor write rolls back with everything
+    // else and readFillCursor still returns the pre-transaction value.
+    test('REQ-d00128-G: writeFillCursor inside a transaction participates in '
+        'atomicity (rollback confirms cursor was NOT advanced)', () async {
+      // Pre-transaction baseline.
+      await backend.writeFillCursor('primary', 7);
+      expect(await backend.readFillCursor('primary'), 7);
+
+      await expectLater(
+        backend.transaction((txn) async {
+          await backend.writeFillCursorTxn(txn, 'primary', 99);
+          throw StateError('simulated failure');
+        }),
+        throwsStateError,
+      );
+
+      // Rollback: cursor is still the pre-transaction value (7), NOT 99.
+      expect(await backend.readFillCursor('primary'), 7);
+
+      // And on commit, the value IS advanced.
+      await backend.transaction((txn) async {
+        await backend.writeFillCursorTxn(txn, 'primary', 55);
+      });
+      expect(await backend.readFillCursor('primary'), 55);
+    });
+
+    // Verifies: REQ-d00128-G — the fill_cursor is per-destination; writes to
+    // one destination's cursor do NOT change another destination's cursor.
+    test('REQ-d00128-G: fill_cursor is per-destination (two destinations have '
+        'independent cursors)', () async {
+      expect(await backend.readFillCursor('primary'), -1);
+      expect(await backend.readFillCursor('secondary'), -1);
+
+      await backend.writeFillCursor('primary', 10);
+      expect(await backend.readFillCursor('primary'), 10);
+      // secondary is untouched.
+      expect(await backend.readFillCursor('secondary'), -1);
+
+      await backend.writeFillCursor('secondary', 22);
+      expect(await backend.readFillCursor('secondary'), 22);
+      // primary is unchanged.
+      expect(await backend.readFillCursor('primary'), 10);
+    });
   });
 }

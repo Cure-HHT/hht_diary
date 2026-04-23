@@ -215,4 +215,36 @@ abstract class StorageBackend {
   /// migration path at boot; typical production flow writes the version once
   /// and leaves it alone until a migration.
   Future<void> writeSchemaVersion(Txn txn, int version);
+
+  /// Read the per-destination fill cursor — the highest `sequence_number`
+  /// that has been promoted into any FIFO row (pending, sent, or exhausted)
+  /// for [destinationId]. Returns `-1` when no cursor value has yet been
+  /// written, i.e., no row has yet been enqueued for this destination.
+  ///
+  /// Persisted under `backend_state` key `fill_cursor_<destinationId>`.
+  /// Non-transactional, read-only.
+  // Implements: REQ-d00128-G — per-destination fill cursor persisted under
+  // backend_state/fill_cursor_<destinationId>, returns -1 when unset.
+  Future<int> readFillCursor(String destinationId);
+
+  /// Write the per-destination fill cursor for [destinationId] to
+  /// [sequenceNumber]. Opens its own atomic transaction. Callers that are
+  /// already composing a larger transaction (e.g., fill_batch) SHALL use
+  /// [writeFillCursorTxn] to keep the cursor advance co-atomic with the
+  /// enqueue / sequence-counter writes it accompanies.
+  // Implements: REQ-d00128-G — per-destination fill cursor write
+  // (standalone variant).
+  Future<void> writeFillCursor(String destinationId, int sequenceNumber);
+
+  /// Write the per-destination fill cursor for [destinationId] to
+  /// [sequenceNumber] inside [txn]. Participates in the surrounding
+  /// transaction's atomicity: on rollback the cursor reverts to its
+  /// pre-transaction value.
+  // Implements: REQ-d00128-G — per-destination fill cursor write
+  // (transactional variant; co-atomic with the surrounding transaction).
+  Future<void> writeFillCursorTxn(
+    Txn txn,
+    String destinationId,
+    int sequenceNumber,
+  );
 }
