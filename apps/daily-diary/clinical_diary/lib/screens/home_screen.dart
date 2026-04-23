@@ -487,6 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed ?? false) {
       await widget.enrollmentService.clearEnrollment();
+      await widget.taskService.clearAll();
       unawaited(_checkEnrollmentStatus());
 
       if (mounted) {
@@ -946,9 +947,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        const PopupMenuDivider(),
-                        // CUR-1055: Only show enroll option when not yet enrolled
-                        if (!_isEnrolled)
+                        // CUR-1055: Only show divider and enroll option when not yet enrolled
+                        if (!_isEnrolled) ...[
+                          const PopupMenuDivider(),
                           PopupMenuItem(
                             value: 'enroll',
                             child: Row(
@@ -959,6 +960,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
+                        ],
                       ];
                     },
                   ),
