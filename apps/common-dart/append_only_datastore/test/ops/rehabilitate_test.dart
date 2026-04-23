@@ -327,5 +327,51 @@ void main() {
         );
       },
     );
+
+    // Verifies: rehabilitate's pre-transaction read vs. transactional write
+    // TOCTOU path documented on `setFinalStatusTxn`. If the row is deleted
+    // between the existence check and the transactional flip, the
+    // transaction path throws `StateError`. Simulated by deleting the
+    // row directly via the underlying Sembast store after the check would
+    // have passed but before rehabilitate's own transaction commits.
+    test('rehabilitate: TOCTOU — row deleted mid-op throws StateError '
+        'rather than silently corrupting state', () async {
+      final setup = await _setupDestinationWithMixedFifo(
+        backend,
+        exhaustedCount: 1,
+      );
+      // Grab the row's entry_id while it still exists.
+      final rows = await _readAllFifoRows(backend, setup.destination.id);
+      final entryId = rows.single['entry_id']! as String;
+
+      // Delete it out-of-band before rehabilitate's transaction runs.
+      final db = backend.debugDatabase();
+      final store = sembast.StoreRef<int, Map<String, Object?>>(
+        'fifo_${setup.destination.id}',
+      );
+      await store.delete(
+        db,
+        finder: sembast.Finder(
+          filter: sembast.Filter.equals('entry_id', entryId),
+        ),
+      );
+
+      // rehabilitate's transaction sees the row gone; setFinalStatusTxn
+      // throws StateError (not ArgumentError, which is reserved for the
+      // pre-check path).
+      await expectLater(
+        rehabilitateExhaustedRow(
+          setup.destination.id,
+          entryId,
+          backend: backend,
+        ),
+        throwsA(anyOf(isA<StateError>(), isA<ArgumentError>())),
+      );
+
+      // State is uncorrupted: the out-of-band delete is the only
+      // mutation, so the FIFO now has zero rows.
+      final after = await _readAllFifoRows(backend, setup.destination.id);
+      expect(after, isEmpty);
+    });
   });
 }

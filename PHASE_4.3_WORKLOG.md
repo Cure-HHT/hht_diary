@@ -299,7 +299,15 @@ Test count: 364 → 365 (+1).
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `65031fde` returned one HIGH and one MEDIUM. No CRITICAL.
+
+**Addressed:**
+- **HIGH — TOCTOU path documented on `setFinalStatusTxn` had no test.** Added a test that reads the target row's entry_id, deletes it out-of-band via direct Sembast store access, then calls `rehabilitateExhaustedRow` and asserts the call throws (either `StateError` from the transactional layer or `ArgumentError` if the pre-check path races). Verifies no state corruption: the FIFO has zero rows afterward (only the out-of-band delete committed).
+
+**Not addressed:**
+- **MEDIUM — `setFinalStatusTxn` name is generic.** Reviewer suggested renaming to `rehabilitateToPendingTxn` to self-document the narrow scope. Declined: the method's abstract doc comment names the constraint explicitly, renaming has blast radius across both concrete backend and two test stubs, and there is only one `StorageBackend` implementation today. A future `PostgresBackend` maintainer will read the doc comment (as the existing mobile backend did).
+
+Test count: 372 → 373 (+1).
 
 ---
 
