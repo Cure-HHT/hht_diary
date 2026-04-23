@@ -34,6 +34,7 @@ Rejected alternatives:
 | 4 | [PLAN_PHASE4_sync.md](PLAN_PHASE4_sync.md) | `Destination`, `SubscriptionFilter`, `DestinationRegistry`, `FifoEntry`, `SyncPolicy`, drain loop, `sync_cycle()` (batch-FIFO + skip-exhausted per 2026-04-22 design) | Low — machinery in place, nothing calls it yet |
 | 4.3 | [PLAN_PHASE4.3_library.md](PLAN_PHASE4.3_library.md) | Dynamic destinations, batch-FIFO migration, unjam/rehabilitate, `EntryService`/`EntryTypeRegistry`/`bootstrap` pulled forward | Medium — large library phase |
 | 4.4 | [PLAN_PHASE4.4_library.md](PLAN_PHASE4.4_library.md) | Events lib extensions for portal use: `Initiator`, `flowToken`, `EventSecurityContext`, multi-materializer, `EventStore` rename | Medium — large library phase |
+| 4.5 | [PLAN_PHASE4.5_library.md](PLAN_PHASE4.5_library.md) | `StorageException` sealed hierarchy + `classifyStorageException` function (transient / permanent / corrupt) | Low — pure additive utility, no call sites in 4.5 |
 | 4.6 | [PLAN_PHASE4.6_demo.md](PLAN_PHASE4.6_demo.md) | Flutter Linux-desktop demo app at `append_only_datastore/example/` | Low — no production callers |
 | 5 | [PLAN_PHASE5_cutover.md](PLAN_PHASE5_cutover.md) | `PrimaryDiaryServerDestination`, `portalInboundPoll`, widget registry, triggers, screen updates, delete `NosebleedService` / `QuestionnaireService` (shrunk: EntryService/Registry/bootstrap moved to 4.3) | High — behavior change, old code removed |
 

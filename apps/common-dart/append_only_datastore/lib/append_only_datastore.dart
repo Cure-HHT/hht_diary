@@ -188,6 +188,13 @@ export 'src/storage/send_result.dart'
     show SendResult, SendOk, SendTransient, SendPermanent;
 export 'src/storage/source.dart' show Source;
 export 'src/storage/storage_backend.dart' show StorageBackend;
+export 'src/storage/storage_exception.dart'
+    show
+        StorageCorruptException,
+        StorageException,
+        StoragePermanentException,
+        StorageTransientException,
+        classifyStorageException;
 export 'src/storage/stored_event.dart' show StoredEvent;
 export 'src/storage/txn.dart' show Txn;
 

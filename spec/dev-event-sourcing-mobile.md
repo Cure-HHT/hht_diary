@@ -594,7 +594,7 @@ D. If any two destinations supplied to `bootstrapAppendOnlyDatastore` share an `
 
 ## REQ-d00135: Initiator Polymorphic Actor Type
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
 ## Assertions
 
@@ -615,7 +615,7 @@ F. `Initiator.fromJson` SHALL throw `FormatException` on an unknown `type` discr
 
 ## REQ-d00136: flowToken Correlation Field
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00013
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00013
 
 ## Assertions
 
@@ -634,7 +634,7 @@ E. `flow_token` SHALL be part of the `event_hash` inputs so tampering with the t
 
 ## REQ-d00137: EventSecurityContext Sidecar Store
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Assertions
 
@@ -655,7 +655,7 @@ F. `SecurityContextStore.queryAudit({initiator?, flowToken?, ipAddress?, from?, 
 
 ## REQ-d00138: Security Retention Policy and Redaction Audit
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Assertions
 
@@ -678,7 +678,7 @@ G. Redaction, compact, and purge events SHALL themselves be immutable `event_log
 
 ## REQ-d00139: No-Secrets Invariant on Event Data and flowToken
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Assertions
 
@@ -693,7 +693,7 @@ C. Hashes (SHA-256 or stronger, with sufficient input entropy to resist precompu
 
 ## REQ-d00140: Pluggable Materializer Contract
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p01006
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01006
 
 ## Assertions
 
@@ -714,7 +714,7 @@ F. `StorageBackend` SHALL expose generic view methods `readViewRowInTxn(txn, vie
 
 ## REQ-d00141: EventStore Append Contract
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
 ## Assertions
 
@@ -731,7 +731,7 @@ D. Neither `EventStore` nor `SecurityContextStore` SHALL gate access by user rol
 
 ## REQ-d00142: Source Stamping Provenance Identity
 
-**Level**: DEV | **Status**: Draft | **Implements**: REQ-p00004
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
 ## Assertions
 
@@ -742,4 +742,27 @@ B. `Source.hopId` SHALL enumerate at least `'mobile-device'` and `'portal-server
 C. `Source.softwareVersion` SHALL conform to the REQ-d00115-E format (`"<package-name>@<semver>[+<build>]"`); `Source` SHALL NOT validate this at runtime — the shape is a permanent caller obligation enforced downstream.
 
 *End* *Source Stamping Provenance Identity* | **Hash**: 65bc37d4
+---
+
+## REQ-d00143: Storage Failure Taxonomy
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00006
+
+## Assertions
+
+A. `StorageException` SHALL be a sealed class with exactly three subclasses: `StorageTransientException`, `StoragePermanentException`, `StorageCorruptException`; no other subclasses SHALL exist.
+
+B. A public function `classifyStorageException(Object error, StackTrace stack)` SHALL return a `StorageException` instance for any input; the function SHALL NOT throw.
+
+C. `dart:async` `TimeoutException` and backend-raised transient-failure signals (lock contention, concurrent modification, timeout) SHALL classify as `StorageTransientException`. Sembast's `DatabaseException` type does not currently surface such signals — they are handled internally — so the sembast-only classifier has no `DatabaseException` codes that map to this variant.
+
+D. `FormatException` raised during event-data JSON decode, hash-chain-mismatch signals (e.g. `FormatException` whose message contains `"hash chain"`), and sembast `DatabaseException.errInvalidCodec` (codec-decode failure, caller-visible indistinguishable from on-disk corruption) SHALL classify as `StorageCorruptException`.
+
+E. `dart:io` `FileSystemException` with permission or access errors; bare `StateError` / `ArgumentError` from the backend; and sembast `DatabaseException` lifecycle codes (`errBadParam`, `errDatabaseNotFound`, `errDatabaseClosed`) SHALL classify as `StoragePermanentException`.
+
+F. An unrecognized input type SHALL classify conservatively as `StoragePermanentException`; the classifier SHALL NOT fall through to `StorageTransientException` for unknown inputs.
+
+G. Every `StorageException` instance SHALL preserve the original `cause: Object` and `stackTrace: StackTrace` passed to its constructor; these fields SHALL be retrievable for diagnostic traceability.
+
+*End* *Storage Failure Taxonomy* | **Hash**: 59ed82f7
 ---

@@ -336,6 +336,7 @@
 | REQ-d00140 | Pluggable Materializer Contract                         | dev-event-sourcing-mobile.md   | fccf62b4 |
 | REQ-d00141 | EventStore Append Contract                              | dev-event-sourcing-mobile.md   | 6e0f8625 |
 | REQ-d00142 | Source Stamping Provenance Identity                     | dev-event-sourcing-mobile.md   | 65bc37d4 |
+| REQ-d00143 | Storage Failure Taxonomy                                | dev-event-sourcing-mobile.md   | 59ed82f7 |
 
 ## User Journeys
 
