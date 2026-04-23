@@ -506,6 +506,7 @@ void main() {
       expect(line, contains('ghost'));
       expect(line, contains('primary'));
       expect(line, contains('drain/unjam'));
+      expect(line, contains('drain/delete'));
     });
 
     test('REQ-d00127-C: appendAttempt emits a warning that names method, '
@@ -525,6 +526,7 @@ void main() {
       expect(line, contains('ghost'));
       expect(line, contains('primary'));
       expect(line, contains('drain/unjam'));
+      expect(line, contains('drain/delete'));
     });
 
     // Verifies: REQ-d00127-C — the warning is NOT emitted on a successful

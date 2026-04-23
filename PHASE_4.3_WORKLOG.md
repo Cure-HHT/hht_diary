@@ -88,7 +88,10 @@ Subagent review of commit `ff1b37b9` returned one HIGH, one MEDIUM, one NIT. No 
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `ce486bf0` returned one MEDIUM. No CRITICAL, no HIGH. Everything else clean.
+
+**Addressed:**
+- **MEDIUM — REQ-d00127-C tests only checked `drain/unjam` in the log line.** Added `expect(line, contains('drain/delete'))` to both tests so a future log-message trim that dropped either race name would be caught.
 
 ---
 
