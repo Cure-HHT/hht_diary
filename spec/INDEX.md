@@ -310,22 +310,20 @@
 | REQ-d00114 | Sync Request Device Binding Verification                | dev-portal-api.md              | b1a11feb |
 | REQ-d00115 | ProvenanceEntry Schema and Append Rules                 | dev-event-sourcing-mobile.md   | e129e6a9 |
 | REQ-d00116 | EntryTypeDefinition Schema                              | dev-event-sourcing-mobile.md   | 0bb2f928 |
-| REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | edab4770 |
+| REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | bb51d314 |
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
-| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 5b87a65d |
+| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 92a66dd9 |
 | REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 422f82d4 |
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | 632e4a22 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
-| REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 1be73b3e |
-| REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | c8938a28 |
+| REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 3efbe4b4 |
+| REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 92afab97 |
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract          | dev-event-sourcing-mobile.md   | 03bfd328 |
 | REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 8ab70c79 |
-| REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | bee6ba5e |
+| REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | 71b33da6 |
 | REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | d36f1dde |
 | REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | 17ee5d1c |
 | REQ-d00130 | Historical Replay on Past startDate                     | dev-event-sourcing-mobile.md   | 254b541a |
-| REQ-d00131 | Unjam Destination Operation                             | dev-event-sourcing-mobile.md   | 467a0d85 |
-| REQ-d00132 | Rehabilitate Exhausted FIFO Row                         | dev-event-sourcing-mobile.md   | 978d782e |
 | REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | f132a4cf |
 | REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 1f9f50c9 |
 | REQ-d00135 | Initiator Polymorphic Actor Type                        | dev-event-sourcing-mobile.md   | 0b5663cc |
@@ -337,6 +335,7 @@
 | REQ-d00141 | EventStore Append Contract                              | dev-event-sourcing-mobile.md   | 6e0f8625 |
 | REQ-d00142 | Source Stamping Provenance Identity                     | dev-event-sourcing-mobile.md   | 65bc37d4 |
 | REQ-d00143 | Storage Failure Taxonomy                                | dev-event-sourcing-mobile.md   | 59ed82f7 |
+| REQ-d00144 | tombstoneAndRefill Operation                            | dev-event-sourcing-mobile.md   | f812b27d |
 
 ## User Journeys
 

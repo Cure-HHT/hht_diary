@@ -96,11 +96,11 @@ C. `StorageBackend.appendEvent(txn, event)` SHALL write to the event log and adv
 
 D. `StorageBackend.upsertEntry(txn, entry)` SHALL replace the entire `diary_entries` row identified by the entry's identifier, performing a whole-row replace and not a partial field merge.
 
-E. `StorageBackend.enqueueFifo(txn, destination_id, fifo_entry)` SHALL append `fifo_entry` to destination `destination_id`'s FIFO with `final_status` equal to `"pending"` and with an empty `attempts[]` list.
+E. `StorageBackend.enqueueFifo(txn, destination_id, fifo_entry)` SHALL append `fifo_entry` to destination `destination_id`'s FIFO with `final_status` equal to `null` and with an empty `attempts[]` list.
 
 F. Key-value bookkeeping for the backend, including the sequence counter and schema version, SHALL be stored in a Sembast store named `backend_state`; the store name `metadata` SHALL NOT be used for this purpose.
 
-*End* *StorageBackend Transaction Contract* | **Hash**: edab4770
+*End* *StorageBackend Transaction Contract* | **Hash**: bb51d314
 
 ---
 
@@ -136,7 +136,7 @@ D. For events written through the `EntryService.record()` path the `aggregate_id
 
 Each synchronization destination — the primary diary server, optional analytics targets, future additions — receives events through its own strictly-ordered queue. Strict ordering is required because a destination that receives, for example, a nosebleed edit before the original creation event cannot reconstruct the intended state. Per-destination isolation is required so that one destination being unreachable does not stall sync to the others.
 
-A dedicated Sembast store per destination, keyed by integer insertion order, provides FIFO semantics cheaply. Entries never leave the store: once sent they are marked `"sent"` but retained as send-log records for FDA/ALCOA compliance, and once repeatedly failed they are marked `"exhausted"` and the head of the FIFO is permanently wedged. No bypass is allowed on an exhausted head because allowing it would silently violate ordering. This requirement fixes the FIFO entry shape and the three legal `final_status` values; the fuller operational semantics (attempt accumulation, backoff curve, `SyncPolicy` constants, drain loop behavior) are refined in a later phase.
+A dedicated Sembast store per destination, keyed by integer insertion order, provides FIFO semantics cheaply. A FIFO entry's `final_status` carries one of three terminal values plus the null pre-terminal state: `null` while the entry is still a drain candidate, `"sent"` once delivery succeeds, `"wedged"` once retry budget is exhausted or a permanent failure occurs, and `"tombstoned"` when the operator has declared the bundle undeliverable as-built via `tombstoneAndRefill` (REQ-d00144). Entries marked `sent`, `wedged`, or `tombstoned` are retained in the store as send-log records for FDA/ALCOA compliance. The head of the FIFO is wedged whenever its `final_status` is `wedged`; no bypass is allowed on a wedged head because allowing it would silently violate ordering. Recovery from a wedged head is specified in REQ-d00144.
 
 ## Assertions
 
@@ -144,11 +144,13 @@ A. Each registered synchronization destination SHALL have exactly one associated
 
 B. A FIFO entry SHALL carry the fields `entry_id`, `event_ids`, `event_id_range`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, and `sent_at`. The `event_ids` and `event_id_range` fields hold the batch contract defined in REQ-d00128; a single-event batch is a batch of length one.
 
-C. The `final_status` field SHALL take exactly one of the values `"pending"`, `"sent"`, or `"exhausted"`; no other values SHALL be legal.
+C. The `final_status` field SHALL be either `null` or one of the values `"sent"`, `"wedged"`, or `"tombstoned"`; `null` means "not yet terminal" and the three enum values are the complete set of terminal states. No other values SHALL be legal.
 
-D. Once a FIFO entry's `final_status` has transitioned out of `"pending"`, the entry SHALL NOT be deleted from its FIFO store; the entry SHALL be retained as a permanent send-log record.
+D. Once a FIFO entry's `final_status` is non-null, the entry SHALL NOT be deleted from its FIFO store; the entry SHALL be retained as a permanent send-log record.
 
-*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 5b87a65d
+E. `sequence_in_queue` SHALL be assigned monotonically at row insertion from a per-destination counter that SHALL NOT rewind and SHALL NOT reuse values when a row is deleted. A gap in `sequence_in_queue` between two surviving rows is the audit signal that one or more rows were deleted from the FIFO store (the only code path that deletes FIFO rows is REQ-d00144-C).
+
+*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 92a66dd9
 
 ---
 
@@ -222,11 +224,13 @@ I. The `diary_entries` store SHALL be treated as a cache derivable from `event_l
 
 ## Rationale
 
-REQ-p01001 mandates offline queuing and FIFO delivery, but it does not specify how the queue knows what to enqueue or how the bytes that leave the device are shaped. On mobile the answer is a `Destination` abstraction: one object per synchronization target (the primary diary server, a future analytics backend, etc.) that owns three responsibilities. First, it declares which events it cares about via a `SubscriptionFilter` — a deterministic predicate over `(entry_type, event_type, metadata tags)` — so that an event landing on the log is enqueued to exactly the destinations that want it, with no fan-out broadcast and no manual wiring. Second, it declares its wire format as an opaque string identifier (`"json-v1"`, `"proto-v2"`) and exposes a `transform(event)` method that turns an in-memory event into a `WirePayload` — the bytes, their content type, and the `transform_version` that produced them. Every downstream `ProvenanceEntry` carries that `transform_version`, so a receiver disputing a payload can always trace which version of which destination's transform produced it. Third, it exposes a `send(payload)` method whose return value categorizes the outcome as `SendOk`, `SendTransient` (retryable — HTTP 5xx, network error, timeout), or `SendPermanent` (not retryable — HTTP 4xx excluding rate-limits, schema mismatch). The drain loop reads that categorization and decides to mark-sent, back off and retry, or mark-exhausted and wedge the FIFO.
+REQ-p01001 mandates offline queuing and FIFO delivery, but it does not specify how the queue knows what to enqueue or how the bytes that leave the device are shaped. On mobile the answer is a `Destination` abstraction: one object per synchronization target (the primary diary server, a future analytics backend, etc.) that owns three responsibilities. First, it declares which events it cares about via a `SubscriptionFilter` — a deterministic predicate over `(entry_type, event_type, metadata tags)` — so that an event landing on the log is enqueued to exactly the destinations that want it, with no fan-out broadcast and no manual wiring. Second, it declares its wire format as an opaque string identifier (`"json-v1"`, `"proto-v2"`) and exposes a `transform(event)` method that turns an in-memory event into a `WirePayload` — the bytes, their content type, and the `transform_version` that produced them. Every downstream `ProvenanceEntry` carries that `transform_version`, so a receiver disputing a payload can always trace which version of which destination's transform produced it. Third, it exposes a `send(payload)` method whose return value categorizes the outcome as `SendOk`, `SendTransient` (retryable — HTTP 5xx, network error, timeout), or `SendPermanent` (not retryable — HTTP 4xx excluding rate-limits, schema mismatch). The drain loop reads that categorization and decides to mark-sent, back off and retry, or mark-wedged and halt the FIFO.
 
 Destinations are typically registered at app boot in a `DestinationRegistry`, but the registry stays open to runtime `addDestination` calls (REQ-d00129-A). The Phase-4 "freeze on first read" rule has been superseded by the REQ-d00129 dynamic lifecycle: uniqueness of destination `id` is enforced at `addDestination` time, and the `(startDate, endDate)` schedule attached to each registration controls when a destination actually accepts events. This lets a destination be brought online mid-study (e.g., a portal-audit destination added after enrollment) without the ordering violation the old freeze was guarding against — the schedule's `startDate` pins the exact point at which matching events start flowing, and past-start registrations trigger a deterministic historical replay (REQ-d00130) rather than a silent partial enqueue. The registry is bound to a `StorageBackend` at construction so schedule mutations (`setStartDate`, `setEndDate`) and destination deletions persist transactionally; tests construct one registry per test against an in-memory backend.
 
 This requirement defines the contract — what a `Destination` is obliged to expose and how the registry behaves. The actual FIFO drain loop (what happens when `send` is called) is specified in REQ-d00124; the retry timing curve is specified in REQ-d00123; the concrete `PrimaryDiaryServerDestination` that implements this contract against the real HTTP server is deferred to Phase 5.
+
+When a destination's backing sink must not be wedged by failures in an unrelated event category, register multiple `Destination` instances with disjoint `SubscriptionFilter`s against the same underlying sink rather than one destination filter-switching within a single FIFO. Each `Destination` owns its own FIFO and its own strict-order wedge; a wedge on one filter's events leaves the others draining normally. The library gives uniqueness of `destination.id` and per-destination `SubscriptionFilter` the structural support this pattern needs; no additional primitive is required.
 
 ## Assertions
 
@@ -256,7 +260,7 @@ G. The `DestinationRegistry` SHALL remain open to runtime `addDestination` calls
 
 REQ-p01001-E requires exponential backoff on failed synchronization attempts but deliberately leaves the curve shape, cap, jitter, and lifetime maximum unspecified — those are platform-level tuning decisions. On mobile the chosen curve is governed by two conflicting pressures. Too-frequent retries drain the battery, generate load against a diary server that is already signaling distress (503s, timeouts), and chew through the user's cellular data on entries that are not going to succeed in the next few minutes anyway. Too-slow retries starve pending entries of delivery attempts so that an entry that would have succeeded five minutes ago continues to sit in the FIFO for an hour, violating the reasonableness expectation of REQ-p00006 (Offline-First Data Entry) that sync "happens soon" when the device is online.
 
-The chosen curve: 60s initial backoff, ×5 multiplier per attempt, capped at 2h, ±10% jitter, 20 attempts maximum over approximately one week. Initial 60s is large enough that a transient server blip clears before the first retry; ×5 reaches the cap after four attempts so the curve spends most of its lifetime at the 2h cap rather than sprinting through dozens of short retries; ±10% jitter avoids the thundering-herd phenomenon where every device whose 10-minute backoff elapses at the same moment hits the server simultaneously. The 20-attempt cap puts a finite bound on the retry process — after approximately one week of failures the entry is marked `exhausted`, wedging the FIFO, which gates further drain attempts on that destination and raises a human-visible "sync failed" signal to the user per REQ-p01001-H.
+The chosen curve: 60s initial backoff, ×5 multiplier per attempt, capped at 2h, ±10% jitter, 20 attempts maximum over approximately one week. Initial 60s is large enough that a transient server blip clears before the first retry; ×5 reaches the cap after four attempts so the curve spends most of its lifetime at the 2h cap rather than sprinting through dozens of short retries; ±10% jitter avoids the thundering-herd phenomenon where every device whose 10-minute backoff elapses at the same moment hits the server simultaneously. The 20-attempt cap puts a finite bound on the retry process — after approximately one week of failures the entry is marked `wedged`, wedging the FIFO, which gates further drain attempts on that destination and raises a human-visible "sync failed" signal to the user per REQ-p01001-H.
 
 These constants are static module-level values, not runtime-configurable, because changing them mid-run would produce a user experience where a single entry's retry schedule mixed two different curves. Changing the curve requires a spec amendment and a coordinated app release. The values claimed here are from the design doc's §8.2 sync-policy table and carry the Phase-4 sign-off of design-review.
 
@@ -270,11 +274,11 @@ C. `SyncPolicy.maxBackoff` SHALL equal `Duration(hours: 2)`; computed backoff va
 
 D. `SyncPolicy.jitterFraction` SHALL equal `0.1`; each backoff SHALL be multiplied by `1 + uniform(-jitterFraction, +jitterFraction)` to avoid synchronized retry storms across devices.
 
-E. `SyncPolicy.maxAttempts` SHALL equal `20`; an entry that accumulates this many `attempts` on its log SHALL be marked `exhausted` on the next transient-failure drain step, wedging its FIFO.
+E. `SyncPolicy.maxAttempts` SHALL equal `20`; an entry that accumulates this many `attempts` on its log SHALL be marked `wedged` on the next transient-failure drain step, wedging its FIFO.
 
 F. `SyncPolicy.periodicInterval` SHALL equal `Duration(minutes: 15)` — the foreground sync-cycle cadence invoked from the Phase-5 trigger layer.
 
-*End* *SyncPolicy Retry Backoff Curve* | **Hash**: 1be73b3e
+*End* *SyncPolicy Retry Backoff Curve* | **Hash**: 3efbe4b4
 
 ---
 
@@ -286,31 +290,29 @@ F. `SyncPolicy.periodicInterval` SHALL equal `Duration(minutes: 15)` — the for
 
 Given the `Destination` contract (REQ-d00122) and the retry curve (REQ-d00123), the drain loop is the component that actually moves bytes. One invocation operates on one destination's FIFO, reads the head entry, decides whether to call `send()` based on backoff elapsed since the last attempt, routes the `SendResult`, and appends an `AttemptResult` to the entry's attempts log regardless of outcome. The attempts log is append-only — `SHALL record every call to destination.send` — because it is the audit trail that satisfies REQ-p01001-M (log failed synchronization events with detailed error messages) and supplies the timestamps the next backoff computation reads.
 
-The drain loop's most important property is strict FIFO order. Within a single drain pass, pending entries are attempted in `sequence_in_queue` order; an entry is attempted only after every earlier entry in the same FIFO has reached a terminal state (`sent` or `exhausted`). Specifically: on `SendPermanent` or on the Nth transient failure, the head entry is marked `exhausted` and the drain loop continues to the next pending row in the same invocation — `readFifoHead` (REQ-d00124-A) skips terminal rows and returns the next pending row, and the drain loop iterates back to that read. Exhausted rows remain in the store forever (entries are never deleted — REQ-d00119-D), preserving the audit trail of failed deliveries at their original sequence position, but they do not block later pending rows from being attempted. This "continue past exhausted" semantics preserves REQ-p01001-D (FIFO delivery order) because the order in which `destination.send` is invoked across pending rows still matches `sequence_in_queue` order; what changes is that a permanently-failed row no longer also halts delivery of every later row that happens to sit behind it.
+The drain loop's most important property is strict FIFO order. Within a destination's FIFO, `readFifoHead` returns the first row in `sequence_in_queue` order whose `final_status` is `null` (pre-terminal, a drain candidate) or `wedged` (terminal, blocking); rows whose `final_status` is `sent` or `tombstoned` are passable and are skipped. The two terminal-passable statuses are audit records for delivered payloads (`sent`) and for operator-declared-undeliverable bundles whose events have been re-queued under REQ-d00144 (`tombstoned`); neither blocks subsequent delivery. The one blocking terminal state is `wedged`: a row whose retry budget is exhausted or whose permanent-failure classification means it cannot be retried as-built. When `readFifoHead` returns a wedged row, `drain` halts without calling `destination.send`, satisfying REQ-p01001-D by refusing to ship a later bundle past an undelivered earlier one. Recovery from a wedged head runs through `tombstoneAndRefill` (REQ-d00144), which converts the wedged row to `tombstoned`, clears the pending trail, and rewinds `fill_cursor` so the covered events are re-queued in fresh bundles against the current transform and destination state.
 
-An exhausted row is the queue's record that a specific payload could not be delivered despite the full retry curve. It is surfaced to the user per REQ-p01001-H (synchronization UI) so the exhaustion is not a silent failure state; it is an escalation. Resolution of an exhausted row (manual re-enqueue or destination-side repair) is not automatic — but under continue-past-exhausted semantics, one exhausted row no longer blocks delivery of unrelated later rows in the same FIFO.
-
-Multi-destination behavior is independent by construction: each destination's FIFO has its own set of pending and exhausted rows, and one destination's exhausted rows do not affect drain on any other destination. That property falls out of invoking `drain` per-destination within `sync_cycle` (REQ-d00125).
+Multi-destination behavior is independent by construction: each destination's FIFO has its own wedged and passable rows, and one destination's wedge does not affect drain on any other destination. That property falls out of invoking `drain` per-destination within `sync_cycle` (REQ-d00125).
 
 ## Assertions
 
-A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`; when the head is absent `drain` SHALL return without calling `destination.send`. The "head" returned by `backend.readFifoHead` SHALL be the first row whose `final_status == pending` in `sequence_in_queue` order; rows whose `final_status` is `sent` or `exhausted` SHALL be skipped. `readFifoHead` SHALL NOT stop at the first `exhausted` row; exhausted rows remain in the store for audit (REQ-d00119-D) but do not block later pending rows from being read as the head.
+A. `drain(destination)` SHALL read the head of `fifo/{destination.id}` via `backend.readFifoHead(destination.id)`. `readFifoHead` SHALL return the first row in `sequence_in_queue` order whose `final_status` is `null` or `wedged`; rows whose `final_status` is `sent` or `tombstoned` SHALL be skipped. When the destination's FIFO has no such row, `readFifoHead` SHALL return `null` and `drain` SHALL return without calling `destination.send`.
 
 B. When the head's computed backoff (from `SyncPolicy.backoffFor(attempts.length)` plus the most recent `attempts[last].attempted_at`) has not elapsed, `drain` SHALL return without calling `destination.send`.
 
 C. On `SendOk`, `drain` SHALL mark the head entry `sent` via `backend.markFinal(id, entry_id, FinalStatus.sent)` and continue the loop to the next head entry.
 
-D. On `SendPermanent`, `drain` SHALL mark the head entry `exhausted` via `backend.markFinal(id, entry_id, FinalStatus.exhausted)` and CONTINUE to the next pending row in the same drain invocation; `readFifoHead` (REQ-d00124-A) skips the exhausted row on the next iteration and returns the next pending row in `sequence_in_queue` order. An exhausted row SHALL NOT block later pending rows from being attempted.
+D. On `SendPermanent`, `drain` SHALL mark the head entry `wedged` via `backend.markFinal(id, entry_id, FinalStatus.wedged)`.
 
-E. On `SendTransient` where `attempts.length + 1 >= SyncPolicy.maxAttempts`, `drain` SHALL mark the head entry `exhausted` and CONTINUE to the next pending row, with the same continue-past-exhausted semantics as D.
+E. On `SendTransient` where `attempts.length + 1 >= SyncPolicy.maxAttempts`, `drain` SHALL mark the head entry `wedged` via `backend.markFinal(id, entry_id, FinalStatus.wedged)`.
 
-F. On `SendTransient` below the attempt limit, `drain` SHALL append the resulting `AttemptResult` via `backend.appendAttempt(id, entry_id, attempt)` and return; the entry remains `pending`; the next backoff interval SHALL apply to the next `drain` trigger.
+F. On `SendTransient` below the attempt limit, `drain` SHALL append the resulting `AttemptResult` via `backend.appendAttempt(id, entry_id, attempt)` and return; the entry's `final_status` remains `null`; the next backoff interval SHALL apply to the next `drain` trigger.
 
 G. `drain` SHALL call `backend.appendAttempt(id, entry_id, attempt)` for every invocation of `destination.send`, regardless of outcome; the attempts log is append-only and SHALL record every send attempt made against an entry.
 
-H. `drain` SHALL preserve strict FIFO order within a destination: no entry SHALL be attempted while an earlier entry in the same FIFO is still `pending`. Exhausted rows at earlier `sequence_in_queue` positions SHALL be skipped in-place (they remain in the store for audit) and SHALL NOT block later pending rows from being attempted.
+H. `drain` SHALL preserve strict FIFO order within a destination: terminal-passable statuses are `{sent, tombstoned}`; `wedged` is the sole blocking terminal state. `drain` SHALL return without calling `destination.send` whenever `readFifoHead` returns a row whose `final_status` is `wedged`. Recovery from a wedged head requires `tombstoneAndRefill` (REQ-d00144).
 
-*End* *Per-Destination FIFO Drain Loop* | **Hash**: c8938a28
+*End* *Per-Destination FIFO Drain Loop* | **Hash**: 92afab97
 
 ---
 
@@ -370,7 +372,7 @@ C. Phase-4 call sites that referenced `SyncPolicy.initialBackoff` (and siblings)
 
 ## Rationale
 
-The drain loop (REQ-d00124) calls `destination.send(wirePayload)` outside any storage transaction because `send()` is a network round-trip that can take seconds. Immediately after `send()` returns, `drain` opens a transaction to append an `AttemptResult` and, if the result is terminal, to mark the row `sent` or `exhausted`. In the interval between the `send` returning and that transaction opening, a concurrent user-initiated operation — `unjamDestination` deleting pending rows, or `deleteDestination` destroying the whole FIFO store — can remove the row `drain` is about to write to. Without tolerance for missing rows, the subsequent `markFinal` or `appendAttempt` throws, drain abends with an error that has no operational meaning (the work was done; the user asked for the row to be gone), and the caller sees a stack trace for what is the correct outcome.
+The drain loop (REQ-d00124) calls `destination.send(wirePayload)` outside any storage transaction because `send()` is a network round-trip that can take seconds. Immediately after `send()` returns, `drain` opens a transaction to append an `AttemptResult` and, if the result is terminal, to mark the row `sent` or `wedged`. In the interval between the `send` returning and that transaction opening, a concurrent user-initiated operation — `tombstoneAndRefill` clearing the pending trail and rewinding the cursor, or `deleteDestination` destroying the whole FIFO store — can remove the row `drain` is about to write to. Without tolerance for missing rows, the subsequent `markFinal` or `appendAttempt` throws, drain abends with an error that has no operational meaning (the work was done; the user asked for the row to be gone), and the caller sees a stack trace for what is the correct outcome.
 
 The resolution is narrowly scoped: both operations no-op cleanly on a missing row or missing FIFO store, emit a diagnostic `warning`-level log line naming the race they close, and return without throwing. This is not a license to silently drop data — only the two specific ops documented here behave this way, and they behave this way only because the row's absence means the work has already been subsumed by a user operation that is allowed to remove it.
 
@@ -380,9 +382,9 @@ A. `StorageBackend.markFinal(destId, entryId, finalStatus)` SHALL be a no-op (re
 
 B. `StorageBackend.appendAttempt(destId, entryId, attempt)` SHALL be a no-op on a missing row or missing FIFO store, with the same tolerance as `markFinal`.
 
-C. Both methods SHALL emit a `warning`-level diagnostic log line when they no-op due to a missing target, naming the method, the row id, the destination id, and the expected race (`drain/unjam` or `drain/delete`).
+C. Both methods SHALL emit a `warning`-level diagnostic log line when they no-op due to a missing target, naming the method, the row id, the destination id, and the expected race (`drain/tombstoneAndRefill` or `drain/delete`).
 
-*End* *markFinal and appendAttempt Tolerate Missing FIFO Row* | **Hash**: bee6ba5e
+*End* *markFinal and appendAttempt Tolerate Missing FIFO Row* | **Hash**: 71b33da6
 
 ---
 
@@ -394,7 +396,7 @@ C. Both methods SHALL emit a `warning`-level diagnostic log line when they no-op
 
 REQ-d00119 (Phase 2) defined a FIFO row as holding exactly one event, with a single `event_id` and a single `wire_payload`. Phase 4.3 migrates that shape to hold a batch — one row covers one or more events and carries exactly one wire payload for the whole batch. The motivation is destination-side: a destination whose server endpoint natively accepts a batch of events in one request should not be forced to send N separate requests for N events when the events arrive within a short window. The drain loop still treats one row as one wire transaction; what changes is that one wire transaction can now deliver several events.
 
-The batch shape demands a `fill_cursor` per destination, recording the highest `sequence_number` that has already been promoted into any FIFO row for this destination (pending, sent, or exhausted). Without a cursor, the logic that decides which events have not yet been enqueued for this destination would be forced to scan every FIFO row and cross-reference the event log, which does not scale. The cursor is per-destination because subscription filters and start/end windows (REQ-d00129) give each destination its own view of the event log. Idempotency of `fillBatch` — the act of promoting events into FIFO rows — depends on the cursor behaving transactionally alongside the FIFO-row write.
+The batch shape demands a `fill_cursor` per destination, recording the highest `sequence_number` that has already been promoted into any FIFO row for this destination regardless of `final_status`. Without a cursor, the logic that decides which events have not yet been enqueued for this destination would be forced to scan every FIFO row and cross-reference the event log, which does not scale. The cursor is per-destination because subscription filters and start/end windows (REQ-d00129) give each destination its own view of the event log. Idempotency of `fillBatch` — the act of promoting events into FIFO rows — depends on the cursor behaving transactionally alongside the FIFO-row write.
 
 Batch assembly is destination-controlled: the destination declares a `canAddToBatch(currentBatch, candidate)` predicate, invoked per candidate, and a `maxAccumulateTime` hold on single-event batches so a destination that prefers to ship batches of two or more is not prematurely flushed when only one event is available.
 
@@ -430,7 +432,7 @@ Phase 4 froze the `DestinationRegistry` on first read because a mid-run registra
 
 Immutability of `startDate` once set is load-bearing. If `startDate` could be moved earlier, the FIFO's contract that every enqueued event matches the destination's time window at enqueue time would weaken to a contract about the *current* window — forcing either a re-scan of already-enqueued rows when the window changed or acceptance of rows the current window would exclude. Both options break the audit trail. Fixing `startDate` at its first assignment avoids this; callers who need a different `startDate` register a different destination.
 
-Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their sent/exhausted destinations. `setEndDate` returns a result code so callers can distinguish three outcomes. `closed` fires when the call transitions the destination from "currently active" to "currently closed" — i.e. the new `endDate` is at or before `now()` and the destination was not previously closed. `scheduled` fires when the new `endDate` is in the future (the destination is currently active and will close at a later wall-clock time) or when a previously-closed destination is reopened with a future `endDate`. `applied` fires when the call does not change the destination's current active-vs-closed state relative to `now()` — for example, overwriting an existing past `endDate` with a different past `endDate`, or replacing a future-dated `endDate` with another future-dated `endDate` without crossing the `now()` boundary. The three codes are exclusive; every call returns exactly one.
+Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their terminal statuses and remain in the FIFO store. `setEndDate` returns a result code so callers can distinguish three outcomes. `closed` fires when the call transitions the destination from "currently active" to "currently closed" — i.e. the new `endDate` is at or before `now()` and the destination was not previously closed. `scheduled` fires when the new `endDate` is in the future (the destination is currently active and will close at a later wall-clock time) or when a previously-closed destination is reopened with a future `endDate`. `applied` fires when the call does not change the destination's current active-vs-closed state relative to `now()` — for example, overwriting an existing past `endDate` with a different past `endDate`, or replacing a future-dated `endDate` with another future-dated `endDate` without crossing the `now()` boundary. The three codes are exclusive; every call returns exactly one.
 
 Hard deletion is gated because some destinations carry regulatory audit weight and must not be purged in one call; the `allowHardDelete` field is an explicit opt-in that the destination's class declares, not a flag the caller toggles.
 
@@ -477,58 +479,6 @@ B. Replay SHALL use the destination's own `canAddToBatch` and `transform` to pro
 C. A new event appended during replay (same Dart isolate, under sembast transaction serialization) SHALL NOT be double-enqueued: the concurrent `record()` transaction SHALL wait behind the replay transaction, and when it runs, its `fillBatch` SHALL re-evaluate candidates strictly after the `fill_cursor` the replay advanced to.
 
 *End* *Historical Replay on Past startDate* | **Hash**: 254b541a
-
----
-
-# REQ-d00131: Unjam Destination Operation
-
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
-
-## Rationale
-
-A destination whose head row is marked `exhausted` is wedged against further drain progress until a human-directed repair runs. In the batch-FIFO Phase 4.3 world, drain continues past exhausted rows (the "skip-exhausted" revision from PLAN_PHASE4_sync.md), so the wedge is logical rather than positional: exhausted rows accumulate, and recovery is a matter of removing pending rows that will never succeed and rewinding `fill_cursor` back to the last successful delivery so `fillBatch` can promote the still-relevant events afresh.
-
-`unjamDestination` encodes that recovery procedure. Its precondition — the destination must be deactivated — exists because deleting pending rows while drain is actively running risks a race between the delete and a drain transaction that has already read the row's `wire_payload` and is mid-`send`. Deactivation stops new drain work from starting on this destination, which closes the race. `markFinal`'s tolerance for missing rows (REQ-d00127) closes the narrower race for drains already mid-flight.
-
-Exhausted rows are preserved so the audit trail of *what failed* remains intact; only pending rows are deleted because those never reached a terminal state and therefore carry no audit weight. Rewinding `fill_cursor` to the sequence_number of the last successfully-sent row restores the invariant that `fill_cursor` equals "up to where delivery is known-good".
-
-## Assertions
-
-A. `unjamDestination(String id)` SHALL throw `StateError` if the destination is active (`endDate == null` or `endDate > now()`); the destination MUST be deactivated before unjam runs.
-
-B. Inside one storage transaction, `unjamDestination` SHALL delete every FIFO row whose `final_status` is `pending` on this destination.
-
-C. Inside the same transaction, `unjamDestination` SHALL leave every FIFO row whose `final_status` is `exhausted` untouched.
-
-D. Inside the same transaction, `unjamDestination` SHALL rewind `fill_cursor` to the largest `event_id_range.last_seq` among rows whose `final_status` is `sent` on this destination, or to `-1` when no such row exists.
-
-E. `unjamDestination` SHALL return an `UnjamResult { deletedPending: int, rewoundTo: int }` describing the number of pending rows deleted and the new value of `fill_cursor`.
-
-*End* *Unjam Destination Operation* | **Hash**: 467a0d85
-
----
-
-# REQ-d00132: Rehabilitate Exhausted FIFO Row
-
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
-
-## Rationale
-
-Rehabilitation is the lighter-weight counterpart to unjam: it flips a specific exhausted row back to pending so drain can re-attempt it. The typical use case is a destination-side fix — the server's endpoint was returning 5xx, the operator has patched the server, and the library operator wants the existing exhausted rows to drain through on the fixed endpoint rather than relying on `fillBatch` re-building them (which would change their `event_id_range` and produce duplicate deliveries).
-
-Unlike unjam, rehabilitation does not require deactivation: the operation is a targeted status flip that does not delete any data, and does not race with drain in any way that risks correctness — a concurrent drain reading the row right after rehab gets the newly-pending row, which is exactly what is wanted.
-
-## Assertions
-
-A. `rehabilitateExhaustedRow(String destId, String fifoRowId)` SHALL throw `ArgumentError` if the row does not exist or if its `final_status != exhausted`.
-
-B. On success, the row's `final_status` SHALL be set to `pending`; the row's `attempts[]` list SHALL be preserved unchanged.
-
-C. `rehabilitateAllExhausted(String destId)` SHALL flip every row whose `final_status == exhausted` on this destination to `pending` and SHALL return the count of rows flipped.
-
-D. Rehabilitation SHALL be permitted on an active destination (no deactivation precondition).
-
-*End* *Rehabilitate Exhausted FIFO Row* | **Hash**: 978d782e
 
 ---
 
@@ -765,4 +715,35 @@ F. An unrecognized input type SHALL classify conservatively as `StoragePermanent
 G. Every `StorageException` instance SHALL preserve the original `cause: Object` and `stackTrace: StackTrace` passed to its constructor; these fields SHALL be retrievable for diagnostic traceability.
 
 *End* *Storage Failure Taxonomy* | **Hash**: 59ed82f7
+---
+
+# REQ-d00144: tombstoneAndRefill Operation
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+A destination whose head row is wedged cannot make drain progress (REQ-d00124-H). `tombstoneAndRefill` is the recovery primitive: the operator declares the bundle at the FIFO head permanently undeliverable as-built — its wire bytes were malformed because of a transform bug that has since been fixed, or its content was rejected by the destination until a server-side change landed, or (in the case of a `null` head) the operator knows the bundle will never succeed and wants to short-circuit retry-exhaustion. The library archives that row as a tombstone preserving its `attempts[]` as the audit record of the delivery attempt, clears the pending trail that had been building up behind it, and rewinds `fill_cursor` so the next `fillBatch` rebuilds the events covered by the tombstoned target AND by the deleted trail into fresh bundles against the current transform and destination state.
+
+The events in the tombstoned row are not abandoned — they remain on the event log and are re-queued by the next `fillBatch` into a new FIFO row whose bytes reflect the current code. The tombstoned row is strictly a bundle-level audit artifact: "this specific payload was attempted N times and failed; the same events have been re-shipped via a different payload." Requiring the target to be the FIFO's current head keeps the cascade coherent: earlier rows are all terminal-passable (`sent` or `tombstoned`), so rewinding `fill_cursor` past the target is guaranteed to reinstate only events whose latest FIFO row is either the tombstoned target or one of the deleted trail rows.
+
+When the operator's fix is valid, the fresh rows drain through successfully. When the fix is invalid, the fresh rows reproduce the original failure and the operator runs another `tombstoneAndRefill` — honest signaling, not silent data loss. Trail rows behind the head always have empty `attempts[]` under strict-order drain (drain processes rows sequentially and only ever holds one in flight at a time, so any delivery attempts are recorded on the head itself); deleting them preserves the full audit history that ever existed for them. REQ-d00127's missing-row tolerance handles the narrow race where drain is mid-`send` on the head at the moment this operation runs.
+
+`tombstoneAndRefill` is the sole recovery primitive for the drain loop and the sole code path by which a FIFO row reaches `final_status == tombstoned`.
+
+## Assertions
+
+A. `tombstoneAndRefill(String destId, String fifoRowId)` SHALL throw `ArgumentError` unless `fifoRowId` identifies the current head of the destination's FIFO — equivalently, the row that `readFifoHead(destId)` (REQ-d00124-A) would return. The head's `final_status` is therefore `null` or `wedged`.
+
+B. Inside one storage transaction, the target row's `final_status` SHALL transition to `tombstoned`; its `attempts[]` and all other fields SHALL be preserved unchanged.
+
+C. Inside the same transaction, every FIFO row whose `sequence_in_queue > target.sequence_in_queue` AND whose `final_status IS null` SHALL be deleted from the destination's FIFO store.
+
+D. Inside the same transaction, `fill_cursor` SHALL be rewound to `target.event_id_range.first_seq - 1`, so the next `fillBatch` resumes promotion at the first event the target had covered.
+
+E. The call SHALL return a `TombstoneAndRefillResult { String targetRowId, int deletedTrailCount, int rewoundTo }`.
+
+F. A subsequent `fillBatch(destination)` invocation SHALL re-promote the events covered by the tombstoned target AND by the deleted trail into fresh FIFO rows built against the current transform and destination state.
+
+*End* *tombstoneAndRefill Operation* | **Hash**: f812b27d
 ---
