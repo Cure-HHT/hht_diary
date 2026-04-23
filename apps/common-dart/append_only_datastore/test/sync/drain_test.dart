@@ -203,7 +203,9 @@ void main() {
 
         await drain(dest, backend: backend, clock: () => longAfter);
         expect(dest.sent, hasLength(1));
-        // Head is wedged: readFifoHead returns null.
+        // Only row is now exhausted and no pending row follows it;
+        // readFifoHead skips exhausted rows and returns null when no
+        // pending remains (REQ-d00124-A, Task 8 semantics).
         expect(await backend.readFifoHead('fake'), isNull);
       },
     );
@@ -290,8 +292,11 @@ void main() {
 
         expect(d1.sent, hasLength(1));
         expect(d2.sent, hasLength(1));
-        expect(await backend.readFifoHead('d1'), isNull); // wedged
-        expect(await backend.readFifoHead('d2'), isNull); // sent (drained)
+        // d1's row is exhausted (SendPermanent) with no pending row after
+        // it; d2's row is sent. readFifoHead skips both terminal states
+        // and returns null (REQ-d00124-A, Task 8 semantics).
+        expect(await backend.readFifoHead('d1'), isNull);
+        expect(await backend.readFifoHead('d2'), isNull);
       },
     );
 

@@ -151,7 +151,10 @@ Test count: 324 → 325 (+1 for the new REQ-d00128-G validation test).
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `6cde4e34` returned one LOW and one NIT. No CRITICAL, HIGH, or MEDIUM. All dimensions clean otherwise.
+
+**Addressed:**
+- **LOW + NIT — stale `// wedged` comments in `drain_test.dart`.** Updated two test-assertion comments to describe the Task-8 semantics accurately: `readFifoHead` returns null when no pending row remains after the terminal row, not because it "wedges at head" (the old semantics).
 
 ---
 
