@@ -158,6 +158,21 @@ Subagent review of commit `6cde4e34` returned one LOW and one NIT. No CRITICAL, 
 
 ---
 
+## Task 9 — Destination interface widened for batching
+
+### Status
+- `Destination` exposes `maxAccumulateTime: Duration`, `allowHardDelete: bool` (default `false` in the abstract), `canAddToBatch(List<StoredEvent> current, StoredEvent candidate): bool`, and `transform(List<StoredEvent> batch): Future<WirePayload>`. `transform` rejects empty batches.
+- `FakeDestination` carries a `batchCapacity` constructor parameter (default 1), a default `maxAccumulateTime: Duration.zero`, `allowHardDelete: false`, and a JSON-encoded batch transform.
+- `spec/dev-event-sourcing-mobile.md` REQ-d00122-D is revised for the batch-aware signature; `elspais fix` updated REQ-d00122's content hash.
+- No production call site invoked `destination.transform` directly — drain reads `head.wirePayload` from the stored FIFO row — so the signature change has zero impact on drain. `fillBatch` (Task 11) will be the first consumer of the new surface.
+- `flutter test` inside `append_only_datastore` passes 332 tests. `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
