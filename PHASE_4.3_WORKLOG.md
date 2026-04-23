@@ -181,6 +181,23 @@ Subagent review of commit `c8ff70ca` returned one HIGH, one MEDIUM, one NIT. No 
 
 ---
 
+## Task 10 — DestinationRegistry dynamic mutation (REQ-d00129)
+
+### Status
+- `DestinationRegistry` is instance-based, constructed with a `StorageBackend`. No singleton. Runtime-open surface: `addDestination`, `byId`, `all`, `scheduleOf`, `setStartDate` (one-shot immutable), `setEndDate` returning `SetEndDateResult { closed, scheduled, applied }`, `deactivateDestination` (shorthand for `setEndDate(id, now)`), `deleteDestination` (gated on `allowHardDelete`, drops FIFO store + schedule in one transaction, removes the id from `known_fifo_destinations`).
+- New value types: `DestinationSchedule` (`startDate`, `endDate`, `isDormant`, `isActiveAt(now)`), `SetEndDateResult` enum, `UnjamResult` (parked for Task 14).
+- `StorageBackend` exposes `readSchedule`, `writeSchedule`, `writeScheduleTxn`, `deleteScheduleTxn`, `deleteFifoStoreTxn`. Schedules persist under `backend_state` key `schedule_$destId`. `deleteFifoStoreTxn` drops the sembast store, the fill-cursor record, and removes the id from `known_fifo_destinations`.
+- `DestinationRegistry.matchingDestinations` removed — `fillBatch` (Task 11) is the consumer and iterates per-destination.
+- `setStartDate` has a `TODO(Task 12)` at the past-date branch; replay wiring lands in Task 12.
+- REQ-d00122-G revised to describe the dynamic lifecycle; `elspais fix` updated REQ-d00122's hash.
+- `flutter test` inside `append_only_datastore` passes 343 tests. `dart analyze` and `flutter analyze` clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
