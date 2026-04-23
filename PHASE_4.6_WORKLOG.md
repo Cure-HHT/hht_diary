@@ -377,6 +377,16 @@ Three panels now render most-recent-on-top:
 
 ---
 
+## FIFO selection fix (2026-04-23 — smoke feedback)
+
+Selecting a row in Secondary's FIFO rendered Primary's row in DETAIL. Root cause: `FifoEntry.entryId == eventIds.first` (library convention, documented at `fifo_entry.dart:190-194`). When both destinations subscribe to the same event with batch size 1, each enqueues a FIFO row whose `entry_id` equals that event's `event_id` — rows collide on entry_id across destinations. `AppState.selectedFifoRowId` held only the entry_id; `DetailPanel`'s loader iterated destinations in registration order and returned the first match.
+
+Fix: `AppState` now carries `(destinationId, entryId)` for FIFO selection. `selectFifoRow(destinationId, entryId)` takes both; `selectedFifoDestinationId` is a new getter. `FifoPanel` passes `widget.destination.id` at tap time and requires both to match for row highlight. `DetailPanel` looks up directly in the specific destination's FIFO store and stamps `"destination"` into the rendered map so the reviewer can eyeball which side they're reading.
+
+Test: `selectFifoRow` takes two args; updated the three call sites and added a `selectedFifoDestinationId` null-check. 69 tests still pass.
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.

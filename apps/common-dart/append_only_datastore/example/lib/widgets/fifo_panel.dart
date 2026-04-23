@@ -426,9 +426,13 @@ class _FifoPanelState extends State<FifoPanel> {
         row: display[i],
         cumulativeEvents:
             cumulativeByEntryId[display[i]['entry_id']! as String] ?? 0,
-        selected: widget.appState.selectedFifoRowId == display[i]['entry_id'],
-        onTap: () =>
-            widget.appState.selectFifoRow(display[i]['entry_id'] as String?),
+        selected:
+            widget.appState.selectedFifoRowId == display[i]['entry_id'] &&
+            widget.appState.selectedFifoDestinationId == widget.destination.id,
+        onTap: () => widget.appState.selectFifoRow(
+          widget.destination.id,
+          display[i]['entry_id'] as String?,
+        ),
         onRehabilitate: () async {
           try {
             await rehabilitateExhaustedRow(

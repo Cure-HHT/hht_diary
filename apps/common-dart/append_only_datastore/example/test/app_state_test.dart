@@ -49,22 +49,27 @@ void main() {
       final s = await _mkState(nextPath());
       s
         ..selectAggregate('agg-1')
-        ..selectFifoRow('f-1')
+        ..selectFifoRow('Primary', 'f-1')
         ..selectEvent('e-1');
       expect(s.selectedEventId, 'e-1');
       expect(s.selectedAggregateId, isNull);
       expect(s.selectedFifoRowId, isNull);
+      expect(s.selectedFifoDestinationId, isNull);
     });
 
-    test('selectFifoRow clears aggregate and event', () async {
-      final s = await _mkState(nextPath());
-      s
-        ..selectAggregate('agg-1')
-        ..selectFifoRow('f-1');
-      expect(s.selectedFifoRowId, 'f-1');
-      expect(s.selectedAggregateId, isNull);
-      expect(s.selectedEventId, isNull);
-    });
+    test(
+      'selectFifoRow clears aggregate and event; carries destination',
+      () async {
+        final s = await _mkState(nextPath());
+        s
+          ..selectAggregate('agg-1')
+          ..selectFifoRow('Secondary', 'f-1');
+        expect(s.selectedFifoRowId, 'f-1');
+        expect(s.selectedFifoDestinationId, 'Secondary');
+        expect(s.selectedAggregateId, isNull);
+        expect(s.selectedEventId, isNull);
+      },
+    );
 
     test('clearSelection resets all three fields and notifies once', () async {
       final s = await _mkState(nextPath());
@@ -90,7 +95,7 @@ void main() {
       expect(calls, 1);
       s.selectEvent('e-1');
       expect(calls, 2);
-      s.selectFifoRow('f-1');
+      s.selectFifoRow('Primary', 'f-1');
       expect(calls, 3);
     });
   });

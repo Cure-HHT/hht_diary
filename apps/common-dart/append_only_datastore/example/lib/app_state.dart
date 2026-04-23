@@ -19,15 +19,24 @@ class AppState extends ChangeNotifier {
   String? _selectedAggregateId;
   String? _selectedEventId;
   String? _selectedFifoRowId;
+  String? _selectedFifoDestinationId;
 
   String? get selectedAggregateId => _selectedAggregateId;
   String? get selectedEventId => _selectedEventId;
   String? get selectedFifoRowId => _selectedFifoRowId;
 
+  /// Destination id that owns `_selectedFifoRowId`. FIFO rows in
+  /// different destinations can collide on `entry_id` because
+  /// `FifoEntry.entryId == eventIds.first` — the library re-uses the
+  /// first event's id as the row id. The pair `(destinationId,
+  /// entryId)` is what actually identifies a row uniquely.
+  String? get selectedFifoDestinationId => _selectedFifoDestinationId;
+
   void selectAggregate(String? id) {
     _selectedAggregateId = id;
     _selectedEventId = null;
     _selectedFifoRowId = null;
+    _selectedFifoDestinationId = null;
     notifyListeners();
   }
 
@@ -35,13 +44,15 @@ class AppState extends ChangeNotifier {
     _selectedAggregateId = null;
     _selectedEventId = id;
     _selectedFifoRowId = null;
+    _selectedFifoDestinationId = null;
     notifyListeners();
   }
 
-  void selectFifoRow(String? id) {
+  void selectFifoRow(String? destinationId, String? id) {
     _selectedAggregateId = null;
     _selectedEventId = null;
     _selectedFifoRowId = id;
+    _selectedFifoDestinationId = destinationId;
     notifyListeners();
   }
 
@@ -49,6 +60,7 @@ class AppState extends ChangeNotifier {
     _selectedAggregateId = null;
     _selectedEventId = null;
     _selectedFifoRowId = null;
+    _selectedFifoDestinationId = null;
     notifyListeners();
   }
 

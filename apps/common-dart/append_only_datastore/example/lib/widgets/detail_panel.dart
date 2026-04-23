@@ -134,21 +134,26 @@ class _DetailPanelState extends State<DetailPanel> {
         },
       );
     }
-    if (fifoId != null) {
+    final fifoDestId = widget.appState.selectedFifoDestinationId;
+    if (fifoId != null && fifoDestId != null) {
       return _AsyncJson(
         loader: () async {
-          final destinations = widget.appState.destinations;
-          for (final d in destinations) {
-            final store = intMapStoreFactory.store('fifo_${d.id}');
-            final records = await store.find(widget.backend.debugDatabase());
-            for (final r in records) {
-              final m = Map<String, Object?>.from(r.value);
-              if (m['entry_id'] == fifoId) {
-                return m;
-              }
+          // FifoEntry.entryId == eventIds.first (library convention), so
+          // rows collide on entry_id across destinations. Look up within
+          // the specific destination the user selected.
+          final store = intMapStoreFactory.store('fifo_$fifoDestId');
+          final records = await store.find(widget.backend.debugDatabase());
+          for (final r in records) {
+            final m = Map<String, Object?>.from(r.value);
+            if (m['entry_id'] == fifoId) {
+              return <String, Object?>{'destination': fifoDestId, ...m};
             }
           }
-          return <String, Object?>{'error': 'not found'};
+          return <String, Object?>{
+            'error': 'not found',
+            'destination': fifoDestId,
+            'entry_id': fifoId,
+          };
         },
       );
     }
