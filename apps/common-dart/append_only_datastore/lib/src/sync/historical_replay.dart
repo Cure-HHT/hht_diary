@@ -83,6 +83,14 @@ Future<void> runHistoricalReplay(
   // Empty window (startDate past the upper bound): nothing to replay.
   if (startDate.isAfter(upper)) return;
 
+  // Invariant: the caller (currently only `DestinationRegistry.setStartDate`)
+  // MUST NOT have staged a prior `writeFillCursorTxn` on this destination
+  // within [txn] before calling `runHistoricalReplay`. The cursor read
+  // below is non-transactional, so a staged-but-uncommitted cursor write
+  // would be invisible and replay would redo work. The current caller
+  // does not stage a cursor write before this point. If a future caller
+  // needs to compose differently, add a `readFillCursorTxn` method to
+  // `StorageBackend` and use it here.
   final fillCursor = await backend.readFillCursor(destination.id);
   final candidates = await backend.findAllEventsInTxn(
     txn,
@@ -112,6 +120,13 @@ Future<void> runHistoricalReplay(
   // Assemble greedy batches via canAddToBatch, flushing each completed
   // batch before moving on. Unlike fillBatch we continue past the first
   // batch so the entire historical tail is promoted in one pass.
+  //
+  // Convention (matches fillBatch and destination.dart's doc on
+  // canAddToBatch): the first event of each batch is seeded
+  // unconditionally; canAddToBatch is only consulted from the second
+  // event onward. A destination that returns false for an empty
+  // currentBatch still gets each event enqueued as a one-event row here;
+  // rejecting the empty-batch case would silently drop events.
   var i = 0;
   while (i < inWindow.length) {
     final batch = <StoredEvent>[inWindow[i]];

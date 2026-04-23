@@ -241,7 +241,15 @@ Test count: 354 → 355 (+1 new flush-on-expiry test; the other two were in-plac
 
 ### Review decisions
 
-*(pending — dispatched after commit)*
+Subagent review of commit `9add0114` returned one HIGH, two MEDIUM, one NIT. No CRITICAL.
+
+**Addressed:**
+- **HIGH — `readFillCursor` (non-txn) used inside the transaction could miss a staged write.** Reviewer confirmed "not a correctness bug for the current callers" since `setStartDate` is the only caller and it does not stage a prior cursor write. Documented the invariant with a block comment naming the current caller and the migration path (add a `readFillCursorTxn` method) if a future caller violates it.
+- **MEDIUM 1 — replay's `canAddToBatch` convention undocumented.** Added a comment explaining that the first event of each batch is seeded unconditionally (matching `fillBatch`), and that rejecting the empty-batch case would silently drop events.
+- **NIT — `destination.dart` `maxAccumulateTime` doc did not cross-reference replay.** Appended a paragraph noting that historical replay does not honor the hold, with the rationale.
+
+**Not addressed:**
+- **MEDIUM 2 — REQ-d00130-C test should verify `fill_cursor` is visible between replay and `fillBatch`.** Already addressed: the existing test asserts `expect(await backend.readFillCursor('x'), 3)` between `setStartDate` (line 186-189) and `fillBatch` (line 218-223). The reviewer missed this assertion. No change needed.
 
 ---
 

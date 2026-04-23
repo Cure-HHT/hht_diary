@@ -59,6 +59,12 @@ abstract class Destination {
   /// [canAddToBatch] has already returned `false` for a subsequent
   /// candidate. Destinations that are happy with single-event batches
   /// SHALL return `Duration.zero`.
+  ///
+  /// Historical replay (`runHistoricalReplay`) does NOT honor this hold:
+  /// replay promotes every in-window historical event in one pass, so a
+  /// trailing single-event batch is flushed immediately. The hold exists
+  /// to let a live single-event batch coalesce with a second arrival,
+  /// which has no meaning for historical catch-up.
   // Implements: REQ-d00128-F — maxAccumulateTime hold on single-event
   // batches is honored by fillBatch.
   Duration get maxAccumulateTime;
