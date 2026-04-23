@@ -1,6 +1,7 @@
 import 'package:append_only_datastore/src/destinations/destination.dart';
 import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
 import 'package:append_only_datastore/src/storage/storage_backend.dart';
+import 'package:append_only_datastore/src/sync/historical_replay.dart';
 
 /// Process-wide registry of synchronization destinations.
 ///
@@ -106,13 +107,25 @@ class DestinationRegistry {
 
   /// Assign [startDate] to the destination identified by [id]. The
   /// assignment is one-shot immutable — a subsequent call throws
-  /// `StateError` (REQ-d00129-C). The matching replay side-effect
-  /// (REQ-d00129-D, past-start triggers historical replay) is NOT
-  /// implemented here — it lands in Task 12.
+  /// `StateError` (REQ-d00129-C).
+  ///
+  /// When [startDate] is at or before `DateTime.now()`, the call
+  /// triggers historical replay synchronously in the same transaction
+  /// as the schedule write (REQ-d00129-D). Replay walks the event log
+  /// past `fill_cursor`, builds batches via the destination's own
+  /// `canAddToBatch` and `transform`, and enqueues matching events into
+  /// the destination's FIFO so rows are indistinguishable from those
+  /// `fillBatch` would produce during live operation (REQ-d00130-A+B).
+  /// When [startDate] is in the future, no replay runs — events
+  /// accumulate in `event_log` and are batched by `fillBatch` once the
+  /// wall-clock crosses `startDate` (REQ-d00129-E).
   ///
   /// Throws `ArgumentError` when [id] is not registered.
   // Implements: REQ-d00129-C — setStartDate throws StateError if already
   // set; the value is immutable once assigned.
+  // Implements: REQ-d00129-D — past startDate triggers historical replay
+  // synchronously inside the same transaction as the schedule write.
+  // Implements: REQ-d00129-E — future startDate does NOT trigger replay.
   Future<void> setStartDate(String id, DateTime startDate) async {
     if (!_destinations.containsKey(id)) {
       throw ArgumentError.value(
@@ -133,10 +146,27 @@ class DestinationRegistry {
       startDate: startDate,
       endDate: current.endDate,
     );
+    // The schedule write and (when applicable) the replay must commit
+    // together. Running replay in the same transaction as the schedule
+    // write provides the serialization guarantee REQ-d00130-C relies
+    // on: a concurrent record() serializes behind this transaction and
+    // walks candidates strictly past the advanced fill_cursor.
+    await backend.transaction((txn) async {
+      await backend.writeScheduleTxn(txn, id, updated);
+      if (!startDate.isAfter(DateTime.now())) {
+        // Implements: REQ-d00129-D — past startDate triggers replay in
+        // the same transaction as the schedule write. _destinations[id]
+        // is known non-null because the unknown-id check above
+        // returned early otherwise.
+        await runHistoricalReplay(txn, _destinations[id]!, updated, backend);
+      }
+      // REQ-d00129-E: future startDate takes the else branch; replay is
+      // skipped.
+    });
+    // Update the in-memory cache only after the transaction commits, so
+    // a rolled-back transaction does not leave the registry advertising
+    // a schedule that was not persisted.
     _schedules[id] = updated;
-    await backend.writeSchedule(id, updated);
-    // TODO(Task 12): trigger replay when startDate <= now() per
-    // REQ-d00129-D. Task 11/12 wire replay into this decision point.
   }
 
   /// Mutate the destination's `endDate` to [endDate] and return a
