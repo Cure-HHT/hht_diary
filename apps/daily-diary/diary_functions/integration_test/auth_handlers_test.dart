@@ -224,7 +224,7 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': testUsername,
         'passwordHash': testPasswordHash,
-        'appUuid': 'test-app',
+        'appUuid': 'test-app-login-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
@@ -313,7 +313,7 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': testUsername,
         'passwordHash': testPasswordHash,
-        'appUuid': 'test-app',
+        'appUuid': 'test-app-pwd-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
