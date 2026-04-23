@@ -203,31 +203,26 @@ Future<Response> linkHandler(Request request) async {
     String authCode;
 
     if (appUuid != null) {
-      // Check if user exists by appUuid
-      final existingUser = await db.execute(
-        'SELECT user_id, auth_code FROM app_users WHERE app_uuid = @appUuid',
-        parameters: {'appUuid': appUuid},
+      // CUR-1055: Atomic create-or-get to prevent race condition.
+      // ON CONFLICT returns the EXISTING row's user_id/auth_code when the same
+      // app_uuid is already registered, preventing duplicate app_user creation.
+      // The unique index (migration 008) enforces the constraint at the DB level.
+      final upsertResult = await db.execute(
+        '''
+        INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
+        VALUES (@newUserId, @newAuthCode, @appUuid, now(), now())
+        ON CONFLICT (app_uuid) WHERE app_uuid IS NOT NULL
+        DO UPDATE SET last_active_at = now()
+        RETURNING user_id, auth_code
+        ''',
+        parameters: {
+          'newUserId': generateUserId(),
+          'newAuthCode': generateAuthCode(),
+          'appUuid': appUuid,
+        },
       );
-
-      if (existingUser.isNotEmpty) {
-        userId = existingUser.first[0] as String;
-        authCode = existingUser.first[1] as String;
-      } else {
-        // Create new user
-        userId = generateUserId();
-        authCode = generateAuthCode();
-        await db.execute(
-          '''
-          INSERT INTO app_users (user_id, auth_code, app_uuid, created_at, last_active_at)
-          VALUES (@userId, @authCode, @appUuid, now(), now())
-          ''',
-          parameters: {
-            'userId': userId,
-            'authCode': authCode,
-            'appUuid': appUuid,
-          },
-        );
-      }
+      userId = upsertResult.first[0] as String;
+      authCode = upsertResult.first[1] as String;
     } else {
       // No appUuid - create anonymous user
       userId = generateUserId();

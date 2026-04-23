@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service for handling patient linking with 10-character codes
 /// Uses HTTP calls to server functions for linking
@@ -104,8 +105,15 @@ class EnrollmentService {
       // Build the full link URL for this sponsor's backend
       final linkUrl = '$backendUrl/api/v1/user/link';
 
-      // Get app UUID for tracking (device identifier)
-      final appUuid = await _secureStorage.read(key: 'app_uuid');
+      // CUR-1055: Ensure a stable device identifier is always sent with enrollment.
+      // app_uuid is written here on first enrollment and reused on subsequent calls.
+      // This allows the server to detect and reject duplicate enrollment attempts
+      // from the same device via ON CONFLICT (app_uuid) in the upsert.
+      var appUuid = await _secureStorage.read(key: 'app_uuid');
+      if (appUuid == null) {
+        appUuid = const Uuid().v4();
+        await _secureStorage.write(key: 'app_uuid', value: appUuid);
+      }
 
       // Call the link function via HTTP (REQ-p70007)
       // No JWT required - the linking code IS the authentication
@@ -113,7 +121,7 @@ class EnrollmentService {
       final response = await _httpClient.post(
         Uri.parse(linkUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': normalizedCode, 'appUuid': ?appUuid}),
+        body: jsonEncode({'code': normalizedCode, 'appUuid': appUuid}),
       );
 
       debugPrint('Link response status: ${response.statusCode}');
