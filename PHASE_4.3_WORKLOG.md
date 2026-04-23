@@ -53,6 +53,20 @@ REQ-d00128 and REQ-d00129 bodies changed; `elspais fix` recomputed hashes; no ot
 
 ---
 
+## Task 4 — SyncPolicy value-object refactor (REQ-d00126)
+
+### Status
+- `apps/common-dart/append_only_datastore/lib/src/sync/sync_policy.dart` is a value class: `final` fields, `const` constructor, `backoffFor(...)` as an instance method. `SyncPolicy.defaults` is the `static const` instance carrying the REQ-d00123 curve (60s / ×5 / 2h cap / ±10% jitter / 20 attempts / 15-min interval).
+- `drain(...)` and `SyncCycle(...)` accept `SyncPolicy? policy` (nullable; defaults to `SyncPolicy.defaults`). `SyncCycle` stores `_policy` and forwards it to per-destination `drain`.
+- No `@Deprecated` shims; call sites reference `SyncPolicy.defaults.<field>` directly.
+- `flutter test` inside `append_only_datastore` passes 305 tests (baseline was 298; +7 new tests cover REQ-d00126-A, B and a custom-policy curve sanity check). `dart analyze` and `flutter analyze` both clean.
+
+### Review decisions
+
+*(pending — dispatched after commit)*
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
