@@ -336,6 +336,44 @@ Inner `_AsyncJson` stateful helper handles the async load + pretty-print; `didUp
 
 ---
 
+## Task 14: `flutter run -d linux` smoke test — handoff to user
+
+Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.
+
+Pre-Task-14 validation that I *was* able to run:
+
+- `append_only_datastore` library: 472 tests pass; `dart analyze --fatal-infos` clean.
+- Example: 69 unit tests pass (styles 19, demo_types 18, demo_destination 14, demo_sync_policy 8, app_state 10); `flutter analyze` clean.
+- Parent-package baselines (provenance 31, trial_data_types 59, clinical_diary 1098) unchanged from Task-1 baseline.
+- All Dart semantics, lints, and constructor/field shapes verified against the shipped Phase 4.3/4.4/4.5 surface.
+
+What still needs to happen under Task 14 (with cmake installed):
+
+1. `(cd apps/common-dart/append_only_datastore/example && flutter run -d linux)`.
+2. Confirm storage path log line prints on stdout: `[demo] storage: /home/<user>/.local/share/append_only_datastore_demo/demo.db`.
+3. Run the plan's click-once sanity checks (demo_note Start → Complete, a RED click, row tap in EVENTS populates DETAIL, connection dropdown flip, slider drag, Add destination dialog, Rebuild view, Reset all).
+4. Record any runtime exceptions from stderr.
+
+## Task 15: Walk USER_JOURNEYS — handoff to user
+
+Blocked on Task 14 smoke; reviewer walks the nine journeys in `apps/common-dart/append_only_datastore/example/USER_JOURNEYS.md` and signs off per-journey.
+
+## Task 16: Phase squash + push — deferred until 14/15 sign-off
+
+After Task 14 + 15 are clean:
+
+- Interactive rebase to squash `abcf3315..HEAD` (intra-phase commits: Task 1..13 + any 14/15 fixes) into one `[CUR-1154] Phase 4.6: Demo app` commit on top of origin/main.
+- `git push --force-with-lease`.
+- PR comment linking the new squash SHA.
+
+---
+
+## Consolidated phase-end review — deferred
+
+Per the user's kickoff direction (single consolidated review at phase end, mirroring 4.4 / 4.5). Will run once 14+15 clear.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
