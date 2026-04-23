@@ -395,6 +395,18 @@ Columns are now user-draggable. Defaults: MATERIALIZED 200px, EVENTS 280px, each
 
 ---
 
+## FIFO slider ranges (2026-04-23 — smoke feedback)
+
+Tightened for easier small-value dial-in:
+
+- `latency (ms)` — range 0-10000, **non-linear** (slider position `p ∈ [0,1]`, actual `ms = p² × 10000`). Quarter-slider ≈ 625ms, half-slider ≈ 2500ms; small values live in the first half where drag precision is ±100ms-ish. Display label shows actual ms (not slider position).
+- `batch size` — 1-12 (was 1-50).
+- `accumulate (s)` — 0-20 (was 0-30). Kept min=0 so `Duration.zero` (the DemoDestination default, "no hold") is still reachable.
+
+`_sliderRow` helper grew a `displayOverride` parameter for the latency slider's "show ms, not slider pos" case; everything else passes through unchanged.
+
+---
+
 ## Task 14: `flutter run -d linux` smoke test — handoff to user
 
 Blocked in this environment: `flutter build linux` requires `cmake`, `clang`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`. `cmake` is not installed on the current machine; `apt install cmake clang ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev` is the install path.

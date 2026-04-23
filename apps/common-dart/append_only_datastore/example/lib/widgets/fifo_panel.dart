@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 // Ops functions are not exported from the datastore barrel; the demo
 // reaches into src/ to invoke them from the per-destination ops
@@ -144,21 +145,12 @@ class _FifoPanelState extends State<FifoPanel> {
           if (showStartEditor) _startDateEditor(),
           _endDateEditor(),
           _connectionDropdown(),
-          _sliderRow(
-            label: 'latency (ms)',
-            value: widget.destination.sendLatency.value.inMilliseconds
-                .toDouble(),
-            min: 0,
-            max: 30000,
-            onChanged: (v) => widget.destination.sendLatency.value = Duration(
-              milliseconds: v.round(),
-            ),
-          ),
+          _latencySlider(),
           _sliderRow(
             label: 'batch size',
             value: widget.destination.batchSize.value.toDouble(),
             min: 1,
-            max: 50,
+            max: 12,
             onChanged: (v) => widget.destination.batchSize.value = v.round(),
           ),
           _sliderRow(
@@ -166,7 +158,7 @@ class _FifoPanelState extends State<FifoPanel> {
             value: widget.destination.maxAccumulateTimeN.value.inSeconds
                 .toDouble(),
             min: 0,
-            max: 30,
+            max: 20,
             onChanged: (v) => widget.destination.maxAccumulateTimeN.value =
                 Duration(seconds: v.round()),
           ),
@@ -292,6 +284,7 @@ class _FifoPanelState extends State<FifoPanel> {
     required double min,
     required double max,
     required ValueChanged<double> onChanged,
+    String? displayOverride,
   }) {
     return Row(
       children: <Widget>[
@@ -312,13 +305,35 @@ class _FifoPanelState extends State<FifoPanel> {
           ),
         ),
         SizedBox(
-          width: 48,
+          width: 54,
           child: Text(
-            value.round().toString(),
+            displayOverride ?? value.round().toString(),
             style: const TextStyle(color: DemoColors.fg, fontSize: 12),
           ),
         ),
       ],
+    );
+  }
+
+  /// Non-linear latency slider: slider position `p` in [0, 1] maps to
+  /// milliseconds `p^2 * 10000`. Small positions give small ms so
+  /// single-digit / low-hundreds values are easy to dial in; the top
+  /// of the slider reaches 10 s.
+  Widget _latencySlider() {
+    const maxMs = 10000.0;
+    final currentMs = widget.destination.sendLatency.value.inMilliseconds
+        .toDouble();
+    final position = math.sqrt((currentMs / maxMs).clamp(0.0, 1.0));
+    return _sliderRow(
+      label: 'latency (ms)',
+      value: position,
+      min: 0,
+      max: 1,
+      displayOverride: currentMs.round().toString(),
+      onChanged: (p) {
+        final ms = (p * p * maxMs).round();
+        widget.destination.sendLatency.value = Duration(milliseconds: ms);
+      },
     );
   }
 
