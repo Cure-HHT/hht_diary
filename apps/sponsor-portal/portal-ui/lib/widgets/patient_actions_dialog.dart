@@ -126,9 +126,10 @@ class PatientActionsDialog extends StatelessWidget {
       case 'disconnected':
         return [
           _ActionTile(
-            icon: Icons.visibility,
-            title: 'Show Linking Code',
-            description: 'View active linking code if available',
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
             onTap: () async {
               Navigator.of(context).pop(PatientActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
@@ -136,6 +137,7 @@ class PatientActionsDialog extends StatelessWidget {
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
+                isReference: true,
               );
             },
           ),
@@ -204,14 +206,15 @@ class PatientActionsDialog extends StatelessWidget {
           ),
         ];
 
-      // REQ-CAL-p00072: Show Linking Code for any patient with a valid code
-      // REQ-CAL-p00073 Assertion C: connected patients can view linking code
+      // CUR-1069: connected patients see the Participant Linking Code (reference)
+      // per GUI-CAL-p00001-F and GUI-CAL-p00001-I.
       case 'connected':
         return [
           _ActionTile(
-            icon: Icons.qr_code,
-            title: 'Show Linking Code',
-            description: 'View active linking code if available',
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
             onTap: () async {
               Navigator.of(context).pop(PatientActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
@@ -219,6 +222,7 @@ class PatientActionsDialog extends StatelessWidget {
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
+                isReference: true,
               );
             },
           ),
@@ -247,6 +251,8 @@ class PatientActionsDialog extends StatelessWidget {
           ),
         ];
 
+      // CUR-1069: not_participating patients can view the Participant Linking
+      // Code for reference/troubleshooting (GUI-CAL-p00001-F, GUI-CAL-p00001-I).
       case 'not_participating':
         return [
           Container(
@@ -276,6 +282,23 @@ class PatientActionsDialog extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
+            onTap: () async {
+              Navigator.of(context).pop(PatientActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+                isReference: true,
+              );
+            },
           ),
           const SizedBox(height: 12),
           Text(
