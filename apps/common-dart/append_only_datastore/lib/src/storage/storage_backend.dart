@@ -238,17 +238,23 @@ abstract class StorageBackend {
     WirePayload wirePayload,
   );
 
-  /// First `pending` entry in [destinationId]'s FIFO in
-  /// `sequence_in_queue` order, or null when no pending entry remains
-  /// (the FIFO is empty, or every row is terminal — `sent` and/or
-  /// `exhausted`). Implementations SHALL skip both `sent` and
-  /// `exhausted` rows and SHALL NOT stop at the first `exhausted` row
-  /// they encounter; the drain-loop "wedge" on an exhausted head is
-  /// preserved by the drain loop's switch-case (REQ-d00124-D+E), not
-  /// by `readFifoHead` returning null at the first terminal row.
-  // Implements: REQ-d00124-A — readFifoHead returns the first pending
-  // row in sequence_in_queue order; terminal rows (sent, exhausted)
-  // are skipped.
+  /// Return the head row of [destinationId]'s FIFO — the first row in
+  /// `sequence_in_queue` order whose `final_status` is either `null`
+  /// (pre-terminal; drain may attempt) or [FinalStatus.wedged] (blocking
+  /// terminal; drain halts). Rows whose `final_status` is
+  /// [FinalStatus.sent] or [FinalStatus.tombstoned] SHALL be skipped.
+  /// Returns `null` when no such row exists (the FIFO is empty, or
+  /// every row is terminal-passable).
+  ///
+  /// Callers enforce the wedge: `drain` returns without calling
+  /// `Destination.send` when the returned row's `final_status` is
+  /// [FinalStatus.wedged]. Recovery from a wedged head is
+  /// `tombstoneAndRefill` (REQ-d00144). Returning the wedged row here
+  /// (rather than filtering it out) lets UI surfaces observe the
+  /// wedge via this single entry point without a separate
+  /// `wedgedFifos` probe.
+  // Implements: REQ-d00124-A — readFifoHead returns first {null, wedged};
+  // skips {sent, tombstoned}.
   Future<FifoEntry?> readFifoHead(String destinationId);
 
   /// Append [attempt] to the `attempts[]` list of the entry identified by

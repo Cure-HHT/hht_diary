@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/destinations/wire_payload.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
+import 'package:append_only_datastore/src/storage/final_status.dart';
 import 'package:append_only_datastore/src/storage/sembast_backend.dart';
 import 'package:append_only_datastore/src/storage/send_result.dart';
 import 'package:append_only_datastore/src/sync/sync_cycle.dart';
@@ -259,8 +260,13 @@ void main() {
         );
         await sync.call();
         expect(dest.sent, hasLength(1));
-        // Entry should be wedged (exhausted) — head returns null.
-        expect(await backend.readFifoHead('fake'), isNull);
+        // Entry is wedged; under the Phase-4.7 readFifoHead contract the
+        // wedged row is returned (rather than skipped) so UI surfaces can
+        // observe the wedge via a single entry point.
+        final head = await backend.readFifoHead('fake');
+        expect(head, isNotNull);
+        expect(head!.entryId, 'e1');
+        expect(head.finalStatus, FinalStatus.wedged);
       },
     );
 

@@ -15,31 +15,38 @@ import 'package:append_only_datastore/src/sync/sync_policy.dart';
 typedef ClockFn = DateTime Function();
 
 /// Drain the head of [destination]'s FIFO: check backoff, call
-/// [Destination.send], record the attempt, and route the result into a
-/// `sent` or `exhausted` final-status as appropriate. Returns when:
+/// [Destination.send], record the attempt, and route the result to a
+/// terminal `final_status` of `sent` or `wedged` as appropriate.
+/// Returns when:
 ///
-/// - the FIFO has no pending rows (`readFifoHead` returns null after
-///   skipping `sent` and `exhausted` rows — REQ-d00124-A); or
-/// - the pending head's backoff has not elapsed; or
+/// - the FIFO has no drain-candidate rows (`readFifoHead` returns null
+///   after skipping `sent` and `tombstoned` rows — REQ-d00124-A); or
+/// - the head row's `final_status` is [FinalStatus.wedged] (strict-order
+///   halt; operator recovery via `tombstoneAndRefill` — REQ-d00124-H);
+/// - the head row's backoff has not elapsed; or
 /// - the most recent [Destination.send] returned [SendTransient] below
 ///   the `maxAttempts` cap (backoff applies on the next drain tick).
 ///
-/// On [SendOk] the head is marked `sent` and the loop advances. On
-/// [SendPermanent] or [SendTransient]-at-`maxAttempts` the head is
-/// marked `exhausted` and the loop *continues*: `readFifoHead` skips
-/// the exhausted row on the next iteration and returns the next pending
-/// row in `sequence_in_queue` order (REQ-d00124-D+E). A single drain
-/// pass therefore attempts every pending row until one of the terminal
-/// conditions above fires.
+/// On [SendOk] the head is marked `sent` and the loop advances to the
+/// next drain candidate. On [SendPermanent] or [SendTransient]-at-
+/// `maxAttempts` the head is marked [FinalStatus.wedged]; the next loop
+/// iteration reads the newly-wedged row via `readFifoHead` and the
+/// top-of-loop halt check returns (REQ-d00124-D+E+H). Trail rows
+/// behind a wedged head are NEVER attempted — strict-order delivery
+/// guarantees that once a bundle has been retired to `wedged`, no
+/// later bundle is sent ahead of it. Recovery is the operator's
+/// `tombstoneAndRefill` primitive (REQ-d00144).
 ///
 /// Strict FIFO order (REQ-d00124-H): within a single drain pass, rows
-/// are attempted in `sequence_in_queue` order. Exhausted rows are
-/// skipped in-place — their position in the sequence is preserved for
-/// audit purposes, but they do not block later pending rows.
+/// are attempted in `sequence_in_queue` order and a wedged head halts
+/// the pass. `sent` and `tombstoned` rows are terminal-passable and are
+/// skipped by `readFifoHead` so they do not block a later drain
+/// candidate.
 ///
 /// [policy] is an optional [SyncPolicy] override; when null, the drain
 /// loop falls back to [SyncPolicy.defaults] (REQ-d00126-B).
-// Implements: REQ-d00124-A+B+C+D+E+F+G+H — strict-FIFO drain with backoff.
+// Implements: REQ-d00124-A+B+C+D+E+F+G+H — strict-FIFO drain with
+// halt-at-wedged head and backoff.
 // Implements: REQ-d00126-B — optional SyncPolicy? parameter; null falls
 // back to SyncPolicy.defaults.
 Future<void> drain(
@@ -53,6 +60,13 @@ Future<void> drain(
   while (true) {
     final head = await backend.readFifoHead(destination.id);
     if (head == null) return;
+    // Implements: REQ-d00124-H — drain halts at a wedged head. Operator
+    // recovery is tombstoneAndRefill (REQ-d00144). The wedged row is
+    // still returned by readFifoHead (rather than skipped) so UI
+    // surfaces can observe the wedge via that one entry point without
+    // also querying wedgedFifos separately.
+    if (head.finalStatus == FinalStatus.wedged) return;
+    // head.finalStatus is null from here on — this is a drain candidate.
 
     // Backoff check: only the N-th attempt's timestamp matters; skip if
     // the entry has never been attempted (fresh head).
@@ -88,11 +102,11 @@ Future<void> drain(
     await backend.appendAttempt(destination.id, head.entryId, attempt);
 
     // Route the outcome.
-    // Implements: REQ-d00124-D+E — exhausting the head row (SendPermanent
-    // or SendTransient-at-maxAttempts) marks it final and CONTINUES to
-    // the next pending row; readFifoHead (REQ-d00124-A) skips exhausted
-    // rows on the next iteration, so drain advances through the FIFO in
-    // sequence_in_queue order rather than wedging on an exhausted head.
+    // Implements: REQ-d00124-D+E+H — SendPermanent and SendTransient-at-
+    // maxAttempts both mark the head wedged. The next loop iteration
+    // sees the wedged row via readFifoHead and drain halts at the
+    // top-of-loop check. Trail rows are never attempted ahead of a
+    // wedged head — strict-order delivery.
     switch (result) {
       case SendOk():
         await backend.markFinal(destination.id, head.entryId, FinalStatus.sent);

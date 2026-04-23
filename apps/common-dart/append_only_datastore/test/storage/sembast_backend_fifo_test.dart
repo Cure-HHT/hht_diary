@@ -6,6 +6,30 @@ import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fifo_entry_helpers.dart';
 
+/// Test-only: set the final_status of the FIFO row at [sequenceInQueue]
+/// directly in the backing Sembast store. Used to stage a `tombstoned`
+/// row in tests that pre-date Phase-4.7 Task 6's `tombstoneAndRefill`
+/// API — once Task 6 lands, tests can stage via the public API.
+Future<void> _rawSetFinalStatus(
+  SembastBackend backend,
+  String destinationId, {
+  required int sequenceInQueue,
+  required FinalStatus status,
+}) async {
+  final db = backend.debugDatabase();
+  final store = StoreRef<int, Map<String, Object?>>('fifo_$destinationId');
+  final current = await store.record(sequenceInQueue).get(db);
+  if (current == null) {
+    throw StateError(
+      '_rawSetFinalStatus: no row at sequence_in_queue=$sequenceInQueue '
+      'in fifo_$destinationId',
+    );
+  }
+  final updated = Map<String, Object?>.from(current);
+  updated['final_status'] = status.toJson();
+  await store.record(sequenceInQueue).put(db, updated);
+}
+
 void main() {
   group('SembastBackend FIFO', () {
     late SembastBackend backend;
@@ -256,18 +280,44 @@ void main() {
       expect(head?.entryId, 'e2');
     });
 
-    // Verifies: REQ-d00124-A — after Phase-4.3 Task 8, an exhausted row at
-    // the head is SKIPPED; readFifoHead returns the next pending row. The
-    // drain-loop "wedge" behavior (SendPermanent / SendTransient-at-max
-    // stops drain) is preserved by drain.dart's switch-case, not by
-    // readFifoHead returning null. This test pairs with the "no pending
-    // rows remain" variant below.
-    test('REQ-d00124-A: readFifoHead skips an exhausted head and returns the '
-        'next pending row', () async {
+    // Verifies: REQ-d00124-A — readFifoHead returns the first row in
+    // sequence_in_queue order whose final_status is null (pre-terminal;
+    // drain may attempt) or wedged (blocking terminal; drain halts).
+    // Rows whose final_status is sent or tombstoned are terminal-passable
+    // and SHALL be skipped.
+    test('REQ-d00124-A: readFifoHead returns first row with finalStatus in '
+        '{null, wedged} — wedged row is returned, not skipped', () async {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
-      await backend.markFinal('primary', 'e1', FinalStatus.wedged);
+      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
+      // e3 is left pending.
+
+      final head = await backend.readFifoHead('primary');
+      expect(head, isNotNull);
+      // e1 (sent) is skipped; e2 (wedged) is the first row in
+      // sequence_in_queue order whose final_status is in {null, wedged}.
+      expect(head!.entryId, 'e2');
+      expect(head.finalStatus, FinalStatus.wedged);
+    });
+
+    // Verifies: REQ-d00124-A — tombstoned rows are terminal-passable and
+    // SHALL be skipped. A tombstoned row at sequence_in_queue position 1
+    // followed by a pending row at position 2 returns the pending row.
+    test('REQ-d00124-A: readFifoHead skips tombstoned rows', () async {
+      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      // Phase-4.7 Task 6 will introduce tombstoneAndRefill; until then,
+      // set final_status to "tombstoned" via a direct backend mutation so
+      // this contract test can be authored before Task 6 lands.
+      await _rawSetFinalStatus(
+        backend,
+        'primary',
+        sequenceInQueue: 1,
+        status: FinalStatus.tombstoned,
+      );
 
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
@@ -275,44 +325,24 @@ void main() {
       expect(head.finalStatus, isNull);
     });
 
-    // Verifies: REQ-d00124-A — after Phase-4.3 Task 8, when every row is
-    // terminal (mix of sent / exhausted) and no pending row remains,
-    // readFifoHead returns null. This is the "FIFO exhausted of work"
-    // signal to drain.
-    test('REQ-d00124-A: readFifoHead returns null when no pending rows remain '
-        '(only exhausted and sent rows present)', () async {
+    // Verifies: REQ-d00124-A — when every row's final_status is a
+    // terminal-passable value ({sent, tombstoned}), readFifoHead returns
+    // null. This is the "FIFO has no more drain-candidates and no wedge"
+    // signal; drain returns on null, and tombstoneAndRefill is not
+    // applicable (no head to act on).
+    test('REQ-d00124-A: readFifoHead returns null when only terminal-passable '
+        'rows exist (sent and tombstoned)', () async {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
-
       await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
-      await backend.markFinal('primary', 'e3', FinalStatus.sent);
+      await _rawSetFinalStatus(
+        backend,
+        'primary',
+        sequenceInQueue: 2,
+        status: FinalStatus.tombstoned,
+      );
 
       expect(await backend.readFifoHead('primary'), isNull);
-    });
-
-    // Verifies: REQ-d00124-A — readFifoHead skips a mix of sent and
-    // exhausted rows in sequence_in_queue order and returns the first
-    // pending row it encounters. Pinpoints "skip past any terminal row,
-    // not just the first one" so a future regression that special-cased
-    // only the head position would be caught.
-    test('REQ-d00124-A: readFifoHead skips a run of mixed terminal rows and '
-        'returns the first pending in sequence_in_queue order', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
-      await enqueueSingle(backend, 'primary', eventId: 'e4', sequenceNumber: 4);
-
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
-      await backend.markFinal('primary', 'e3', FinalStatus.sent);
-      // e4 is left pending.
-
-      final head = await backend.readFifoHead('primary');
-      expect(head, isNotNull);
-      expect(head!.entryId, 'e4');
-      expect(head.finalStatus, isNull);
     });
 
     // Verifies: REQ-d00127-A — markFinal on a missing row is a no-op, does

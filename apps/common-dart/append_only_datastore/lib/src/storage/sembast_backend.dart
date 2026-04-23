@@ -792,24 +792,23 @@ class SembastBackend extends StorageBackend {
     return (value as List?)?.cast<String>().toList() ?? const <String>[];
   }
 
-  /// Oldest pre-terminal entry in [destinationId]'s FIFO, or null when
-  /// every row is terminal (any mix of `sent`, `wedged`, and/or
-  /// `tombstoned`) or the FIFO is empty. All non-null-finalStatus rows
-  /// are SKIPPED; only a row whose `final_status` IS NULL is returned.
+  /// Head row of [destinationId]'s FIFO: the first row in
+  /// `sequence_in_queue` order whose `final_status` is either `null`
+  /// (pre-terminal; drain may attempt) or [FinalStatus.wedged] (blocking
+  /// terminal; drain halts on seeing this value). Rows whose
+  /// `final_status` is [FinalStatus.sent] or [FinalStatus.tombstoned] are
+  /// terminal-passable and are SKIPPED. Returns `null` when no row in
+  /// `{null, wedged}` exists — i.e., the FIFO is empty or every row is
+  /// terminal-passable.
   ///
-  /// Pre-Phase-4.3-Task-8, this method returned null as soon as it
-  /// encountered a terminal row — the FIFO was "wedged" at the
-  /// backend level. From Task 8 forward, the wedge is enforced by the
-  /// drain loop's switch-case (SendPermanent / SendTransient-at-max
-  /// stops drain), not by readFifoHead; this lets the batch-FIFO
-  /// continue-past-terminal semantics be introduced without changing
-  /// the method's caller-facing contract in drain.
-  // Implements: REQ-d00124-A — readFifoHead returns the first row whose
-  // final_status == null in sequence_in_queue order; any row with a
-  // non-null terminal status (sent, wedged, tombstoned) is skipped.
-  // Drain's wedge behavior is preserved by drain.dart's SendPermanent /
-  // SendTransient-at-max returning rather than by readFifoHead
-  // returning null at the first wedged row.
+  /// The wedge is enforced by the caller: on a wedged return value
+  /// `drain` returns without calling `Destination.send`. Exposing the
+  /// wedged row here (rather than filtering it out) lets UI surfaces
+  /// observe the wedge via this single entry point without a separate
+  /// `wedgedFifos` probe.
+  // Implements: REQ-d00124-A — readFifoHead returns first {null, wedged};
+  // skips {sent, tombstoned}. Recovery from a wedged head is
+  // tombstoneAndRefill (REQ-d00144).
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) async {
     final db = _database();
@@ -817,7 +816,10 @@ class SembastBackend extends StorageBackend {
     final records = await store.find(
       db,
       finder: Finder(
-        filter: Filter.isNull('final_status'),
+        filter: Filter.or([
+          Filter.isNull('final_status'),
+          Filter.equals('final_status', FinalStatus.wedged.toJson()),
+        ]),
         sortOrders: [SortOrder('sequence_in_queue')],
         limit: 1,
       ),
