@@ -12,8 +12,6 @@ dependencies:
     sdk: flutter
   event_sourcing_datastore:
     path: ../
-  trial_data_types:
-    path: ../../trial_data_types
   # Direct deps required by the depend_on_referenced_packages lint; the
   # parent package already exposes all three transitively.
   path: ^1.9.1

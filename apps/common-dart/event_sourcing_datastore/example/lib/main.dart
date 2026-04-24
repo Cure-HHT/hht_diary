@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 // Implements: REQ-d00134 — single init point: registers entry types,
 // destinations, materializer. Implements: REQ-d00125 — 1-second tick

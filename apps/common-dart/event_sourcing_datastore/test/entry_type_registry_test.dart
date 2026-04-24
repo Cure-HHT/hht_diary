@@ -1,6 +1,6 @@
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 /// Minimal fixture: two distinct `EntryTypeDefinition`s with unique ids.
 EntryTypeDefinition _defn(String id, {String widgetId = 'epistaxis_form_v1'}) =>

@@ -1,5 +1,6 @@
 import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
 import 'package:event_sourcing_datastore/src/event_store.dart';
 import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
@@ -8,7 +9,6 @@ import 'package:event_sourcing_datastore/src/security/sembast_security_context_s
 import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/source.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 /// Facade returned by `bootstrapAppendOnlyDatastore`. Exposes the four
 /// collaborators an app reads through after startup: the write API

@@ -2,6 +2,8 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:canonical_json_jcs/canonical_json_jcs.dart';
+import 'package:crypto/crypto.dart';
 import 'package:event_sourcing_datastore/src/core/errors/datastore_exception.dart'
     as errors;
 import 'package:event_sourcing_datastore/src/infrastructure/database/database_provider.dart';
@@ -9,8 +11,6 @@ import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:canonical_json_jcs/canonical_json_jcs.dart';
-import 'package:crypto/crypto.dart';
 import 'package:provenance/provenance.dart';
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';

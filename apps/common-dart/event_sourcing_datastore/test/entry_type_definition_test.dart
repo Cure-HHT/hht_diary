@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
-import 'package:trial_data_types/trial_data_types.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Verifies REQ-d00116-A, REQ-d00116-B, REQ-d00116-C, REQ-d00116-D,
 /// REQ-d00116-F, REQ-d00116-G. (REQ-d00116-E — materializer fallback — is

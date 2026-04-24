@@ -1,7 +1,6 @@
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 import '../test_support/fake_destination.dart';
 

@@ -52,7 +52,7 @@
 ///
 /// The datastore follows a three-layer architecture:
 ///
-/// 1. **Domain Layer** (trial_data_types package)
+/// 1. **Domain Layer** (this package — value types)
 ///    - Event definitions
 ///    - Domain entities
 ///    - Value objects
@@ -129,6 +129,7 @@ export 'src/destinations/wire_payload.dart' show WirePayload;
 // write API; `EntryService.record` remains for back-compat until Phase 5
 // cuts clinical_diary over.
 export 'src/entry_service.dart' show DeviceInfo, EntryService, SyncCycleTrigger;
+export 'src/entry_type_definition.dart' show EntryTypeDefinition;
 export 'src/entry_type_registry.dart' show EntryTypeRegistry;
 export 'src/event_store.dart'
     show EventStore, EventStoreSyncCycleTrigger, RetentionResult;

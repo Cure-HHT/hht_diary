@@ -1,5 +1,5 @@
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/materialization/entry_type_definition_lookup.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 /// In-memory [EntryTypeDefinitionLookup] for use in tests.
 ///

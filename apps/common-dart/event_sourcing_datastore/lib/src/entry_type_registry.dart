@@ -1,4 +1,4 @@
-import 'package:trial_data_types/trial_data_types.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 
 /// Process-wide registry mapping `entry_type` ids to `EntryTypeDefinition`.
 ///

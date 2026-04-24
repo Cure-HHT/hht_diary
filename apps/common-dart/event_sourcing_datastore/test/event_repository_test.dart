@@ -2,9 +2,9 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00004: Local-First Data Entry Implementation
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
 import 'package:crypto/crypto.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast.dart' as sembast;
 import 'package:sembast/sembast_memory.dart';

@@ -1,4 +1,4 @@
-import 'package:trial_data_types/trial_data_types.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 
 /// Reserved id for the per-event security-context redaction audit event.
 const String kSecurityContextRedactedEntryType = 'security_context_redacted';

@@ -24,8 +24,6 @@ dependencies:
   path_provider: ^2.1.5
   provenance:
     path: ../provenance
-  trial_data_types:
-    path: ../trial_data_types
   uuid: ^4.5.2
 
 dev_dependencies:

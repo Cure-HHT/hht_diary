@@ -1,6 +1,6 @@
+import 'package:collection/collection.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:collection/collection.dart';
 
 /// Inclusive pair of sequence numbers drawn from the events in a batch
 /// FIFO row. `firstSeq` is the minimum `sequence_number` across the batch

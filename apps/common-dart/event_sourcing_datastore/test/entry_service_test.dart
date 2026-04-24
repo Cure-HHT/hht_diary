@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
 import 'package:event_sourcing_datastore/src/entry_service.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
 import 'package:event_sourcing_datastore/src/storage/append_result.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
@@ -16,7 +17,6 @@ import 'package:event_sourcing_datastore/src/storage/txn.dart';
 import 'package:event_sourcing_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 /// Fixture bundling the collaborators `EntryService.record` needs plus
 /// a `syncCalls` list the test's sync trigger appends to on every

@@ -1,7 +1,7 @@
-import 'package:trial_data_types/trial_data_types.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 
 // Implements: REQ-d00116 — EntryTypeDefinition value type from
-// trial_data_types; demo instances registered via
+// event_sourcing_datastore; demo instances registered via
 // bootstrapAppendOnlyDatastore (REQ-d00134) at Task 9.
 // Validated by: JNY-01 (demo_note lifecycle), JNY-02 (CQRS via action
 // types' distinct aggregate types in demoAggregateTypeByEntryTypeId).

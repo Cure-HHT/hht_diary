@@ -1,4 +1,4 @@
-import 'package:trial_data_types/trial_data_types.dart';
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 
 /// Registry that resolves an `entry_type` identifier to its
 /// [EntryTypeDefinition].

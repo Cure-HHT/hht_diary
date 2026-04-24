@@ -1,9 +1,9 @@
+import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 void main() {
   EntryTypeDefinition defFor(String id, {String? effectiveDatePath}) =>
