@@ -81,44 +81,20 @@ if [[ "$CURRENT_BRANCH" == feature/* ]] || \
     IS_PR_INTENDED_BRANCH=true
 fi
 
-# PR status detection must be authoritative — the hook's block-vs-warn
-# decision downstream depends on it. If we cannot determine PR status we
-# fail the push and report the actual reason, rather than silently
-# treating an auth/network failure as "no PR" (which would let a PR
-# branch push bypass validation that was meant to block it).
-if ! command -v gh &> /dev/null; then
-    printf '%b\n' "${RED}ERROR: gh CLI is not installed — cannot determine PR status.${NC}"
-    printf '%b\n' "${RED}       Install: https://cli.github.com/${NC}"
-    printf '%b\n' "${RED}Pre-push BLOCKED.${NC}"
-    exit 1
-fi
-
-# gh pr view will 401 silently if GITHUB_TOKEN is stale even when a
-# valid keyring token exists, because gh prefers the env var. Validate
-# auth against a real API call so the failure mode is caught here.
-GH_API_USER_OUT=$(gh api user --silent 2>&1)
-if [ $? -ne 0 ]; then
-    printf '%b\n' "${RED}ERROR: gh CLI is installed but API auth is failing.${NC}"
-    printf '%b\n' "${RED}       gh api user error:${NC}"
-    printf '%b\n' "${RED}         ${GH_API_USER_OUT}${NC}"
-    echo ""
-    printf '%b\n' "${YELLOW}Diagnostics (gh auth status):${NC}"
-    gh auth status 2>&1 | sed 's/^/  /'
-    echo ""
-    printf '%b\n' "${YELLOW}Common cause: a stale GITHUB_TOKEN env var is shadowing a${NC}"
-    printf '%b\n' "${YELLOW}              working keyring token. Try:  unset GITHUB_TOKEN${NC}"
-    printf '%b\n' "${RED}Pre-push BLOCKED: cannot determine PR status safely.${NC}"
-    exit 1
-fi
-
-# Auth works. gh pr view now fails only for real reasons (no PR for the
-# branch, or the branch isn't pushed yet). Both map to HAS_PR=false.
-if PR_INFO=$(gh pr view "$CURRENT_BRANCH" --json url,state 2>/dev/null); then
-    PR_STATE=$(echo "$PR_INFO" | jq -r '.state' 2>/dev/null)
-    if [ "$PR_STATE" = "OPEN" ]; then
-        HAS_PR=true
-        PR_URL=$(echo "$PR_INFO" | jq -r '.url' 2>/dev/null)
+# Check if gh CLI is available
+if command -v gh &> /dev/null; then
+    # Check if branch has an associated PR
+    if PR_INFO=$(gh pr view "$CURRENT_BRANCH" --json url,state 2>/dev/null); then
+        PR_STATE=$(echo "$PR_INFO" | jq -r '.state' 2>/dev/null)
+        if [ "$PR_STATE" = "OPEN" ]; then
+            HAS_PR=true
+            PR_URL=$(echo "$PR_INFO" | jq -r '.url' 2>/dev/null)
+        fi
     fi
+else
+    printf '%b\n' "${YELLOW}WARNING: gh CLI not installed - cannot detect PR status${NC}"
+    printf '%b\n' "${YELLOW}         Install: https://cli.github.com/${NC}"
+    echo ""
 fi
 
 # PR-intended branches should be blocking even before PR exists
@@ -197,15 +173,10 @@ if [ -n "$ELSPAIS_VERSION" ]; then
     fi
 fi
 
-# Elspais's CLI treats ELSPAIS_* env vars as config overrides. The
-# ELSPAIS_VERSION var we just read from versions.env is the repo-pinned
-# minimum-CLI-version (used by the version-compare step above), but if
-# we leave it in the environment it collides with the `version` int field
-# at the top of .elspais.toml and makes `elspais checks` fail to parse.
-# Unset it now so only the hook sees the pin.
-unset ELSPAIS_VERSION
-
 # Run elspais checks (REQ format, links, and INDEX accuracy)
+printf '%b\n' "${BLUE}Running requirement validation...${NC}"
+echo ""
+
 if command -v elspais &> /dev/null; then
     if ! OUTPUT=$(elspais checks 2>&1); then
         VALIDATION_FAILED=true

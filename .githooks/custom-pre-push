@@ -5,7 +5,7 @@
 #   - Nested Dart project discovery (find all pubspec.yaml under apps/)
 #   - Per-app test runner (tool/test.sh discovery)
 #   - Clinical diary version bump
-#   - INDEX.md validation (elspais checks)
+#   - INDEX.md validation (elspais index validate)
 #
 # Variables available from the generated hook:
 #   $REPO_ROOT, $VALIDATION_FAILED, $SHOULD_BLOCK
@@ -29,8 +29,11 @@ echo ""
 # INDEX.md Validation
 # =====================================================
 
+printf '%b\n' "${BLUE}Running INDEX.md validation...${NC}"
+echo ""
+
 if command -v elspais &> /dev/null; then
-    if ! elspais checks 2>&1; then
+    if ! elspais index --mode core validate 2>&1; then
         VALIDATION_FAILED=true
         printf '%b\n' "${RED}INDEX.md validation failed!${NC}"
     else

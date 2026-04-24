@@ -296,6 +296,3 @@ docs/plans/
 /apps/common-dart/otel_common/coverage/test/logging_integration_test.dart.vm.json
 /apps/common-dart/otel_common/coverage/test/middleware_integration_test.dart.vm.json
 /apps/common-dart/otel_common/coverage/lcov.info
-
-# Brainstorming visual-companion session data
-.superpowers/
