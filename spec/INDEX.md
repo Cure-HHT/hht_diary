@@ -313,7 +313,7 @@
 | REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | bb51d314 |
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
 | REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 92a66dd9 |
-| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 70f2e3d2 |
+| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | d10798de |
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | aabfc89b |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 3efbe4b4 |
