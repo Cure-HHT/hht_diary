@@ -6,8 +6,11 @@ import 'package:collection/collection.dart';
 /// event append. The view is rebuildable from the event log; it is a
 /// read-optimized projection, never the source of truth.
 ///
-/// `currentAnswers` stores the latest full answer set under latest-wins merging
-/// semantics (see design doc §6.3). `effectiveDate` is
+/// `currentAnswers` stores the accumulated answer set under key-wise merge
+/// semantics: each `finalized` or `checkpoint` event contributes a delta
+/// where keys present overwrite the prior value (including explicit `null`
+/// as a clear), and keys absent preserve the prior value (REQ-d00121-B+C+J).
+/// `effectiveDate` is
 /// nullable — entry types without an `effective_date_path` in their
 /// EntryTypeDefinition fall back to the first event's `client_timestamp`,
 /// but that fallback happens in the materializer (Phase 3), not here; this
