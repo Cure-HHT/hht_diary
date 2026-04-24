@@ -314,7 +314,7 @@
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
 | REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 92a66dd9 |
 | REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 422f82d4 |
-| REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | 632e4a22 |
+| REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | aabfc89b |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 3efbe4b4 |
 | REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 92afab97 |
@@ -324,7 +324,7 @@
 | REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | d36f1dde |
 | REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | 17ee5d1c |
 | REQ-d00130 | Historical Replay on Past startDate                     | dev-event-sourcing-mobile.md   | 254b541a |
-| REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | f132a4cf |
+| REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | 6d804b0e |
 | REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 1f9f50c9 |
 | REQ-d00135 | Initiator Polymorphic Actor Type                        | dev-event-sourcing-mobile.md   | 0b5663cc |
 | REQ-d00136 | flowToken Correlation Field                             | dev-event-sourcing-mobile.md   | 0bf4ed09 |

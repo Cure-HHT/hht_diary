@@ -72,6 +72,10 @@ P. Questionnaires without session management configuration SHALL preserve and re
 
 Q. When the app is resumed after being closed by the OS, if a questionnaire is in progress and has not timed out, the app SHALL open to the questionnaire for completion.
 
+## Changelog
+
+- 2026-04-24 | 3ab0f2f1 | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
 *End* *Questionnaire Session Management* | **Hash**: 3ab0f2f1
 
 ---

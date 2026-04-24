@@ -63,6 +63,10 @@ O. The system SHALL apply sponsor-specific branding and customization for linked
 
 P. The system SHALL obtain explicit user consent before synchronizing pre-existing local data to remote systems upon linking.
 
+## Changelog
+
+- 2026-04-24 | 0b68e32b | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
 *End* *Diary Mobile Application* | **Hash**: 0b68e32b
 ---
 

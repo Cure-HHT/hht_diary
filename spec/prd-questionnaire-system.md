@@ -136,6 +136,10 @@ H. The system shall support sponsor configurable study start date.
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 
+## Changelog
+
+- 2026-04-24 | 0a17515d | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
 *End* *Clinical Questionnaire System* | **Hash**: 0a17515d
 ---
 

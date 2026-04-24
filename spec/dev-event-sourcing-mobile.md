@@ -190,7 +190,7 @@ REQ-p00004-E requires the system to derive current data state by replaying event
 
 A pure-function materializer is the mechanism that makes this hold. `Materializer.apply(previous, event, def, firstEventTimestamp) -> DiaryEntry` takes the prior view row (or null for the first event on an aggregate), the incoming event, the `EntryTypeDefinition` for its `entry_type`, and the `client_timestamp` of the first event on this aggregate; it returns the new view row deterministically. No I/O, no clock reads, no randomness — the same inputs always produce the same output, which is what lets the same function drive both the online write path (called from `EntryService.record()`'s transaction in a later phase) and the offline rebuild path (`rebuildMaterializedView`).
 
-The three event types fold differently: `finalized` and `checkpoint` both whole-replace `current_answers` (never merge field-by-field, matching §6.3's whole-replacement aggregate semantics) but differ in `is_complete`; `tombstone` preserves `current_answers` and `is_complete` but flips `is_deleted` to `true`. The `effective_date` is resolved by walking `EntryTypeDefinition.effective_date_path` as a dotted JSON path into `current_answers`; when the path is null or does not resolve (e.g. a checkpoint saved before the user entered the target field), the materializer falls back to the first-event `client_timestamp` on this aggregate, giving the calendar a stable placeholder until the entry completes.
+The three event types fold differently: `finalized` and `checkpoint` both merge `event.data.answers` into `previous.current_answers` — keys present in the event's delta (whether with a non-null value or an explicit `null`) overwrite the corresponding key in the merged result, and keys absent from the event preserve their prior value — and differ only in the `is_complete` flag the materialized row carries (`true` for `finalized`, `false` for `checkpoint`); `tombstone` preserves `current_answers` and `is_complete` but flips `is_deleted` to `true`. Each event therefore captures exactly the change the caller chose to apply, and the materialized view is a pure fold of those deltas in `sequence_number` order. The `effective_date` is resolved from the merged `current_answers` (not the event's bare delta) by walking `EntryTypeDefinition.effective_date_path` as a dotted JSON path; when the path is null or does not resolve, the materializer falls back to the first-event `client_timestamp` on this aggregate. Dart's `Map<String, Object?>` and JSON serialization preserve the "key absent" vs "key present with null value" distinction, which the fold contract depends on (assertion J).
 
 The `rebuildMaterializedView(backend, lookup)` helper is the disaster-recovery counterpart: it reads all events in sequence order, folds them per aggregate, and replaces the entire `diary_entries` store with the result. It is not a runtime operation — it is a developer tool and recovery mechanism. Its existence, plus the purity of `Materializer.apply`, is what makes `diary_entries` a cache rather than a source of truth. Production code that reads `diary_entries` is implicitly relying on the invariant that calling `rebuildMaterializedView` would produce the same result; any code that writes `diary_entries` by a means other than the materializer breaks that invariant and the cache contract with it.
 
@@ -198,9 +198,9 @@ The `rebuildMaterializedView(backend, lookup)` helper is the disaster-recovery c
 
 A. `Materializer.apply(previous, event, def, firstEventTimestamp)` SHALL be a pure function of its inputs: it SHALL NOT perform I/O, read the clock, or consume random values, such that identical inputs always produce identical outputs.
 
-B. When `event.event_type` equals `"finalized"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `true` and whose `current_answers` equals `event.data.answers` in its entirety; fields present in a previous row's `current_answers` but absent from `event.data.answers` SHALL NOT be carried forward.
+B. When `event.event_type` equals `"finalized"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `true` and whose `current_answers` equals the key-wise merge of `previous.current_answers` (or the empty map when `previous` is null) under `event.data.answers`: for each key `k` present in `event.data.answers`, the merged value SHALL equal `event.data.answers[k]` — including when that value is `null` (explicit clear); for each key `k` absent from `event.data.answers`, the merged value SHALL equal `previous.current_answers[k]` (prior value preserved).
 
-C. When `event.event_type` equals `"checkpoint"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `false` and whose `current_answers` equals `event.data.answers` in its entirety, with the same whole-replacement semantics as assertion B.
+C. When `event.event_type` equals `"checkpoint"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `false` and whose `current_answers` is produced by the same key-wise merge rule as assertion B.
 
 D. When `event.event_type` equals `"tombstone"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_deleted` is `true`; all other fields, including `current_answers` and `is_complete`, SHALL carry over unchanged from the previous row.
 
@@ -214,7 +214,9 @@ H. `rebuildMaterializedView` SHALL return the number of distinct `aggregate_id` 
 
 I. The `diary_entries` store SHALL be treated as a cache derivable from `event_log` by `rebuildMaterializedView`; production code that writes `diary_entries` outside the materializer SHALL be considered a violation of the cache contract.
 
-*End* *diary_entries Materialization from Event Log* | **Hash**: 632e4a22
+J. `Materializer.apply` SHALL distinguish "key absent from `event.data.answers`" from "key present with value `null`" when computing the merged `current_answers`: the first preserves `previous.current_answers[key]`; the second sets `merged[key]` to `null` (the key is present in the merged map with a `null` value). Implementations SHALL iterate `event.data.answers` via its key set (e.g., `for (final k in answers.keys)`) rather than by indexing an assumed key list, so absent keys are not confused with present-`null` keys.
+
+*End* *diary_entries Materialization from Event Log* | **Hash**: aabfc89b
 
 ---
 
@@ -492,7 +494,7 @@ C. A new event appended during replay (same Dart isolate, under sembast transact
 
 The assertion that diverges most from the original Phase-5 spec is D: the Phase-4.3 design defers destination fan-out out of the write transaction and into the next `fillBatch` tick. The rationale (design §6.8) is that the fan-out step needs to consult per-destination subscription filters and batch rules, which each involve work the write transaction should not own. Deferring fan-out to `fillBatch` localizes the write path's failure modes to the materializer and storage, simplifies the `EntryService` surface, and preserves the observable property that a successful `record()` call has appended an event even if the destination write is still pending.
 
-No-op detection compares a canonical content hash across the tuple `(event_type, canonical(answers), checkpoint_reason, change_reason)`; duplicate identical calls on the same aggregate return successfully without writing, which keeps UI retries idempotent.
+No-op detection is merge-aware: a call is a duplicate of the aggregate's most recent event when merging the candidate `answers` into the materialized `previous.current_answers` produces a `current_answers` equal to the prior, the event_type's implied `is_complete` matches the prior row's `is_complete` (for `finalized`/`checkpoint`) or the prior's `is_deleted` is already `true` (for `tombstone`), and the candidate `checkpoint_reason` and `change_reason` match the most recent event's values. A single-event aggregate never triggers a no-op (no prior row exists).
 
 ## Assertions
 
@@ -506,7 +508,7 @@ D. `EntryService.record` SHALL perform the local write path in one `StorageBacke
 
 E. A failure inside step D — raised by the materializer or the storage layer — SHALL abort the whole write: no event SHALL be appended and no materializer output SHALL be visible to subsequent reads.
 
-F. `EntryService.record` SHALL detect no-ops: if the canonical content hash of `(event_type, canonical(answers), checkpoint_reason, change_reason)` equals the hash of the most recent event on the same aggregate, the call SHALL return successfully without writing.
+F. `EntryService.record` SHALL detect no-ops against the merged result. For `finalized` and `checkpoint` events the call SHALL return without writing when ALL of the following hold: (i) the key-wise merge of `answers` over `previous.current_answers` (per REQ-d00121-B) equals `previous.current_answers` under deep equality; (ii) the event's implied `is_complete` (`finalized → true`, `checkpoint → false`) equals the prior row's `is_complete`; (iii) `checkpoint_reason` equals the prior event's `checkpoint_reason` (or both are null); (iv) `change_reason` equals the prior event's `change_reason`. For `tombstone` events the call SHALL return without writing when BOTH: (i) the prior row's `is_deleted` is already `true`; (ii) `change_reason` matches the prior event's `change_reason`. A first event on an aggregate (no prior row) SHALL NOT be treated as a no-op.
 
 G. After a successful write, `EntryService.record` SHALL invoke `syncCycle()` fire-and-forget (`unawaited`); the caller SHALL NOT rely on sync completion before the call returns.
 
@@ -514,7 +516,7 @@ H. `EntryService.record` SHALL validate that `entryType` is registered in the `E
 
 I. `EntryService.record` SHALL populate the event's migration-bridge top-level fields (`client_timestamp`, `device_id`, `software_version`) from `metadata.provenance[0]`.
 
-*End* *EntryService.record Contract* | **Hash**: f132a4cf
+*End* *EntryService.record Contract* | **Hash**: 6d804b0e
 
 ---
 
