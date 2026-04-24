@@ -287,7 +287,7 @@ abstract class StorageBackend {
   /// note on [appendAttempt] for the race this closes. Implementations
   /// SHALL emit a warning-level diagnostic when they no-op
   /// (REQ-d00127-C). The one-way-transition rule for an already-terminal
-  /// entry (pending -> sent|exhausted only; no re-transition) is
+  /// entry (null -> sent|wedged|tombstoned only; no re-transition) is
   /// orthogonal to this tolerance and remains enforced.
   Future<void> markFinal(
     String destinationId,
@@ -313,7 +313,7 @@ abstract class StorageBackend {
   Future<void> writeSchemaVersion(Txn txn, int version);
 
   /// Read the per-destination fill cursor — the highest `sequence_number`
-  /// that has been promoted into any FIFO row (pending, sent, or exhausted)
+  /// that has been promoted into any FIFO row (null, sent, wedged, or tombstoned)
   /// for [destinationId]. Returns `-1` when no cursor value has yet been
   /// written, i.e., no row has yet been enqueued for this destination.
   ///
@@ -406,7 +406,7 @@ abstract class StorageBackend {
   /// written to, or the row was deleted). Non-transactional.
   ///
   /// Used by `rehabilitateExhaustedRow` to validate that the target row
-  /// exists and is in `exhausted` state before opening the transaction
+  /// exists and is in `wedged` state before opening the transaction
   /// that flips it back to `pending`. Exposed as an explicit row-read
   /// rather than reusing `readFifoHead` because rehabilitate targets a
   /// specific row by id, not the head.

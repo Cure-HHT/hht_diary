@@ -130,7 +130,7 @@ abstract class Destination {
   /// - [SendTransient] — retryable failure (typically 5xx, timeouts, network
   ///   errors); drain loop applies backoff per `SyncPolicy`.
   /// - [SendPermanent] — non-retryable failure (typically 4xx excluding
-  ///   rate-limits); drain loop marks the entry exhausted and wedges the
+  ///   rate-limits); drain loop marks the entry wedged and wedges the
   ///   FIFO per REQ-d00119-D.
   ///
   /// How underlying HTTP codes, network errors, and timeouts map into those

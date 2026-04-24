@@ -448,7 +448,7 @@ class SembastBackend extends StorageBackend {
     await _backendStateStore
         .record(_fifoSeqCounterKey(destinationId))
         .delete(t._sembastTxn);
-    // Remove the id from the known-FIFOs registry so exhausted-FIFO
+    // Remove the id from the known-FIFOs registry so wedged-FIFO
     // iteration does not hit a dropped store.
     final current =
         (await _backendStateStore.record(_knownFifosKey).get(t._sembastTxn)

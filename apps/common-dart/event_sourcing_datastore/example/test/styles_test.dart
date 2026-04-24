@@ -25,8 +25,8 @@ void main() {
     test('retrying is red 0xFFE00000 (head in transient retry)', () {
       expect(DemoColors.retrying, const Color(0xFFE00000));
     });
-    test('exhausted is magenta 0xFFE000E0 (inert row)', () {
-      expect(DemoColors.exhausted, const Color(0xFFE000E0));
+    test('wedged is magenta 0xFFE000E0 (inert row)', () {
+      expect(DemoColors.wedged, const Color(0xFFE000E0));
     });
     test('selected is blue 0xFF0044AA (cross-panel selection tint)', () {
       expect(DemoColors.selected, const Color(0xFF0044AA));

@@ -6,7 +6,7 @@
 /// - [SendTransient]: retry later per SyncPolicy; `httpStatus` optional
 ///   because not every destination is HTTP-based.
 /// - [SendPermanent]: the payload will never be accepted as-is; mark the
-///   FIFO head `exhausted` and wedge this destination's FIFO.
+///   FIFO head `wedged` and halt this destination's FIFO.
 ///
 /// The translation from a raw HTTP or IO response to a [SendResult] is a
 /// per-destination judgment — default categorization is `2xx -> SendOk`,
@@ -59,7 +59,7 @@ class SendTransient extends SendResult {
 }
 
 /// The destination will not accept the payload, and retry would not change
-/// that. The drain loop SHALL mark the FIFO head `exhausted` and stop
+/// that. The drain loop SHALL mark the FIFO head `wedged` and stop
 /// draining this destination until operator action (REQ-d00119-C).
 class SendPermanent extends SendResult {
   const SendPermanent({required this.error});

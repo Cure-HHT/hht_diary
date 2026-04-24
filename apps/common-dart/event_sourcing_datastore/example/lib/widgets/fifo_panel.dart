@@ -456,10 +456,10 @@ class _FifoRowTile extends StatelessWidget {
       color = DemoColors.sent;
     } else if (status == 'wedged') {
       prefix = '[wdg]  ';
-      color = DemoColors.exhausted;
+      color = DemoColors.wedged;
     } else if (status == 'tombstoned') {
       prefix = '[tmb]  ';
-      color = DemoColors.exhausted;
+      color = DemoColors.wedged;
     } else if (attemptsLen > 0) {
       prefix = '> ';
       color = DemoColors.retrying;

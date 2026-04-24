@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 // Design: §7.4 palette lock. Tripwire test in styles_test.dart asserts
 // every hex value; state cues depend on the 12%-below-max brightness
-// palette (green = sent, red = retrying, magenta = exhausted, yellow
+// palette (green = sent, red = retrying, magenta = wedged, yellow
 // = draining head, blue = cross-panel selection).
 class DemoColors {
   const DemoColors._();
@@ -14,7 +14,7 @@ class DemoColors {
   static const Color sent = Color(0xFF00E000);
   static const Color pending = Color(0xFFAAAAAA);
   static const Color retrying = Color(0xFFE00000);
-  static const Color exhausted = Color(0xFFE000E0);
+  static const Color wedged = Color(0xFFE000E0);
   static const Color selected = Color(0xFF0044AA);
   static const Color border = Color(0xFFFFFFFF);
 
