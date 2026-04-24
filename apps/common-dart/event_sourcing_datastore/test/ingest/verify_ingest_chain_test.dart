@@ -201,9 +201,12 @@ void main() {
           expect(cleanVerdict.ok, isTrue);
 
           // Directly tamper e2's stored record (ingest_sequence_number == 2)
-          // via sembast raw access.
+          // via sembast raw access. Ingested events live in 'ingested_events'
+          // (separate from the origin 'events' store after the store split).
           final rawDb = dest.backend.debugDatabase();
-          final eventStore = sembast.intMapStoreFactory.store('events');
+          final eventStore = sembast.intMapStoreFactory.store(
+            'ingested_events',
+          );
 
           // Find the record with ingest_sequence_number == 2 (Sembast key == 2
           // because appendIngestedEvent uses ingestSeq as the key).
@@ -258,9 +261,10 @@ void main() {
           expect(outcome.outcome, equals(IngestOutcome.ingested));
         }
 
-        // Tamper seq 3.
+        // Tamper seq 3. Ingested events live in 'ingested_events'
+        // (separate from the origin 'events' store after the store split).
         final rawDb = dest.backend.debugDatabase();
-        final eventStore = sembast.intMapStoreFactory.store('events');
+        final eventStore = sembast.intMapStoreFactory.store('ingested_events');
 
         final record = await eventStore.record(3).get(rawDb);
         expect(record, isNotNull);

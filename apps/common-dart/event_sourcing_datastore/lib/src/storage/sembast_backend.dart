@@ -73,8 +73,13 @@ class SembastBackend extends StorageBackend {
   static String _fifoSeqCounterKey(String destinationId) =>
       'fifo_seq_counter_$destinationId';
 
+  static const _eventStoreName = 'events';
+  static const _ingestedEventsStoreName = 'ingested_events';
+
   final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
-      .store('events');
+      .store(_eventStoreName);
+  final StoreRef<int, Map<String, Object?>> _ingestedEventsStore =
+      intMapStoreFactory.store(_ingestedEventsStoreName);
   final StoreRef<String, Object?> _backendStateStore =
       StoreRef<String, Object?>('backend_state');
   final StoreRef<String, Map<String, Object?>> _entriesStore =
@@ -190,8 +195,17 @@ class SembastBackend extends StorageBackend {
       filter: Filter.equals('aggregate_id', aggregateId),
       sortOrders: [SortOrder('sequence_number')],
     );
-    final records = await _eventStore.find(db, finder: finder);
-    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
+    // Query both origin store and ingested-events store: receiver-originated
+    // audit events (duplicate_received, batch_rejected) land in
+    // _ingestedEventsStore, while origin-role events land in _eventStore.
+    // Merge and re-sort by sequence_number so callers get a unified view.
+    final originRecords = await _eventStore.find(db, finder: finder);
+    final ingestedRecords = await _ingestedEventsStore.find(db, finder: finder);
+    final merged = [
+      ...originRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
+      ...ingestedRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
+    ]..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
+    return merged;
   }
 
   @override
@@ -204,8 +218,17 @@ class SembastBackend extends StorageBackend {
       filter: Filter.equals('aggregate_id', aggregateId),
       sortOrders: [SortOrder('sequence_number')],
     );
-    final records = await _eventStore.find(t._sembastTxn, finder: finder);
-    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
+    // See findEventsForAggregate: query both stores and merge.
+    final originRecords = await _eventStore.find(t._sembastTxn, finder: finder);
+    final ingestedRecords = await _ingestedEventsStore.find(
+      t._sembastTxn,
+      finder: finder,
+    );
+    final merged = [
+      ...originRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
+      ...ingestedRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
+    ]..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
+    return merged;
   }
 
   @override
@@ -1201,8 +1224,10 @@ class SembastBackend extends StorageBackend {
     final lastEntry = provenance.last as Map<String, Object?>;
     final ingestSeq = lastEntry['ingest_sequence_number'] as int;
 
-    // Persist to the events store using ingestSeq as the key.
-    await _eventStore.record(ingestSeq).put(t._sembastTxn, event.toMap());
+    // Persist to the ingested_events store using ingestSeq as the key.
+    await _ingestedEventsStore
+        .record(ingestSeq)
+        .put(t._sembastTxn, event.toMap());
 
     // Update the Chain 2 tail atomically in the same txn.
     await _backendStateStore
@@ -1215,13 +1240,18 @@ class SembastBackend extends StorageBackend {
 
   /// Read a single event by `event_id` within [txn]. Returns `null` when no
   /// event with that id is present. Used by ingest's idempotency check
-  /// (REQ-d00145-D).
+  /// (REQ-d00145-D): checks whether THIS event has been ingested at THIS
+  /// destination, so it queries only the destination's ingest log
+  /// (`_ingestedEventsStore`), not the origin event log.
   // Implements: REQ-d00145-D.
   @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) async {
     final t = _requireValidTxn(txn);
     final finder = Finder(filter: Filter.equals('event_id', eventId), limit: 1);
-    final record = await _eventStore.findFirst(t._sembastTxn, finder: finder);
+    final record = await _ingestedEventsStore.findFirst(
+      t._sembastTxn,
+      finder: finder,
+    );
     if (record == null) return null;
     return StoredEvent.fromMap(
       Map<String, Object?>.from(record.value),
@@ -1245,7 +1275,7 @@ class SembastBackend extends StorageBackend {
     int? to,
   }) async {
     final db = _database();
-    final records = await _eventStore.find(
+    final records = await _ingestedEventsStore.find(
       db,
       finder: Finder(sortOrders: [SortOrder(Field.key)]),
     );
