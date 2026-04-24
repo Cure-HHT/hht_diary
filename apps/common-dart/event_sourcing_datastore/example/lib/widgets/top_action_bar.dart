@@ -32,7 +32,6 @@ class TopActionBar extends StatefulWidget {
 class _TopActionBarState extends State<TopActionBar> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _body = TextEditingController();
-  final TextEditingController _mood = TextEditingController();
 
   final Random _rng = Random();
 
@@ -50,7 +49,6 @@ class _TopActionBarState extends State<TopActionBar> {
     widget.appState.removeListener(_onAppState);
     _title.dispose();
     _body.dispose();
-    _mood.dispose();
     super.dispose();
   }
 
@@ -66,14 +64,11 @@ class _TopActionBarState extends State<TopActionBar> {
   }
 
   Map<String, Object?> _collectAnswers() {
-    final m = <String, Object?>{
+    return <String, Object?>{
       'title': _title.text,
       'body': _body.text,
       'date': DateTime.now().toUtc().toIso8601String(),
     };
-    final mood = int.tryParse(_mood.text);
-    if (mood != null) m['mood'] = mood;
-    return m;
   }
 
   Future<void> _record({
@@ -120,7 +115,6 @@ class _TopActionBarState extends State<TopActionBar> {
         ),
         _miniField(_title, 'title'),
         _miniField(_body, 'body'),
-        _miniField(_mood, 'mood', width: 60),
         _btn(
           label: 'Start',
           onTap: () async {
