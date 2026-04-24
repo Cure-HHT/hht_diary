@@ -153,7 +153,9 @@ void main() {
     test('GET returns 401 when no authorization header', () async {
       final request = Request(
         'GET',
-        Uri.parse('http://localhost/api/v1/portal/patients/p1/questionnaires'),
+        Uri.parse(
+          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires',
+        ),
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -167,7 +169,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/p1/questionnaires/nose_hht/send',
+          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/nose_hht/send',
         ),
       );
 
@@ -180,7 +182,7 @@ void main() {
       final request = Request(
         'DELETE',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/p1/questionnaires/q1',
+          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1',
         ),
       );
 
@@ -193,7 +195,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/p1/questionnaires/q1/unlock',
+          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1/unlock',
         ),
       );
 
@@ -206,7 +208,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/p1/questionnaires/q1/finalize',
+          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1/finalize',
         ),
       );
 
@@ -220,19 +222,23 @@ void main() {
         () => getQuestionnaireStatusHandler(
           Request(
             'GET',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/q'),
+            Uri.parse('http://localhost/api/v1/portal/patients/questionnaires'),
           ),
         ),
         () => sendQuestionnaireHandler(
           Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/q/nose/s'),
+            Uri.parse(
+              'http://localhost/api/v1/portal/patients/questionnaires/send',
+            ),
           ),
         ),
         () => deleteQuestionnaireHandler(
           Request(
             'DELETE',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/q/q1'),
+            Uri.parse(
+              'http://localhost/api/v1/portal/questionnaire-instances/q1',
+            ),
           ),
           'q1',
         ),
@@ -255,7 +261,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
       );
 
       final response = await sendQuestionnaireHandler(request);
@@ -271,7 +277,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Test'}),
       );
 
@@ -289,7 +295,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -306,7 +312,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -333,7 +339,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        '/api/v1/portal/patients/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -360,7 +366,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        '/api/v1/portal/patients/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -412,7 +418,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        '/api/v1/portal/patients/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -440,7 +446,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/nonexistent/questionnaires',
+        '/api/v1/portal/patients/questionnaires',
         headers: {'x-patient-id': 'nonexistent'},
       );
 
@@ -460,7 +466,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        '/api/v1/portal/patients/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -503,7 +509,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -530,7 +536,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/invalid_type/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'invalid_type',
@@ -570,7 +576,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/questionnaires/$type/send',
+          '/api/v1/portal/patients/questionnaires/send',
           body: jsonEncode({
             'patientId': _testPatientId,
             'questionnaireType': type,
@@ -593,7 +599,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/nonexistent/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': 'nonexistent',
           'questionnaireType': 'nose_hht',
@@ -615,7 +621,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -645,7 +651,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -669,7 +675,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -708,7 +714,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -752,7 +758,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Sent in error'}),
       );
 
@@ -774,7 +780,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({}),
       );
 
@@ -791,7 +797,7 @@ void main() {
     test('returns 400 when reason is empty', () async {
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': '   '}),
       );
 
@@ -803,24 +809,27 @@ void main() {
       expect(response.statusCode, 400);
     });
 
-    test('returns 400 when reason exceeds 25 chars (REQ-CAL-p00066-B)', () async {
-      final request = _request(
-        'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
-        body: jsonEncode({
-          'reason': 'This reason is way too long for the field',
-        }),
-      );
+    test(
+      'returns 400 when reason exceeds 25 chars (REQ-CAL-p00066-B)',
+      () async {
+        final request = _request(
+          'DELETE',
+          '/api/v1/portal/questionnaire-instances/$_testInstanceId',
+          body: jsonEncode({
+            'reason': 'This reason is way too long for the field',
+          }),
+        );
 
-      final response = await deleteQuestionnaireHandler(
-        request,
-        _testInstanceId,
-      );
+        final response = await deleteQuestionnaireHandler(
+          request,
+          _testInstanceId,
+        );
 
-      expect(response.statusCode, 400);
-      final body = await _json(response);
-      expect(body['error'], contains('25 characters'));
-    });
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('25 characters'));
+      },
+    );
 
     test('allows reason of exactly 25 chars', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
@@ -832,7 +841,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'a' * 25}),
       );
 
@@ -854,7 +863,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Test'}),
       );
 
@@ -876,7 +885,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Re-assess'}),
       );
 
@@ -898,7 +907,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Too late'}),
       );
 
@@ -922,7 +931,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Again'}),
       );
 
@@ -946,7 +955,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nonexistent',
+        '/api/v1/portal/patients/questionnaires/nonexistent',
         body: jsonEncode({'reason': 'Test'}),
       );
 
@@ -967,7 +976,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Error'}),
       );
 
@@ -984,7 +993,7 @@ void main() {
     test('returns 400 for invalid JSON body', () async {
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: 'not json',
       );
 
@@ -1011,7 +1020,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1035,7 +1044,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1058,7 +1067,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1079,7 +1088,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1102,7 +1111,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nonexistent/unlock',
+        '/api/v1/portal/patients/questionnaires/nonexistent/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(request, 'nonexistent');
@@ -1125,7 +1134,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1151,7 +1160,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1174,7 +1183,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1195,7 +1204,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1216,7 +1225,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/nonexistent/finalize',
+        '/api/v1/portal/patients/questionnaires/nonexistent/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1239,7 +1248,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       await finalizeQuestionnaireHandler(request, _testInstanceId);
@@ -1274,7 +1283,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -1295,7 +1304,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1318,7 +1327,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Error'}),
       );
 
@@ -1340,7 +1349,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/unlock',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(
@@ -1361,7 +1370,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId',
         body: jsonEncode({'reason': 'Nope'}),
       );
 
@@ -1383,7 +1392,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
