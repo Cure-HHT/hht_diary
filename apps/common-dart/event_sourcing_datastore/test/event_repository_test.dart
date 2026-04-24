@@ -51,7 +51,6 @@ void main() {
         expect(event.sequenceNumber, equals(1));
         expect(event.eventHash, isNotEmpty);
         expect(event.previousEventHash, isNull);
-        expect(event.syncedAt, isNull);
       });
 
       // Verifies: REQ-d00118-A — append() requires entry_type as a first-
@@ -243,141 +242,6 @@ void main() {
           'non-existent-aggregate',
         );
         expect(events, isEmpty);
-      });
-    });
-
-    group('getUnsyncedEvents', () {
-      test('returns all events when none are synced', () async {
-        await repository.append(
-          aggregateId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          eventType: 'Event1',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        await repository.append(
-          aggregateId: 'aggregate-2',
-          entryType: 'epistaxis_event',
-          eventType: 'Event2',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        final unsynced = await repository.getUnsyncedEvents();
-        expect(unsynced.length, equals(2));
-      });
-
-      test('excludes synced events', () async {
-        final event1 = await repository.append(
-          aggregateId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          eventType: 'Event1',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        await repository.append(
-          aggregateId: 'aggregate-2',
-          entryType: 'epistaxis_event',
-          eventType: 'Event2',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        // Mark first event as synced
-        await repository.markEventsSynced([event1.eventId]);
-
-        final unsynced = await repository.getUnsyncedEvents();
-        expect(unsynced.length, equals(1));
-        expect(unsynced[0].eventType, equals('Event2'));
-      });
-    });
-
-    group('markEventsSynced', () {
-      test('updates synced_at timestamp', () async {
-        final event = await repository.append(
-          aggregateId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          eventType: 'Event1',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        expect(event.isSynced, isFalse);
-
-        await repository.markEventsSynced([event.eventId]);
-
-        final events = await repository.getAllEvents();
-        expect(events[0].isSynced, isTrue);
-        expect(events[0].syncedAt, isNotNull);
-      });
-
-      test('handles multiple event IDs', () async {
-        final event1 = await repository.append(
-          aggregateId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          eventType: 'Event1',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        final event2 = await repository.append(
-          aggregateId: 'aggregate-2',
-          entryType: 'epistaxis_event',
-          eventType: 'Event2',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        await repository.markEventsSynced([event1.eventId, event2.eventId]);
-
-        final unsynced = await repository.getUnsyncedEvents();
-        expect(unsynced, isEmpty);
-      });
-
-      test('handles empty list gracefully', () async {
-        // Should not throw
-        await repository.markEventsSynced([]);
-      });
-    });
-
-    group('getUnsyncedCount', () {
-      test('returns correct count', () async {
-        expect(await repository.getUnsyncedCount(), equals(0));
-
-        await repository.append(
-          aggregateId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          eventType: 'Event1',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        expect(await repository.getUnsyncedCount(), equals(1));
-
-        final event2 = await repository.append(
-          aggregateId: 'aggregate-2',
-          entryType: 'epistaxis_event',
-          eventType: 'Event2',
-          data: {},
-          userId: 'user',
-          deviceId: 'device',
-        );
-
-        expect(await repository.getUnsyncedCount(), equals(2));
-
-        await repository.markEventsSynced([event2.eventId]);
-
-        expect(await repository.getUnsyncedCount(), equals(1));
       });
     });
 
@@ -620,7 +484,6 @@ void main() {
         clientTimestamp: DateTime.utc(2024, 1, 15, 10, 30),
         eventHash: 'abc123hash',
         previousEventHash: 'xyz789hash',
-        syncedAt: DateTime.utc(2024, 1, 15, 10, 35),
       );
 
       final map = original.toMap();
@@ -636,43 +499,6 @@ void main() {
       expect(restored.flowToken, equals(original.flowToken));
       expect(restored.eventHash, equals(original.eventHash));
       expect(restored.previousEventHash, equals(original.previousEventHash));
-      expect(restored.isSynced, equals(original.isSynced));
-    });
-
-    test('isSynced returns correct value', () {
-      final unsynced = StoredEvent(
-        key: 1,
-        eventId: 'event-1',
-        aggregateId: 'agg-1',
-        aggregateType: 'Test',
-        entryType: 'epistaxis_event',
-        eventType: 'Test',
-        sequenceNumber: 1,
-        data: {},
-        metadata: {},
-        initiator: const UserInitiator('user'),
-        clientTimestamp: DateTime.now(),
-        eventHash: 'hash',
-      );
-
-      final synced = StoredEvent(
-        key: 2,
-        eventId: 'event-2',
-        aggregateId: 'agg-1',
-        aggregateType: 'Test',
-        entryType: 'epistaxis_event',
-        eventType: 'Test',
-        sequenceNumber: 2,
-        data: {},
-        metadata: {},
-        initiator: const UserInitiator('user'),
-        clientTimestamp: DateTime.now(),
-        eventHash: 'hash2',
-        syncedAt: DateTime.now(),
-      );
-
-      expect(unsynced.isSynced, isFalse);
-      expect(synced.isSynced, isTrue);
     });
   });
 

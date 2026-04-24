@@ -30,7 +30,6 @@ class StoredEvent {
     required this.eventHash,
     this.flowToken,
     this.previousEventHash,
-    this.syncedAt,
   });
 
   /// Create from a database record map.
@@ -84,25 +83,6 @@ class StoredEvent {
         'StoredEvent: "previous_event_hash" must be a String when present',
       );
     }
-    final syncedAtRaw = map['synced_at'];
-    if (syncedAtRaw != null && syncedAtRaw is! String) {
-      throw const FormatException(
-        'StoredEvent: "synced_at" must be an ISO 8601 String when present',
-      );
-    }
-    final DateTime? syncedAt;
-    if (syncedAtRaw == null) {
-      syncedAt = null;
-    } else {
-      try {
-        syncedAt = DateTime.parse(syncedAtRaw as String);
-      } on FormatException catch (e) {
-        throw FormatException(
-          'StoredEvent: "synced_at" is not a valid ISO 8601 string: '
-          '${e.message}',
-        );
-      }
-    }
     return StoredEvent(
       key: key,
       eventId: eventId,
@@ -118,7 +98,6 @@ class StoredEvent {
       clientTimestamp: clientTimestamp,
       eventHash: eventHash,
       previousEventHash: previousHashRaw as String?,
-      syncedAt: syncedAt,
     );
   }
 
@@ -142,7 +121,6 @@ class StoredEvent {
     Map<String, dynamic>? metadata,
     String? flowToken,
     String? previousEventHash,
-    DateTime? syncedAt,
   }) => StoredEvent(
     key: key,
     eventId: eventId,
@@ -158,7 +136,6 @@ class StoredEvent {
     clientTimestamp: clientTimestamp,
     eventHash: eventHash,
     previousEventHash: previousEventHash,
-    syncedAt: syncedAt,
   );
 
   /// Database key.
@@ -209,13 +186,6 @@ class StoredEvent {
   /// Hash of previous event (for chain integrity).
   final String? previousEventHash;
 
-  /// When this event was synced to the server (null if not synced). Legacy
-  /// field, scheduled for Phase 5 removal.
-  final DateTime? syncedAt;
-
-  /// Whether this event has been synced.
-  bool get isSynced => syncedAt != null;
-
   /// Convert to a map for storage/serialization.
   Map<String, dynamic> toMap() {
     return {
@@ -232,7 +202,6 @@ class StoredEvent {
       'client_timestamp': clientTimestamp.toIso8601String(),
       'event_hash': eventHash,
       'previous_event_hash': previousEventHash,
-      'synced_at': syncedAt?.toIso8601String(),
     };
   }
 

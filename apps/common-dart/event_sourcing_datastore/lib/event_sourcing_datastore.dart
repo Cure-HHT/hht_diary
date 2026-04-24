@@ -38,9 +38,6 @@
 /// // Query events
 /// final events = await Datastore.instance.repository.getAllEvents();
 ///
-/// // Get unsynced events for sync
-/// final unsynced = await Datastore.instance.repository.getUnsyncedEvents();
-///
 /// // Watch sync status in UI
 /// Watch((context) {
 ///   final depth = Datastore.instance.queueDepth.value;

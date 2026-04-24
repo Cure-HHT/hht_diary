@@ -12,7 +12,6 @@ import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:provenance/provenance.dart';
-import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
 
 export 'package:event_sourcing_datastore/src/storage/stored_event.dart'
@@ -49,9 +48,6 @@ export 'package:event_sourcing_datastore/src/storage/stored_event.dart'
 ///
 /// // Query events for an aggregate
 /// final events = await repo.getEventsForAggregate('diary-entry-123');
-///
-/// // Get all unsynced events
-/// final unsynced = await repo.getUnsyncedEvents();
 /// ```
 class EventRepository {
   /// Construct over a [DatabaseProvider]. An optional [backend] can be
@@ -67,15 +63,6 @@ class EventRepository {
   /// per-destination FIFOs, and the backend_state KV where the per-device
   /// sequence counter lives (REQ-d00117-F). All writes go through this.
   final StorageBackend _backend;
-
-  /// Legacy direct handle to the events store for the per-event sync-marker
-  /// methods (getUnsyncedEvents/markEventsSynced/getUnsyncedCount) and for
-  /// the _getPreviousEventHash helper. Deleted in Phase 5 when FIFO-based
-  /// per-destination sync replaces per-event `synced_at` tracking.
-  // TODO(CUR-1154, Phase 5): remove _eventStore direct access together
-  // with the sync-marker methods once FIFO drain is the sole sync path.
-  final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
-      .store('events');
 
   /// UUID generator.
   static const _uuid = Uuid();
@@ -155,7 +142,6 @@ class EventRepository {
           'flow_token': null,
           'client_timestamp': clientTs.toIso8601String(),
           'previous_event_hash': previousHash,
-          'synced_at': null,
         };
 
         final eventHash = _calculateEventHash(eventRecord);
@@ -185,83 +171,6 @@ class EventRepository {
   /// Returns events in sequence order (oldest first).
   Future<List<StoredEvent>> getEventsForAggregate(String aggregateId) =>
       _backend.findEventsForAggregate(aggregateId);
-
-  /// Get all events that haven't been synced to the server.
-  ///
-  /// Returns events in sequence order (oldest first).
-  // TODO(CUR-1154, Phase 5): per-event synced_at tracking is replaced by
-  // per-destination FIFO drain (REQ-p01001-D). Delete this method, the
-  // synced_at column on events, and the other two sync-marker methods
-  // when the last caller is migrated.
-  Future<List<StoredEvent>> getUnsyncedEvents() async {
-    final db = databaseProvider.database;
-
-    try {
-      final finder = Finder(
-        filter: Filter.isNull('synced_at'),
-        sortOrders: [SortOrder('sequence_number')],
-      );
-
-      final records = await _eventStore.find(db, finder: finder);
-
-      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to query unsynced events: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  /// Mark events as synced.
-  ///
-  /// This updates the synced_at timestamp for the specified events.
-  /// Note: This is the ONLY modification allowed on events (for sync tracking).
-  Future<void> markEventsSynced(List<String> eventIds) async {
-    if (eventIds.isEmpty) return;
-
-    final db = databaseProvider.database;
-    final syncedAt = DateTime.now().toUtc().toIso8601String();
-
-    try {
-      await db.transaction((txn) async {
-        for (final eventId in eventIds) {
-          final finder = Finder(filter: Filter.equals('event_id', eventId));
-          final records = await _eventStore.find(txn, finder: finder);
-
-          if (records.isNotEmpty) {
-            final record = records.first;
-            final updated = Map<String, Object?>.from(record.value);
-            updated['synced_at'] = syncedAt;
-            await _eventStore.record(record.key).put(txn, updated);
-          }
-        }
-      });
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to mark events as synced: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  /// Get the count of unsynced events.
-  Future<int> getUnsyncedCount() async {
-    final db = databaseProvider.database;
-
-    try {
-      final filter = Filter.isNull('synced_at');
-      return await _eventStore.count(db, filter: filter);
-    } catch (e, stackTrace) {
-      throw errors.DatabaseException(
-        'Failed to count unsynced events: $e',
-        cause: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
 
   /// Get all events in sequence order.
   ///
@@ -310,7 +219,7 @@ class EventRepository {
   // verification via RFC 8785 (JCS).
   String _calculateEventHash(Map<String, dynamic> eventRecord) {
     // The hashed subset excludes the hash itself and fields that are not
-    // part of the event identity (sync markers, aggregate_type label).
+    // part of the event identity (aggregate_type label).
     // entry_type is included so tampering with it is detected by the chain.
     // Phase 4.4 identity-field set (REQ-d00120-B revised): event_id,
     // aggregate_id, entry_type, event_type, sequence_number, data,

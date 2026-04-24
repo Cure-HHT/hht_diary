@@ -402,7 +402,6 @@ void main() {
       'client_timestamp': '2026-04-22T10:00:00Z',
       'event_hash': 'hash-1',
       'previous_event_hash': null,
-      'synced_at': null,
     };
 
     test('happy-path round-trip through fromMap + toMap', () {
@@ -412,7 +411,6 @@ void main() {
       expect(event.sequenceNumber, 1);
       expect(event.clientTimestamp, DateTime.utc(2026, 4, 22, 10));
       expect(event.previousEventHash, isNull);
-      expect(event.syncedAt, isNull);
     });
 
     test('fromMap rejects missing event_id', () {
@@ -468,16 +466,6 @@ void main() {
     test('fromMap rejects non-string previous_event_hash when present', () {
       final bad = Map<String, Object?>.from(sampleMap)
         ..['previous_event_hash'] = 123;
-      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
-    });
-
-    test('fromMap rejects non-string synced_at when present', () {
-      final bad = Map<String, Object?>.from(sampleMap)..['synced_at'] = 123;
-      expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
-    });
-
-    test('fromMap rejects malformed synced_at', () {
-      final bad = Map<String, Object?>.from(sampleMap)..['synced_at'] = 'nope';
       expect(() => StoredEvent.fromMap(bad, 0), throwsFormatException);
     });
   });

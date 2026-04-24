@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:event_sourcing_datastore/src/core/config/datastore_config.dart';
 import 'package:event_sourcing_datastore/src/infrastructure/database/database_provider.dart';
 import 'package:event_sourcing_datastore/src/infrastructure/repositories/event_repository.dart';
@@ -128,19 +126,7 @@ class Datastore {
       repository: repository,
     );
 
-    // Update queue depth signal (fire and forget)
-    unawaited(_instance!._updateQueueDepth());
-
     return _instance!;
-  }
-
-  /// Update the queue depth signal from the repository.
-  Future<void> _updateQueueDepth() async {
-    try {
-      queueDepth.value = await repository.getUnsyncedCount();
-    } catch (_) {
-      // Ignore errors during signal update
-    }
   }
 
   /// Reset the datastore, closing all connections and clearing state.

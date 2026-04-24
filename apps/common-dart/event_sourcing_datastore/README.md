@@ -64,14 +64,6 @@ final events = await Datastore.instance.repository.getAllEvents();
 final diaryEvents = await Datastore.instance.repository
     .getEventsForAggregate('diary-entry-123');
 
-// Get unsynced events (for sync to server)
-final unsynced = await Datastore.instance.repository.getUnsyncedEvents();
-
-// Mark events as synced after successful server upload
-await Datastore.instance.repository.markEventsSynced(
-  unsynced.map((e) => e.eventId).toList(),
-);
-
 // Verify data integrity (checks hash chain)
 final isValid = await Datastore.instance.repository.verifyIntegrity();
 ```

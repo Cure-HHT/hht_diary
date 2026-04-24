@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased - CUR-1154 Phase 4.6 cleanup
+
+- Removed legacy per-event sync tracking: `StoredEvent.syncedAt`,
+  `isSynced`, and the `synced_at` column on event records are gone.
+  `EventRepository.getUnsyncedEvents`, `markEventsSynced`, and
+  `getUnsyncedCount` were deleted. Sync is tracked per-destination-FIFO-
+  row (REQ-p01001-D); the per-event markers were dead code that had been
+  flagged with Phase 5 TODOs.
+
 ## 0.3.0 (2026-04-22) - CUR-1154 Phase 4: sync machinery
 
 Introduces the per-destination sync machinery. All new code is shipped
