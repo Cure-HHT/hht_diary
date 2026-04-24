@@ -23,20 +23,23 @@ import 'portal_metrics.dart';
 /// Returns the current status of all questionnaire types for a patient.
 /// Per REQ-CAL-p00023: statuses are Not Sent, Sent, In Progress,
 /// Ready to Review, Finalized.
-Future<Response> getQuestionnaireStatusHandler(
-  Request request,
-  String patientId,
-) async {
+Future<Response> getQuestionnaireStatusHandler(Request request) async {
+  final user = await requirePortalAuth(request);
+  if (user == null) {
+    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
+  }
+
+  // CUR-1064: patientId moved from URL path to X-Patient-Id header (GET request)
+  final patientId = request.headers['x-patient-id'];
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing X-Patient-Id header'}, 400);
+  }
+
   logWithTrace(
     'INFO',
     'getQuestionnaireStatusHandler',
     labels: {'patient_id': patientId},
   );
-
-  final user = await requirePortalAuth(request);
-  if (user == null) {
-    return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
-  }
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -118,17 +121,7 @@ Future<Response> getQuestionnaireStatusHandler(
 ///
 /// Per REQ-CAL-p00023-D: patient receives push notification and task.
 /// Per REQ-CAL-p00023-E: Nose HHT and QoL can be sent multiple times.
-Future<Response> sendQuestionnaireHandler(
-  Request request,
-  String patientId,
-  String questionnaireType,
-) async {
-  logWithTrace(
-    'INFO',
-    'sendQuestionnaireHandler',
-    labels: {'patient_id': patientId, 'questionnaire_type': questionnaireType},
-  );
-
+Future<Response> sendQuestionnaireHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
@@ -141,6 +134,31 @@ Future<Response> sendQuestionnaireHandler(
     }, 403);
   }
 
+  // CUR-1064: patientId and questionnaireType moved from URL path to request body
+  Map<String, dynamic> bodyJson;
+  try {
+    final bodyStr = await request.readAsString();
+    bodyJson = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
+        : <String, dynamic>{};
+  } catch (_) {
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
+  }
+
+  final patientId = bodyJson['patientId'] as String?;
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+
+  final questionnaireType = bodyJson['questionnaireType'] as String?;
+  if (questionnaireType == null || questionnaireType.isEmpty) {
+    return _jsonResponse({
+      'error': 'Missing questionnaireType in request body',
+    }, 400);
+  }
+
+  final studyEvent = bodyJson['study_event'] as String?;
+
   // Validate questionnaire type per REQ-CAL-p00047-A
   const validTypes = ['nose_hht', 'qol', 'eq'];
   if (!validTypes.contains(questionnaireType)) {
@@ -149,6 +167,12 @@ Future<Response> sendQuestionnaireHandler(
     }, 400);
   }
 
+  logWithTrace(
+    'INFO',
+    'sendQuestionnaireHandler',
+    labels: {'patient_id': patientId, 'questionnaire_type': questionnaireType},
+  );
+
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
@@ -156,18 +180,6 @@ Future<Response> sendQuestionnaireHandler(
   final clientIp =
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
-
-  // Parse optional request body for study event
-  String? studyEvent;
-  try {
-    final body = await request.readAsString();
-    if (body.isNotEmpty) {
-      final json = jsonDecode(body) as Map<String, dynamic>;
-      studyEvent = json['study_event'] as String?;
-    }
-  } catch (_) {
-    // Body is optional for send
-  }
 
   // Verify patient exists, has trial started, and user has site access
   final patientResult = await db.executeWithContext(
@@ -371,15 +383,8 @@ Future<Response> sendQuestionnaireHandler(
 /// Per REQ-CAL-p00066: requires a reason (max 25 chars).
 Future<Response> deleteQuestionnaireHandler(
   Request request,
-  String patientId,
   String instanceId,
 ) async {
-  logWithTrace(
-    'INFO',
-    'deleteQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
-  );
-
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
@@ -427,21 +432,37 @@ Future<Response> deleteQuestionnaireHandler(
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch the questionnaire instance
+  // CUR-1064: patientId removed from URL; look it up from the instance and verify site access
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, p.site_id
     FROM questionnaire_instances qi
-    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
+    JOIN patients p ON p.patient_id = qi.patient_id
+    WHERE qi.id = @instanceId::uuid
     ''',
-    parameters: {'instanceId': instanceId, 'patientId': patientId},
+    parameters: {'instanceId': instanceId},
     context: serviceContext,
   );
 
   if (instanceResult.isEmpty) {
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
+
+  final patientId = instanceResult.first[3] as String;
+  final patientSiteId = instanceResult.first[5] as String;
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  logWithTrace(
+    'INFO',
+    'deleteQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
+  );
 
   final currentStatus = instanceResult.first[2] as String;
   final alreadyDeleted = instanceResult.first[4] != null;
@@ -568,15 +589,8 @@ Future<Response> deleteQuestionnaireHandler(
 /// Per REQ-CAL-p00023: Investigator can unlock a submitted questionnaire.
 Future<Response> unlockQuestionnaireHandler(
   Request request,
-  String patientId,
   String instanceId,
 ) async {
-  logWithTrace(
-    'INFO',
-    'unlockQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
-  );
-
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
@@ -597,21 +611,37 @@ Future<Response> unlockQuestionnaireHandler(
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch the questionnaire instance
+  // CUR-1064: patientId removed from URL; look it up from the instance and verify site access
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, p.site_id
     FROM questionnaire_instances qi
-    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
+    JOIN patients p ON p.patient_id = qi.patient_id
+    WHERE qi.id = @instanceId::uuid
     ''',
-    parameters: {'instanceId': instanceId, 'patientId': patientId},
+    parameters: {'instanceId': instanceId},
     context: serviceContext,
   );
 
   if (instanceResult.isEmpty) {
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
+
+  final patientId = instanceResult.first[3] as String;
+  final patientSiteId = instanceResult.first[5] as String;
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  logWithTrace(
+    'INFO',
+    'unlockQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
+  );
 
   final currentStatus = instanceResult.first[2] as String;
   final alreadyDeleted = instanceResult.first[4] != null;
@@ -733,15 +763,8 @@ Future<Response> unlockQuestionnaireHandler(
 /// Score calculation is placeholder (deferred to questionnaire content sprint).
 Future<Response> finalizeQuestionnaireHandler(
   Request request,
-  String patientId,
   String instanceId,
 ) async {
-  logWithTrace(
-    'INFO',
-    'finalizeQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
-  );
-
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
@@ -762,21 +785,37 @@ Future<Response> finalizeQuestionnaireHandler(
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch the questionnaire instance
+  // CUR-1064: patientId removed from URL; look it up from the instance and verify site access
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at
+           qi.deleted_at, p.site_id
     FROM questionnaire_instances qi
-    WHERE qi.id = @instanceId::uuid AND qi.patient_id = @patientId
+    JOIN patients p ON p.patient_id = qi.patient_id
+    WHERE qi.id = @instanceId::uuid
     ''',
-    parameters: {'instanceId': instanceId, 'patientId': patientId},
+    parameters: {'instanceId': instanceId},
     context: serviceContext,
   );
 
   if (instanceResult.isEmpty) {
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
+
+  final patientId = instanceResult.first[3] as String;
+  final patientSiteId = instanceResult.first[5] as String;
+  final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
+  if (!userSiteIds.contains(patientSiteId)) {
+    return _jsonResponse({
+      'error': 'You do not have access to patients at this site',
+    }, 403);
+  }
+
+  logWithTrace(
+    'INFO',
+    'finalizeQuestionnaireHandler',
+    labels: {'instance_id': instanceId, 'patient_id': patientId},
+  );
 
   final currentStatus = instanceResult.first[2] as String;
   final alreadyDeleted = instanceResult.first[4] != null;

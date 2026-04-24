@@ -76,14 +76,16 @@ List<dynamic> _patientRow({
 }
 
 /// Standard questionnaire instance row:
-/// [id, type::text, status::text, patient_id, deleted_at]
+/// [id, type::text, status::text, patient_id, deleted_at, site_id]
+/// The site_id comes from the JOIN with patients (added for CUR-1064 site access check).
 List<dynamic> _instanceRow({
   String id = _testInstanceId,
   String type = 'nose_hht',
   String status = 'sent',
   DateTime? deletedAt,
+  String siteId = _testSiteId,
 }) {
-  return [id, type, status, _testPatientId, deletedAt];
+  return [id, type, status, _testPatientId, deletedAt, siteId];
 }
 
 /// Build a shelf Request with optional body and headers.
@@ -154,7 +156,7 @@ void main() {
         Uri.parse('http://localhost/api/v1/portal/patients/p1/questionnaires'),
       );
 
-      final response = await getQuestionnaireStatusHandler(request, 'p1');
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 401);
       final body = await _json(response);
@@ -169,11 +171,7 @@ void main() {
         ),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        'p1',
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 401);
     });
@@ -186,7 +184,7 @@ void main() {
         ),
       );
 
-      final response = await deleteQuestionnaireHandler(request, 'p1', 'q1');
+      final response = await deleteQuestionnaireHandler(request, 'q1');
 
       expect(response.statusCode, 401);
     });
@@ -199,7 +197,7 @@ void main() {
         ),
       );
 
-      final response = await unlockQuestionnaireHandler(request, 'p1', 'q1');
+      final response = await unlockQuestionnaireHandler(request, 'q1');
 
       expect(response.statusCode, 401);
     });
@@ -212,7 +210,7 @@ void main() {
         ),
       );
 
-      final response = await finalizeQuestionnaireHandler(request, 'p1', 'q1');
+      final response = await finalizeQuestionnaireHandler(request, 'q1');
 
       expect(response.statusCode, 401);
     });
@@ -224,22 +222,18 @@ void main() {
             'GET',
             Uri.parse('http://localhost/api/v1/portal/patients/p1/q'),
           ),
-          'p1',
         ),
         () => sendQuestionnaireHandler(
           Request(
             'POST',
             Uri.parse('http://localhost/api/v1/portal/patients/p1/q/nose/s'),
           ),
-          'p1',
-          'nose_hht',
         ),
         () => deleteQuestionnaireHandler(
           Request(
             'DELETE',
             Uri.parse('http://localhost/api/v1/portal/patients/p1/q/q1'),
           ),
-          'p1',
           'q1',
         ),
       ];
@@ -264,11 +258,7 @@ void main() {
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 403);
       final body = await _json(response);
@@ -287,7 +277,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -305,7 +294,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -323,7 +311,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -347,12 +334,10 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        headers: {'x-patient-id': _testPatientId},
       );
 
-      final response = await getQuestionnaireStatusHandler(
-        request,
-        _testPatientId,
-      );
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 200);
     });
@@ -376,12 +361,10 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        headers: {'x-patient-id': _testPatientId},
       );
 
-      final response = await getQuestionnaireStatusHandler(
-        request,
-        _testPatientId,
-      );
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 200);
       final body = await _json(response);
@@ -430,12 +413,10 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        headers: {'x-patient-id': _testPatientId},
       );
 
-      final response = await getQuestionnaireStatusHandler(
-        request,
-        _testPatientId,
-      );
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 200);
       final body = await _json(response);
@@ -460,12 +441,10 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/patients/nonexistent/questionnaires',
+        headers: {'x-patient-id': 'nonexistent'},
       );
 
-      final response = await getQuestionnaireStatusHandler(
-        request,
-        'nonexistent',
-      );
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 404);
     });
@@ -482,12 +461,10 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/patients/$_testPatientId/questionnaires',
+        headers: {'x-patient-id': _testPatientId},
       );
 
-      final response = await getQuestionnaireStatusHandler(
-        request,
-        _testPatientId,
-      );
+      final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 403);
       final body = await _json(response);
@@ -527,14 +504,14 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
-        body: jsonEncode({'study_event': 'Cycle 1 Day 1'}),
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 200);
       final body = await _json(response);
@@ -554,13 +531,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/invalid_type/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'invalid_type',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'invalid_type',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 400);
       final body = await _json(response);
@@ -594,13 +571,13 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/patients/$_testPatientId/questionnaires/$type/send',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'questionnaireType': type,
+          }),
         );
 
-        final response = await sendQuestionnaireHandler(
-          request,
-          _testPatientId,
-          type,
-        );
+        final response = await sendQuestionnaireHandler(request);
 
         expect(response.statusCode, 200, reason: '$type should be valid');
       }
@@ -617,13 +594,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/nonexistent/questionnaires/nose_hht/send',
+        body: jsonEncode({
+          'patientId': 'nonexistent',
+          'questionnaireType': 'nose_hht',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        'nonexistent',
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 404);
     });
@@ -639,13 +616,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 409);
       final body = await _json(response);
@@ -669,13 +646,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 409);
       final body = await _json(response);
@@ -693,13 +670,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+        }),
       );
 
-      final response = await sendQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nose_hht',
-      );
+      final response = await sendQuestionnaireHandler(request);
 
       expect(response.statusCode, 403);
     });
@@ -732,9 +709,13 @@ void main() {
       final request = _request(
         'POST',
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nose_hht/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+        }),
       );
 
-      await sendQuestionnaireHandler(request, _testPatientId, 'nose_hht');
+      await sendQuestionnaireHandler(request);
 
       final auditQuery = capturedQueries.where(
         (q) => q.query.contains('admin_action_log'),
@@ -777,7 +758,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -800,7 +780,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -818,7 +797,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -836,7 +814,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -861,7 +838,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -884,7 +860,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -907,7 +882,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -930,7 +904,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -955,7 +928,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -978,11 +950,7 @@ void main() {
         body: jsonEncode({'reason': 'Test'}),
       );
 
-      final response = await deleteQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nonexistent',
-      );
+      final response = await deleteQuestionnaireHandler(request, 'nonexistent');
 
       expect(response.statusCode, 404);
     });
@@ -1003,11 +971,7 @@ void main() {
         body: jsonEncode({'reason': 'Error'}),
       );
 
-      await deleteQuestionnaireHandler(
-        request,
-        _testPatientId,
-        _testInstanceId,
-      );
+      await deleteQuestionnaireHandler(request, _testInstanceId);
 
       final auditQuery = capturedQueries.where(
         (q) => q.query.contains('admin_action_log'),
@@ -1026,7 +990,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1053,7 +1016,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1078,7 +1040,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1102,7 +1063,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1124,7 +1084,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1146,11 +1105,7 @@ void main() {
         '/api/v1/portal/patients/$_testPatientId/questionnaires/nonexistent/unlock',
       );
 
-      final response = await unlockQuestionnaireHandler(
-        request,
-        _testPatientId,
-        'nonexistent',
-      );
+      final response = await unlockQuestionnaireHandler(request, 'nonexistent');
 
       expect(response.statusCode, 404);
     });
@@ -1175,7 +1130,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1202,7 +1156,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1226,7 +1179,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1248,7 +1200,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1270,7 +1221,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         'nonexistent',
       );
 
@@ -1292,11 +1242,7 @@ void main() {
         '/api/v1/portal/patients/$_testPatientId/questionnaires/$_testInstanceId/finalize',
       );
 
-      await finalizeQuestionnaireHandler(
-        request,
-        _testPatientId,
-        _testInstanceId,
-      );
+      await finalizeQuestionnaireHandler(request, _testInstanceId);
 
       final auditQuery = capturedQueries.where(
         (q) => q.query.contains('admin_action_log'),
@@ -1333,7 +1279,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1355,7 +1300,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1380,7 +1324,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1402,7 +1345,6 @@ void main() {
 
       final response = await unlockQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1425,7 +1367,6 @@ void main() {
 
       final response = await deleteQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 
@@ -1447,7 +1388,6 @@ void main() {
 
       final response = await finalizeQuestionnaireHandler(
         request,
-        _testPatientId,
         _testInstanceId,
       );
 

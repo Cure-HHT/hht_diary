@@ -57,8 +57,12 @@ class ApiClient {
     return headers;
   }
 
-  /// Make an authenticated GET request
-  Future<ApiResponse> get(String path) async {
+  /// Make an authenticated GET request.
+  /// [extraHeaders] are merged into the auth headers — use for e.g. X-Patient-Id (CUR-1064).
+  Future<ApiResponse> get(
+    String path, {
+    Map<String, String> extraHeaders = const {},
+  }) async {
     try {
       final headers = await _authHeaders();
       if (headers == null) {
@@ -67,7 +71,7 @@ class ApiClient {
 
       final response = await _httpClient.get(
         Uri.parse('$_apiBaseUrl$path'),
-        headers: headers,
+        headers: {...headers, ...extraHeaders},
       );
 
       return _parseResponse(response);

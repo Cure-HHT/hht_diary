@@ -70,8 +70,8 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/start-trial',
-      {},
+      '/api/v1/portal/patients/start-trial',
+      {'patientId': widget.patientId},
     );
 
     if (!mounted) return;
