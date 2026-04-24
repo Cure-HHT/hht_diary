@@ -6,7 +6,7 @@ These journeys are the acceptance contract for the Phase 4.6 demo app (`apps/com
 
 The actor is **Alex**, a developer phase-reviewing the `append_only_datastore` package prior to Phase 5 cutover.
 
-REQ identifiers in *Validates* lines use the topic-names from the parent plan's README plus the new topics introduced in Phase 4.3 (`REQ-DEST`, `REQ-FIFO`, `REQ-SYNCPOLICY`, `REQ-SYNCCYCLE`, `REQ-ENTRY`, `REQ-BOOTSTRAP`, `REQ-DYNDEST`, `REQ-REPLAY`, `REQ-TIMEWINDOW`, `REQ-BATCH`, `REQ-UNJAM`, `REQ-REHAB`, `REQ-SKIPMISSING`). Numeric REQ-d IDs get claimed at implementation time via `discover_requirements("next available REQ-d")` and are substituted in before commit.
+REQ identifiers in *Validates* lines use the topic-names from the parent plan's README plus the new topics introduced in Phase 4.3 (`REQ-DEST`, `REQ-FIFO`, `REQ-SYNCPOLICY`, `REQ-SYNCCYCLE`, `REQ-ENTRY`, `REQ-BOOTSTRAP`, `REQ-DYNDEST`, `REQ-REPLAY`, `REQ-TIMEWINDOW`, `REQ-BATCH`, `REQ-SKIPMISSING`). Numeric REQ-d IDs get claimed at implementation time via `discover_requirements("next available REQ-d")` and are substituted in before commit.
 
 ---
 
@@ -204,35 +204,37 @@ Step 1 returns `scheduled`; Primary's schedule-state label reads `SCHEDULED unti
 
 ---
 
-# JNY-Datastore-Demo-09: Unjam preserves exhausted audit, rehabilitate retries same bytes
+# JNY-Datastore-Demo-09: Recovery via tombstoneAndRefill
 
 **Actor**: Alex (Developer)
-**Goal**: Confirm that `unjamDestination` preserves exhausted FIFO rows, hard-deletes pending rows, and rewinds `fill_cursor` so a new batcher re-batches the same events; and that `rehabilitateExhaustedRow` flips a single exhausted row back to pending without modifying its wire payload.
-**Context**: Alex is validating REQ-UNJAM and REQ-REHAB. Secondary is `allowHardDelete = true` and has accumulated a mix of sent and exhausted batches from a prior JNY-03-style rejection storm, plus a few pending entries from the most recent events. Primary is healthy and drained to empty.
+**Goal**: Confirm that when a FIFO row becomes wedged on a specific sequence position, the operator can click "Tombstone & Refill" to mark the wedged row as terminal (retained for audit), gap the sequence, and trigger fillBatch to enqueue fresh rows that can proceed unblocked.
+**Context**: Alex is validating the tombstoneAndRefill recovery primitive. Secondary destination has been set to trigger a permanent send failure on a specific row (e.g., via `DemoDestination`'s **Wedge row** control, or by setting a row's condition to `SendPermanent`). The wedged row blocks the head of Secondary's FIFO; drain halts and later rows remain pending behind it.
 
-**Validates**: REQ-UNJAM, REQ-REHAB, REQ-DYNDEST
+**Validates**: REQ-FIFO, REQ-BATCH, REQ-DYNDEST
 
 ## Steps
 
-1. Alex notes Secondary's current FIFO contents: K sent rows, L exhausted rows, M pending rows. Records the `transform_version` on each (all "demo-v1" at this point).
-2. Alex clicks Secondary's schedule **Deactivate** (or manually setEndDate to now). Schedule-state flips to `CLOSED`.
-3. Alex clicks Secondary's ops-drawer **Unjam**. Observes the `UnjamResult` in an info banner.
-4. Alex simulates a "redeployed code" by changing Secondary's `DemoDestination.transform` version label to "demo-v2" (a developer-only toggle exposed in the ops drawer for this journey).
-5. Alex clears Secondary's end-date (or re-sets start-date — depending on whether the demo allows reactivation; if not, Alex creates a new destination "Secondary-v2" with the same filter and past start-date to trigger replay).
-6. Alex observes Secondary's FIFO over the next minute.
-7. Alex flips Secondary's connection to `ok` and picks one of the remaining `[exh]` rows in the FIFO. Clicks **Rehabilitate** on that row.
-8. Alex observes the rehabilitated row.
+1. Alex sets up Secondary destination with `connection: ok` and a past `startDate` to have pre-populated history.
+2. Alex uses the **Wedge row** control in the demo ops drawer to mark a specific FIFO row (e.g., sequence #59) as `SendPermanent`.
+3. Alex clicks **Drain** and observes Secondary's FIFO: the wedged row (sequence #59) becomes the drain head and flips yellow `draining`, then magenta `wedged` after the first permanent rejection. Later rows (e.g., sequence #60+) remain in the panel with `final_status = null` (not yet terminal).
+4. Alex verifies no further deliveries occur: drain halts waiting for the head to resolve.
+5. Alex clicks the wedged row (#59) in the FifoPanel to select it.
+6. Alex clicks the **Tombstone & Refill** button that appears on the wedged head row.
 
 ## Expected Outcome
 
-After step 3, `UnjamResult` reports `deletedPending = M` and `rewoundTo = <sequence_number of last sent event>`. The Secondary FIFO now shows K sent rows (unchanged) + L exhausted rows (unchanged) + 0 pending rows. After step 4-5, fillBatch processes events > `rewoundTo` (which includes every event that was in the L exhausted batches, because unjam rewinds past exhausted). Secondary's FIFO gains new `pending` rows, each with `transform_version = "demo-v2"`. Drain processes them; because connection was ok at that point, they flip to `[SENT]`. The result: each event that was once in an exhausted "demo-v1" batch is now also in a sent "demo-v2" batch — the event_id_range of the old exhausted row overlaps with the event_id_range of a new sent row. The audit trail for that event reads: "attempted via demo-v1, rejected; attempted via demo-v2, sent." After step 7-8, the chosen exhausted row's `final_status` flips to `pending` and it is re-attempted on the next drain tick. `attempts[]` on that row now has two entries: the original rejection + the new attempt. If Secondary is now in `ok`, the second attempt succeeds and the row flips to `[SENT]`; if in `rejecting`, the row flips back to `[exh]` with two entries in `attempts[]` (neither rewrites the first; append-only).
+After step 6, the wedged row (#59) flips from `wedged` to `tombstoned` in the panel — a terminal, audit-retained state with its `attempts[]` and `final_status` still visible. The later rows (sequence #60+) that were pending behind #59 are gone from the panel (they were in the "trail" behind the wedged head and are now deleted). The `sequence_in_queue` column shows a gap: #59 (tombstoned) is followed by a new fresh row (e.g., sequence #61+) whose `sequence_in_queue` starts from 1 again after the gap. The new fresh rows have distinct `entry_id` values (fresh UUIDs, not the tombstoned row's).
 
-*End* *Unjam preserves exhausted audit, rehabilitate retries same bytes*
+On the next **syncCycle** tick, fillBatch processes events that were in the deleted trail and any new events that have arrived. Secondary's FIFO populates new pending rows covering those events with the new `entry_id` values. Drain resumes: the fresh rows flip yellow `draining`, then green `[sent]` at Secondary's configured send-latency pace. The deliveries proceed unblocked.
+
+The audited outcome: the event originally carried by the tombstoned row (#59) is now also present in a fresh sent bundle (with a different `entry_id`, so the audit trail shows two separate delivery attempts). Later events that were stuck behind the wedge now deliver in sequence order.
+
+*End* *Recovery via tombstoneAndRefill*
 
 ---
 
 ## How these journeys relate to automated tests
 
-These are deliberately *not* widget tests or golden tests. The Phase-4 and Phase-4.3 library code carries its own unit tests in each package's `test/` directory (TDD cadence per the plan's README). The demo's value is visual: some invariants of an event-sourced system are best confirmed by producing the state and seeing it — per-destination isolation, the CQRS separation, historical replay, unjam/rehabilitate, and the rebuild idempotence are prime examples.
+These are deliberately *not* widget tests or golden tests. The Phase-4 and Phase-4.3 library code carries its own unit tests in each package's `test/` directory (TDD cadence per the plan's README). The demo's value is visual: some invariants of an event-sourced system are best confirmed by producing the state and seeing it — per-destination isolation, the CQRS separation, historical replay, wedge recovery, and the rebuild idempotence are prime examples.
 
 A reviewer accepting Phase 4.6 runs these nine journeys in order, checks each *Expected Outcome* against what the screen shows, and flags any discrepancy as blocking.
