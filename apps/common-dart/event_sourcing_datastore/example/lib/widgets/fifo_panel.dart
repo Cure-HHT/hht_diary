@@ -28,6 +28,7 @@ class FifoPanel extends StatefulWidget {
 
 class _FifoPanelState extends State<FifoPanel> {
   List<Map<String, Object?>> _rows = const <Map<String, Object?>>[];
+  Map<String, int> _seqByEventId = const <String, int>{};
   DestinationSchedule? _schedule;
   bool _opsOpen = false;
   String? _banner;
@@ -81,10 +82,15 @@ class _FifoPanelState extends State<FifoPanel> {
       final schedule = await widget.appState.registry.scheduleOf(
         widget.destination.id,
       );
+      final events = await widget.backend.findAllEvents(limit: 500);
+      final seqByEventId = <String, int>{
+        for (final e in events) e.eventId: e.sequenceNumber,
+      };
       if (!mounted) return;
       setState(() {
         _rows = rows;
         _schedule = schedule;
+        _seqByEventId = seqByEventId;
       });
     } catch (_) {
       // Non-fatal.
@@ -382,6 +388,7 @@ class _FifoPanelState extends State<FifoPanel> {
       itemCount: display.length,
       itemBuilder: (context, i) => _FifoRowTile(
         row: display[i],
+        seqByEventId: _seqByEventId,
         selected:
             widget.appState.selectedFifoRowId == display[i]['entry_id'] &&
             widget.appState.selectedFifoDestinationId == widget.destination.id,
@@ -412,6 +419,7 @@ class _FifoPanelState extends State<FifoPanel> {
 class _FifoRowTile extends StatelessWidget {
   const _FifoRowTile({
     required this.row,
+    required this.seqByEventId,
     required this.selected,
     required this.onTap,
     required this.destinationId,
@@ -420,6 +428,7 @@ class _FifoRowTile extends StatelessWidget {
   });
 
   final Map<String, Object?> row;
+  final Map<String, int> seqByEventId;
   final bool selected;
   final VoidCallback onTap;
   final String destinationId;
@@ -435,7 +444,10 @@ class _FifoRowTile extends StatelessWidget {
     final eventIdsRaw = row['event_ids'];
     final eventIds = eventIdsRaw is List ? eventIdsRaw : const <Object?>[];
     final count = eventIds.length;
-    final latestEventId = eventIds.isNotEmpty ? eventIds.last.toString() : '-';
+    final latestSeq = eventIds.isNotEmpty
+        ? seqByEventId[eventIds.last.toString()]
+        : null;
+    final latestLabel = latestSeq != null ? '#$latestSeq' : '-';
 
     String prefix;
     Color color;
@@ -457,7 +469,7 @@ class _FifoRowTile extends StatelessWidget {
     }
 
     final label =
-        '$prefix#$seq: events: $count (latest: $latestEventId)  attempts:$attemptsLen';
+        '$prefix#$seq: events: $count (latest: $latestLabel)  attempts:$attemptsLen';
     // Show TombstoneAndRefill button only on wedged rows. A healthy pending
     // head is also a valid target per REQ-d00144-A, but surfacing the control
     // on every transient null head during rapid enqueue reads as a false

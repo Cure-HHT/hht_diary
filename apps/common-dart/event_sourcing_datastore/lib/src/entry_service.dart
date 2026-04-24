@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
+import 'package:collection/collection.dart' show DeepCollectionEquality;
 import 'package:crypto/crypto.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
 import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
@@ -79,7 +80,17 @@ class EntryService {
   /// [eventType] and [answers]. Returns the appended `StoredEvent` (with
   /// `sequenceNumber`, `eventHash`, `previousEventHash`, and first
   /// `ProvenanceEntry` stamped), or `null` when the call is a no-op
-  /// duplicate of the aggregate's most recent event (REQ-d00133-F).
+  /// duplicate of the aggregate's current state (REQ-d00133-F).
+  ///
+  /// No-op detection is merge-aware: the candidate's delta is merged
+  /// into the prior `current_answers`, and the call is elided only when
+  /// the merge produces an unchanged state AND the lifecycle flags
+  /// (`is_complete` / `is_deleted`) and reason fields (`change_reason`
+  /// and `checkpoint_reason`) match the prior event. A `tombstone` over
+  /// an already-tombstoned aggregate with a matching `change_reason` is
+  /// likewise elided. A candidate whose delta merges to the same
+  /// `current_answers` but which flips a lifecycle flag (e.g.
+  /// `checkpoint` → `finalized`) is NOT a no-op.
   ///
   /// [eventType] MUST be one of `finalized`, `checkpoint`, `tombstone`
   /// (REQ-d00133-C); other values raise `ArgumentError` before any I/O.
@@ -111,7 +122,10 @@ class EntryService {
   // fan-out deferred to fillBatch.
   // Implements: REQ-d00133-E — failure inside the transaction aborts
   // the whole write.
-  // Implements: REQ-d00133-F — duplicate content hash is a no-op.
+  // Implements: REQ-d00133-F — merge-aware no-op detection. A candidate
+  // is a duplicate when merging its delta produces an unchanged
+  // current_answers AND the lifecycle (is_complete / is_deleted) and
+  // reason fields match the prior event.
   // Implements: REQ-d00133-G — syncCycle trigger is fire-and-forget after
   // a successful write.
   // Implements: REQ-d00133-H — entryType must be registered in
@@ -157,12 +171,6 @@ class EntryService {
       identifier: deviceInfo.deviceId,
       softwareVersion: deviceInfo.softwareVersion,
     );
-    final candidateHash = _contentHash(
-      eventType: eventType,
-      answers: answers,
-      checkpointReason: checkpointReason,
-      changeReason: effectiveChangeReason,
-    );
 
     // REQ-d00133-B + D + E + F: atomic local write. Event assembly,
     // no-op detection, hash-chain tail read, and sequence-counter
@@ -170,27 +178,53 @@ class EntryService {
     // is coherent with the append (no TOCTOU against a concurrent
     // writer on the same aggregate).
     final appended = await backend.transaction<StoredEvent?>((txn) async {
-      // REQ-d00133-F: canonical-content no-op detection. Read INSIDE
+      // REQ-d00133-F: merge-aware no-op detection. Read the prior
+      // event history AND the current materialized-view row INSIDE
       // the transaction so a concurrent writer that lands before us
       // cannot slip in a duplicate that this check misses.
       final aggregateHistory = await backend.findEventsForAggregateInTxn(
         txn,
         aggregateId,
       );
-      if (aggregateHistory.isNotEmpty) {
-        final prior = aggregateHistory.last;
-        final priorHash = _contentHash(
-          eventType: prior.eventType,
-          answers: _extractAnswers(prior.data),
-          checkpointReason: prior.data['checkpoint_reason'] as String?,
-          changeReason:
-              (prior.metadata['change_reason'] as String?) ?? 'initial',
-        );
-        if (candidateHash == priorHash) {
-          // No-op: duplicate content; return without writing. Returning
-          // null from the transaction body rolls back nothing (we did no
-          // writes) and signals the caller to skip the post-write sync.
-          return null;
+      final priorRow = await backend.readEntryInTxn(txn, aggregateId);
+
+      if (aggregateHistory.isNotEmpty && priorRow != null) {
+        final priorEvent = aggregateHistory.last;
+        final priorCheckpointReason =
+            priorEvent.data['checkpoint_reason'] as String?;
+        final priorChangeReason =
+            (priorEvent.metadata['change_reason'] as String?) ?? 'initial';
+        final changeReasonMatches = effectiveChangeReason == priorChangeReason;
+        final checkpointReasonMatches =
+            checkpointReason == priorCheckpointReason;
+
+        if (eventType == 'tombstone') {
+          if (priorRow.isDeleted && changeReasonMatches) {
+            // REQ-d00133-F tombstone no-op: already-tombstoned
+            // aggregate with a matching change_reason.
+            return null;
+          }
+        } else {
+          // eventType is 'finalized' or 'checkpoint' (validated above).
+          final eventIsComplete = eventType == 'finalized';
+          final merged = DiaryEntriesMaterializer.mergeAnswers(
+            priorRow.currentAnswers,
+            answers,
+          );
+          final mergeUnchanged = const DeepCollectionEquality().equals(
+            merged,
+            priorRow.currentAnswers,
+          );
+          final isCompleteMatches = eventIsComplete == priorRow.isComplete;
+          if (mergeUnchanged &&
+              isCompleteMatches &&
+              checkpointReasonMatches &&
+              changeReasonMatches) {
+            // REQ-d00133-F merge-aware no-op: the delta merges to an
+            // unchanged current_answers, the lifecycle flag stays the
+            // same, and reason fields match the prior event.
+            return null;
+          }
         }
       }
 
@@ -233,10 +267,9 @@ class EntryService {
       // transaction as the append so the view is coherent with the log
       // at commit time. The diary_entries row is keyed on aggregateId;
       // a rolled-back transaction (REQ-d00133-E) leaves neither the
-      // event nor the view row visible to subsequent reads. Read the
-      // prior row INSIDE the transaction so the read set stays coherent
-      // with the append.
-      final priorRow = await backend.readEntryInTxn(txn, aggregateId);
+      // event nor the view row visible to subsequent reads. `priorRow`
+      // was read above INSIDE this transaction alongside the no-op
+      // check so the read set stays coherent with the append.
       // First-event fallback for effective_date resolution: the oldest
       // event on the aggregate supplies the fallback timestamp. When
       // this is the aggregate's first event, that is `event.clientTimestamp`
@@ -271,28 +304,6 @@ class EntryService {
     return appended;
   }
 
-  /// Canonical content hash over `(event_type, answers,
-  /// checkpoint_reason, change_reason)`. Used by the no-op detector.
-  /// Two calls with identical content SHALL hash to the same digest so
-  /// the detector returns without writing (REQ-d00133-F).
-  // Implements: REQ-d00133-F — canonical content hashing for no-op
-  // detection.
-  String _contentHash({
-    required String eventType,
-    required Map<String, Object?> answers,
-    required String? checkpointReason,
-    required String changeReason,
-  }) {
-    final input = <String, Object?>{
-      'event_type': eventType,
-      'answers': answers,
-      'checkpoint_reason': checkpointReason,
-      'change_reason': changeReason,
-    };
-    final bytes = canonicalizeBytes(input);
-    return sha256.convert(bytes).toString();
-  }
-
   /// Event-hash digest over the identity fields enumerated in REQ-d00120-B
   /// (Phase 4.4 revision): event_id, aggregate_id, entry_type, event_type,
   /// sequence_number, data, initiator, flow_token, client_timestamp,
@@ -316,13 +327,5 @@ class EntryService {
     };
     final bytes = canonicalizeBytes(hashInput);
     return sha256.convert(bytes).toString();
-  }
-
-  static Map<String, Object?> _extractAnswers(Map<String, Object?> data) {
-    final raw = data['answers'];
-    if (raw is Map) {
-      return Map<String, Object?>.from(raw);
-    }
-    return const <String, Object?>{};
   }
 }

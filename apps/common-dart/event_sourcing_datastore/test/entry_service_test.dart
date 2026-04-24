@@ -378,6 +378,324 @@ void main() {
       },
     );
   });
+
+  group('EntryService.record — merge-aware no-op detection (REQ-d00133-F)', () {
+    // Verifies: REQ-d00133-F (merge-aware) — a checkpoint whose delta is
+    // empty and whose lifecycle/reason fields match the prior event
+    // merges to an unchanged current_answers and SHALL return null
+    // without advancing the sequence counter or appending an event.
+    test(
+      'REQ-d00133-F: checkpoint with empty delta over matching prior is a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(first, isNotNull);
+        final seqBefore = await fx.backend.readSequenceCounter();
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{},
+        );
+        expect(second, isNull);
+        expect(await fx.backend.readSequenceCounter(), seqBefore);
+        final events = await fx.backend.findEventsForAggregate('agg-1');
+        expect(events, hasLength(1));
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) — a checkpoint whose delta
+    // values all match what is already present in the prior current_answers
+    // merges to an unchanged state and SHALL be a no-op.
+    test(
+      'REQ-d00133-F: checkpoint with delta values all matching prior is a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1, 'b': 2},
+        );
+        expect(first, isNotNull);
+        final seqBefore = await fx.backend.readSequenceCounter();
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(second, isNull);
+        expect(await fx.backend.readSequenceCounter(), seqBefore);
+        final events = await fx.backend.findEventsForAggregate('agg-1');
+        expect(events, hasLength(1));
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) — a checkpoint whose delta
+    // changes a field's value merges to a different current_answers and
+    // SHALL NOT be a no-op — the event is appended.
+    test(
+      'REQ-d00133-F: checkpoint with delta changing a field is NOT a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(first, isNotNull);
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 2},
+        );
+        expect(second, isNotNull);
+        final events = await fx.backend.findEventsForAggregate('agg-1');
+        expect(events, hasLength(2));
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) + REQ-d00121-J — a delta
+    // containing an explicit-null for a prior-present key clears that
+    // key's value under merge (present→null), which is a visible change;
+    // the event SHALL be appended.
+    test(
+      'REQ-d00133-F: checkpoint with explicit-null over prior-present is NOT '
+      'a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1, 'b': 2},
+        );
+        expect(first, isNotNull);
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'b': null},
+        );
+        expect(second, isNotNull);
+        final events = await fx.backend.findEventsForAggregate('agg-1');
+        expect(events, hasLength(2));
+        // View: b is present, null after the merge.
+        final entries = await fx.backend.findEntries();
+        expect(entries, hasLength(1));
+        final row = entries.single;
+        expect(row.currentAnswers.containsKey('b'), isTrue);
+        expect(row.currentAnswers['b'], isNull);
+        expect(row.currentAnswers['a'], 1);
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) — a finalized event following
+    // a checkpoint with merge-unchanged answers flips is_complete
+    // (false → true); the lifecycle transition means this is NOT a
+    // no-op even though the merged answers are unchanged.
+    test(
+      'REQ-d00133-F: finalized after checkpoint with merge-unchanged answers '
+      'IS a new event (is_complete flips)',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(first, isNotNull);
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(second, isNotNull);
+        final entries = await fx.backend.findEntries();
+        expect(entries, hasLength(1));
+        expect(entries.single.isComplete, isTrue);
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) — finalized following
+    // finalized with merge-unchanged answers and matching lifecycle/
+    // reason fields IS a no-op; the second call returns null.
+    test('REQ-d00133-F: finalized after finalized with merge-unchanged answers '
+        'IS a no-op', () async {
+      final fx = await _setupFixture();
+      final first = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'finalized',
+        answers: const <String, Object?>{'a': 1},
+      );
+      expect(first, isNotNull);
+      final seqBefore = await fx.backend.readSequenceCounter();
+
+      final second = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'finalized',
+        answers: const <String, Object?>{'a': 1},
+      );
+      expect(second, isNull);
+      expect(await fx.backend.readSequenceCounter(), seqBefore);
+      final events = await fx.backend.findEventsForAggregate('agg-1');
+      expect(events, hasLength(1));
+      await fx.backend.close();
+    });
+
+    // Verifies: REQ-d00133-F (merge-aware) — a change_reason mismatch
+    // SHALL prevent no-op elision even when the merge produces an
+    // unchanged current_answers; reason is part of the regulated record.
+    test('REQ-d00133-F: change_reason mismatch prevents no-op even if merge '
+        'unchanged', () async {
+      final fx = await _setupFixture();
+      final first = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': 1},
+        // defaulted change_reason = 'initial'
+      );
+      expect(first, isNotNull);
+
+      final second = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{},
+        changeReason: 'user_edit',
+      );
+      expect(second, isNotNull);
+      final events = await fx.backend.findEventsForAggregate('agg-1');
+      expect(events, hasLength(2));
+      await fx.backend.close();
+    });
+
+    // Verifies: REQ-d00133-F (merge-aware) — a checkpoint_reason mismatch
+    // SHALL prevent no-op elision even when the merge is unchanged.
+    test('REQ-d00133-F: checkpoint_reason mismatch prevents no-op', () async {
+      final fx = await _setupFixture();
+      final first = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': 1},
+        checkpointReason: 'auto',
+      );
+      expect(first, isNotNull);
+
+      final second = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': 1},
+        checkpointReason: 'manual',
+      );
+      expect(second, isNotNull);
+      final events = await fx.backend.findEventsForAggregate('agg-1');
+      expect(events, hasLength(2));
+      await fx.backend.close();
+    });
+
+    // Verifies: REQ-d00133-F (merge-aware) — a tombstone over an
+    // already-tombstoned aggregate with the same change_reason is a
+    // no-op; the view stays deleted and no event is appended.
+    test('REQ-d00133-F: tombstone over already-deleted is a no-op (same '
+        'change_reason)', () async {
+      final fx = await _setupFixture();
+      final first = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+      );
+      expect(first, isNotNull);
+      final seqBefore = await fx.backend.readSequenceCounter();
+
+      final second = await fx.service.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-1',
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+      );
+      expect(second, isNull);
+      expect(await fx.backend.readSequenceCounter(), seqBefore);
+      final events = await fx.backend.findEventsForAggregate('agg-1');
+      expect(events, hasLength(1));
+      await fx.backend.close();
+    });
+
+    // Verifies: REQ-d00133-F (merge-aware) — a tombstone on a
+    // non-deleted aggregate flips is_deleted (false → true) and SHALL
+    // be appended, not elided.
+    test(
+      'REQ-d00133-F: tombstone over non-deleted aggregate is NOT a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final first = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{'a': 1},
+        );
+        expect(first, isNotNull);
+
+        final second = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'tombstone',
+          answers: const <String, Object?>{},
+        );
+        expect(second, isNotNull);
+        final entries = await fx.backend.findEntries();
+        expect(entries, hasLength(1));
+        expect(entries.single.isDeleted, isTrue);
+        await fx.backend.close();
+      },
+    );
+
+    // Verifies: REQ-d00133-F (merge-aware) — the first event on an
+    // aggregate is never a no-op; the no-op check only runs when prior
+    // history exists. An empty delta still creates the first event.
+    test(
+      'REQ-d00133-F: first event on an aggregate is never a no-op',
+      () async {
+        final fx = await _setupFixture();
+        final stored = await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{},
+        );
+        expect(stored, isNotNull);
+        final events = await fx.backend.findEventsForAggregate('agg-1');
+        expect(events, hasLength(1));
+        await fx.backend.close();
+      },
+    );
+  });
 }
 
 /// Backend decorator that counts every FIFO-row write and delegates all
