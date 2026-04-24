@@ -1,0 +1,32 @@
+name: event_sourcing_datastore_demo
+description: "Flutter Linux-desktop sandbox exercising every event_sourcing_datastore library feature (CUR-1154 Phase 4.6)."
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.7
+  flutter: ">=3.38.7"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  event_sourcing_datastore:
+    path: ../
+  trial_data_types:
+    path: ../../trial_data_types
+  # Direct deps required by the depend_on_referenced_packages lint; the
+  # parent package already exposes all three transitively.
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  sembast: ^3.7.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Required to resolve the `package:flutter_lints/flutter.yaml` include
+  # chained in via ../analysis_options.yaml. Dev-deps are not transitive,
+  # so the example declares its own copy.
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
