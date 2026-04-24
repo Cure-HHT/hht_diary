@@ -308,12 +308,12 @@
 | REQ-d00112 | Enrollment Token Revocation                             | dev-portal-api.md              | e8863441 |
 | REQ-d00113 | Deleted Questionnaire Submission Handling               | dev-questionnaire.md           | 6aaa85fd |
 | REQ-d00114 | Sync Request Device Binding Verification                | dev-portal-api.md              | b1a11feb |
-| REQ-d00115 | ProvenanceEntry Schema and Append Rules                 | dev-event-sourcing-mobile.md   | e129e6a9 |
+| REQ-d00115 | ProvenanceEntry Schema and Append Rules                 | dev-event-sourcing-mobile.md   | c90dd968 |
 | REQ-d00116 | EntryTypeDefinition Schema                              | dev-event-sourcing-mobile.md   | 0bb2f928 |
 | REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | bb51d314 |
 | REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
 | REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 92a66dd9 |
-| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 422f82d4 |
+| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | 70f2e3d2 |
 | REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | aabfc89b |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 3efbe4b4 |
@@ -336,6 +336,8 @@
 | REQ-d00142 | Source Stamping Provenance Identity                     | dev-event-sourcing-mobile.md   | 65bc37d4 |
 | REQ-d00143 | Storage Failure Taxonomy                                | dev-event-sourcing-mobile.md   | 59ed82f7 |
 | REQ-d00144 | tombstoneAndRefill Operation                            | dev-event-sourcing-mobile.md   | f812b27d |
+| REQ-d00145 | EventStore Ingest Contract                              | dev-event-sourcing-mobile.md   | 2213e000 |
+| REQ-d00146 | Chain-of-Custody Verification APIs                      | dev-event-sourcing-mobile.md   | ba47e4ed |
 
 ## User Journeys
 

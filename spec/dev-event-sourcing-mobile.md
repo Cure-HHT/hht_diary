@@ -26,6 +26,8 @@ A chain-of-custody structure stored in `event.metadata.provenance` solves this: 
 
 The top-level `device_id`, `client_timestamp`, and `software_version` event fields remain as duplicates of `provenance[0]` as a migration bridge during the mobile refactor; they are removed once the portal ingestion reads provenance directly (deferred work).
 
+The cross-system provenance chain serves two distinct audit requirements: per-event identity preservation across hops (Chain 1), supported by `arrival_hash`; and per-destination tamper-evidence across events from multiple originators (Chain 2), supported by `previous_ingest_hash` and `ingest_sequence_number`. `batch_context` composes batch-level audit onto per-event records — an event received as part of an `esd/batch@1` batch carries its batch's identity and position, so an auditor can reconstruct the batch from stored events (see REQ-d00145) without duplicating wire bytes into the event store.
+
 ## Assertions
 
 A. The system SHALL append exactly one `ProvenanceEntry` to `event.metadata.provenance` on each hop that receives the event, such that the length of the chain equals the number of systems the event has traversed.
@@ -40,7 +42,15 @@ E. The `software_version` SHALL follow the format `"<package-name>@<semver>[+<bu
 
 F. The `transform_version` field SHALL be non-null when and only when this hop's incoming wire payload was produced by a transform at the previous hop; absence SHALL indicate the payload was passed through without transformation.
 
-*End* *ProvenanceEntry Schema and Append Rules* | **Hash**: e129e6a9
+G. A `ProvenanceEntry` MAY carry a nullable `arrival_hash` string. This field SHALL be `null` on the originator's entry (`provenance[0]` stamped by the originating system). For every entry stamped by a receiver hop on ingest, `arrival_hash` SHALL be non-null and SHALL equal the value of `event.event_hash` as the event appeared on the wire when this hop received it — i.e., the `event_hash` stored by the immediately-preceding hop. The field SHALL NOT be mutated after the entry is appended.
+
+H. A `ProvenanceEntry` MAY carry a nullable `previous_ingest_hash` string. This field SHALL be `null` on the originator's entry and SHALL be `null` on the first-ever provenance entry stamped by a given receiver hop (no destination-local predecessor). For every other receiver-stamped entry, `previous_ingest_hash` SHALL be non-null and SHALL equal the stored `event_hash` of the event immediately preceding this event in the destination's Chain 2 (ingest order). The field SHALL NOT be mutated after the entry is appended.
+
+I. A `ProvenanceEntry` MAY carry a nullable `ingest_sequence_number` integer. This field SHALL be `null` on the originator's entry. For every receiver-stamped entry on a given destination, `ingest_sequence_number` SHALL be non-null, monotonically increasing by 1 across all entries stamped at that destination (across all originators, across all ingestBatch and ingestEvent calls, across receiver-originated audit events — §2.9 of the design spec), and MUST NOT be rewound or reused.
+
+J. A `ProvenanceEntry` MAY carry a nullable `batch_context` record with fields `batch_id` (UUID string), `batch_position` (non-negative integer), `batch_size` (positive integer), `batch_wire_bytes_hash` (SHA-256 hex string), and `batch_wire_format` (string). `batch_context` SHALL be non-null on receiver-stamped entries produced by `EventStore.ingestBatch`, and SHALL be `null` on all other entries (originator entries, process-local `ingestEvent` entries, and entries on receiver-originated audit events emitted outside a batch context).
+
+*End* *ProvenanceEntry Schema and Append Rules* | **Hash**: c90dd968
 
 ---
 
@@ -176,7 +186,10 @@ C. A receiver implementing RFC 8785 in any language SHALL be able to reconstruct
 
 D. The canonicalization scheme used SHALL NOT be changed without a spec amendment and coordinated update across all implementations; changing the algorithm silently would break tamper-detection on all pre-existing events.
 
-*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: 422f82d4
+E. When a receiver appends a `ProvenanceEntry` to `metadata.provenance` during ingest, the event's `event_hash` SHALL be recomputed over the identity field set specified in assertion B (which includes `metadata`, and therefore the extended provenance chain), and the recomputed value SHALL be stored in place of the wire `event_hash`. The originator's `event_hash` remains recoverable via the Chain 1 walk specified in REQ-d00146-F. Cross-store byte-for-byte comparison of raw `event_hash` is not a valid identity check on ingested events; the Chain 1 walk is the specified mechanism.
+On every ingest hop the `event_hash` field is a function of the provenance chain as it stood at that hop. A receiver's stored `event_hash` is therefore the receiver's own output hash, not the originator's output hash. Identity preservation across hops is verified by the Chain 1 walk (each receiver entry's `arrival_hash` equals the hash the prior state would produce), not by naive field equality.
+
+*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: 70f2e3d2
 
 ---
 
@@ -748,4 +761,70 @@ E. The call SHALL return a `TombstoneAndRefillResult { String targetRowId, int d
 F. A subsequent `fillBatch(destination)` invocation SHALL re-promote the events covered by the tombstoned target AND by the deleted trail into fresh FIFO rows built against the current transform and destination state.
 
 *End* *tombstoneAndRefill Operation* | **Hash**: f812b27d
+---
+
+# REQ-d00145: EventStore Ingest Contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p00013
+
+## Rationale
+
+Events that flow across systems require a receiver-side write path distinct from local origination. Naively re-appending a received event via `EventStore.append` (REQ-d00141) would mint fresh `event_id`, advance a local `sequence_number`, stamp a fresh `provenance[0]`, and recompute the hash chain from scratch — destroying the event's original identity and breaking cross-system verification.
+
+`EventStore.ingestBatch` / `ingestEvent` / `logRejectedBatch` are the ingest surface. `ingestBatch` is the wire-boundary entry point: it accepts canonical-format bytes (`esd/batch@1` — the library's single canonical batch envelope), decomposes into constituent `StoredEvent` records, verifies each one's Chain 1 on the way in, stamps a receiver `ProvenanceEntry` with all four REQ-d00115 ingest fields populated (including `batch_context`), recomputes `event_hash` to cover the appended hop, and persists. `ingestEvent` is the process-local variant — no batch, so no `batch_context`. `logRejectedBatch` is a caller-composed companion: after `ingestBatch` throws, callers that want a forensic record of the rejected bytes invoke `logRejectedBatch`, which emits a single receiver-originated `ingest.batch_rejected` event carrying the bytes verbatim.
+
+The idempotency contract is identity-preserving. A known `event_id` whose wire `event_hash` matches the stored copy's `provenance[thisHop].arrival_hash` produces an `ingest.duplicate_received` audit event under a receiver-scoped ingest-audit aggregate — the stored subject is never re-stamped. A known `event_id` whose wire hash differs is a hard error (`IngestIdentityMismatch`). A new `event_id` proceeds normally.
+
+On success, an N-event batch produces N stored subject events (plus M dup-received audit events for any in-batch duplicates). No per-batch "received" audit event is emitted on the happy path — per-event `batch_context` is the happy-path audit. On failure, `ingestBatch` rolls back the entire batch (all-or-nothing) and throws a typed exception; the library does NOT implicitly emit an `ingest.batch_rejected` event. Audit retention on failure is the caller's to compose via `logRejectedBatch`.
+
+## Assertions
+
+A. `EventStore.ingestBatch(bytes, {required wireFormat})` SHALL decompose the bytes per the canonical batch format identified by `wireFormat` and, within a single `StorageBackend.transaction`, verify and ingest each decoded subject event. On any failure (decode, Chain 1 mismatch, identity mismatch, backend error), the method SHALL roll back and throw a typed exception; no events from the batch SHALL be persisted.
+
+B. Phase 4.9 SHALL support exactly one `wireFormat` value: `"esd/batch@1"`. The canonical batch envelope is a JCS-canonicalized UTF-8 JSON object with fields `batch_format_version` (string, value `"1"`), `batch_id` (UUID string), `sender_hop` (string), `sender_identifier` (string), `sender_software_version` (`"<package-name>@<semver>[+<build>]"` per REQ-d00115-E), `sent_at` (ISO 8601 with timezone offset), and `events` (ordered list of `StoredEvent` JSON per REQ-d00118). Decode failures SHALL raise `IngestDecodeFailure`.
+
+C. On Chain 1 verification failure for any subject event in a batch, `ingestBatch` SHALL raise `IngestChainBroken` with the `event_id` of the failing event.
+
+D. On encountering a subject event whose `event_id` is already present in the destination's event log, `ingestBatch` SHALL perform an identity-match check: incoming wire `event_hash` SHALL equal stored `metadata.provenance[thisHop].arrival_hash`. On match, a receiver-originated `ingest.duplicate_received` event SHALL be emitted under the receiver-scoped ingest-audit aggregate with `data` containing `subject_event_id` and `subject_event_hash_on_record`, and ingest SHALL continue with the next subject event. On mismatch, `ingestBatch` SHALL raise `IngestIdentityMismatch`.
+
+E. For each subject event ingested in a batch, `ingestBatch` SHALL append a receiver `ProvenanceEntry` carrying `arrival_hash`, `previous_ingest_hash`, `ingest_sequence_number`, and `batch_context` (all four populated per REQ-d00115-G+H+I+J) to `event.metadata.provenance`, recompute `event_hash` per REQ-d00120-E, and persist the event via the destination-role storage path (keyed by `ingest_sequence_number`, per REQ-d00117 transactional semantics).
+
+F. `EventStore.verifyEventChain(StoredEvent)` (see REQ-d00146) SHALL, after a successful `ingestBatch`, return a `ChainVerdict` with `ok: true` and `failures: []` for every subject event and every duplicate-received event produced by that batch.
+
+G. `EventStore.ingestEvent(StoredEvent incoming)` SHALL perform the same per-event semantics as a single subject event inside `ingestBatch`, with `batch_context` stamped as `null`. `ingestEvent` SHALL NOT emit any receiver-originated audit event except an `ingest.duplicate_received` event on the duplicate path.
+
+H. `EventStore.logRejectedBatch(bytes, {wireFormat, reason, failedEventId?, errorDetail?})` SHALL emit exactly one `ingest.batch_rejected` event under the receiver-scoped ingest-audit aggregate, inside its own transaction. The event's `data` SHALL carry the supplied `bytes` verbatim (base64-encoded), plus `wire_format`, `byte_length`, `wire_bytes_hash` (SHA-256 hex of the bytes), `reason`, `failed_event_id`, and `error_detail`. The method SHALL NOT attempt to decode or ingest the bytes; `logRejectedBatch` is purely a logging verb.
+
+I. The receiver-scoped ingest-audit aggregate SHALL have `aggregate_id` of the form `"ingest-audit:<source.hop>"` (the receiver's own hop identifier). `ingest.duplicate_received` and `ingest.batch_rejected` events SHALL share this aggregate identity. Patient-facing materializers for other aggregates SHALL NOT observe these events.
+
+J. Every receiver-originated audit event (`ingest.duplicate_received` and `ingest.batch_rejected`) SHALL have `provenance[0]` stamped with the receiver's own `source` (per REQ-d00115-A), `arrival_hash: null`, `previous_ingest_hash` equal to the destination-local `event_hash` of the preceding event in Chain 2, `ingest_sequence_number` equal to the next value of the destination's ingest counter, and `batch_context` non-null when emitted in response to a batch (i.e., for `duplicate_received` events emitted from `ingestBatch`).
+
+K. `ingestBatch` and `ingestEvent` SHALL NOT mutate any originator identity field (`event_id`, `aggregate_id`, `aggregate_type`, `entry_type`, `event_type`, `sequence_number`, `data`, `initiator`, `flow_token`, `client_timestamp`, `previous_event_hash`) on the incoming event. Only `metadata.provenance` is extended (one receiver entry appended), and `event_hash` is recomputed per REQ-d00120-E.
+
+*End* *EventStore Ingest Contract* | **Hash**: 2213e000
+
+---
+
+# REQ-d00146: Chain-of-Custody Verification APIs
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+Chain 1 (per-event, cross-hop) and Chain 2 (per-destination, cross-events) are both tamper-evident but the tamper detection is not self-activating — a library consumer must walk one or both chains to confirm nothing has been altered. The library provides two verification methods, one per chain, returning a non-throwing `ChainVerdict` so auditors can enumerate all mismatches in a single walk rather than catching exception-per-failure.
+
+## Assertions
+
+A. `EventStore.verifyEventChain(StoredEvent event)` SHALL walk `event.metadata.provenance` from index `length - 1` down to index `0`. At each index `k`, the method SHALL recompute the event_hash value that would exist at that hop by replacing `metadata.provenance` with a slice `[0..k]` (inclusive through index `k-1` only, for k > 0; the full slice at k=0), keeping all other identity fields, and canonicalizing per REQ-d00120. For `k > 0`, the recomputed hash SHALL equal `provenance[k].arrival_hash`; for `k == 0`, the recomputed hash SHALL equal the stored `event_hash` of the originator's record (not directly verifiable without access to the originator's store — the terminal case reports `ok: true` when the walk reaches `provenance[0]` without mismatch, acknowledging the trust-anchor is the originator).
+
+B. `EventStore.verifyEventChain` SHALL return a `ChainVerdict(ok: bool, failures: List<ChainFailure>)`. `ok` SHALL be `true` if and only if no mismatch occurred during the walk. `failures` SHALL enumerate every mismatch in walk order; a single corrupted hop produces exactly one `ChainFailure` entry with `position` equal to the hop index, `kind` equal to `ChainFailureKind.arrivalHashMismatch`, `expectedHash` equal to the stored `arrival_hash`, and `actualHash` equal to the recomputed hash.
+
+C. `EventStore.verifyIngestChain({int fromIngestSeq = 0, int? toIngestSeq})` SHALL walk this destination's Chain 2 from the event at `ingest_sequence_number >= fromIngestSeq` through the event at `ingest_sequence_number <= toIngestSeq` (or through tail if `toIngestSeq` is null). For each event at sequence `s` (s > fromIngestSeq), the method SHALL verify that `event.metadata.provenance[thisHop].previous_ingest_hash` equals the stored `event_hash` of the event at sequence `s - 1` on this destination. On mismatch, a `ChainFailure` SHALL be appended to the verdict's `failures` with `position` equal to `s`, `kind` equal to `ChainFailureKind.previousIngestHashMismatch`, `expectedHash` equal to the stored prior event's `event_hash`, and `actualHash` equal to the current event's `previous_ingest_hash`.
+
+D. Neither verification method SHALL throw on chain corruption. Exceptions MAY be thrown for programming errors (malformed `StoredEvent` argument to `verifyEventChain`), storage-backend errors, or invalid argument ranges (e.g., `fromIngestSeq > toIngestSeq`).
+
+E. Both verification methods SHALL be pure reads: they SHALL NOT write to any store, SHALL NOT advance any counter, and SHALL NOT emit audit events.
+
+*End* *Chain-of-Custody Verification APIs* | **Hash**: ba47e4ed
+
 ---
