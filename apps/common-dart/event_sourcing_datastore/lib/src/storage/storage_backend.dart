@@ -350,6 +350,52 @@ abstract class StorageBackend {
     int sequenceNumber,
   );
 
+  // Methods below compose the destination-role (ingest) write path. Origin
+  // writes continue to use appendEvent (REQ-d00141). See Phase 4.9 design
+  // spec (docs/superpowers/specs/2026-04-24-phase4.9-sync-through-ingest-design.md)
+  // for the two-chain framing and the ingest flow.
+
+  // ------ Destination-role (ingest) ------
+
+  /// Reserve-and-increment the per-destination ingest counter within [txn]
+  /// and return the reserved value. Mirrors [nextSequenceNumber] but for
+  /// the destination-role counter. Monotone across all events that land in
+  /// this destination's log via the ingest path or via receiver-originated
+  /// audit-event emission. MUST NOT rewind or reuse values.
+  // Implements: REQ-d00115-I; supports REQ-d00145-E+J.
+  Future<int> nextIngestSequenceNumber(Txn txn);
+
+  /// Read this destination's current Chain 2 tail: `(seq, eventHash)`,
+  /// where `seq` is the highest `ingest_sequence_number` that has been
+  /// stamped (or 0 if none), and `eventHash` is the `event_hash` of the
+  /// event at that seq (or `null` if none). Non-transactional; reads the
+  /// last-committed value. Callers that need coherence with the current
+  /// transaction MUST use [readIngestTailInTxn].
+  // Implements: REQ-d00115-H; supports REQ-d00145-E.
+  Future<(int seq, String? eventHash)> readIngestTail();
+
+  /// Transactional variant of [readIngestTail]. Participates in the calling
+  /// `ingestBatch` / `ingestEvent` / `logRejectedBatch` transaction so that
+  /// writes already staged in the same transaction are visible.
+  Future<(int seq, String? eventHash)> readIngestTailInTxn(Txn txn);
+
+  /// Append [event] to the destination's event log keyed by
+  /// `metadata.provenance.last.ingest_sequence_number`. Updates the Chain 2
+  /// tail (last ingest seq + last event_hash) atomically in the same
+  /// transaction. Does NOT advance [nextSequenceNumber]'s origin counter.
+  ///
+  /// Callers are responsible for having already reserved the ingest
+  /// sequence number via [nextIngestSequenceNumber] and stamped it onto
+  /// the event's receiver `ProvenanceEntry`.
+  // Implements: REQ-d00145-E.
+  Future<void> appendIngestedEvent(Txn txn, StoredEvent event);
+
+  /// Read a single event by `event_id` within [txn]. Returns `null` when no
+  /// event with that id is present. Used by ingest's idempotency check
+  /// (REQ-d00145-D). Phase 4.11 promotes a non-transactional variant to
+  /// the public API; Phase 4.9 exposes only the in-txn form.
+  Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId);
+
   // -------- Destination schedules (REQ-d00129) --------
 
   /// Read the persisted `DestinationSchedule` for [destinationId], or

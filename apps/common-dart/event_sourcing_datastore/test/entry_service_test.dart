@@ -955,4 +955,18 @@ class _DelegatingBackend extends StorageBackend {
     destinationId,
     afterSequenceInQueue,
   );
+  @override
+  Future<int> nextIngestSequenceNumber(Txn txn) =>
+      _inner.nextIngestSequenceNumber(txn);
+  @override
+  Future<(int, String?)> readIngestTail() => _inner.readIngestTail();
+  @override
+  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
+      _inner.readIngestTailInTxn(txn);
+  @override
+  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
+      _inner.appendIngestedEvent(txn, event);
+  @override
+  Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
+      _inner.findEventByIdInTxn(txn, eventId);
 }

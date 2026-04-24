@@ -836,6 +836,20 @@ class _SpyBackend extends StorageBackend {
     destinationId,
     afterSequenceInQueue,
   );
+  @override
+  Future<int> nextIngestSequenceNumber(Txn txn) =>
+      delegate.nextIngestSequenceNumber(txn);
+  @override
+  Future<(int, String?)> readIngestTail() => delegate.readIngestTail();
+  @override
+  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
+      delegate.readIngestTailInTxn(txn);
+  @override
+  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
+      delegate.appendIngestedEvent(txn, event);
+  @override
+  Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
+      delegate.findEventByIdInTxn(txn, eventId);
 }
 
 /// Test database provider that uses in-memory Sembast database.

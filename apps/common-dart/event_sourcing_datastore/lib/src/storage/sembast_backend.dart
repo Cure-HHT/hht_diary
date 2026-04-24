@@ -61,6 +61,8 @@ class SembastBackend extends StorageBackend {
   static const _sequenceKey = 'sequence_counter';
   static const _schemaVersionKey = 'schema_version';
   static const _knownFifosKey = 'known_fifo_destinations';
+  static const _ingestSequenceKey = 'ingest_sequence_counter';
+  static const _ingestTailHashKey = 'ingest_tail_event_hash';
 
   // Per-destination monotonic `sequence_in_queue` counter key, stored in
   // `backend_state` as `fifo_seq_counter_<destinationId>`. Used by
@@ -1134,6 +1136,96 @@ class SembastBackend extends StorageBackend {
           Filter.greaterThan('sequence_in_queue', afterSequenceInQueue),
         ]),
       ),
+    );
+  }
+
+  // -------- Destination-role (ingest) write path --------
+
+  /// Reserve-and-increment the per-destination ingest counter within [txn].
+  /// Mirrors [nextSequenceNumber] for the ingest-side Chain 2 counter.
+  // Implements: REQ-d00115-I; supports REQ-d00145-E+J.
+  @override
+  Future<int> nextIngestSequenceNumber(Txn txn) async {
+    final t = _requireValidTxn(txn);
+    final current =
+        (await _backendStateStore.record(_ingestSequenceKey).get(t._sembastTxn)
+            as int?) ??
+        0;
+    final next = current + 1;
+    await _backendStateStore
+        .record(_ingestSequenceKey)
+        .put(t._sembastTxn, next);
+    return next;
+  }
+
+  /// Read the current Chain 2 tail (last ingest seq + last event_hash).
+  /// Non-transactional; reads the last-committed value.
+  // Implements: REQ-d00115-H; supports REQ-d00145-E.
+  @override
+  Future<(int, String?)> readIngestTail() async {
+    final db = _database();
+    final seq =
+        (await _backendStateStore.record(_ingestSequenceKey).get(db) as int?) ??
+        0;
+    final hash =
+        await _backendStateStore.record(_ingestTailHashKey).get(db) as String?;
+    return (seq, hash);
+  }
+
+  /// Transactional variant of [readIngestTail]. Reads within [txn] so
+  /// writes already staged in the same transaction are visible.
+  @override
+  Future<(int, String?)> readIngestTailInTxn(Txn txn) async {
+    final t = _requireValidTxn(txn);
+    final seq =
+        (await _backendStateStore.record(_ingestSequenceKey).get(t._sembastTxn)
+            as int?) ??
+        0;
+    final hash =
+        await _backendStateStore.record(_ingestTailHashKey).get(t._sembastTxn)
+            as String?;
+    return (seq, hash);
+  }
+
+  /// Append [event] to the event log keyed by its ingest_sequence_number.
+  /// Atomically updates the Chain 2 tail (last ingest seq + last event_hash)
+  /// in the same [txn]. Does NOT advance [nextSequenceNumber]'s origin counter.
+  // Implements: REQ-d00145-E.
+  @override
+  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) async {
+    final t = _requireValidTxn(txn);
+
+    // Extract the receiver's stamped ingest_sequence_number from the last
+    // ProvenanceEntry in event.metadata.provenance.
+    final provenance = event.metadata['provenance'] as List<Object?>;
+    final lastEntry = provenance.last as Map<String, Object?>;
+    final ingestSeq = lastEntry['ingest_sequence_number'] as int;
+
+    // Persist to the events store using ingestSeq as the key.
+    await _eventStore.record(ingestSeq).put(t._sembastTxn, event.toMap());
+
+    // Update the Chain 2 tail atomically in the same txn.
+    await _backendStateStore
+        .record(_ingestSequenceKey)
+        .put(t._sembastTxn, ingestSeq);
+    await _backendStateStore
+        .record(_ingestTailHashKey)
+        .put(t._sembastTxn, event.eventHash);
+  }
+
+  /// Read a single event by `event_id` within [txn]. Returns `null` when no
+  /// event with that id is present. Used by ingest's idempotency check
+  /// (REQ-d00145-D).
+  // Implements: REQ-d00145-D.
+  @override
+  Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) async {
+    final t = _requireValidTxn(txn);
+    final finder = Finder(filter: Filter.equals('event_id', eventId), limit: 1);
+    final record = await _eventStore.findFirst(t._sembastTxn, finder: finder);
+    if (record == null) return null;
+    return StoredEvent.fromMap(
+      Map<String, Object?>.from(record.value),
+      record.key,
     );
   }
 

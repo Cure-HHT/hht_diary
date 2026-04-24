@@ -379,6 +379,19 @@ class _InMemoryBackend extends StorageBackend {
     String destinationId,
     int afterSequenceInQueue,
   ) => throw UnimplementedError();
+  @override
+  Future<int> nextIngestSequenceNumber(Txn txn) => throw UnimplementedError();
+  @override
+  Future<(int, String?)> readIngestTail() => throw UnimplementedError();
+  @override
+  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
+      throw UnimplementedError();
+  @override
+  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
+      throw UnimplementedError();
+  @override
+  Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
+      throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {
