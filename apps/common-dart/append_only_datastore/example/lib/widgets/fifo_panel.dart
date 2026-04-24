@@ -1,16 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-// Ops functions are not exported from the datastore barrel; the demo
-// reaches into src/ to invoke them from the per-destination ops
-// drawer. Library tests use the same pattern.
-import 'package:append_only_datastore/append_only_datastore.dart';
-// TODO Task 8: wire tombstoneAndRefill recovery operations
-// // ignore: implementation_imports
-// import 'package:append_only_datastore/src/ops/rehabilitate.dart'
-//     show rehabilitateAllExhausted, rehabilitateExhaustedRow;
-// // ignore: implementation_imports
-// import 'package:append_only_datastore/src/ops/unjam.dart' show unjamDestination;
+import 'package:append_only_datastore/append_only_datastore.dart'
+    show tombstoneAndRefill, DestinationSchedule, SembastBackend;
 import 'package:append_only_datastore_demo/app_state.dart';
 import 'package:append_only_datastore_demo/demo_destination.dart';
 import 'package:append_only_datastore_demo/widgets/styles.dart';
@@ -354,48 +346,6 @@ class _FifoPanelState extends State<FifoPanel> {
         if (_opsOpen)
           Wrap(
             children: <Widget>[
-              // TODO Task 8: wire tombstoneAndRefill
-              // TextButton(
-              //   onPressed: () async {
-              //     try {
-              //       final result = await unjamDestination(
-              //         widget.destination.id,
-              //         registry: widget.appState.registry,
-              //         backend: widget.backend,
-              //       );
-              //       _flashBanner(
-              //         'unjam: deleted=${result.deletedPending} '
-              //         'rewoundTo=${result.rewoundTo}',
-              //       );
-              //       await _refresh();
-              //     } catch (e) {
-              //       _flashBanner('unjam err: $e');
-              //     }
-              //   },
-              //   child: const Text(
-              //     '[Unjam]',
-              //     style: TextStyle(color: DemoColors.fg),
-              //   ),
-              // ),
-              // TODO Task 8: wire tombstoneAndRefill
-              // TextButton(
-              //   onPressed: () async {
-              //     try {
-              //       final count = await rehabilitateAllExhausted(
-              //         widget.destination.id,
-              //         backend: widget.backend,
-              //       );
-              //       _flashBanner('rehabilitated: $count');
-              //       await _refresh();
-              //     } catch (e) {
-              //       _flashBanner('rehab err: $e');
-              //     }
-              //   },
-              //   child: const Text(
-              //     '[Rehabilitate all]',
-              //     style: TextStyle(color: DemoColors.fg),
-              //   ),
-              // ),
               if (widget.destination.allowHardDelete)
                 TextButton(
                   onPressed: () async {
@@ -451,21 +401,21 @@ class _FifoPanelState extends State<FifoPanel> {
           widget.destination.id,
           display[i]['entry_id'] as String?,
         ),
-        // TODO Task 8: wire tombstoneAndRefill
-        // onRehabilitate: () async {
-        //   try {
-        //     await rehabilitateExhaustedRow(
-        //       widget.destination.id,
-        //       display[i]['entry_id']! as String,
-        //       backend: widget.backend,
-        //     );
-        //     _flashBanner('row rehabilitated');
-        //     await _refresh();
-        //   } catch (e) {
-        //     _flashBanner('err: $e');
-        //   }
-        // },
-        onRehabilitate: () {},
+        destinationId: widget.destination.id,
+        backend: widget.backend,
+        onTombstoneAndRefill: () async {
+          try {
+            await tombstoneAndRefill(
+              widget.destination.id,
+              display[i]['entry_id']! as String,
+              backend: widget.backend,
+            );
+            _flashBanner('tombstoned & refilled');
+            await _refresh();
+          } catch (e) {
+            _flashBanner('err: $e');
+          }
+        },
       ),
     );
   }
@@ -477,14 +427,18 @@ class _FifoRowTile extends StatelessWidget {
     required this.cumulativeEvents,
     required this.selected,
     required this.onTap,
-    required this.onRehabilitate,
+    required this.destinationId,
+    required this.backend,
+    required this.onTombstoneAndRefill,
   });
 
   final Map<String, Object?> row;
   final int cumulativeEvents;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onRehabilitate;
+  final String destinationId;
+  final SembastBackend backend;
+  final VoidCallback onTombstoneAndRefill;
 
   @override
   Widget build(BuildContext context) {
@@ -516,6 +470,8 @@ class _FifoRowTile extends StatelessWidget {
 
     final label =
         '$prefix#$seq: events: $count ($cumulativeEvents)  attempts:$attemptsLen';
+    // Show TombstoneAndRefill button only on the head row (status == null or wedged)
+    final isHead = status == null || status == 'wedged';
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -533,12 +489,12 @@ class _FifoRowTile extends StatelessWidget {
                 ),
               ),
             ),
-            if (status == 'wedged')
-              TextButton(
-                onPressed: onRehabilitate,
+            if (isHead)
+              ElevatedButton(
+                onPressed: onTombstoneAndRefill,
                 child: const Text(
-                  'rehab',
-                  style: TextStyle(color: DemoColors.accent, fontSize: 12),
+                  'Tombstone & Refill',
+                  style: TextStyle(fontSize: 12),
                 ),
               ),
           ],
