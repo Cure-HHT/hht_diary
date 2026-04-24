@@ -1,6 +1,5 @@
 import 'package:append_only_datastore/src/destinations/destination_registry.dart';
 import 'package:append_only_datastore/src/destinations/destination_schedule.dart';
-import 'package:append_only_datastore/src/destinations/subscription_filter.dart';
 import 'package:append_only_datastore/src/ops/tombstone_and_refill.dart';
 import 'package:append_only_datastore/src/storage/attempt_result.dart';
 import 'package:append_only_datastore/src/storage/final_status.dart';
@@ -119,24 +118,24 @@ _seedFifo(
   // Sent prefix rows.
   for (var i = 0; i < sentCount; i++) {
     seq += 1;
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
       eventId: 'sent-e$seq',
       sequenceNumber: seq,
     );
-    await backend.markFinal(destination.id, 'sent-e$seq', FinalStatus.sent);
+    await backend.markFinal(destination.id, row.entryId, FinalStatus.sent);
   }
   String? headEntryId;
   if (headKind != _HeadKind.none) {
     seq += 1;
-    headEntryId = 'head-e$seq';
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
-      eventId: headEntryId,
+      eventId: 'head-e$seq',
       sequenceNumber: seq,
     );
+    headEntryId = row.entryId;
     if (headKind == _HeadKind.wedged) {
       // Seed one attempt so REQ-d00144-B can assert attempts[] is
       // preserved across the wedged -> tombstoned flip.
@@ -475,55 +474,37 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00144-F — end-to-end: after tombstoneAndRefill,
-    // the next fillBatch re-promotes the trail events into fresh FIFO
-    // rows, AND the rewind places fill_cursor such that the target's
-    // events would be reconsidered by fillBatch.
+    // Verifies: REQ-d00144-F — end-to-end, production shape: after
+    // tombstoneAndRefill, the next fillBatch re-promotes every event
+    // covered by the tombstoned target AND by its trail into fresh
+    // FIFO rows. With v4-UUID `entry_id`s (Phase 4.7 Task 6.5) the
+    // tombstoned audit row and the fresh re-promotion rows coexist
+    // even when they cover the same event_ids — their identifiers
+    // never collide.
     //
     // Setup: 9 events on the event log. Enqueue three contiguous
     // 3-event batches — the first wedged (events 1-3, head), then
-    // two null (events 4-6 and 7-9, trail). Use a subscription filter
-    // that excludes the first 3 events from re-promotion: this avoids
-    // the entry_id collision that would otherwise occur when fillBatch
-    // tries to re-produce a batch with entry_id = e1 (already held by
-    // the tombstoned audit row). Under production use, a valid
-    // operator workflow implicitly side-steps this via a fresh
-    // transform or a new destination; the collision is an adjacent
-    // concern of the enqueue duplicate-check contract and is out of
-    // scope for REQ-d00144 itself.
+    // two null (events 4-6 and 7-9, trail).
     //
-    // The test still verifies REQ-d00144-F's contract:
-    //  - fill_cursor rewinds to target.first_seq - 1 (REQ-d00144-D);
-    //  - trail events 4-9 are re-promoted into fresh FIFO rows;
-    //  - the tombstoned audit row survives;
-    //  - the rewound cursor positions fillBatch to re-evaluate every
-    //    event starting from the target's first_seq.
+    // Contract:
+    //  - fill_cursor rewinds to target.first_seq - 1 = 0 (REQ-d00144-D);
+    //  - events 1-9 are re-promoted into fresh FIFO rows starting from
+    //    the rewound cursor;
+    //  - the tombstoned audit row survives alongside the fresh rows;
+    //  - every fresh row has a new UUID entryId distinct from the
+    //    tombstoned row's entryId (Task 6.5).
     test(
       'REQ-d00144-F: next fillBatch re-promotes target events AND trail events',
       () async {
-        // Filter excludes events 1-3 from re-promotion (see rationale
-        // above). Destination with batchCapacity=3 so fillBatch will
-        // re-pack into 3-event batches.
-        final filter = SubscriptionFilter(
-          predicate: (e) {
-            // Only events whose id is e4..e9 match.
-            final idx = int.parse(e.eventId.substring(1));
-            return idx >= 4;
-          },
-        );
         final registry = DestinationRegistry(backend: backend);
-        final destination = FakeDestination(
-          id: 'dst-f',
-          batchCapacity: 3,
-          filter: filter,
-        );
+        final destination = FakeDestination(id: 'dst-f', batchCapacity: 3);
         // Register + set startDate BEFORE appending events so the
         // historical-replay branch (REQ-d00129-D) sees zero candidates
         // and does not auto-enqueue rows that would conflict with our
         // controlled seeding below.
         await registry.addDestination(destination);
         await registry.setStartDate(destination.id, DateTime.utc(2026, 1, 1));
-        // Now seed 9 events on the event log.
+        // Seed 9 events on the event log.
         final clientTs = DateTime.utc(2026, 4, 22, 10);
         for (var i = 1; i <= 9; i++) {
           await _appendEvent(
@@ -533,10 +514,9 @@ void main() {
           );
         }
 
-        // Directly enqueue three 3-event batches (bypassing the
-        // subscription filter). These land at sequence_in_queue 1, 2,
-        // 3 because the FIFO is empty after setStartDate's zero-event
-        // replay branch.
+        // Directly enqueue three 3-event batches. These land at
+        // sequence_in_queue 1, 2, 3 because the FIFO is empty after
+        // setStartDate's zero-event replay branch.
         Future<void> enqueueBatch(List<int> seqs) async {
           await backend.transaction((txn) async {
             final events = <StoredEvent>[];
@@ -583,18 +563,13 @@ void main() {
         );
         expect(result.deletedTrailCount, 2);
         // REQ-d00144-D: rewound to target.first_seq - 1 = 1 - 1 = 0.
-        // This is the "re-promotion would re-evaluate target's events"
-        // half of REQ-d00144-F's contract — the cursor is positioned
-        // such that fillBatch will walk events 1..9 again.
+        // This positions fillBatch to walk events 1..9 again.
         expect(result.rewoundTo, 0);
 
-        // Run fillBatch enough times to drain remaining trail events.
-        // With batchCapacity=3 and filter excluding events 1-3, the
-        // first call consumes events 4-6 into a new batch (advancing
-        // cursor to 6 past the 1-3 non-match skip), the second call
-        // consumes events 7-9.
+        // Run fillBatch enough times to drain all events. With
+        // batchCapacity=3, three calls cover events 1-3, 4-6, 7-9.
         final schedule = await registry.scheduleOf(destination.id);
-        for (var i = 0; i < 2; i++) {
+        for (var i = 0; i < 3; i++) {
           await fillBatch(
             destination,
             backend: backend,
@@ -610,18 +585,26 @@ void main() {
         // REQ-d00144-B: tombstoned row survives.
         expect(tombstoned.length, 1);
         expect(tombstoned.single['entry_id'], headEntryId);
+
         final fresh = rows1.where((r) => r['final_status'] == null).toList();
-        // REQ-d00144-F: trail events are re-promoted into fresh rows.
-        expect(fresh.length, 2);
+        // REQ-d00144-F: events 1-9 are re-promoted into fresh rows —
+        // three 3-event batches at the destination's batchCapacity.
+        expect(fresh.length, 3);
         final coveredIds = <String>{};
         for (final r in fresh) {
           coveredIds.addAll((r['event_ids']! as List).cast<String>());
         }
-        expect(coveredIds, {for (var i = 4; i <= 9; i++) 'e$i'});
-        // fill_cursor advanced through all 9 events: filter-excluded
-        // tail (1-3) is advanced past on the first fillBatch call
-        // that matches (events 4-6 write and cursor->6), then events
-        // 7-9 (cursor->9).
+        expect(coveredIds, {for (var i = 1; i <= 9; i++) 'e$i'});
+        // Task 6.5 invariant: every fresh row's entry_id is a UUID
+        // distinct from the tombstoned row's entry_id.
+        for (final r in fresh) {
+          expect(r['entry_id'], isNot(headEntryId));
+        }
+        // And all four rows (1 tombstoned + 3 fresh) have pairwise-
+        // distinct entry_ids.
+        final allEntryIds = rows1.map((r) => r['entry_id']! as String).toList();
+        expect(allEntryIds.toSet().length, allEntryIds.length);
+        // fill_cursor advanced through all 9 events.
         expect(await backend.readFillCursor(destination.id), 9);
       },
     );

@@ -65,28 +65,27 @@ _setupDestinationWithMixedFifo(
   var seq = 0;
   for (var i = 0; i < sentCount; i++) {
     seq += 1;
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
       eventId: 'sent-e$seq',
       sequenceNumber: seq,
     );
-    await backend.markFinal(destination.id, 'sent-e$seq', FinalStatus.sent);
+    await backend.markFinal(destination.id, row.entryId, FinalStatus.sent);
   }
   for (var i = 0; i < exhaustedCount; i++) {
     seq += 1;
-    final entryId = 'exh-e$seq';
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
-      eventId: entryId,
+      eventId: 'exh-e$seq',
       sequenceNumber: seq,
     );
     // Seed one attempt so REQ-d00132-B can verify attempts[] is preserved
     // across the exhausted -> pending flip.
     await backend.appendAttempt(
       destination.id,
-      entryId,
+      row.entryId,
       AttemptResult(
         attemptedAt: DateTime.utc(2026, 4, 22, 12, seq),
         outcome: 'permanent',
@@ -94,7 +93,7 @@ _setupDestinationWithMixedFifo(
         httpStatus: 500,
       ),
     );
-    await backend.markFinal(destination.id, entryId, FinalStatus.wedged);
+    await backend.markFinal(destination.id, row.entryId, FinalStatus.wedged);
   }
   for (var i = 0; i < pendingCount; i++) {
     seq += 1;

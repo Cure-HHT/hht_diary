@@ -47,14 +47,12 @@ void main() {
       await backend.close();
     });
 
-    // Phase-4.3 Task 6 shifted enqueueFifo from a caller-constructed
-    // FifoEntry to (destId, List<StoredEvent>, WirePayload). Under the new
-    // contract, the backend derives:
-    //   entry_id       = batch.first.eventId
-    //   event_ids      = batch.map((e) => e.eventId)
-    //   event_id_range = (first.sequenceNumber, last.sequenceNumber)
-    // So a single-event test like "enqueue eventId=ev-1 at seq=1" produces
-    // a row with entry_id == 'ev-1' and event_ids == ['ev-1'].
+    // Phase-4.7 Task 6.5 shifted `entry_id` from a derivation of the
+    // event log (`batch.first.eventId`) to a freshly-minted v4 UUID at
+    // enqueue time. So a single-event test like "enqueue eventId=ev-1
+    // at seq=1" still produces event_ids == ['ev-1'], but the row's
+    // entry_id is an opaque UUID unrelated to 'ev-1'. Tests that need
+    // to look a row up later capture the returned `FifoEntry.entryId`.
 
     // -------- enqueueFifo + validation --------
 
@@ -67,15 +65,15 @@ void main() {
       );
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
-      expect(head!.entryId, 'e1');
+      expect(head!.entryId, enqueued.entryId);
+      // entry_id is a v4 UUID, not the event id.
+      expect(head.entryId, isNot('e1'));
+      expect(head.entryId, matches(RegExp(r'^[0-9a-f-]{36}$')));
       expect(head.eventIds, ['e1']);
       expect(head.eventIdRange, (firstSeq: 1, lastSeq: 1));
       expect(head.finalStatus, isNull);
       expect(head.attempts, isEmpty);
       expect(head.sentAt, isNull);
-      // Returned entry equals the persisted head modulo DateTime precision
-      // (both derived from DateTime.now() inside the transaction).
-      expect(head.entryId, enqueued.entryId);
       expect(head.sequenceInQueue, enqueued.sequenceInQueue);
     });
 
@@ -95,20 +93,45 @@ void main() {
       },
     );
 
-    test('enqueueFifo rejects duplicate entry_id in same FIFO', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      // Second enqueue with the same eventId -> derived entryId collides.
-      await expectLater(
-        enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 2),
-        throwsStateError,
+    // Verifies: Task 6.5 — two enqueues with the same eventId succeed and
+    // produce rows with distinct v4-UUID entry_ids. The backend mints a
+    // fresh UUID per row, so there is no collision to reject.
+    test('enqueueFifo assigns distinct UUID entry_ids even when the same '
+        'event id is enqueued twice', () async {
+      final first = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
       );
+      final second = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 2,
+      );
+      expect(first.entryId, isNot(second.entryId));
+      expect(first.eventIds, ['e1']);
+      expect(second.eventIds, ['e1']);
     });
 
-    test('same entry_id is allowed in DIFFERENT FIFOs', () async {
-      await enqueueSingle(backend, 'A', eventId: 'shared', sequenceNumber: 1);
-      await enqueueSingle(backend, 'B', eventId: 'shared', sequenceNumber: 1);
-      expect((await backend.readFifoHead('A'))?.entryId, 'shared');
-      expect((await backend.readFifoHead('B'))?.entryId, 'shared');
+    test('two FIFOs produce independent UUID entry_ids even with the same '
+        'event id', () async {
+      final a = await enqueueSingle(
+        backend,
+        'A',
+        eventId: 'shared',
+        sequenceNumber: 1,
+      );
+      final b = await enqueueSingle(
+        backend,
+        'B',
+        eventId: 'shared',
+        sequenceNumber: 1,
+      );
+      expect(a.entryId, isNot(b.entryId));
+      expect((await backend.readFifoHead('A'))?.entryId, a.entryId);
+      expect((await backend.readFifoHead('B'))?.entryId, b.entryId);
     });
 
     // -------- FIFO ordering --------
@@ -116,26 +139,49 @@ void main() {
     // Verifies: REQ-d00119-A — insertion order is preserved; readFifoHead
     // returns the oldest pending entry each time.
     test('REQ-d00119-A: multiple enqueues preserve insertion order', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final first = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
       await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
       final head = await backend.readFifoHead('primary');
-      expect(head?.entryId, 'e1');
+      expect(head?.entryId, first.entryId);
+      expect(head?.eventIds, ['e1']);
     });
 
     test('per-destination isolation', () async {
-      await enqueueSingle(backend, 'A', eventId: 'a-only', sequenceNumber: 1);
-      await enqueueSingle(backend, 'B', eventId: 'b-only', sequenceNumber: 1);
+      final a = await enqueueSingle(
+        backend,
+        'A',
+        eventId: 'a-only',
+        sequenceNumber: 1,
+      );
+      final b = await enqueueSingle(
+        backend,
+        'B',
+        eventId: 'b-only',
+        sequenceNumber: 1,
+      );
 
-      expect((await backend.readFifoHead('A'))?.entryId, 'a-only');
-      expect((await backend.readFifoHead('B'))?.entryId, 'b-only');
+      expect((await backend.readFifoHead('A'))?.entryId, a.entryId);
+      expect((await backend.readFifoHead('A'))?.eventIds, ['a-only']);
+      expect((await backend.readFifoHead('B'))?.entryId, b.entryId);
+      expect((await backend.readFifoHead('B'))?.eventIds, ['b-only']);
     });
 
     // -------- appendAttempt --------
 
     test('appendAttempt appends without changing final_status', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
 
       final attempt = AttemptResult(
         attemptedAt: DateTime.utc(2026, 4, 22, 11),
@@ -143,7 +189,7 @@ void main() {
         errorMessage: 'timeout',
         httpStatus: 503,
       );
-      await backend.appendAttempt('primary', 'e1', attempt);
+      await backend.appendAttempt('primary', e1.entryId, attempt);
 
       final head = await backend.readFifoHead('primary');
       expect(head?.attempts, [attempt]);
@@ -156,7 +202,7 @@ void main() {
         errorMessage: 'timeout',
         httpStatus: 503,
       );
-      await backend.appendAttempt('primary', 'e1', attempt2);
+      await backend.appendAttempt('primary', e1.entryId, attempt2);
       final head2 = await backend.readFifoHead('primary');
       expect(head2?.attempts, [attempt, attempt2]);
     });
@@ -169,7 +215,7 @@ void main() {
     test(
       'REQ-d00127-B: appendAttempt no-ops when entry does not exist',
       () async {
-        await enqueueSingle(
+        final e1 = await enqueueSingle(
           backend,
           'primary',
           eventId: 'e1',
@@ -184,7 +230,7 @@ void main() {
         // The FIFO is otherwise untouched: e1 is still pending with no
         // attempts.
         final head = await backend.readFifoHead('primary');
-        expect(head?.entryId, 'e1');
+        expect(head?.entryId, e1.entryId);
         expect(head?.attempts, isEmpty);
       },
     );
@@ -213,8 +259,13 @@ void main() {
     // flips final_status and, for sent, stamps sent_at. The entry lives
     // on as a send-log record.
     test('REQ-d00119-D: markFinal sent retains the entry', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
 
       // After marking sent, readFifoHead moves past it to the next pending.
       expect(await backend.readFifoHead('primary'), isNull);
@@ -222,26 +273,46 @@ void main() {
       // The entry persists: a follow-up appendAttempt on a different entry
       // works while e1 stays parked. We verify by querying the raw FIFO
       // via a second enqueue + head read.
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
       final nextHead = await backend.readFifoHead('primary');
-      expect(nextHead?.entryId, 'e2');
+      expect(nextHead?.entryId, e2.entryId);
     });
 
     test('markFinal sent sets sent_at', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       final before = DateTime.now().toUtc();
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       final after = DateTime.now().toUtc();
 
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      await backend.markFinal('primary', 'e2', FinalStatus.sent);
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
+      await backend.markFinal('primary', e2.entryId, FinalStatus.sent);
 
       // We can't easily query non-pending entries through readFifoHead, so
       // inspect the second e2 entry - it should have sent_at set between
       // before/after.
-      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
+      final e3 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e3',
+        sequenceNumber: 3,
+      );
       final head = await backend.readFifoHead('primary');
-      expect(head?.entryId, 'e3');
+      expect(head?.entryId, e3.entryId);
       // e1 and e2 are retained but not visible at head. The sent_at check
       // is validated indirectly: markFinal would have thrown if sent_at
       // wasn't being assigned, and the retain test above proves markFinal
@@ -252,15 +323,20 @@ void main() {
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
-      final e1Raw = raw.firstWhere((r) => r.value['entry_id'] == 'e1');
+      final e1Raw = raw.firstWhere((r) => r.value['entry_id'] == e1.entryId);
       final e1SentAt = DateTime.parse(e1Raw.value['sent_at']! as String);
       expect(e1SentAt.isAfter(before) || e1SentAt == before, isTrue);
       expect(e1SentAt.isBefore(after) || e1SentAt == after, isTrue);
     });
 
     test('markFinal exhausted does NOT set sent_at', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.wedged);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.wedged);
 
       // Raw store name must match SembastBackend._fifoStore(destinationId).
       final db = backend.debugDatabase();
@@ -271,13 +347,23 @@ void main() {
     });
 
     test('after markFinal sent, readFifoHead returns next pending', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
 
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
 
       final head = await backend.readFifoHead('primary');
-      expect(head?.entryId, 'e2');
+      expect(head?.entryId, e2.entryId);
     });
 
     // Verifies: REQ-d00124-A — readFifoHead returns the first row in
@@ -287,19 +373,29 @@ void main() {
     // and SHALL be skipped.
     test('REQ-d00124-A: readFifoHead returns first row with finalStatus in '
         '{null, wedged} — wedged row is returned, not skipped', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
       await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await backend.markFinal('primary', 'e2', FinalStatus.wedged);
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
+      await backend.markFinal('primary', e2.entryId, FinalStatus.wedged);
       // e3 is left pending.
 
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
       // e1 (sent) is skipped; e2 (wedged) is the first row in
       // sequence_in_queue order whose final_status is in {null, wedged}.
-      expect(head!.entryId, 'e2');
+      expect(head!.entryId, e2.entryId);
       expect(head.finalStatus, FinalStatus.wedged);
     });
 
@@ -308,10 +404,15 @@ void main() {
     // followed by a pending row at position 2 returns the pending row.
     test('REQ-d00124-A: readFifoHead skips tombstoned rows', () async {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      // Phase-4.7 Task 6 will introduce tombstoneAndRefill; until then,
-      // set final_status to "tombstoned" via a direct backend mutation so
-      // this contract test can be authored before Task 6 lands.
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
+      // Set final_status to "tombstoned" via a direct backend mutation
+      // so this test focuses on the readFifoHead skip-past contract
+      // independently of tombstoneAndRefill's side effects.
       await _rawSetFinalStatus(
         backend,
         'primary',
@@ -321,7 +422,7 @@ void main() {
 
       final head = await backend.readFifoHead('primary');
       expect(head, isNotNull);
-      expect(head!.entryId, 'e2');
+      expect(head!.entryId, e2.entryId);
       expect(head.finalStatus, isNull);
     });
 
@@ -332,9 +433,14 @@ void main() {
     // applicable (no head to act on).
     test('REQ-d00124-A: readFifoHead returns null when only terminal-passable '
         'rows exist (sent and tombstoned)', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       await _rawSetFinalStatus(
         backend,
         'primary',
@@ -351,12 +457,17 @@ void main() {
     // may remove the target row before drain's subsequent markFinal
     // transaction runs.
     test('REQ-d00127-A: markFinal no-ops when entry does not exist', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       // Must not throw.
       await backend.markFinal('primary', 'ghost', FinalStatus.sent);
       // e1 still at head, still pending.
       final head = await backend.readFifoHead('primary');
-      expect(head?.entryId, 'e1');
+      expect(head?.entryId, e1.entryId);
       expect(head?.finalStatus, isNull);
     });
 
@@ -376,19 +487,29 @@ void main() {
     // sent_at, corrupting the send-log timestamp; reject it instead.
     test('markFinal rejects a second transition '
         '(pending -> sent -> sent blocked)', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       await expectLater(
-        backend.markFinal('primary', 'e1', FinalStatus.sent),
+        backend.markFinal('primary', e1.entryId, FinalStatus.sent),
         throwsStateError,
       );
     });
 
     test('markFinal rejects sent -> exhausted transition', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       await expectLater(
-        backend.markFinal('primary', 'e1', FinalStatus.wedged),
+        backend.markFinal('primary', e1.entryId, FinalStatus.wedged),
         throwsStateError,
       );
     });
@@ -396,24 +517,39 @@ void main() {
     // -------- anyFifoExhausted + wedgedFifos --------
 
     test('anyFifoExhausted true iff any FIFO is wedged', () async {
-      await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
+      final a1 = await enqueueSingle(
+        backend,
+        'A',
+        eventId: 'a1',
+        sequenceNumber: 1,
+      );
       await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
 
       expect(await backend.anyFifoExhausted(), isFalse);
 
-      await backend.markFinal('A', 'a1', FinalStatus.wedged);
+      await backend.markFinal('A', a1.entryId, FinalStatus.wedged);
       expect(await backend.anyFifoExhausted(), isTrue);
     });
 
     test('wedgedFifos returns one summary per wedged FIFO', () async {
-      await enqueueSingle(backend, 'A', eventId: 'a1', sequenceNumber: 1);
+      final a1 = await enqueueSingle(
+        backend,
+        'A',
+        eventId: 'a1',
+        sequenceNumber: 1,
+      );
       await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'C', eventId: 'c1', sequenceNumber: 1);
+      final c1 = await enqueueSingle(
+        backend,
+        'C',
+        eventId: 'c1',
+        sequenceNumber: 1,
+      );
 
       // Record an attempt on A's head so the summary has a lastError.
       await backend.appendAttempt(
         'A',
-        'a1',
+        a1.entryId,
         AttemptResult(
           attemptedAt: DateTime.utc(2026, 4, 22, 12, 30),
           outcome: 'permanent',
@@ -421,15 +557,17 @@ void main() {
           httpStatus: 400,
         ),
       );
-      await backend.markFinal('A', 'a1', FinalStatus.wedged);
-      await backend.markFinal('C', 'c1', FinalStatus.wedged);
+      await backend.markFinal('A', a1.entryId, FinalStatus.wedged);
+      await backend.markFinal('C', c1.entryId, FinalStatus.wedged);
 
       final summaries = await backend.wedgedFifos();
       final byDest = {for (final s in summaries) s.destinationId: s};
       expect(byDest.keys.toSet(), {'A', 'C'});
-      expect(byDest['A']!.headEntryId, 'a1');
-      // Under Task-6 semantics, the summary reports the first event_id of
-      // the batch — for a single-event batch, this equals the entry_id.
+      // The summary reports the row's UUID entry_id (opaque) and the
+      // first event_id of the batch; under Task 6.5 these are distinct
+      // — the event_id reflects what was enqueued, the entry_id is a
+      // freshly-minted UUID.
+      expect(byDest['A']!.headEntryId, a1.entryId);
       expect(byDest['A']!.headEventId, 'a1');
       expect(byDest['A']!.lastError, 'HTTP 400: bad request');
       expect(byDest['A']!.wedgedAt, DateTime.utc(2026, 4, 22, 12, 30));
@@ -442,24 +580,29 @@ void main() {
 
     test('wedgedFifos reports sensible fallbacks when wedged with no '
         'attempts', () async {
-      await enqueueSingle(
+      final bare = await enqueueSingle(
         backend,
         'primary',
         eventId: 'e-bare',
         sequenceNumber: 1,
       );
-      await backend.markFinal('primary', 'e-bare', FinalStatus.wedged);
+      await backend.markFinal('primary', bare.entryId, FinalStatus.wedged);
 
       final summary = (await backend.wedgedFifos()).single;
       expect(summary.destinationId, 'primary');
-      expect(summary.headEntryId, 'e-bare');
+      expect(summary.headEntryId, bare.entryId);
       expect(summary.headEventId, 'e-bare');
       expect(summary.lastError, contains('no attempts'));
     });
 
     test('a FIFO with only sent entries is NOT wedged', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       expect(await backend.anyFifoExhausted(), isFalse);
       expect(await backend.wedgedFifos(), isEmpty);
     });
@@ -474,9 +617,24 @@ void main() {
     // overwrites" to "backend assigns 1, 2, 3 monotonically".
     test('enqueueFifo assigns its own monotonic sequence_in_queue '
         '(Prereq A, Option 1)', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
-      await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
+      final r1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      final r2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
+      final r3 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e3',
+        sequenceNumber: 3,
+      );
 
       // Inspect the raw store to verify the stored sequence_in_queue
       // values are 1, 2, 3.
@@ -485,7 +643,18 @@ void main() {
         'fifo_primary',
       ).find(db);
       expect(raw.map((r) => r.value['sequence_in_queue']).toList(), [1, 2, 3]);
-      expect(raw.map((r) => r.value['entry_id']).toList(), ['e1', 'e2', 'e3']);
+      // entry_ids are the freshly-minted UUIDs from enqueueFifo, and the
+      // event_ids are the caller's event log identifiers.
+      expect(raw.map((r) => r.value['entry_id']).toList(), [
+        r1.entryId,
+        r2.entryId,
+        r3.entryId,
+      ]);
+      expect(raw.map((r) => r.value['event_ids']).toList(), [
+        ['e1'],
+        ['e2'],
+        ['e3'],
+      ]);
     });
 
     // Verifies that sequence_in_queue continues to grow past surviving
@@ -494,17 +663,27 @@ void main() {
     // retained forever per REQ-d00119-D).
     test('sequence_in_queue advances across sent/exhausted entries '
         '(Prereq A, Option 1)', () async {
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
-      await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
+      final e2 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e2',
+        sequenceNumber: 2,
+      );
       // e2 should get sequence 2, not 1.
       final db = backend.debugDatabase();
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
-      final e2 = raw.firstWhere((r) => r.value['entry_id'] == 'e2');
-      expect(e2.value['sequence_in_queue'], 2);
-      expect(e2.key, 2);
+      final e2Raw = raw.firstWhere((r) => r.value['entry_id'] == e2.entryId);
+      expect(e2Raw.value['sequence_in_queue'], 2);
+      expect(e2Raw.key, 2);
     });
 
     // Verifies that the Sembast int key equals the payload's
@@ -545,7 +724,7 @@ void main() {
         3,
       ]);
 
-      // Raw delete of row whose sequence_in_queue is 2 (entry_id 'e2').
+      // Raw delete of row whose sequence_in_queue is 2 (the e2 row).
       // This simulates the REQ-d00144-C trail-sweep deletion path
       // without depending on that API (which is introduced in Task 6).
       await store.record(2).delete(db);
@@ -560,10 +739,15 @@ void main() {
       // deleted slot) and NOT 3 (max-key after delete + 1 under the
       // old derivation would also be 4, but only because 3 already
       // exists; the defining test is the next-next one below).
-      await enqueueSingle(backend, 'primary', eventId: 'e4', sequenceNumber: 4);
+      final e4 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e4',
+        sequenceNumber: 4,
+      );
       final afterFirstEnqueue = await store.find(db);
       final e4Record = afterFirstEnqueue.firstWhere(
-        (r) => r.value['entry_id'] == 'e4',
+        (r) => r.value['entry_id'] == e4.entryId,
       );
       expect(e4Record.value['sequence_in_queue'], 4);
       expect(e4Record.key, 4);
@@ -574,10 +758,15 @@ void main() {
       // the slot. The persisted counter prevents that: the next
       // enqueue must get 5.
       await store.record(4).delete(db);
-      await enqueueSingle(backend, 'primary', eventId: 'e5', sequenceNumber: 5);
+      final e5 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e5',
+        sequenceNumber: 5,
+      );
       final afterSecondEnqueue = await store.find(db);
       final e5Record = afterSecondEnqueue.firstWhere(
-        (r) => r.value['entry_id'] == 'e5',
+        (r) => r.value['entry_id'] == e5.entryId,
       );
       expect(e5Record.value['sequence_in_queue'], 5);
       expect(e5Record.key, 5);
@@ -634,13 +823,18 @@ void main() {
       final logs = <String>[];
       backend.debugLogSink = logs.add;
 
-      await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
+      final e1 = await enqueueSingle(
+        backend,
+        'primary',
+        eventId: 'e1',
+        sequenceNumber: 1,
+      );
       await backend.appendAttempt(
         'primary',
-        'e1',
+        e1.entryId,
         AttemptResult(attemptedAt: DateTime.utc(2026, 4, 22), outcome: 'ok'),
       );
-      await backend.markFinal('primary', 'e1', FinalStatus.sent);
+      await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
 
       expect(logs, isEmpty);
     });

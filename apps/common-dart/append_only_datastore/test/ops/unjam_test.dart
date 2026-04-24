@@ -73,24 +73,24 @@ _setupDestinationWithMixedFifo(
   // Sent rows.
   for (var i = 0; i < sentCount; i++) {
     seq += 1;
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
       eventId: 'sent-e$seq',
       sequenceNumber: seq,
     );
-    await backend.markFinal(destination.id, 'sent-e$seq', FinalStatus.sent);
+    await backend.markFinal(destination.id, row.entryId, FinalStatus.sent);
   }
   // Exhausted rows.
   for (var i = 0; i < exhaustedCount; i++) {
     seq += 1;
-    await enqueueSingle(
+    final row = await enqueueSingle(
       backend,
       destination.id,
       eventId: 'exh-e$seq',
       sequenceNumber: seq,
     );
-    await backend.markFinal(destination.id, 'exh-e$seq', FinalStatus.wedged);
+    await backend.markFinal(destination.id, row.entryId, FinalStatus.wedged);
   }
   // Pending rows.
   for (var i = 0; i < pendingCount; i++) {

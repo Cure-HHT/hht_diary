@@ -222,7 +222,7 @@ abstract class StorageBackend {
   /// surrounding transaction's atomicity so the FIFO-row write and the
   /// accompanying writes (e.g., fill_cursor advance in `fillBatch`) commit
   /// or roll back together. Same contract as [enqueueFifo] otherwise:
-  /// rejects empty [batch], rejects duplicate `entry_id` in the same FIFO,
+  /// rejects empty [batch], mints a fresh v4-UUID `entry_id`,
   /// assigns monotonically-increasing `sequence_in_queue`, and registers
   /// the destination on first use.
   ///

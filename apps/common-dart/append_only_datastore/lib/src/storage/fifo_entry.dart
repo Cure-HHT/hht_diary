@@ -193,11 +193,13 @@ class FifoEntry {
     );
   }
 
-  /// Stable row identifier used by `markFinal`, `appendAttempt`, and operator
-  /// diagnostics. For single-event batches it equals the lone event's
-  /// `event_id`; for multi-event batches it equals `eventIds.first`. A
-  /// future task may introduce a distinct batch id; until then this row
-  /// identifier is documented here and on `sembast_backend.enqueueFifo`.
+  /// Stable per-row identifier used by `markFinal`, `appendAttempt`,
+  /// `tombstoneAndRefill`, and operator diagnostics. Generated as a v4
+  /// UUID at enqueue time and never reused across rows; two FIFO rows
+  /// (of any `final_status`, including tombstoned archive rows) never
+  /// share an `entryId`. The identifier has no relationship to the
+  /// events the row carries — callers that need to correlate against
+  /// events should use `eventIds` or `eventIdRange` instead.
   final String entryId;
 
   /// Event_ids of every event included in this batch row, in the order they

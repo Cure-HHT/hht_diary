@@ -13,6 +13,14 @@ import 'package:append_only_datastore/src/storage/stored_event.dart';
 import 'package:append_only_datastore/src/storage/txn.dart';
 import 'package:append_only_datastore/src/storage/wedged_fifo_summary.dart';
 import 'package:sembast/sembast.dart';
+import 'package:uuid/uuid.dart';
+
+/// Module-private v4 UUID generator used by [SembastBackend.enqueueFifoTxn]
+/// to mint each FIFO row's [FifoEntry.entryId]. Held at file scope (const)
+/// so every backend instance shares one generator; `Uuid.v4()` is
+/// side-effect-free beyond its internal random state, so a shared
+/// instance is correct.
+const _uuidGen = Uuid();
 
 /// Package-private default log sink used when a [SembastBackend] instance
 /// has not overridden [SembastBackend.debugLogSink]. Routes through
@@ -623,10 +631,12 @@ class SembastBackend extends StorageBackend {
   /// `result.eventIdRange.lastSeq` as the inclusive upper bound of the
   /// batch on the event log.
   ///
-  /// Rejects (throws `ArgumentError` / `StateError`):
-  /// - empty [batch] (REQ-d00128-A);
-  /// - `entryId` collision within the destination's FIFO (would let a
-  ///   later `markFinal` / `appendAttempt` pick the wrong row).
+  /// The row's `entry_id` is a freshly-minted v4 UUID and has no
+  /// relationship to the events the row carries — callers that need
+  /// to correlate against events use `eventIds` / `eventIdRange`.
+  ///
+  /// Rejects (throws `ArgumentError`):
+  /// - empty [batch] (REQ-d00128-A).
   // Implements: REQ-d00117-E — enqueue initial state (pending, no
   // attempts, no sent_at).
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
@@ -656,7 +666,7 @@ class SembastBackend extends StorageBackend {
   /// event log into a single transaction.
   ///
   /// Centralizes all row-construction logic: empty-batch rejection,
-  /// duplicate-entryId rejection, `sequence_in_queue` assignment,
+  /// v4-UUID `entry_id` minting, `sequence_in_queue` assignment,
   /// wire-payload decoding, and the known-FIFOs registry bookkeeping
   /// all live here; [enqueueFifo] is a thin `transaction(...)` wrapper.
   // Implements: REQ-d00117-E — enqueue initial state (pending, no
@@ -710,27 +720,16 @@ class SembastBackend extends StorageBackend {
             '${e.message}',
       );
     }
-    // Use the first event_id in the batch as the row's entry_id (stable
-    // correlation into diary_entries for single-event batches; for
-    // multi-event batches a future task may introduce a distinct batch
-    // id, but none of the Phase-4 call sites construct a multi-event
-    // batch yet).
-    final entryId = batch.first.eventId;
+    // Mint a v4 UUID for this row's entry_id. The identifier is opaque
+    // and has no relationship to the events the row carries — callers
+    // that need event-level correlation use `eventIds` / `eventIdRange`.
+    // UUID generation means two FIFO rows (of any final_status, including
+    // tombstoned archive rows) never share an entry_id, so
+    // `tombstoneAndRefill` can coexist with fresh rows re-promoting the
+    // same underlying events (REQ-d00144-F).
+    final entryId = _uuidGen.v4();
     final enqueuedAt = DateTime.now().toUtc();
     final store = _fifoStore(destinationId);
-    // Reject a duplicate entry_id in the same FIFO. Without this
-    // check, later appendAttempt/markFinal calls would quietly pick
-    // one of the duplicates and the other would drift out of sync.
-    final existing = await store.find(
-      t._sembastTxn,
-      finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
-    );
-    if (existing.isNotEmpty) {
-      throw StateError(
-        'FIFO $destinationId already has an entry with '
-        'entry_id=$entryId',
-      );
-    }
     // Assign the next sequence_in_queue from a persisted per-destination
     // counter (backend_state/fifo_seq_counter_<destinationId>). The
     // counter advances strictly monotonically and is NEVER reset: even

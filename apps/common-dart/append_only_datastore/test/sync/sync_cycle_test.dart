@@ -19,24 +19,27 @@ Future<SembastBackend> _openBackend(String path) async {
   return SembastBackend(database: db);
 }
 
-/// Enqueue a single-event row through Phase-4.3 Task-6's batch-aware
-/// `enqueueFifo`. `entry_id` is derived from `eventId` under the new
-/// semantics, so we pass `eventId: entryId` to keep the row identity
-/// stable across the call sites below.
-Future<void> _enqueueOne(
+/// Enqueue a single-event row through Phase-4.7's batch-aware
+/// `enqueueFifo`. The backend mints a v4-UUID `entry_id`; callers that
+/// need to look the row up later capture the returned
+/// `FifoEntry.entryId`.
+Future<String> _enqueueOne(
   SembastBackend backend,
   String destId,
-  String entryId, {
+  String eventId, {
   int sequenceNumber = 1,
-}) => enqueueSingle(
-  backend,
-  destId,
-  eventId: entryId,
-  sequenceNumber: sequenceNumber,
-  wirePayload: <String, Object?>{'who': destId, 'which': entryId},
-  wireFormat: 'fake-v1',
-  transformVersion: 'fake-v1',
-);
+}) async {
+  final entry = await enqueueSingle(
+    backend,
+    destId,
+    eventId: eventId,
+    sequenceNumber: sequenceNumber,
+    wirePayload: <String, Object?>{'who': destId, 'which': eventId},
+    wireFormat: 'fake-v1',
+    transformVersion: 'fake-v1',
+  );
+  return entry.entryId;
+}
 
 void main() {
   group('SyncCycle', () {
@@ -230,11 +233,11 @@ void main() {
         );
         await registry.addDestination(dest);
 
-        await _enqueueOne(backend, 'fake', 'e1');
+        final e1RowId = await _enqueueOne(backend, 'fake', 'e1');
         // Pre-load one transient attempt so the next attempt trips the cap.
         await backend.appendAttempt(
           'fake',
-          'e1',
+          e1RowId,
           AttemptResult(
             attemptedAt: DateTime.utc(2026, 1, 1),
             outcome: 'transient',
@@ -265,7 +268,7 @@ void main() {
         // observe the wedge via a single entry point.
         final head = await backend.readFifoHead('fake');
         expect(head, isNotNull);
-        expect(head!.entryId, 'e1');
+        expect(head!.entryId, e1RowId);
         expect(head.finalStatus, FinalStatus.wedged);
       },
     );
