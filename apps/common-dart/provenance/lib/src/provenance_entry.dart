@@ -1,3 +1,5 @@
+import 'package:provenance/src/batch_context.dart';
+
 /// One hop's attribution in a cross-system event's chain-of-custody.
 ///
 /// Mobile-device, diary-server, portal-server, and EDC hops each append one
@@ -20,6 +22,8 @@
 // received_at, identifier, software_version, and optional transform_version.
 // received_at offset validation enforced at the JSON boundary;
 // identifier and software_version shapes are caller obligations by design.
+// Implements: REQ-d00115-G+H+I+J — optional ingest fields: arrival_hash,
+// previous_ingest_hash, ingest_sequence_number, batch_context.
 class ProvenanceEntry {
   const ProvenanceEntry({
     required this.hop,
@@ -27,6 +31,10 @@ class ProvenanceEntry {
     required this.identifier,
     required this.softwareVersion,
     this.transformVersion,
+    this.arrivalHash,
+    this.previousIngestHash,
+    this.ingestSequenceNumber,
+    this.batchContext,
   });
 
   // Implements: REQ-d00115-C — decode from snake_case JSON; reject payloads
@@ -60,12 +68,29 @@ class ProvenanceEntry {
         '${e.message}',
       );
     }
+    final arrivalHash = _optionalString(json, 'arrival_hash');
+    final previousIngestHash = _optionalString(json, 'previous_ingest_hash');
+    final ingestSequenceNumber = _optionalInt(json, 'ingest_sequence_number');
+    final batchContextRaw = json['batch_context'];
+    BatchContext? batchContext;
+    if (batchContextRaw != null) {
+      if (batchContextRaw is! Map<String, Object?>) {
+        throw const FormatException(
+          'ProvenanceEntry: "batch_context" must be an object when present',
+        );
+      }
+      batchContext = BatchContext.fromJson(batchContextRaw);
+    }
     return ProvenanceEntry(
       hop: hop,
       receivedAt: receivedAt,
       identifier: identifier,
       softwareVersion: softwareVersion,
       transformVersion: transformVersionRaw as String?,
+      arrivalHash: arrivalHash,
+      previousIngestHash: previousIngestHash,
+      ingestSequenceNumber: ingestSequenceNumber,
+      batchContext: batchContext,
     );
   }
 
@@ -87,15 +112,37 @@ class ProvenanceEntry {
   final String softwareVersion;
   final String? transformVersion;
 
+  // Implements: REQ-d00115-G — SHA-256 hex digest of the wire bytes of the
+  // event as received at this hop.
+  final String? arrivalHash;
+
+  // Implements: REQ-d00115-H — arrival_hash of the previous event ingested
+  // at this hop, forming a per-hop hash chain.
+  final String? previousIngestHash;
+
+  // Implements: REQ-d00115-I — monotonically increasing counter for events
+  // ingested at this hop, starting at 0.
+  final int? ingestSequenceNumber;
+
+  // Implements: REQ-d00115-J — batch membership context when this event was
+  // received as part of an ingestBatch call.
+  final BatchContext? batchContext;
+
   // Implements: REQ-d00115-C — encode to snake_case JSON with an ISO 8601
   // `received_at` string that preserves the source timezone (Z suffix for
-  // UTC).
+  // UTC). Ingest fields are omitted when null to preserve backward compat
+  // with pre-4.9 wire shape.
   Map<String, Object?> toJson() => <String, Object?>{
     'hop': hop,
     'received_at': receivedAt.toIso8601String(),
     'identifier': identifier,
     'software_version': softwareVersion,
     'transform_version': transformVersion,
+    if (arrivalHash != null) 'arrival_hash': arrivalHash,
+    if (previousIngestHash != null) 'previous_ingest_hash': previousIngestHash,
+    if (ingestSequenceNumber != null)
+      'ingest_sequence_number': ingestSequenceNumber,
+    if (batchContext != null) 'batch_context': batchContext!.toJson(),
   };
 
   @override
@@ -106,7 +153,11 @@ class ProvenanceEntry {
           receivedAt == other.receivedAt &&
           identifier == other.identifier &&
           softwareVersion == other.softwareVersion &&
-          transformVersion == other.transformVersion;
+          transformVersion == other.transformVersion &&
+          arrivalHash == other.arrivalHash &&
+          previousIngestHash == other.previousIngestHash &&
+          ingestSequenceNumber == other.ingestSequenceNumber &&
+          batchContext == other.batchContext;
 
   @override
   int get hashCode => Object.hash(
@@ -115,6 +166,10 @@ class ProvenanceEntry {
     identifier,
     softwareVersion,
     transformVersion,
+    arrivalHash,
+    previousIngestHash,
+    ingestSequenceNumber,
+    batchContext,
   );
 
   @override
@@ -124,7 +179,11 @@ class ProvenanceEntry {
       'receivedAt: ${receivedAt.toIso8601String()}, '
       'identifier: $identifier, '
       'softwareVersion: $softwareVersion, '
-      'transformVersion: $transformVersion)';
+      'transformVersion: $transformVersion, '
+      'arrivalHash: $arrivalHash, '
+      'previousIngestHash: $previousIngestHash, '
+      'ingestSequenceNumber: $ingestSequenceNumber, '
+      'batchContext: $batchContext)';
 }
 
 // REQ-d00115-C timezone-offset regex: matches a trailing Z or ±HH[:]MM
@@ -138,6 +197,28 @@ String _requireString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! String) {
     throw FormatException('ProvenanceEntry: missing or non-string "$key"');
+  }
+  return value;
+}
+
+String? _optionalString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! String) {
+    throw FormatException(
+      'ProvenanceEntry: "$key" must be a String when present',
+    );
+  }
+  return value;
+}
+
+int? _optionalInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! int) {
+    throw FormatException(
+      'ProvenanceEntry: "$key" must be an int when present',
+    );
   }
   return value;
 }

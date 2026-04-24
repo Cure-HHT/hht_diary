@@ -328,4 +328,79 @@ void main() {
       });
     });
   });
+
+  group('ProvenanceEntry ingest fields (REQ-d00115-G+H+I+J)', () {
+    test('defaults to null for all four ingest fields', () {
+      final entry = ProvenanceEntry(
+        hop: 'mobile-device',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'device-abc',
+        softwareVersion: 'daily_diary@1.0.0',
+      );
+      expect(entry.arrivalHash, isNull);
+      expect(entry.previousIngestHash, isNull);
+      expect(entry.ingestSequenceNumber, isNull);
+      expect(entry.batchContext, isNull);
+    });
+
+    test('non-null ingest fields round-trip through JSON', () {
+      final entry = ProvenanceEntry(
+        hop: 'portal-server',
+        receivedAt: DateTime.parse('2026-04-24T12:00:01Z'),
+        identifier: 'portal-1',
+        softwareVersion: 'portal@0.1.0',
+        arrivalHash: 'abc123',
+        previousIngestHash: 'def456',
+        ingestSequenceNumber: 42,
+        batchContext: const BatchContext(
+          batchId: 'batch-xyz',
+          batchPosition: 3,
+          batchSize: 5,
+          batchWireBytesHash: 'hhh',
+          batchWireFormat: 'esd/batch@1',
+        ),
+      );
+      final json = entry.toJson();
+      final back = ProvenanceEntry.fromJson(json);
+      expect(back, equals(entry));
+      expect(back.arrivalHash, equals('abc123'));
+      expect(back.previousIngestHash, equals('def456'));
+      expect(back.ingestSequenceNumber, equals(42));
+      expect(back.batchContext, isNotNull);
+      expect(back.batchContext!.batchId, equals('batch-xyz'));
+    });
+
+    test('json omits ingest fields when all null', () {
+      final entry = ProvenanceEntry(
+        hop: 'mobile-device',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'device-abc',
+        softwareVersion: 'daily_diary@1.0.0',
+      );
+      final json = entry.toJson();
+      expect(json.containsKey('arrival_hash'), isFalse);
+      expect(json.containsKey('previous_ingest_hash'), isFalse);
+      expect(json.containsKey('ingest_sequence_number'), isFalse);
+      expect(json.containsKey('batch_context'), isFalse);
+    });
+
+    test('equality and hashCode include the four new fields', () {
+      final a = ProvenanceEntry(
+        hop: 'h',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'i',
+        softwareVersion: 's@1',
+        arrivalHash: 'x',
+      );
+      final b = ProvenanceEntry(
+        hop: 'h',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'i',
+        softwareVersion: 's@1',
+        arrivalHash: 'y', // differs only here
+      );
+      expect(a, isNot(equals(b)));
+      expect(a.hashCode, isNot(equals(b.hashCode)));
+    });
+  });
 }
