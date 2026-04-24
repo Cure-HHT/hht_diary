@@ -62,8 +62,8 @@ The **Event stream** gains six new rows with `aggregate_type` values of `RedButt
 # JNY-Datastore-Demo-03: Observing per-destination isolation under a rejection storm
 
 **Actor**: Alex (Developer)
-**Goal**: Confirm that a permanently-rejecting destination accumulates exhausted batches (skip-on-exhausted drain semantics) while leaving the other destination unaffected.
-**Context**: Alex is validating per-destination isolation. With batch-FIFO + skip-exhausted semantics, a rejecting destination no longer wedges — each batch gets marked exhausted and drain continues to the next. Both destinations `connection: ok` initially, drained to empty. Both at `batchSize = 1` for this journey (one event per batch — makes the isolation easy to see).
+**Goal**: Confirm that a permanently-rejecting destination wedges at its head and halts its own drain while leaving the other destination unaffected — the per-destination FIFO boundary is the isolation mechanism.
+**Context**: Alex is validating per-destination isolation. Each destination owns its own FIFO and its own strict-order drain loop; a permanent failure on one destination halts only that destination's drain, and the other destination continues delivering on its own cadence. Both destinations `connection: ok` initially, drained to empty. Both at `batchSize = 1` for this journey (one event per batch — makes the isolation easy to see).
 
 **Validates**: REQ-DEST, REQ-BATCH, REQ-DYNDEST, REQ-p01001
 
@@ -73,10 +73,11 @@ The **Event stream** gains six new rows with `aggregate_type` values of `RedButt
 2. Alex clicks **Start** and **Complete** on a new demo_note — two new events appended.
 3. Alex clicks **Red** once — one more event appended.
 4. Alex waits ~30 seconds for both FIFOs to process.
+5. Alex clicks the wedged Secondary head row, then **Tombstone & Refill** to recover and unblock the destination.
 
 ## Expected Outcome
 
-On the **Secondary** FIFO, three new batch-rows appear in quick succession; each flips directly from `pending` to magenta `[exh]` with a single attempt recording `error = "simulated rejection"`. Drain does not wedge — it processes each batch, marks it exhausted, and moves on to the next. The exhausted rows accumulate as a visible wall of magenta in the column. On the **Primary** FIFO, the same three batches drain to green `[SENT]` normally at Primary's send-latency cadence. Clicking any exhausted Secondary row populates the Detail panel with its `attempts[]` (one entry) and `final_status = exhausted`. The system-wide indicator `anyFifoExhausted()` (visible in the Detail panel when no row is selected) is `true`. Subsequent events appended by the user continue to enqueue to Secondary, continue to be rejected, continue to accumulate — the rejection storm never blocks Primary's progress and never wedges Secondary.
+On the **Secondary** FIFO, the first new batch-row becomes the drain head, flips yellow `draining`, then magenta `[wdg]` after its single permanent-rejection attempt records `error = "simulated rejection"`. The two later batch-rows enqueue behind the wedged head with `final_status = null` and stay pending — Secondary's drain has halted at the wedged head and does not attempt them. On the **Primary** FIFO, the same three batches drain to green `[SENT]` normally at Primary's send-latency cadence, entirely unaffected by Secondary's wedge. Clicking the wedged Secondary row populates the Detail panel with its `attempts[]` (one entry) and `final_status = wedged`. The system-wide `wedgedFifos()` probe (visible in the Detail panel when no row is selected) returns a single `WedgedFifoSummary` naming Secondary — Primary is absent. Subsequent events appended by the user continue to enqueue to Secondary behind the wedged head as pending rows; the rejection storm never blocks Primary's progress, and Secondary stays isolated at a single wedge until the operator intervenes. After step 5, Secondary's head unwedges via `tombstoneAndRefill` (see JNY-09 for the full recovery walkthrough) and the queued rows drain to green `[SENT]` on Secondary's next syncCycle ticks.
 
 *End* *Observing per-destination isolation under a rejection storm*
 
@@ -100,7 +101,7 @@ On the **Secondary** FIFO, three new batch-rows appear in quick succession; each
 
 ## Expected Outcome
 
-During the broken window, Primary's FIFO shows the head row in red `retrying` state with a growing `attempts[]` array on the detail panel (spaced at ~1-second intervals). No entry exhausts because `maxAttempts` is effectively unbounded. `anyFifoExhausted()` stays `false`. Secondary continues to drain its own copies of the same three events normally throughout. After Primary is flipped back to `ok`, the head flips yellow `draining` within ~1 second, then green `[sent]`; the next entry takes the head and drains; the third follows. The final attempt-count on each drained entry is visible in its detail panel (one successful send preceded by several failed attempts).
+During the broken window, Primary's FIFO shows the head row in red `retrying` state with a growing `attempts[]` array on the detail panel (spaced at ~1-second intervals). No entry exhausts its retry budget because `maxAttempts` is effectively unbounded, so nothing wedges; `wedgedFifos()` returns an empty list throughout. Secondary continues to drain its own copies of the same three events normally throughout. After Primary is flipped back to `ok`, the head flips yellow `draining` within ~1 second, then green `[sent]`; the next entry takes the head and drains; the third follows. The final attempt-count on each drained entry is visible in its detail panel (one successful send preceded by several failed attempts).
 
 *End* *Transient disconnect and recovery*
 
@@ -126,7 +127,7 @@ During the broken window, Primary's FIFO shows the head row in red `retrying` st
 
 ## Expected Outcome
 
-For the first event (step 3), the Detail panel shows `attempts[]` entries at successive timestamps approximately 3 seconds, 6 seconds, 12 seconds, 24 seconds, 48 seconds, 60 seconds (capped), 60 seconds, … apart — matching the 2× growth curve capped at `maxBackoff`. For the second event (step 7), after exactly 3 attempts the FIFO head flips magenta `exhausted`; a new wedge is produced by the transient-exhaustion path rather than the permanent-rejection path, proving the same wedge outcome via two distinct code paths.
+For the first event (step 3), the Detail panel shows `attempts[]` entries at successive timestamps approximately 3 seconds, 6 seconds, 12 seconds, 24 seconds, 48 seconds, 60 seconds (capped), 60 seconds, … apart — matching the 2× growth curve capped at `maxBackoff`. For the second event (step 7), after exactly 3 attempts the FIFO head flips to magenta `wedged`; the transient-retry-exhaustion path produces the same terminal `final_status = wedged` as the permanent-rejection path, proving the two code paths converge on the same terminal state.
 
 *End* *Tuning sync policy via sliders*
 
