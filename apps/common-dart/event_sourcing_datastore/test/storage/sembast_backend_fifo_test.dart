@@ -514,9 +514,9 @@ void main() {
       );
     });
 
-    // -------- anyFifoExhausted + wedgedFifos --------
+    // -------- anyFifoWedged + wedgedFifos --------
 
-    test('anyFifoExhausted true iff any FIFO is wedged', () async {
+    test('anyFifoWedged true iff any FIFO is wedged', () async {
       final a1 = await enqueueSingle(
         backend,
         'A',
@@ -525,10 +525,10 @@ void main() {
       );
       await enqueueSingle(backend, 'B', eventId: 'b1', sequenceNumber: 1);
 
-      expect(await backend.anyFifoExhausted(), isFalse);
+      expect(await backend.anyFifoWedged(), isFalse);
 
       await backend.markFinal('A', a1.entryId, FinalStatus.wedged);
-      expect(await backend.anyFifoExhausted(), isTrue);
+      expect(await backend.anyFifoWedged(), isTrue);
     });
 
     test('wedgedFifos returns one summary per wedged FIFO', () async {
@@ -603,7 +603,7 @@ void main() {
         sequenceNumber: 1,
       );
       await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
-      expect(await backend.anyFifoExhausted(), isFalse);
+      expect(await backend.anyFifoWedged(), isFalse);
       expect(await backend.wedgedFifos(), isEmpty);
     });
 

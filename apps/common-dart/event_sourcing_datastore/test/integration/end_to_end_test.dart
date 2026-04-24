@@ -142,7 +142,7 @@ void main() {
       expect(await backend.readFifoHead('primary'), isNull);
 
       // (c) No exhausted (wedged) rows: drain succeeded.
-      expect(await backend.anyFifoExhausted(), isFalse);
+      expect(await backend.anyFifoWedged(), isFalse);
 
       // (d) diary_entries materialized view has the entry.
       final entries = await backend.findEntries(entryType: 'demo_note');

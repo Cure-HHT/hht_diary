@@ -428,7 +428,7 @@ class SembastBackend extends StorageBackend {
 
   /// Drop the entire `fifo_<destinationId>` Sembast store inside [txn]
   /// and remove [destinationId] from the known-FIFOs registry so
-  /// `anyFifoExhausted` / `wedgedFifos` no longer iterate it.
+  /// `anyFifoWedged` / `wedgedFifos` no longer iterate it.
   // Implements: REQ-d00129-H — atomic FIFO-store drop.
   @override
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) async {
@@ -951,9 +951,9 @@ class SembastBackend extends StorageBackend {
   }
 
   @override
-  Future<bool> anyFifoExhausted() async {
+  Future<bool> anyFifoWedged() async {
     for (final dest in await _knownFifoDestinations()) {
-      if (await _exhaustedHead(dest) != null) return true;
+      if (await _wedgedHead(dest) != null) return true;
     }
     return false;
   }
@@ -962,7 +962,7 @@ class SembastBackend extends StorageBackend {
   Future<List<WedgedFifoSummary>> wedgedFifos() async {
     final result = <WedgedFifoSummary>[];
     for (final dest in await _knownFifoDestinations()) {
-      final head = await _exhaustedHead(dest);
+      final head = await _wedgedHead(dest);
       if (head == null) continue;
       final hasAttempts = head.attempts.isNotEmpty;
       result.add(
@@ -1141,7 +1141,7 @@ class SembastBackend extends StorageBackend {
   /// null when either the FIFO has no entries, all entries are `sent`, or
   /// the earliest non-sent entry is pre-terminal (null final_status) or
   /// tombstoned (not wedged).
-  Future<FifoEntry?> _exhaustedHead(String destinationId) async {
+  Future<FifoEntry?> _wedgedHead(String destinationId) async {
     final db = _database();
     final records = await _fifoStore(
       destinationId,

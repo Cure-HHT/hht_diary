@@ -319,7 +319,7 @@ class _InMemoryBackend extends StorageBackend {
     FinalStatus status,
   ) => throw UnimplementedError();
   @override
-  Future<bool> anyFifoExhausted() => throw UnimplementedError();
+  Future<bool> anyFifoWedged() => throw UnimplementedError();
   @override
   Future<List<WedgedFifoSummary>> wedgedFifos() => throw UnimplementedError();
   @override

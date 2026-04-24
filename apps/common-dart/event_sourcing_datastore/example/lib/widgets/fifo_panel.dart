@@ -470,8 +470,12 @@ class _FifoRowTile extends StatelessWidget {
 
     final label =
         '$prefix#$seq: events: $count ($cumulativeEvents)  attempts:$attemptsLen';
-    // Show TombstoneAndRefill button only on the head row (status == null or wedged)
-    final isHead = status == null || status == 'wedged';
+    // Show TombstoneAndRefill button only on wedged rows. A healthy pending
+    // head is also a valid target per REQ-d00144-A, but surfacing the control
+    // on every transient null head during rapid enqueue reads as a false
+    // "this row needs intervention" signal. Operator scripts can still call
+    // tombstoneAndRefill on a null head directly through the library API.
+    final isWedged = status == 'wedged';
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -489,7 +493,7 @@ class _FifoRowTile extends StatelessWidget {
                 ),
               ),
             ),
-            if (isHead)
+            if (isWedged)
               ElevatedButton(
                 onPressed: onTombstoneAndRefill,
                 child: const Text(

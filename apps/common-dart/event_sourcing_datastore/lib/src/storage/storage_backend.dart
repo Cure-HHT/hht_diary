@@ -210,7 +210,7 @@ abstract class StorageBackend {
   /// Implementations SHALL assign a monotonically-increasing
   /// `sequence_in_queue` per FIFO, SHALL reject an empty [batch] with
   /// `ArgumentError`, and SHALL register the destination on first use
-  /// so `anyFifoExhausted`/`wedgedFifos` can iterate all known FIFOs.
+  /// so `anyFifoWedged`/`wedgedFifos` can iterate all known FIFOs.
   // Implements: REQ-d00128-A+B+C — batch-per-row enqueue contract.
   Future<FifoEntry> enqueueFifo(
     String destinationId,
@@ -295,8 +295,8 @@ abstract class StorageBackend {
     FinalStatus status,
   );
 
-  /// True iff any registered destination's FIFO head is `exhausted`.
-  Future<bool> anyFifoExhausted();
+  /// True iff any registered destination's FIFO head is `wedged`.
+  Future<bool> anyFifoWedged();
 
   /// Summarize every destination whose head row is wedged.
   Future<List<WedgedFifoSummary>> wedgedFifos();

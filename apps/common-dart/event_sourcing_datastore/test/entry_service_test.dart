@@ -563,7 +563,7 @@ class _DelegatingBackend extends StorageBackend {
   ) => _inner.markFinal(destinationId, entryId, status);
 
   @override
-  Future<bool> anyFifoExhausted() => _inner.anyFifoExhausted();
+  Future<bool> anyFifoWedged() => _inner.anyFifoWedged();
 
   @override
   Future<List<WedgedFifoSummary>> wedgedFifos() => _inner.wedgedFifos();

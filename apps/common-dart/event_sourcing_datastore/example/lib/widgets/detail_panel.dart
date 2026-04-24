@@ -57,15 +57,15 @@ class _DetailPanelState extends State<DetailPanel> {
   Future<void> _refresh() async {
     try {
       final events = await widget.backend.findAllEvents(limit: 100000);
-      final anyExhausted = await widget.backend.anyFifoExhausted();
-      final exhausted = await widget.backend.wedgedFifos();
+      final anyWedged = await widget.backend.anyFifoWedged();
+      final wedged = await widget.backend.wedgedFifos();
       final aggCount = events.map((e) => e.aggregateId).toSet().length;
       final text = <String>[
-        'events:        ${events.length}',
-        'aggregates:    $aggCount',
-        'any exhausted: $anyExhausted',
-        if (exhausted.isNotEmpty)
-          'exhausted dst: ${exhausted.map((s) => s.destinationId).join(", ")}',
+        'events:     ${events.length}',
+        'aggregates: $aggCount',
+        'any wedged: $anyWedged',
+        if (wedged.isNotEmpty)
+          'wedged dst: ${wedged.map((s) => s.destinationId).join(", ")}',
       ].join('\n');
       if (!mounted) return;
       setState(() => _summary = text);

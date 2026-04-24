@@ -955,7 +955,7 @@ class _SpyBackend extends StorageBackend {
     FinalStatus status,
   ) => delegate.markFinal(destinationId, entryId, status);
   @override
-  Future<bool> anyFifoExhausted() => delegate.anyFifoExhausted();
+  Future<bool> anyFifoWedged() => delegate.anyFifoWedged();
   @override
   Future<List<WedgedFifoSummary>> wedgedFifos() => delegate.wedgedFifos();
   @override
