@@ -616,20 +616,8 @@ class _DelegatingBackend extends StorageBackend {
       _inner.deleteFifoStoreTxn(txn, destinationId);
 
   @override
-  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) =>
-      _inner.deletePendingRowsTxn(txn, destinationId);
-
-  @override
-  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
-      _inner.maxSentSequenceTxn(txn, destinationId);
-
-  @override
   Future<FifoEntry?> readFifoRow(String destinationId, String entryId) =>
       _inner.readFifoRow(destinationId, entryId);
-
-  @override
-  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) =>
-      _inner.exhaustedRowsOf(destinationId);
 
   @override
   Future<void> setFinalStatusTxn(

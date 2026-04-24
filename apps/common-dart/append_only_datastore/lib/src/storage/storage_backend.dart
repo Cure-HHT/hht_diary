@@ -399,36 +399,6 @@ abstract class StorageBackend {
   // deleteDestination.
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId);
 
-  // -------- Unjam helpers (REQ-d00131) --------
-
-  /// Delete every FIFO row whose `final_status == pending` for
-  /// [destinationId] inside [txn], returning the number of rows
-  /// deleted. Rows in any terminal state (`sent`, `exhausted`) SHALL
-  /// NOT be touched — they are audit records that must be preserved
-  /// across an unjam.
-  ///
-  /// Implementations SHALL return `0` when no pending row exists for
-  /// [destinationId] (including the case where the FIFO store has
-  /// never been written to). Participates in the surrounding
-  /// transaction's atomicity so on rollback the pending rows reappear.
-  // Implements: REQ-d00131-B — delete every pending row; returns
-  // deleted count.
-  // Implements: REQ-d00131-C — leaves exhausted (and sent) rows
-  // untouched — only pending rows are deleted.
-  Future<int> deletePendingRowsTxn(Txn txn, String destinationId);
-
-  /// Return the largest `event_id_range.last_seq` among FIFO rows
-  /// whose `final_status == sent` for [destinationId], read inside
-  /// [txn]. Returns `null` when no `sent` row exists for the
-  /// destination (no delivery has yet succeeded).
-  ///
-  /// Used by `unjamDestination` to compute the rewind target for
-  /// `fill_cursor`: a null return translates at the call site to
-  /// `-1` (the pre-start sentinel per REQ-d00131-D).
-  // Implements: REQ-d00131-D — max(event_id_range.last_seq) over sent
-  // rows, or null when none exist.
-  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId);
-
   // -------- Rehabilitate helpers (REQ-d00132) --------
 
   /// Read a single FIFO row identified by [entryId] on [destinationId],
@@ -444,18 +414,6 @@ abstract class StorageBackend {
   // existence check; `null` is translated by the op into
   // ArgumentError at the call site.
   Future<FifoEntry?> readFifoRow(String destinationId, String entryId);
-
-  /// Return every FIFO row whose `final_status == exhausted` on
-  /// [destinationId], sorted by `sequence_in_queue` ascending. Returns
-  /// an empty list when no exhausted row exists (including the
-  /// never-registered-store case). Non-transactional.
-  ///
-  /// Used by `rehabilitateAllExhausted` to enumerate the rehabilitation
-  /// targets before flipping each of them back to `pending` inside a
-  /// single transaction.
-  // Implements: REQ-d00132-C — exhaustedRowsOf is the bulk-rehab
-  // enumeration helper; returns every exhausted row in queue order.
-  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId);
 
   /// Set the row's `final_status` to [status] inside [txn]. This method
   /// owns two operator-recovery paths (rehabilitate and

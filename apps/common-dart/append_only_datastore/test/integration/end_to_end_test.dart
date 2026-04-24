@@ -142,8 +142,7 @@ void main() {
       // skipped by readFifoHead's pending-only filter.
       expect(await backend.readFifoHead('primary'), isNull);
 
-      // (c) No exhausted rows: drain succeeded.
-      expect(await backend.exhaustedRowsOf('primary'), isEmpty);
+      // (c) No exhausted (wedged) rows: drain succeeded.
       expect(await backend.anyFifoExhausted(), isFalse);
 
       // (d) diary_entries materialized view has the entry.

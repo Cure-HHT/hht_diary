@@ -991,17 +991,8 @@ class _SpyBackend extends StorageBackend {
   Future<void> deleteFifoStoreTxn(Txn txn, String destinationId) =>
       delegate.deleteFifoStoreTxn(txn, destinationId);
   @override
-  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) =>
-      delegate.deletePendingRowsTxn(txn, destinationId);
-  @override
-  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) =>
-      delegate.maxSentSequenceTxn(txn, destinationId);
-  @override
   Future<FifoEntry?> readFifoRow(String destinationId, String entryId) =>
       delegate.readFifoRow(destinationId, entryId);
-  @override
-  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) =>
-      delegate.exhaustedRowsOf(destinationId);
   @override
   Future<void> setFinalStatusTxn(
     Txn txn,

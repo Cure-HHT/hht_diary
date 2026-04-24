@@ -92,24 +92,6 @@ class DestinationSchedule {
 // Implements: REQ-d00129-F — SetEndDateResult enum: closed, scheduled, applied.
 enum SetEndDateResult { closed, scheduled, applied }
 
-/// Result of `DestinationRegistry.unjamDestination` (Task 14). Kept in
-/// this file so later tasks don't introduce import churn. Carries two
-/// operator-visible counts: how many pending rows were dropped, and the
-/// value the `fill_cursor` was rewound to after the unjam.
-// Implements: REQ-d00131 — UnjamResult carries deletedPending + rewoundTo
-// for operator diagnostics. Consumed by Task 14.
-class UnjamResult {
-  const UnjamResult({required this.deletedPending, required this.rewoundTo});
-
-  /// Count of `pending` rows dropped from the destination's FIFO by the
-  /// unjam.
-  final int deletedPending;
-
-  /// Value that `fill_cursor_<destId>` was set to after the unjam. `-1`
-  /// when no surviving `sent` row exists (rewound to pre-start).
-  final int rewoundTo;
-}
-
 /// Result of `tombstoneAndRefill` — REQ-d00144-E.
 ///
 /// Carries three operator-visible values: the `entry_id` of the target

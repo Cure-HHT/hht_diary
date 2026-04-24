@@ -733,12 +733,11 @@ class SembastBackend extends StorageBackend {
     // Assign the next sequence_in_queue from a persisted per-destination
     // counter (backend_state/fifo_seq_counter_<destinationId>). The
     // counter advances strictly monotonically and is NEVER reset: even
-    // when a row is deleted (trail sweep per REQ-d00144-C, or the
-    // legacy unjam `deletePendingRowsTxn`), the deleted slot is NOT
-    // re-used. The resulting invariant (REQ-d00119-E) is load-bearing
-    // for event-log cursor math and for the send-log's auditability —
-    // two different rows with the same sequence_in_queue would produce
-    // ambiguous "which row was deleted?" diagnostics.
+    // when a row is deleted (trail sweep per REQ-d00144-C), the deleted
+    // slot is NOT re-used. The resulting invariant (REQ-d00119-E) is
+    // load-bearing for event-log cursor math and for the send-log's
+    // auditability — two different rows with the same sequence_in_queue
+    // would produce ambiguous "which row was deleted?" diagnostics.
     //
     // Storing the counter in backend_state rather than deriving from
     // max(existing key) + 1 at read time closes the reuse path: the
@@ -986,78 +985,6 @@ class SembastBackend extends StorageBackend {
     return result;
   }
 
-  // -------- Unjam helpers (REQ-d00131) --------
-
-  /// Delete every `pending` row in [destinationId]'s FIFO inside [txn]
-  /// and return the number of rows deleted. Rows in terminal states
-  /// (`sent`, `exhausted`) are untouched — those are audit records
-  /// preserved across an unjam. Returns `0` on an unknown destination
-  /// (Sembast store is lazily-created, so an absent store simply has
-  /// zero records).
-  // Implements: REQ-d00131-B — delete every pending row in one
-  // transactional step; returns the count deleted for UnjamResult.
-  // Implements: REQ-d00131-C — `sent` and `exhausted` rows are not
-  // candidates for deletion: the filter pins `final_status` to
-  // `pending` exclusively.
-  @override
-  Future<int> deletePendingRowsTxn(Txn txn, String destinationId) async {
-    final t = _requireValidTxn(txn);
-    final store = _fifoStore(destinationId);
-    // Sembast's `StoreRef.delete(..., finder: ...)` returns the count of
-    // deleted records for stores with scalar keys. On this backend the
-    // FIFO store is an `intMapStoreFactory` so the return is `int`.
-    return store.delete(
-      t._sembastTxn,
-      finder: Finder(filter: Filter.isNull('final_status')),
-    );
-  }
-
-  /// Return the largest `event_id_range.last_seq` across rows whose
-  /// `final_status == sent` in [destinationId]'s FIFO, read inside
-  /// [txn]. Returns `null` when the destination has no `sent` rows
-  /// (including the "never successfully delivered" case and the
-  /// never-registered-store case).
-  ///
-  /// Implemented as a `find` sorted by `event_id_range.last_seq`
-  /// descending with `limit: 1`. Sembast supports dotted field paths
-  /// into stored `Map<String, Object?>` values, so the sort orders
-  /// on the nested `last_seq` field directly.
-  // Implements: REQ-d00131-D — max(event_id_range.last_seq) across
-  // sent rows; null -> caller substitutes -1 for the rewind target.
-  @override
-  Future<int?> maxSentSequenceTxn(Txn txn, String destinationId) async {
-    final t = _requireValidTxn(txn);
-    final store = _fifoStore(destinationId);
-    final records = await store.find(
-      t._sembastTxn,
-      finder: Finder(
-        filter: Filter.equals('final_status', FinalStatus.sent.toJson()),
-        sortOrders: [SortOrder('event_id_range.last_seq', false)],
-        limit: 1,
-      ),
-    );
-    if (records.isEmpty) return null;
-    final rangeRaw = records.single.value['event_id_range'];
-    if (rangeRaw is! Map) {
-      debugLogSink?.call(
-        'maxSentSequenceTxn: sent row on $destinationId has malformed '
-        'event_id_range (not a Map); treating as no sent rows. This '
-        'should not happen under the current FifoEntry shape.',
-      );
-      return null;
-    }
-    final lastSeq = rangeRaw['last_seq'];
-    if (lastSeq is! int) {
-      debugLogSink?.call(
-        'maxSentSequenceTxn: sent row on $destinationId has missing or '
-        'non-int event_id_range.last_seq; treating as no sent rows. '
-        'This should not happen under the current FifoEntry shape.',
-      );
-      return null;
-    }
-    return lastSeq;
-  }
-
   // -------- Rehabilitate helpers (REQ-d00132) --------
 
   /// Read a single FIFO row identified by [entryId] on [destinationId],
@@ -1079,27 +1006,6 @@ class SembastBackend extends StorageBackend {
     );
     if (records.isEmpty) return null;
     return FifoEntry.fromJson(Map<String, Object?>.from(records.single.value));
-  }
-
-  /// Return every `exhausted` row on [destinationId] in
-  /// `sequence_in_queue` ascending order. Empty list when no exhausted
-  /// row exists.
-  // Implements: REQ-d00132-C — exhaustedRowsOf enumerates the bulk-rehab
-  // targets; order is stable (sequence_in_queue asc) so callers iterating
-  // them observe deterministic FIFO-order rehabilitation.
-  @override
-  Future<List<FifoEntry>> exhaustedRowsOf(String destinationId) async {
-    final db = _database();
-    final records = await _fifoStore(destinationId).find(
-      db,
-      finder: Finder(
-        filter: Filter.equals('final_status', FinalStatus.wedged.toJson()),
-        sortOrders: [SortOrder('sequence_in_queue')],
-      ),
-    );
-    return records
-        .map((r) => FifoEntry.fromJson(Map<String, Object?>.from(r.value)))
-        .toList();
   }
 
   /// Transition the target row's `final_status` to [status] inside
