@@ -73,7 +73,13 @@ Callers that want to clear a previously-set field pass `field: null` explicitly.
 
 The library does not provide a `computeDelta(prior, newState)` helper. Callers that want whole-form-state semantics over this API compute their own diff; the library's contract is only "store what I give you; merge it at read time."
 
-## 3. Out of scope
+### 2.8 Sync-through compatibility
+
+`Materializer.apply` is a pure function of `(prior, event, def, firstEventTimestamp)` (REQ-d00121-A). Under merge semantics this purity extends to a composition property: folding the same sequence of events in the same order produces the same `current_answers`, whether the fold runs on the device that originated the events, on a server that received them via sync, or on any later rebuild. Sync-through is therefore a wire-level concern — the receiving side stores the event bytes verbatim (via a destination-specific ingest path, out of scope for this design) and its materializer applies the same merge rule to produce a bit-identical materialized view.
+
+This composition property requires in-order fold: the deltas in event `N` are defined against the prior state that events `1..N-1` produced, so out-of-order application of a delta over the wrong prior state produces wrong results. Incremental materialization therefore depends on REQ-d00124-H's strict-order delivery guarantee per destination (Phase 4.7 drain-halt semantics); rebuild-from-scratch (REQ-d00121-G) sorts by `sequence_number` before folding and is safe regardless of arrival order.
+
+Sync-through does not introduce any new event type and does not require `Materializer.apply` to distinguish "originated here" from "received from elsewhere." The identity encoded in `event_id` (a v4 UUID minted by the originator — see REQ-d00141 / REQ-d00118), `initiator` (REQ-d00135), `metadata.provenance` (REQ-d00115), and `event_hash` (REQ-d00120) is preserved on the wire by carbon-copy transforms; the materializer treats received events identically to locally-originated ones. A receiver that wishes to add its own hop to the provenance chain interacts with a separate ingest-path design (deferred, tracked in the project's deferred-items memory as item 1) and is beyond the scope of this spec.
 
 - Rewriting `NosebleedService` (or any consumer app) to take advantage of merge. Consumer apps are restored to main and cut over in Phase 5.
 - Removing `isIncomplete` as a stored field (nosebleed-specific). It becomes derivable from `current_answers` membership under merge, but the consumer app's data model is not touched in this PR.
