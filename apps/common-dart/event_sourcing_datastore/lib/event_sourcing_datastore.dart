@@ -94,6 +94,10 @@
 ///
 library;
 
+// Provenance types — re-export from the provenance package for convenience
+// (Phase 4.9, CUR-1154).
+export 'package:provenance/provenance.dart' show BatchContext;
+
 // bootstrapAppendOnlyDatastore — single entry point for app main() to wire
 // the storage backend, EntryTypeRegistry, destinations, security context
 // store, and EventStore. Returns an AppendOnlyDatastore facade.
@@ -136,6 +140,16 @@ export 'src/infrastructure/database/database_provider.dart';
 
 // Infrastructure - Repositories
 export 'src/infrastructure/repositories/event_repository.dart';
+
+// Ingest types — error types, result types, and chain verdict
+// (Phase 4.9, CUR-1154).
+export 'src/ingest/batch_envelope.dart' show BatchEnvelope;
+export 'src/ingest/chain_verdict.dart'
+    show ChainFailure, ChainFailureKind, ChainVerdict;
+export 'src/ingest/ingest_errors.dart'
+    show IngestChainBroken, IngestDecodeFailure, IngestIdentityMismatch;
+export 'src/ingest/ingest_result.dart'
+    show IngestBatchResult, IngestOutcome, PerEventIngestOutcome;
 
 // Materialization layer — pluggable fold contract, concrete materializer
 // for diary_entries, entry-type-definition lookup, and the

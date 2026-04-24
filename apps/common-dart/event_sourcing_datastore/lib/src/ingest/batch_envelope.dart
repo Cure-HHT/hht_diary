@@ -2,17 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
-
-/// Thrown by [BatchEnvelope.decode] when the input bytes cannot be parsed as
-/// a well-formed `esd/batch@1` envelope. Moved to `ingest_errors.dart` in
-/// Task 5.
-// Implements: REQ-d00145-B.
-class IngestDecodeFailure implements Exception {
-  const IngestDecodeFailure(this.message);
-  final String message;
-  @override
-  String toString() => 'IngestDecodeFailure: $message';
-}
+import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
 
 /// The library's canonical batch envelope. Phase 4.9 supports exactly one
 /// format version: `"1"` (identifier `"esd/batch@1"`).

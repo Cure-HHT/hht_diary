@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Minimal fake StoredEvent-shaped maps for envelope tests; we're exercising
