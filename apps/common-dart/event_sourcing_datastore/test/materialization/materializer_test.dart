@@ -83,55 +83,62 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00121-B — finalized whole-replaces current_answers;
-    // fields present in previous row but absent from event are dropped.
-    test(
-      'REQ-d00121-B: finalized-over-existing whole-replaces current_answers; '
-      'fields in previous but absent in event are dropped',
-      () {
-        final previous = DiaryEntry(
-          entryId: 'aggregate-1',
-          entryType: 'epistaxis_event',
-          effectiveDate: DateTime.parse('2026-04-20T00:00:00Z'),
-          currentAnswers: const <String, Object?>{
-            'startTime': '2026-04-20T10:00:00Z',
-            'intensity': 'mild',
-            'notes': 'earlier note',
+    // Verifies: REQ-d00121-B+J — finalized merges event.data.answers into
+    // current_answers key-wise; overwrites overlapping keys and clears a
+    // prior key when the delta explicitly sets it to null. Fields absent
+    // from the delta are preserved per REQ-d00121-J (see dedicated merge-
+    // semantics group below).
+    test('REQ-d00121-B+J: finalized-over-existing merges event answers into '
+        'current_answers; present-null delta clears prior key', () {
+      final previous = DiaryEntry(
+        entryId: 'aggregate-1',
+        entryType: 'epistaxis_event',
+        effectiveDate: DateTime.parse('2026-04-20T00:00:00Z'),
+        currentAnswers: const <String, Object?>{
+          'startTime': '2026-04-20T10:00:00Z',
+          'intensity': 'mild',
+          'notes': 'earlier note',
+        },
+        isComplete: true,
+        isDeleted: false,
+        latestEventId: 'e-prev',
+        updatedAt: DateTime.parse('2026-04-20T10:00:00Z'),
+      );
+      final event = makeEvent(
+        eventId: 'e-new',
+        eventType: 'finalized',
+        clientTimestamp: DateTime.parse('2026-04-22T11:00:00Z'),
+        data: <String, dynamic>{
+          'answers': <String, Object?>{
+            'startTime': '2026-04-22T11:00:00Z',
+            'intensity': 'moderate',
+            'notes': null,
           },
-          isComplete: true,
-          isDeleted: false,
-          latestEventId: 'e-prev',
-          updatedAt: DateTime.parse('2026-04-20T10:00:00Z'),
-        );
-        final event = makeEvent(
-          eventId: 'e-new',
-          eventType: 'finalized',
-          clientTimestamp: DateTime.parse('2026-04-22T11:00:00Z'),
-          data: <String, dynamic>{
-            'answers': <String, Object?>{
-              'startTime': '2026-04-22T11:00:00Z',
-              'intensity': 'moderate',
-            },
-          },
-        );
+        },
+      );
 
-        final entry = DiaryEntriesMaterializer.foldPure(
-          previous: previous,
-          event: event,
-          def: defFor('epistaxis_event'),
-          firstEventTimestamp: firstTs,
-        );
+      final entry = DiaryEntriesMaterializer.foldPure(
+        previous: previous,
+        event: event,
+        def: defFor('epistaxis_event'),
+        firstEventTimestamp: firstTs,
+      );
 
-        expect(entry.currentAnswers, {
-          'startTime': '2026-04-22T11:00:00Z',
-          'intensity': 'moderate',
-        });
-        expect(entry.currentAnswers.containsKey('notes'), isFalse);
-        expect(entry.isComplete, isTrue);
-        expect(entry.updatedAt, event.clientTimestamp);
-        expect(entry.latestEventId, 'e-new');
-      },
-    );
+      expect(entry.currentAnswers, {
+        'startTime': '2026-04-22T11:00:00Z',
+        'intensity': 'moderate',
+        'notes': null,
+      });
+      expect(
+        entry.currentAnswers.containsKey('notes'),
+        isTrue,
+        reason: 'present-null keeps the key under merge semantics',
+      );
+      expect(entry.currentAnswers['notes'], isNull);
+      expect(entry.isComplete, isTrue);
+      expect(entry.updatedAt, event.clientTimestamp);
+      expect(entry.latestEventId, 'e-new');
+    });
   });
 
   group('DiaryEntriesMaterializer.foldPure checkpoint event', () {
@@ -379,4 +386,223 @@ void main() {
       expect(first, equals(second));
     });
   });
+
+  group(
+    'DiaryEntriesMaterializer.foldPure — merge semantics (REQ-d00121-B+C+J)',
+    () {
+      final def = defFor('epistaxis_event');
+      final priorTs = DateTime.parse('2026-04-22T10:00:00Z');
+      final eventTs = DateTime.parse('2026-04-22T11:00:00Z');
+
+      DiaryEntry priorWith({
+        required Map<String, Object?> answers,
+        bool isComplete = false,
+        bool isDeleted = false,
+      }) => DiaryEntry(
+        entryId: 'aggregate-1',
+        entryType: 'epistaxis_event',
+        effectiveDate: priorTs,
+        currentAnswers: answers,
+        isComplete: isComplete,
+        isDeleted: isDeleted,
+        latestEventId: 'e0',
+        updatedAt: priorTs,
+      );
+
+      // Verifies: REQ-d00121-B — finalized merges event.data.answers over
+      // prior current_answers key-wise rather than whole-replacing.
+      test(
+        'REQ-d00121-B: finalized with {a: 9} over prior {a:1, b:2} merges to '
+        '{a:9, b:2}',
+        () {
+          final prior = priorWith(answers: const {'a': 1, 'b': 2});
+          final event = makeEvent(
+            eventId: 'e-new',
+            eventType: 'finalized',
+            clientTimestamp: eventTs,
+            data: <String, dynamic>{
+              'answers': <String, Object?>{'a': 9},
+            },
+          );
+
+          final result = DiaryEntriesMaterializer.foldPure(
+            previous: prior,
+            event: event,
+            def: def,
+            firstEventTimestamp: firstTs,
+          );
+
+          expect(
+            result.currentAnswers,
+            equals(<String, Object?>{'a': 9, 'b': 2}),
+          );
+          expect(result.isComplete, isTrue);
+        },
+      );
+
+      // Verifies: REQ-d00121-C — checkpoint merges event.data.answers over
+      // prior current_answers key-wise and leaves is_complete=false.
+      test(
+        'REQ-d00121-C: checkpoint with {a: 9} over prior {a:1, b:2} merges to '
+        '{a:9, b:2}',
+        () {
+          final prior = priorWith(answers: const {'a': 1, 'b': 2});
+          final event = makeEvent(
+            eventId: 'e-new',
+            eventType: 'checkpoint',
+            clientTimestamp: eventTs,
+            data: <String, dynamic>{
+              'answers': <String, Object?>{'a': 9},
+            },
+          );
+
+          final result = DiaryEntriesMaterializer.foldPure(
+            previous: prior,
+            event: event,
+            def: def,
+            firstEventTimestamp: firstTs,
+          );
+
+          expect(
+            result.currentAnswers,
+            equals(<String, Object?>{'a': 9, 'b': 2}),
+          );
+          expect(result.isComplete, isFalse);
+        },
+      );
+
+      // Verifies: REQ-d00121-J — present-null in the delta clears the prior
+      // value but keeps the key present in the merged map.
+      test('REQ-d00121-J: present-null clears the prior value', () {
+        final prior = priorWith(answers: const {'a': 1, 'b': 2});
+        final event = makeEvent(
+          eventId: 'e-new',
+          eventType: 'checkpoint',
+          clientTimestamp: eventTs,
+          data: <String, dynamic>{
+            'answers': <String, Object?>{'b': null},
+          },
+        );
+
+        final result = DiaryEntriesMaterializer.foldPure(
+          previous: prior,
+          event: event,
+          def: def,
+          firstEventTimestamp: firstTs,
+        );
+
+        expect(result.currentAnswers.containsKey('b'), isTrue);
+        expect(result.currentAnswers['b'], isNull);
+        expect(result.currentAnswers['a'], equals(1));
+      });
+
+      // Verifies: REQ-d00121-J — a key absent from the delta preserves the
+      // prior value exactly (not cleared).
+      test('REQ-d00121-J: absent key preserves prior value', () {
+        final prior = priorWith(answers: const {'a': 1, 'b': 2, 'c': 3});
+        final event = makeEvent(
+          eventId: 'e-new',
+          eventType: 'checkpoint',
+          clientTimestamp: eventTs,
+          data: <String, dynamic>{
+            'answers': <String, Object?>{'a': 9},
+          },
+        );
+
+        final result = DiaryEntriesMaterializer.foldPure(
+          previous: prior,
+          event: event,
+          def: def,
+          firstEventTimestamp: firstTs,
+        );
+
+        expect(
+          result.currentAnswers,
+          equals(<String, Object?>{'a': 9, 'b': 2, 'c': 3}),
+        );
+      });
+
+      // Verifies: REQ-d00121-B — finalized on a null previous row uses the
+      // delta as the initial current_answers (merge over empty).
+      test(
+        'REQ-d00121-B: finalized on null previous initializes current_answers '
+        'with the delta',
+        () {
+          final event = makeEvent(
+            eventId: 'e-new',
+            eventType: 'finalized',
+            clientTimestamp: eventTs,
+            data: <String, dynamic>{
+              'answers': <String, Object?>{'a': 1, 'b': 2},
+            },
+          );
+
+          final result = DiaryEntriesMaterializer.foldPure(
+            previous: null,
+            event: event,
+            def: def,
+            firstEventTimestamp: firstTs,
+          );
+
+          expect(
+            result.currentAnswers,
+            equals(<String, Object?>{'a': 1, 'b': 2}),
+          );
+          expect(result.isComplete, isTrue);
+        },
+      );
+
+      // Verifies: REQ-d00121-J — an empty delta preserves the prior
+      // current_answers exactly.
+      test('REQ-d00121-J: empty delta preserves prior exactly', () {
+        final prior = priorWith(answers: const {'a': 1});
+        final event = makeEvent(
+          eventId: 'e-new',
+          eventType: 'checkpoint',
+          clientTimestamp: eventTs,
+          data: <String, dynamic>{'answers': <String, Object?>{}},
+        );
+
+        final result = DiaryEntriesMaterializer.foldPure(
+          previous: prior,
+          event: event,
+          def: def,
+          firstEventTimestamp: firstTs,
+        );
+
+        expect(result.currentAnswers, equals(<String, Object?>{'a': 1}));
+      });
+
+      // Verifies: REQ-d00121-D — tombstone preserves the merged current_answers
+      // (including present-null values) and flips is_deleted without touching
+      // is_complete.
+      test('REQ-d00121-D: tombstone preserves merged current_answers and flips '
+          'is_deleted', () {
+        final prior = priorWith(
+          answers: const {'a': 1, 'b': null},
+          isComplete: true,
+        );
+        final event = makeEvent(
+          eventId: 'e-tomb',
+          eventType: 'tombstone',
+          clientTimestamp: eventTs,
+          data: <String, dynamic>{'answers': <String, Object?>{}},
+        );
+
+        final result = DiaryEntriesMaterializer.foldPure(
+          previous: prior,
+          event: event,
+          def: def,
+          firstEventTimestamp: firstTs,
+        );
+
+        expect(
+          result.currentAnswers,
+          equals(<String, Object?>{'a': 1, 'b': null}),
+        );
+        expect(result.isDeleted, isTrue);
+        expect(result.isComplete, isTrue);
+      });
+    },
+  );
 }

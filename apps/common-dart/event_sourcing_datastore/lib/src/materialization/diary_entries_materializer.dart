@@ -55,13 +55,17 @@ class DiaryEntriesMaterializer extends Materializer {
   /// point for reuse by rebuild, `EntryService.record`, and unit tests.
   ///
   /// Event-type folding rules:
-  /// - `finalized`: whole-replace `current_answers`; `is_complete = true`.
-  /// - `checkpoint`: same replacement; `is_complete = false`.
+  /// - `finalized`: merge `event.data.answers` into `current_answers`;
+  ///   `is_complete = true`.
+  /// - `checkpoint`: merge `event.data.answers` into `current_answers`;
+  ///   `is_complete = false`.
   /// - `tombstone`: flip `is_deleted = true`; preserve other fields.
-  // Implements: REQ-d00121-B+C+D+E+F — fold event into view row per
-  // event_type; whole-replacement answers for finalized/checkpoint,
-  // tombstone preserves fields and flips is_deleted; effective_date
-  // resolved via dotted-path lookup with fallback.
+  // Implements: REQ-d00121-B+C+D+E+F+J — fold event into view row per
+  // event_type; key-wise merge of answers for finalized/checkpoint
+  // (absent key preserves prior, present key overwrites including
+  // null-as-clear), tombstone preserves fields and flips is_deleted;
+  // effective_date resolved from merged answers via dotted-path lookup
+  // with fallback.
   static DiaryEntry foldPure({
     required DiaryEntry? previous,
     required StoredEvent event,
@@ -87,15 +91,19 @@ class DiaryEntriesMaterializer extends Materializer {
       case 'finalized':
       case 'checkpoint':
         final isComplete = event.eventType == 'finalized';
+        final merged = mergeAnswers(
+          previous?.currentAnswers ?? const <String, Object?>{},
+          eventAnswers,
+        );
         return DiaryEntry(
           entryId: event.aggregateId,
           entryType: event.entryType,
           effectiveDate: _resolveEffectiveDate(
-            eventAnswers,
+            merged,
             def,
             firstEventTimestamp,
           ),
-          currentAnswers: eventAnswers,
+          currentAnswers: merged,
           isComplete: isComplete,
           isDeleted: previous?.isDeleted ?? false,
           latestEventId: event.eventId,
@@ -108,6 +116,29 @@ class DiaryEntriesMaterializer extends Materializer {
           'finalized | checkpoint | tombstone',
         );
     }
+  }
+
+  /// Merge an event's delta into the prior `current_answers` map.
+  ///
+  /// Each key present in [delta] overwrites the corresponding key in
+  /// [prior], including when the delta's value is `null` (explicit clear).
+  /// Each key absent from [delta] preserves the prior value. The iteration
+  /// uses `delta.keys` rather than indexing, so "key absent" and "key
+  /// present with null value" are distinguished per REQ-d00121-J.
+  ///
+  /// Returns an unmodifiable map.
+  // Implements: REQ-d00121-B+C+J — key-wise merge that preserves the
+  // absent-vs-present-null distinction via iteration over the delta's
+  // key set.
+  static Map<String, Object?> mergeAnswers(
+    Map<String, Object?> prior,
+    Map<String, Object?> delta,
+  ) {
+    final merged = Map<String, Object?>.from(prior);
+    for (final key in delta.keys) {
+      merged[key] = delta[key];
+    }
+    return Map<String, Object?>.unmodifiable(merged);
   }
 }
 

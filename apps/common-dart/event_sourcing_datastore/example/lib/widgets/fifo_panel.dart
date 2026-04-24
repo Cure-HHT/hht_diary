@@ -370,30 +370,18 @@ class _FifoPanelState extends State<FifoPanel> {
   }
 
   Widget _rowList() {
-    // Sort ascending by sequence_in_queue so the running cumulative
-    // event count is meaningful (events accumulated from queue start
-    // up to and including this row). Display reversed so most-recent
-    // is on top.
-    final asc = <Map<String, Object?>>[..._rows]
+    // Display reversed (descending sequence_in_queue) so the most
+    // recently enqueued row is on top.
+    final display = <Map<String, Object?>>[..._rows]
       ..sort(
-        (a, b) => (a['sequence_in_queue'] as int? ?? 0).compareTo(
-          b['sequence_in_queue'] as int? ?? 0,
+        (a, b) => (b['sequence_in_queue'] as int? ?? 0).compareTo(
+          a['sequence_in_queue'] as int? ?? 0,
         ),
       );
-    final cumulativeByEntryId = <String, int>{};
-    var running = 0;
-    for (final r in asc) {
-      final ids = r['event_ids'];
-      running += ids is List ? ids.length : 0;
-      cumulativeByEntryId[r['entry_id']! as String] = running;
-    }
-    final display = asc.reversed.toList();
     return ListView.builder(
       itemCount: display.length,
       itemBuilder: (context, i) => _FifoRowTile(
         row: display[i],
-        cumulativeEvents:
-            cumulativeByEntryId[display[i]['entry_id']! as String] ?? 0,
         selected:
             widget.appState.selectedFifoRowId == display[i]['entry_id'] &&
             widget.appState.selectedFifoDestinationId == widget.destination.id,
@@ -424,7 +412,6 @@ class _FifoPanelState extends State<FifoPanel> {
 class _FifoRowTile extends StatelessWidget {
   const _FifoRowTile({
     required this.row,
-    required this.cumulativeEvents,
     required this.selected,
     required this.onTap,
     required this.destinationId,
@@ -433,7 +420,6 @@ class _FifoRowTile extends StatelessWidget {
   });
 
   final Map<String, Object?> row;
-  final int cumulativeEvents;
   final bool selected;
   final VoidCallback onTap;
   final String destinationId;
@@ -447,7 +433,9 @@ class _FifoRowTile extends StatelessWidget {
     final attemptsRaw = row['attempts'];
     final attemptsLen = attemptsRaw is List ? attemptsRaw.length : 0;
     final eventIdsRaw = row['event_ids'];
-    final count = eventIdsRaw is List ? eventIdsRaw.length : 0;
+    final eventIds = eventIdsRaw is List ? eventIdsRaw : const <Object?>[];
+    final count = eventIds.length;
+    final latestEventId = eventIds.isNotEmpty ? eventIds.last.toString() : '-';
 
     String prefix;
     Color color;
@@ -469,7 +457,7 @@ class _FifoRowTile extends StatelessWidget {
     }
 
     final label =
-        '$prefix#$seq: events: $count ($cumulativeEvents)  attempts:$attemptsLen';
+        '$prefix#$seq: events: $count (latest: $latestEventId)  attempts:$attemptsLen';
     // Show TombstoneAndRefill button only on wedged rows. A healthy pending
     // head is also a valid target per REQ-d00144-A, but surfacing the control
     // on every transient null head during rapid enqueue reads as a false
