@@ -111,7 +111,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -125,7 +125,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1'}),
         );
@@ -140,7 +140,7 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1'}),
           );
@@ -154,7 +154,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -170,7 +170,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           headers: {'x-patient-id': 'p1'},
         );
 
@@ -184,7 +184,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           headers: {'authorization': '', 'x-patient-id': 'p1'},
         );
 
@@ -493,7 +493,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
@@ -507,7 +507,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
@@ -522,7 +522,7 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+            Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
           );
@@ -536,7 +536,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -552,7 +552,7 @@ void main() {
         // through the response format test instead
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -719,7 +719,7 @@ void main() {
           // and returns JSON (auth error, but valid JSON)
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
             body: jsonEncode({
               'patientId': 'p1',
               'reconnect_reason': 'Patient got new device',
@@ -740,7 +740,7 @@ void main() {
           () async {
             final request = Request(
               'POST',
-              Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+              Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
               body: jsonEncode({'patientId': 'p1'}),
             );
 
@@ -755,7 +755,7 @@ void main() {
         test('handles invalid JSON body gracefully', () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
             body: 'not valid json',
             headers: {'content-type': 'application/json'},
           );
@@ -829,7 +829,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -843,7 +843,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1'}),
         );
@@ -858,7 +858,7 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+            Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1'}),
           );
@@ -872,7 +872,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 

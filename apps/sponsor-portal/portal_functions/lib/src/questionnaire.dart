@@ -18,7 +18,7 @@ import 'notification_service.dart';
 import 'portal_auth.dart';
 import 'portal_metrics.dart';
 
-/// GET /api/v1/portal/patients/<patientId>/questionnaires
+/// GET /api/v1/portal/patients/questionnaires (X-Patient-Id header)
 ///
 /// Returns the current status of all questionnaire types for a patient.
 /// Per REQ-CAL-p00023: statuses are Not Sent, Sent, In Progress,
@@ -114,7 +114,7 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
   });
 }
 
-/// POST /api/v1/portal/patients/<patientId>/questionnaires/<questionnaireType>/send
+/// POST /api/v1/portal/patients/questionnaires/send (patientId + questionnaireType in body)
 ///
 /// Sends a questionnaire to a patient. Creates a questionnaire instance,
 /// sends an FCM notification, and logs the action.
@@ -373,7 +373,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   });
 }
 
-/// DELETE /api/v1/portal/patients/<patientId>/questionnaires/<instanceId>
+/// DELETE /api/v1/portal/questionnaire-instances/<instanceId>
 ///
 /// Deletes (revokes) a questionnaire. Soft-deletes the instance and sends
 /// an FCM notification to remove it from the patient's app.
@@ -581,7 +581,7 @@ Future<Response> deleteQuestionnaireHandler(
   });
 }
 
-/// POST /api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/unlock
+/// POST /api/v1/portal/questionnaire-instances/<instanceId>/unlock
 ///
 /// Unlocks a questionnaire so the patient can re-edit their answers.
 /// Changes status from 'ready_to_review' back to 'sent'.
@@ -754,7 +754,7 @@ Future<Response> unlockQuestionnaireHandler(
   });
 }
 
-/// POST /api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/finalize
+/// POST /api/v1/portal/questionnaire-instances/<instanceId>/finalize
 ///
 /// Finalizes a questionnaire. Sets status to 'finalized', records score,
 /// and logs the action.

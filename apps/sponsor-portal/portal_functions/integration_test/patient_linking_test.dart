@@ -225,7 +225,7 @@ void main() {
   group('generatePatientLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
         body: {'patientId': testPatientNotConnected},
       );
       final response = await generatePatientLinkingCodeHandler(request);
@@ -237,7 +237,7 @@ void main() {
 
     test('returns 401 with invalid Bearer token', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
         body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'Bearer invalid-token'},
       );
@@ -248,7 +248,7 @@ void main() {
 
     test('returns 401 without Bearer prefix', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
         body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'some-token'},
       );
@@ -260,16 +260,16 @@ void main() {
     test('returns JSON content type on all error responses', () async {
       final requests = [
         createPostRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           body: {'patientId': 'test'},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           body: {'patientId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           body: {'patientId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
@@ -285,7 +285,7 @@ void main() {
   group('getPatientLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest(
-        '/api/v1/portal/patients/$testPatientLinking/link-code',
+        '/api/v1/portal/patients/link-code',
         headers: {'x-patient-id': testPatientLinking},
       );
       final response = await getPatientLinkingCodeHandler(request);
@@ -298,15 +298,15 @@ void main() {
     test('returns JSON content type on all error responses', () async {
       final requests = [
         createGetRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           headers: {'x-patient-id': 'test'},
         ),
         createGetRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           headers: {'authorization': '', 'x-patient-id': 'test'},
         ),
         createGetRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
           headers: {'authorization': 'Bearer invalid', 'x-patient-id': 'test'},
         ),
       ];
@@ -321,7 +321,7 @@ void main() {
   group('disconnectPatientHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientConnected/disconnect',
+        '/api/v1/portal/patients/disconnect',
         body: {'patientId': testPatientConnected, 'reason': 'Device Issues'},
       );
       final response = await disconnectPatientHandler(request);
@@ -334,16 +334,16 @@ void main() {
     test('returns JSON content type on all error responses', () async {
       final requests = [
         createPostRequest(
-          '/api/v1/portal/patients/test/disconnect',
+          '/api/v1/portal/patients/disconnect',
           body: {'patientId': 'test'},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/disconnect',
+          '/api/v1/portal/patients/disconnect',
           body: {'patientId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/disconnect',
+          '/api/v1/portal/patients/disconnect',
           body: {'patientId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
