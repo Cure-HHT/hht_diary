@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
@@ -681,6 +682,87 @@ class EventStore {
     recordMap['metadata'] = newMetadata;
     recordMap.remove('event_hash');
     return _eventHash(recordMap);
+  }
+
+  /// Caller-composed rejection audit. See design spec §2.7.
+  ///
+  /// Opens its own transaction and records one `ingest.batch_rejected` event
+  /// under the `ingest-audit:{hopId}` aggregate with Chain 2 fields stamped on
+  /// `provenance[0]`.  `batch_context` is null because no decoded batch is
+  /// associated — the batch failed before or during decoding.
+  ///
+  /// Typical call site:
+  /// ```dart
+  /// try {
+  ///   await store.ingestBatch(bytes, wireFormat: 'esd/batch@1');
+  /// } on IngestIdentityMismatch catch (e) {
+  ///   await store.logRejectedBatch(
+  ///     bytes,
+  ///     wireFormat: 'esd/batch@1',
+  ///     reason: 'identityMismatch',
+  ///     failedEventId: e.eventId,
+  ///     errorDetail: e.toString(),
+  ///   );
+  /// }
+  /// ```
+  // Implements: REQ-d00145-H+I+J.
+  Future<void> logRejectedBatch(
+    Uint8List bytes, {
+    required String wireFormat,
+    required String reason,
+    String? failedEventId,
+    String? errorDetail,
+  }) async {
+    await backend.transaction((txn) async {
+      final now = _now();
+      final wireBytesHash = sha256.convert(bytes).toString();
+      final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
+        txn,
+      );
+      final nextSeq = await backend.nextIngestSequenceNumber(txn);
+      final provenance0 = ProvenanceEntry(
+        hop: source.hopId,
+        receivedAt: now,
+        identifier: source.identifier,
+        softwareVersion: source.softwareVersion,
+        arrivalHash: null, // receiver-originated event — no wire arrival
+        previousIngestHash: currentSeq == 0 ? null : currentTailHash,
+        ingestSequenceNumber: nextSeq,
+        batchContext: null, // no decoded batch associated with a rejection
+      );
+
+      final auditAggregateId = 'ingest-audit:${source.hopId}';
+      final localSeq = await backend.nextSequenceNumber(txn);
+      final eventId = _uuid.v4();
+      final recordMap = <String, Object?>{
+        'event_id': eventId,
+        'aggregate_id': auditAggregateId,
+        'aggregate_type': 'ingest-audit',
+        'entry_type': 'ingest-audit',
+        'event_type': 'ingest.batch_rejected',
+        'sequence_number': localSeq,
+        'data': <String, Object?>{
+          'wire_bytes': base64Encode(bytes),
+          'wire_format': wireFormat,
+          'byte_length': bytes.length,
+          'wire_bytes_hash': wireBytesHash,
+          'reason': reason,
+          'failed_event_id': failedEventId,
+          'error_detail': errorDetail,
+        },
+        'metadata': <String, Object?>{
+          'provenance': <Map<String, Object?>>[provenance0.toJson()],
+        },
+        'initiator': const AutomationInitiator(service: 'ingest').toJson(),
+        'flow_token': null,
+        'client_timestamp': now.toIso8601String(),
+        'previous_event_hash': await backend.readLatestEventHash(txn),
+      };
+      final eventHash = _eventHash(recordMap);
+      recordMap['event_hash'] = eventHash;
+      final event = StoredEvent.fromMap(recordMap, 0);
+      await backend.appendIngestedEvent(txn, event);
+    });
   }
 
   /// Emit a receiver-originated `ingest.duplicate_received` audit event
