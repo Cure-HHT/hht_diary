@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
 import 'package:crypto/crypto.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
+import 'package:event_sourcing_datastore/src/ingest/chain_verdict.dart';
+import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
+import 'package:event_sourcing_datastore/src/ingest/ingest_result.dart';
 import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
 import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
 import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
@@ -419,5 +422,272 @@ class EventStore {
       'metadata': recordMap['metadata'],
     };
     return sha256.convert(canonicalizeBytes(hashInput)).toString();
+  }
+
+  // -----------------------------------------------------------------------
+  // Destination-role (ingest) write path — Phase 4.9
+  // -----------------------------------------------------------------------
+
+  /// Process-local ingest. Opens its own transaction and delegates to
+  /// [_ingestOneInTxn] with `batchContext: null`.
+  ///
+  /// Accepts an [incoming] StoredEvent, verifies Chain 1, checks idempotency
+  /// by event_id, stamps a receiver ProvenanceEntry with Chain 2 fields
+  /// (`batch_context = null`), recomputes `event_hash`, and persists.
+  // Implements: REQ-d00145-G+I+J+K.
+  Future<PerEventIngestOutcome> ingestEvent(StoredEvent incoming) async {
+    return backend.transaction((txn) async {
+      return _ingestOneInTxn(txn, incoming, batchContext: null);
+    });
+  }
+
+  /// Per-event ingest logic, called from both [ingestEvent] and (in Task 8)
+  /// the `ingestBatch` loop.
+  ///
+  /// [batchContext] is non-null when called from `ingestBatch`, null when
+  /// called from [ingestEvent].
+  // Implements: REQ-d00145-D+G+K; REQ-d00120-E.
+  Future<PerEventIngestOutcome> _ingestOneInTxn(
+    Txn txn,
+    StoredEvent incoming, {
+    required BatchContext? batchContext,
+  }) async {
+    // 1. Chain 1 verify on the incoming provenance.
+    final verdict = _verifyChainOn(incoming);
+    if (!verdict.ok) {
+      final failure = verdict.failures.first;
+      throw IngestChainBroken(
+        eventId: incoming.eventId,
+        hopIndex: failure.position,
+        expectedHash: failure.expectedHash,
+        actualHash: failure.actualHash,
+      );
+    }
+
+    // 2. Idempotency check by event_id.
+    final existing = await backend.findEventByIdInTxn(txn, incoming.eventId);
+    if (existing != null) {
+      // Event already present — compare arrival_hash for identity check.
+      final existingProv = (existing.metadata['provenance'] as List<Object?>)
+          .cast<Map<String, Object?>>();
+      final thisHopEntry = existingProv.last;
+      final storedArrivalHash = thisHopEntry['arrival_hash'] as String?;
+      if (storedArrivalHash == incoming.eventHash) {
+        // Duplicate — emit audit event, return duplicate outcome.
+        await _emitDuplicateReceivedInTxn(
+          txn,
+          subjectEventId: incoming.eventId,
+          subjectEventHashOnRecord: existing.eventHash,
+          batchContext: batchContext,
+        );
+        return PerEventIngestOutcome(
+          eventId: incoming.eventId,
+          outcome: IngestOutcome.duplicate,
+          resultHash: existing.eventHash,
+        );
+      } else {
+        throw IngestIdentityMismatch(
+          eventId: incoming.eventId,
+          incomingHash: incoming.eventHash,
+          storedArrivalHash: storedArrivalHash ?? '(null)',
+        );
+      }
+    }
+
+    // 3. New event — stamp receiver provenance.
+    final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
+      txn,
+    );
+    final nextSeq = await backend.nextIngestSequenceNumber(txn);
+    final receiverEntry = ProvenanceEntry(
+      hop: source.hopId,
+      receivedAt: _now(),
+      identifier: source.identifier,
+      softwareVersion: source.softwareVersion,
+      arrivalHash: incoming.eventHash,
+      previousIngestHash: currentSeq == 0 ? null : currentTailHash,
+      ingestSequenceNumber: nextSeq,
+      batchContext: batchContext,
+    );
+
+    // 4. Build the updated event record map and recompute hash.
+    final updatedEvent = _appendReceiverProvenance(incoming, receiverEntry);
+
+    // 5. Persist.
+    await backend.appendIngestedEvent(txn, updatedEvent);
+
+    return PerEventIngestOutcome(
+      eventId: updatedEvent.eventId,
+      outcome: IngestOutcome.ingested,
+      resultHash: updatedEvent.eventHash,
+    );
+  }
+
+  /// Walk Chain 1 on [event].metadata.provenance and return a non-throwing
+  /// verdict. Used by [ingestEvent] and (in Task 10) verifyEventChain.
+  // Implements: REQ-d00146-A+B (partial — full verifyEventChain in Task 10).
+  ChainVerdict _verifyChainOn(StoredEvent event) {
+    final provenanceRaw = event.metadata['provenance'];
+    if (provenanceRaw is! List) {
+      return const ChainVerdict(
+        ok: false,
+        failures: <ChainFailure>[
+          ChainFailure(
+            position: -1,
+            kind: ChainFailureKind.provenanceMissing,
+            expectedHash: '(list)',
+            actualHash: '(missing or non-list)',
+          ),
+        ],
+      );
+    }
+    final provenance = provenanceRaw.cast<Map<String, Object?>>();
+    if (provenance.isEmpty) {
+      return const ChainVerdict(
+        ok: false,
+        failures: <ChainFailure>[
+          ChainFailure(
+            position: -1,
+            kind: ChainFailureKind.provenanceMissing,
+            expectedHash: '(non-empty)',
+            actualHash: '(empty)',
+          ),
+        ],
+      );
+    }
+    final failures = <ChainFailure>[];
+    // Walk from tail back to hop 1 (skip origin at index 0).
+    for (var k = provenance.length - 1; k > 0; k--) {
+      final entry = provenance[k];
+      final expected = entry['arrival_hash'] as String?;
+      if (expected == null) {
+        failures.add(
+          ChainFailure(
+            position: k,
+            kind: ChainFailureKind.arrivalHashMismatch,
+            expectedHash: '(non-null)',
+            actualHash: '(null)',
+          ),
+        );
+        continue;
+      }
+      // Recompute what the hash would have been after the k-1 hop,
+      // i.e., with provenance sliced to [0..k-1].
+      final recomputed = _hashWithProvenanceSlice(
+        event,
+        provenance.sublist(0, k),
+      );
+      if (recomputed != expected) {
+        failures.add(
+          ChainFailure(
+            position: k,
+            kind: ChainFailureKind.arrivalHashMismatch,
+            expectedHash: expected,
+            actualHash: recomputed,
+          ),
+        );
+      }
+    }
+    return ChainVerdict(ok: failures.isEmpty, failures: failures);
+  }
+
+  /// Build a new [StoredEvent] with [receiverEntry] appended to
+  /// `metadata.provenance` and `event_hash` recomputed.
+  // Implements: REQ-d00120-E — hash recomputed on receiver provenance append.
+  StoredEvent _appendReceiverProvenance(
+    StoredEvent incoming,
+    ProvenanceEntry receiverEntry,
+  ) {
+    final oldProvenance = (incoming.metadata['provenance'] as List<Object?>)
+        .cast<Map<String, Object?>>();
+    final newProvenance = <Map<String, Object?>>[
+      ...oldProvenance,
+      receiverEntry.toJson(),
+    ];
+    final newMetadata = <String, Object?>{
+      ...incoming.metadata,
+      'provenance': newProvenance,
+    };
+    final recordMap = Map<String, Object?>.from(incoming.toMap());
+    recordMap['metadata'] = newMetadata;
+    recordMap.remove('event_hash'); // will be overwritten below
+    final newHash = _eventHash(recordMap);
+    recordMap['event_hash'] = newHash;
+    return StoredEvent.fromMap(recordMap, incoming.sequenceNumber);
+  }
+
+  /// Compute the hash that an event would have with its provenance replaced
+  /// by [provenanceSlice]. Used by [_verifyChainOn] to reconstruct what each
+  /// intermediate hop's `event_hash` was.
+  String _hashWithProvenanceSlice(
+    StoredEvent event,
+    List<Map<String, Object?>> provenanceSlice,
+  ) {
+    final recordMap = Map<String, Object?>.from(event.toMap());
+    final newMetadata = <String, Object?>{
+      ...event.metadata,
+      'provenance': provenanceSlice,
+    };
+    recordMap['metadata'] = newMetadata;
+    recordMap.remove('event_hash');
+    return _eventHash(recordMap);
+  }
+
+  /// Emit a receiver-originated `ingest.duplicate_received` audit event
+  /// inside [txn]. Stamped with Chain 2 fields on `provenance[0]`.
+  // Implements: REQ-d00145-D+I+J; REQ-d00115-H+I.
+  Future<void> _emitDuplicateReceivedInTxn(
+    Txn txn, {
+    required String subjectEventId,
+    required String subjectEventHashOnRecord,
+    required BatchContext? batchContext,
+  }) async {
+    final now = _now();
+    final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
+      txn,
+    );
+    final nextSeq = await backend.nextIngestSequenceNumber(txn);
+
+    final provenance0 = ProvenanceEntry(
+      hop: source.hopId,
+      receivedAt: now,
+      identifier: source.identifier,
+      softwareVersion: source.softwareVersion,
+      arrivalHash: null, // receiver-originated event — no wire arrival
+      previousIngestHash: currentSeq == 0 ? null : currentTailHash,
+      ingestSequenceNumber: nextSeq,
+      batchContext: batchContext,
+    );
+
+    final auditAggregateId = 'ingest-audit:${source.hopId}';
+    // Use nextSequenceNumber for the origin-side sequence on this event.
+    // This advances the origin counter; the event is stored via the ingest
+    // path (appendIngestedEvent), keyed by ingest_sequence_number.
+    final localSeq = await backend.nextSequenceNumber(txn);
+    final eventId = _uuid.v4();
+    final previousHash = await backend.readLatestEventHash(txn);
+    final recordMap = <String, Object?>{
+      'event_id': eventId,
+      'aggregate_id': auditAggregateId,
+      'aggregate_type': 'ingest-audit',
+      'entry_type': 'ingest-audit',
+      'event_type': 'ingest.duplicate_received',
+      'sequence_number': localSeq,
+      'data': <String, Object?>{
+        'subject_event_id': subjectEventId,
+        'subject_event_hash_on_record': subjectEventHashOnRecord,
+      },
+      'metadata': <String, Object?>{
+        'provenance': <Map<String, Object?>>[provenance0.toJson()],
+      },
+      'initiator': const AutomationInitiator(service: 'ingest').toJson(),
+      'flow_token': null,
+      'client_timestamp': now.toIso8601String(),
+      'previous_event_hash': previousHash,
+    };
+    final eventHash = _eventHash(recordMap);
+    recordMap['event_hash'] = eventHash;
+    final event = StoredEvent.fromMap(recordMap, 0);
+    await backend.appendIngestedEvent(txn, event);
   }
 }
