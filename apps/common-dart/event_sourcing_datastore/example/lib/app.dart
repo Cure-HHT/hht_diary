@@ -104,24 +104,29 @@ class _DemoAppState extends State<DemoApp> {
       home: Scaffold(
         backgroundColor: DemoColors.bg,
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              TopActionBar(
-                datastore: widget.datastore,
-                backend: widget.backend,
-                entryTypesLookup: widget.entryTypeLookup,
-                appState: widget.appState,
-                onResetAll: resetAll,
-              ),
-              SyncPolicyBar(notifier: demoPolicyNotifier),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: _buildColumns(),
+          // Bold is the baseline weight for the whole demo; individual
+          // styles only need to override color / size. Design §7.4.
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                TopActionBar(
+                  datastore: widget.datastore,
+                  backend: widget.backend,
+                  entryTypesLookup: widget.entryTypeLookup,
+                  appState: widget.appState,
+                  onResetAll: resetAll,
                 ),
-              ),
-            ],
+                SyncPolicyBar(notifier: demoPolicyNotifier),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _buildColumns(),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

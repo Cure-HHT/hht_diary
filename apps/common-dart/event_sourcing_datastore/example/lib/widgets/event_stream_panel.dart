@@ -110,7 +110,10 @@ class _EventRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: selected ? DemoColors.selected : DemoColors.bg,
+        decoration: BoxDecoration(
+          color: selected ? DemoColors.selected : DemoColors.bg,
+          border: selected ? demoSelectedBorder : null,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Text(
           '#${event.sequenceNumber} $eventTypeShort ${event.aggregateType} $shortAgg',

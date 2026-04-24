@@ -12,24 +12,28 @@ void main() {
       expect(DemoColors.fg, const Color(0xFFFFFFFF));
     });
 
-    // Verifies: design §7.4 palette lock — state cues and section accent.
-    test('accent is yellow 0xFFE0E000 (section headers, draining head)', () {
-      expect(DemoColors.accent, const Color(0xFFE0E000));
+    // Verifies: design §7.4 palette lock — state cues and section accent
+    // at full brightness for readability on a black background.
+    test('accent is yellow 0xFFFFFF00 (section headers, draining head)', () {
+      expect(DemoColors.accent, const Color(0xFFFFFF00));
     });
-    test('sent is green 0xFF00E000', () {
-      expect(DemoColors.sent, const Color(0xFF00E000));
+    test('sent is green 0xFF00FF00', () {
+      expect(DemoColors.sent, const Color(0xFF00FF00));
     });
-    test('pending is grey 0xFFAAAAAA', () {
-      expect(DemoColors.pending, const Color(0xFFAAAAAA));
+    test('pending is grey 0xFFCCCCCC', () {
+      expect(DemoColors.pending, const Color(0xFFCCCCCC));
     });
-    test('retrying is red 0xFFE00000 (head in transient retry)', () {
-      expect(DemoColors.retrying, const Color(0xFFE00000));
+    test('retrying is red 0xFFFF0000 (head in transient retry)', () {
+      expect(DemoColors.retrying, const Color(0xFFFF0000));
     });
-    test('wedged is magenta 0xFFE000E0 (inert row)', () {
-      expect(DemoColors.wedged, const Color(0xFFE000E0));
+    test('wedged is magenta 0xFFFF00FF (inert row)', () {
+      expect(DemoColors.wedged, const Color(0xFFFF00FF));
     });
-    test('selected is blue 0xFF0044AA (cross-panel selection tint)', () {
-      expect(DemoColors.selected, const Color(0xFF0044AA));
+    test('selected is dark navy 0xFF001A66 (cross-panel selection fill)', () {
+      expect(DemoColors.selected, const Color(0xFF001A66));
+    });
+    test('selectedOutline is yellow 0xFFFFFF00 (selection visibility)', () {
+      expect(DemoColors.selectedOutline, const Color(0xFFFFFF00));
     });
     test('border is white 0xFFFFFFFF', () {
       expect(DemoColors.border, const Color(0xFFFFFFFF));
@@ -37,14 +41,14 @@ void main() {
 
     // Verifies: design §7.4 palette lock — action-button colors used by
     // the RED/GREEN/BLUE lifecycle buttons.
-    test('action red is 0xFFE00000', () {
-      expect(DemoColors.red, const Color(0xFFE00000));
+    test('action red is 0xFFFF0000', () {
+      expect(DemoColors.red, const Color(0xFFFF0000));
     });
-    test('action green is 0xFF00E000', () {
-      expect(DemoColors.green, const Color(0xFF00E000));
+    test('action green is 0xFF00FF00', () {
+      expect(DemoColors.green, const Color(0xFF00FF00));
     });
-    test('action blue is 0xFF005AE0', () {
-      expect(DemoColors.blue, const Color(0xFF005AE0));
+    test('action blue is 0xFF0066FF', () {
+      expect(DemoColors.blue, const Color(0xFF0066FF));
     });
   });
 
@@ -61,14 +65,22 @@ void main() {
     test('fontFamilyMonospace resolves to "monospace"', () {
       expect(DemoText.fontFamilyMonospace, 'monospace');
     });
-    test('body TextStyle uses bodyFontSize and monospace family', () {
+    test('fontWeight is bold', () {
+      expect(DemoText.fontWeight, FontWeight.bold);
+    });
+    test('body TextStyle uses bodyFontSize, monospace family, bold weight', () {
       expect(DemoText.body.fontSize, DemoText.bodyFontSize);
       expect(DemoText.body.fontFamily, DemoText.fontFamilyMonospace);
+      expect(DemoText.body.fontWeight, FontWeight.bold);
     });
-    test('header TextStyle uses headerFontSize and monospace family', () {
-      expect(DemoText.header.fontSize, DemoText.headerFontSize);
-      expect(DemoText.header.fontFamily, DemoText.fontFamilyMonospace);
-    });
+    test(
+      'header TextStyle uses headerFontSize, monospace family, bold weight',
+      () {
+        expect(DemoText.header.fontSize, DemoText.headerFontSize);
+        expect(DemoText.header.fontFamily, DemoText.fontFamilyMonospace);
+        expect(DemoText.header.fontWeight, FontWeight.bold);
+      },
+    );
   });
 
   group('demoBorder rectangular-border lock', () {
@@ -86,6 +98,27 @@ void main() {
     });
     test('demoBorder is a Border (rectangular; no borderRadius concept)', () {
       expect(demoBorder, isA<Border>());
+    });
+  });
+
+  group('demoSelectedBorder rectangular-outline lock', () {
+    // Verifies: design §7.4 — 2px yellow rectangular outline wrapping
+    // the selected row so it stays visible against the navy fill.
+    test(
+      'all four sides have width 2.0 and color DemoColors.selectedOutline',
+      () {
+        expect(demoSelectedBorder.top.width, 2.0);
+        expect(demoSelectedBorder.top.color, DemoColors.selectedOutline);
+        expect(demoSelectedBorder.bottom.width, 2.0);
+        expect(demoSelectedBorder.bottom.color, DemoColors.selectedOutline);
+        expect(demoSelectedBorder.left.width, 2.0);
+        expect(demoSelectedBorder.left.color, DemoColors.selectedOutline);
+        expect(demoSelectedBorder.right.width, 2.0);
+        expect(demoSelectedBorder.right.color, DemoColors.selectedOutline);
+      },
+    );
+    test('demoSelectedBorder is a Border', () {
+      expect(demoSelectedBorder, isA<Border>());
     });
   });
 }
