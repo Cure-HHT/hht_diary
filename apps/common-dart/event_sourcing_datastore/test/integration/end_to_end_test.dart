@@ -1,8 +1,10 @@
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
+import 'package:uuid/uuid.dart';
 
 import '../test_support/fake_destination.dart';
+import '../test_support/map_entry_type_definition_lookup.dart';
 
 /// Phase 4.3 end-to-end smoke test.
 ///
@@ -155,4 +157,132 @@ void main() {
       expect(await backend.readFillCursor('primary'), appended.sequenceNumber);
     },
   );
+
+  // Phase 4.8 Task 5 regression coverage for the write-path merge fold
+  // (REQ-d00121-B+C+J) + no-op detection (REQ-d00133-F) + the disaster-
+  // recovery rebuild (REQ-d00121-G). Each step pins one facet of the
+  // materializer's merge semantics so a regression that drops a prior key,
+  // loses an explicit null, or flips the no-op short-circuit surfaces here
+  // rather than in per-feature tests that might each still pass alone.
+  group('merge composition end-to-end (REQ-d00121-B+C+J, REQ-d00133-F)', () {
+    test('delta sequence folds to expected current_answers; no-op '
+        'suppresses redundant call; rebuild yields same state', () async {
+      final db = await newDatabaseFactoryMemory().openDatabase(
+        'e2e-merge-${DateTime.now().microsecondsSinceEpoch}.db',
+      );
+      final backend = SembastBackend(database: db);
+      addTearDown(backend.close);
+
+      const diaryDefn = EntryTypeDefinition(
+        id: 'diary',
+        version: '1',
+        name: 'Diary',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+      );
+      final registry = EntryTypeRegistry()..register(diaryDefn);
+      final svc = EntryService(
+        backend: backend,
+        entryTypes: registry,
+        deviceInfo: const DeviceInfo(
+          deviceId: 'device-e2e-merge',
+          softwareVersion: 'clinical_diary@1.0.0+1',
+          userId: 'user-e2e-merge',
+        ),
+        syncCycleTrigger: () async {},
+      );
+
+      // v7 UUID — monotonically increasing aggregate id; avoids the
+      // birthday-paradox risk of a v4 collision across parallel runs.
+      final aggId = 'agg-${const Uuid().v7()}';
+
+      // 1. First checkpoint: {a: 1}. Seeds the aggregate.
+      final e1 = await svc.record(
+        entryType: 'diary',
+        aggregateId: aggId,
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': 1},
+      );
+      expect(e1, isNotNull);
+
+      // 2. Second checkpoint adds {b: 2} as a delta; a is preserved — this
+      // asserts the merge fold (REQ-d00121-B): the prior keys carry
+      // forward, the delta overlays.
+      final e2 = await svc.record(
+        entryType: 'diary',
+        aggregateId: aggId,
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'b': 2},
+      );
+      expect(e2, isNotNull);
+
+      var rows = await backend.findEntries(entryType: 'diary');
+      expect(rows, hasLength(1));
+      var row = rows.single;
+      expect(row.entryId, aggId);
+      expect(row.currentAnswers, equals(<String, Object?>{'a': 1, 'b': 2}));
+      expect(row.isComplete, isFalse);
+
+      // 3. Explicit-clear checkpoint: {a: null}. Asserts REQ-d00121-C —
+      // explicit null is preserved (key stays with null value), not
+      // stripped.
+      final e3 = await svc.record(
+        entryType: 'diary',
+        aggregateId: aggId,
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': null},
+      );
+      expect(e3, isNotNull);
+
+      rows = await backend.findEntries(entryType: 'diary');
+      row = rows.single;
+      expect(row.currentAnswers.containsKey('a'), isTrue);
+      expect(row.currentAnswers['a'], isNull);
+      expect(row.currentAnswers['b'], equals(2));
+
+      // 4. Redundant checkpoint — delta values match prior state; expect
+      // no-op (REQ-d00133-F). The merge produces the same current_answers,
+      // lifecycle flag stays checkpoint, reason fields match -> null.
+      final e4 = await svc.record(
+        entryType: 'diary',
+        aggregateId: aggId,
+        eventType: 'checkpoint',
+        answers: const <String, Object?>{'a': null},
+      );
+      expect(e4, isNull);
+
+      // 5. Finalized with empty delta; answers unchanged, is_complete
+      // flips to true. Asserts REQ-d00121-J — lifecycle transition still
+      // produces a new event even when the delta is empty.
+      final e5 = await svc.record(
+        entryType: 'diary',
+        aggregateId: aggId,
+        eventType: 'finalized',
+        answers: const <String, Object?>{},
+      );
+      expect(e5, isNotNull);
+
+      rows = await backend.findEntries(entryType: 'diary');
+      row = rows.single;
+      expect(row.isComplete, isTrue);
+      expect(row.currentAnswers.containsKey('a'), isTrue);
+      expect(row.currentAnswers['a'], isNull);
+      expect(row.currentAnswers['b'], equals(2));
+
+      // 6. rebuildMaterializedView folds the same event log through
+      // DiaryEntriesMaterializer.foldPure and reconstructs the same row
+      // state (REQ-d00121-G). Diverging here would indicate the write-path
+      // fold and the rebuild fold disagree — i.e., the cache and the
+      // source-of-truth derivation drifted.
+      final lookup = MapEntryTypeDefinitionLookup.fromDefinitions(
+        <EntryTypeDefinition>[diaryDefn],
+      );
+      final rebuilt = await rebuildMaterializedView(backend, lookup);
+      expect(rebuilt, greaterThan(0));
+      final rebuiltRows = await backend.findEntries(entryType: 'diary');
+      final rebuiltRow = rebuiltRows.single;
+      expect(rebuiltRow.currentAnswers, equals(row.currentAnswers));
+      expect(rebuiltRow.isComplete, row.isComplete);
+    });
+  });
 }
