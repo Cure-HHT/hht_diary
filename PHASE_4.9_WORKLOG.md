@@ -65,6 +65,154 @@ Phase 4.8 Task 6 completed on commit `69596e33`. All merge-semantics materializa
 
 ---
 
+## Task 2: Spec changes for sync-through ingest
+
+Commit: `479b56d2`
+
+**Status**: Complete. REQ-d00120-E and REQ-d00115-G+H+I+J added to spec with sync-through ingest requirements.
+
+Commit: `c3cb5759` (fix: cross-reference cleanup)
+
+---
+
+## Task 3: ProvenanceEntry + BatchContext schema
+
+Commit: `b6be758a`
+
+**Status**: Complete. ProvenanceEntry extended with four new optional ingest fields (arrivalHash, previousIngestHash, ingestSequenceNumber, batchContext). BatchContext class added. All fields round-trip through JSON.
+
+---
+
+## Task 4: Canonical esd/batch@1 envelope codec
+
+Commit: `f2cf1eb2`
+
+**Status**: Complete. BatchEnvelope codec implemented with canonical JCS encoding/decoding. Supports wire-format versioning.
+
+---
+
+## Task 5: Ingest error, result, verdict types
+
+Commit: `64af7443`
+
+**Status**: Complete. Added IngestChainBroken, IngestIdentityMismatch, IngestDecodeFailure, PerEventIngestOutcome, IngestBatchResult, ChainVerdict, ChainFailure types. All enums and result types match plan specification.
+
+---
+
+## Task 6: StorageBackend destination-role methods
+
+Commit: `a92b8494`
+
+**Status**: Complete. Added abstract methods to StorageBackend (nextIngestSequenceNumber, readIngestTail, readIngestTailInTxn, appendIngestedEvent, findEventByIdInTxn, findEventsByIngestSeqRange) and implementations in SembastBackend. Chain 2 state persisted as dedicated records.
+
+---
+
+## Task 7: EventStore.ingestEvent (process-local API)
+
+Commit: `e270241b`
+
+**Status**: Complete. Implemented `ingestEvent` with full Chain 1 verification, idempotency checks, receiver-provenance stamping, and event-hash recompute. Added private helpers `_verifyChainOn`, `_appendReceiverProvenance`, `_hashWithProvenanceSlice`. Added duplicate-received audit event emission.
+
+---
+
+## Task 8: EventStore.ingestBatch (wire-side API)
+
+Commit: `2d0738a9`
+
+**Status**: Complete. Implemented ingestBatch with BatchEnvelope decoding, per-event stamping with BatchContext, all-or-nothing transaction rollback, and wire-bytes-hash computation.
+
+---
+
+## Task 9: EventStore.logRejectedBatch (caller-composed audit)
+
+Commit: `0dccfdb8`
+
+**Status**: Complete. Implemented logRejectedBatch for recording rejection events with full metadata (wire bytes, hash, reason, error detail). Caller responsible for exception handling pattern.
+
+---
+
+## Task 10: Verification APIs (verifyEventChain + verifyIngestChain)
+
+Commit: `682a9e59`
+
+**Status**: Complete. Implemented verifyEventChain (Chain 1 backward walk) and verifyIngestChain (Chain 2 forward walk with range support). Both return non-throwing ChainVerdict with detailed failure information.
+
+---
+
+## Task 11: Multi-originator integration test
+
+Commit: `540297e8`
+
+**Status**: Complete. Integration test validating Chain 2 threading across multiple originators, verifying sequence number ordering and chain continuity independent of event source.
+
+---
+
+## Task 12: Final verification + worklog close
+
+**Status**: Complete.
+
+### Test suite (all green)
+
+- `provenance` (`flutter test`): **38 pass** (baseline 31 + 7 new batch/ingest tests)
+- `event_sourcing_datastore` (`flutter test`): **562 pass** (baseline 511 + 51 new ingest tests)
+- `event_sourcing_datastore/example` (`flutter pub get && flutter analyze`): **clean**
+
+### Flutter analyze
+
+- `provenance/lib`: **clean**
+- `event_sourcing_datastore/lib`: **clean**
+- `event_sourcing_datastore/example`: **clean**
+
+### Grep sanity checks
+
+All key terms wired as expected:
+- `arrival_hash`/`arrivalHash`: matches in provenance_entry.dart (field definition), event_store.dart (stamping in `_ingestOneInTxn`, verification in `_verifyChainOn`), chain_verdict.dart (doc comments). No unexpected sites.
+- `previous_ingest_hash`/`previousIngestHash`: matches in provenance_entry.dart, event_store.dart (stamping in `_ingestOneInTxn`, `_emitDuplicateReceivedInTxn`, `logRejectedBatch`; verification in `verifyIngestChain`), chain_verdict.dart. No unexpected sites.
+- `ingest_sequence_number`/`ingestSequenceNumber`: matches in provenance_entry.dart, storage_backend.dart (abstract), sembast_backend.dart (impl), event_store.dart (stamping). No unexpected sites.
+- `batch_context`/`batchContext`/`BatchContext`: matches in batch_context.dart (class definition), provenance_entry.dart (field), event_store.dart (stamping in `_ingestOneInTxn` via parameter; `ingestEvent` calls `_ingestOneInTxn` with batchContext: null). No unexpected sites.
+- `ingest.batch_rejected`: matches ONLY in `logRejectedBatch` (event emission). Zero internal-library uses.
+- `ingest.duplicate_received`: matches in `_emitDuplicateReceivedInTxn` (internal call site). Called from both `ingestEvent` and `ingestBatch` paths for duplicates.
+
+### REQ spec sanity
+
+```
+REQ-d00145 | EventStore Ingest Contract                              | dev-event-sourcing-mobile.md   | 2213e000 |
+REQ-d00146 | Chain-of-Custody Verification APIs                      | dev-event-sourcing-mobile.md   | ba47e4ed |
+```
+
+Both REQs present with regenerated hashes. Spec anchors Phase 4.9 implementation.
+
+### Phase 4.9 completion
+
+All 12 tasks complete. Commit SHAs:
+
+| Task | SHA |
+| --- | --- |
+| Task 1 (baseline) | ee97e018 |
+| Task 2 (spec) | 479b56d2 |
+| Task 2 fix | c3cb5759 |
+| Task 3 (schema) | b6be758a |
+| Task 4 (envelope) | f2cf1eb2 |
+| Task 5 (types) | 64af7443 |
+| Task 6 (backend) | a92b8494 |
+| Task 7 (ingestEvent) | e270241b |
+| Task 8 (ingestBatch) | 2d0738a9 |
+| Task 9 (logRejectedBatch) | 0dccfdb8 |
+| Task 10 (verify APIs) | 682a9e59 |
+| Task 11 (multi-originator) | 540297e8 |
+| Task 12 (verification) | (committed below) |
+
+### Summary
+
+Phase 4.9 complete: sync-through ingest with per-hop hash chain validation fully implemented and tested.
+- REQ-d00115 (extended): sync-through ingest protocol with provenance extension
+- REQ-d00120 (extended): hash recompute per hop
+- REQ-d00145 (new): EventStore ingest contract (process-local + wire-side APIs, rejection auditing)
+- REQ-d00146 (new): chain-of-custody verification (Chain 1 + Chain 2 validators)
+- 562 event_sourcing_datastore tests passing, 38 provenance tests passing, zero stale references in code/spec.
+
+---
+
 ## Per-task controller workflow (user instructions — re-read each task)
 
 > After each phase I want you to:
