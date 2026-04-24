@@ -1,19 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00115-J: BatchContext fields stored on each ingested event allow
 //                 auditors to associate events with their originating batch.
-//
-// NOTE (DONE_WITH_CONCERNS — Risk 7):
-//   Full wire-bytes reconstruction (re-encoding stored events into a new
-//   BatchEnvelope and verifying sha256 == stored batchWireBytesHash) depends
-//   on canonicalization purity: the event maps decoded from the wire envelope
-//   must be byte-for-byte equivalent to the re-built maps derived from stored
-//   events. In practice, JSON round-tripping through sembast can change map
-//   types (e.g., Map<String,dynamic> vs Map<Object?,Object?>), causing
-//   JCS-canonical output to differ. Design spec §7 Risk 7 acknowledges this
-//   and permits a simplified assertion: "stored events' BatchContext all agree
-//   on batchId / batchWireBytesHash" without full round-trip verification.
-//   The full reconstruction property is deferred to an integration test or
-//   Phase 4.10+ when canonicalization is audited end-to-end.
 
 import 'package:crypto/crypto.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
@@ -103,6 +90,7 @@ BatchEnvelope _buildEnvelope(
   required String senderHop,
   required String senderIdentifier,
   required String senderSoftwareVersion,
+  DateTime? sentAt,
 }) {
   return BatchEnvelope(
     batchFormatVersion: '1',
@@ -110,9 +98,28 @@ BatchEnvelope _buildEnvelope(
     senderHop: senderHop,
     senderIdentifier: senderIdentifier,
     senderSoftwareVersion: senderSoftwareVersion,
-    sentAt: DateTime.now().toUtc(),
+    sentAt: sentAt ?? DateTime.now().toUtc(),
     events: events.map((e) => Map<String, Object?>.from(e.toMap())).toList(),
   );
+}
+
+/// Recursively rekey a deserialized value so all Map spines are
+/// `Map<String, Object?>` rather than `Map<dynamic, dynamic>`. Values
+/// are NOT deep-converted — only the map type wrappers change. This
+/// ensures JCS canonicalization (which uses `.keys` and `.toString()`)
+/// produces byte-identical output regardless of how sembast typed the
+/// round-tripped maps.
+Object? _rekey(Object? value) {
+  if (value is Map) {
+    return <String, Object?>{
+      for (final entry in value.entries)
+        entry.key.toString(): _rekey(entry.value),
+    };
+  }
+  if (value is List) {
+    return value.map(_rekey).toList();
+  }
+  return value;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,6 +262,174 @@ void main() {
         );
 
         expect(bc.batchWireBytesHash, equals(expectedHash));
+      } finally {
+        await orig.close();
+        await dest.close();
+      }
+    });
+
+    test('full round-trip: strip receiver hop → re-encode → '
+        'sha256 matches batchWireBytesHash (Risk 7 resolved)', () async {
+      // This test performs the complete reconstruction to confirm that
+      // JCS canonicalization is stable across the sembast storage
+      // round-trip. Approach:
+      //   1. Build envelope with N events + fixed sentAt → encode → sha256.
+      //   2. ingestBatch at destination.
+      //   3. Query stored subjects in batch_position order.
+      //   4. Strip each event's receiver-hop provenance entry and restore
+      //      event_hash = arrival_hash (= the originator's event_hash).
+      //   5. Re-encode into a new BatchEnvelope with the original envelope
+      //      metadata (batchId, senderHop, sentAt captured in step 1).
+      //   6. Assert sha256(reconstructed) == stored batchWireBytesHash.
+      const n = 3;
+      final sentAt = DateTime.utc(2026, 4, 21, 12, 0, 0);
+      final orig = await _openStore(hopId: 'mobile-device');
+      final dest = await _openStore(
+        hopId: 'portal-server',
+        identifier: 'portal-1',
+        softwareVersion: 'portal@0.1.0',
+      );
+
+      try {
+        // 1. Originate N events.
+        final events = <StoredEvent>[];
+        for (var i = 0; i < n; i++) {
+          final e = await orig.store.append(
+            entryType: 'epistaxis_event',
+            aggregateId: 'agg-fullrecon-$i',
+            aggregateType: 'DiaryEntry',
+            eventType: 'finalized',
+            data: <String, Object?>{
+              'answers': <String, Object?>{'idx': i},
+            },
+            initiator: const UserInitiator('u1'),
+          );
+          expect(e, isNotNull);
+          events.add(e!);
+        }
+
+        // 2. Build envelope with fixed sentAt so reconstruction is
+        //    deterministic.
+        final envelope = _buildEnvelope(
+          events,
+          senderHop: 'mobile-device',
+          senderIdentifier: 'device-1',
+          senderSoftwareVersion: 'clinical_diary@1.0.0',
+          sentAt: sentAt,
+        );
+        final originalBytes = envelope.encode();
+        final expectedWireBytesHash = sha256.convert(originalBytes).toString();
+
+        // 3. Ingest at destination.
+        final result = await dest.store.ingestBatch(
+          originalBytes,
+          wireFormat: BatchEnvelope.wireFormat,
+        );
+        expect(result.events, hasLength(n));
+
+        // 4. Query stored subjects ordered by batch_position.
+        //    We query by event_id from the original events list, then sort.
+        final storedWithBc =
+            <
+              ({StoredEvent event, BatchContext bc, Map<String, Object?> prov})
+            >[];
+        for (final e in events) {
+          final stored = await dest.backend.transaction(
+            (txn) async => dest.backend.findEventByIdInTxn(txn, e.eventId),
+          );
+          expect(stored, isNotNull, reason: 'event ${e.eventId} must exist');
+
+          final provList = (stored!.metadata['provenance'] as List<Object?>)
+              .cast<Map<String, Object?>>();
+          expect(provList.length, equals(2), reason: 'must have 2 hop entries');
+
+          final receiverEntry = provList.last;
+          expect(
+            receiverEntry.containsKey('batch_context'),
+            isTrue,
+            reason: 'receiver entry must carry batch_context',
+          );
+
+          final bc = BatchContext.fromJson(
+            Map<String, Object?>.from(receiverEntry['batch_context'] as Map),
+          );
+          storedWithBc.add((event: stored, bc: bc, prov: receiverEntry));
+        }
+
+        // Sort by batch_position to match original send order.
+        storedWithBc.sort(
+          (a, b) => a.bc.batchPosition.compareTo(b.bc.batchPosition),
+        );
+
+        // 5. Reconstruct each event map as it was on the wire.
+        final reconstructedEventMaps = <Map<String, Object?>>[];
+        for (final entry in storedWithBc) {
+          final stored = entry.event;
+          final receiverEntry = entry.prov;
+
+          // arrival_hash is the event_hash the receiver saw on the wire,
+          // i.e., the originator's event_hash before any receiver mutation.
+          final arrivalHash = receiverEntry['arrival_hash'] as String?;
+          expect(
+            arrivalHash,
+            isNotNull,
+            reason: 'receiver entry must carry arrival_hash',
+          );
+
+          // Strip the receiver hop (last provenance entry).
+          final fullProv = (stored.metadata['provenance'] as List<Object?>)
+              .cast<Map<String, Object?>>();
+          final strippedProv = fullProv.sublist(0, fullProv.length - 1);
+
+          // Rebuild metadata with stripped provenance.
+          final strippedMeta = <String, Object?>{
+            ...stored.metadata,
+            'provenance': strippedProv,
+          };
+
+          // Build the event map as it was on the wire: same fields as
+          // StoredEvent.toMap() but with stripped provenance and the
+          // originator's event_hash restored.
+          final wireEventMap = <String, Object?>{
+            ...stored.toMap(),
+            'metadata': strippedMeta,
+            'event_hash': arrivalHash,
+          };
+
+          // Apply _rekey to ensure Map spines are Map<String, Object?>
+          // regardless of how sembast typed the deserialized values.
+          reconstructedEventMaps.add(
+            Map<String, Object?>.from(_rekey(wireEventMap) as Map),
+          );
+        }
+
+        // 6. Reconstruct the BatchEnvelope.
+        final reconstructed = BatchEnvelope(
+          batchFormatVersion: '1',
+          batchId: envelope.batchId,
+          senderHop: envelope.senderHop,
+          senderIdentifier: envelope.senderIdentifier,
+          senderSoftwareVersion: envelope.senderSoftwareVersion,
+          sentAt: envelope.sentAt,
+          events: reconstructedEventMaps,
+        );
+
+        // 7. Encode and compute sha256.
+        final reconstructedBytes = reconstructed.encode();
+        final reconstructedHash = sha256.convert(reconstructedBytes).toString();
+
+        // 8. Assert that reconstructed hash matches the stored
+        //    batchWireBytesHash (which equals sha256(originalBytes)).
+        expect(reconstructedHash, equals(expectedWireBytesHash));
+
+        // Also confirm via the stored BatchContext.
+        for (final entry in storedWithBc) {
+          expect(
+            entry.bc.batchWireBytesHash,
+            equals(reconstructedHash),
+            reason: 'all stored events must agree on batchWireBytesHash',
+          );
+        }
       } finally {
         await orig.close();
         await dest.close();
