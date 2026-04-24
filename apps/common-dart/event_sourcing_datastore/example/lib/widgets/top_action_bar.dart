@@ -1,11 +1,12 @@
-import 'dart:math';
-
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/demo_types.dart';
 import 'package:event_sourcing_datastore_demo/widgets/add_destination_dialog.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+const _uuid = Uuid();
 
 // Validated by: JNY-01 (lifecycle), JNY-02 (CQRS action events), JNY-06
 // (Rebuild view), JNY-07 (Add destination).
@@ -33,8 +34,6 @@ class _TopActionBarState extends State<TopActionBar> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _body = TextEditingController();
 
-  final Random _rng = Random();
-
   @override
   void initState() {
     super.initState();
@@ -55,12 +54,6 @@ class _TopActionBarState extends State<TopActionBar> {
   void _onAppState() {
     if (!mounted) return;
     setState(() {});
-  }
-
-  String _uuidish() {
-    final a = _rng.nextInt(1 << 30).toRadixString(16).padLeft(8, '0');
-    final b = _rng.nextInt(1 << 30).toRadixString(16).padLeft(8, '0');
-    return '$a-$b';
   }
 
   Map<String, Object?> _collectAnswers() {
@@ -118,7 +111,7 @@ class _TopActionBarState extends State<TopActionBar> {
         _btn(
           label: 'Start',
           onTap: () async {
-            final aggId = _uuidish();
+            final aggId = _uuid.v7();
             await _record(
               entryType: 'demo_note',
               aggregateId: aggId,
@@ -309,7 +302,7 @@ class _TopActionBarState extends State<TopActionBar> {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: TextButton(
         onPressed: () async {
-          final aggId = _uuidish();
+          final aggId = _uuid.v7();
           await _record(
             entryType: entryType,
             aggregateId: aggId,
