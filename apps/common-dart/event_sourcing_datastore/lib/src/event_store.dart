@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
 import 'package:crypto/crypto.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
 import 'package:event_sourcing_datastore/src/ingest/chain_verdict.dart';
 import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
 import 'package:event_sourcing_datastore/src/ingest/ingest_result.dart';
@@ -439,6 +441,54 @@ class EventStore {
     return backend.transaction((txn) async {
       return _ingestOneInTxn(txn, incoming, batchContext: null);
     });
+  }
+
+  /// Wire-side batch ingest. Decodes [bytes] as an `esd/batch@1` envelope,
+  /// runs every subject event through [_ingestOneInTxn] inside a single
+  /// transaction, and stamps each with a [BatchContext] referencing this
+  /// batch. Throws [IngestDecodeFailure] for any unsupported [wireFormat] or
+  /// malformed bytes; throws [IngestIdentityMismatch] (rolling back the whole
+  /// batch) if any subject has a hash conflict with an already-stored event.
+  ///
+  /// See design spec §2.5.
+  // Implements: REQ-d00145-A+B+E.
+  Future<IngestBatchResult> ingestBatch(
+    Uint8List bytes, {
+    required String wireFormat,
+  }) async {
+    if (wireFormat != BatchEnvelope.wireFormat) {
+      throw IngestDecodeFailure(
+        'unsupported wireFormat: "$wireFormat"; expected "${BatchEnvelope.wireFormat}"',
+      );
+    }
+    final envelope = BatchEnvelope.decode(bytes);
+    final wireBytesHash = sha256.convert(bytes).toString();
+    final outcomes = <PerEventIngestOutcome>[];
+
+    await backend.transaction((txn) async {
+      for (var i = 0; i < envelope.events.length; i++) {
+        final eventMap = envelope.events[i];
+        final storedEvent = StoredEvent.fromMap(
+          Map<String, Object?>.from(eventMap),
+          0,
+        );
+        final batchContext = BatchContext(
+          batchId: envelope.batchId,
+          batchPosition: i,
+          batchSize: envelope.events.length,
+          batchWireBytesHash: wireBytesHash,
+          batchWireFormat: BatchEnvelope.wireFormat,
+        );
+        final outcome = await _ingestOneInTxn(
+          txn,
+          storedEvent,
+          batchContext: batchContext,
+        );
+        outcomes.add(outcome);
+      }
+    });
+
+    return IngestBatchResult(batchId: envelope.batchId, events: outcomes);
   }
 
   /// Per-event ingest logic, called from both [ingestEvent] and (in Task 8)
