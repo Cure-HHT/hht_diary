@@ -574,9 +574,90 @@ class EventStore {
     );
   }
 
+  // -----------------------------------------------------------------------
+  // Verification APIs — Phase 4.9 Task 10
+  // -----------------------------------------------------------------------
+
+  /// Walk Chain 1 on [event].metadata.provenance backward from tail to origin.
+  /// Non-throwing; returns a [ChainVerdict] with `ok=true` when every
+  /// `arrival_hash` matches the recomputed hash at that hop, `ok=false`
+  /// otherwise with a list of [ChainFailure] instances describing each broken
+  /// link. Returns `ok=true` for origin-only events (single-entry provenance —
+  /// no inter-hop links to verify).
+  ///
+  /// See design spec §2.11.
+  // Implements: REQ-d00146-A+B+D+E.
+  Future<ChainVerdict> verifyEventChain(StoredEvent event) async {
+    return _verifyChainOn(event);
+  }
+
+  /// Walk Chain 2 on this destination's ingest log from [fromIngestSeq] to
+  /// [toIngestSeq] (inclusive). When [toIngestSeq] is null, walks through
+  /// the current ingest tail. Throws [ArgumentError] if
+  /// `fromIngestSeq > toIngestSeq`. Non-throwing otherwise; returns a
+  /// [ChainVerdict] with `ok=true` when every `previous_ingest_hash` equals
+  /// the stored `event_hash` of the prior event in the range.
+  ///
+  /// See design spec §2.11.
+  // Implements: REQ-d00146-C+D+E.
+  Future<ChainVerdict> verifyIngestChain({
+    int fromIngestSeq = 0,
+    int? toIngestSeq,
+  }) async {
+    final (tailSeq, _) = await backend.readIngestTail();
+    final upperBound = toIngestSeq ?? tailSeq;
+    if (fromIngestSeq > upperBound) {
+      throw ArgumentError(
+        'fromIngestSeq ($fromIngestSeq) must be <= toIngestSeq ($upperBound)',
+      );
+    }
+    final events = await backend.findEventsByIngestSeqRange(
+      from: fromIngestSeq,
+      to: upperBound,
+    );
+    final failures = <ChainFailure>[];
+    StoredEvent? prev;
+    for (final event in events) {
+      final thisSeq = _ingestSeqOf(event);
+      if (thisSeq <= fromIngestSeq) {
+        // This event is the anchor / starting point — not verified against
+        // anything before it (the range starts here). Record it as prev and
+        // move on.
+        prev = event;
+        continue;
+      }
+      final provenance = (event.metadata['provenance'] as List<Object?>)
+          .cast<Map<String, Object?>>();
+      final lastEntry = provenance.last;
+      final previousIngestHash = lastEntry['previous_ingest_hash'] as String?;
+      final expected = prev?.eventHash;
+      if (previousIngestHash != expected) {
+        failures.add(
+          ChainFailure(
+            position: thisSeq,
+            kind: ChainFailureKind.previousIngestHashMismatch,
+            expectedHash: expected ?? '(null)',
+            actualHash: previousIngestHash ?? '(null)',
+          ),
+        );
+      }
+      prev = event;
+    }
+    return ChainVerdict(ok: failures.isEmpty, failures: failures);
+  }
+
+  /// Extract the `ingest_sequence_number` from the last provenance entry of
+  /// [event]. Used by [verifyIngestChain] to identify each event's position
+  /// in Chain 2.
+  int _ingestSeqOf(StoredEvent event) {
+    final provenance = (event.metadata['provenance'] as List<Object?>)
+        .cast<Map<String, Object?>>();
+    return provenance.last['ingest_sequence_number'] as int;
+  }
+
   /// Walk Chain 1 on [event].metadata.provenance and return a non-throwing
-  /// verdict. Used by [ingestEvent] and (in Task 10) verifyEventChain.
-  // Implements: REQ-d00146-A+B (partial — full verifyEventChain in Task 10).
+  /// verdict. Used by [ingestEvent] and [verifyEventChain].
+  // Implements: REQ-d00146-A+B.
   ChainVerdict _verifyChainOn(StoredEvent event) {
     final provenanceRaw = event.metadata['provenance'];
     if (provenanceRaw is! List) {

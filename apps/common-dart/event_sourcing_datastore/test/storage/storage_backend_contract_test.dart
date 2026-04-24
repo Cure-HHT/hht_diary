@@ -392,6 +392,11 @@ class _InMemoryBackend extends StorageBackend {
   @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       throw UnimplementedError();
+  @override
+  Future<List<StoredEvent>> findEventsByIngestSeqRange({
+    required int from,
+    int? to,
+  }) => throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {

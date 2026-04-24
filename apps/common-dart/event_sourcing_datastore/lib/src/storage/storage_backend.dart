@@ -396,6 +396,22 @@ abstract class StorageBackend {
   /// the public API; Phase 4.9 exposes only the in-txn form.
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId);
 
+  /// Enumerate events in this destination's event log by
+  /// `ingest_sequence_number` ascending, optionally sliced by `[from, to]`
+  /// (inclusive on both ends; `to == null` means "through the current ingest
+  /// tail"). Used by `verifyIngestChain` to walk Chain 2. Returns an empty
+  /// list if the range has no events.
+  ///
+  /// The event log keyed by `ingest_sequence_number` is the destination-role
+  /// store populated by [appendIngestedEvent]. Origin-role events written via
+  /// [appendEvent] do NOT appear here unless they were also stamped with an
+  /// ingest sequence number by the ingest path.
+  // Implements: REQ-d00146-C — storage read for verifyIngestChain walk.
+  Future<List<StoredEvent>> findEventsByIngestSeqRange({
+    required int from,
+    int? to,
+  });
+
   // -------- Destination schedules (REQ-d00129) --------
 
   /// Read the persisted `DestinationSchedule` for [destinationId], or

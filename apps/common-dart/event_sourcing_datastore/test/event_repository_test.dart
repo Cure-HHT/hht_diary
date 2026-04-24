@@ -850,6 +850,11 @@ class _SpyBackend extends StorageBackend {
   @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       delegate.findEventByIdInTxn(txn, eventId);
+  @override
+  Future<List<StoredEvent>> findEventsByIngestSeqRange({
+    required int from,
+    int? to,
+  }) => delegate.findEventsByIngestSeqRange(from: from, to: to);
 }
 
 /// Test database provider that uses in-memory Sembast database.

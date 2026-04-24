@@ -969,4 +969,9 @@ class _DelegatingBackend extends StorageBackend {
   @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       _inner.findEventByIdInTxn(txn, eventId);
+  @override
+  Future<List<StoredEvent>> findEventsByIngestSeqRange({
+    required int from,
+    int? to,
+  }) => _inner.findEventsByIngestSeqRange(from: from, to: to);
 }

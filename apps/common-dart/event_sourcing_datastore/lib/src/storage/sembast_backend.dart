@@ -1229,6 +1229,38 @@ class SembastBackend extends StorageBackend {
     );
   }
 
+  /// Enumerate events by ingest_sequence_number (the Sembast int key used by
+  /// [appendIngestedEvent]) ascending, filtered to the closed range [from, to].
+  /// When [to] is null the range has no upper bound — all events at or above
+  /// [from] are returned.
+  ///
+  /// The Sembast events store uses the ingest_sequence_number as its key
+  /// (an `int`) when written via [appendIngestedEvent]. Records whose key
+  /// falls outside [from..to] are filtered out in Dart after the sorted scan
+  /// to keep the query simple and consistent with the key-based storage.
+  // Implements: REQ-d00146-C — storage read for verifyIngestChain walk.
+  @override
+  Future<List<StoredEvent>> findEventsByIngestSeqRange({
+    required int from,
+    int? to,
+  }) async {
+    final db = _database();
+    final records = await _eventStore.find(
+      db,
+      finder: Finder(sortOrders: [SortOrder(Field.key)]),
+    );
+    final result = <StoredEvent>[];
+    for (final record in records) {
+      final key = record.key;
+      if (key < from) continue;
+      if (to != null && key > to) continue;
+      result.add(
+        StoredEvent.fromMap(Map<String, Object?>.from(record.value), key),
+      );
+    }
+    return result;
+  }
+
   /// The first non-sent entry in the FIFO when it is `wedged`. Returns
   /// null when either the FIFO has no entries, all entries are `sent`, or
   /// the earliest non-sent entry is pre-terminal (null final_status) or
