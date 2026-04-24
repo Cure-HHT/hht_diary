@@ -1009,6 +1009,16 @@ class _SpyBackend extends StorageBackend {
     String entryId,
     FinalStatus? status,
   ) => delegate.setFinalStatusTxn(txn, destinationId, entryId, status);
+  @override
+  Future<int> deleteNullRowsAfterSequenceInQueueTxn(
+    Txn txn,
+    String destinationId,
+    int afterSequenceInQueue,
+  ) => delegate.deleteNullRowsAfterSequenceInQueueTxn(
+    txn,
+    destinationId,
+    afterSequenceInQueue,
+  );
 }
 
 /// Test database provider that uses in-memory Sembast database.

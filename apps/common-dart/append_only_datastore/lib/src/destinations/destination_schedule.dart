@@ -109,3 +109,29 @@ class UnjamResult {
   /// when no surviving `sent` row exists (rewound to pre-start).
   final int rewoundTo;
 }
+
+/// Result of `tombstoneAndRefill` — REQ-d00144-E.
+///
+/// Carries three operator-visible values: the `entry_id` of the target
+/// row flipped to `tombstoned`, the count of trail null rows deleted in
+/// the same transaction, and the value `fill_cursor` was rewound to.
+// Implements: REQ-d00144-E — TombstoneAndRefillResult shape.
+class TombstoneAndRefillResult {
+  const TombstoneAndRefillResult({
+    required this.targetRowId,
+    required this.deletedTrailCount,
+    required this.rewoundTo,
+  });
+
+  /// `entry_id` of the tombstoned target row.
+  final String targetRowId;
+
+  /// Count of null-finalStatus rows whose sequence_in_queue was strictly
+  /// greater than the target's sequence_in_queue that were deleted from
+  /// the FIFO store in the same transaction (REQ-d00144-C).
+  final int deletedTrailCount;
+
+  /// Value the per-destination fill_cursor was rewound to
+  /// (REQ-d00144-D) — equals target.event_id_range.first_seq - 1.
+  final int rewoundTo;
+}

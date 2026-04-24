@@ -1103,30 +1103,39 @@ class SembastBackend extends StorageBackend {
         .toList();
   }
 
-  /// Flip the target row's `final_status` from `wedged` back to the
-  /// pre-terminal state (`null`) inside [txn]. Rejects any non-null
-  /// [status] — the one-way `null -> sent|wedged|tombstoned` path is
-  /// owned by [markFinal] and is deliberately kept separate so its
-  /// invariants are not weakened by a second write path.
+  /// Transition the target row's `final_status` to [status] inside
+  /// [txn]. The legal transitions, enforced by a guard below, are:
   ///
-  /// Preserves the row's `attempts[]` unchanged (REQ-d00132-B) and
-  /// clears `sent_at` (a rehabilitated row is no longer terminal,
-  /// so a stale `sent_at` would confuse the send-log; in practice
-  /// `sent_at` is null on every wedged row — the column is only
-  /// ever set on `sent` — but the clear is defensive).
+  /// - `wedged -> null` — rehabilitate's flip to pre-terminal
+  ///   (REQ-d00132-B).
+  /// - `null -> sent` — drain-terminal SendOk; stamps
+  ///   `sent_at = DateTime.now().toUtc()`.
+  /// - `null -> wedged` — drain-terminal SendPermanent / SendTransient
+  ///   at max attempts.
+  /// - `null -> tombstoned` — tombstoneAndRefill on a null head
+  ///   (REQ-d00144-B).
+  /// - `wedged -> tombstoned` — tombstoneAndRefill on a wedged head
+  ///   (REQ-d00144-B).
   ///
-  /// Throws [StateError] on a missing target row: rehabilitate's
-  /// caller verifies existence via [readFifoRow] before opening the
-  /// transaction, so a missing row here indicates a concurrent delete
-  /// race that rehabilitate does not close.
+  /// Any other transition throws [StateError]. In particular `sent`
+  /// and `tombstoned` are terminal end-states; they cannot transition
+  /// to anything else.
   ///
-  /// This method's narrow contract (wedged -> null) is inherited from
-  /// Phase-4.6 rehabilitate. Phase-4.7 Task 6 will widen it to
-  /// participate in tombstoneAndRefill; for now its sole caller remains
-  /// rehabilitate.
+  /// Preserves `attempts[]` verbatim on every transition (REQ-d00132-B
+  /// rehabilitate and REQ-d00144-B tombstoneAndRefill both require it).
+  /// `sent_at` is set on `null -> sent`, cleared on `-> null` (defensive
+  /// clear — rehabilitated rows are no longer terminal), and untouched
+  /// on every other transition.
+  ///
+  /// Throws [StateError] on a missing target row: callers verify
+  /// existence before opening the transaction, so a missing row here
+  /// indicates a concurrent delete race that these ops do not close.
   // Implements: REQ-d00132-B — `wedged -> null` flip; preserves
-  // attempts[], clears sent_at. Rejects non-null status so
-  // markFinal's one-way rule is not weakened.
+  // attempts[], clears sent_at.
+  // Implements: REQ-d00144-B — `null|wedged -> tombstoned` flip;
+  // attempts[] preserved verbatim; sent_at untouched.
+  // Implements: REQ-d00119-D — one-way rule: terminal rows
+  // ({sent, tombstoned}) cannot transition further.
   @override
   Future<void> setFinalStatusTxn(
     Txn txn,
@@ -1134,15 +1143,6 @@ class SembastBackend extends StorageBackend {
     String entryId,
     FinalStatus? status,
   ) async {
-    if (status != null) {
-      throw ArgumentError.value(
-        status,
-        'status',
-        'setFinalStatusTxn only supports rehabilitate (wedged -> '
-            'null); use markFinal for null -> sent|wedged|tombstoned '
-            'transitions.',
-      );
-    }
     final t = _requireValidTxn(txn);
     final store = _fifoStore(destinationId);
     final records = await store.find(
@@ -1152,20 +1152,84 @@ class SembastBackend extends StorageBackend {
     if (records.isEmpty) {
       throw StateError(
         'setFinalStatusTxn($destinationId, $entryId, $status): target '
-        'row not found. Rehabilitate callers must verify existence via '
-        'readFifoRow before opening the transaction; a missing row '
+        'row not found. Callers must verify existence (readFifoRow or '
+        'readFifoHead) before opening the transaction; a missing row '
         'here indicates a concurrent delete race.',
       );
     }
     final record = records.single;
     final updated = Map<String, Object?>.from(record.value);
-    updated['final_status'] = null;
-    // Clear sent_at defensively: a wedged row should not have one,
-    // but if any ever leaks through, leaving it here would make the
-    // newly-pre-terminal row look like it had already been sent.
-    updated['sent_at'] = null;
-    // attempts[] is deliberately NOT touched — REQ-d00132-B.
+    final currentRaw = updated['final_status'];
+    final current = currentRaw == null
+        ? null
+        : FinalStatus.fromJson(currentRaw as String);
+    // Legal transitions (REQ-d00119-D one-way rule + REQ-d00144-B):
+    //  - null  -> sent          (drain SendOk)
+    //  - null  -> wedged        (drain SendPermanent / max-attempts)
+    //  - null  -> tombstoned    (tombstoneAndRefill on null head)
+    //  - wedged -> tombstoned   (tombstoneAndRefill on wedged head)
+    //  - wedged -> null         (rehabilitate)
+    final valid =
+        (current == null &&
+            (status == FinalStatus.sent ||
+                status == FinalStatus.wedged ||
+                status == FinalStatus.tombstoned)) ||
+        (current == FinalStatus.wedged && status == FinalStatus.tombstoned) ||
+        (current == FinalStatus.wedged && status == null);
+    if (!valid) {
+      throw StateError(
+        'setFinalStatusTxn($destinationId, $entryId): illegal transition '
+        '$current -> $status. Legal transitions: null -> {sent, wedged, '
+        'tombstoned}; wedged -> {tombstoned, null}. (REQ-d00119-D '
+        'one-way rule.)',
+      );
+    }
+    updated['final_status'] = status?.toJson();
+    if (status == FinalStatus.sent) {
+      // Drain-terminal SendOk stamps sent_at.
+      updated['sent_at'] = DateTime.now().toUtc().toIso8601String();
+    } else if (status == null) {
+      // Rehabilitated row is no longer terminal; clear any stale
+      // sent_at defensively. In practice a wedged row has sent_at ==
+      // null already (only `sent` ever sets it).
+      updated['sent_at'] = null;
+    }
+    // attempts[] is deliberately NOT touched — REQ-d00132-B rehabilitate
+    // and REQ-d00144-B tombstoneAndRefill both require verbatim
+    // preservation; the drain-terminal null->{sent,wedged} path has
+    // already appended its attempts via appendAttempt before calling
+    // markFinal/setFinalStatusTxn.
     await store.record(record.key).put(t._sembastTxn, updated);
+  }
+
+  /// Delete every FIFO row on [destinationId] whose `sequence_in_queue`
+  /// is strictly greater than [afterSequenceInQueue] AND whose
+  /// `final_status IS null`. Returns the count of rows deleted.
+  ///
+  /// Used by `tombstoneAndRefill` to sweep the trail behind a
+  /// tombstoned target in one transaction (REQ-d00144-C). Rows whose
+  /// `final_status` is terminal (any of {sent, wedged, tombstoned})
+  /// are left untouched regardless of their `sequence_in_queue` — per
+  /// REQ-d00119-D all non-null rows are retained forever.
+  // Implements: REQ-d00144-C — trail-delete predicate
+  // (final_status IS null AND sequence_in_queue > afterSequenceInQueue).
+  @override
+  Future<int> deleteNullRowsAfterSequenceInQueueTxn(
+    Txn txn,
+    String destinationId,
+    int afterSequenceInQueue,
+  ) async {
+    final t = _requireValidTxn(txn);
+    final store = _fifoStore(destinationId);
+    return store.delete(
+      t._sembastTxn,
+      finder: Finder(
+        filter: Filter.and([
+          Filter.isNull('final_status'),
+          Filter.greaterThan('sequence_in_queue', afterSequenceInQueue),
+        ]),
+      ),
+    );
   }
 
   /// The first non-sent entry in the FIFO when it is `wedged`. Returns

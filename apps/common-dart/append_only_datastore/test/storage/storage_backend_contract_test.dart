@@ -382,6 +382,12 @@ class _InMemoryBackend extends StorageBackend {
     String entryId,
     FinalStatus? status,
   ) => throw UnimplementedError();
+  @override
+  Future<int> deleteNullRowsAfterSequenceInQueueTxn(
+    Txn txn,
+    String destinationId,
+    int afterSequenceInQueue,
+  ) => throw UnimplementedError();
 }
 
 class _InMemoryTxn extends Txn {

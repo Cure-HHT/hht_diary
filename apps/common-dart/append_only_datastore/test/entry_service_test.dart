@@ -638,4 +638,15 @@ class _DelegatingBackend extends StorageBackend {
     String entryId,
     FinalStatus? status,
   ) => _inner.setFinalStatusTxn(txn, destinationId, entryId, status);
+
+  @override
+  Future<int> deleteNullRowsAfterSequenceInQueueTxn(
+    Txn txn,
+    String destinationId,
+    int afterSequenceInQueue,
+  ) => _inner.deleteNullRowsAfterSequenceInQueueTxn(
+    txn,
+    destinationId,
+    afterSequenceInQueue,
+  );
 }

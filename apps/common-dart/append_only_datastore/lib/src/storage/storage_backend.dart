@@ -458,29 +458,61 @@ abstract class StorageBackend {
   Future<List<FifoEntry>> exhaustedRowsOf(String destinationId);
 
   /// Set the row's `final_status` to [status] inside [txn]. This method
-  /// is narrowly scoped to the `wedged -> null` (pre-terminal) flip used
-  /// by rehabilitate: implementations SHALL reject any non-null [status]
-  /// with `ArgumentError`. The one-way rule for
-  /// `null -> sent|wedged|tombstoned` remains owned by [markFinal]; the
-  /// two paths are deliberately separate so the one-way contract on
-  /// [markFinal] is not weakened.
+  /// owns two operator-recovery paths (rehabilitate and
+  /// tombstoneAndRefill). The legal transitions are:
   ///
-  /// On the permitted `-> null` transition, implementations SHALL
-  /// preserve the row's `attempts[]` unchanged (REQ-d00132-B) and
-  /// SHALL clear any `sent_at` timestamp (a rehabilitated row is no
-  /// longer terminal, so a stale `sent_at` would confuse the send-log).
+  /// - `wedged -> null` — rehabilitate's flip back to pre-terminal.
+  /// - `null -> sent` — drain-terminal (SendOk).
+  /// - `null -> wedged` — drain-terminal (SendPermanent, or
+  ///   SendTransient at max attempts).
+  /// - `null -> tombstoned` — `tombstoneAndRefill` on a still-pending
+  ///   head.
+  /// - `wedged -> tombstoned` — `tombstoneAndRefill` on a wedged head.
+  ///
+  /// Any other transition is illegal and SHALL throw `StateError`.
+  /// `sent` and `tombstoned` are terminal end-states and cannot
+  /// transition further. The one-way rule for `null -> terminal` owned
+  /// by [markFinal] is subsumed here but the narrower contract on
+  /// [markFinal] (null-targets only) remains in force for its callers.
+  ///
+  /// On the `-> null` rehabilitate transition, implementations SHALL
+  /// preserve the row's `attempts[]` unchanged (REQ-d00132-B) and SHALL
+  /// clear any `sent_at` timestamp. On `null -> sent` the implementation
+  /// SHALL stamp `sent_at = DateTime.now().toUtc()`. On every other
+  /// transition `attempts[]` and `sent_at` SHALL be left untouched —
+  /// tombstoneAndRefill preserves the wedged row's attempts[] verbatim
+  /// (REQ-d00144-B).
   ///
   /// Implementations SHALL throw [StateError] when the target row is
-  /// absent — rehabilitate's caller is expected to have verified
-  /// existence via [readFifoRow] before opening the transaction, so a
-  /// missing row at this point indicates a concurrent delete race that
-  /// rehabilitate does not close.
+  /// absent — callers are expected to have verified existence (via
+  /// [readFifoRow] for rehabilitate, [readFifoHead] for
+  /// tombstoneAndRefill) before opening the transaction, so a missing
+  /// row at this point indicates a concurrent delete race that these
+  /// ops do not close.
   // Implements: REQ-d00132-B — `wedged -> null` flip, preserves
   // attempts[], clears sent_at.
+  // Implements: REQ-d00144-B — `null|wedged -> tombstoned` flip,
+  // preserves attempts[] verbatim.
   Future<void> setFinalStatusTxn(
     Txn txn,
     String destinationId,
     String entryId,
     FinalStatus? status,
+  );
+
+  /// Delete every FIFO row on [destinationId] whose `sequence_in_queue`
+  /// is strictly greater than [afterSequenceInQueue] AND whose
+  /// `final_status IS null`. Returns the count of rows deleted.
+  ///
+  /// Used by `tombstoneAndRefill` to sweep the trail behind a
+  /// tombstoned target in one transaction (REQ-d00144-C). Rows whose
+  /// `final_status` is terminal (any of {sent, wedged, tombstoned})
+  /// are left untouched regardless of their `sequence_in_queue` — per
+  /// REQ-d00119-D all non-null rows are retained forever.
+  // Implements: REQ-d00144-C — trail-delete predicate for tombstoneAndRefill.
+  Future<int> deleteNullRowsAfterSequenceInQueueTxn(
+    Txn txn,
+    String destinationId,
+    int afterSequenceInQueue,
   );
 }

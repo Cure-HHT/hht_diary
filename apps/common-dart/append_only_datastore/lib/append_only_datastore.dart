@@ -119,7 +119,11 @@ export 'src/core/errors/sync_exception.dart';
 export 'src/destinations/destination.dart' show Destination;
 export 'src/destinations/destination_registry.dart' show DestinationRegistry;
 export 'src/destinations/destination_schedule.dart'
-    show DestinationSchedule, SetEndDateResult, UnjamResult;
+    show
+        DestinationSchedule,
+        SetEndDateResult,
+        TombstoneAndRefillResult,
+        UnjamResult;
 export 'src/destinations/subscription_filter.dart'
     show SubscriptionFilter, SubscriptionPredicate;
 export 'src/destinations/wire_payload.dart' show WirePayload;
@@ -151,6 +155,11 @@ export 'src/materialization/entry_type_definition_lookup.dart'
 export 'src/materialization/materializer.dart' show Materializer;
 export 'src/materialization/rebuild.dart'
     show rebuildMaterializedView, rebuildView;
+
+// Operator-recovery primitives (Phase 4.7, CUR-1154).
+// tombstoneAndRefill is the sole recovery path for a wedged FIFO head
+// under strict-order drain (REQ-d00144).
+export 'src/ops/tombstone_and_refill.dart' show tombstoneAndRefill;
 
 // Security module — Phase 4.4 Tasks 11-15: EventSecurityContext value
 // type, SecurityDetails caller input, SecurityRetentionPolicy sweeps,
