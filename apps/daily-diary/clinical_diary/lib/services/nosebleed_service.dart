@@ -108,13 +108,7 @@ class NosebleedService {
       isDeleted: data['isDeleted'] as bool? ?? false,
       deleteReason: data['deleteReason'] as String?,
       parentRecordId: data['parentRecordId'] as String?,
-      // Phase 4.4: deviceId moved off StoredEvent to metadata.provenance[0].
-      // Phase 5 will rewire widgets onto EventStore; this is the interim read.
-      deviceUuid:
-          ((event.metadata['provenance'] as List?)?.firstOrNull
-                  as Map<String, Object?>?)?['identifier']
-              as String? ??
-          '',
+      deviceUuid: event.deviceId,
       createdAt: event.clientTimestamp,
       syncedAt: event.syncedAt,
       // CUR-516: Read timezone for UI restoration on incomplete records
@@ -196,7 +190,6 @@ class NosebleedService {
     await _eventRepository.append(
       aggregateId:
           'diary-${startTime.year}-${startTime.month}-${startTime.day}',
-      entryType: 'epistaxis_event',
       eventType: 'NosebleedRecorded',
       data: {
         'recordId':
@@ -274,7 +267,6 @@ class NosebleedService {
     final userId = await _enrollmentService.getUserId() ?? 'anonymous';
     await _eventRepository.append(
       aggregateId: 'diary-deletion-${record.id}',
-      entryType: 'epistaxis_event',
       eventType: 'NosebleedDeleted',
       data: {
         'recordId':
@@ -522,7 +514,6 @@ class NosebleedService {
             await _eventRepository.append(
               aggregateId:
                   'diary-${cloudRecord.startTime.year}-${cloudRecord.startTime.month}-${cloudRecord.startTime.day}',
-              entryType: 'epistaxis_event',
               eventType: 'NosebleedRecorded',
               data: {
                 'recordId': cloudRecord.id, // Preserve cloud record ID
