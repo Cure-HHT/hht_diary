@@ -568,7 +568,7 @@ CREATE TABLE app_users (
     username TEXT UNIQUE,
     password_hash TEXT,
     auth_code TEXT NOT NULL UNIQUE,
-    app_uuid TEXT,
+    app_uuid TEXT UNIQUE, -- CUR-1055: one record per device
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     last_active_at TIMESTAMPTZ DEFAULT now(),

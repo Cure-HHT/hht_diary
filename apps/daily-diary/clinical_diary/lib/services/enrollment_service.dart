@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service for handling patient linking with 10-character codes
 /// Uses HTTP calls to server functions for linking
@@ -69,6 +70,18 @@ class EnrollmentService {
   /// REQ-d00078: Code is validated via SHA-256 hash lookup
   Future<UserEnrollment> enroll(String code) async {
     try {
+      // CUR-1055: Client-side duplicate enrollment check.
+      // If enrollment data already exists in secure storage, this device is already
+      // linked to a study. Reject immediately without hitting the server.
+      final existing = await getEnrollment();
+      if (existing != null) {
+        throw EnrollmentException(
+          'This phone is already enrolled in this study. '
+          'Please contact your site coordinator if this is incorrect.',
+          EnrollmentErrorType.deviceAlreadyEnrolled,
+        );
+      }
+
       // Normalize code: uppercase, remove dash
       final normalizedCode = code.toUpperCase().replaceAll('-', '').trim();
 
@@ -92,8 +105,15 @@ class EnrollmentService {
       // Build the full link URL for this sponsor's backend
       final linkUrl = '$backendUrl/api/v1/user/link';
 
-      // Get app UUID for tracking (device identifier)
-      final appUuid = await _secureStorage.read(key: 'app_uuid');
+      // CUR-1055: Ensure a stable device identifier is always sent with enrollment.
+      // app_uuid is written here on first enrollment and reused on subsequent calls.
+      // This allows the server to detect and reject duplicate enrollment attempts
+      // from the same device via ON CONFLICT (app_uuid) in the upsert.
+      var appUuid = await _secureStorage.read(key: 'app_uuid');
+      if (appUuid == null) {
+        appUuid = const Uuid().v4();
+        await _secureStorage.write(key: 'app_uuid', value: appUuid);
+      }
 
       // Call the link function via HTTP (REQ-p70007)
       // No JWT required - the linking code IS the authentication
@@ -101,16 +121,26 @@ class EnrollmentService {
       final response = await _httpClient.post(
         Uri.parse(linkUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': normalizedCode, 'appUuid': ?appUuid}),
+        body: jsonEncode({'code': normalizedCode, 'appUuid': appUuid}),
       );
 
       debugPrint('Link response status: ${response.statusCode}');
       debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
+        // Server returns two distinct 409 messages — use the body directly
+        // so the user sees the correct reason (code already used vs device already linked).
+        final errorBody = jsonDecode(response.body) as Map<String, dynamic>;
+        final serverMessage = errorBody['error']?.toString();
+        final isDeviceDuplicate =
+            serverMessage != null &&
+            serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
-          'This code has already been used. Please request a new code from your research coordinator.',
-          EnrollmentErrorType.codeAlreadyUsed,
+          serverMessage ??
+              'This code has already been used. Please request a new code from your research coordinator.',
+          isDeviceDuplicate
+              ? EnrollmentErrorType.deviceAlreadyEnrolled
+              : EnrollmentErrorType.codeAlreadyUsed,
         );
       }
 
@@ -336,6 +366,7 @@ class EnrollmentService {
 enum EnrollmentErrorType {
   invalidCode,
   codeAlreadyUsed,
+  deviceAlreadyEnrolled, // CUR-1055: this device is already linked to a study
   codeExpired,
   authRequired,
   serverError,

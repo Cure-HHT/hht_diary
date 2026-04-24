@@ -72,7 +72,8 @@ void main() {
     final testUsername = 'regtest_${DateTime.now().millisecondsSinceEpoch}';
     const testPasswordHash =
         '5e884898da28047d9166540d34e4b5eb9d06d6b9f7c0c0d3a75a3a75e8e0ab57';
-    const testAppUuid = 'test-app-uuid';
+    final testAppUuid =
+        'test-app-uuid-${DateTime.now().millisecondsSinceEpoch}';
 
     test('creates new user with valid data', () async {
       final request = createPostRequest('/api/v1/auth/register', {
@@ -154,7 +155,8 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': uniqueUsername,
         'passwordHash': testPasswordHash,
-        'appUuid': testAppUuid,
+        'appUuid':
+            'test-app-uuid-underscore-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
@@ -200,7 +202,8 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': mixedCase,
         'passwordHash': testPasswordHash,
-        'appUuid': testAppUuid,
+        'appUuid':
+            'test-app-uuid-mixedcase-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
@@ -222,7 +225,7 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': testUsername,
         'passwordHash': testPasswordHash,
-        'appUuid': 'test-app',
+        'appUuid': 'test-app-login-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
@@ -311,7 +314,7 @@ void main() {
       final request = createPostRequest('/api/v1/auth/register', {
         'username': testUsername,
         'passwordHash': testPasswordHash,
-        'appUuid': 'test-app',
+        'appUuid': 'test-app-pwd-${DateTime.now().millisecondsSinceEpoch}',
       });
 
       final response = await registerHandler(request);
