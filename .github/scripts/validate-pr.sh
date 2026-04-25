@@ -172,7 +172,7 @@ source "$REPO_ROOT/.githooks/version-utils.sh"
 VERSION_FAILED=false
 
 for project_def in "${PROJECT_DEFS[@]}"; do
-  IFS='|' read -r name pubspec code_dirs triggers <<< "$project_def"
+  IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
   code_changed=false
   any_trigger=false
@@ -192,8 +192,8 @@ for project_def in "${PROJECT_DEFS[@]}"; do
       continue
     fi
 
-    if ! verify_version_bumped "$pr_ver" "$main_ver" "$code_changed"; then
-      expected=$(compute_new_version "$pr_ver" "$main_ver" "$code_changed")
+    if ! verify_version_bumped_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed"; then
+      expected=$(compute_new_version_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed")
       if [ "$code_changed" = true ]; then
         report_error "${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
       else

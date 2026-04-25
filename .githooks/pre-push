@@ -488,7 +488,7 @@ echo ""
 # build inputs. Tests cascade on a dart/test.sh change in either.
 TEST_DIRS=""
 for project_def in "${PROJECT_DEFS[@]}"; do
-    IFS='|' read -r name pubspec code_dirs triggers <<< "$project_def"
+    IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
     PROJECT_DIR=$(dirname "$pubspec")
     TEST_SCRIPT="$REPO_ROOT/$PROJECT_DIR/tool/test.sh"

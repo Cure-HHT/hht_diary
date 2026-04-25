@@ -41,7 +41,7 @@ project_def_for() {
     local wanted="$1"
     local def name
     for def in "${PROJECT_DEFS[@]}"; do
-        IFS='|' read -r name _ _ _ <<< "$def"
+        IFS='|' read -r name _ _ _ _ <<< "$def"
         if [ "$name" = "$wanted" ]; then
             printf '%s\n' "$def"
             return 0
@@ -64,8 +64,8 @@ assert() {
         return
     fi
 
-    local name pubspec code_dirs triggers
-    IFS='|' read -r name pubspec code_dirs triggers <<< "$def"
+    local name pubspec code_dirs triggers version_mode
+    IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$def"
 
     local actual
     actual=$(classify "$code_dirs" "$triggers" "$changed")

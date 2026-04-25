@@ -168,3 +168,101 @@ verify_version_bumped() {
 
     return 0
 }
+
+# compute_new_version_semver_only <current_version> <main_version>
+# Bumps semver patch when main's semver hasn't moved; preserves a manual
+# minor or major bump in current. Strips any inherited +N — semver-only
+# projects must never carry a build identifier in pubspec because the
+# build identifier is assigned downstream (callisto's portal-final
+# Dockerfile composes APP_VERSION = <semver>+cb-<short_sha>).
+#
+# Caller is responsible for only invoking this when own-source code
+# changed; trigger-only invocations on a semver-only project should
+# produce no bump (handled by compute_new_version_for).
+compute_new_version_semver_only() {
+    local current_version="$1"
+    local main_version="$2"
+
+    local current_semver main_semver
+    current_semver="$(extract_semver "$current_version")"
+    main_semver="$(extract_semver "$main_version")"
+
+    if _semver_gt "$current_semver" "$main_semver"; then
+        echo "$current_semver"
+    else
+        _bump_patch "$main_semver"
+    fi
+}
+
+# verify_version_bumped_semver_only <current_version> <main_version> <code_changed>
+# Pass iff (a) current carries no +N and (b) when code changed, semver
+# strictly increased relative to main. Trigger-only changes don't require
+# a bump for semver-only projects.
+verify_version_bumped_semver_only() {
+    local current_version="$1"
+    local main_version="$2"
+    local code_changed="$3"
+
+    if [[ "$current_version" == *+* ]]; then
+        return 1
+    fi
+
+    if [ "$code_changed" = "true" ]; then
+        local current_semver main_semver
+        current_semver="$(extract_semver "$current_version")"
+        main_semver="$(extract_semver "$main_version")"
+        if ! _semver_gt "$current_semver" "$main_semver"; then
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# compute_new_version_for <version_mode> <current> <main> <code_changed>
+# Dispatches by version_mode (from PROJECT_DEFS). Standard mode mirrors
+# compute_new_version. Semver-only mode bumps semver on a code change and
+# emits empty (no bump) on a trigger-only change.
+compute_new_version_for() {
+    local mode="$1"
+    local current="$2"
+    local main="$3"
+    local code_changed="$4"
+
+    case "$mode" in
+        standard)
+            compute_new_version "$current" "$main" "$code_changed"
+            ;;
+        semver-only)
+            if [ "$code_changed" = "true" ]; then
+                compute_new_version_semver_only "$current" "$main"
+            fi
+            ;;
+        *)
+            echo "ERROR: unknown version_mode '$mode'" >&2
+            return 1
+            ;;
+    esac
+}
+
+# verify_version_bumped_for <version_mode> <current> <main> <code_changed>
+# Dispatches by version_mode. See compute_new_version_for for the modes.
+verify_version_bumped_for() {
+    local mode="$1"
+    local current="$2"
+    local main="$3"
+    local code_changed="$4"
+
+    case "$mode" in
+        standard)
+            verify_version_bumped "$current" "$main" "$code_changed"
+            ;;
+        semver-only)
+            verify_version_bumped_semver_only "$current" "$main" "$code_changed"
+            ;;
+        *)
+            echo "ERROR: unknown version_mode '$mode'" >&2
+            return 1
+            ;;
+    esac
+}
