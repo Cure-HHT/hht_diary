@@ -101,12 +101,11 @@ class _EventRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // UUIDv7 prefix is a timestamp, so aggregates minted close in time
+    // share leading bytes. Tail (rand_b) is where the visual entropy lives.
     final shortAgg = event.aggregateId.length >= 6
-        ? event.aggregateId.substring(0, 6)
+        ? event.aggregateId.substring(event.aggregateId.length - 6)
         : event.aggregateId;
-    final eventTypeShort = event.eventType.length > 7
-        ? event.eventType.substring(0, 7)
-        : event.eventType;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -116,7 +115,7 @@ class _EventRow extends StatelessWidget {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Text(
-          '#${event.sequenceNumber} $eventTypeShort ${event.aggregateType} $shortAgg',
+          '#${event.sequenceNumber} ${event.eventType} ${event.aggregateType} $shortAgg',
           style: DemoText.body,
         ),
       ),

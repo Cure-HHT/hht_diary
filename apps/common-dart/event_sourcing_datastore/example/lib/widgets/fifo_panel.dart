@@ -2,7 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
-    show tombstoneAndRefill, DestinationSchedule, SembastBackend;
+    show
+        tombstoneAndRefill,
+        DestinationSchedule,
+        SembastBackend,
+        SetEndDateResult;
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/demo_destination.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
@@ -115,7 +119,10 @@ class _FifoPanelState extends State<FifoPanel> {
     if (s.startDate!.isAfter(now)) {
       return 'SCHEDULED until ${s.startDate!.toIso8601String()}';
     }
-    if (s.endDate == null || s.endDate!.isAfter(now)) return 'ACTIVE';
+    if (s.endDate == null) return 'ACTIVE';
+    if (s.endDate!.isAfter(now)) {
+      return 'ACTIVE until ${s.endDate!.toIso8601String()}';
+    }
     return 'CLOSED @ ${s.endDate!.toIso8601String()}';
   }
 
@@ -223,7 +230,7 @@ class _FifoPanelState extends State<FifoPanel> {
             controller: _endCtrl,
             style: const TextStyle(color: DemoColors.fg, fontSize: 12),
             decoration: const InputDecoration(
-              hintText: 'endDate ISO-8601 (past = close now)',
+              hintText: 'endDate, e.g. 2099-01-01T00:00:00Z (past = close)',
               hintStyle: TextStyle(color: DemoColors.pending, fontSize: 11),
               isDense: true,
             ),
@@ -237,11 +244,19 @@ class _FifoPanelState extends State<FifoPanel> {
               return;
             }
             try {
+              final utc = d.toUtc();
               final result = await widget.appState.registry.setEndDate(
                 widget.destination.id,
-                d.toUtc(),
+                utc,
               );
-              _flashBanner('endDate: $result');
+              final iso = utc.toIso8601String();
+              final msg = switch (result) {
+                SetEndDateResult.closed => 'closed at $iso',
+                SetEndDateResult.scheduled => 'scheduled to close at $iso',
+                SetEndDateResult.applied =>
+                  'endDate set to $iso (no state change)',
+              };
+              _flashBanner(msg);
               await _refresh();
             } catch (e) {
               _flashBanner('err: $e');

@@ -57,9 +57,12 @@ class _TopActionBarState extends State<TopActionBar> {
   }
 
   Map<String, Object?> _collectAnswers() {
+    // Omit empty-string fields so successive events carry only the keys
+    // the operator actually filled in. Lets the materialized view exercise
+    // its absent-key-preserves-prior merge branch (REQ-d00121-B+C+J).
     return <String, Object?>{
-      'title': _title.text,
-      'body': _body.text,
+      if (_title.text.isNotEmpty) 'title': _title.text,
+      if (_body.text.isNotEmpty) 'body': _body.text,
       'date': DateTime.now().toUtc().toIso8601String(),
     };
   }
@@ -200,9 +203,9 @@ class _TopActionBarState extends State<TopActionBar> {
                 widget.entryTypesLookup,
               );
               if (!mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Rebuilt $count rows')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Rebuilt $count aggregates')),
+              );
             } catch (e) {
               if (!mounted) return;
               ScaffoldMessenger.of(

@@ -102,8 +102,10 @@ class _MaterializedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // UUIDv7 prefix is a timestamp, so entries minted close in time share
+    // leading bytes. Tail (rand_b) is where the visual entropy lives.
     final short = row.entryId.length >= 8
-        ? row.entryId.substring(0, 8)
+        ? row.entryId.substring(row.entryId.length - 8)
         : row.entryId;
     final status = row.isDeleted
         ? 'del'
