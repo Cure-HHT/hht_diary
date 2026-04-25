@@ -369,27 +369,28 @@ apps/common-dart/append_only_datastore/
   - **Ops drawer** (collapsible): [Unjam] [Rehabilitate all exhausted] [Delete destination] (delete shown only when `allowHardDelete == true`).
 - Rightmost col `DETAIL` — populated by clicking any row in cols 1-N.
 
-### 7.4 Styles (12%-below-max brightness)
+### 7.4 Styles (full-brightness readability palette)
 
 ```text
 DemoColors:
-  bg          = 0x000000   black
-  fg          = 0xFFFFFF   white
-  accent      = 0xE0E000   yellow    (section headers, draining head)
-  sent        = 0x00E000   green
-  pending     = 0xAAAAAA   grey
-  retrying    = 0xE00000   red       (head in transient-retry)
-  exhausted   = 0xE000E0   magenta   (exhausted row, inert)
-  selected    = 0x0044AA   blue      (cross-panel selection)
-  border      = 0xFFFFFF   white
+  bg               = 0x000000   black
+  fg               = 0xFFFFFF   white
+  accent           = 0xFFFF00   yellow    (section headers, draining head)
+  sent             = 0x00FF00   green
+  pending          = 0xCCCCCC   grey
+  retrying         = 0xFF0000   red       (head in transient-retry)
+  exhausted        = 0xFF00FF   magenta   (exhausted row, inert)
+  selected         = 0x001A66   dark navy (cross-panel selection fill)
+  selectedOutline  = 0xFFFF00   yellow    (2px rectangle around selected row)
+  border           = 0xFFFFFF   white
 
 Action-button colors match corresponding state hue:
-  red button    = 0xE00000
-  green button  = 0x00E000
-  blue button   = 0x005AE0
+  red button    = 0xFF0000
+  green button  = 0x00FF00
+  blue button   = 0x0066FF
 ```
 
-No `ThemeData` tinkering. 20px monospace body text; 24-28px uppercase yellow headers; 3px white panel borders; no rounded corners, shadows, or gradients.
+All text renders in **bold** (set as the default text weight at the app root). 20px monospace body text; 24-28px uppercase yellow headers; 3px white panel borders; 2px yellow rectangular outline wrapping the selected row against the navy fill; no rounded corners, shadows, or gradients.
 
 ### 7.5 Row conventions
 
