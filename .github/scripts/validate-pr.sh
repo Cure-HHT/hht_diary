@@ -289,50 +289,51 @@ if [ "$ENFORCE_CODE_HEADERS" = "on" ] && { [ "$CODE_CHANGED" = "true" ] || [ "$D
   MISSING_HEADERS=()
   TOTAL_SCANNED=0
 
+  # Recursive SQL/Dart scans use `find -print0 | while read -d ''` rather
+  # than bash 4's `globstar`. Devs run validate-pr.sh on macOS where the
+  # default /bin/bash is 3.2 and `shopt -s globstar` is unavailable; under
+  # that shell, `database/**/*.sql` silently degrades to depth-2 matching
+  # and deeper files escape header validation without any error. The
+  # process-substitution form keeps the loop body in the same shell so
+  # MISSING_HEADERS+= and TOTAL_SCANNED= propagate.
+
   # Check SQL files in database directory
   if [ -d "database" ]; then
-    shopt -s nullglob globstar
-    for file in database/**/*.sql; do
-      # Skip tests and migrations
+    while IFS= read -r -d '' file; do
       if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
         continue
       fi
-      if [ -f "$file" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|sql")
-        fi
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|sql")
       fi
-    done
-    shopt -u globstar
+    done < <(find database -type f -name '*.sql' -print0 2>/dev/null)
   fi
 
   # Check Dart files in packages directory
   if [ -d "packages" ]; then
-    shopt -s globstar
-    for file in packages/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find packages -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Check Dart files in apps directory
   if [ -d "apps" ]; then
-    shopt -s globstar
-    for file in apps/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find apps -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Write report to ci-reports/
