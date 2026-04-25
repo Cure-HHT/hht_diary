@@ -139,8 +139,13 @@ compute_new_version() {
 # Returns 0 if properly bumped, 1 if not. Used by CI (check, don't fix).
 #
 # Checks:
-#   1. Build number must be greater than main's build number
-#   2. If code_changed, semver must be greater than main's semver
+#   1. Semver must never decrease vs main (defends against stale branches
+#      whose pubspec was bumped against an old main_semver — git's merge
+#      mechanics catch most of these via "branch out of date," but
+#      depending on branch protection settings the bad value can
+#      otherwise slip through)
+#   2. Build number must be greater than main's build number
+#   3. If code_changed, semver must be greater than main's semver
 #      (unless dev manually bumped, in which case any higher semver is fine)
 verify_version_bumped() {
     local current_version="$1"
@@ -153,6 +158,11 @@ verify_version_bumped() {
     main_build=$(extract_build_number "$main_version")
     current_semver=$(extract_semver "$current_version")
     main_semver=$(extract_semver "$main_version")
+
+    # Semver must never go backward, regardless of code_changed
+    if _semver_gt "$main_semver" "$current_semver"; then
+        return 1
+    fi
 
     # Build number must have increased
     if [ "$current_build" -le "$main_build" ]; then
@@ -195,9 +205,10 @@ compute_new_version_semver_only() {
 }
 
 # verify_version_bumped_semver_only <current_version> <main_version> <code_changed>
-# Pass iff (a) current carries no +N and (b) when code changed, semver
-# strictly increased relative to main. Trigger-only changes don't require
-# a bump for semver-only projects.
+# Pass iff (a) current carries no +N, (b) semver never decreases vs main,
+# and (c) when code changed, semver strictly increased relative to main.
+# Trigger-only changes don't require a bump for semver-only projects, but
+# the no-backward-semver invariant still applies.
 verify_version_bumped_semver_only() {
     local current_version="$1"
     local main_version="$2"
@@ -207,10 +218,16 @@ verify_version_bumped_semver_only() {
         return 1
     fi
 
+    local current_semver main_semver
+    current_semver="$(extract_semver "$current_version")"
+    main_semver="$(extract_semver "$main_version")"
+
+    # Semver must never go backward, regardless of code_changed
+    if _semver_gt "$main_semver" "$current_semver"; then
+        return 1
+    fi
+
     if [ "$code_changed" = "true" ]; then
-        local current_semver main_semver
-        current_semver="$(extract_semver "$current_version")"
-        main_semver="$(extract_semver "$main_version")"
         if ! _semver_gt "$current_semver" "$main_semver"; then
             return 1
         fi

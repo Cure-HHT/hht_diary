@@ -69,6 +69,29 @@ rc 0 "no +N, code change, semver bumped -> pass"           verify_version_bumped
 rc 1 "+N present, no code change -> fail"                  verify_version_bumped_semver_only "1.0.14+1" "1.0.14" "false"
 rc 1 "+N present, code change with semver bump -> fail"    verify_version_bumped_semver_only "1.0.15+1" "1.0.14" "true"
 
+# ===== Backward-semver guard (both modes) =====
+# A stale branch can stage a bumped pubspec whose semver is BEHIND main's
+# (e.g. main has been advanced since the branch was last rebased). The
+# verifiers must reject this regardless of code_changed, otherwise CI
+# greenlights a backward-semver merge.
+echo ""
+echo "  -- backward-semver guard (standard) --"
+rc 1 "standard cascade: current_semver < main_semver -> reject"  verify_version_bumped "0.9.16+37" "0.9.17+36" "false"
+rc 1 "standard code change: current_semver < main_semver -> reject" verify_version_bumped "0.9.16+38" "0.9.17+36" "true"
+rc 0 "standard cascade: current_semver == main_semver -> pass"   verify_version_bumped "0.9.17+37" "0.9.17+36" "false"
+rc 0 "standard cascade: current_semver > main_semver -> pass"    verify_version_bumped "0.9.18+37" "0.9.17+36" "false"
+
+echo ""
+echo "  -- backward-semver guard (semver-only) --"
+rc 1 "semver-only cascade: current_semver < main_semver -> reject" verify_version_bumped_semver_only "1.0.13" "1.0.14" "false"
+rc 1 "semver-only code change: current_semver < main_semver -> reject" verify_version_bumped_semver_only "1.0.13" "1.0.14" "true"
+rc 0 "semver-only cascade: current_semver > main_semver -> pass"   verify_version_bumped_semver_only "1.0.15" "1.0.14" "false"
+
+echo ""
+echo "  -- backward-semver guard via dispatcher --"
+rc 1 "verify_for(standard) catches backward-semver cascade"      verify_version_bumped_for "standard" "0.9.16+37" "0.9.17+36" "false"
+rc 1 "verify_for(semver-only) catches backward-semver cascade"   verify_version_bumped_for "semver-only" "1.0.13" "1.0.14" "false"
+
 # ===== compute_new_version_for (dispatcher) =====
 echo ""
 echo "  -- compute_new_version_for dispatcher --"
