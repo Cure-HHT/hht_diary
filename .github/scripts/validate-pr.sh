@@ -231,7 +231,26 @@ begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 if [ "$SPEC_CHANGED" = "true" ]; then
   elspais --version
 
-  elspais checks
+  # Capture stdout+stderr so we can both forward it to the log and scan
+  # it for "info"-downgraded findings to surface as GitHub Actions
+  # warning annotations (see lib/elspais-annotations.sh). The `if`-form
+  # deactivates `set -e` for the elspais call so we can run the
+  # annotation pass before re-asserting the exit code.
+  elspais_exit=0
+  if elspais_output=$(elspais checks 2>&1); then
+    elspais_exit=0
+  else
+    elspais_exit=$?
+  fi
+  printf '%s\n' "$elspais_output"
+
+  # shellcheck source=lib/elspais-annotations.sh
+  source "$REPO_ROOT/.github/scripts/lib/elspais-annotations.sh"
+  emit_suppressed_warnings "$elspais_output"
+
+  if [ "$elspais_exit" -ne 0 ]; then
+    exit "$elspais_exit"
+  fi
 
   # Generate traceability matrix for PR comment and artifact upload
   mkdir -p build-reports/combined/traceability
