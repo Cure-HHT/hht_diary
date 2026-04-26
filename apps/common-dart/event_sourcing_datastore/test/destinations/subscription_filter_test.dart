@@ -13,6 +13,8 @@ StoredEvent _mkEvent({
   aggregateId: 'agg-1',
   aggregateType: 'DiaryEntry',
   entryType: entryType,
+  entryTypeVersion: 1,
+  libFormatVersion: 1,
   eventType: eventType,
   sequenceNumber: 1,
   data: const <String, dynamic>{},

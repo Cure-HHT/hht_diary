@@ -64,6 +64,11 @@ class FakeDestination extends Destination {
   /// order with returned outcomes.
   final List<SendResult> returned = <SendResult>[];
 
+  /// Count of times `transform` has been invoked. Used by Phase 4.10
+  /// wedge-skip tests to assert `transform` is NOT called when fillBatch
+  /// early-returns on a wedged head (REQ-d00128-I).
+  int transformCalls = 0;
+
   @override
   SubscriptionFilter get filter => _filter;
 
@@ -75,6 +80,7 @@ class FakeDestination extends Destination {
   // Implements: REQ-d00128-D / REQ-d00122-D — batch-aware transform.
   @override
   Future<WirePayload> transform(List<StoredEvent> batch) {
+    transformCalls += 1;
     if (batch.isEmpty) {
       throw ArgumentError(
         'FakeDestination($id).transform called with empty batch',

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
@@ -8,6 +10,7 @@ import 'package:event_sourcing_datastore/src/storage/send_result.dart';
 import 'package:event_sourcing_datastore/src/sync/drain.dart';
 import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sembast/sembast.dart' as sembast;
 import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
@@ -305,7 +308,7 @@ void main() {
       );
 
       // Inspect the raw store: each row has exactly 1 attempt.
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_fake',
       ).find(db);
@@ -490,6 +493,139 @@ void main() {
       expect(head, isNotNull);
       expect(head!.attempts, hasLength(1));
       expect(head.attempts.first.outcome, 'transient');
+    });
+
+    // Verifies: REQ-d00119-K — drain on a native (`esd/batch@1`) FIFO
+    // row reconstructs wire bytes from `envelope_metadata` +
+    // `event_ids`-resolved events through `BatchEnvelope.encode`. The
+    // re-encode is JCS-canonical and therefore byte-identical across
+    // retries: a transient first attempt and a successful second attempt
+    // hand `Destination.send` the exact same bytes, captured here at
+    // `FakeDestination.sent`.
+    test('REQ-d00119-K: drain on native row re-encodes deterministically '
+        'across retries', () async {
+      // Write the event into the origin event store so findEventById
+      // resolves it at re-encode time.
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      await backend.transaction((txn) async {
+        final seq = await backend.nextSequenceNumber(txn);
+        // Re-mint the fixture with the reserved sequence number so the
+        // append-side guard (event.sequenceNumber == reserved) holds.
+        await backend.appendEvent(
+          txn,
+          storedEventFixture(eventId: 'e1', sequenceNumber: seq),
+        );
+      });
+
+      // Enqueue a native esd/batch@1 row directly via the
+      // nativeEnvelope: path. Drain reconstructs the wire bytes from
+      // envelope_metadata + event_ids-resolved events on each attempt.
+      final envelope = BatchEnvelopeMetadata(
+        batchFormatVersion: '1',
+        batchId: 'batch-x',
+        senderHop: 'mobile-1',
+        senderIdentifier: 'device-uuid',
+        senderSoftwareVersion: 'diary@1.2.3',
+        sentAt: DateTime.utc(2026, 4, 25, 12),
+      );
+      await backend.enqueueFifo('fake', [event], nativeEnvelope: envelope);
+
+      // First drain: scripted SendTransient leaves the row pending and
+      // captures the bytes the destination saw on attempt #1.
+      const oneAttemptCapPolicy = SyncPolicy(
+        initialBackoff: Duration.zero,
+        backoffMultiplier: 1.0,
+        maxBackoff: Duration.zero,
+        jitterFraction: 0.0,
+        maxAttempts: 5, // well above 2 — keeps the row pending across both
+        periodicInterval: Duration(minutes: 15),
+      );
+      final dest = FakeDestination(
+        script: [
+          const SendTransient(error: 'HTTP 503', httpStatus: 503),
+          const SendOk(),
+        ],
+      );
+      await drain(
+        dest,
+        backend: backend,
+        clock: () => DateTime.utc(2026, 4, 25, 13),
+        policy: oneAttemptCapPolicy,
+      );
+      expect(dest.sent, hasLength(1));
+      final firstBytes = dest.sent.last.bytes;
+      // The reconstructed payload must be tagged with the native wire
+      // format and its bytes must decode back to the original envelope.
+      expect(dest.sent.last.contentType, BatchEnvelope.wireFormat);
+      final firstDecoded =
+          jsonDecode(utf8.decode(firstBytes)) as Map<String, Object?>;
+      expect(firstDecoded['batch_id'], 'batch-x');
+      expect((firstDecoded['events']! as List).length, 1);
+
+      // Second drain: clock past the zero-backoff window; SendOk lands
+      // the row. Capture bytes again and assert byte-for-byte equality.
+      await drain(
+        dest,
+        backend: backend,
+        clock: () => DateTime.utc(2026, 4, 25, 14),
+        policy: oneAttemptCapPolicy,
+      );
+      expect(dest.sent, hasLength(2));
+      final secondBytes = dest.sent.last.bytes;
+      expect(
+        secondBytes,
+        firstBytes,
+        reason:
+            'native re-encode MUST be byte-deterministic across retries '
+            '(RFC 8785 JCS)',
+      );
+    });
+
+    // Verifies: REQ-d00119-K — drain on a native FIFO row whose
+    // `event_ids` reference an event that no longer resolves throws
+    // StateError. Models the integrity-violation case where the FIFO row
+    // outlives its underlying event log entry; drain refuses to send a
+    // partial / incorrect re-encode.
+    test('REQ-d00119-K: drain on native row with missing event throws '
+        'StateError', () async {
+      // Append the event, enqueue the native row, then surgically delete
+      // the event from the underlying sembast store. After deletion,
+      // findEventById returns null and drain MUST throw.
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      await backend.transaction((txn) async {
+        final seq = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(
+          txn,
+          storedEventFixture(eventId: 'e1', sequenceNumber: seq),
+        );
+      });
+      final envelope = BatchEnvelopeMetadata(
+        batchFormatVersion: '1',
+        batchId: 'batch-x',
+        senderHop: 'mobile-1',
+        senderIdentifier: 'device-uuid',
+        senderSoftwareVersion: 'diary@1.2.3',
+        sentAt: DateTime.utc(2026, 4, 25, 12),
+      );
+      await backend.enqueueFifo('fake', [event], nativeEnvelope: envelope);
+
+      // Surgically delete the event from the origin event store
+      // (bypasses the append-only API; test-only mutation that simulates
+      // a torn / corrupted event log). The `sembast.Finder` prefix
+      // disambiguates from `flutter_test`'s widget-tree `Finder`.
+      final db = backend.databaseForTesting;
+      final eventStore = intMapStoreFactory.store('events');
+      final record = (await eventStore.find(
+        db,
+        finder: sembast.Finder(
+          filter: sembast.Filter.equals('event_id', 'e1'),
+          limit: 1,
+        ),
+      )).single;
+      await eventStore.record(record.key).delete(db);
+
+      final dest = FakeDestination(script: [const SendOk()]);
+      expect(() => drain(dest, backend: backend), throwsA(isA<StateError>()));
     });
   });
 }

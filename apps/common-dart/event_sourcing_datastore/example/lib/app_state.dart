@@ -64,17 +64,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Every `DemoDestination` currently registered, in registration order.
-  /// Non-DemoDestinations registered by foreign code are filtered out
-  /// because the demo's UI controls are shaped to `DemoDestination` knobs
-  /// (connection / latency / batch size sliders).
-  List<DemoDestination> get destinations =>
-      registry.all().whereType<DemoDestination>().toList(growable: false);
+  /// Every destination currently registered, in registration order. The
+  /// FIFO panel renders one column per destination and conditionally
+  /// shows the `DemoDestination`-specific knobs (connection / latency /
+  /// batch size sliders) on rows whose runtime type carries them; native
+  /// destinations get a knob-less column that still renders the FIFO
+  /// snapshot, surfacing the storage-shape difference (envelope_metadata
+  /// vs wire_payload) per REQ-d00119-K.
+  List<Destination> get destinations => registry.all().toList(growable: false);
 
   /// Delegate to `DestinationRegistry.addDestination` and notify listeners
-  /// so widgets bound to `destinations` rebuild.
+  /// so widgets bound to `destinations` rebuild. The demo stamps a
+  /// stable `UserInitiator('demo-user-1')` on every UI-driven mutation
+  /// so the resulting audit events are visibly attributable to the
+  /// demo's single seat.
   Future<void> addDestination(DemoDestination destination) async {
-    await registry.addDestination(destination);
+    await registry.addDestination(
+      destination,
+      initiator: const UserInitiator('demo-user-1'),
+    );
     notifyListeners();
   }
 }

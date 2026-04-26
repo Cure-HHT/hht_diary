@@ -33,7 +33,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -42,7 +42,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -52,7 +52,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -62,7 +62,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -118,6 +118,7 @@ void main() {
         // 1. Originate.
         final original = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-chain',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -164,10 +165,10 @@ void main() {
           ),
         );
 
-        // No side effects: third's ingest tail is empty.
-        final tail = await third.backend.readIngestTail();
-        expect(tail.$1, equals(0));
-        expect(tail.$2, isNull);
+        // No side effects: third's event log is empty (no events landed
+        // because the rejected ingest rolled back the transaction).
+        expect(await third.backend.readSequenceCounter(), equals(0));
+        expect(await third.backend.findAllEvents(), isEmpty);
       } finally {
         await orig.close();
         await inter.close();
@@ -207,6 +208,8 @@ void main() {
           'aggregate_id': 'agg-chain-null',
           'aggregate_type': 'DiaryEntry',
           'entry_type': 'epistaxis_event',
+          'entry_type_version': 1,
+          'lib_format_version': 1,
           'event_type': 'finalized',
           'sequence_number': 1,
           'data': const <String, Object?>{},

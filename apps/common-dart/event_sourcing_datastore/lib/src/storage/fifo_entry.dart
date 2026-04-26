@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 
@@ -33,24 +34,31 @@ typedef EventIdRange = ({int firstSeq, int lastSeq});
 // Implements: REQ-d00119-B+C — carries the documented columns;
 // final_status is nullable (null means not-yet-terminal; non-null
 // values are one of {sent, wedged, tombstoned}).
+// Implements: REQ-d00119-B+K — wirePayload is null iff
+// wireFormat == "esd/batch@1" (native), in which case envelopeMetadata
+// is non-null and drain reconstructs the wire bytes from
+// envelopeMetadata + event_ids-resolved events. For 3rd-party rows
+// (any other wireFormat) wirePayload is non-null and envelopeMetadata
+// is null.
 // Implements: REQ-d00128-A — eventIds is non-empty; enforced via
 // ArgumentError at construction and FormatException on fromJson.
 // Implements: REQ-d00128-B — eventIdRange is a (first_seq, last_seq) pair.
 // Implements: REQ-d00128-C — wirePayload is one payload covering the
-// entire batch.
+// entire batch (when present).
 class FifoEntry {
   FifoEntry({
     required this.entryId,
     required this.eventIds,
     required this.eventIdRange,
     required this.sequenceInQueue,
-    required this.wirePayload,
     required this.wireFormat,
     required this.transformVersion,
     required this.enqueuedAt,
     required this.attempts,
     required this.finalStatus,
     required this.sentAt,
+    this.wirePayload,
+    this.envelopeMetadata,
   }) {
     // Implements: REQ-d00128-A — reject empty batches at construction.
     // Explicit ArgumentError rather than assert so the invariant is
@@ -76,8 +84,11 @@ class FifoEntry {
 
   /// Decode from snake_case JSON. `wirePayload`, `attempts`, and
   /// `eventIds` are wrapped unmodifiable so downstream callers cannot
-  /// mutate the record in place. Throws [FormatException] on missing
-  /// or wrong-typed fields, or when `event_ids` is empty (REQ-d00128-A).
+  /// mutate the record in place. `wire_payload` MAY be null (native
+  /// `esd/batch@1` rows store envelope_metadata instead — REQ-d00119-B+K).
+  /// `envelope_metadata` MAY be null (3rd-party rows). Throws
+  /// [FormatException] on missing or wrong-typed fields, or when
+  /// `event_ids` is empty (REQ-d00128-A).
   factory FifoEntry.fromJson(Map<String, Object?> json) {
     final entryId = json['entry_id'];
     if (entryId is! String) {
@@ -127,10 +138,13 @@ class FifoEntry {
         'FifoEntry: missing or non-int "sequence_in_queue"',
       );
     }
+    // Implements: REQ-d00119-B+K — wire_payload is null on native
+    // `esd/batch@1` rows; non-null and a Map on 3rd-party rows. Reject
+    // any other shape.
     final wirePayloadRaw = json['wire_payload'];
-    if (wirePayloadRaw is! Map) {
+    if (wirePayloadRaw != null && wirePayloadRaw is! Map) {
       throw const FormatException(
-        'FifoEntry: missing or non-Map "wire_payload"',
+        'FifoEntry: "wire_payload" must be a Map or null',
       );
     }
     final wireFormat = json['wire_format'];
@@ -170,6 +184,14 @@ class FifoEntry {
         'FifoEntry: "sent_at" must be a String when present',
       );
     }
+    // Implements: REQ-d00119-K — envelope_metadata is a Map (or null) on
+    // disk; non-null iff wireFormat == "esd/batch@1".
+    final envelopeMetadataRaw = json['envelope_metadata'];
+    if (envelopeMetadataRaw != null && envelopeMetadataRaw is! Map) {
+      throw const FormatException(
+        'FifoEntry: "envelope_metadata" must be a Map or null',
+      );
+    }
 
     final attempts = List<AttemptResult>.unmodifiable(
       attemptsRaw.map(
@@ -181,15 +203,22 @@ class FifoEntry {
       eventIds: List<String>.unmodifiable(eventIds),
       eventIdRange: (firstSeq: firstSeq, lastSeq: lastSeq),
       sequenceInQueue: seqInQueue,
-      wirePayload: Map<String, Object?>.unmodifiable(
-        Map<String, Object?>.from(wirePayloadRaw),
-      ),
+      wirePayload: wirePayloadRaw == null
+          ? null
+          : Map<String, Object?>.unmodifiable(
+              Map<String, Object?>.from(wirePayloadRaw as Map),
+            ),
       wireFormat: wireFormat,
       transformVersion: transformVersionRaw as String?,
       enqueuedAt: DateTime.parse(enqueuedAtRaw),
       attempts: attempts,
       finalStatus: finalStatus,
       sentAt: sentAtRaw == null ? null : DateTime.parse(sentAtRaw as String),
+      envelopeMetadata: envelopeMetadataRaw == null
+          ? null
+          : BatchEnvelopeMetadata.fromMap(
+              Map<String, Object?>.from(envelopeMetadataRaw as Map),
+            ),
     );
   }
 
@@ -222,9 +251,13 @@ class FifoEntry {
 
   /// Transformed wire payload ready to hand to `destination.send()`. One
   /// payload covers every event in the batch (REQ-d00128-C); per-event
-  /// wire payloads are NOT stored.
-  // Implements: REQ-d00128-C — one payload per batch row.
-  final Map<String, Object?> wirePayload;
+  /// wire payloads are NOT stored. Null when `wireFormat == "esd/batch@1"`
+  /// (native rows reconstruct bytes at drain time from
+  /// [envelopeMetadata] + event_ids-resolved events — REQ-d00119-B+K);
+  /// non-null otherwise.
+  // Implements: REQ-d00128-C — one payload per batch row (when present).
+  // Implements: REQ-d00119-B — null iff wireFormat == "esd/batch@1".
+  final Map<String, Object?>? wirePayload;
 
   /// Wire-format discriminator (e.g., `"json-v1"`, `"fhir-r4"`).
   final String wireFormat;
@@ -251,6 +284,18 @@ class FifoEntry {
   /// or tombstoned.
   final DateTime? sentAt;
 
+  /// Envelope identity for native (`esd/batch@1`) FIFO rows. Carries the
+  /// `batchFormatVersion`, `batchId`, sender identity (`senderHop`,
+  /// `senderIdentifier`, `senderSoftwareVersion`), and `sentAt` of the
+  /// `BatchEnvelope` parsed at enqueue time. Drain combines this with
+  /// `eventIds`-resolved events to re-encode the wire bytes
+  /// deterministically (RFC 8785 JCS) on each send attempt. Non-null
+  /// iff `wireFormat == "esd/batch@1"`; null for 3rd-party rows.
+  // Implements: REQ-d00119-K — envelope_metadata is a BatchEnvelopeMetadata
+  // value, non-null iff wireFormat == "esd/batch@1", set at enqueue,
+  // immutable, drives drain re-encode determinism.
+  final BatchEnvelopeMetadata? envelopeMetadata;
+
   /// Encode to snake_case JSON. Optional fields emit explicit null.
   Map<String, Object?> toJson() => <String, Object?>{
     'entry_id': entryId,
@@ -267,6 +312,7 @@ class FifoEntry {
     'attempts': attempts.map((a) => a.toJson()).toList(),
     'final_status': finalStatus?.toJson(),
     'sent_at': sentAt?.toIso8601String(),
+    'envelope_metadata': envelopeMetadata?.toMap(),
   };
 
   @override
@@ -286,7 +332,8 @@ class FifoEntry {
             other.attempts,
           ) &&
           finalStatus == other.finalStatus &&
-          sentAt == other.sentAt;
+          sentAt == other.sentAt &&
+          envelopeMetadata == other.envelopeMetadata;
 
   @override
   int get hashCode => Object.hash(
@@ -301,15 +348,21 @@ class FifoEntry {
     const ListEquality<AttemptResult>().hash(attempts),
     finalStatus,
     sentAt,
+    envelopeMetadata,
   );
 
   @override
-  String toString() =>
-      'FifoEntry(entryId: $entryId, eventIds: $eventIds, '
-      'eventIdRange: (firstSeq: ${eventIdRange.firstSeq}, '
-      'lastSeq: ${eventIdRange.lastSeq}), '
-      'sequenceInQueue: $sequenceInQueue, wireFormat: $wireFormat, '
-      'finalStatus: $finalStatus, attempts: ${attempts.length})';
+  String toString() {
+    final envelopeBit = envelopeMetadata == null
+        ? ''
+        : ', envelopeMetadata: $envelopeMetadata';
+    return 'FifoEntry(entryId: $entryId, eventIds: $eventIds, '
+        'eventIdRange: (firstSeq: ${eventIdRange.firstSeq}, '
+        'lastSeq: ${eventIdRange.lastSeq}), '
+        'sequenceInQueue: $sequenceInQueue, wireFormat: $wireFormat, '
+        'finalStatus: $finalStatus, attempts: ${attempts.length}'
+        '$envelopeBit)';
+  }
 }
 
 const DeepCollectionEquality _deepEquals = DeepCollectionEquality();

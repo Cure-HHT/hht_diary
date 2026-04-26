@@ -13,48 +13,29 @@ import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 const int _rebuildChunkSize = 500;
 
 /// Rebuild the `diary_entries` materialized view from the append-only event
-/// log.
+/// log. Disaster-recovery helper — folds events directly through
+/// `DiaryEntriesMaterializer.foldPure` using each event's own `data` as the
+/// promoted payload (identity promotion).
 ///
 /// Streams events ordered by `sequence_number` in fixed-size chunks of
 /// [_rebuildChunkSize], folding each event into a per-aggregate accumulator
-/// via `Materializer.apply` (using each aggregate's first-seen
-/// `client_timestamp` as the `firstEventTimestamp` fallback). Clears the
-/// `diary_entries` store at the start of the transaction and upserts the
-/// final per-aggregate rows at the end — all inside one
-/// `StorageBackend.transaction` so the clear, the folds, and the upserts are
-/// one atomic step.
+/// (using each aggregate's first-seen `client_timestamp` as the
+/// `firstEventTimestamp` fallback). Clears the `diary_entries` store at the
+/// start of the transaction and upserts the final per-aggregate rows at the
+/// end — all inside one `StorageBackend.transaction` so the clear, the folds,
+/// and the upserts are one atomic step.
 ///
 /// Concurrency: Sembast serializes transaction bodies, so a concurrent
 /// `appendEvent` transaction runs either entirely before or entirely after
-/// this rebuild's body — never interleaved. If `appendEvent` commits first,
-/// its event is in the log at snapshot time and is folded into the rebuilt
-/// view. If `appendEvent` commits after, its event is in the log but NOT in
-/// this rebuild's just-committed view — the view is consistent with the log
-/// as of the rebuild's transaction, nothing later.
-///
-/// Runtime view/log consistency is the write path's concern, not rebuild's:
-/// Phase 5's `EntryService.record` applies `Materializer.apply` in the same
-/// transaction as its `appendEvent`, so any event appended after a rebuild
-/// also writes its own `diary_entries` row atomically with the append. This
-/// function exists for disaster recovery; it is not a live-sync primitive.
+/// this rebuild's body — never interleaved.
 ///
 /// Memory profile: O(chunk_size + distinct_aggregates × row_size), not
-/// O(total_events). Suitable for event logs that do not fit comfortably in
-/// memory — the per-aggregate accumulator still scales with the aggregate
-/// count, but the event log itself is never fully materialized.
-///
-/// Not a runtime operation: this exists as a disaster-recovery tool and as
-/// the guarantee that makes `diary_entries` a cache rather than a source of
-/// truth. Production code MAY NOT depend on its state being live-up-to-date
-/// with events unless the write path (Phase 5's `EntryService.record`)
-/// maintains that invariant.
+/// O(total_events).
 ///
 /// Returns the number of distinct aggregate_ids materialized.
 ///
 /// Throws [StateError] if the event log references an `entry_type` that is
-/// not registered in [lookup] — an unknown type in persisted events is a
-/// data-integrity failure and must surface loudly rather than silently
-/// dropping events from the rebuilt view.
+/// not registered in [lookup].
 // Implements: REQ-d00121-G+H — disaster-recovery rebuild; replaces view from
 // event log in one transaction, returns count of aggregates processed.
 Future<int> rebuildMaterializedView(
@@ -98,6 +79,9 @@ Future<int> rebuildMaterializedView(
         byAggregate[event.aggregateId] = DiaryEntriesMaterializer.foldPure(
           previous: byAggregate[event.aggregateId],
           event: event,
+          // Identity promotion for the legacy disaster-recovery path.
+          // The parameterized rebuildView is the version-aware entry point.
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );
@@ -116,24 +100,67 @@ Future<int> rebuildMaterializedView(
 }
 
 /// Rebuild exactly one view by replaying the event log through
-/// [materializer]. Clears the view, then calls `materializer.applyInTxn`
-/// for every event where `materializer.appliesTo(event)` returns true.
-/// Events whose `EntryTypeDefinition.materialize == false` are skipped
-/// (REQ-d00140-C). Runs in one backend transaction.
+/// [materializer]. Clears the view AND the view's `view_target_versions`
+/// rows, writes the supplied [targetVersionByEntryType], then calls
+/// `materializer.applyInTxn` (after invoking `materializer.promoter`) for
+/// every event where `materializer.appliesTo(event)` returns true. Events
+/// whose `EntryTypeDefinition.materialize == false` are skipped. Runs in
+/// one backend transaction.
+///
+/// Strict-superset rule: every entry-type already present in the stored
+/// `view_target_versions` for `materializer.viewName` MUST appear in
+/// [targetVersionByEntryType]; otherwise [ArgumentError] is thrown before
+/// any clear or write. New entry types may be added (superset). An event
+/// in the log whose `entry_type` is not in [targetVersionByEntryType] also
+/// raises [ArgumentError] — every materialized event needs a target
+/// version to promote toward.
 ///
 /// Returns the number of events processed. Idempotent — running twice on
-/// the same log produces the same view rows.
+/// the same log with the same map produces the same view rows.
 // Implements: REQ-d00140-D — rebuildView per-view, idempotent; materializer-
-// parameterized replay.
+//   parameterized replay; strict-superset target-version map.
 // Implements: REQ-d00140-C — materialize=false on the entry type skips
-// this materializer entirely.
+//   this materializer entirely.
+// Implements: REQ-d00140-G+H — promoter invoked before applyInTxn during
+//   replay, even when fromVersion == toVersion.
+// Implements: REQ-d00140-I — view_target_versions cleared and rewritten
+//   atomically with the view rebuild.
 Future<int> rebuildView(
   Materializer materializer,
   StorageBackend backend,
-  EntryTypeDefinitionLookup lookup,
-) async {
+  EntryTypeDefinitionLookup lookup, {
+  required Map<String, int> targetVersionByEntryType,
+}) async {
   return backend.transaction<int>((txn) async {
+    // Strict-superset check BEFORE any destructive write.
+    final existing = await backend.readAllViewTargetVersionsInTxn(
+      txn,
+      materializer.viewName,
+    );
+    for (final entry in existing.entries) {
+      if (!targetVersionByEntryType.containsKey(entry.key)) {
+        throw ArgumentError(
+          'rebuildView: targetVersionByEntryType is not a strict superset '
+          'of the existing view_target_versions for view '
+          '"${materializer.viewName}". Missing existing entry type '
+          '"${entry.key}" (stored target ${entry.value}). '
+          'Partial rebuilds are not allowed; supply every existing entry '
+          'type plus any new ones.',
+        );
+      }
+    }
+
     await backend.clearViewInTxn(txn, materializer.viewName);
+    await backend.clearViewTargetVersionsInTxn(txn, materializer.viewName);
+    for (final e in targetVersionByEntryType.entries) {
+      await backend.writeViewTargetVersionInTxn(
+        txn,
+        materializer.viewName,
+        e.key,
+        e.value,
+      );
+    }
+
     final historyByAggregate = <String, List<StoredEvent>>{};
     var processed = 0;
 
@@ -161,6 +188,21 @@ Future<int> rebuildView(
         if (!materializer.appliesTo(event)) {
           continue;
         }
+        final target = targetVersionByEntryType[event.entryType];
+        if (target == null) {
+          throw ArgumentError(
+            'rebuildView: event ${event.eventId} (entry_type '
+            '"${event.entryType}", seq ${event.sequenceNumber}) has no '
+            'target version in targetVersionByEntryType. Every event '
+            'subject to this materializer needs a target version.',
+          );
+        }
+        final promoted = materializer.promoter(
+          entryType: event.entryType,
+          fromVersion: event.entryTypeVersion,
+          toVersion: target,
+          data: event.data,
+        );
         final history = historyByAggregate.putIfAbsent(
           event.aggregateId,
           () => <StoredEvent>[],
@@ -169,6 +211,7 @@ Future<int> rebuildView(
           txn,
           backend,
           event: event,
+          promotedData: promoted,
           def: def,
           aggregateHistory: List<StoredEvent>.unmodifiable(history),
         );

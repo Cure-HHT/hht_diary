@@ -78,6 +78,15 @@ class BatchEnvelope {
   /// Canonical identifier for this format.
   static const String wireFormat = 'esd/batch@1';
 
+  /// Canonical `batch_format_version` value carried inside an
+  /// `esd/batch@1` envelope. Held as a static constant (distinct name
+  /// from the instance field [BatchEnvelope.batchFormatVersion]) so
+  /// callers minting a fresh envelope (e.g. `fillBatch` building a
+  /// native `BatchEnvelopeMetadata`) and the decoder share one source
+  /// of truth for the version string.
+  // Implements: REQ-d00145-B — single canonical batch_format_version.
+  static const String currentBatchFormatVersion = '1';
+
   final String batchFormatVersion;
   final String batchId;
   final String senderHop;

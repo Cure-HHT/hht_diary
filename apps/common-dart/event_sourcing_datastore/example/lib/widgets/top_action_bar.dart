@@ -1,12 +1,28 @@
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/demo_types.dart';
+import 'package:event_sourcing_datastore_demo/synthetic_ingest.dart';
 import 'package:event_sourcing_datastore_demo/widgets/add_destination_dialog.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
+
+/// Fixed `SecurityDetails` stamped on every `_record` call when the
+/// "security context" toggle is on. Realistic-looking but obviously
+/// synthetic so an operator inspecting the AUDIT panel can correlate
+/// rows back to this code path. Plan 4.15 §4.15.A — orchestrator-
+/// approved scope addition: makes the AuditPanel demonstrate non-empty
+/// rows (Plan 4.15 Task 4 Risk 3 mitigation).
+const SecurityDetails _kDemoSecurityDetails = SecurityDetails(
+  ipAddress: '203.0.113.42',
+  userAgent: 'event_sourcing_datastore_demo/0.1.0 (Flutter; Linux desktop)',
+  sessionId: 'demo-session-001',
+  geoCountry: 'US',
+  geoRegion: 'CA',
+  requestId: 'demo-req-fixed',
+);
 
 // Validated by: JNY-01 (lifecycle), JNY-02 (CQRS action events), JNY-06
 // (Rebuild view), JNY-07 (Add destination).
@@ -33,6 +49,14 @@ class TopActionBar extends StatefulWidget {
 class _TopActionBarState extends State<TopActionBar> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _body = TextEditingController();
+  final SyntheticBatchBuilder _syntheticBatch = SyntheticBatchBuilder();
+
+  // §4.15.A toggle. When on, every `_record` call passes
+  // `_kDemoSecurityDetails` to `EventStore.append`'s `security:` arg, so
+  // the security_context sidecar populates and the AUDIT panel renders
+  // non-empty rows. Off by default so the empty-audit case stays
+  // observable for demo pedagogy.
+  bool _stampSecurityContext = false;
 
   @override
   void initState() {
@@ -77,12 +101,26 @@ class _TopActionBarState extends State<TopActionBar> {
     final aggregateType = demoAggregateTypeByEntryTypeId[entryType]!;
     await widget.datastore.eventStore.append(
       entryType: entryType,
+      entryTypeVersion: 1,
       aggregateId: aggregateId,
       aggregateType: aggregateType,
       eventType: eventType,
       data: <String, Object?>{'answers': answers},
       initiator: const UserInitiator('demo-user-1'),
       changeReason: changeReason,
+      security: _stampSecurityContext ? _kDemoSecurityDetails : null,
+    );
+  }
+
+  /// Build a synthetic `esd/batch@1` envelope (one event from
+  /// `remote-mobile-1`) and feed it through `EventStore.ingestBatch`.
+  /// Plan 4.15 Task 5 Step 1. Surfaces the receiver-stamped
+  /// `origin_sequence_number` for demo of REQ-d00115-K.
+  Future<void> _ingestSyntheticBatch() async {
+    final envelope = _syntheticBatch.buildSingleEventBatch();
+    await widget.datastore.eventStore.ingestBatch(
+      envelope.encode(),
+      wireFormat: BatchEnvelope.wireFormat,
     );
   }
 
@@ -185,6 +223,26 @@ class _TopActionBarState extends State<TopActionBar> {
           width: 80,
           child: Text('system', style: TextStyle(color: DemoColors.accent)),
         ),
+        _btn(
+          label: 'Ingest batch',
+          onTap: () async {
+            try {
+              await _ingestSyntheticBatch();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ingested 1-event esd/batch@1 envelope'),
+                ),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Ingest failed: $e')));
+            }
+          },
+        ),
+        _securityToggle(),
         _btn(
           label: 'Add destination',
           onTap: () async {
@@ -292,6 +350,37 @@ class _TopActionBarState extends State<TopActionBar> {
             fontFamily: 'monospace',
           ),
         ),
+      ),
+    );
+  }
+
+  /// Plan §4.15.A toggle. ON → subsequent `_record` calls stamp
+  /// `SecurityDetails`; OFF → no security context (preserves the
+  /// empty-AUDIT case for demo pedagogy).
+  Widget _securityToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Text(
+            'sec ctx',
+            style: TextStyle(
+              color: DemoColors.fg,
+              fontFamily: 'monospace',
+              fontSize: 12,
+            ),
+          ),
+          Switch(
+            value: _stampSecurityContext,
+            activeThumbColor: DemoColors.green,
+            inactiveThumbColor: DemoColors.pending,
+            inactiveTrackColor: DemoColors.bg,
+            onChanged: (v) {
+              setState(() => _stampSecurityContext = v);
+            },
+          ),
+        ],
       ),
     );
   }

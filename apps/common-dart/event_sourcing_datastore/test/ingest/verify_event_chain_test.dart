@@ -35,7 +35,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -44,7 +44,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -54,7 +54,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -64,7 +64,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -103,6 +103,7 @@ void main() {
         // 1. Originate an event.
         final original = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-verify-1',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -144,6 +145,7 @@ void main() {
         try {
           final original = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-tamper-1',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -209,6 +211,7 @@ void main() {
       try {
         final original = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-nothrow-1',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -263,6 +266,7 @@ void main() {
         try {
           final event = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-origin-only',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',

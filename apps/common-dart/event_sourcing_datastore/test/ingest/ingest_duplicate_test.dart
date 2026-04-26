@@ -35,7 +35,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -44,7 +44,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -54,7 +54,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -64,7 +64,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -104,6 +104,7 @@ void main() {
         // Originate event.
         final e = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -161,6 +162,7 @@ void main() {
         try {
           final e = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-dup2',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -202,6 +204,7 @@ void main() {
       try {
         final e = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup3',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -243,6 +246,7 @@ void main() {
         // 1. Originate an event.
         final e = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup-chain-verify',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -302,6 +306,7 @@ void main() {
       try {
         final e = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup4',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',

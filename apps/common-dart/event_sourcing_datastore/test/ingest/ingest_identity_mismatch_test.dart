@@ -33,7 +33,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -42,7 +42,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -52,7 +52,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -62,7 +62,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -103,6 +103,7 @@ void main() {
           // 1. Originate an event and ingest it.
           final e1 = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-mismatch',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -134,9 +135,9 @@ void main() {
             ),
           );
 
-          // 4. No new events landed — tail seq is 1 (first ingest only).
-          final tail = await dest.backend.readIngestTail();
-          expect(tail.$1, equals(1));
+          // 4. No new events landed — destination's local sequence counter
+          // remains at 1 (first ingest only).
+          expect(await dest.backend.readSequenceCounter(), equals(1));
         } finally {
           await orig.close();
           await dest.close();
@@ -156,6 +157,7 @@ void main() {
       try {
         final e1 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-mismatch2',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',

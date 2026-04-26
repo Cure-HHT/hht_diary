@@ -35,6 +35,8 @@ StoredEvent storedEventFixture({
   aggregateId: aggregateId,
   aggregateType: 'DiaryEntry',
   entryType: entryType,
+  entryTypeVersion: 1,
+  libFormatVersion: 1,
   eventType: eventType,
   sequenceNumber: sequenceNumber,
   data: const <String, dynamic>{},
@@ -73,7 +75,7 @@ Future<FifoEntry> enqueueSingle(
 }) => backend.enqueueFifo(
   destinationId,
   [storedEventFixture(eventId: eventId, sequenceNumber: sequenceNumber)],
-  wirePayloadJson(
+  wirePayload: wirePayloadJson(
     wirePayload ?? const <String, Object?>{'ok': true},
     contentType: wireFormat,
     transformVersion: transformVersion,

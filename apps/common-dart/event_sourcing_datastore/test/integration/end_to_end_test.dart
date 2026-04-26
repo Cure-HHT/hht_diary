@@ -25,7 +25,7 @@ void main() {
 
       const demoNoteDefn = EntryTypeDefinition(
         id: 'demo_note',
-        version: '1',
+        registeredVersion: 1,
         name: 'demo_note',
         widgetId: 'widget-demo_note',
         widgetConfig: <String, Object?>{},
@@ -47,6 +47,8 @@ void main() {
         ),
         entryTypes: [demoNoteDefn],
         destinations: [dest],
+        materializers: const <Materializer>[],
+        initialViewTargetVersions: const <String, Map<String, int>>{},
       );
       final typeReg = ds.entryTypes;
       final destReg = ds.destinations;
@@ -63,7 +65,11 @@ void main() {
       // a future off-by-one in the boundary check (isAfter vs >=)
       // surfaces here rather than silently dropping the event.
       final fillBatchClock = DateTime.utc(2026, 4, 22, 10);
-      await destReg.setStartDate('primary', startDate);
+      await destReg.setStartDate(
+        'primary',
+        startDate,
+        initiator: const AutomationInitiator(service: 'test-bootstrap'),
+      );
 
       final schedule = await destReg.scheduleOf('primary');
       expect(schedule.startDate, startDate);
@@ -100,8 +106,12 @@ void main() {
       // The returned StoredEvent is constructed inside the transaction
       // body; if the underlying append silently dropped the row, the
       // returned object would still be valid. Assert the event log has
-      // the event so a broken appendEvent surfaces here.
-      final logEvents = await backend.findAllEvents();
+      // the event so a broken appendEvent surfaces here. Filter out the
+      // bootstrap-emitted system audit events (REQ-d00129-J/K/N) so the
+      // assertion stays focused on user payload.
+      final logEvents = (await backend.findAllEvents())
+          .where((e) => !kReservedSystemEntryTypeIds.contains(e.entryType))
+          .toList();
       expect(logEvents, hasLength(1));
       expect(logEvents.single.eventId, appended.eventId);
 
@@ -175,7 +185,7 @@ void main() {
 
       const diaryDefn = EntryTypeDefinition(
         id: 'diary',
-        version: '1',
+        registeredVersion: 1,
         name: 'Diary',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},

@@ -78,6 +78,22 @@ abstract class Destination {
   // Implements: REQ-d00129-B — abstract default false; opt-in via override.
   bool get allowHardDelete => false;
 
+  /// Whether this destination consumes the library's canonical batch
+  /// format (`esd/batch@1`). When `true`, `fillBatch` skips
+  /// [transform] entirely and instead constructs a
+  /// `BatchEnvelopeMetadata` from the library's source identity, persisted
+  /// on the FIFO row as `envelope_metadata` with `wire_payload: null` and
+  /// `wire_format: "esd/batch@1"`. The drain path reconstructs the wire
+  /// bytes deterministically via `BatchEnvelope.encode` over the
+  /// row's events plus `envelope_metadata`.
+  ///
+  /// When `false` (the default for 3rd-party destinations such as sponsor
+  /// CSV or Rave EDC XML), `fillBatch` invokes [transform] and persists the
+  /// resulting [WirePayload] verbatim with `envelope_metadata: null`.
+  // Implements: REQ-d00152-A — abstract default false; native destinations
+  // override to true.
+  bool get serializesNatively => false;
+
   /// Destination-owned batching rule. Invoked by `fillBatch` once per
   /// candidate event under consideration: returning `true` adds
   /// [candidate] to [currentBatch]; returning `false` ends the current

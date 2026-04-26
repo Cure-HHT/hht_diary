@@ -35,7 +35,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -44,7 +44,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -54,7 +54,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -64,7 +64,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -121,6 +121,7 @@ void main() {
             // 1. Originate e1 and pre-ingest it at destination.
             final e1 = await orig.store.append(
               entryType: 'epistaxis_event',
+              entryTypeVersion: 1,
               aggregateId: 'agg-caller-comp-1',
               aggregateType: 'DiaryEntry',
               eventType: 'finalized',
@@ -132,8 +133,11 @@ void main() {
             expect(e1, isNotNull);
             await dest.store.ingestEvent(e1!);
 
-            // Capture Chain 2 tail after the first ingest.
-            final tailAfterFirstIngest = await dest.backend.readIngestTail();
+            // Capture the destination's local sequence counter after the
+            // first ingest. Under the unified event store, this counter is
+            // also the Chain 2 tail position.
+            final seqAfterFirstIngest = await dest.backend
+                .readSequenceCounter();
 
             // 2. Build batch with a tampered e1' — same event_id, different hash.
             final e1TamperedMap = e1.toMap();
@@ -167,14 +171,15 @@ void main() {
             expect(caught!.eventId, equals(e1.eventId));
 
             // 4b. No subject events from the rejected batch landed.
-            //     Chain 2 advanced exactly once past the pre-ingest of e1,
-            //     then again for the rejection audit event — total seq == 2.
-            final tailAfterRejection = await dest.backend.readIngestTail();
+            //     The destination's local seq counter advanced exactly once
+            //     past the pre-ingest of e1 — the rolled-back ingestBatch
+            //     consumed no slots, and the rejection audit event added one.
+            final seqAfterRejection = await dest.backend.readSequenceCounter();
             expect(
-              tailAfterRejection.$1,
-              equals(tailAfterFirstIngest.$1 + 1),
+              seqAfterRejection,
+              equals(seqAfterFirstIngest + 1),
               reason:
-                  'Chain 2 seq advanced only once (for rejection audit), not '
+                  'Local seq advanced only once (for rejection audit), not '
                   'by the rolled-back ingestBatch',
             );
 
@@ -228,6 +233,7 @@ void main() {
             // 1. Pre-ingest a clean e1.
             final e1 = await orig.store.append(
               entryType: 'epistaxis_event',
+              entryTypeVersion: 1,
               aggregateId: 'agg-chain2-link-1',
               aggregateType: 'DiaryEntry',
               eventType: 'finalized',

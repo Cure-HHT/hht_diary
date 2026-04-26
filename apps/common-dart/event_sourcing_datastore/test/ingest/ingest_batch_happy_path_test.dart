@@ -39,7 +39,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -48,7 +48,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -58,7 +58,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -68,7 +68,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -131,6 +131,7 @@ void main() {
           // 1. Originate 3 events.
           final e1 = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-batch1',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -141,6 +142,7 @@ void main() {
           );
           final e2 = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-batch2',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -151,6 +153,7 @@ void main() {
           );
           final e3 = await orig.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'agg-batch3',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -267,6 +270,7 @@ void main() {
       try {
         final e = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-single-batch',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -324,6 +328,7 @@ void main() {
         // 1. Originate 3 events.
         final e1 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup-batch-1',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -334,6 +339,7 @@ void main() {
         );
         final e2 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup-batch-2',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -342,6 +348,7 @@ void main() {
         );
         final e3 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-dup-batch-3',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -430,6 +437,7 @@ void main() {
         // 1. Originate e1 and pre-ingest it at destination.
         final e1 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-mismatch-batch-1',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -441,8 +449,8 @@ void main() {
         expect(e1, isNotNull);
         await dest.store.ingestEvent(e1!);
 
-        // Capture Chain 2 tail after first ingest.
-        final tailBefore = await dest.backend.readIngestTail();
+        // Capture destination's local sequence counter after first ingest.
+        final seqBefore = await dest.backend.readSequenceCounter();
 
         // 2. Build tampered e1 (same event_id, different hash).
         final e1Map = e1.toMap();
@@ -452,6 +460,7 @@ void main() {
         // 3. Originate two new events.
         final e2 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-mismatch-batch-2',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -460,6 +469,7 @@ void main() {
         );
         final e3 = await orig.store.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'agg-mismatch-batch-3',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -493,9 +503,8 @@ void main() {
           ),
         );
 
-        // 6. Chain 2 tail is UNCHANGED (rollback).
-        final tailAfter = await dest.backend.readIngestTail();
-        expect(tailAfter.$1, equals(tailBefore.$1));
+        // 6. Destination's local sequence counter is UNCHANGED (rollback).
+        expect(await dest.backend.readSequenceCounter(), equals(seqBefore));
 
         // 7. e2 and e3 are NOT stored (rolled back).
         final storedE2 = await dest.backend.transaction(

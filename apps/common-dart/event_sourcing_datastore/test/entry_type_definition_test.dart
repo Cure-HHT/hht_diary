@@ -1,6 +1,16 @@
 import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Map<String, Object?> _validJson() => <String, Object?>{
+  'id': 'epistaxis_event',
+  'registered_version': 1,
+  'name': 'Nosebleed',
+  'widget_id': 'epistaxis_form_v1',
+  'widget_config': <String, Object?>{},
+  'effective_date_path': null,
+  'destination_tags': null,
+};
+
 /// Verifies REQ-d00116-A, REQ-d00116-B, REQ-d00116-C, REQ-d00116-D,
 /// REQ-d00116-F, REQ-d00116-G. (REQ-d00116-E — materializer fallback — is
 /// covered by tests in Phase 3 when the materializer consumes this type.)
@@ -12,14 +22,14 @@ void main() {
       () {
         const def = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {},
         );
 
         expect(def.id, 'epistaxis_event');
-        expect(def.version, '1.0.0');
+        expect(def.registeredVersion, 1);
         expect(def.name, 'Nosebleed');
         expect(def.widgetId, 'epistaxis_form_v1');
         expect(def.widgetConfig, const <String, dynamic>{});
@@ -34,7 +44,7 @@ void main() {
       () {
         const def = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {},
@@ -48,7 +58,7 @@ void main() {
     test('REQ-d00116-G: destinationTags accepts a list of strings', () {
       const def = EntryTypeDefinition(
         id: 'hht_qol_survey',
-        version: '1.0.0',
+        registeredVersion: 1,
         name: 'HHT Quality of Life',
         widgetId: 'survey_renderer_v1',
         widgetConfig: {},
@@ -73,7 +83,7 @@ void main() {
 
       final def = EntryTypeDefinition(
         id: 'nose_hht_survey',
-        version: '1.0.0',
+        registeredVersion: 1,
         name: 'NOSE HHT Questionnaire',
         widgetId: 'survey_renderer_v1',
         widgetConfig: payload,
@@ -87,7 +97,7 @@ void main() {
     test('toJson emits snake_case keys for every field', () {
       const def = EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1.0.0',
+        registeredVersion: 1,
         name: 'Nosebleed',
         widgetId: 'epistaxis_form_v1',
         widgetConfig: {'variant': 'full'},
@@ -97,7 +107,7 @@ void main() {
 
       expect(def.toJson(), {
         'id': 'epistaxis_event',
-        'version': '1.0.0',
+        'registered_version': 1,
         'name': 'Nosebleed',
         'widget_id': 'epistaxis_form_v1',
         'widget_config': {'variant': 'full'},
@@ -113,7 +123,7 @@ void main() {
       () {
         const def = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {},
@@ -129,7 +139,7 @@ void main() {
     test('toJson/fromJson round-trip preserves all fields', () {
       const def = EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1.2.0',
+        registeredVersion: 2,
         name: 'Nosebleed',
         widgetId: 'epistaxis_form_v1',
         widgetConfig: {'variant': 'full'},
@@ -142,54 +152,50 @@ void main() {
     });
 
     group('fromJson validation', () {
-      final validJson = <String, dynamic>{
-        'id': 'epistaxis_event',
-        'version': '1.0.0',
-        'name': 'Nosebleed',
-        'widget_id': 'epistaxis_form_v1',
-        'widget_config': <String, dynamic>{},
-        'effective_date_path': null,
-        'destination_tags': null,
-      };
-
       // Verifies: REQ-d00116-A — missing id rejected.
       test('REQ-d00116-A: missing id throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..remove('id');
+        final bad = _validJson()..remove('id');
         expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00116-B — missing version rejected.
-      test('REQ-d00116-B: missing version throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..remove('version');
-        expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
-      });
+      // Verifies: REQ-d00116-B — missing registered_version rejected.
+      test(
+        'REQ-d00116-B: missing registered_version throws FormatException',
+        () {
+          final bad = _validJson()..remove('registered_version');
+          expect(
+            () => EntryTypeDefinition.fromJson(bad),
+            throwsFormatException,
+          );
+        },
+      );
 
       // Verifies: REQ-d00116-C — missing name rejected.
       test('REQ-d00116-C: missing name throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..remove('name');
+        final bad = _validJson()..remove('name');
         expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
       });
 
       // Verifies: REQ-d00116-D — missing widget_id rejected.
       test('REQ-d00116-D: missing widget_id throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..remove('widget_id');
+        final bad = _validJson()..remove('widget_id');
         expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
       });
 
       // Verifies: REQ-d00116-E — missing widget_config rejected.
       test('REQ-d00116-E: missing widget_config throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..remove('widget_config');
+        final bad = _validJson()..remove('widget_config');
         expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
       });
 
       // Verifies: absent optional fields default to null.
       test('absent optional fields default to null', () {
-        final minimal = <String, dynamic>{
+        final minimal = <String, Object?>{
           'id': 'x',
-          'version': '1',
+          'registered_version': 1,
           'name': 'x',
           'widget_id': 'w',
-          'widget_config': <String, dynamic>{},
+          'widget_config': const <String, Object?>{},
         };
         final def = EntryTypeDefinition.fromJson(minimal);
         expect(def.effectiveDatePath, isNull);
@@ -198,7 +204,7 @@ void main() {
 
       // Verifies: REQ-d00116-G — destination_tags parsed to List<String>.
       test('REQ-d00116-G: destination_tags JSON list becomes List<String>', () {
-        final input = Map<String, dynamic>.of(validJson)
+        final input = _validJson()
           ..['destination_tags'] = <dynamic>['clinical', 'uat'];
         final def = EntryTypeDefinition.fromJson(input);
         expect(def.destinationTags, const ['clinical', 'uat']);
@@ -206,7 +212,7 @@ void main() {
 
       // Verifies: REQ-d00116-D — non-string widget_id rejected.
       test('REQ-d00116-D: non-string widget_id throws FormatException', () {
-        final bad = Map<String, dynamic>.of(validJson)..['widget_id'] = 42;
+        final bad = _validJson()..['widget_id'] = 42;
         expect(() => EntryTypeDefinition.fromJson(bad), throwsFormatException);
       });
     });
@@ -216,7 +222,7 @@ void main() {
       test('equal fields produce equal entries with equal hashCodes', () {
         const a = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {'variant': 'full'},
@@ -225,7 +231,7 @@ void main() {
         );
         const b = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {'variant': 'full'},
@@ -240,7 +246,7 @@ void main() {
       test('any field difference breaks equality', () {
         const base = EntryTypeDefinition(
           id: 'epistaxis_event',
-          version: '1.0.0',
+          registeredVersion: 1,
           name: 'Nosebleed',
           widgetId: 'epistaxis_form_v1',
           widgetConfig: {},
@@ -252,7 +258,7 @@ void main() {
             equals(
               EntryTypeDefinition(
                 id: 'nose_hht_survey',
-                version: base.version,
+                registeredVersion: base.registeredVersion,
                 name: base.name,
                 widgetId: base.widgetId,
                 widgetConfig: base.widgetConfig,
@@ -266,7 +272,7 @@ void main() {
             equals(
               EntryTypeDefinition(
                 id: base.id,
-                version: '2.0.0',
+                registeredVersion: 2,
                 name: base.name,
                 widgetId: base.widgetId,
                 widgetConfig: base.widgetConfig,
@@ -284,7 +290,7 @@ void main() {
         () {
           const a = EntryTypeDefinition(
             id: 'nose_hht_survey',
-            version: '1.0.0',
+            registeredVersion: 1,
             name: 'NOSE HHT',
             widgetId: 'survey_renderer_v1',
             widgetConfig: <String, Object?>{
@@ -295,7 +301,7 @@ void main() {
           );
           const b = EntryTypeDefinition(
             id: 'nose_hht_survey',
-            version: '1.0.0',
+            registeredVersion: 1,
             name: 'NOSE HHT',
             widgetId: 'survey_renderer_v1',
             widgetConfig: <String, Object?>{
@@ -315,14 +321,14 @@ void main() {
         () {
           const withNull = EntryTypeDefinition(
             id: 'x',
-            version: '1',
+            registeredVersion: 1,
             name: 'x',
             widgetId: 'w',
             widgetConfig: {},
           );
           const withEmpty = EntryTypeDefinition(
             id: 'x',
-            version: '1',
+            registeredVersion: 1,
             name: 'x',
             widgetId: 'w',
             widgetConfig: {},
@@ -339,14 +345,14 @@ void main() {
         () {
           const withNull = EntryTypeDefinition(
             id: 'x',
-            version: '1',
+            registeredVersion: 1,
             name: 'x',
             widgetId: 'w',
             widgetConfig: {},
           );
           const withEmpty = EntryTypeDefinition(
             id: 'x',
-            version: '1',
+            registeredVersion: 1,
             name: 'x',
             widgetId: 'w',
             widgetConfig: {},
@@ -363,7 +369,7 @@ void main() {
     test('defaults to true', () {
       const def = EntryTypeDefinition(
         id: 'x',
-        version: '1',
+        registeredVersion: 1,
         name: 'X',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -374,7 +380,7 @@ void main() {
     test('false round-trips through JSON', () {
       const def = EntryTypeDefinition(
         id: 'x',
-        version: '1',
+        registeredVersion: 1,
         name: 'X',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -390,7 +396,7 @@ void main() {
     test('absent "materialize" in JSON defaults to true', () {
       final def = EntryTypeDefinition.fromJson(<String, Object?>{
         'id': 'x',
-        'version': '1',
+        'registered_version': 1,
         'name': 'X',
         'widget_id': 'w',
         'widget_config': const <String, Object?>{},
@@ -402,7 +408,7 @@ void main() {
       expect(
         () => EntryTypeDefinition.fromJson(<String, Object?>{
           'id': 'x',
-          'version': '1',
+          'registered_version': 1,
           'name': 'X',
           'widget_id': 'w',
           'widget_config': const <String, Object?>{},
@@ -415,20 +421,45 @@ void main() {
     test('materialize participates in equality', () {
       const a = EntryTypeDefinition(
         id: 'x',
-        version: '1',
+        registeredVersion: 1,
         name: 'X',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
       );
       const b = EntryTypeDefinition(
         id: 'x',
-        version: '1',
+        registeredVersion: 1,
         name: 'X',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
         materialize: false,
       );
       expect(a, isNot(b));
+    });
+  });
+
+  group('REQ-d00116-B: registered_version replaces version field', () {
+    // Verifies: REQ-d00116-B
+    test('fromJson rejects missing registered_version', () {
+      final m = _validJson()..remove('registered_version');
+      expect(() => EntryTypeDefinition.fromJson(m), throwsFormatException);
+    });
+    // Verifies: REQ-d00116-B
+    test('fromJson rejects non-int registered_version', () {
+      final m = _validJson()..['registered_version'] = '1';
+      expect(() => EntryTypeDefinition.fromJson(m), throwsFormatException);
+    });
+    // Verifies: REQ-d00116-B
+    test('toJson uses snake_case key', () {
+      const d = EntryTypeDefinition(
+        id: 'demo',
+        registeredVersion: 5,
+        name: 'Demo',
+        widgetId: 'w',
+        widgetConfig: <String, Object?>{},
+      );
+      expect(d.toJson()['registered_version'], 5);
+      expect(d.toJson().containsKey('version'), isFalse);
     });
   });
 }

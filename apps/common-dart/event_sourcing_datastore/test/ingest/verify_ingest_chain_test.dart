@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00146-C: verifyIngestChain — walks Chain 2 on destination log
 //   REQ-d00146-D: non-throwing; returns ChainVerdict
-//   REQ-d00146-E: ArgumentError when fromIngestSeq > toIngestSeq
+//   REQ-d00146-E: ArgumentError when fromSequenceNumber > toSequenceNumber
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,7 +35,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -44,7 +44,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -54,7 +54,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -64,7 +64,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -97,7 +97,7 @@ Future<List<StoredEvent>> _originate(int count) async {
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -106,7 +106,7 @@ Future<List<StoredEvent>> _originate(int count) async {
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -116,7 +116,7 @@ Future<List<StoredEvent>> _originate(int count) async {
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -126,7 +126,7 @@ Future<List<StoredEvent>> _originate(int count) async {
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -148,6 +148,7 @@ Future<List<StoredEvent>> _originate(int count) async {
   for (var i = 0; i < count; i++) {
     final e = await store.append(
       entryType: 'epistaxis_event',
+      entryTypeVersion: 1,
       aggregateId: 'agg-orig-$i-$_dbCounter',
       aggregateType: 'DiaryEntry',
       eventType: 'finalized',
@@ -200,21 +201,18 @@ void main() {
           final cleanVerdict = await dest.store.verifyIngestChain();
           expect(cleanVerdict.ok, isTrue);
 
-          // Directly tamper e2's stored record (ingest_sequence_number == 2)
-          // via sembast raw access. Ingested events live in 'ingested_events'
-          // (separate from the origin 'events' store after the store split).
-          final rawDb = dest.backend.debugDatabase();
-          final eventStore = sembast.intMapStoreFactory.store(
-            'ingested_events',
-          );
-
-          // Find the record with ingest_sequence_number == 2 (Sembast key == 2
-          // because appendIngestedEvent uses ingestSeq as the key).
+          // Directly tamper e2's stored record. Under the unified event
+          // store, ingested events land in 'events' keyed by local
+          // sequence_number (which equals the receiver-hop's
+          // ingest_sequence_number). e2 is the second ingest, so its
+          // sequence_number == 2.
+          final rawDb = dest.backend.databaseForTesting;
+          final eventStore = sembast.intMapStoreFactory.store('events');
           final record = await eventStore.record(2).get(rawDb);
           expect(
             record,
             isNotNull,
-            reason: 'event with ingest key 2 must exist',
+            reason: 'event with sequence_number 2 must exist',
           );
 
           final updated = Map<String, Object?>.from(record!);
@@ -249,7 +247,7 @@ void main() {
       },
     );
 
-    test('respects fromIngestSeq / toIngestSeq bounds', () async {
+    test('respects fromSequenceNumber / toSequenceNumber bounds', () async {
       // Ingest 5 events. Break #3 (seq 3). Verify range [1, 2] → ok=true
       // because the break is at seq 3 which is outside the walked range.
       final dest = await _openStore();
@@ -261,10 +259,11 @@ void main() {
           expect(outcome.outcome, equals(IngestOutcome.ingested));
         }
 
-        // Tamper seq 3. Ingested events live in 'ingested_events'
-        // (separate from the origin 'events' store after the store split).
-        final rawDb = dest.backend.debugDatabase();
-        final eventStore = sembast.intMapStoreFactory.store('ingested_events');
+        // Tamper seq 3. Under the unified event store, ingested events land
+        // in 'events' keyed by local sequence_number (== receiver-hop's
+        // ingest_sequence_number).
+        final rawDb = dest.backend.databaseForTesting;
+        final eventStore = sembast.intMapStoreFactory.store('events');
 
         final record = await eventStore.record(3).get(rawDb);
         expect(record, isNotNull);
@@ -287,16 +286,16 @@ void main() {
 
         // Walking 1..2 should be clean (tamper is at 3).
         final verdictClean = await dest.store.verifyIngestChain(
-          fromIngestSeq: 1,
-          toIngestSeq: 2,
+          fromSequenceNumber: 1,
+          toSequenceNumber: 2,
         );
         expect(verdictClean.ok, isTrue);
         expect(verdictClean.failures, isEmpty);
 
         // Walking 1..5 should detect the failure at seq 3.
         final verdictFull = await dest.store.verifyIngestChain(
-          fromIngestSeq: 1,
-          toIngestSeq: 5,
+          fromSequenceNumber: 1,
+          toSequenceNumber: 5,
         );
         expect(verdictFull.ok, isFalse);
         expect(verdictFull.failures, hasLength(1));
@@ -306,17 +305,23 @@ void main() {
       }
     });
 
-    test('throws ArgumentError when fromIngestSeq > toIngestSeq', () async {
-      final dest = await _openStore();
+    test(
+      'throws ArgumentError when fromSequenceNumber > toSequenceNumber',
+      () async {
+        final dest = await _openStore();
 
-      try {
-        await expectLater(
-          () => dest.store.verifyIngestChain(fromIngestSeq: 5, toIngestSeq: 3),
-          throwsArgumentError,
-        );
-      } finally {
-        await dest.close();
-      }
-    });
+        try {
+          await expectLater(
+            () => dest.store.verifyIngestChain(
+              fromSequenceNumber: 5,
+              toSequenceNumber: 3,
+            ),
+            throwsArgumentError,
+          );
+        } finally {
+          await dest.close();
+        }
+      },
+    );
   });
 }

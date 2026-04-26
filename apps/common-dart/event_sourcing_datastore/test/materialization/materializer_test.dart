@@ -9,7 +9,7 @@ void main() {
   EntryTypeDefinition defFor(String id, {String? effectiveDatePath}) =>
       EntryTypeDefinition(
         id: id,
-        version: '1',
+        registeredVersion: 1,
         name: id,
         widgetId: 'epistaxis_form_v1',
         widgetConfig: const <String, Object?>{},
@@ -31,6 +31,8 @@ void main() {
       aggregateId: aggregateId,
       aggregateType: 'DiaryEntry',
       entryType: entryType,
+      entryTypeVersion: 1,
+      libFormatVersion: 1,
       eventType: eventType,
       sequenceNumber: sequenceNumber,
       data: data ?? <String, dynamic>{'answers': <String, Object?>{}},
@@ -66,6 +68,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );
@@ -120,6 +123,7 @@ void main() {
       final entry = DiaryEntriesMaterializer.foldPure(
         previous: previous,
         event: event,
+        promotedData: event.data,
         def: defFor('epistaxis_event'),
         firstEventTimestamp: firstTs,
       );
@@ -159,6 +163,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: defFor('epistaxis_event'),
           firstEventTimestamp: firstTs,
         );
@@ -201,6 +206,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: previous,
           event: event,
+          promotedData: event.data,
           def: defFor('epistaxis_event'),
           firstEventTimestamp: firstTs,
         );
@@ -233,6 +239,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: defFor('epistaxis_event'),
           firstEventTimestamp: firstTs,
         );
@@ -264,6 +271,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
           firstEventTimestamp: firstTs,
         );
@@ -288,6 +296,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: defFor('nose_hht_survey', effectiveDatePath: 'answers.date'),
           firstEventTimestamp: firstTs,
         );
@@ -307,6 +316,7 @@ void main() {
       final entry = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
+        promotedData: event.data,
         def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
         firstEventTimestamp: DateTime.parse('2026-04-22T08:00:00Z'),
       );
@@ -327,6 +337,7 @@ void main() {
       final entry = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
+        promotedData: event.data,
         def: defFor('epistaxis_event'),
         firstEventTimestamp: DateTime.parse('2026-04-22T08:00:00Z'),
       );
@@ -348,6 +359,7 @@ void main() {
         final entry = DiaryEntriesMaterializer.foldPure(
           previous: null,
           event: event,
+          promotedData: event.data,
           def: defFor('epistaxis_event', effectiveDatePath: 'startTime'),
           firstEventTimestamp: DateTime.parse('2026-04-22T08:00:00Z'),
         );
@@ -373,12 +385,14 @@ void main() {
       final first = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
+        promotedData: event.data,
         def: def,
         firstEventTimestamp: firstTs,
       );
       final second = DiaryEntriesMaterializer.foldPure(
         previous: null,
         event: event,
+        promotedData: event.data,
         def: def,
         firstEventTimestamp: firstTs,
       );
@@ -428,6 +442,7 @@ void main() {
           final result = DiaryEntriesMaterializer.foldPure(
             previous: prior,
             event: event,
+            promotedData: event.data,
             def: def,
             firstEventTimestamp: firstTs,
           );
@@ -459,6 +474,7 @@ void main() {
           final result = DiaryEntriesMaterializer.foldPure(
             previous: prior,
             event: event,
+            promotedData: event.data,
             def: def,
             firstEventTimestamp: firstTs,
           );
@@ -487,6 +503,7 @@ void main() {
         final result = DiaryEntriesMaterializer.foldPure(
           previous: prior,
           event: event,
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );
@@ -512,6 +529,7 @@ void main() {
         final result = DiaryEntriesMaterializer.foldPure(
           previous: prior,
           event: event,
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );
@@ -540,6 +558,7 @@ void main() {
           final result = DiaryEntriesMaterializer.foldPure(
             previous: null,
             event: event,
+            promotedData: event.data,
             def: def,
             firstEventTimestamp: firstTs,
           );
@@ -566,6 +585,7 @@ void main() {
         final result = DiaryEntriesMaterializer.foldPure(
           previous: prior,
           event: event,
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );
@@ -592,6 +612,7 @@ void main() {
         final result = DiaryEntriesMaterializer.foldPure(
           previous: prior,
           event: event,
+          promotedData: event.data,
           def: def,
           firstEventTimestamp: firstTs,
         );

@@ -5,7 +5,6 @@ import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
-import 'package:sembast/sembast.dart';
 
 // Validated by: JNY-01 (entry detail), JNY-03 (FIFO exhaustion), JNY-04
 // (retry attempts[]), JNY-05 (policy snapshot), JNY-09 (unjam / rehab).
@@ -26,7 +25,7 @@ class DetailPanel extends StatefulWidget {
 }
 
 class _DetailPanelState extends State<DetailPanel> {
-  Timer? _poll;
+  StreamSubscription<StoredEvent>? _eventsSub;
   String? _summary;
 
   @override
@@ -34,16 +33,16 @@ class _DetailPanelState extends State<DetailPanel> {
     super.initState();
     widget.appState.addListener(_onChange);
     widget.policyNotifier.addListener(_onChange);
-    _poll = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) => _refresh(),
-    );
+    _eventsSub = widget.backend.watchEvents().listen((_) {
+      if (!mounted) return;
+      _refresh();
+    });
     _refresh();
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
+    _eventsSub?.cancel();
     widget.appState.removeListener(_onChange);
     widget.policyNotifier.removeListener(_onChange);
     super.dispose();
@@ -119,20 +118,7 @@ class _DetailPanelState extends State<DetailPanel> {
       );
     }
     if (eventId != null) {
-      return _AsyncJson(
-        loader: () async {
-          final events = await widget.backend.findAllEvents(limit: 100000);
-          StoredEvent? event;
-          for (final e in events) {
-            if (e.eventId == eventId) {
-              event = e;
-              break;
-            }
-          }
-          if (event == null) return <String, Object?>{'error': 'not found'};
-          return event.toMap();
-        },
-      );
+      return _EventDetail(backend: widget.backend, eventId: eventId);
     }
     final fifoDestId = widget.appState.selectedFifoDestinationId;
     if (fifoId != null && fifoDestId != null) {
@@ -141,12 +127,13 @@ class _DetailPanelState extends State<DetailPanel> {
           // FifoEntry.entryId == eventIds.first (library convention), so
           // rows collide on entry_id across destinations. Look up within
           // the specific destination the user selected.
-          final store = intMapStoreFactory.store('fifo_$fifoDestId');
-          final records = await store.find(widget.backend.debugDatabase());
-          for (final r in records) {
-            final m = Map<String, Object?>.from(r.value);
-            if (m['entry_id'] == fifoId) {
-              return <String, Object?>{'destination': fifoDestId, ...m};
+          final entries = await widget.backend.listFifoEntries(fifoDestId);
+          for (final entry in entries) {
+            if (entry.entryId == fifoId) {
+              return <String, Object?>{
+                'destination': fifoDestId,
+                ...entry.toJson(),
+              };
             }
           }
           return <String, Object?>{
@@ -170,6 +157,114 @@ class _DetailPanelState extends State<DetailPanel> {
       '  periodicInterval:  ${policy.periodicInterval.inSeconds}s',
       style: DemoText.body,
     );
+  }
+}
+
+/// Renders the selected event's metadata as JSON plus an explicit
+/// per-provenance-entry summary that surfaces `origin_sequence_number`
+/// (REQ-d00115-K) when set. Most local events have a single
+/// origin-only provenance entry with no `origin_sequence_number` —
+/// ingested events show one per receiver hop with the originator's
+/// wire-supplied seq, demonstrating the unified-store property.
+///
+/// Plan 4.15 Task 5 Step 2 + Risk 4 mitigation (only render the line
+/// when non-null, keeping local-event details uncluttered).
+class _EventDetail extends StatefulWidget {
+  const _EventDetail({required this.backend, required this.eventId});
+
+  final SembastBackend backend;
+  final String eventId;
+
+  @override
+  State<_EventDetail> createState() => _EventDetailState();
+}
+
+class _EventDetailState extends State<_EventDetail> {
+  StoredEvent? _event;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_EventDetail old) {
+    super.didUpdateWidget(old);
+    if (old.eventId != widget.eventId) {
+      _loaded = false;
+      _event = null;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final events = await widget.backend.findAllEvents(limit: 100000);
+    StoredEvent? event;
+    for (final e in events) {
+      if (e.eventId == widget.eventId) {
+        event = e;
+        break;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _event = event;
+      _loaded = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) return const Text('...', style: DemoText.body);
+    final event = _event;
+    if (event == null) {
+      return const Text('event not found', style: DemoText.body);
+    }
+    final provenance = _provenanceOf(event);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (provenance.isNotEmpty) ...<Widget>[
+          const Text('provenance:', style: DemoText.body),
+          for (var i = 0; i < provenance.length; i++)
+            _ProvenanceLine(index: i, entry: provenance[i]),
+          const SizedBox(height: 8),
+        ],
+        const Text('event:', style: DemoText.body),
+        Text(_jsonOf(event), style: DemoText.body),
+      ],
+    );
+  }
+
+  static List<Map<String, Object?>> _provenanceOf(StoredEvent event) {
+    final raw = event.metadata['provenance'];
+    if (raw is! List) return const <Map<String, Object?>>[];
+    return raw.cast<Map<String, Object?>>();
+  }
+
+  static String _jsonOf(StoredEvent event) {
+    const encoder = JsonEncoder.withIndent('  ');
+    return encoder.convert(event.toMap());
+  }
+}
+
+class _ProvenanceLine extends StatelessWidget {
+  const _ProvenanceLine({required this.index, required this.entry});
+
+  final int index;
+  final Map<String, Object?> entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final hop = entry['hop'] as String? ?? '?';
+    final originSeq = entry['origin_sequence_number'] as int?;
+    final ingestSeq = entry['ingest_sequence_number'] as int?;
+    final summary = StringBuffer('  [$index] hop=$hop');
+    if (ingestSeq != null) summary.write(' ingest_seq=$ingestSeq');
+    if (originSeq != null) summary.write(' origin_seq=$originSeq');
+    return Text(summary.toString(), style: DemoText.body);
   }
 }
 

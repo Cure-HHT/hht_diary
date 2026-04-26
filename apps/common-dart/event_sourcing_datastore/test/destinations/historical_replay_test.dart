@@ -8,6 +8,9 @@ import 'package:sembast/sembast.dart' as sembast;
 import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
 
 /// Fresh in-memory SembastBackend per test.
 Future<SembastBackend> _openBackend(String path) async {
@@ -34,6 +37,8 @@ Future<StoredEvent> _appendEvent(
       aggregateId: aggregateId,
       aggregateType: 'DiaryEntry',
       entryType: entryType,
+      entryTypeVersion: 1,
+      libFormatVersion: 1,
       eventType: eventType,
       sequenceNumber: seq,
       data: const <String, dynamic>{},
@@ -54,7 +59,7 @@ Future<List<Map<String, Object?>>> _readAllFifoRows(
   SembastBackend backend,
   String destinationId,
 ) async {
-  final db = backend.debugDatabase();
+  final db = backend.databaseForTesting;
   final records =
       await sembast.StoreRef<int, Map<String, Object?>>(
         'fifo_$destinationId',
@@ -78,7 +83,11 @@ void main() {
       setUp(() async {
         dbCounter += 1;
         backend = await _openBackend('historical-replay-$dbCounter.db');
-        registry = DestinationRegistry(backend: backend);
+        final deps = buildAuditedRegistryDeps(backend);
+        registry = DestinationRegistry(
+          backend: backend,
+          eventStore: deps.eventStore,
+        );
       });
 
       tearDown(() async {
@@ -103,11 +112,12 @@ void main() {
         }
 
         final dest = FakeDestination(id: 'x', batchCapacity: 2);
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         await registry.setStartDate(
           'x',
           DateTime.now().subtract(const Duration(hours: 1)),
+          initiator: _testInit,
         );
 
         // batchCapacity = 2 → rows of 2, 2, 1 for 5 events.
@@ -141,11 +151,12 @@ void main() {
             );
           }
           final dest = FakeDestination(id: 'x', batchCapacity: 10);
-          await registry.addDestination(dest);
+          await registry.addDestination(dest, initiator: _testInit);
 
           await registry.setStartDate(
             'x',
             DateTime.now().add(const Duration(days: 1)),
+            initiator: _testInit,
           );
 
           expect(await backend.readFifoHead('x'), isNull);
@@ -181,12 +192,13 @@ void main() {
         // after replay" FIFO layout that would be violated if replay
         // either missed events or double-enqueued them.
         final dest = FakeDestination(id: 'x', batchCapacity: 3);
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         // setStartDate(past): replay enqueues the 3 existing events.
         await registry.setStartDate(
           'x',
           DateTime.now().subtract(const Duration(hours: 1)),
+          initiator: _testInit,
         );
 
         // Replay must land a FIFO row with exactly the 3 seeded events,
@@ -252,7 +264,15 @@ void main() {
           'e3',
         ]);
         expect((rows[1]['event_ids']! as List).cast<String>(), ['e4', 'e5']);
-        expect(await backend.readFillCursor('x'), 5);
+        // fill_cursor advances to the last enqueued event's
+        // sequence_number. The registry's REQ-d00129-J/K audit emissions
+        // are interleaved into the event_log and consume sequence
+        // numbers, but never reach the FIFO; the cursor matches the
+        // last user event's seq, whatever that ends up being.
+        final lastUserEvent = (await backend.findAllEvents()).lastWhere(
+          (e) => e.eventId.startsWith('e'),
+        );
+        expect(await backend.readFillCursor('x'), lastUserEvent.sequenceNumber);
       });
     },
   );

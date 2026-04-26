@@ -329,7 +329,7 @@ void main() {
 
     test('parsed wirePayload is unmodifiable', () {
       final e = FifoEntry.fromJson(makeSample().toJson());
-      expect(() => e.wirePayload['x'] = 1, throwsUnsupportedError);
+      expect(() => e.wirePayload!['x'] = 1, throwsUnsupportedError);
     });
 
     test('parsed attempts list is unmodifiable', () {
@@ -393,6 +393,8 @@ void main() {
       'aggregate_id': 'agg-1',
       'aggregate_type': 'DiaryEntry',
       'entry_type': 'epistaxis_event',
+      'entry_type_version': 1,
+      'lib_format_version': 1,
       'event_type': 'finalized',
       'sequence_number': 1,
       'data': <String, Object?>{'k': 'v'},

@@ -1,18 +1,17 @@
-import 'dart:convert';
-
 import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
 import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:event_sourcing_datastore/src/storage/txn.dart';
 import 'package:sembast/sembast.dart';
 
 /// Sembast-backed `SecurityContextStore`. Maintains one sembast store
-/// (`security_context`) keyed on `event_id`, plus `queryAudit` that joins
-/// rows with the event log under the single backend database.
-// Implements: REQ-d00137-A+D+F — sembast sidecar; null on missing; queryAudit
-// pagination and filter contract.
+/// (`security_context`) keyed on `event_id`. Cross-store reads (the
+/// security_context + events join) live on the backend via
+/// [SembastBackend.queryAudit]; this store's [queryAudit] is a thin
+/// delegator (REQ-d00151-C).
+// Implements: REQ-d00137-A+D — sembast sidecar; null on missing.
+// Implements: REQ-d00151-C — queryAudit delegates to backend.queryAudit.
 class SembastSecurityContextStore extends InternalSecurityContextStore {
   SembastSecurityContextStore({required this.backend});
 
@@ -20,15 +19,10 @@ class SembastSecurityContextStore extends InternalSecurityContextStore {
 
   final StoreRef<String, Map<String, Object?>> _store = stringMapStoreFactory
       .store('security_context');
-  final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
-      .store('events');
 
   @override
-  Future<EventSecurityContext?> read(String eventId) async {
-    final db = backend.debugDatabase();
-    final raw = await _store.record(eventId).get(db);
-    if (raw == null) return null;
-    return EventSecurityContext.fromJson(Map<String, Object?>.from(raw));
+  Future<EventSecurityContext?> read(String eventId) {
+    return backend.transaction((txn) => readInTxn(txn, eventId));
   }
 
   @override
@@ -96,6 +90,9 @@ class SembastSecurityContextStore extends InternalSecurityContextStore {
         .toList();
   }
 
+  // Implements: REQ-d00151-C — thin delegator; the cross-store join lives
+  // on the backend (REQ-d00151-A+B) so consumers cannot reach past the
+  // abstraction to perform their own joins.
   @override
   Future<PagedAudit> queryAudit({
     Initiator? initiator,
@@ -105,126 +102,15 @@ class SembastSecurityContextStore extends InternalSecurityContextStore {
     DateTime? to,
     int limit = 50,
     String? cursor,
-  }) async {
-    if (limit < 1 || limit > 1000) {
-      throw ArgumentError.value(
-        limit,
-        'limit',
-        'queryAudit limit must be in [1, 1000] (REQ-d00137-F)',
-      );
-    }
-
-    _CursorPoint? decodedCursor;
-    if (cursor != null) {
-      try {
-        decodedCursor = _CursorPoint.decode(cursor);
-      } on Object catch (e) {
-        throw ArgumentError.value(cursor, 'cursor', 'corrupt cursor: $e');
-      }
-    }
-
-    final db = backend.debugDatabase();
-
-    // 1. Filter security rows by ipAddress + date range.
-    final securityFilters = <Filter>[];
-    if (ipAddress != null) {
-      securityFilters.add(Filter.equals('ip_address', ipAddress));
-    }
-    if (from != null) {
-      securityFilters.add(
-        Filter.greaterThanOrEquals(
-          'recorded_at',
-          from.toUtc().toIso8601String(),
-        ),
-      );
-    }
-    if (to != null) {
-      securityFilters.add(
-        Filter.lessThanOrEquals('recorded_at', to.toUtc().toIso8601String()),
-      );
-    }
-    // NOTE: we re-sort the join result in memory (see `rows.sort(...)`
-    // below) so the in-memory order is authoritative for pagination; the
-    // Sembast sort matches it only for clarity / debuggability.
-    final securityFinder = Finder(
-      filter: securityFilters.isEmpty
-          ? null
-          : (securityFilters.length == 1
-                ? securityFilters.single
-                : Filter.and(securityFilters)),
-      sortOrders: [
-        SortOrder('recorded_at', false),
-        SortOrder(Field.key, false),
-      ],
-    );
-    final securityRecords = await _store.find(db, finder: securityFinder);
-    final securityByEventId = <String, EventSecurityContext>{
-      for (final r in securityRecords)
-        r.key: EventSecurityContext.fromJson(
-          Map<String, Object?>.from(r.value),
-        ),
-    };
-    if (securityByEventId.isEmpty) {
-      return const PagedAudit(rows: <AuditRow>[]);
-    }
-
-    // 2. Fetch matching events.
-    final eventFilters = <Filter>[
-      Filter.inList('event_id', securityByEventId.keys.toList()),
-    ];
-    if (flowToken != null) {
-      eventFilters.add(Filter.equals('flow_token', flowToken));
-    }
-    final eventFinder = Finder(
-      filter: eventFilters.length == 1
-          ? eventFilters.single
-          : Filter.and(eventFilters),
-    );
-    final eventRecords = await _eventStore.find(db, finder: eventFinder);
-    var events = eventRecords
-        .map((r) => StoredEvent.fromMap(r.value, r.key))
-        .toList();
-    if (initiator != null) {
-      events = events.where((e) => e.initiator == initiator).toList();
-    }
-
-    // 3. Inner join + sort by recordedAt desc.
-    final rows = <AuditRow>[];
-    for (final event in events) {
-      final ctx = securityByEventId[event.eventId];
-      if (ctx == null) continue;
-      rows.add(AuditRow(event: event, context: ctx));
-    }
-    rows.sort((a, b) {
-      final cmp = b.context.recordedAt.compareTo(a.context.recordedAt);
-      if (cmp != 0) return cmp;
-      return b.event.eventId.compareTo(a.event.eventId);
-    });
-
-    // 4. Apply cursor (lower bound) if provided.
-    final filtered = decodedCursor == null
-        ? rows
-        : rows.where((r) {
-            final cmp = r.context.recordedAt.compareTo(
-              decodedCursor!.recordedAt,
-            );
-            if (cmp < 0) return true;
-            if (cmp == 0) {
-              return r.event.eventId.compareTo(decodedCursor.eventId) < 0;
-            }
-            return false;
-          }).toList();
-
-    // 5. Paginate.
-    final page = filtered.take(limit).toList();
-    final nextCursor = filtered.length > limit
-        ? _CursorPoint(
-            recordedAt: page.last.context.recordedAt,
-            eventId: page.last.event.eventId,
-          ).encode()
-        : null;
-    return PagedAudit(rows: page, nextCursor: nextCursor);
-  }
+  }) => backend.queryAudit(
+    initiator: initiator,
+    flowToken: flowToken,
+    ipAddress: ipAddress,
+    from: from,
+    to: to,
+    limit: limit,
+    cursor: cursor,
+  );
 
   Transaction _castTxn(Txn txn) {
     // Unwrap via the backend's transaction() — test-side txns passed in
@@ -233,27 +119,5 @@ class SembastSecurityContextStore extends InternalSecurityContextStore {
     // txn via the backend's view methods. This concrete store is paired
     // with SembastBackend-produced transactions.
     return backend.unwrapSembastTxn(txn);
-  }
-}
-
-class _CursorPoint {
-  const _CursorPoint({required this.recordedAt, required this.eventId});
-
-  factory _CursorPoint.decode(String encoded) {
-    final raw = utf8.decode(base64Url.decode(encoded));
-    final parts = raw.split('|');
-    if (parts.length != 2) throw const FormatException('bad cursor shape');
-    return _CursorPoint(
-      recordedAt: DateTime.parse(parts[0]),
-      eventId: parts[1],
-    );
-  }
-
-  final DateTime recordedAt;
-  final String eventId;
-
-  String encode() {
-    final raw = '${recordedAt.toUtc().toIso8601String()}|$eventId';
-    return base64Url.encode(utf8.encode(raw));
   }
 }

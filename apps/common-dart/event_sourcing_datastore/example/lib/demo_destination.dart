@@ -1,18 +1,15 @@
 import 'dart:convert';
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing_datastore_demo/demo_knobs.dart';
 import 'package:flutter/foundation.dart';
-
-/// Connection state live-controlled via the destination's `connection`
-/// notifier. The send() implementation routes by value.
-enum Connection { ok, broken, rejecting }
 
 // Implements: REQ-d00122 — Destination contract surface.
 // Implements: REQ-d00128 — batch transform, canAddToBatch,
 //   maxAccumulateTime.
 // Implements: REQ-d00129-B — allowHardDelete opt-in.
 // Design: §7.6.
-class DemoDestination implements Destination {
+class DemoDestination implements Destination, DemoKnobs {
   DemoDestination({
     required this.id,
     this.allowHardDelete = false,
@@ -38,23 +35,33 @@ class DemoDestination implements Destination {
   @override
   String get wireFormat => 'demo-json-v1';
 
+  // Implements: REQ-d00152-A — DemoDestination is a lossy 3rd-party-style
+  // destination; library invokes transform() and stores the resulting
+  // WirePayload verbatim.
+  @override
+  bool get serializesNatively => false;
+
   @override
   Duration get maxAccumulateTime => maxAccumulateTimeN.value;
 
   /// Live-tunable network simulation. Drives send() branch selection.
+  @override
   final ValueNotifier<Connection> connection;
 
   /// Live-tunable delay applied when `connection = ok` before returning
   /// `SendOk`. Makes the drain/retry cadence observable in the UI.
+  @override
   final ValueNotifier<Duration> sendLatency;
 
   /// Live-tunable upper bound on current-batch length. fillBatch asks
   /// `canAddToBatch` once per candidate; when the batch reaches this
   /// length, the next candidate is rejected.
+  @override
   final ValueNotifier<int> batchSize;
 
   /// Backing notifier for `maxAccumulateTime`. Named with an `N` suffix
   /// so the interface getter can keep the un-suffixed name.
+  @override
   final ValueNotifier<Duration> maxAccumulateTimeN;
 
   @override

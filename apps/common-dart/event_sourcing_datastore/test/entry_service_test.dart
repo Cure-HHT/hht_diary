@@ -1,15 +1,18 @@
 import 'dart:async';
 
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
 import 'package:event_sourcing_datastore/src/entry_service.dart';
 import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
+import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
 import 'package:event_sourcing_datastore/src/storage/append_result.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
+import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
@@ -38,7 +41,7 @@ class _Fixture {
 EntryTypeDefinition _defFor(String id, {String? effectiveDatePath}) =>
     EntryTypeDefinition(
       id: id,
-      version: '1',
+      registeredVersion: 1,
       name: id,
       widgetId: 'widget-$id',
       widgetConfig: const <String, Object?>{},
@@ -709,9 +712,10 @@ class _FifoPanicBackend extends _DelegatingBackend {
   @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) {
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) {
     fifoWrites += 1;
     throw StateError('record() must not write to a FIFO (REQ-d00133-D)');
   }
@@ -720,9 +724,10 @@ class _FifoPanicBackend extends _DelegatingBackend {
   Future<FifoEntry> enqueueFifoTxn(
     Txn txn,
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) {
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) {
     fifoWrites += 1;
     throw StateError('record() must not write to a FIFO (REQ-d00133-D)');
   }
@@ -848,23 +853,77 @@ class _DelegatingBackend extends StorageBackend {
       _inner.clearViewInTxn(txn, viewName);
 
   @override
+  Future<int?> readViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+  ) => _inner.readViewTargetVersionInTxn(txn, viewName, entryType);
+
+  @override
+  Future<void> writeViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+    int targetVersion,
+  ) => _inner.writeViewTargetVersionInTxn(
+    txn,
+    viewName,
+    entryType,
+    targetVersion,
+  );
+
+  @override
+  Future<Map<String, int>> readAllViewTargetVersionsInTxn(
+    Txn txn,
+    String viewName,
+  ) => _inner.readAllViewTargetVersionsInTxn(txn, viewName);
+
+  @override
+  Future<void> clearViewTargetVersionsInTxn(Txn txn, String viewName) =>
+      _inner.clearViewTargetVersionsInTxn(txn, viewName);
+
+  @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => _inner.enqueueFifo(destinationId, batch, wirePayload);
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => _inner.enqueueFifo(
+    destinationId,
+    batch,
+    wirePayload: wirePayload,
+    nativeEnvelope: nativeEnvelope,
+  );
 
   @override
   Future<FifoEntry> enqueueFifoTxn(
     Txn txn,
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => _inner.enqueueFifoTxn(txn, destinationId, batch, wirePayload);
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => _inner.enqueueFifoTxn(
+    txn,
+    destinationId,
+    batch,
+    wirePayload: wirePayload,
+    nativeEnvelope: nativeEnvelope,
+  );
 
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       _inner.readFifoHead(destinationId);
+
+  @override
+  Future<List<FifoEntry>> listFifoEntries(
+    String destinationId, {
+    int? afterSequenceInQueue,
+    int? limit,
+  }) => _inner.listFifoEntries(
+    destinationId,
+    afterSequenceInQueue: afterSequenceInQueue,
+    limit: limit,
+  );
 
   @override
   Future<void> appendAttempt(
@@ -956,22 +1015,36 @@ class _DelegatingBackend extends StorageBackend {
     afterSequenceInQueue,
   );
   @override
-  Future<int> nextIngestSequenceNumber(Txn txn) =>
-      _inner.nextIngestSequenceNumber(txn);
-  @override
-  Future<(int, String?)> readIngestTail() => _inner.readIngestTail();
-  @override
-  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
-      _inner.readIngestTailInTxn(txn);
-  @override
-  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
-      _inner.appendIngestedEvent(txn, event);
-  @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       _inner.findEventByIdInTxn(txn, eventId);
   @override
-  Future<List<StoredEvent>> findEventsByIngestSeqRange({
-    required int from,
-    int? to,
-  }) => _inner.findEventsByIngestSeqRange(from: from, to: to);
+  Future<StoredEvent?> findEventById(String eventId) =>
+      _inner.findEventById(eventId);
+  @override
+  Stream<StoredEvent> watchEvents({int? afterSequence}) =>
+      _inner.watchEvents(afterSequence: afterSequence);
+  @override
+  Stream<List<FifoEntry>> watchFifo(String destinationId) =>
+      _inner.watchFifo(destinationId);
+  @override
+  Stream<List<Map<String, Object?>>> watchView(String viewName) =>
+      _inner.watchView(viewName);
+  @override
+  Future<PagedAudit> queryAudit({
+    Initiator? initiator,
+    String? flowToken,
+    String? ipAddress,
+    DateTime? from,
+    DateTime? to,
+    int limit = 50,
+    String? cursor,
+  }) => _inner.queryAudit(
+    initiator: initiator,
+    flowToken: flowToken,
+    ipAddress: ipAddress,
+    from: from,
+    to: to,
+    limit: limit,
+    cursor: cursor,
+  );
 }

@@ -475,6 +475,8 @@ void main() {
         aggregateId: 'aggregate-456',
         aggregateType: 'DiaryEntry',
         entryType: 'epistaxis_event',
+        entryTypeVersion: 1,
+        libFormatVersion: 1,
         eventType: 'NosebleedRecorded',
         sequenceNumber: 42,
         data: {'severity': 'mild', 'duration': 10},
@@ -753,21 +755,70 @@ class _SpyBackend extends StorageBackend {
   Future<void> clearViewInTxn(Txn txn, String viewName) =>
       delegate.clearViewInTxn(txn, viewName);
   @override
+  Future<int?> readViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+  ) => delegate.readViewTargetVersionInTxn(txn, viewName, entryType);
+  @override
+  Future<void> writeViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+    int targetVersion,
+  ) => delegate.writeViewTargetVersionInTxn(
+    txn,
+    viewName,
+    entryType,
+    targetVersion,
+  );
+  @override
+  Future<Map<String, int>> readAllViewTargetVersionsInTxn(
+    Txn txn,
+    String viewName,
+  ) => delegate.readAllViewTargetVersionsInTxn(txn, viewName);
+  @override
+  Future<void> clearViewTargetVersionsInTxn(Txn txn, String viewName) =>
+      delegate.clearViewTargetVersionsInTxn(txn, viewName);
+  @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => delegate.enqueueFifo(destinationId, batch, wirePayload);
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => delegate.enqueueFifo(
+    destinationId,
+    batch,
+    wirePayload: wirePayload,
+    nativeEnvelope: nativeEnvelope,
+  );
   @override
   Future<FifoEntry> enqueueFifoTxn(
     Txn txn,
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => delegate.enqueueFifoTxn(txn, destinationId, batch, wirePayload);
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => delegate.enqueueFifoTxn(
+    txn,
+    destinationId,
+    batch,
+    wirePayload: wirePayload,
+    nativeEnvelope: nativeEnvelope,
+  );
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       delegate.readFifoHead(destinationId);
+  @override
+  Future<List<FifoEntry>> listFifoEntries(
+    String destinationId, {
+    int? afterSequenceInQueue,
+    int? limit,
+  }) => delegate.listFifoEntries(
+    destinationId,
+    afterSequenceInQueue: afterSequenceInQueue,
+    limit: limit,
+  );
   @override
   Future<void> appendAttempt(
     String destinationId,
@@ -837,24 +888,38 @@ class _SpyBackend extends StorageBackend {
     afterSequenceInQueue,
   );
   @override
-  Future<int> nextIngestSequenceNumber(Txn txn) =>
-      delegate.nextIngestSequenceNumber(txn);
-  @override
-  Future<(int, String?)> readIngestTail() => delegate.readIngestTail();
-  @override
-  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
-      delegate.readIngestTailInTxn(txn);
-  @override
-  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
-      delegate.appendIngestedEvent(txn, event);
-  @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       delegate.findEventByIdInTxn(txn, eventId);
   @override
-  Future<List<StoredEvent>> findEventsByIngestSeqRange({
-    required int from,
-    int? to,
-  }) => delegate.findEventsByIngestSeqRange(from: from, to: to);
+  Future<StoredEvent?> findEventById(String eventId) =>
+      delegate.findEventById(eventId);
+  @override
+  Stream<StoredEvent> watchEvents({int? afterSequence}) =>
+      delegate.watchEvents(afterSequence: afterSequence);
+  @override
+  Stream<List<FifoEntry>> watchFifo(String destinationId) =>
+      delegate.watchFifo(destinationId);
+  @override
+  Stream<List<Map<String, Object?>>> watchView(String viewName) =>
+      delegate.watchView(viewName);
+  @override
+  Future<PagedAudit> queryAudit({
+    Initiator? initiator,
+    String? flowToken,
+    String? ipAddress,
+    DateTime? from,
+    DateTime? to,
+    int limit = 50,
+    String? cursor,
+  }) => delegate.queryAudit(
+    initiator: initiator,
+    flowToken: flowToken,
+    ipAddress: ipAddress,
+    from: from,
+    to: to,
+    limit: limit,
+    cursor: cursor,
+  );
 }
 
 /// Test database provider that uses in-memory Sembast database.

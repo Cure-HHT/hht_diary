@@ -134,6 +134,8 @@ class EventRepository {
           'aggregate_id': aggregateId,
           'aggregate_type': aggregateType ?? 'DiaryEntry',
           'entry_type': entryType,
+          'entry_type_version': 1,
+          'lib_format_version': StoredEvent.currentLibFormatVersion,
           'event_type': eventType,
           'sequence_number': sequenceNumber,
           'data': data,

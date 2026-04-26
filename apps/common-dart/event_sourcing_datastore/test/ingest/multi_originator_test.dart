@@ -37,7 +37,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'epistaxis_event',
-        version: '1',
+        registeredVersion: 1,
         name: 'Epistaxis Event',
         widgetId: 'w',
         widgetConfig: <String, Object?>{},
@@ -46,7 +46,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_redacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Redacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -56,7 +56,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_compacted',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Compacted',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -66,7 +66,7 @@ Future<_Fixture> _openStore({
     ..register(
       const EntryTypeDefinition(
         id: 'security_context_purged',
-        version: '1',
+        registeredVersion: 1,
         name: 'SC Purged',
         widgetId: '_system',
         widgetConfig: <String, Object?>{},
@@ -145,6 +145,7 @@ void main() {
           // A originates eA1, eA2 under aggregate aggA.
           final eA1 = await originatorA.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggA',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -155,6 +156,7 @@ void main() {
           );
           final eA2 = await originatorA.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggA',
             aggregateType: 'DiaryEntry',
             eventType: 'checkpoint',
@@ -167,6 +169,7 @@ void main() {
           // B originates eB1, eB2 under aggregate aggB.
           final eB1 = await originatorB.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggB',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -177,6 +180,7 @@ void main() {
           );
           final eB2 = await originatorB.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggB',
             aggregateType: 'DiaryEntry',
             eventType: 'checkpoint',
@@ -250,18 +254,24 @@ void main() {
           expect(storedA2.eventHash, isNot(equals(eA2.eventHash)));
           expect(storedB2.eventHash, isNot(equals(eB2.eventHash)));
 
-          // Assertion: per-aggregate sequence_numbers are independently
-          // monotone, from each originator's own counter.
-          // aggA events: sequence 1, 2 from A's counter.
-          expect(storedA1.sequenceNumber, equals(eA1.sequenceNumber));
-          expect(storedA2.sequenceNumber, equals(eA2.sequenceNumber));
+          // Assertion: each stored event's sequence_number is the
+          // destination's locally-assigned seq (1..4 in ingest order).
+          // The originator's wire-supplied sequence_number is preserved on
+          // the receiver-hop ProvenanceEntry as origin_sequence_number.
           expect(storedA1.sequenceNumber, equals(1));
-          expect(storedA2.sequenceNumber, equals(2));
-          // aggB events: also 1, 2 from B's counter (independent).
-          expect(storedB1.sequenceNumber, equals(eB1.sequenceNumber));
-          expect(storedB2.sequenceNumber, equals(eB2.sequenceNumber));
-          expect(storedB1.sequenceNumber, equals(1));
-          expect(storedB2.sequenceNumber, equals(2));
+          expect(storedB1.sequenceNumber, equals(2));
+          expect(storedA2.sequenceNumber, equals(3));
+          expect(storedB2.sequenceNumber, equals(4));
+          expect(provA1['origin_sequence_number'], equals(eA1.sequenceNumber));
+          expect(provB1['origin_sequence_number'], equals(eB1.sequenceNumber));
+          expect(provA2['origin_sequence_number'], equals(eA2.sequenceNumber));
+          expect(provB2['origin_sequence_number'], equals(eB2.sequenceNumber));
+          // The originator's per-aggregate seq counter is independently
+          // monotone (1, 2 from each).
+          expect(eA1.sequenceNumber, equals(1));
+          expect(eA2.sequenceNumber, equals(2));
+          expect(eB1.sequenceNumber, equals(1));
+          expect(eB2.sequenceNumber, equals(2));
 
           // Assertion: originator identity preserved verbatim.
           expect(storedA1.aggregateId, equals(eA1.aggregateId));
@@ -319,6 +329,7 @@ void main() {
           // A originates eA1, eA2.
           final eA1 = await originatorA.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggA-batch',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -329,6 +340,7 @@ void main() {
           );
           final eA2 = await originatorA.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggA-batch',
             aggregateType: 'DiaryEntry',
             eventType: 'checkpoint',
@@ -341,6 +353,7 @@ void main() {
           // B originates eB1, eB2.
           final eB1 = await originatorB.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggB-batch',
             aggregateType: 'DiaryEntry',
             eventType: 'finalized',
@@ -351,6 +364,7 @@ void main() {
           );
           final eB2 = await originatorB.store.append(
             entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
             aggregateId: 'aggB-batch',
             aggregateType: 'DiaryEntry',
             eventType: 'checkpoint',

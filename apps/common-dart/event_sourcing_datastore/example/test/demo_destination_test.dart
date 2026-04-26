@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:event_sourcing_datastore_demo/demo_destination.dart';
+import 'package:event_sourcing_datastore_demo/demo_knobs.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 StoredEvent _mkEvent(String id) => StoredEvent.synthetic(

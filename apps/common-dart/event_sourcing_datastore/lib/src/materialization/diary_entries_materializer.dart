@@ -1,4 +1,5 @@
 import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
+import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
 import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
@@ -11,8 +12,14 @@ import 'package:event_sourcing_datastore/src/storage/txn.dart';
 /// `rebuildView` streaming accumulator) can reuse it without going
 /// through the backend.
 // Implements: REQ-d00140-A — concrete materializer for diary_entries.
+// Implements: REQ-d00140-G — promoter is required and supplied by caller.
+// Implements: REQ-d00121-B+C+D — fold operates on promoter-supplied
+//   promotedData rather than directly on event.data.
 class DiaryEntriesMaterializer extends Materializer {
-  const DiaryEntriesMaterializer();
+  const DiaryEntriesMaterializer({required this.promoter});
+
+  @override
+  final EntryPromoter promoter;
 
   @override
   String get viewName => 'diary_entries';
@@ -25,6 +32,7 @@ class DiaryEntriesMaterializer extends Materializer {
     Txn txn,
     StorageBackend backend, {
     required StoredEvent event,
+    required Map<String, Object?> promotedData,
     required EntryTypeDefinition def,
     required List<StoredEvent> aggregateHistory,
   }) async {
@@ -40,6 +48,7 @@ class DiaryEntriesMaterializer extends Materializer {
     final next = foldPure(
       previous: prior,
       event: event,
+      promotedData: promotedData,
       def: def,
       firstEventTimestamp: firstTs,
     );
@@ -51,28 +60,28 @@ class DiaryEntriesMaterializer extends Materializer {
     );
   }
 
-  /// Pure fold (no I/O). Preserves the Phase-3 `Materializer.apply` entry
-  /// point for reuse by rebuild, `EntryService.record`, and unit tests.
+  /// Pure fold (no I/O). Folds [event] into the next [DiaryEntry] state
+  /// using [promotedData] as the (already-promoted) event payload.
   ///
   /// Event-type folding rules:
-  /// - `finalized`: merge `event.data.answers` into `current_answers`;
+  /// - `finalized`: merge `promotedData['answers']` into `current_answers`;
   ///   `is_complete = true`.
-  /// - `checkpoint`: merge `event.data.answers` into `current_answers`;
-  ///   `is_complete = false`.
+  /// - `checkpoint`: same merge rule; `is_complete = false`.
   /// - `tombstone`: flip `is_deleted = true`; preserve other fields.
   // Implements: REQ-d00121-B+C+D+E+F+J — fold event into view row per
-  // event_type; key-wise merge of answers for finalized/checkpoint
-  // (absent key preserves prior, present key overwrites including
-  // null-as-clear), tombstone preserves fields and flips is_deleted;
-  // effective_date resolved from merged answers via dotted-path lookup
-  // with fallback.
+  // event_type; key-wise merge of answers (drawn from promotedData) for
+  // finalized/checkpoint (absent key preserves prior, present key
+  // overwrites including null-as-clear), tombstone preserves fields and
+  // flips is_deleted; effective_date resolved from merged answers via
+  // dotted-path lookup with fallback.
   static DiaryEntry foldPure({
     required DiaryEntry? previous,
     required StoredEvent event,
+    required Map<String, Object?> promotedData,
     required EntryTypeDefinition def,
     required DateTime firstEventTimestamp,
   }) {
-    final eventAnswers = _extractAnswers(event);
+    final eventAnswers = _extractAnswers(promotedData);
 
     switch (event.eventType) {
       case 'tombstone':
@@ -142,8 +151,8 @@ class DiaryEntriesMaterializer extends Materializer {
   }
 }
 
-Map<String, Object?> _extractAnswers(StoredEvent event) {
-  final raw = event.data['answers'];
+Map<String, Object?> _extractAnswers(Map<String, Object?> promotedData) {
+  final raw = promotedData['answers'];
   if (raw is Map) {
     return Map<String, Object?>.unmodifiable(Map<String, Object?>.from(raw));
   }

@@ -1,4 +1,6 @@
 import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
+import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
+import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
 import 'package:event_sourcing_datastore/src/materialization/rebuild.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
@@ -29,7 +31,7 @@ void main() {
     EntryTypeDefinition defFor(String id, {String? effectiveDatePath}) =>
         EntryTypeDefinition(
           id: id,
-          version: '1',
+          registeredVersion: 1,
           name: id,
           widgetId: 'epistaxis_form_v1',
           widgetConfig: const <String, Object?>{},
@@ -57,6 +59,8 @@ void main() {
             aggregateId: aggregateId,
             aggregateType: 'DiaryEntry',
             entryType: entryType,
+            entryTypeVersion: 1,
+            libFormatVersion: 1,
             eventType: eventType,
             sequenceNumber: seq,
             data: data,
@@ -384,6 +388,211 @@ void main() {
       expect(byId['agg-odd']!.isComplete, isTrue);
       expect(byId['agg-even']!.isComplete, isTrue);
     });
+  });
+
+  group('rebuildView (parameterized) — REQ-d00140-D', () {
+    late SembastBackend backend;
+    var counter = 0;
+
+    setUp(() async {
+      counter += 1;
+      final db = await newDatabaseFactoryMemory().openDatabase(
+        'rebuild-param-$counter.db',
+      );
+      backend = SembastBackend(database: db);
+    });
+
+    tearDown(() async {
+      await backend.close();
+    });
+
+    EntryTypeDefinition defFor(String id) => EntryTypeDefinition(
+      id: id,
+      registeredVersion: 1,
+      name: id,
+      widgetId: 'w',
+      widgetConfig: const <String, Object?>{},
+    );
+
+    MapEntryTypeDefinitionLookup lookupFor(List<EntryTypeDefinition> defs) =>
+        MapEntryTypeDefinitionLookup.fromDefinitions(defs);
+
+    Future<void> appendEvent({
+      required String eventId,
+      required String aggregateId,
+      required String entryType,
+      required String eventType,
+      required Map<String, dynamic> data,
+      required DateTime clientTimestamp,
+    }) async {
+      await backend.transaction<void>((txn) async {
+        final seq = await backend.nextSequenceNumber(txn);
+        await backend.appendEvent(
+          txn,
+          StoredEvent(
+            key: 0,
+            eventId: eventId,
+            aggregateId: aggregateId,
+            aggregateType: 'DiaryEntry',
+            entryType: entryType,
+            entryTypeVersion: 1,
+            libFormatVersion: 1,
+            eventType: eventType,
+            sequenceNumber: seq,
+            data: data,
+            metadata: const <String, dynamic>{},
+            initiator: const UserInitiator('u1'),
+            clientTimestamp: clientTimestamp,
+            eventHash: 'hash-$eventId',
+          ),
+        );
+      });
+    }
+
+    // Verifies: REQ-d00140-D — strict-superset failure raises ArgumentError
+    // when a previously-registered entry type is omitted from the supplied
+    // map, and no destructive write happens.
+    test('REQ-d00140-D: strict-superset failure on missing existing entry '
+        'type', () async {
+      // Seed an existing target-version entry.
+      await backend.transaction((txn) async {
+        await backend.writeViewTargetVersionInTxn(
+          txn,
+          'diary_entries',
+          'epistaxis_event',
+          1,
+        );
+        await backend.writeViewTargetVersionInTxn(
+          txn,
+          'diary_entries',
+          'nose_hht_survey',
+          1,
+        );
+      });
+      const m = DiaryEntriesMaterializer(promoter: identityPromoter);
+      await expectLater(
+        rebuildView(
+          m,
+          backend,
+          lookupFor([defFor('epistaxis_event'), defFor('nose_hht_survey')]),
+          // 'nose_hht_survey' missing → strict-superset violation.
+          targetVersionByEntryType: const <String, int>{'epistaxis_event': 1},
+        ),
+        throwsArgumentError,
+      );
+      // Existing entries remain.
+      final stored = await backend.transaction<Map<String, int>>(
+        (txn) async =>
+            backend.readAllViewTargetVersionsInTxn(txn, 'diary_entries'),
+      );
+      expect(stored.containsKey('nose_hht_survey'), isTrue);
+    });
+
+    // Verifies: REQ-d00140-D — adding a new entry type during rebuild is
+    // allowed (strict superset).
+    test('REQ-d00140-D: superset accept — new entry type added', () async {
+      await backend.transaction((txn) async {
+        await backend.writeViewTargetVersionInTxn(
+          txn,
+          'diary_entries',
+          'epistaxis_event',
+          1,
+        );
+      });
+      await appendEvent(
+        eventId: 'e1',
+        aggregateId: 'agg-1',
+        entryType: 'epistaxis_event',
+        eventType: 'finalized',
+        data: const <String, dynamic>{
+          'answers': <String, Object?>{'intensity': 'mild'},
+        },
+        clientTimestamp: DateTime.parse('2026-04-22T10:00:00Z'),
+      );
+      const m = DiaryEntriesMaterializer(promoter: identityPromoter);
+      final processed = await rebuildView(
+        m,
+        backend,
+        lookupFor([defFor('epistaxis_event'), defFor('newcomer_type')]),
+        targetVersionByEntryType: const <String, int>{
+          'epistaxis_event': 1,
+          'newcomer_type': 2, // brand new — allowed
+        },
+      );
+      expect(processed, 1);
+      final stored = await backend.transaction<Map<String, int>>(
+        (txn) async =>
+            backend.readAllViewTargetVersionsInTxn(txn, 'diary_entries'),
+      );
+      expect(stored, <String, int>{'epistaxis_event': 1, 'newcomer_type': 2});
+    });
+
+    // Verifies: REQ-d00140-D — running rebuild twice with the same map
+    // produces the same view rows (idempotent).
+    test('REQ-d00140-D: idempotent rebuild', () async {
+      await appendEvent(
+        eventId: 'e1',
+        aggregateId: 'agg-1',
+        entryType: 'epistaxis_event',
+        eventType: 'finalized',
+        data: const <String, dynamic>{
+          'answers': <String, Object?>{'intensity': 'mild'},
+        },
+        clientTimestamp: DateTime.parse('2026-04-22T10:00:00Z'),
+      );
+      const m = DiaryEntriesMaterializer(promoter: identityPromoter);
+      final lookup = lookupFor([defFor('epistaxis_event')]);
+      const map = <String, int>{'epistaxis_event': 1};
+      final first = await rebuildView(
+        m,
+        backend,
+        lookup,
+        targetVersionByEntryType: map,
+      );
+      final firstRows = await backend.findEntries();
+      final second = await rebuildView(
+        m,
+        backend,
+        lookup,
+        targetVersionByEntryType: map,
+      );
+      final secondRows = await backend.findEntries();
+      expect(first, second);
+      expect(firstRows.length, secondRows.length);
+      expect(firstRows.single.toJson(), equals(secondRows.single.toJson()));
+    });
+
+    // Verifies: REQ-d00140-D — an event in the log whose entry_type is not
+    // in the supplied map raises ArgumentError. Every materialized event
+    // needs a target version to promote toward.
+    test(
+      'REQ-d00140-D: unmapped event entry-type raises ArgumentError',
+      () async {
+        await appendEvent(
+          eventId: 'e1',
+          aggregateId: 'agg-1',
+          entryType: 'epistaxis_event',
+          eventType: 'finalized',
+          data: const <String, dynamic>{
+            'answers': <String, Object?>{'intensity': 'mild'},
+          },
+          clientTimestamp: DateTime.parse('2026-04-22T10:00:00Z'),
+        );
+        const m = DiaryEntriesMaterializer(promoter: identityPromoter);
+        await expectLater(
+          rebuildView(
+            m,
+            backend,
+            lookupFor([defFor('epistaxis_event')]),
+            // Map is non-empty, but does not cover the event's entry_type.
+            // Strict-superset check passes (no existing rows), but the
+            // per-event lookup fails.
+            targetVersionByEntryType: const <String, int>{'unrelated': 1},
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
   });
 }
 

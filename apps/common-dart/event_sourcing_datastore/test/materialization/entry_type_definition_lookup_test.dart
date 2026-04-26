@@ -7,7 +7,7 @@ import '../test_support/map_entry_type_definition_lookup.dart';
 void main() {
   EntryTypeDefinition defFor(String id) => EntryTypeDefinition(
     id: id,
-    version: '1',
+    registeredVersion: 1,
     name: id,
     widgetId: 'any_widget_v1',
     widgetConfig: const <String, Object?>{},

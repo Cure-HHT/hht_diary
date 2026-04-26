@@ -1,17 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show
-        tombstoneAndRefill,
+        Destination,
         DestinationSchedule,
+        FifoEntry,
         SembastBackend,
-        SetEndDateResult;
+        SetEndDateResult,
+        UserInitiator;
 import 'package:event_sourcing_datastore_demo/app_state.dart';
-import 'package:event_sourcing_datastore_demo/demo_destination.dart';
+import 'package:event_sourcing_datastore_demo/demo_knobs.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
 import 'package:flutter/material.dart';
-import 'package:sembast/sembast.dart';
 
 // Validated by: JNY-03, JNY-04, JNY-07, JNY-08, JNY-09.
 class FifoPanel extends StatefulWidget {
@@ -22,7 +24,14 @@ class FifoPanel extends StatefulWidget {
     super.key,
   });
 
-  final DemoDestination destination;
+  /// The destination this panel renders. Either a `DemoDestination`
+  /// (lossy 3rd-party shape: `transform()` produces opaque bytes the
+  /// FIFO row stores under `wire_payload`) or any other [Destination]
+  /// such as a native `esd/batch@1` destination (FIFO row stores
+  /// `envelope_metadata` instead, REQ-d00119-K). The demo-specific
+  /// connection / latency / batch-size knobs render whenever the
+  /// destination implements [DemoKnobs] — both demo destinations do.
+  final Destination destination;
   final SembastBackend backend;
   final AppState appState;
 
@@ -31,40 +40,56 @@ class FifoPanel extends StatefulWidget {
 }
 
 class _FifoPanelState extends State<FifoPanel> {
-  List<Map<String, Object?>> _rows = const <Map<String, Object?>>[];
+  List<FifoEntry> _rows = const <FifoEntry>[];
   Map<String, int> _seqByEventId = const <String, int>{};
   DestinationSchedule? _schedule;
   bool _opsOpen = false;
   String? _banner;
-  Timer? _poll;
+  StreamSubscription<List<FifoEntry>>? _fifoSub;
   Timer? _bannerTimer;
 
   final TextEditingController _startCtrl = TextEditingController();
   final TextEditingController _endCtrl = TextEditingController();
 
+  /// Non-null when the destination implements [DemoKnobs], in which case
+  /// the panel renders the live-tunable connection / latency / batch-size
+  /// / accumulate knobs. Both `DemoDestination` (lossy) and
+  /// `NativeDemoDestination` (esd/batch@1) implement DemoKnobs in the
+  /// example app, so all three columns expose the same controls.
+  /// Null for production destinations that don't carry these knobs.
+  DemoKnobs? get _demo {
+    final dest = widget.destination;
+    return dest is DemoKnobs ? dest as DemoKnobs : null;
+  }
+
   @override
   void initState() {
     super.initState();
-    widget.destination.connection.addListener(_onNotifier);
-    widget.destination.sendLatency.addListener(_onNotifier);
-    widget.destination.batchSize.addListener(_onNotifier);
-    widget.destination.maxAccumulateTimeN.addListener(_onNotifier);
+    final demo = _demo;
+    if (demo != null) {
+      demo.connection.addListener(_onNotifier);
+      demo.sendLatency.addListener(_onNotifier);
+      demo.batchSize.addListener(_onNotifier);
+      demo.maxAccumulateTimeN.addListener(_onNotifier);
+    }
     widget.appState.addListener(_onNotifier);
-    _poll = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) => _refresh(),
-    );
-    _refresh();
+    _fifoSub = widget.backend.watchFifo(widget.destination.id).listen((rows) {
+      if (!mounted) return;
+      _onFifoSnapshot(rows);
+    });
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
+    _fifoSub?.cancel();
     _bannerTimer?.cancel();
-    widget.destination.connection.removeListener(_onNotifier);
-    widget.destination.sendLatency.removeListener(_onNotifier);
-    widget.destination.batchSize.removeListener(_onNotifier);
-    widget.destination.maxAccumulateTimeN.removeListener(_onNotifier);
+    final demo = _demo;
+    if (demo != null) {
+      demo.connection.removeListener(_onNotifier);
+      demo.sendLatency.removeListener(_onNotifier);
+      demo.batchSize.removeListener(_onNotifier);
+      demo.maxAccumulateTimeN.removeListener(_onNotifier);
+    }
     widget.appState.removeListener(_onNotifier);
     _startCtrl.dispose();
     _endCtrl.dispose();
@@ -76,26 +101,41 @@ class _FifoPanelState extends State<FifoPanel> {
     setState(() {});
   }
 
-  Future<void> _refresh() async {
+  Future<void> _onFifoSnapshot(List<FifoEntry> rows) async {
     try {
-      final store = intMapStoreFactory.store('fifo_${widget.destination.id}');
-      final records = await store.find(widget.backend.debugDatabase());
-      final rows = records
-          .map((r) => Map<String, Object?>.from(r.value))
-          .toList();
       final schedule = await widget.appState.registry.scheduleOf(
         widget.destination.id,
       );
-      final events = await widget.backend.findAllEvents(limit: 500);
-      final seqByEventId = <String, int>{
-        for (final e in events) e.eventId: e.sequenceNumber,
-      };
+      // Per-row indexed lookup of the tail event's sequence_number for the
+      // tile label. O(1) per row via the storage index, computed once per
+      // FIFO snapshot so the synchronous tile builder stays sync.
+      final seqByEventId = <String, int>{};
+      for (final row in rows) {
+        if (row.eventIds.isEmpty) continue;
+        final tailId = row.eventIds.last;
+        final tail = await widget.backend.findEventById(tailId);
+        if (tail != null) {
+          seqByEventId[tailId] = tail.sequenceNumber;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _rows = rows;
         _schedule = schedule;
         _seqByEventId = seqByEventId;
       });
+    } catch (_) {
+      // Non-fatal.
+    }
+  }
+
+  Future<void> _reloadSchedule() async {
+    try {
+      final schedule = await widget.appState.registry.scheduleOf(
+        widget.destination.id,
+      );
+      if (!mounted) return;
+      setState(() => _schedule = schedule);
     } catch (_) {
       // Non-fatal.
     }
@@ -133,6 +173,10 @@ class _FifoPanelState extends State<FifoPanel> {
         s == null ||
         s.startDate == null ||
         s.startDate!.isAfter(DateTime.now().toUtc());
+    final demo = _demo;
+    final formatBadge = widget.destination.serializesNatively
+        ? '[NATIVE ${widget.destination.wireFormat}]'
+        : '[LOSSY ${widget.destination.wireFormat}]';
     return Container(
       decoration: BoxDecoration(color: DemoColors.bg, border: demoBorder),
       padding: const EdgeInsets.all(8),
@@ -140,6 +184,16 @@ class _FifoPanelState extends State<FifoPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(widget.destination.id.toUpperCase(), style: DemoText.header),
+          Text(
+            formatBadge,
+            style: TextStyle(
+              color: widget.destination.serializesNatively
+                  ? DemoColors.green
+                  : DemoColors.accent,
+              fontFamily: 'monospace',
+              fontSize: 12,
+            ),
+          ),
           Text(
             _scheduleLabel(),
             style: const TextStyle(
@@ -150,24 +204,25 @@ class _FifoPanelState extends State<FifoPanel> {
           ),
           if (showStartEditor) _startDateEditor(),
           _endDateEditor(),
-          _connectionDropdown(),
-          _latencySlider(),
-          _sliderRow(
-            label: 'batch size',
-            value: widget.destination.batchSize.value.toDouble(),
-            min: 1,
-            max: 12,
-            onChanged: (v) => widget.destination.batchSize.value = v.round(),
-          ),
-          _sliderRow(
-            label: 'accumulate (s)',
-            value: widget.destination.maxAccumulateTimeN.value.inSeconds
-                .toDouble(),
-            min: 0,
-            max: 20,
-            onChanged: (v) => widget.destination.maxAccumulateTimeN.value =
-                Duration(seconds: v.round()),
-          ),
+          if (demo != null) _connectionDropdown(demo),
+          if (demo != null) _latencySlider(demo),
+          if (demo != null)
+            _sliderRow(
+              label: 'batch size',
+              value: demo.batchSize.value.toDouble(),
+              min: 1,
+              max: 12,
+              onChanged: (v) => demo.batchSize.value = v.round(),
+            ),
+          if (demo != null)
+            _sliderRow(
+              label: 'accumulate (s)',
+              value: demo.maxAccumulateTimeN.value.inSeconds.toDouble(),
+              min: 0,
+              max: 20,
+              onChanged: (v) =>
+                  demo.maxAccumulateTimeN.value = Duration(seconds: v.round()),
+            ),
           _opsDrawer(),
           if (_banner != null)
             Container(
@@ -209,9 +264,10 @@ class _FifoPanelState extends State<FifoPanel> {
               await widget.appState.registry.setStartDate(
                 widget.destination.id,
                 d.toUtc(),
+                initiator: const UserInitiator('demo-user-1'),
               );
               _flashBanner('startDate set');
-              await _refresh();
+              await _reloadSchedule();
             } catch (e) {
               _flashBanner('err: $e');
             }
@@ -248,6 +304,7 @@ class _FifoPanelState extends State<FifoPanel> {
               final result = await widget.appState.registry.setEndDate(
                 widget.destination.id,
                 utc,
+                initiator: const UserInitiator('demo-user-1'),
               );
               final iso = utc.toIso8601String();
               final msg = switch (result) {
@@ -257,7 +314,7 @@ class _FifoPanelState extends State<FifoPanel> {
                   'endDate set to $iso (no state change)',
               };
               _flashBanner(msg);
-              await _refresh();
+              await _reloadSchedule();
             } catch (e) {
               _flashBanner('err: $e');
             }
@@ -268,13 +325,13 @@ class _FifoPanelState extends State<FifoPanel> {
     );
   }
 
-  Widget _connectionDropdown() {
+  Widget _connectionDropdown(DemoKnobs demo) {
     return Row(
       children: <Widget>[
         const Text('conn:', style: TextStyle(color: DemoColors.fg)),
         const SizedBox(width: 4),
         DropdownButton<Connection>(
-          value: widget.destination.connection.value,
+          value: demo.connection.value,
           dropdownColor: DemoColors.bg,
           style: const TextStyle(color: DemoColors.fg),
           items: Connection.values
@@ -285,7 +342,7 @@ class _FifoPanelState extends State<FifoPanel> {
               .toList(),
           onChanged: (c) {
             if (c == null) return;
-            widget.destination.connection.value = c;
+            demo.connection.value = c;
           },
         ),
       ],
@@ -333,10 +390,9 @@ class _FifoPanelState extends State<FifoPanel> {
   /// milliseconds `p^2 * 10000`. Small positions give small ms so
   /// single-digit / low-hundreds values are easy to dial in; the top
   /// of the slider reaches 10 s.
-  Widget _latencySlider() {
+  Widget _latencySlider(DemoKnobs demo) {
     const maxMs = 10000.0;
-    final currentMs = widget.destination.sendLatency.value.inMilliseconds
-        .toDouble();
+    final currentMs = demo.sendLatency.value.inMilliseconds.toDouble();
     final position = math.sqrt((currentMs / maxMs).clamp(0.0, 1.0));
     return _sliderRow(
       label: 'latency (ms)',
@@ -346,7 +402,7 @@ class _FifoPanelState extends State<FifoPanel> {
       displayOverride: currentMs.round().toString(),
       onChanged: (p) {
         final ms = (p * p * maxMs).round();
-        widget.destination.sendLatency.value = Duration(milliseconds: ms);
+        demo.sendLatency.value = Duration(milliseconds: ms);
       },
     );
   }
@@ -373,6 +429,7 @@ class _FifoPanelState extends State<FifoPanel> {
                     try {
                       await widget.appState.registry.deleteDestination(
                         widget.destination.id,
+                        initiator: const UserInitiator('demo-user-1'),
                       );
                       _flashBanner('deleted');
                     } catch (e) {
@@ -393,35 +450,32 @@ class _FifoPanelState extends State<FifoPanel> {
   Widget _rowList() {
     // Display reversed (descending sequence_in_queue) so the most
     // recently enqueued row is on top.
-    final display = <Map<String, Object?>>[..._rows]
-      ..sort(
-        (a, b) => (b['sequence_in_queue'] as int? ?? 0).compareTo(
-          a['sequence_in_queue'] as int? ?? 0,
-        ),
-      );
+    final display = <FifoEntry>[..._rows]
+      ..sort((a, b) => b.sequenceInQueue.compareTo(a.sequenceInQueue));
     return ListView.builder(
       itemCount: display.length,
       itemBuilder: (context, i) => _FifoRowTile(
         row: display[i],
         seqByEventId: _seqByEventId,
         selected:
-            widget.appState.selectedFifoRowId == display[i]['entry_id'] &&
+            widget.appState.selectedFifoRowId == display[i].entryId &&
             widget.appState.selectedFifoDestinationId == widget.destination.id,
         onTap: () => widget.appState.selectFifoRow(
           widget.destination.id,
-          display[i]['entry_id'] as String?,
+          display[i].entryId,
         ),
         destinationId: widget.destination.id,
         backend: widget.backend,
         onTombstoneAndRefill: () async {
           try {
-            await tombstoneAndRefill(
+            await widget.appState.registry.tombstoneAndRefill(
               widget.destination.id,
-              display[i]['entry_id']! as String,
-              backend: widget.backend,
+              display[i].entryId,
+              initiator: const UserInitiator('demo-user-1'),
             );
             _flashBanner('tombstoned & refilled');
-            await _refresh();
+            // FIFO mutation: watchFifo emits a fresh snapshot which
+            // _onFifoSnapshot consumes — no explicit refresh needed.
           } catch (e) {
             _flashBanner('err: $e');
           }
@@ -442,7 +496,7 @@ class _FifoRowTile extends StatelessWidget {
     required this.onTombstoneAndRefill,
   });
 
-  final Map<String, Object?> row;
+  final FifoEntry row;
   final Map<String, int> seqByEventId;
   final bool selected;
   final VoidCallback onTap;
@@ -452,16 +506,12 @@ class _FifoRowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seq = row['sequence_in_queue'] ?? '?';
-    final status = row['final_status'];
-    final attemptsRaw = row['attempts'];
-    final attemptsLen = attemptsRaw is List ? attemptsRaw.length : 0;
-    final eventIdsRaw = row['event_ids'];
-    final eventIds = eventIdsRaw is List ? eventIdsRaw : const <Object?>[];
+    final seq = row.sequenceInQueue;
+    final status = row.finalStatus?.toJson();
+    final attemptsLen = row.attempts.length;
+    final eventIds = row.eventIds;
     final count = eventIds.length;
-    final latestSeq = eventIds.isNotEmpty
-        ? seqByEventId[eventIds.last.toString()]
-        : null;
+    final latestSeq = eventIds.isNotEmpty ? seqByEventId[eventIds.last] : null;
     final latestLabel = latestSeq != null ? '#$latestSeq' : '-';
 
     String prefix;
@@ -485,6 +535,35 @@ class _FifoRowTile extends StatelessWidget {
 
     final label =
         '$prefix#$seq: events: $count (latest: $latestLabel)  attempts:$attemptsLen';
+    // Per-row format badge + storage-shape summary. Native rows (REQ-d00119-K)
+    // carry envelope_metadata + null wire_payload — the on-wire bytes are
+    // reconstructed deterministically by drain at send time, so the storage
+    // footprint is just the envelope identity. Lossy 3rd-party rows persist
+    // the decoded JSON map produced by `transform()`; re-encoding it gives
+    // a stable byte count that approximates the on-wire size for the demo.
+    final envelope = row.envelopeMetadata;
+    final isNative = envelope != null;
+    final badge = isNative ? '[NATIVE]' : '[LOSSY]';
+    final badgeColor = isNative ? DemoColors.green : DemoColors.accent;
+    final String shapeSummary;
+    if (isNative) {
+      final batchPrefix = envelope.batchId.length >= 6
+          ? envelope.batchId.substring(0, 6)
+          : envelope.batchId;
+      shapeSummary =
+          'batch $batchPrefix | $count events | wire bytes recovered on demand';
+    } else {
+      // wire_payload is the decoded JSON map (REQ-d00119-B path); re-encode
+      // it via JSON to get a representative byte count. This is the same
+      // shape `transform()` produced before enqueueFifo decoded it for
+      // structured storage — so the count stays comparable across both
+      // storage shapes for the demo's pedagogy.
+      final payload = row.wirePayload;
+      final bytesLabel = payload == null
+          ? '?'
+          : utf8.encode(jsonEncode(payload)).length.toString();
+      shapeSummary = 'wire_payload: $bytesLabel bytes';
+    }
     // Show TombstoneAndRefill button only on wedged rows. A healthy pending
     // head is also a valid target per REQ-d00144-A, but surfacing the control
     // on every transient null head during rapid enqueue reads as a false
@@ -502,13 +581,41 @@ class _FifoRowTile extends StatelessWidget {
         child: Row(
           children: <Widget>[
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        badge,
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          shapeSummary,
+                          style: const TextStyle(
+                            color: DemoColors.pending,
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             if (isWedged)

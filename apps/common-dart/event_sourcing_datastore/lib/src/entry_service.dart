@@ -56,6 +56,14 @@ class DeviceInfo {
 /// event log, the sequence counter, and the `diary_entries`
 /// materialized view; it does NOT call `destination.transform` or
 /// `destination.send`.
+///
+/// Phase-4.19 caveat: `EntryService.record` invokes
+/// `DiaryEntriesMaterializer.foldPure` directly with `event.data` as
+/// `promotedData` (identity promotion). It bypasses the materializer's
+/// `promoter` field and the `view_target_versions` lookup that
+/// `EventStore.append` performs. Callers MUST ensure the materializer
+/// they construct uses `identityPromoter`; non-identity promoters cause
+/// silent divergence between the legacy and new write paths.
 // Implements: REQ-d00133-A — sole write API for widgets producing new
 // events.
 class EntryService {
@@ -248,6 +256,8 @@ class EntryService {
         'aggregate_id': aggregateId,
         'aggregate_type': 'DiaryEntry',
         'entry_type': entryType,
+        'entry_type_version': 1,
+        'lib_format_version': StoredEvent.currentLibFormatVersion,
         'event_type': eventType,
         'sequence_number': sequenceNumber,
         'data': data,
@@ -281,6 +291,10 @@ class EntryService {
       final nextRow = DiaryEntriesMaterializer.foldPure(
         previous: priorRow,
         event: event,
+        // EntryService is the legacy Phase-4.3 write path. It does not run
+        // the EventStore promoter pipeline, so the event's own data is
+        // used directly (identity promotion).
+        promotedData: event.data,
         def: def,
         firstEventTimestamp: firstEventTs,
       );

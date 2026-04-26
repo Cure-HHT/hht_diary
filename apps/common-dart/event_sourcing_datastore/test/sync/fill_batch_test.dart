@@ -1,13 +1,21 @@
+import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
+import 'package:event_sourcing_datastore/src/storage/source.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:event_sourcing_datastore/src/sync/fill_batch.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
+import '../test_support/native_destination.dart';
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
 
 /// Fixture — a fresh in-memory SembastBackend per test.
 Future<SembastBackend> _openBackend(String path) async {
@@ -34,6 +42,8 @@ Future<StoredEvent> _appendEvent(
       aggregateId: aggregateId,
       aggregateType: 'DiaryEntry',
       entryType: entryType,
+      entryTypeVersion: 1,
+      libFormatVersion: 1,
       eventType: eventType,
       sequenceNumber: seq,
       data: const <String, dynamic>{},
@@ -411,6 +421,226 @@ void main() {
       );
       expect(await backend.readFifoHead('fake'), isNull);
       expect(await backend.readFillCursor('fake'), 2);
+    });
+
+    // Verifies: REQ-d00128-I — when readFifoHead returns a wedged row,
+    // fillBatch returns without enqueueing any new rows, without calling
+    // Destination.transform, and without advancing fill_cursor.
+    test(
+      'REQ-d00128-I: fillBatch is a no-op when FIFO head is wedged',
+      () async {
+        // Step 1: enqueue one matching event and let fillBatch promote it
+        // into a FIFO row, then mark that row wedged. This is the wedge
+        // setup the new behavior must respect.
+        await _appendEvent(
+          backend,
+          eventId: 'e1',
+          clientTimestamp: DateTime.utc(2026, 4, 22, 11),
+        );
+        final dest = FakeDestination(id: 'fake', batchCapacity: 10);
+        final schedule = DestinationSchedule(
+          startDate: DateTime.utc(2026, 4, 1),
+        );
+        await fillBatch(
+          dest,
+          backend: backend,
+          schedule: schedule,
+          clock: () => DateTime.utc(2026, 4, 22, 12),
+        );
+        final wedgedRow = await backend.readFifoHead('fake');
+        expect(wedgedRow, isNotNull);
+        await backend.markFinal('fake', wedgedRow!.entryId, FinalStatus.wedged);
+
+        // Step 2: snapshot post-wedge state.
+        final cursorBeforeSecondFill = await backend.readFillCursor('fake');
+        final transformCallsBefore = dest.transformCalls;
+
+        // Step 3: append more matching events, then call fillBatch again.
+        // The new behavior: it must NOT promote them, NOT advance cursor,
+        // NOT call transform.
+        await _appendEvent(
+          backend,
+          eventId: 'e2',
+          clientTimestamp: DateTime.utc(2026, 4, 22, 11, 30),
+        );
+        await _appendEvent(
+          backend,
+          eventId: 'e3',
+          clientTimestamp: DateTime.utc(2026, 4, 22, 11, 45),
+        );
+
+        await fillBatch(
+          dest,
+          backend: backend,
+          schedule: schedule,
+          clock: () => DateTime.utc(2026, 4, 22, 12),
+        );
+
+        // Cursor unchanged.
+        expect(await backend.readFillCursor('fake'), cursorBeforeSecondFill);
+        // No additional transform calls.
+        expect(dest.transformCalls, transformCallsBefore);
+        // Head is still the wedged row, with status wedged.
+        final headAfter = await backend.readFifoHead('fake');
+        expect(headAfter, isNotNull);
+        expect(headAfter!.entryId, wedgedRow.entryId);
+        expect(headAfter.finalStatus, FinalStatus.wedged);
+      },
+    );
+
+    // Verifies: REQ-d00128-I (recovery half) — after the wedged head is
+    // tombstoned and refilled, the next fillBatch promotes events that
+    // arrived during the wedge in one pass against the rewound cursor.
+    test('REQ-d00128-I: post-tombstoneAndRefill, fillBatch promotes wedge-era '
+        'events in one pass', () async {
+      // Setup: destination with batchCapacity=10 (so a single fillBatch
+      // can produce one row covering many events).
+      final dest = FakeDestination(id: 'fake', batchCapacity: 10);
+      final schedule = DestinationSchedule(startDate: DateTime.utc(2026, 4, 1));
+      DateTime clock() => DateTime.utc(2026, 4, 22, 12);
+
+      // Phase A: enqueue + wedge a single-event row (e1).
+      await _appendEvent(
+        backend,
+        eventId: 'e1',
+        clientTimestamp: DateTime.utc(2026, 4, 22, 10),
+      );
+      await fillBatch(dest, backend: backend, schedule: schedule, clock: clock);
+      final wedged = await backend.readFifoHead('fake');
+      expect(wedged, isNotNull);
+      await backend.markFinal('fake', wedged!.entryId, FinalStatus.wedged);
+
+      // Phase B: append two MORE matching events while wedged. fillBatch
+      // wedge-skips both invocations — no FIFO rows added, no cursor
+      // advance.
+      await _appendEvent(
+        backend,
+        eventId: 'e2',
+        clientTimestamp: DateTime.utc(2026, 4, 22, 10, 30),
+      );
+      await fillBatch(dest, backend: backend, schedule: schedule, clock: clock);
+      await _appendEvent(
+        backend,
+        eventId: 'e3',
+        clientTimestamp: DateTime.utc(2026, 4, 22, 11),
+      );
+      await fillBatch(dest, backend: backend, schedule: schedule, clock: clock);
+
+      // Sanity: still only the wedged row in the FIFO.
+      expect(await backend.readFifoHead('fake'), isNotNull);
+      expect((await backend.readFifoHead('fake'))!.entryId, wedged.entryId);
+
+      // Phase C: operator tombstoneAndRefill — flips wedged -> tombstoned,
+      // rewinds fill_cursor. Uses a fresh registry bound to the same
+      // backend so the wedge-recovery audit emission has somewhere to
+      // land. The destination is registered + scheduled to satisfy the
+      // registry's pre-mutation invariants without re-running fillBatch.
+      final deps = buildAuditedRegistryDeps(backend);
+      final wedgeRecoveryRegistry = DestinationRegistry(
+        backend: backend,
+        eventStore: deps.eventStore,
+      );
+      await wedgeRecoveryRegistry.addDestination(dest, initiator: _testInit);
+      await wedgeRecoveryRegistry.tombstoneAndRefill(
+        'fake',
+        wedged.entryId,
+        initiator: _testInit,
+      );
+
+      // Phase D: next fillBatch. Promotes e1, e2, e3 in ONE pass into
+      // ONE FIFO row (batchCapacity=10 admits all three), advances
+      // fill_cursor to e3.sequenceNumber.
+      await fillBatch(dest, backend: backend, schedule: schedule, clock: clock);
+
+      final fresh = await backend.readFifoHead('fake');
+      expect(fresh, isNotNull);
+      expect(fresh!.eventIds, ['e1', 'e2', 'e3']);
+      expect(fresh.finalStatus, isNull);
+      expect(await backend.readFillCursor('fake'), 3);
+    });
+
+    // Verifies: REQ-d00152-B+E — when destination.serializesNatively is
+    // true, fillBatch builds a fresh BatchEnvelopeMetadata from `source`
+    // (mints batch_id, stamps sent_at = now, copies hopId / identifier /
+    // softwareVersion) and enqueues via nativeEnvelope:. The destination's
+    // transform is NOT called — NativeDestination's transform throws if
+    // invoked.
+    test('REQ-d00152-B+E: native destination — fillBatch mints envelope '
+        'from source, stores envelope_metadata, nulls wire_payload', () async {
+      const source = Source(
+        hopId: 'mobile-device',
+        identifier: 'device-fb-native',
+        softwareVersion: 'clinical_diary@1.2.3',
+      );
+      final clientTs = DateTime.utc(2026, 4, 22, 10);
+      await _appendEvent(backend, eventId: 'e1', clientTimestamp: clientTs);
+      await _appendEvent(backend, eventId: 'e2', clientTimestamp: clientTs);
+
+      final dest = NativeDestination(id: 'native', batchCapacity: 5);
+      final schedule = DestinationSchedule(startDate: DateTime.utc(2026, 4, 1));
+      final fillClock = DateTime.utc(2026, 4, 22, 12);
+
+      await fillBatch(
+        dest,
+        backend: backend,
+        schedule: schedule,
+        source: source,
+        clock: () => fillClock,
+      );
+
+      final head = await backend.readFifoHead('native');
+      expect(head, isNotNull);
+      expect(head!.eventIds, ['e1', 'e2']);
+      expect(head.wireFormat, BatchEnvelope.wireFormat);
+      expect(
+        head.wirePayload,
+        isNull,
+        reason: 'native rows MUST null wire_payload (REQ-d00119-B)',
+      );
+      expect(head.envelopeMetadata, isNotNull);
+      expect(head.envelopeMetadata!.senderHop, 'mobile-device');
+      expect(head.envelopeMetadata!.senderIdentifier, 'device-fb-native');
+      expect(
+        head.envelopeMetadata!.senderSoftwareVersion,
+        'clinical_diary@1.2.3',
+      );
+      expect(head.envelopeMetadata!.batchFormatVersion, '1');
+      expect(
+        head.envelopeMetadata!.sentAt,
+        fillClock,
+        reason: 'fillBatch stamps sent_at from the now() clock at enqueue',
+      );
+      expect(
+        head.envelopeMetadata!.batchId,
+        matches(RegExp(r'^[0-9a-f-]{36}$')),
+        reason: 'fillBatch mints a fresh v4-UUID batch_id per native batch',
+      );
+      expect(await backend.readFillCursor('native'), 2);
+    });
+
+    // Verifies: REQ-d00152-B+E — fillBatch on a native destination
+    // without a `source:` parameter throws ArgumentError. The native
+    // branch needs Source to stamp envelope identity; the absence is a
+    // caller-bug surfaced loudly rather than a silent partial enqueue.
+    test('REQ-d00152-B+E: native destination without source: throws '
+        'ArgumentError', () async {
+      final clientTs = DateTime.utc(2026, 4, 22, 10);
+      await _appendEvent(backend, eventId: 'e1', clientTimestamp: clientTs);
+
+      final dest = NativeDestination(id: 'native');
+      final schedule = DestinationSchedule(startDate: DateTime.utc(2026, 4, 1));
+      await expectLater(
+        fillBatch(
+          dest,
+          backend: backend,
+          schedule: schedule,
+          clock: () => DateTime.utc(2026, 4, 22, 12),
+        ),
+        throwsArgumentError,
+      );
+      // No FIFO row was written, no cursor advance.
+      expect(await backend.readFifoHead('native'), isNull);
+      expect(await backend.readFillCursor('native'), -1);
     });
   });
 }

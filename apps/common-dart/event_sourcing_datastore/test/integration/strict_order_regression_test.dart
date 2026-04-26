@@ -29,6 +29,10 @@ import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
+
 /// Fresh in-memory SembastBackend per test.
 Future<SembastBackend> _openBackend(String path) async {
   final db = await newDatabaseFactoryMemory().openDatabase(path);
@@ -53,6 +57,8 @@ Future<StoredEvent> _appendEvent(
       aggregateId: 'agg-1',
       aggregateType: 'DiaryEntry',
       entryType: 'epistaxis_event',
+      entryTypeVersion: 1,
+      libFormatVersion: 1,
       eventType: 'finalized',
       sequenceNumber: seq,
       data: const <String, dynamic>{},
@@ -183,9 +189,17 @@ void main() {
       // historical-replay branch (REQ-d00129-D) sees zero candidates
       // and does not pre-enqueue anything: we want every FIFO row on
       // `secondary` to be produced by the fillBatch path under test.
-      final registry = DestinationRegistry(backend: backend);
-      await registry.addDestination(destination);
-      await registry.setStartDate(destination.id, DateTime.utc(2026, 1, 1));
+      final deps = buildAuditedRegistryDeps(backend);
+      final registry = DestinationRegistry(
+        backend: backend,
+        eventStore: deps.eventStore,
+      );
+      await registry.addDestination(destination, initiator: _testInit);
+      await registry.setStartDate(
+        destination.id,
+        DateTime.utc(2026, 1, 1),
+        initiator: _testInit,
+      );
 
       // Append three events via the real sequence-number path so their
       // sequence_numbers are assigned by `nextSequenceNumber`, not
@@ -206,10 +220,12 @@ void main() {
         eventId: 'e3',
         clientTimestamp: clientTs,
       );
-      // Sanity: sequence numbers increment per append.
-      expect(e1.sequenceNumber, 1);
-      expect(e2.sequenceNumber, 2);
-      expect(e3.sequenceNumber, 3);
+      // Sanity: sequence numbers increment per append. The registry
+      // emits two REQ-d00129-J/K audit events during addDestination and
+      // setStartDate above, so e1's sequence_number is offset past
+      // those. We assert monotonic increment, not absolute values.
+      expect(e2.sequenceNumber, e1.sequenceNumber + 1);
+      expect(e3.sequenceNumber, e2.sequenceNumber + 1);
 
       // fillBatch clock is past the event timestamps so the window
       // [startDate, now] covers all three events.
@@ -236,7 +252,7 @@ void main() {
       // attempt). e3 was NOT attempted.
       expect(destination.sendCallCount, 2);
       // Only e1 made it through end-to-end to the destination.
-      expect(destination.deliveredSeqs, equals(<int>[1]));
+      expect(destination.deliveredSeqs, equals(<int>[e1.sequenceNumber]));
 
       // Locate the three FIFO rows by scanning readFifoHead step by
       // step: head is now the WEDGED e2 (readFifoHead returns wedged
@@ -278,10 +294,10 @@ void main() {
       // Act: operator "deploys a fix" and runs tombstoneAndRefill on
       // the wedged row.
       destination.deployFix();
-      final result = await tombstoneAndRefill(
+      final result = await registry.tombstoneAndRefill(
         destination.id,
         wedgedEntryId,
-        backend: backend,
+        initiator: _testInit,
       );
       expect(result, isA<TombstoneAndRefillResult>());
       expect(result.targetRowId, wedgedEntryId);
@@ -377,7 +393,7 @@ Future<FifoEntry?> _findRowCoveringSeq(
   // The Sembast FIFO store is `fifo_<destinationId>`, keyed by
   // sequence_in_queue. We iterate via the known-FIFOs list and the raw
   // store; the readFifoRow API then gives us typed FifoEntry values.
-  final db = backend.debugDatabase();
+  final db = backend.databaseForTesting;
   final rawRows = await StoreRef<int, Map<String, Object?>>(
     'fifo_$destinationId',
   ).find(db);

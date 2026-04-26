@@ -4,12 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('demoNoteType (EntryTypeDefinition contract, REQ-d00116)', () {
     // Verifies: REQ-d00116 EntryTypeDefinition schema — demo_note declares
-    //   id, version, name, widgetId, widgetConfig, effectiveDatePath.
+    //   id, registeredVersion, name, widgetId, widgetConfig, effectiveDatePath.
     test('id is "demo_note"', () {
       expect(demoNoteType.id, 'demo_note');
     });
-    test('version non-empty', () {
-      expect(demoNoteType.version, isNotEmpty);
+    test('registeredVersion is positive', () {
+      expect(demoNoteType.registeredVersion, greaterThan(0));
     });
     test('name non-empty', () {
       expect(demoNoteType.name, isNotEmpty);

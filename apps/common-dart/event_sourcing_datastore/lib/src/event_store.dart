@@ -78,7 +78,16 @@ class EventStore {
   /// Append a new event. Returns the persisted `StoredEvent`, or `null`
   /// when `dedupeByContent` is true and the content matches the
   /// aggregate's most recent event.
-  // Implements: REQ-d00141-B — per-field append API.
+  ///
+  /// The caller MUST supply [entryTypeVersion]; the lib stamps
+  /// `lib_format_version` from [StoredEvent.currentLibFormatVersion]. Local
+  /// append does NOT validate [entryTypeVersion] against the registry — that
+  /// is performed at ingest per REQ-d00145-M.
+  // Implements: REQ-d00141-B — per-field append API; entryTypeVersion required.
+  // Implements: REQ-d00141-E — lib_format_version stamped from
+  //   StoredEvent.currentLibFormatVersion on every append.
+  // Implements: REQ-d00141-F — append does NOT validate entryTypeVersion
+  //   against the registry.
   // Implements: REQ-d00135-C — initiator replaces userId.
   // Implements: REQ-d00136-A+E — flowToken nullable; hashed.
   // Implements: REQ-d00137-C — event + security row commit atomically.
@@ -86,6 +95,7 @@ class EventStore {
   //   skip honored; throw rolls back entire append.
   Future<StoredEvent?> append({
     required String entryType,
+    required int entryTypeVersion,
     required String aggregateId,
     required String aggregateType,
     required String eventType,
@@ -98,16 +108,11 @@ class EventStore {
     String? changeReason,
     bool dedupeByContent = false,
   }) async {
-    _validateAppendInputs(
-      entryType: entryType,
-      aggregateType: aggregateType,
-      eventType: eventType,
-    );
-
     final event = await backend.transaction<StoredEvent?>((txn) async {
-      return _appendInTxn(
+      return appendInTxn(
         txn,
         entryType: entryType,
+        entryTypeVersion: entryTypeVersion,
         aggregateId: aggregateId,
         aggregateType: aggregateType,
         eventType: eventType,
@@ -147,9 +152,14 @@ class EventStore {
         );
       }
       await securityContexts.deleteInTxn(txn, eventId);
-      await _appendInTxn(
+      // Implements: REQ-d00134-G — registry-sourced version stamp on the
+      //   security-context redaction audit.
+      await appendInTxn(
         txn,
         entryType: kSecurityContextRedactedEntryType,
+        entryTypeVersion: entryTypes
+            .byId(kSecurityContextRedactedEntryType)!
+            .registeredVersion,
         aggregateId: eventId,
         aggregateType: 'security_context',
         eventType: 'finalized',
@@ -168,9 +178,14 @@ class EventStore {
 
   /// Apply [policy] (or [SecurityRetentionPolicy.defaults]) to the
   /// security-context sidecar store. Truncates rows past `fullRetention`,
-  /// deletes rows past `fullRetention + truncatedRetention`. Emits audit
-  /// events per REQ-d00138-E / F. Empty sweeps emit no events.
+  /// deletes rows past `fullRetention + truncatedRetention`. Emits a
+  /// `system.retention_policy_applied` audit event on every sweep
+  /// (zero-effect sweeps included), plus per-population
+  /// `security_context_compacted` / `security_context_purged` events
+  /// when those sweeps are non-empty.
   // Implements: REQ-d00138-B+C+E+F — compact + purge sweeps with audit.
+  // Implements: REQ-d00138-H — per-sweep retention_policy_applied audit
+  //   (always, even on empty sweeps).
   Future<RetentionResult> applyRetentionPolicy({
     SecurityRetentionPolicy? policy,
     Initiator? sweepInitiator,
@@ -178,7 +193,7 @@ class EventStore {
     final p = policy ?? SecurityRetentionPolicy.defaults;
     final sweepBy =
         sweepInitiator ??
-        const AutomationInitiator(service: 'retention-policy');
+        const AutomationInitiator(service: 'retention-policy-sweep');
     final now = _now();
     final compactCutoff = now.subtract(p.fullRetention);
     final purgeCutoff = compactCutoff.subtract(p.truncatedRetention);
@@ -199,9 +214,14 @@ class EventStore {
       }
 
       if (compactCandidates.isNotEmpty) {
-        await _appendInTxn(
+        // Implements: REQ-d00134-G — registry-sourced version stamp on
+        //   the compact-sweep audit.
+        await appendInTxn(
           txn,
           entryType: kSecurityContextCompactedEntryType,
+          entryTypeVersion: entryTypes
+              .byId(kSecurityContextCompactedEntryType)!
+              .registeredVersion,
           aggregateId: 'retention-compact-${now.toIso8601String()}',
           aggregateType: 'security_context',
           eventType: 'finalized',
@@ -220,9 +240,14 @@ class EventStore {
         );
       }
       if (purgeCandidates.isNotEmpty) {
-        await _appendInTxn(
+        // Implements: REQ-d00134-G — registry-sourced version stamp on
+        //   the purge-sweep audit.
+        await appendInTxn(
           txn,
           entryType: kSecurityContextPurgedEntryType,
+          entryTypeVersion: entryTypes
+              .byId(kSecurityContextPurgedEntryType)!
+              .registeredVersion,
           aggregateId: 'retention-purge-${now.toIso8601String()}',
           aggregateType: 'security_context',
           eventType: 'finalized',
@@ -239,6 +264,35 @@ class EventStore {
           dedupeByContent: false,
         );
       }
+      // Implements: REQ-d00138-H — per-sweep audit, always emitted (the
+      // operator wants a retention timeline, not just non-empty sweeps).
+      // Implements: REQ-d00134-G — registry-sourced version stamp on
+      //   the per-sweep retention-policy-applied audit.
+      await appendInTxn(
+        txn,
+        entryType: kRetentionPolicyAppliedEntryType,
+        entryTypeVersion: entryTypes
+            .byId(kRetentionPolicyAppliedEntryType)!
+            .registeredVersion,
+        aggregateId: 'security-retention',
+        aggregateType: 'system_retention',
+        eventType: 'finalized',
+        data: <String, Object?>{
+          'policy_full_retention_seconds': p.fullRetention.inSeconds,
+          'policy_truncated_retention_seconds': p.truncatedRetention.inSeconds,
+          'events_truncated': compactCandidates.length,
+          'events_purged': purgeCandidates.length,
+          'cutoff_full': compactCutoff.toUtc().toIso8601String(),
+          'cutoff_purge': purgeCutoff.toUtc().toIso8601String(),
+        },
+        initiator: sweepBy,
+        flowToken: null,
+        metadata: null,
+        security: null,
+        checkpointReason: null,
+        changeReason: null,
+        dedupeByContent: false,
+      );
       return RetentionResult(
         compactedCount: compactCandidates.length,
         purgedCount: purgeCandidates.length,
@@ -278,12 +332,21 @@ class EventStore {
     }
   }
 
-  /// In-transaction core of append. Used by `append`, `clearSecurityContext`,
-  /// and `applyRetentionPolicy` so recursive appends (e.g. the audit event
-  /// emitted when redacting) share one transaction with their trigger.
-  Future<StoredEvent?> _appendInTxn(
+  /// Transactional companion to [append]. Use when the caller is already
+  /// inside a `backend.transaction` and wants the append to participate
+  /// (e.g. so a config-mutation audit event lands atomically with the
+  /// mutation that triggered it).
+  ///
+  /// Skips `unawaited(syncCycleTrigger?.call())` — the public [append]
+  /// fires that AFTER the transaction commits.
+  ///
+  /// Validates inputs via [_validateAppendInputs] before doing any work,
+  /// so direct callers do not need to pre-validate.
+  // Implements: REQ-d00141-B (delegated transactional half).
+  Future<StoredEvent?> appendInTxn(
     Txn txn, {
     required String entryType,
+    required int entryTypeVersion,
     required String aggregateId,
     required String aggregateType,
     required String eventType,
@@ -296,6 +359,12 @@ class EventStore {
     required String? changeReason,
     required bool dedupeByContent,
   }) async {
+    _validateAppendInputs(
+      entryType: entryType,
+      aggregateType: aggregateType,
+      eventType: eventType,
+    );
+
     final def = entryTypes.byId(entryType)!;
     final effectiveChangeReason = changeReason ?? 'initial';
 
@@ -349,6 +418,8 @@ class EventStore {
       'aggregate_id': aggregateId,
       'aggregate_type': aggregateType,
       'entry_type': entryType,
+      'entry_type_version': entryTypeVersion,
+      'lib_format_version': StoredEvent.currentLibFormatVersion,
       'event_type': eventType,
       'sequence_number': sequenceNumber,
       'data': dataMap,
@@ -380,15 +451,24 @@ class EventStore {
 
     if (def.materialize) {
       for (final m in materializers) {
-        if (m.appliesTo(event)) {
-          await m.applyInTxn(
-            txn,
-            backend,
-            event: event,
-            def: def,
-            aggregateHistory: List<StoredEvent>.unmodifiable(aggregateHistory),
-          );
-        }
+        if (!m.appliesTo(event)) continue;
+        // Implements: REQ-d00140-G+H — promoter invoked before applyInTxn,
+        //   even when fromVersion == toVersion. A throw rolls back the txn.
+        final target = await m.targetVersionFor(txn, backend, event.entryType);
+        final promoted = m.promoter(
+          entryType: event.entryType,
+          fromVersion: event.entryTypeVersion,
+          toVersion: target,
+          data: event.data,
+        );
+        await m.applyInTxn(
+          txn,
+          backend,
+          event: event,
+          promotedData: promoted,
+          def: def,
+          aggregateHistory: List<StoredEvent>.unmodifiable(aggregateHistory),
+        );
       }
     }
 
@@ -473,6 +553,27 @@ class EventStore {
           Map<String, Object?>.from(eventMap),
           0,
         );
+        // Implements: REQ-d00145-L. Lib-format check runs first.
+        if (storedEvent.libFormatVersion >
+            StoredEvent.currentLibFormatVersion) {
+          throw IngestLibFormatVersionAhead(
+            eventId: storedEvent.eventId,
+            wireVersion: storedEvent.libFormatVersion,
+            receiverVersion: StoredEvent.currentLibFormatVersion,
+          );
+        }
+        // Implements: REQ-d00145-M. Entry-type check second; def==null falls
+        // through to the existing failure path inside _ingestOneInTxn.
+        final def = entryTypes.byId(storedEvent.entryType);
+        if (def != null &&
+            storedEvent.entryTypeVersion > def.registeredVersion) {
+          throw IngestEntryTypeVersionAhead(
+            eventId: storedEvent.eventId,
+            entryType: storedEvent.entryType,
+            wireVersion: storedEvent.entryTypeVersion,
+            receiverVersion: def.registeredVersion,
+          );
+        }
         final batchContext = BatchContext(
           batchId: envelope.batchId,
           batchPosition: i,
@@ -492,8 +593,8 @@ class EventStore {
     return IngestBatchResult(batchId: envelope.batchId, events: outcomes);
   }
 
-  /// Per-event ingest logic, called from both [ingestEvent] and (in Task 8)
-  /// the `ingestBatch` loop.
+  /// Per-event ingest logic, called from both [ingestEvent] and the
+  /// `ingestBatch` loop.
   ///
   /// [batchContext] is non-null when called from `ingestBatch`, null when
   /// called from [ingestEvent].
@@ -545,27 +646,36 @@ class EventStore {
       }
     }
 
-    // 3. New event — stamp receiver provenance.
-    final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
-      txn,
-    );
-    final nextSeq = await backend.nextIngestSequenceNumber(txn);
+    // 3. New event — reserve a fresh local sequence_number, capture the
+    //    originator's wire-supplied sequence_number, and stamp receiver
+    //    provenance. Under the unified event store, "Chain 2 ordering"
+    //    is the local sequence_number; the previous-ingest tail hash is
+    //    the prior event in this destination's log.
+    final originSeq = incoming.sequenceNumber;
+    final localSeq = await backend.nextSequenceNumber(txn);
+    final previousTailHash = await backend.readLatestEventHash(txn);
     final receiverEntry = ProvenanceEntry(
       hop: source.hopId,
       receivedAt: _now(),
       identifier: source.identifier,
       softwareVersion: source.softwareVersion,
       arrivalHash: incoming.eventHash,
-      previousIngestHash: currentSeq == 0 ? null : currentTailHash,
-      ingestSequenceNumber: nextSeq,
+      previousIngestHash: previousTailHash,
+      ingestSequenceNumber: localSeq,
+      originSequenceNumber: originSeq,
       batchContext: batchContext,
     );
 
-    // 4. Build the updated event record map and recompute hash.
-    final updatedEvent = _appendReceiverProvenance(incoming, receiverEntry);
+    // 4. Build the updated event with the local sequence_number and
+    //    appended receiver provenance, then recompute the event hash.
+    final updatedEvent = _appendReceiverProvenance(
+      incoming,
+      receiverEntry,
+      localSeq: localSeq,
+    );
 
-    // 5. Persist.
-    await backend.appendIngestedEvent(txn, updatedEvent);
+    // 5. Persist via the same path as origin appends.
+    await backend.appendEvent(txn, updatedEvent);
 
     return PerEventIngestOutcome(
       eventId: updatedEvent.eventId,
@@ -591,38 +701,52 @@ class EventStore {
     return _verifyChainOn(event);
   }
 
-  /// Walk Chain 2 on this destination's ingest log from [fromIngestSeq] to
-  /// [toIngestSeq] (inclusive). When [toIngestSeq] is null, walks through
-  /// the current ingest tail. Throws [ArgumentError] if
-  /// `fromIngestSeq > toIngestSeq`. Non-throwing otherwise; returns a
-  /// [ChainVerdict] with `ok=true` when every `previous_ingest_hash` equals
-  /// the stored `event_hash` of the prior event in the range.
+  /// Walk Chain 2 on this destination's event log from [fromSequenceNumber]
+  /// to [toSequenceNumber] (inclusive). When [toSequenceNumber] is null,
+  /// walks through the current tail. Throws [ArgumentError] if
+  /// `fromSequenceNumber > toSequenceNumber`. Non-throwing otherwise; returns
+  /// a [ChainVerdict] with `ok=true` when every `previous_ingest_hash` equals
+  /// the stored `event_hash` of the prior ingest-stamped event in the range.
+  ///
+  /// Under the unified event store, the "Chain 2 ordering" is the local
+  /// `sequence_number` (also recorded on the receiver-hop entry as
+  /// `ingest_sequence_number` for symmetry with Chain 2 fields). Events
+  /// without a receiver-stamped top provenance entry — i.e. origin appends
+  /// made by this device — are skipped.
   ///
   /// See design spec §2.11.
-  // Implements: REQ-d00146-C+D+E.
+  // Implements: REQ-d00146-C+D+E — Chain 2 walk over the unified event log.
   Future<ChainVerdict> verifyIngestChain({
-    int fromIngestSeq = 0,
-    int? toIngestSeq,
+    int fromSequenceNumber = 0,
+    int? toSequenceNumber,
   }) async {
-    final (tailSeq, _) = await backend.readIngestTail();
-    final upperBound = toIngestSeq ?? tailSeq;
-    if (fromIngestSeq > upperBound) {
+    final allEvents = await backend.findAllEvents();
+    final ingestStamped = <StoredEvent>[];
+    for (final event in allEvents) {
+      final ingestSeq = _ingestSeqOf(event);
+      if (ingestSeq != null) {
+        ingestStamped.add(event);
+      }
+    }
+    final tailSeq = ingestStamped.isEmpty
+        ? 0
+        : _ingestSeqOf(ingestStamped.last)!;
+    final upperBound = toSequenceNumber ?? tailSeq;
+    if (fromSequenceNumber > upperBound) {
       throw ArgumentError(
-        'fromIngestSeq ($fromIngestSeq) must be <= toIngestSeq ($upperBound)',
+        'fromSequenceNumber ($fromSequenceNumber) must be <= '
+        'toSequenceNumber ($upperBound)',
       );
     }
-    final events = await backend.findEventsByIngestSeqRange(
-      from: fromIngestSeq,
-      to: upperBound,
-    );
     final failures = <ChainFailure>[];
     StoredEvent? prev;
-    for (final event in events) {
-      final thisSeq = _ingestSeqOf(event);
-      if (thisSeq <= fromIngestSeq) {
-        // This event is the anchor / starting point — not verified against
-        // anything before it (the range starts here). Record it as prev and
-        // move on.
+    for (final event in ingestStamped) {
+      final thisSeq = _ingestSeqOf(event)!;
+      if (thisSeq < fromSequenceNumber) continue;
+      if (thisSeq > upperBound) break;
+      if (thisSeq <= fromSequenceNumber) {
+        // Anchor at the start of the range — not verified against
+        // anything before it.
         prev = event;
         continue;
       }
@@ -647,12 +771,15 @@ class EventStore {
   }
 
   /// Extract the `ingest_sequence_number` from the last provenance entry of
-  /// [event]. Used by [verifyIngestChain] to identify each event's position
-  /// in Chain 2.
-  int _ingestSeqOf(StoredEvent event) {
-    final provenance = (event.metadata['provenance'] as List<Object?>)
-        .cast<Map<String, Object?>>();
-    return provenance.last['ingest_sequence_number'] as int;
+  /// [event], or `null` when the event was not ingest-stamped (i.e. an
+  /// origin-only event with no receiver hop). Used by [verifyIngestChain]
+  /// to identify each event's position in Chain 2.
+  int? _ingestSeqOf(StoredEvent event) {
+    final provenanceRaw = event.metadata['provenance'];
+    if (provenanceRaw is! List || provenanceRaw.isEmpty) return null;
+    final last = provenanceRaw.last;
+    if (last is! Map<String, Object?>) return null;
+    return last['ingest_sequence_number'] as int?;
   }
 
   /// Walk Chain 1 on [event].metadata.provenance and return a non-throwing
@@ -689,6 +816,16 @@ class EventStore {
     }
     final failures = <ChainFailure>[];
     // Walk from tail back to hop 1 (skip origin at index 0).
+    //
+    // Each receiver hop reassigns the stored event's `sequence_number` to
+    // its local counter (REQ-d00145-E). To recompute the hash at hop k-1,
+    // substitute the seq that was on the event when hop k-1 stored it:
+    //
+    //   - For k == 1 (recomputing the origin's hash): use the originator's
+    //     wire-supplied seq, preserved on provenance[1].origin_sequence_number.
+    //   - For k > 1 (recomputing a prior receiver hop's hash): use that
+    //     prior hop's reassigned local seq, recorded as
+    //     provenance[k-1].ingest_sequence_number.
     for (var k = provenance.length - 1; k > 0; k--) {
       final entry = provenance[k];
       final expected = entry['arrival_hash'] as String?;
@@ -703,11 +840,16 @@ class EventStore {
         );
         continue;
       }
-      // Recompute what the hash would have been after the k-1 hop,
-      // i.e., with provenance sliced to [0..k-1].
+      final int? seqAtHopBefore;
+      if (k == 1) {
+        seqAtHopBefore = entry['origin_sequence_number'] as int?;
+      } else {
+        seqAtHopBefore = provenance[k - 1]['ingest_sequence_number'] as int?;
+      }
       final recomputed = _hashWithProvenanceSlice(
         event,
         provenance.sublist(0, k),
+        sequenceNumberOverride: seqAtHopBefore,
       );
       if (recomputed != expected) {
         failures.add(
@@ -724,12 +866,21 @@ class EventStore {
   }
 
   /// Build a new [StoredEvent] with [receiverEntry] appended to
-  /// `metadata.provenance` and `event_hash` recomputed.
+  /// `metadata.provenance`, `sequence_number` reassigned to [localSeq], and
+  /// `event_hash` recomputed.
+  ///
+  /// Under the unified event store, the receiver overwrites the wire-supplied
+  /// `sequence_number` so origin and ingest events share one monotone counter
+  /// per device (REQ-d00145-E). The originator's wire-supplied
+  /// `sequence_number` is preserved on [receiverEntry] as
+  /// `originSequenceNumber` (REQ-d00115).
   // Implements: REQ-d00120-E — hash recomputed on receiver provenance append.
+  // Implements: REQ-d00145-E — local sequence_number reassignment.
   StoredEvent _appendReceiverProvenance(
     StoredEvent incoming,
-    ProvenanceEntry receiverEntry,
-  ) {
+    ProvenanceEntry receiverEntry, {
+    required int localSeq,
+  }) {
     final oldProvenance = (incoming.metadata['provenance'] as List<Object?>)
         .cast<Map<String, Object?>>();
     final newProvenance = <Map<String, Object?>>[
@@ -742,25 +893,32 @@ class EventStore {
     };
     final recordMap = Map<String, Object?>.from(incoming.toMap());
     recordMap['metadata'] = newMetadata;
+    recordMap['sequence_number'] = localSeq;
     recordMap.remove('event_hash'); // will be overwritten below
     final newHash = _eventHash(recordMap);
     recordMap['event_hash'] = newHash;
-    return StoredEvent.fromMap(recordMap, incoming.sequenceNumber);
+    return StoredEvent.fromMap(recordMap, localSeq);
   }
 
   /// Compute the hash that an event would have with its provenance replaced
-  /// by [provenanceSlice]. Used by [_verifyChainOn] to reconstruct what each
-  /// intermediate hop's `event_hash` was.
+  /// by [provenanceSlice] and (optionally) `sequence_number` overridden to
+  /// [sequenceNumberOverride]. Used by [_verifyChainOn] to reconstruct what
+  /// each intermediate hop's `event_hash` was, accounting for the receiver-
+  /// side reassignment of `sequence_number` (REQ-d00145-E).
   String _hashWithProvenanceSlice(
     StoredEvent event,
-    List<Map<String, Object?>> provenanceSlice,
-  ) {
+    List<Map<String, Object?>> provenanceSlice, {
+    int? sequenceNumberOverride,
+  }) {
     final recordMap = Map<String, Object?>.from(event.toMap());
     final newMetadata = <String, Object?>{
       ...event.metadata,
       'provenance': provenanceSlice,
     };
     recordMap['metadata'] = newMetadata;
+    if (sequenceNumberOverride != null) {
+      recordMap['sequence_number'] = sequenceNumberOverride;
+    }
     recordMap.remove('event_hash');
     return _eventHash(recordMap);
   }
@@ -797,29 +955,28 @@ class EventStore {
     await backend.transaction((txn) async {
       final now = _now();
       final wireBytesHash = sha256.convert(bytes).toString();
-      final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
-        txn,
-      );
-      final nextSeq = await backend.nextIngestSequenceNumber(txn);
+      final auditAggregateId = 'ingest-audit:${source.hopId}';
+      final localSeq = await backend.nextSequenceNumber(txn);
+      final previousTailHash = await backend.readLatestEventHash(txn);
       final provenance0 = ProvenanceEntry(
         hop: source.hopId,
         receivedAt: now,
         identifier: source.identifier,
         softwareVersion: source.softwareVersion,
         arrivalHash: null, // receiver-originated event — no wire arrival
-        previousIngestHash: currentSeq == 0 ? null : currentTailHash,
-        ingestSequenceNumber: nextSeq,
+        previousIngestHash: previousTailHash,
+        ingestSequenceNumber: localSeq,
         batchContext: null, // no decoded batch associated with a rejection
       );
 
-      final auditAggregateId = 'ingest-audit:${source.hopId}';
-      final localSeq = await backend.nextSequenceNumber(txn);
       final eventId = _uuid.v4();
       final recordMap = <String, Object?>{
         'event_id': eventId,
         'aggregate_id': auditAggregateId,
         'aggregate_type': 'ingest-audit',
         'entry_type': 'ingest-audit',
+        'entry_type_version': 1,
+        'lib_format_version': StoredEvent.currentLibFormatVersion,
         'event_type': 'ingest.batch_rejected',
         'sequence_number': localSeq,
         'data': <String, Object?>{
@@ -837,12 +994,12 @@ class EventStore {
         'initiator': const AutomationInitiator(service: 'ingest').toJson(),
         'flow_token': null,
         'client_timestamp': now.toIso8601String(),
-        'previous_event_hash': await backend.readLatestEventHash(txn),
+        'previous_event_hash': previousTailHash,
       };
       final eventHash = _eventHash(recordMap);
       recordMap['event_hash'] = eventHash;
-      final event = StoredEvent.fromMap(recordMap, 0);
-      await backend.appendIngestedEvent(txn, event);
+      final event = StoredEvent.fromMap(recordMap, localSeq);
+      await backend.appendEvent(txn, event);
     });
   }
 
@@ -856,10 +1013,11 @@ class EventStore {
     required BatchContext? batchContext,
   }) async {
     final now = _now();
-    final (currentSeq, currentTailHash) = await backend.readIngestTailInTxn(
-      txn,
-    );
-    final nextSeq = await backend.nextIngestSequenceNumber(txn);
+    final auditAggregateId = 'ingest-audit:${source.hopId}';
+    // Reserve a fresh local sequence_number; under the unified store this
+    // value is also the receiver-hop's ingest_sequence_number for Chain 2.
+    final localSeq = await backend.nextSequenceNumber(txn);
+    final previousTailHash = await backend.readLatestEventHash(txn);
 
     final provenance0 = ProvenanceEntry(
       hop: source.hopId,
@@ -867,23 +1025,19 @@ class EventStore {
       identifier: source.identifier,
       softwareVersion: source.softwareVersion,
       arrivalHash: null, // receiver-originated event — no wire arrival
-      previousIngestHash: currentSeq == 0 ? null : currentTailHash,
-      ingestSequenceNumber: nextSeq,
+      previousIngestHash: previousTailHash,
+      ingestSequenceNumber: localSeq,
       batchContext: batchContext,
     );
 
-    final auditAggregateId = 'ingest-audit:${source.hopId}';
-    // Use nextSequenceNumber for the origin-side sequence on this event.
-    // This advances the origin counter; the event is stored via the ingest
-    // path (appendIngestedEvent), keyed by ingest_sequence_number.
-    final localSeq = await backend.nextSequenceNumber(txn);
     final eventId = _uuid.v4();
-    final previousHash = await backend.readLatestEventHash(txn);
     final recordMap = <String, Object?>{
       'event_id': eventId,
       'aggregate_id': auditAggregateId,
       'aggregate_type': 'ingest-audit',
       'entry_type': 'ingest-audit',
+      'entry_type_version': 1,
+      'lib_format_version': StoredEvent.currentLibFormatVersion,
       'event_type': 'ingest.duplicate_received',
       'sequence_number': localSeq,
       'data': <String, Object?>{
@@ -896,11 +1050,11 @@ class EventStore {
       'initiator': const AutomationInitiator(service: 'ingest').toJson(),
       'flow_token': null,
       'client_timestamp': now.toIso8601String(),
-      'previous_event_hash': previousHash,
+      'previous_event_hash': previousTailHash,
     };
     final eventHash = _eventHash(recordMap);
     recordMap['event_hash'] = eventHash;
-    final event = StoredEvent.fromMap(recordMap, 0);
-    await backend.appendIngestedEvent(txn, event);
+    final event = StoredEvent.fromMap(recordMap, localSeq);
+    await backend.appendEvent(txn, event);
   }
 }

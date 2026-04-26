@@ -104,6 +104,8 @@ StoredEvent _mkEvent(String eventId) => StoredEvent(
   aggregateId: 'agg-1',
   aggregateType: 'DiaryEntry',
   entryType: 'epistaxis_event',
+  entryTypeVersion: 1,
+  libFormatVersion: 1,
   eventType: 'finalized',
   sequenceNumber: 1,
   data: const <String, dynamic>{},

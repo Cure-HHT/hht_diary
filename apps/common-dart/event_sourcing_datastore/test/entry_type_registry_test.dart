@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 EntryTypeDefinition _defn(String id, {String widgetId = 'epistaxis_form_v1'}) =>
     EntryTypeDefinition(
       id: id,
-      version: '1.0.0',
+      registeredVersion: 1,
       name: 'Defn $id',
       widgetId: widgetId,
       widgetConfig: const <String, Object?>{},

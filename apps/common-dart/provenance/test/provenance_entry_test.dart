@@ -403,4 +403,118 @@ void main() {
       expect(a.hashCode, isNot(equals(b.hashCode)));
     });
   });
+
+  group('ProvenanceEntry origin_sequence_number (REQ-d00115-K)', () {
+    // Verifies: REQ-d00115-K — null on originator entries (default).
+    test(
+      'REQ-d00115-K: originSequenceNumber defaults to null on originator entries',
+      () {
+        final entry = ProvenanceEntry(
+          hop: 'mobile-device',
+          receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+          identifier: 'device-abc',
+          softwareVersion: 'daily_diary@1.0.0',
+        );
+        expect(entry.originSequenceNumber, isNull);
+      },
+    );
+
+    // Verifies: REQ-d00115-K — non-null on receiver-hop entries; round-trips.
+    test(
+      'REQ-d00115-K: non-null originSequenceNumber round-trips through JSON',
+      () {
+        final entry = ProvenanceEntry(
+          hop: 'diary-server',
+          receivedAt: DateTime.parse('2026-04-24T12:00:01Z'),
+          identifier: 'diary-instance-7',
+          softwareVersion: 'diary_functions@0.8.2',
+          arrivalHash: 'aaa',
+          previousIngestHash: 'bbb',
+          ingestSequenceNumber: 42,
+          originSequenceNumber: 17,
+        );
+        final json = entry.toJson();
+        expect(json['origin_sequence_number'], equals(17));
+        final back = ProvenanceEntry.fromJson(json);
+        expect(back, equals(entry));
+        expect(back.originSequenceNumber, equals(17));
+      },
+    );
+
+    // Verifies: REQ-d00115-K — JSON omits the key when value is null.
+    test('REQ-d00115-K: toJson omits origin_sequence_number when null', () {
+      final entry = ProvenanceEntry(
+        hop: 'mobile-device',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'device-abc',
+        softwareVersion: 'daily_diary@1.0.0',
+      );
+      final json = entry.toJson();
+      expect(json.containsKey('origin_sequence_number'), isFalse);
+    });
+
+    // Verifies: REQ-d00115-K — fromJson treats absent key as null.
+    test('REQ-d00115-K: absent origin_sequence_number key decodes to null', () {
+      final input = <String, Object?>{
+        'hop': 'mobile-device',
+        'received_at': '2026-04-24T12:00:00Z',
+        'identifier': 'device-abc',
+        'software_version': 'daily_diary@1.0.0',
+        'transform_version': null,
+      };
+      final entry = ProvenanceEntry.fromJson(input);
+      expect(entry.originSequenceNumber, isNull);
+    });
+
+    // Verifies: REQ-d00115-K — non-int origin_sequence_number is rejected.
+    test(
+      'REQ-d00115-K: non-int origin_sequence_number throws FormatException',
+      () {
+        final bad = <String, Object?>{
+          'hop': 'diary-server',
+          'received_at': '2026-04-24T12:00:00Z',
+          'identifier': 'diary-instance-1',
+          'software_version': 'diary_functions@0.8.2',
+          'transform_version': null,
+          'origin_sequence_number': '17',
+        };
+        expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
+      },
+    );
+
+    // Verifies: REQ-d00115-K — equality and hashCode include the new field.
+    test(
+      'REQ-d00115-K: equality and hashCode include originSequenceNumber',
+      () {
+        final a = ProvenanceEntry(
+          hop: 'h',
+          receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+          identifier: 'i',
+          softwareVersion: 's@1',
+          originSequenceNumber: 1,
+        );
+        final b = ProvenanceEntry(
+          hop: 'h',
+          receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+          identifier: 'i',
+          softwareVersion: 's@1',
+          originSequenceNumber: 2, // differs only here
+        );
+        expect(a, isNot(equals(b)));
+        expect(a.hashCode, isNot(equals(b.hashCode)));
+      },
+    );
+
+    // Verifies: REQ-d00115-K — toString includes the new field for diagnostics.
+    test('REQ-d00115-K: toString includes originSequenceNumber', () {
+      final entry = ProvenanceEntry(
+        hop: 'diary-server',
+        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+        identifier: 'diary-instance-1',
+        softwareVersion: 'diary_functions@0.8.2',
+        originSequenceNumber: 99,
+      );
+      expect(entry.toString(), contains('originSequenceNumber: 99'));
+    });
+  });
 }

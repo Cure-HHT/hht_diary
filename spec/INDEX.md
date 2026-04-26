@@ -308,36 +308,43 @@
 | REQ-d00112 | Enrollment Token Revocation                             | dev-portal-api.md              | e8863441 |
 | REQ-d00113 | Deleted Questionnaire Submission Handling               | dev-questionnaire.md           | 6aaa85fd |
 | REQ-d00114 | Sync Request Device Binding Verification                | dev-portal-api.md              | b1a11feb |
-| REQ-d00115 | ProvenanceEntry Schema and Append Rules                 | dev-event-sourcing-mobile.md   | c90dd968 |
-| REQ-d00116 | EntryTypeDefinition Schema                              | dev-event-sourcing-mobile.md   | 0bb2f928 |
+| REQ-d00115 | ProvenanceEntry Schema and Append Rules                 | dev-event-sourcing-mobile.md   | 194aaffd |
+| REQ-d00116 | EntryTypeDefinition Schema                              | dev-event-sourcing-mobile.md   | f7e650e5 |
 | REQ-d00117 | StorageBackend Transaction Contract                     | dev-event-sourcing-mobile.md   | bb51d314 |
-| REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 2937d8bc |
-| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 92a66dd9 |
+| REQ-d00118 | Event Record Schema                                     | dev-event-sourcing-mobile.md   | 1c010e32 |
+| REQ-d00119 | Per-Destination FIFO Queue Semantics                    | dev-event-sourcing-mobile.md   | 923b8d02 |
 | REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification | dev-event-sourcing-mobile.md   | d10798de |
-| REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | aabfc89b |
+| REQ-d00121 | diary_entries Materialization from Event Log            | dev-event-sourcing-mobile.md   | eddbcb93 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync           | dev-event-sourcing-mobile.md   | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                          | dev-event-sourcing-mobile.md   | 3efbe4b4 |
 | REQ-d00124 | Per-Destination FIFO Drain Loop                         | dev-event-sourcing-mobile.md   | 92afab97 |
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract          | dev-event-sourcing-mobile.md   | 03bfd328 |
-| REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 8ab70c79 |
+| REQ-d00126 | SyncPolicy Injectable Value Object                      | dev-event-sourcing-mobile.md   | 1e6a25c1 |
 | REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row   | dev-event-sourcing-mobile.md   | 71b33da6 |
-| REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | d36f1dde |
-| REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | 17ee5d1c |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                        | dev-event-sourcing-mobile.md   | 7b7d46d1 |
+| REQ-d00129 | Dynamic Destination Lifecycle                           | dev-event-sourcing-mobile.md   | a4fff316 |
 | REQ-d00130 | Historical Replay on Past startDate                     | dev-event-sourcing-mobile.md   | 254b541a |
 | REQ-d00133 | EntryService.record Contract                            | dev-event-sourcing-mobile.md   | 6d804b0e |
-| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 1f9f50c9 |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                   | dev-event-sourcing-mobile.md   | 051d408e |
 | REQ-d00135 | Initiator Polymorphic Actor Type                        | dev-event-sourcing-mobile.md   | 0b5663cc |
 | REQ-d00136 | flowToken Correlation Field                             | dev-event-sourcing-mobile.md   | 0bf4ed09 |
 | REQ-d00137 | EventSecurityContext Sidecar Store                      | dev-event-sourcing-mobile.md   | 387fcb92 |
-| REQ-d00138 | Security Retention Policy and Redaction Audit           | dev-event-sourcing-mobile.md   | 3ca5bb98 |
+| REQ-d00138 | Security Retention Policy and Redaction Audit           | dev-event-sourcing-mobile.md   | 41a3c585 |
 | REQ-d00139 | No-Secrets Invariant on Event Data and flowToken        | dev-event-sourcing-mobile.md   | 8c4df58e |
-| REQ-d00140 | Pluggable Materializer Contract                         | dev-event-sourcing-mobile.md   | fccf62b4 |
-| REQ-d00141 | EventStore Append Contract                              | dev-event-sourcing-mobile.md   | 6e0f8625 |
+| REQ-d00140 | Pluggable Materializer Contract                         | dev-event-sourcing-mobile.md   | a77b1ff6 |
+| REQ-d00141 | EventStore Append Contract                              | dev-event-sourcing-mobile.md   | 5b245ace |
 | REQ-d00142 | Source Stamping Provenance Identity                     | dev-event-sourcing-mobile.md   | 65bc37d4 |
 | REQ-d00143 | Storage Failure Taxonomy                                | dev-event-sourcing-mobile.md   | 59ed82f7 |
-| REQ-d00144 | tombstoneAndRefill Operation                            | dev-event-sourcing-mobile.md   | f812b27d |
-| REQ-d00145 | EventStore Ingest Contract                              | dev-event-sourcing-mobile.md   | 2213e000 |
-| REQ-d00146 | Chain-of-Custody Verification APIs                      | dev-event-sourcing-mobile.md   | ba47e4ed |
+| REQ-d00144 | tombstoneAndRefill Operation                            | dev-event-sourcing-mobile.md   | 3fe240dc |
+| REQ-d00145 | EventStore Ingest Contract                              | dev-event-sourcing-mobile.md   | 7791e856 |
+| REQ-d00146 | Chain-of-Custody Verification APIs                      | dev-event-sourcing-mobile.md   | 10ac2d4f |
+| REQ-d00147 | findEventById Storage Lookup                            | dev-event-sourcing-mobile.md   | 2430eb1f |
+| REQ-d00148 | listFifoEntries Queue Enumeration                       | dev-event-sourcing-mobile.md   | 398f2d6a |
+| REQ-d00149 | watchEvents Reactive Read                               | dev-event-sourcing-mobile.md   | 767dc1b4 |
+| REQ-d00150 | watchFifo Reactive Read                                 | dev-event-sourcing-mobile.md   | aa9d922c |
+| REQ-d00151 | queryAudit Storage-Layer API                            | dev-event-sourcing-mobile.md   | 2113ab11 |
+| REQ-d00152 | Destination Native-Serialization Declaration            | dev-event-sourcing-mobile.md   | b13db4eb |
+| REQ-d00153 | watchView Reactive Read                                 | dev-event-sourcing-mobile.md   | 878a7d75 |
 
 ## User Journeys
 

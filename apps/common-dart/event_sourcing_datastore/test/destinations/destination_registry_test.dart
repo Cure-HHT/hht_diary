@@ -4,11 +4,16 @@ import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
 import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/send_result.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
+
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
 
 class _StubDestination extends Destination {
   _StubDestination(this._id, {SubscriptionFilter? filter})
@@ -58,7 +63,11 @@ void main() {
     setUp(() async {
       dbCounter += 1;
       backend = await _openBackend('registry-$dbCounter.db');
-      registry = DestinationRegistry(backend: backend);
+      final deps = buildAuditedRegistryDeps(backend);
+      registry = DestinationRegistry(
+        backend: backend,
+        eventStore: deps.eventStore,
+      );
     });
 
     tearDown(() async {
@@ -70,7 +79,7 @@ void main() {
       'REQ-d00129-A: addDestination adds a destination and all() returns it',
       () async {
         final d = _StubDestination('primary');
-        await registry.addDestination(d);
+        await registry.addDestination(d, initiator: _testInit);
         expect(registry.all(), contains(d));
       },
     );
@@ -80,9 +89,15 @@ void main() {
     test(
       'REQ-d00129-A: addDestination with duplicate id throws ArgumentError',
       () async {
-        await registry.addDestination(_StubDestination('primary'));
+        await registry.addDestination(
+          _StubDestination('primary'),
+          initiator: _testInit,
+        );
         await expectLater(
-          registry.addDestination(_StubDestination('primary')),
+          registry.addDestination(
+            _StubDestination('primary'),
+            initiator: _testInit,
+          ),
           throwsArgumentError,
         );
       },
@@ -92,16 +107,25 @@ void main() {
     // read. Subsequent addDestination after all() succeeds.
     test('REQ-d00129-A: first all() read does NOT freeze the registry; a '
         'subsequent addDestination succeeds', () async {
-      await registry.addDestination(_StubDestination('primary'));
+      await registry.addDestination(
+        _StubDestination('primary'),
+        initiator: _testInit,
+      );
       registry.all(); // would freeze under the Phase-4 contract
-      await registry.addDestination(_StubDestination('secondary'));
+      await registry.addDestination(
+        _StubDestination('secondary'),
+        initiator: _testInit,
+      );
       expect(registry.all().map((d) => d.id), ['primary', 'secondary']);
     });
 
     // all() returns an unmodifiable view so callers cannot mutate the
     // registry by mutating the returned list.
     test('all() returns an unmodifiable view', () async {
-      await registry.addDestination(_StubDestination('primary'));
+      await registry.addDestination(
+        _StubDestination('primary'),
+        initiator: _testInit,
+      );
       final dests = registry.all();
       expect(
         () => dests.add(_StubDestination('other')),
@@ -113,7 +137,7 @@ void main() {
     test('byId returns null for unknown ids', () async {
       expect(registry.byId('ghost'), isNull);
       final d = _StubDestination('primary');
-      await registry.addDestination(d);
+      await registry.addDestination(d, initiator: _testInit);
       expect(registry.byId('primary'), same(d));
     });
   });

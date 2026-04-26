@@ -1,3 +1,4 @@
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
@@ -189,8 +190,8 @@ void main() {
           },
         );
         expect(entry.wirePayload, isA<Map<String, Object?>>());
-        expect(entry.wirePayload['events'], isA<List<Object?>>());
-        expect((entry.wirePayload['events']! as List).length, 2);
+        expect(entry.wirePayload!['events'], isA<List<Object?>>());
+        expect((entry.wirePayload!['events']! as List).length, 2);
       },
     );
 
@@ -308,6 +309,97 @@ void main() {
       final entry = FifoEntry.fromJson(json);
       expect(entry.finalStatus, isNull);
       expect(entry.toJson()['final_status'], isNull);
+    });
+  });
+
+  // Phase 4.13 Task 4 — envelope_metadata + nullable wire_payload.
+  group('FifoEntry envelopeMetadata + nullable wirePayload (Phase 4.13)', () {
+    final meta = BatchEnvelopeMetadata(
+      batchFormatVersion: '1',
+      batchId: 'b-001',
+      senderHop: 'mobile-1',
+      senderIdentifier: 'device-uuid',
+      senderSoftwareVersion: 'diary@1.2.3',
+      sentAt: DateTime.utc(2026, 4, 25, 12),
+    );
+
+    // Verifies: REQ-d00119-K — a native FIFO row carries envelope_metadata
+    // and a null wire_payload, and the pair round-trips through
+    // toJson / fromJson with both fields preserved.
+    test('REQ-d00119-K: native row round-trips envelopeMetadata with null '
+        'wirePayload', () {
+      final entry = FifoEntry(
+        entryId: 'fe-001',
+        eventIds: const <String>['e1'],
+        eventIdRange: (firstSeq: 1, lastSeq: 1),
+        sequenceInQueue: 1,
+        wireFormat: 'esd/batch@1',
+        wirePayload: null,
+        transformVersion: 'native-v1',
+        enqueuedAt: DateTime.utc(2026, 4, 25, 12),
+        attempts: const <AttemptResult>[],
+        finalStatus: null,
+        sentAt: null,
+        envelopeMetadata: meta,
+      );
+      expect(entry.wirePayload, isNull);
+      expect(entry.envelopeMetadata, meta);
+
+      final json = entry.toJson();
+      expect(json['wire_payload'], isNull);
+      expect(
+        json['envelope_metadata'],
+        equals(<String, Object?>{
+          'batch_format_version': '1',
+          'batch_id': 'b-001',
+          'sender_hop': 'mobile-1',
+          'sender_identifier': 'device-uuid',
+          'sender_software_version': 'diary@1.2.3',
+          'sent_at': '2026-04-25T12:00:00.000Z',
+        }),
+      );
+
+      final restored = FifoEntry.fromJson(json);
+      expect(restored.wirePayload, isNull);
+      expect(restored.envelopeMetadata, meta);
+      expect(restored, equals(entry));
+    });
+
+    // Verifies: REQ-d00119-B — a 3rd-party FIFO row carries a non-null
+    // wire_payload and a null envelope_metadata, and the pair round-trips
+    // through toJson / fromJson with both fields preserved.
+    test('REQ-d00119-B: 3rd-party row round-trips wirePayload with null '
+        'envelopeMetadata', () {
+      final entry = FifoEntry(
+        entryId: 'fe-002',
+        eventIds: const <String>['e1'],
+        eventIdRange: (firstSeq: 1, lastSeq: 1),
+        sequenceInQueue: 1,
+        wireFormat: 'application/csv',
+        wirePayload: const <String, Object?>{
+          'rows': <Object?>[
+            <String, Object?>{'a': 1, 'b': 2},
+          ],
+        },
+        transformVersion: 'csv-v1',
+        enqueuedAt: DateTime.utc(2026, 4, 25, 12),
+        attempts: const <AttemptResult>[],
+        finalStatus: null,
+        sentAt: null,
+        envelopeMetadata: null,
+      );
+      expect(entry.wirePayload, isNotNull);
+      expect(entry.envelopeMetadata, isNull);
+
+      final json = entry.toJson();
+      expect(json['wire_payload'], isNotNull);
+      expect(json['envelope_metadata'], isNull);
+
+      final restored = FifoEntry.fromJson(json);
+      expect(restored.wirePayload, isNotNull);
+      expect(restored.wirePayload!['rows'], isA<List<Object?>>());
+      expect(restored.envelopeMetadata, isNull);
+      expect(restored, equals(entry));
     });
   });
 }

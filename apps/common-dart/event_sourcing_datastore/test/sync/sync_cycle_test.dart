@@ -4,6 +4,7 @@ import 'package:event_sourcing_datastore/src/destinations/destination_registry.d
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
+import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/send_result.dart';
 import 'package:event_sourcing_datastore/src/sync/sync_cycle.dart';
@@ -13,6 +14,9 @@ import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
 import '../test_support/fifo_entry_helpers.dart';
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
 
 Future<SembastBackend> _openBackend(String path) async {
   final db = await newDatabaseFactoryMemory().openDatabase(path);
@@ -50,7 +54,11 @@ void main() {
     setUp(() async {
       dbCounter += 1;
       backend = await _openBackend('sync-cycle-$dbCounter.db');
-      registry = DestinationRegistry(backend: backend);
+      final deps = buildAuditedRegistryDeps(backend);
+      registry = DestinationRegistry(
+        backend: backend,
+        eventStore: deps.eventStore,
+      );
     });
 
     tearDown(() async {
@@ -73,8 +81,8 @@ void main() {
         );
         final fast = FakeDestination(id: 'fast', script: [const SendOk()]);
 
-        await registry.addDestination(slow);
-        await registry.addDestination(fast);
+        await registry.addDestination(slow, initiator: _testInit);
+        await registry.addDestination(fast, initiator: _testInit);
 
         await _enqueueOne(backend, 'slow', 'e1');
         await _enqueueOne(backend, 'fast', 'e1');
@@ -107,7 +115,7 @@ void main() {
       () async {
         final order = <String>[];
         final dest = _RecordingDestination(order, id: 'fake');
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
@@ -134,7 +142,7 @@ void main() {
           script: [const SendOk()],
           blockBeforeSend: () => gate.future,
         );
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
@@ -169,7 +177,7 @@ void main() {
           id: 'fake',
           script: [const SendOk(), const SendOk()],
         );
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         await _enqueueOne(backend, 'fake', 'e1');
 
@@ -199,8 +207,8 @@ void main() {
           id: 'healthy',
           script: [const SendOk()],
         );
-        await registry.addDestination(boomed);
-        await registry.addDestination(healthy);
+        await registry.addDestination(boomed, initiator: _testInit);
+        await registry.addDestination(healthy, initiator: _testInit);
 
         await _enqueueOne(backend, 'boomed', 'e1');
         await _enqueueOne(backend, 'healthy', 'e1');
@@ -231,7 +239,7 @@ void main() {
           id: 'fake',
           script: [const SendTransient(error: 'HTTP 503', httpStatus: 503)],
         );
-        await registry.addDestination(dest);
+        await registry.addDestination(dest, initiator: _testInit);
 
         final e1RowId = await _enqueueOne(backend, 'fake', 'e1');
         // Pre-load one transient attempt so the next attempt trips the cap.

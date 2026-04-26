@@ -26,40 +26,31 @@ Future<_Fixture> _setup({
     'es-${DateTime.now().microsecondsSinceEpoch}.db',
   );
   final backend = SembastBackend(database: db);
-  final registry = EntryTypeRegistry()
-    ..register(
-      const EntryTypeDefinition(
-        id: 'security_context_redacted',
-        version: '1',
-        name: 'Security Context Redacted',
-        widgetId: '_system',
-        widgetConfig: <String, Object?>{},
-        materialize: false,
-      ),
-    )
-    ..register(
-      const EntryTypeDefinition(
-        id: 'security_context_compacted',
-        version: '1',
-        name: 'Security Context Compacted',
-        widgetId: '_system',
-        widgetConfig: <String, Object?>{},
-        materialize: false,
-      ),
-    )
-    ..register(
-      const EntryTypeDefinition(
-        id: 'security_context_purged',
-        version: '1',
-        name: 'Security Context Purged',
-        widgetId: '_system',
-        widgetConfig: <String, Object?>{},
-        materialize: false,
-      ),
-    );
-  for (final def in defs ?? [_simpleDef('epistaxis_event')]) {
+  final registry = EntryTypeRegistry();
+  // Auto-register every reserved system entry type (security-context
+  // lifecycle plus REQ-d00129-J/K/L/M and REQ-d00138-H per-sweep audit)
+  // so direct EventStore tests don't have to enumerate them by hand.
+  for (final defn in kSystemEntryTypes) {
+    registry.register(defn);
+  }
+  final effectiveDefs = defs ?? [_simpleDef('epistaxis_event')];
+  for (final def in effectiveDefs) {
     registry.register(def);
   }
+  // Seed view_target_versions for diary_entries so the materializer's
+  // default targetVersionFor resolves the entry types we plan to append.
+  // (Unit-style EventStore tests bypass bootstrapAppendOnlyDatastore.)
+  await backend.transaction((txn) async {
+    for (final def in effectiveDefs) {
+      if (!def.materialize) continue;
+      await backend.writeViewTargetVersionInTxn(
+        txn,
+        'diary_entries',
+        def.id,
+        def.registeredVersion,
+      );
+    }
+  });
   final securityContexts = SembastSecurityContextStore(backend: backend);
   final syncCalls = <DateTime>[];
   final eventStore = EventStore(
@@ -71,7 +62,7 @@ Future<_Fixture> _setup({
       softwareVersion: 'clinical_diary@1.0.0',
     ),
     securityContexts: securityContexts,
-    materializers: const [DiaryEntriesMaterializer()],
+    materializers: const [DiaryEntriesMaterializer(promoter: identityPromoter)],
     syncCycleTrigger: () async {
       syncCalls.add(DateTime.now());
     },
@@ -88,7 +79,7 @@ Future<_Fixture> _setup({
 
 EntryTypeDefinition _simpleDef(String id) => EntryTypeDefinition(
   id: id,
-  version: '1',
+  registeredVersion: 1,
   name: id,
   widgetId: 'w',
   widgetConfig: const <String, Object?>{},
@@ -104,6 +95,7 @@ void main() {
         final fx = await _setup();
         final ev = await fx.eventStore.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -125,6 +117,7 @@ void main() {
       final fx = await _setup();
       final ev = await fx.eventStore.append(
         entryType: 'epistaxis_event',
+        entryTypeVersion: 1,
         aggregateId: 'a',
         aggregateType: 'DiaryEntry',
         eventType: 'finalized',
@@ -143,6 +136,7 @@ void main() {
       final fx = await _setup();
       final ev = await fx.eventStore.append(
         entryType: 'epistaxis_event',
+        entryTypeVersion: 1,
         aggregateId: 'a',
         aggregateType: 'DiaryEntry',
         eventType: 'finalized',
@@ -161,7 +155,7 @@ void main() {
           defs: [
             const EntryTypeDefinition(
               id: 'non_materialized',
-              version: '1',
+              registeredVersion: 1,
               name: 'Non-Mat',
               widgetId: 'w',
               widgetConfig: <String, Object?>{},
@@ -171,6 +165,7 @@ void main() {
         );
         final ev = await fx.eventStore.append(
           entryType: 'non_materialized',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -191,6 +186,7 @@ void main() {
       await expectLater(
         fx.eventStore.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'bogus',
@@ -208,6 +204,7 @@ void main() {
       await expectLater(
         fx.eventStore.append(
           entryType: 'weather_report',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -225,6 +222,7 @@ void main() {
       final fxA = await _setup(now: DateTime.utc(2026, 4, 22));
       final evA = await fxA.eventStore.append(
         entryType: 'epistaxis_event',
+        entryTypeVersion: 1,
         aggregateId: 'a',
         aggregateType: 'DiaryEntry',
         eventType: 'finalized',
@@ -237,6 +235,7 @@ void main() {
       final fxB = await _setup(now: DateTime.utc(2026, 4, 22));
       final evB = await fxB.eventStore.append(
         entryType: 'epistaxis_event',
+        entryTypeVersion: 1,
         aggregateId: 'a',
         aggregateType: 'DiaryEntry',
         eventType: 'finalized',
@@ -261,6 +260,7 @@ void main() {
         final fx = await _setup();
         final ev = await fx.eventStore.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',
@@ -305,13 +305,33 @@ void main() {
   });
 
   group('EventStore.applyRetentionPolicy', () {
-    // Verifies: REQ-d00138-E/F — empty sweep emits no events.
-    test('REQ-d00138-E+F: empty sweep emits no audit events', () async {
+    // Verifies: REQ-d00138-E/F — empty sweep emits no compact/purge
+    // events. REQ-d00138-H — empty sweep DOES emit a per-sweep
+    // retention_policy_applied audit. The audit is the timeline
+    // record; the compact/purge events are gated on actual work.
+    test('REQ-d00138-E+F+H: empty sweep emits per-sweep audit only', () async {
       final fx = await _setup(now: DateTime.utc(2030, 1, 1));
       final result = await fx.eventStore.applyRetentionPolicy();
       expect(result.compactedCount, 0);
       expect(result.purgedCount, 0);
-      expect(await fx.backend.findAllEvents(), isEmpty);
+      final events = await fx.backend.findAllEvents();
+      // No compact / purge audit on a zero-effect sweep.
+      expect(
+        events.any((e) => e.entryType == kSecurityContextCompactedEntryType),
+        isFalse,
+      );
+      expect(
+        events.any((e) => e.entryType == kSecurityContextPurgedEntryType),
+        isFalse,
+      );
+      // But the per-sweep retention_policy_applied audit fires
+      // unconditionally (REQ-d00138-H).
+      final perSweep = events
+          .where((e) => e.entryType == kRetentionPolicyAppliedEntryType)
+          .toList();
+      expect(perSweep, hasLength(1));
+      expect(perSweep.single.data['events_truncated'], 0);
+      expect(perSweep.single.data['events_purged'], 0);
       await fx.backend.close();
     });
 
@@ -326,6 +346,7 @@ void main() {
         // window but within 90+365 so it is compacted, not purged).
         final ev = await fx.eventStore.append(
           entryType: 'epistaxis_event',
+          entryTypeVersion: 1,
           aggregateId: 'a',
           aggregateType: 'DiaryEntry',
           eventType: 'finalized',

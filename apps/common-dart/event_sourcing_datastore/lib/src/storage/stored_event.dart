@@ -10,10 +10,15 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 // Implements: REQ-d00118-A — first-class entry_type field on the event record.
 // Implements: REQ-d00118-B — server_timestamp is NOT stored on the event;
 // the ingesting server is the sole authority on its own timestamp.
+// Implements: REQ-d00118-E — entry_type_version int field on the event record,
+// caller-supplied to EventStore.append.
+// Implements: REQ-d00118-F — lib_format_version int field on the event record,
+// stamped by the lib from currentLibFormatVersion.
 // Implements: REQ-d00135-C — top-level user_id replaced by initiator; no
 // top-level user_id remains on StoredEvent.
 // Implements: REQ-d00136-A — flowToken is a nullable String? column on the
 // event record.
+// Implements: REQ-d00141-E — currentLibFormatVersion constant defined here.
 class StoredEvent {
   const StoredEvent({
     required this.key,
@@ -21,6 +26,8 @@ class StoredEvent {
     required this.aggregateId,
     required this.aggregateType,
     required this.entryType,
+    required this.entryTypeVersion,
+    required this.libFormatVersion,
     required this.eventType,
     required this.sequenceNumber,
     required this.data,
@@ -44,6 +51,8 @@ class StoredEvent {
     final aggregateId = _requireString(map, 'aggregate_id');
     final aggregateType = _requireString(map, 'aggregate_type');
     final entryType = _requireString(map, 'entry_type');
+    final entryTypeVersion = _requireInt(map, 'entry_type_version');
+    final libFormatVersion = _requireInt(map, 'lib_format_version');
     final eventType = _requireString(map, 'event_type');
     final sequenceNumber = _requireInt(map, 'sequence_number');
     final data = _requireMap(map, 'data');
@@ -89,6 +98,8 @@ class StoredEvent {
       aggregateId: aggregateId,
       aggregateType: aggregateType,
       entryType: entryType,
+      entryTypeVersion: entryTypeVersion,
+      libFormatVersion: libFormatVersion,
       eventType: eventType,
       sequenceNumber: sequenceNumber,
       data: Map<String, dynamic>.from(data),
@@ -121,12 +132,16 @@ class StoredEvent {
     Map<String, dynamic>? metadata,
     String? flowToken,
     String? previousEventHash,
+    int entryTypeVersion = 1,
+    int libFormatVersion = 1,
   }) => StoredEvent(
     key: key,
     eventId: eventId,
     aggregateId: aggregateId,
     aggregateType: aggregateType,
     entryType: entryType,
+    entryTypeVersion: entryTypeVersion,
+    libFormatVersion: libFormatVersion,
     eventType: eventType,
     sequenceNumber: sequenceNumber,
     data: data ?? const <String, dynamic>{},
@@ -137,6 +152,13 @@ class StoredEvent {
     eventHash: eventHash,
     previousEventHash: previousEventHash,
   );
+
+  /// Storage shape version the current lib build produces. Stamped on every
+  /// event by `EventStore.append` and propagated over the wire. Receivers
+  /// reject events whose `lib_format_version > currentLibFormatVersion` per
+  /// REQ-d00145-L.
+  // Implements: REQ-d00141-E.
+  static const int currentLibFormatVersion = 1;
 
   /// Database key.
   final int key;
@@ -153,6 +175,17 @@ class StoredEvent {
   /// Kind of patient-recorded or administered entry (e.g., 'epistaxis_event',
   /// 'nose_hht_survey'). First-class per REQ-d00118-A.
   final String entryType;
+
+  /// Application schema version under which this event was authored.
+  /// Caller-supplied to `EventStore.append`. Preserved verbatim across the
+  /// wire and receiver ingest.
+  // Implements: REQ-d00118-E.
+  final int entryTypeVersion;
+
+  /// Storage shape version this event was persisted with. Stamped by the
+  /// lib from [currentLibFormatVersion] on every append.
+  // Implements: REQ-d00118-F.
+  final int libFormatVersion;
 
   /// User-intent discriminator for the event: 'finalized' | 'checkpoint' |
   /// 'tombstone'.
@@ -193,6 +226,8 @@ class StoredEvent {
       'aggregate_id': aggregateId,
       'aggregate_type': aggregateType,
       'entry_type': entryType,
+      'entry_type_version': entryTypeVersion,
+      'lib_format_version': libFormatVersion,
       'event_type': eventType,
       'sequence_number': sequenceNumber,
       'data': data,

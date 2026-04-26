@@ -19,7 +19,7 @@ const Source _source = Source(
 
 EntryTypeDefinition _defn(String id) => EntryTypeDefinition(
   id: id,
-  version: '1',
+  registeredVersion: 1,
   name: id,
   widgetId: 'widget-$id',
   widgetConfig: const <String, Object?>{},
@@ -46,6 +46,8 @@ void main() {
           source: _source,
           entryTypes: [_defn('demo_note')],
           destinations: const <Destination>[],
+          materializers: const <Materializer>[],
+          initialViewTargetVersions: const <String, Map<String, int>>{},
         );
         expect(ds.eventStore, isA<EventStore>());
         expect(ds.entryTypes, isA<EntryTypeRegistry>());
@@ -63,6 +65,8 @@ void main() {
         source: _source,
         entryTypes: [_defn('demo_note')],
         destinations: const <Destination>[],
+        materializers: const <Materializer>[],
+        initialViewTargetVersions: const <String, Map<String, int>>{},
       );
       expect(ds.entryTypes.isRegistered('security_context_redacted'), isTrue);
       expect(ds.entryTypes.isRegistered('security_context_compacted'), isTrue);
@@ -78,6 +82,8 @@ void main() {
           source: _source,
           entryTypes: [_defn('security_context_redacted')],
           destinations: const <Destination>[],
+          materializers: const <Materializer>[],
+          initialViewTargetVersions: const <String, Map<String, int>>{},
         ),
         throwsA(
           isA<ArgumentError>().having(
@@ -103,10 +109,12 @@ void main() {
         source: _source,
         entryTypes: types,
         destinations: dests,
+        materializers: const <Materializer>[],
+        initialViewTargetVersions: const <String, Map<String, int>>{},
       );
 
-      // 2 caller-supplied + 3 system = 5 total
-      expect(ds.entryTypes.all(), hasLength(5));
+      // 2 caller-supplied + 10 system = 12 total
+      expect(ds.entryTypes.all(), hasLength(12));
       expect(ds.entryTypes.isRegistered('demo_note'), isTrue);
       expect(ds.entryTypes.isRegistered('red_button'), isTrue);
       expect(ds.destinations.all(), hasLength(2));
@@ -117,6 +125,7 @@ void main() {
       // Registry remains open to subsequent runtime addDestination calls.
       await ds.destinations.addDestination(
         FakeDestination(id: 'late', script: const []),
+        initiator: const AutomationInitiator(service: 'test-bootstrap'),
       );
       expect(ds.destinations.all(), hasLength(3));
     });
@@ -133,6 +142,8 @@ void main() {
           source: _source,
           entryTypes: types,
           destinations: dests,
+          materializers: const <Materializer>[],
+          initialViewTargetVersions: const <String, Map<String, int>>{},
         ),
         throwsArgumentError,
       );
@@ -151,6 +162,8 @@ void main() {
           source: _source,
           entryTypes: types,
           destinations: dests,
+          materializers: const <Materializer>[],
+          initialViewTargetVersions: const <String, Map<String, int>>{},
         ),
         throwsA(isA<StateError>()),
       );
@@ -161,6 +174,8 @@ void main() {
         source: _source,
         entryTypes: types,
         destinations: const <Destination>[],
+        materializers: const <Materializer>[],
+        initialViewTargetVersions: const <String, Map<String, int>>{},
       );
       expect(ds.entryTypes.isRegistered('demo_note'), isTrue);
       expect(ds.entryTypes.isRegistered('red_button'), isTrue);
@@ -179,6 +194,8 @@ void main() {
           source: _source,
           entryTypes: const [],
           destinations: dests,
+          materializers: const <Materializer>[],
+          initialViewTargetVersions: const <String, Map<String, int>>{},
         ),
         throwsArgumentError,
       );
@@ -201,6 +218,8 @@ void main() {
             source: _source,
             entryTypes: const [],
             destinations: dests,
+            materializers: const <Materializer>[],
+            initialViewTargetVersions: const <String, Map<String, int>>{},
           ),
           throwsArgumentError,
         );

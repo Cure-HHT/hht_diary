@@ -162,7 +162,7 @@ void main() {
       });
 
       // Inspect the raw database.
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final metadataStore = StoreRef<String, Object?>('metadata');
       final rows = await metadataStore.find(db);
       expect(rows, isEmpty);
@@ -418,6 +418,8 @@ StoredEvent _event(
     aggregateId: aggregateId,
     aggregateType: 'DiaryEntry',
     entryType: 'epistaxis_event',
+    entryTypeVersion: 1,
+    libFormatVersion: 1,
     eventType: 'Event',
     sequenceNumber: sequenceNumber,
     data: const <String, dynamic>{},

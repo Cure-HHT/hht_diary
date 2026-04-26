@@ -1,5 +1,6 @@
 import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:event_sourcing_datastore/src/storage/txn.dart';
@@ -49,6 +50,12 @@ import 'package:event_sourcing_datastore/src/storage/txn.dart';
 ///   to let a second event arrive and batch with a lone first event —
 ///   does not apply. The final trailing batch flushes even if it is a
 ///   single event.
+///
+/// No `EntryPromoter` is invoked here. Historical replay promotes events
+/// from the log into the destination's outbound FIFO, not into a
+/// materialized view. The receiving destination is responsible for any
+/// version translation it needs to perform on the wire (REQ-d00140-G
+/// scopes the promoter to materializer folds, not destination transforms).
 // Implements: REQ-d00129-D — setStartDate(past) triggers historical
 // replay synchronously in the same transaction as the schedule write.
 // Implements: REQ-d00130-A — single-transaction walk of event_log from
@@ -99,7 +106,9 @@ Future<void> runHistoricalReplay(
   if (candidates.isEmpty) return;
 
   // Trim to the destination's time-window AND its subscription filter.
+  // System audit events are never replayed to user destinations.
   final inWindow = candidates.where((e) {
+    if (kReservedSystemEntryTypeIds.contains(e.entryType)) return false;
     if (e.clientTimestamp.isBefore(startDate)) return false;
     if (e.clientTimestamp.isAfter(upper)) return false;
     return destination.filter.matches(e);
@@ -137,7 +146,12 @@ Future<void> runHistoricalReplay(
       i++;
     }
     final wirePayload = await destination.transform(batch);
-    await backend.enqueueFifoTxn(txn, destination.id, batch, wirePayload);
+    await backend.enqueueFifoTxn(
+      txn,
+      destination.id,
+      batch,
+      wirePayload: wirePayload,
+    );
   }
 
   // Cursor advances to the last replayed event's sequence_number.

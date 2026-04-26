@@ -4,13 +4,13 @@ import 'package:collection/collection.dart';
 ///
 /// An `EntryTypeDefinition` is pure data (no storage, no Flutter dependency)
 /// that participates in the Event Type Registry (REQ-p01050). It identifies
-/// the entry type by `id`, binds it to a `version`-d schema, selects the
-/// Flutter widget used to render it, and optionally carries hints for the
-/// materializer (`effectiveDatePath`) and destination routing
-/// (`destinationTags`).
+/// the entry type by `id`, binds it to a registered schema version
+/// (`registeredVersion`), selects the Flutter widget used to render it, and
+/// optionally carries hints for the materializer (`effectiveDatePath`) and
+/// destination routing (`destinationTags`).
 ///
 /// JSON serialization uses snake_case keys:
-/// `id`, `version`, `name`, `widget_id`, `widget_config`,
+/// `id`, `registered_version`, `name`, `widget_id`, `widget_config`,
 /// `effective_date_path`, `destination_tags`.
 ///
 // Implements: REQ-d00116-A+B+C+D+E+F+G — value type carrying the seven
@@ -20,7 +20,7 @@ import 'package:collection/collection.dart';
 class EntryTypeDefinition {
   const EntryTypeDefinition({
     required this.id,
-    required this.version,
+    required this.registeredVersion,
     required this.name,
     required this.widgetId,
     required this.widgetConfig,
@@ -34,7 +34,7 @@ class EntryTypeDefinition {
   // REQ-d00116-F+G — optional fields default to null when absent.
   factory EntryTypeDefinition.fromJson(Map<String, Object?> json) {
     final id = _requireString(json, 'id');
-    final version = _requireString(json, 'version');
+    final registeredVersion = _requireInt(json, 'registered_version');
     final name = _requireString(json, 'name');
     final widgetId = _requireString(json, 'widget_id');
     final widgetConfigRaw = json['widget_config'];
@@ -84,7 +84,7 @@ class EntryTypeDefinition {
 
     return EntryTypeDefinition(
       id: id,
-      version: version,
+      registeredVersion: registeredVersion,
       name: name,
       widgetId: widgetId,
       widgetConfig: widgetConfig,
@@ -97,8 +97,11 @@ class EntryTypeDefinition {
   /// Matches `event.entry_type` for every event of this entry type.
   final String id;
 
-  /// Schema version under which events of this type are written.
-  final String version;
+  /// Highest `entry_type_version` this lib build's registry accepts on
+  /// `EventStore.ingestBatch`. Today (single-version world) it's the only
+  /// value; Phase 4.21 may expand to a `Set<int>` for multi-sponsor concurrency.
+  // Implements: REQ-d00116-B.
+  final int registeredVersion;
 
   /// Display name used by UI and operational tooling.
   final String name;
@@ -128,7 +131,7 @@ class EntryTypeDefinition {
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
-    'version': version,
+    'registered_version': registeredVersion,
     'name': name,
     'widget_id': widgetId,
     'widget_config': widgetConfig,
@@ -142,7 +145,7 @@ class EntryTypeDefinition {
       identical(this, other) ||
       other is EntryTypeDefinition &&
           id == other.id &&
-          version == other.version &&
+          registeredVersion == other.registeredVersion &&
           name == other.name &&
           widgetId == other.widgetId &&
           _deepEq.equals(widgetConfig, other.widgetConfig) &&
@@ -153,7 +156,7 @@ class EntryTypeDefinition {
   @override
   int get hashCode => Object.hash(
     id,
-    version,
+    registeredVersion,
     name,
     widgetId,
     _deepEq.hash(widgetConfig),
@@ -165,7 +168,7 @@ class EntryTypeDefinition {
   @override
   String toString() =>
       'EntryTypeDefinition('
-      'id: $id, version: $version, name: $name, '
+      'id: $id, registeredVersion: $registeredVersion, name: $name, '
       'widgetId: $widgetId, widgetConfig: $widgetConfig, '
       'effectiveDatePath: $effectiveDatePath, '
       'destinationTags: $destinationTags, '
@@ -178,6 +181,14 @@ String _requireString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! String) {
     throw FormatException('EntryTypeDefinition: missing or non-string "$key"');
+  }
+  return value;
+}
+
+int _requireInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! int) {
+    throw FormatException('EntryTypeDefinition: missing or non-int "$key"');
   }
   return value;
 }

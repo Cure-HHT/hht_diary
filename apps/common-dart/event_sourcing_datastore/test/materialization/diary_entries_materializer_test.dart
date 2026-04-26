@@ -1,5 +1,6 @@
 import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
 import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
+import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
 import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
@@ -35,7 +36,7 @@ StoredEvent _event(
 
 EntryTypeDefinition _def(String id) => EntryTypeDefinition(
   id: id,
-  version: '1',
+  registeredVersion: 1,
   name: id,
   widgetId: 'w',
   widgetConfig: const <String, Object?>{},
@@ -45,7 +46,7 @@ void main() {
   group('DiaryEntriesMaterializer Phase 4.4', () {
     // Verifies: REQ-d00140-A — viewName exposes 'diary_entries'.
     test("REQ-d00140-A: viewName is 'diary_entries'", () {
-      const m = DiaryEntriesMaterializer();
+      const m = DiaryEntriesMaterializer(promoter: identityPromoter);
       expect(m.viewName, 'diary_entries');
     });
 
@@ -53,7 +54,7 @@ void main() {
     test(
       'REQ-d00140-A: appliesTo returns true for DiaryEntry; false otherwise',
       () {
-        const m = DiaryEntriesMaterializer();
+        const m = DiaryEntriesMaterializer(promoter: identityPromoter);
         expect(m.appliesTo(_event('a')), isTrue);
         expect(
           m.appliesTo(_event('b', aggregateType: 'security_context')),
@@ -65,7 +66,10 @@ void main() {
     // Verifies: REQ-d00140-A — Materializer is abstract; DiaryEntriesMaterializer
     // is a concrete subclass.
     test('DiaryEntriesMaterializer extends Materializer', () {
-      expect(const DiaryEntriesMaterializer(), isA<Materializer>());
+      expect(
+        const DiaryEntriesMaterializer(promoter: identityPromoter),
+        isA<Materializer>(),
+      );
     });
 
     // Verifies: REQ-d00140-A — applyInTxn reads prior row via the generic
@@ -74,13 +78,14 @@ void main() {
       'applyInTxn writes diary_entries view row reflecting event fold',
       () async {
         final backend = await _openBackend();
-        const m = DiaryEntriesMaterializer();
+        const m = DiaryEntriesMaterializer(promoter: identityPromoter);
         final event = _event('agg-1', answers: const {'intensity': 'severe'});
         await backend.transaction((txn) async {
           await m.applyInTxn(
             txn,
             backend,
             event: event,
+            promotedData: event.data,
             def: _def('epistaxis_event'),
             aggregateHistory: const <StoredEvent>[],
           );
@@ -99,5 +104,40 @@ void main() {
         await backend.close();
       },
     );
+  });
+
+  group('REQ-d00121-B,C: fold operates on promotedData not event.data', () {
+    test('foldPure reads answers from promotedData', () {
+      // Verifies: REQ-d00121-B,C — foldPure uses promotedData['answers'].
+      final event = StoredEvent.synthetic(
+        eventId: 'e-1',
+        aggregateId: 'a-1',
+        entryType: 'demo_note',
+        initiator: const UserInitiator('u-1'),
+        clientTimestamp: DateTime.utc(2026, 4, 26),
+        eventHash: 'h',
+        data: const <String, Object?>{
+          'answers': <String, Object?>{'before': 'raw'},
+        },
+      );
+      const promoted = <String, Object?>{
+        'answers': <String, Object?>{'after': 'promoted'},
+      };
+      final next = DiaryEntriesMaterializer.foldPure(
+        previous: null,
+        event: event,
+        promotedData: promoted,
+        def: const EntryTypeDefinition(
+          id: 'demo_note',
+          registeredVersion: 1,
+          name: 'd',
+          widgetId: 'w',
+          widgetConfig: <String, Object?>{},
+        ),
+        firstEventTimestamp: event.clientTimestamp,
+      );
+      expect(next.currentAnswers, <String, Object?>{'after': 'promoted'});
+      expect(next.currentAnswers.containsKey('before'), isFalse);
+    });
   });
 }

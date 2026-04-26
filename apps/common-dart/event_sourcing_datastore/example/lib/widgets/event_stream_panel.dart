@@ -22,22 +22,22 @@ class EventStreamPanel extends StatefulWidget {
 
 class _EventStreamPanelState extends State<EventStreamPanel> {
   List<StoredEvent> _events = const <StoredEvent>[];
-  Timer? _poll;
+  StreamSubscription<StoredEvent>? _eventsSub;
 
   @override
   void initState() {
     super.initState();
     widget.appState.addListener(_onAppState);
-    _poll = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) => _refresh(),
-    );
+    _eventsSub = widget.backend.watchEvents().listen((_) {
+      if (!mounted) return;
+      _refresh();
+    });
     _refresh();
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
+    _eventsSub?.cancel();
     widget.appState.removeListener(_onAppState);
     super.dispose();
   }

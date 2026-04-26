@@ -51,3 +51,45 @@ class IngestIdentityMismatch implements Exception {
       'IngestIdentityMismatch(eventId: $eventId, incoming: $incomingHash, '
       'storedArrival: $storedArrivalHash)';
 }
+
+/// Thrown by `EventStore.ingestBatch` when an incoming event's
+/// `lib_format_version` exceeds the receiver's `StoredEvent.currentLibFormatVersion`.
+/// The receiver cannot interpret the event's storage shape; the entire batch
+/// is rolled back. Operator action: upgrade the receiver lib.
+// Implements: REQ-d00145-L.
+class IngestLibFormatVersionAhead implements Exception {
+  const IngestLibFormatVersionAhead({
+    required this.eventId,
+    required this.wireVersion,
+    required this.receiverVersion,
+  });
+  final String eventId;
+  final int wireVersion;
+  final int receiverVersion;
+  @override
+  String toString() =>
+      'IngestLibFormatVersionAhead(event_id: $eventId, '
+      'wire: $wireVersion, receiver: $receiverVersion)';
+}
+
+/// Thrown by `EventStore.ingestBatch` when an incoming event's
+/// `entry_type_version` exceeds `EntryTypeDefinition.registered_version` for
+/// its `entry_type` in the receiver's registry. Operator action: upgrade
+/// the receiver's entry-type registry to register the new version.
+// Implements: REQ-d00145-M.
+class IngestEntryTypeVersionAhead implements Exception {
+  const IngestEntryTypeVersionAhead({
+    required this.eventId,
+    required this.entryType,
+    required this.wireVersion,
+    required this.receiverVersion,
+  });
+  final String eventId;
+  final String entryType;
+  final int wireVersion;
+  final int receiverVersion;
+  @override
+  String toString() =>
+      'IngestEntryTypeVersionAhead(event_id: $eventId, entry_type: $entryType, '
+      'wire: $wireVersion, receiver: $receiverVersion)';
+}

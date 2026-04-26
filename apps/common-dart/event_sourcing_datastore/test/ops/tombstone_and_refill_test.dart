@@ -1,6 +1,5 @@
 import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/ops/tombstone_and_refill.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
@@ -13,6 +12,9 @@ import 'package:sembast/sembast_memory.dart';
 
 import '../test_support/fake_destination.dart';
 import '../test_support/fifo_entry_helpers.dart';
+import '../test_support/registry_with_audit.dart';
+
+const Initiator _testInit = AutomationInitiator(service: 'test-bootstrap');
 
 /// Fresh in-memory SembastBackend per test.
 Future<SembastBackend> _openBackend(String path) async {
@@ -27,7 +29,7 @@ Future<List<Map<String, Object?>>> _readAllFifoRows(
   SembastBackend backend,
   String destinationId,
 ) async {
-  final db = backend.debugDatabase();
+  final db = backend.databaseForTesting;
   final records =
       await sembast.StoreRef<int, Map<String, Object?>>(
         'fifo_$destinationId',
@@ -57,6 +59,8 @@ Future<StoredEvent> _appendEvent(
       aggregateId: 'agg-1',
       aggregateType: 'DiaryEntry',
       entryType: 'epistaxis_event',
+      entryTypeVersion: 1,
+      libFormatVersion: 1,
       eventType: 'finalized',
       sequenceNumber: seq,
       data: const <String, dynamic>{},
@@ -109,10 +113,18 @@ _seedFifo(
   _HeadKind headKind = _HeadKind.pending,
   int trailCount = 0,
 }) async {
-  final registry = DestinationRegistry(backend: backend);
+  final deps = buildAuditedRegistryDeps(backend);
+  final registry = DestinationRegistry(
+    backend: backend,
+    eventStore: deps.eventStore,
+  );
   final destination = FakeDestination(id: 'tombstone-dest');
-  await registry.addDestination(destination);
-  await registry.setStartDate(destination.id, DateTime.utc(2026, 1, 1));
+  await registry.addDestination(destination, initiator: _testInit);
+  await registry.setStartDate(
+    destination.id,
+    DateTime.utc(2026, 1, 1),
+    initiator: _testInit,
+  );
 
   var seq = 0;
   // Sent prefix rows.
@@ -209,10 +221,10 @@ void main() {
         expect(trailEntryId, isNot(equals(setup.headEntryId)));
 
         await expectLater(
-          tombstoneAndRefill(
+          setup.registry.tombstoneAndRefill(
             setup.destination.id,
             trailEntryId,
-            backend: backend,
+            initiator: _testInit,
           ),
           throwsArgumentError,
         );
@@ -238,7 +250,11 @@ void main() {
       final sentEntryId = rows.single['entry_id']! as String;
       expect(rows.single['final_status'], FinalStatus.sent.toJson());
       await expectLater(
-        tombstoneAndRefill(setup.destination.id, sentEntryId, backend: backend),
+        setup.registry.tombstoneAndRefill(
+          setup.destination.id,
+          sentEntryId,
+          initiator: _testInit,
+        ),
         throwsArgumentError,
       );
     });
@@ -253,18 +269,18 @@ void main() {
         // rewind and no remaining head pointing to the tombstoned row.
         final setup = await _seedFifo(backend, headKind: _HeadKind.wedged);
         final headEntryId = setup.headEntryId!;
-        await tombstoneAndRefill(
+        await setup.registry.tombstoneAndRefill(
           setup.destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         // The tombstoned row is still in the store but readFifoHead
         // skips it; a second tombstone call against it must reject.
         await expectLater(
-          tombstoneAndRefill(
+          setup.registry.tombstoneAndRefill(
             setup.destination.id,
             headEntryId,
-            backend: backend,
+            initiator: _testInit,
           ),
           throwsArgumentError,
         );
@@ -279,10 +295,10 @@ void main() {
       () async {
         final setup = await _seedFifo(backend, headKind: _HeadKind.wedged);
         await expectLater(
-          tombstoneAndRefill(
+          setup.registry.tombstoneAndRefill(
             setup.destination.id,
             'does-not-exist',
-            backend: backend,
+            initiator: _testInit,
           ),
           throwsArgumentError,
         );
@@ -301,10 +317,10 @@ void main() {
       final originalAttempts = (beforeHead['attempts'] as List).toList();
       expect(originalAttempts.length, 1);
 
-      final result = await tombstoneAndRefill(
+      final result = await setup.registry.tombstoneAndRefill(
         setup.destination.id,
         headEntryId,
-        backend: backend,
+        initiator: _testInit,
       );
       expect(result.targetRowId, headEntryId);
 
@@ -333,10 +349,10 @@ void main() {
         expect(beforeHead['final_status'], isNull);
         expect(beforeHead['attempts'] as List, isEmpty);
 
-        final result = await tombstoneAndRefill(
+        final result = await setup.registry.tombstoneAndRefill(
           setup.destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         expect(result.targetRowId, headEntryId);
 
@@ -359,10 +375,10 @@ void main() {
       final before = await _readAllFifoRows(backend, setup.destination.id);
       expect(before.length, 4); // 1 wedged head + 3 trail
 
-      final result = await tombstoneAndRefill(
+      final result = await setup.registry.tombstoneAndRefill(
         setup.destination.id,
         headEntryId,
-        backend: backend,
+        initiator: _testInit,
       );
       expect(result.deletedTrailCount, 3);
 
@@ -388,10 +404,10 @@ void main() {
           trailCount: 3,
         );
         final headEntryId = setup.headEntryId!;
-        await tombstoneAndRefill(
+        await setup.registry.tombstoneAndRefill(
           setup.destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         final after = await _readAllFifoRows(backend, setup.destination.id);
         final seqs = after.map((r) => r['sequence_in_queue']! as int).toList();
@@ -413,10 +429,10 @@ void main() {
       // Pre-tombstone cursor advanced to last enqueued seq (5).
       expect(await backend.readFillCursor(setup.destination.id), 5);
 
-      final result = await tombstoneAndRefill(
+      final result = await setup.registry.tombstoneAndRefill(
         setup.destination.id,
         headEntryId,
-        backend: backend,
+        initiator: _testInit,
       );
       expect(result.rewoundTo, 2);
       expect(await backend.readFillCursor(setup.destination.id), 2);
@@ -438,10 +454,10 @@ void main() {
         // Pre-tombstone cursor at 3 (last enqueued seq).
         expect(await backend.readFillCursor(setup.destination.id), 3);
 
-        final result = await tombstoneAndRefill(
+        final result = await setup.registry.tombstoneAndRefill(
           setup.destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         // head sits at seq 1 (no sent prefix), so rewoundTo = 1 - 1 = 0.
         expect(result.rewoundTo, 0);
@@ -462,10 +478,10 @@ void main() {
         );
         final headEntryId = setup.headEntryId!;
 
-        final result = await tombstoneAndRefill(
+        final result = await setup.registry.tombstoneAndRefill(
           setup.destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         expect(result, isA<TombstoneAndRefillResult>());
         expect(result.targetRowId, headEntryId);
@@ -496,14 +512,22 @@ void main() {
     test(
       'REQ-d00144-F: next fillBatch re-promotes target events AND trail events',
       () async {
-        final registry = DestinationRegistry(backend: backend);
+        final deps = buildAuditedRegistryDeps(backend);
+        final registry = DestinationRegistry(
+          backend: backend,
+          eventStore: deps.eventStore,
+        );
         final destination = FakeDestination(id: 'dst-f', batchCapacity: 3);
         // Register + set startDate BEFORE appending events so the
         // historical-replay branch (REQ-d00129-D) sees zero candidates
         // and does not auto-enqueue rows that would conflict with our
         // controlled seeding below.
-        await registry.addDestination(destination);
-        await registry.setStartDate(destination.id, DateTime.utc(2026, 1, 1));
+        await registry.addDestination(destination, initiator: _testInit);
+        await registry.setStartDate(
+          destination.id,
+          DateTime.utc(2026, 1, 1),
+          initiator: _testInit,
+        );
         // Seed 9 events on the event log.
         final clientTs = DateTime.utc(2026, 4, 22, 10);
         for (var i = 1; i <= 9; i++) {
@@ -525,7 +549,12 @@ void main() {
               events.add(all.firstWhere((e) => e.sequenceNumber == s));
             }
             final payload = wirePayloadJson({'seqs': seqs});
-            await backend.enqueueFifoTxn(txn, destination.id, events, payload);
+            await backend.enqueueFifoTxn(
+              txn,
+              destination.id,
+              events,
+              wirePayload: payload,
+            );
           });
         }
 
@@ -556,10 +585,10 @@ void main() {
         await backend.writeFillCursor(destination.id, 9);
 
         // Act: tombstone + refill.
-        final result = await tombstoneAndRefill(
+        final result = await registry.tombstoneAndRefill(
           destination.id,
           headEntryId,
-          backend: backend,
+          initiator: _testInit,
         );
         expect(result.deletedTrailCount, 2);
         // REQ-d00144-D: rewound to target.first_seq - 1 = 1 - 1 = 0.
@@ -604,8 +633,16 @@ void main() {
         // distinct entry_ids.
         final allEntryIds = rows1.map((r) => r['entry_id']! as String).toList();
         expect(allEntryIds.toSet().length, allEntryIds.length);
-        // fill_cursor advanced through all 9 events.
-        expect(await backend.readFillCursor(destination.id), 9);
+        // fill_cursor advanced through all 9 user events. The registry
+        // emits REQ-d00129-J/K and REQ-d00144-G audit events that
+        // consume sequence_number slots in event_log, so the absolute
+        // value is offset; assert against the last user event's seq
+        // instead of a literal.
+        final lastUserSeq = (await backend.findAllEvents())
+            .where((e) => e.eventId.startsWith('e'))
+            .map((e) => e.sequenceNumber)
+            .reduce((a, b) => a > b ? a : b);
+        expect(await backend.readFillCursor(destination.id), lastUserSeq);
       },
     );
   });

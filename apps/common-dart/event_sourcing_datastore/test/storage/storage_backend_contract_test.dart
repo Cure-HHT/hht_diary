@@ -1,5 +1,7 @@
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
 import 'package:event_sourcing_datastore/src/storage/append_result.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
@@ -138,6 +140,8 @@ StoredEvent _sampleEvent({required String eventId}) => StoredEvent(
   aggregateId: 'agg-1',
   aggregateType: 'DiaryEntry',
   entryType: 'epistaxis_event',
+  entryTypeVersion: 1,
+  libFormatVersion: 1,
   eventType: 'Event',
   sequenceNumber: 0,
   data: const <String, dynamic>{},
@@ -291,21 +295,50 @@ class _InMemoryBackend extends StorageBackend {
   Future<void> clearViewInTxn(Txn txn, String viewName) =>
       throw UnimplementedError();
   @override
+  Future<int?> readViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> writeViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+    int targetVersion,
+  ) => throw UnimplementedError();
+  @override
+  Future<Map<String, int>> readAllViewTargetVersionsInTxn(
+    Txn txn,
+    String viewName,
+  ) => throw UnimplementedError();
+  @override
+  Future<void> clearViewTargetVersionsInTxn(Txn txn, String viewName) =>
+      throw UnimplementedError();
+  @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => throw UnimplementedError();
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => throw UnimplementedError();
   @override
   Future<FifoEntry> enqueueFifoTxn(
     Txn txn,
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) => throw UnimplementedError();
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) => throw UnimplementedError();
   @override
   Future<FifoEntry?> readFifoHead(String destinationId) =>
       throw UnimplementedError();
+  @override
+  Future<List<FifoEntry>> listFifoEntries(
+    String destinationId, {
+    int? afterSequenceInQueue,
+    int? limit,
+  }) => throw UnimplementedError();
   @override
   Future<void> appendAttempt(
     String destinationId,
@@ -380,23 +413,30 @@ class _InMemoryBackend extends StorageBackend {
     int afterSequenceInQueue,
   ) => throw UnimplementedError();
   @override
-  Future<int> nextIngestSequenceNumber(Txn txn) => throw UnimplementedError();
-  @override
-  Future<(int, String?)> readIngestTail() => throw UnimplementedError();
-  @override
-  Future<(int, String?)> readIngestTailInTxn(Txn txn) =>
-      throw UnimplementedError();
-  @override
-  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) =>
-      throw UnimplementedError();
-  @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) =>
       throw UnimplementedError();
   @override
-  Future<List<StoredEvent>> findEventsByIngestSeqRange({
-    required int from,
-    int? to,
-  }) => throw UnimplementedError();
+  Future<StoredEvent?> findEventById(String eventId) =>
+      throw UnimplementedError();
+  @override
+  Stream<StoredEvent> watchEvents({int? afterSequence}) =>
+      const Stream<StoredEvent>.empty();
+  @override
+  Stream<List<FifoEntry>> watchFifo(String destinationId) =>
+      const Stream<List<FifoEntry>>.empty();
+  @override
+  Stream<List<Map<String, Object?>>> watchView(String viewName) =>
+      const Stream<List<Map<String, Object?>>>.empty();
+  @override
+  Future<PagedAudit> queryAudit({
+    Initiator? initiator,
+    String? flowToken,
+    String? ipAddress,
+    DateTime? from,
+    DateTime? to,
+    int limit = 50,
+    String? cursor,
+  }) async => const PagedAudit(rows: <AuditRow>[]);
 }
 
 class _InMemoryTxn extends Txn {

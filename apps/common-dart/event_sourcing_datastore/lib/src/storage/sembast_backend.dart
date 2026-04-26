@@ -1,19 +1,28 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
+import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
 import 'package:event_sourcing_datastore/src/storage/append_result.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
+import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:event_sourcing_datastore/src/storage/txn.dart';
 import 'package:event_sourcing_datastore/src/storage/wedged_fifo_summary.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
+
+part 'sembast_test_support.dart';
 
 /// Module-private v4 UUID generator used by [SembastBackend.enqueueFifoTxn]
 /// to mint each FIFO row's [FifoEntry.entryId]. Held at file scope (const)
@@ -61,8 +70,6 @@ class SembastBackend extends StorageBackend {
   static const _sequenceKey = 'sequence_counter';
   static const _schemaVersionKey = 'schema_version';
   static const _knownFifosKey = 'known_fifo_destinations';
-  static const _ingestSequenceKey = 'ingest_sequence_counter';
-  static const _ingestTailHashKey = 'ingest_tail_event_hash';
 
   // Per-destination monotonic `sequence_in_queue` counter key, stored in
   // `backend_state` as `fifo_seq_counter_<destinationId>`. Used by
@@ -74,35 +81,69 @@ class SembastBackend extends StorageBackend {
       'fifo_seq_counter_$destinationId';
 
   static const _eventStoreName = 'events';
-  static const _ingestedEventsStoreName = 'ingested_events';
 
   final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
       .store(_eventStoreName);
-  final StoreRef<int, Map<String, Object?>> _ingestedEventsStore =
-      intMapStoreFactory.store(_ingestedEventsStoreName);
   final StoreRef<String, Object?> _backendStateStore =
       StoreRef<String, Object?>('backend_state');
   final StoreRef<String, Map<String, Object?>> _entriesStore =
       stringMapStoreFactory.store('diary_entries');
+  // Backend-private mirror of the `security_context` sembast store so
+  // [queryAudit] can join against the event log without reaching into a
+  // separate store object. The sembast `StoreRef` is just a typed name
+  // handle — multiple refs to the same store name read/write the same
+  // underlying records, so this cohabits cleanly with
+  // `SembastSecurityContextStore`'s own ref.
+  final StoreRef<String, Map<String, Object?>> _securityContextStore =
+      stringMapStoreFactory.store('security_context');
 
   StoreRef<int, Map<String, Object?>> _fifoStore(String destinationId) =>
       intMapStoreFactory.store('fifo_$destinationId');
 
   Database _database() => _db;
 
-  /// Close the underlying Sembast database. The caller that supplied the
-  /// database via the constructor is responsible for deciding when to close.
+  // Broadcast controllers — feed reactive APIs added in Phase 4.12.
+  // _eventsController fed after each successful appendEvent commit
+  // (REQ-d00149); origin and ingest paths both route through appendEvent
+  // under the unified event store, so a single emission point covers both.
+  // _fifoChangesController fed after each successful FIFO mutation;
+  // payload is the destinationId (REQ-d00150). _viewChangesController fed
+  // after each successful view-row mutation; payload is the viewName
+  // (REQ-d00153).
+  final StreamController<StoredEvent> _eventsController =
+      StreamController<StoredEvent>.broadcast();
+  final StreamController<String> _fifoChangesController =
+      StreamController<String>.broadcast();
+  final StreamController<String> _viewChangesController =
+      StreamController<String>.broadcast();
+
+  /// Per-transaction post-commit callback queue. The [transaction]
+  /// wrapper swaps in a fresh inner list around each body, then runs
+  /// the queued callbacks if and only if the body commits successfully.
+  /// Write paths ([appendEvent], FIFO mutators) push
+  /// `() => _eventsController.add(event)` /
+  /// `() => _fifoChangesController.add(destinationId)` onto this list
+  /// after their in-txn writes succeed; the wrapper drains them on
+  /// commit. The field is mutable so the wrapper can preserve outer
+  /// state across nested calls (sembast does not nest, but the swap is
+  /// the cleanest race-safe pattern).
+  // Implements: REQ-d00149-A+B+C — post-commit emission to broadcast
+  // controllers; co-atomic with the surrounding transaction's commit.
+  List<void Function()> _pendingPostCommit = <void Function()>[];
+
+  /// Close the underlying sembast database AND the reactive broadcast
+  /// controllers used by [watchEvents] / [watchFifo] / [watchView]. After
+  /// close, further calls to those reactive methods SHALL throw
+  /// `StateError`. Active subscribers receive `done`.
   ///
   /// Not safe to call concurrently with an in-flight [transaction]. The
   /// caller is responsible for awaiting outstanding work before closing.
   Future<void> close() async {
+    await _eventsController.close();
+    await _fifoChangesController.close();
+    await _viewChangesController.close();
     await _db.close();
   }
-
-  /// Exposes the underlying Sembast [Database] for tests that need to
-  /// inspect raw store contents. Not for production use.
-  // ignore: library_private_types_in_public_api
-  Database debugDatabase() => _database();
 
   /// Visible-for-testing sink for the warning-level diagnostic emitted by
   /// [markFinal] and [appendAttempt] when they no-op on a missing target
@@ -119,14 +160,29 @@ class SembastBackend extends StorageBackend {
   @override
   Future<T> transaction<T>(Future<T> Function(Txn txn) body) async {
     final db = _database();
-    return db.transaction((sembastTxn) async {
-      final txn = _SembastTxn._(sembastTxn);
-      try {
-        return await body(txn);
-      } finally {
-        txn._invalidate();
+    final outerPending = _pendingPostCommit;
+    final innerPending = <void Function()>[];
+    _pendingPostCommit = innerPending;
+    try {
+      final result = await db.transaction((sembastTxn) async {
+        final txn = _SembastTxn._(sembastTxn);
+        try {
+          return await body(txn);
+        } finally {
+          txn._invalidate();
+        }
+      });
+      // Commit succeeded — fire post-commit callbacks. Skip emissions
+      // when the corresponding controller has been closed (close() is
+      // not safe to race with in-flight transactions, but a fast-cycle
+      // test may still observe the closed state here).
+      for (final cb in innerPending) {
+        cb();
       }
-    });
+      return result;
+    } finally {
+      _pendingPostCommit = outerPending;
+    }
   }
 
   _SembastTxn _requireValidTxn(Txn txn) {
@@ -182,6 +238,12 @@ class SembastBackend extends StorageBackend {
       );
     }
     await _eventStore.add(t._sembastTxn, event.toMap());
+    // Implements: REQ-d00149-A — emit on the broadcast controller
+    // post-commit so live subscribers learn of the new event in
+    // sequence_number order.
+    _pendingPostCommit.add(() {
+      if (!_eventsController.isClosed) _eventsController.add(event);
+    });
     return AppendResult(
       sequenceNumber: event.sequenceNumber,
       eventHash: event.eventHash,
@@ -195,17 +257,8 @@ class SembastBackend extends StorageBackend {
       filter: Filter.equals('aggregate_id', aggregateId),
       sortOrders: [SortOrder('sequence_number')],
     );
-    // Query both origin store and ingested-events store: receiver-originated
-    // audit events (duplicate_received, batch_rejected) land in
-    // _ingestedEventsStore, while origin-role events land in _eventStore.
-    // Merge and re-sort by sequence_number so callers get a unified view.
-    final originRecords = await _eventStore.find(db, finder: finder);
-    final ingestedRecords = await _ingestedEventsStore.find(db, finder: finder);
-    final merged = [
-      ...originRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
-      ...ingestedRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
-    ]..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
-    return merged;
+    final records = await _eventStore.find(db, finder: finder);
+    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
   }
 
   @override
@@ -218,17 +271,8 @@ class SembastBackend extends StorageBackend {
       filter: Filter.equals('aggregate_id', aggregateId),
       sortOrders: [SortOrder('sequence_number')],
     );
-    // See findEventsForAggregate: query both stores and merge.
-    final originRecords = await _eventStore.find(t._sembastTxn, finder: finder);
-    final ingestedRecords = await _ingestedEventsStore.find(
-      t._sembastTxn,
-      finder: finder,
-    );
-    final merged = [
-      ...originRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
-      ...ingestedRecords.map((r) => StoredEvent.fromMap(r.value, r.key)),
-    ]..sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
-    return merged;
+    final records = await _eventStore.find(t._sembastTxn, finder: finder);
+    return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
   }
 
   @override
@@ -300,6 +344,82 @@ class SembastBackend extends StorageBackend {
       ),
     );
     return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
+  }
+
+  // Implements: REQ-d00149-A+B+C+D+E — replay-then-live with race-safe
+  // live-filter via held-cursor; broadcast; close-aware.
+  //
+  // The per-call controller is itself broadcast so a single
+  // `watchEvents()` return value supports multiple `listen()`
+  // subscribers (REQ-d00149-C). On the first listen:
+  //   1. `scheduleMicrotask(startReplay)` defers the replay so the
+  //      caller's `listen()` returns before any emission, ensuring no
+  //      replayed event is missed.
+  //   2. Replay reads `findAllEvents(afterSequence: lowerBound)` and
+  //      forwards each event, advancing `lastReplayed`.
+  //   3. After replay completes, attach to the package-private
+  //      `_eventsController` broadcast and filter
+  //      `e.sequenceNumber > lastReplayed` per REQ-d00149-B — this
+  //      closes the race where an event commits between the replay
+  //      snapshot read and the live attach.
+  // Close on the backend's `_eventsController` propagates via
+  // `onDone`. The per-call controller closes via `controller.close()`.
+  @override
+  Stream<StoredEvent> watchEvents({int? afterSequence}) {
+    if (_eventsController.isClosed) {
+      throw StateError(
+        'SembastBackend.close has been called; watchEvents unavailable',
+      );
+    }
+    final lowerBound = afterSequence ?? 0;
+    final controller = StreamController<StoredEvent>.broadcast();
+    var lastReplayed = lowerBound;
+    StreamSubscription<StoredEvent>? liveSub;
+    var started = false;
+
+    Future<void> startReplay() async {
+      try {
+        final replay = await findAllEvents(afterSequence: lowerBound);
+        for (final e in replay) {
+          if (controller.isClosed) return;
+          controller.add(e);
+          lastReplayed = e.sequenceNumber;
+        }
+      } catch (err, st) {
+        if (!controller.isClosed) controller.addError(err, st);
+      }
+      if (controller.isClosed) return;
+      liveSub = _eventsController.stream.listen(
+        (e) {
+          if (e.sequenceNumber > lastReplayed) controller.add(e);
+        },
+        onError: controller.addError,
+        onDone: controller.close,
+      );
+    }
+
+    controller
+      ..onListen = () {
+        // Broadcast controllers fire `onListen` on every fresh listen
+        // attach, but replay-then-live setup must run only once for the
+        // lifetime of this watchEvents() call. The `started` guard
+        // ensures multiple subscribers share a single replay + live
+        // pipeline.
+        if (started) return;
+        started = true;
+        scheduleMicrotask(startReplay);
+      }
+      ..onCancel = () async {
+        // Broadcast `onCancel` fires when the LAST subscriber cancels;
+        // tear down the upstream live subscription so the broadcast
+        // controller does not leak after all subscribers detach. The
+        // controller stays open so a later listener can re-attach
+        // (broadcast semantics).
+        await liveSub?.cancel();
+        liveSub = null;
+        started = false;
+      };
+    return controller.stream;
   }
 
   @override
@@ -486,6 +606,14 @@ class SembastBackend extends StorageBackend {
           .record(_knownFifosKey)
           .put(t._sembastTxn, current);
     }
+    // Implements: REQ-d00150-A — emit on the broadcast controller
+    // post-commit so live `watchFifo(destinationId)` subscribers see
+    // the FIFO-store drop (subsequent listFifoEntries will be empty).
+    _pendingPostCommit.add(() {
+      if (!_fifoChangesController.isClosed) {
+        _fifoChangesController.add(destinationId);
+      }
+    });
   }
 
   // -------- diary_entries --------
@@ -589,6 +717,8 @@ class SembastBackend extends StorageBackend {
   }
 
   // Implements: REQ-d00140-F — upsertViewRowInTxn whole-row upsert.
+  // Implements: REQ-d00153-A — emit on _viewChangesController post-commit
+  // so watchView subscribers re-fetch the snapshot.
   @override
   Future<void> upsertViewRowInTxn(
     Txn txn,
@@ -600,13 +730,24 @@ class SembastBackend extends StorageBackend {
     await _viewStore(
       viewName,
     ).record(key).put(t._sembastTxn, Map<String, Object?>.from(row));
+    _pendingPostCommit.add(() {
+      if (!_viewChangesController.isClosed) {
+        _viewChangesController.add(viewName);
+      }
+    });
   }
 
   // Implements: REQ-d00140-F — deleteViewRowInTxn row-scoped delete.
+  // Implements: REQ-d00153-A — emit on _viewChangesController post-commit.
   @override
   Future<void> deleteViewRowInTxn(Txn txn, String viewName, String key) async {
     final t = _requireValidTxn(txn);
     await _viewStore(viewName).record(key).delete(t._sembastTxn);
+    _pendingPostCommit.add(() {
+      if (!_viewChangesController.isClosed) {
+        _viewChangesController.add(viewName);
+      }
+    });
   }
 
   // Implements: REQ-d00140-F — findViewRows iteration with limit/offset.
@@ -628,17 +769,105 @@ class SembastBackend extends StorageBackend {
 
   // Implements: REQ-d00140-F — clearViewInTxn view-scoped clear; other
   // views untouched.
+  // Implements: REQ-d00153-A — emit on _viewChangesController post-commit.
   @override
   Future<void> clearViewInTxn(Txn txn, String viewName) async {
     final t = _requireValidTxn(txn);
     await _viewStore(viewName).delete(t._sembastTxn);
+    _pendingPostCommit.add(() {
+      if (!_viewChangesController.isClosed) {
+        _viewChangesController.add(viewName);
+      }
+    });
+  }
+
+  // -------- View target versions (Phase 4.19) --------
+  //
+  // Persists the per-(viewName, entryType) target schema version that the
+  // promoter pipeline reads on every materialization. One sembast store
+  // (`view_target_versions`) keyed on `'<viewName>::<entryType>'`; rows
+  // carry `view_name` / `entry_type` / `target_version` so `find` /
+  // `delete` can scope by `view_name`.
+
+  static const _viewTargetVersionsStore = 'view_target_versions';
+
+  final StoreRef<String, Map<String, Object?>> _viewTargetVersionsStoreRef =
+      stringMapStoreFactory.store(_viewTargetVersionsStore);
+
+  String _viewTargetVersionsKey(String viewName, String entryType) =>
+      '$viewName::$entryType';
+
+  // Implements: REQ-d00140-I.
+  @override
+  Future<int?> readViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+  ) async {
+    final t = _requireValidTxn(txn);
+    final raw = await _viewTargetVersionsStoreRef
+        .record(_viewTargetVersionsKey(viewName, entryType))
+        .get(t._sembastTxn);
+    if (raw == null) return null;
+    final v = raw['target_version'];
+    if (v is! int) {
+      throw StateError(
+        'view_target_versions[$viewName::$entryType]: target_version not int '
+        '(got ${v.runtimeType}); database corrupted',
+      );
+    }
+    return v;
+  }
+
+  // Implements: REQ-d00140-I.
+  @override
+  Future<void> writeViewTargetVersionInTxn(
+    Txn txn,
+    String viewName,
+    String entryType,
+    int targetVersion,
+  ) async {
+    final t = _requireValidTxn(txn);
+    await _viewTargetVersionsStoreRef
+        .record(_viewTargetVersionsKey(viewName, entryType))
+        .put(t._sembastTxn, <String, Object?>{
+          'view_name': viewName,
+          'entry_type': entryType,
+          'target_version': targetVersion,
+        });
+  }
+
+  // Implements: REQ-d00140-I.
+  @override
+  Future<Map<String, int>> readAllViewTargetVersionsInTxn(
+    Txn txn,
+    String viewName,
+  ) async {
+    final t = _requireValidTxn(txn);
+    final records = await _viewTargetVersionsStoreRef.find(
+      t._sembastTxn,
+      finder: Finder(filter: Filter.equals('view_name', viewName)),
+    );
+    return <String, int>{
+      for (final r in records)
+        (r.value['entry_type'] as String): (r.value['target_version'] as int),
+    };
+  }
+
+  // Implements: REQ-d00140-I.
+  @override
+  Future<void> clearViewTargetVersionsInTxn(Txn txn, String viewName) async {
+    final t = _requireValidTxn(txn);
+    await _viewTargetVersionsStoreRef.delete(
+      t._sembastTxn,
+      finder: Finder(filter: Filter.equals('view_name', viewName)),
+    );
   }
 
   // -------- FIFO --------
 
   /// Append a batch-shaped row to destination [destinationId]'s FIFO. The
-  /// row covers every event in [batch] and carries a single [wirePayload]
-  /// (REQ-d00128-C).
+  /// row covers every event in [batch].
   ///
   /// Opens its own atomic transaction and delegates the actual row
   /// construction to [enqueueFifoTxn]. Callers already composing a larger
@@ -646,10 +875,13 @@ class SembastBackend extends StorageBackend {
   /// enqueue and any accompanying writes (e.g., fill_cursor advance)
   /// commit co-atomically.
   ///
-  /// The backend owns `sequence_in_queue`: it is assigned as
-  /// `max(existing store key) + 1` inside the transaction, so the
-  /// Sembast int key and the payload `sequence_in_queue` are in lockstep
-  /// (Phase-2 Prereq A, Option 1).
+  /// Exactly one of [wirePayload] / [nativeEnvelope] SHALL be non-null
+  /// (REQ-d00152-B+E). See [StorageBackend.enqueueFifo] for the contract
+  /// distinguishing the two payload shapes.
+  ///
+  /// The backend owns `sequence_in_queue` via the persisted
+  /// `fifo_seq_counter_<destinationId>` record (REQ-d00119-E):
+  /// monotonic, never reused.
   ///
   /// The returned `FifoEntry` is the persisted record. Callers that
   /// need to advance a per-destination cursor use
@@ -659,58 +891,91 @@ class SembastBackend extends StorageBackend {
   /// The row's `entry_id` is a freshly-minted v4 UUID and has no
   /// relationship to the events the row carries — callers that need
   /// to correlate against events use `eventIds` / `eventIdRange`.
-  ///
-  /// Rejects (throws `ArgumentError`):
-  /// - empty [batch] (REQ-d00128-A).
   // Implements: REQ-d00117-E — enqueue initial state (pending, no
   // attempts, no sent_at).
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
   // Implements: REQ-d00128-A+B+C — batch-per-row enqueue (standalone
   // variant; opens its own transaction and delegates to enqueueFifoTxn).
+  // Implements: REQ-d00152-B+E — XOR (wirePayload, nativeEnvelope) shape.
   @override
   Future<FifoEntry> enqueueFifo(
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) async {
-    return _database().transaction((sembastTxn) async {
-      final txn = _SembastTxn._(sembastTxn);
-      try {
-        return await enqueueFifoTxn(txn, destinationId, batch, wirePayload);
-      } finally {
-        txn._invalidate();
-      }
-    });
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) async {
+    // Route through this backend's `transaction()` (rather than the
+    // raw `_database().transaction(...)`) so the post-commit callback
+    // appended inside `enqueueFifoTxn` is drained by the wrapper on
+    // commit; otherwise REQ-d00150-A FIFO-change emissions on the
+    // standalone enqueue path would silently drop.
+    return transaction(
+      (txn) => enqueueFifoTxn(
+        txn,
+        destinationId,
+        batch,
+        wirePayload: wirePayload,
+        nativeEnvelope: nativeEnvelope,
+      ),
+    );
   }
 
   /// Transactional variant of [enqueueFifo]: participates in the
   /// surrounding [txn] so the FIFO-row write and the caller's
   /// accompanying writes commit or roll back together. Used by
   /// `fillBatch` to keep the enqueue + fill_cursor advance co-atomic,
-  /// and (in a later task) by replay to compose a larger walk of the
-  /// event log into a single transaction.
+  /// and by `runHistoricalReplay` to compose a larger walk of the event
+  /// log into a single transaction.
+  ///
+  /// Exactly one of [wirePayload] / [nativeEnvelope] SHALL be non-null:
+  ///
+  /// - [wirePayload] (3rd-party): persists `wire_payload = decoded JSON
+  ///   map`, `wire_format = wirePayload.contentType`,
+  ///   `transform_version = wirePayload.transformVersion`,
+  ///   `envelope_metadata = null`.
+  /// - [nativeEnvelope] (native `esd/batch@1`): persists
+  ///   `wire_payload = null`, `wire_format = "esd/batch@1"`,
+  ///   `transform_version = null`, `envelope_metadata = nativeEnvelope`.
   ///
   /// Centralizes all row-construction logic: empty-batch rejection,
-  /// v4-UUID `entry_id` minting, `sequence_in_queue` assignment,
-  /// wire-payload decoding, and the known-FIFOs registry bookkeeping
-  /// all live here; [enqueueFifo] is a thin `transaction(...)` wrapper.
+  /// XOR-shape enforcement, v4-UUID `entry_id` minting,
+  /// `sequence_in_queue` assignment, and the known-FIFOs registry
+  /// bookkeeping all live here; [enqueueFifo] is a thin
+  /// `transaction(...)` wrapper.
   // Implements: REQ-d00117-E — enqueue initial state (pending, no
   // attempts, no sent_at).
   // Implements: REQ-d00119-A — exactly one FIFO store per destination_id.
+  // Implements: REQ-d00119-B+K — native rows store envelope_metadata +
+  // null wire_payload; 3rd-party rows store wire_payload + null
+  // envelope_metadata.
   // Implements: REQ-d00128-A+B+C — batch-per-row enqueue (transactional
   // variant; used by fillBatch to co-commit enqueue + fill_cursor).
+  // Implements: REQ-d00152-B+E — XOR (wirePayload, nativeEnvelope) shape;
+  // native path stores envelope_metadata directly, no wire decode.
   @override
   Future<FifoEntry> enqueueFifoTxn(
     Txn txn,
     String destinationId,
-    List<StoredEvent> batch,
-    WirePayload wirePayload,
-  ) async {
+    List<StoredEvent> batch, {
+    WirePayload? wirePayload,
+    BatchEnvelopeMetadata? nativeEnvelope,
+  }) async {
     if (batch.isEmpty) {
       throw ArgumentError.value(
         batch,
         'batch',
         'enqueueFifo requires a non-empty batch (REQ-d00128-A)',
+      );
+    }
+    // XOR enforcement: exactly one payload shape is legal. Reject both
+    // null and both non-null at the boundary so a downstream FIFO row
+    // never carries an ambiguous (wire_payload, envelope_metadata) pair.
+    if ((wirePayload == null) == (nativeEnvelope == null)) {
+      throw ArgumentError(
+        'enqueueFifo requires exactly one of wirePayload or nativeEnvelope '
+        'to be non-null (REQ-d00152-B+E); got '
+        'wirePayload=${wirePayload == null ? "null" : "set"}, '
+        'nativeEnvelope=${nativeEnvelope == null ? "null" : "set"}',
       );
     }
     final t = _requireValidTxn(txn);
@@ -719,31 +984,43 @@ class SembastBackend extends StorageBackend {
       firstSeq: batch.first.sequenceNumber,
       lastSeq: batch.last.sequenceNumber,
     );
-    // The stored `wire_payload` is a Map (structured JSON); we decode the
-    // WirePayload bytes back to a Map for persistence so drain's read
-    // path can re-encode deterministically. The bytes MUST be valid JSON
-    // encoding a Map — destinations that transform to bytes representing
-    // a top-level JSON object conform; other shapes are rejected with
-    // ArgumentError rather than corrupting the FIFO row.
-    Map<String, Object?> payloadMap;
-    try {
-      final decoded = jsonDecode(utf8.decode(wirePayload.bytes));
-      if (decoded is! Map) {
+    // Resolve the row's wire-format / payload columns from the chosen
+    // payload shape. Native rows carry envelope_metadata; 3rd-party rows
+    // decode the bytes once and persist the resulting JSON map.
+    Map<String, Object?>? payloadMap;
+    String wireFormat;
+    String? transformVersion;
+    if (nativeEnvelope != null) {
+      payloadMap = null;
+      wireFormat = BatchEnvelope.wireFormat;
+      transformVersion = null;
+    } else {
+      // 3rd-party: bytes MUST be valid JSON encoding a Map — destinations
+      // that transform to bytes representing a top-level JSON object
+      // conform; other shapes are rejected with ArgumentError rather
+      // than corrupting the FIFO row.
+      final wp = wirePayload!;
+      try {
+        final decoded = jsonDecode(utf8.decode(wp.bytes));
+        if (decoded is! Map) {
+          throw ArgumentError.value(
+            wp,
+            'wirePayload',
+            'enqueueFifo requires wirePayload.bytes to encode a JSON object '
+                '(Map); got ${decoded.runtimeType}',
+          );
+        }
+        payloadMap = Map<String, Object?>.from(decoded);
+      } on FormatException catch (e) {
         throw ArgumentError.value(
-          wirePayload,
+          wp,
           'wirePayload',
-          'enqueueFifo requires wirePayload.bytes to encode a JSON object '
-              '(Map); got ${decoded.runtimeType}',
+          'enqueueFifo requires wirePayload.bytes to be UTF-8 JSON: '
+              '${e.message}',
         );
       }
-      payloadMap = Map<String, Object?>.from(decoded);
-    } on FormatException catch (e) {
-      throw ArgumentError.value(
-        wirePayload,
-        'wirePayload',
-        'enqueueFifo requires wirePayload.bytes to be UTF-8 JSON: '
-            '${e.message}',
-      );
+      wireFormat = wp.contentType;
+      transformVersion = wp.transformVersion;
     }
     // Mint a v4 UUID for this row's entry_id. The identifier is opaque
     // and has no relationship to the events the row carries — callers
@@ -781,15 +1058,27 @@ class SembastBackend extends StorageBackend {
       eventIdRange: eventIdRange,
       sequenceInQueue: assigned,
       wirePayload: payloadMap,
-      wireFormat: wirePayload.contentType,
-      transformVersion: wirePayload.transformVersion,
+      wireFormat: wireFormat,
+      transformVersion: transformVersion,
       enqueuedAt: enqueuedAt,
       attempts: const <AttemptResult>[],
       finalStatus: null,
       sentAt: null,
+      envelopeMetadata: nativeEnvelope,
     );
     await store.record(assigned).put(t._sembastTxn, entry.toJson());
     await _registerFifoDestinationSembast(t._sembastTxn, destinationId);
+    // Implements: REQ-d00150-A — emit on the broadcast controller
+    // post-commit so live `watchFifo(destinationId)` subscribers learn
+    // of the new row. Pushed onto _pendingPostCommit so the emission is
+    // co-atomic with the surrounding `transaction()` commit; fires only
+    // if the transaction succeeds. `enqueueFifo` (the standalone
+    // wrapper) routes through `transaction()` for the same reason.
+    _pendingPostCommit.add(() {
+      if (!_fifoChangesController.isClosed) {
+        _fifoChangesController.add(destinationId);
+      }
+    });
     return entry;
   }
 
@@ -851,6 +1140,163 @@ class SembastBackend extends StorageBackend {
     return FifoEntry.fromJson(Map<String, Object?>.from(records.single.value));
   }
 
+  // Implements: REQ-d00148-A+B+C+D — listFifoEntries returns the
+  // destination's FIFO rows as typed FifoEntry, ordered by
+  // sequence_in_queue ascending. afterSequenceInQueue is an exclusive
+  // lower bound (Filter.greaterThan); limit caps result size taken from
+  // the start of the ordered range. An unknown destination falls
+  // through to records.isEmpty (sembast lazily-creates stores so a
+  // never-written FIFO has zero records) and returns an empty list. No
+  // raw-map shape leaks; callers must use this method rather than
+  // opening the fifo_<id> store by name.
+  @override
+  Future<List<FifoEntry>> listFifoEntries(
+    String destinationId, {
+    int? afterSequenceInQueue,
+    int? limit,
+  }) async {
+    final db = _database();
+    final store = _fifoStore(destinationId);
+    final records = await store.find(
+      db,
+      finder: Finder(
+        filter: afterSequenceInQueue != null
+            ? Filter.greaterThan('sequence_in_queue', afterSequenceInQueue)
+            : null,
+        sortOrders: [SortOrder('sequence_in_queue')],
+        limit: limit,
+      ),
+    );
+    return records
+        .map((r) => FifoEntry.fromJson(Map<String, Object?>.from(r.value)))
+        .toList();
+  }
+
+  // Implements: REQ-d00150-A+B+C+D+E — snapshot-on-subscribe + change-
+  // driven re-emission filtered by destinationId; broadcast;
+  // close-aware.
+  //
+  // Like `watchEvents`, the per-call controller is itself broadcast so a
+  // single `watchFifo()` return value supports multiple `listen()`
+  // subscribers (REQ-d00150-C). On the first listen:
+  //   1. `scheduleMicrotask(emitSnapshot)` defers the initial snapshot so
+  //      the caller's `listen()` returns before any emission.
+  //   2. Subscribe to the package-private `_fifoChangesController`
+  //      broadcast and re-emit a fresh snapshot whenever the changed
+  //      destinationId matches this subscription's destination
+  //      (REQ-d00150-C cross-destination isolation).
+  // Snapshot fetch goes through `listFifoEntries`, so an unknown
+  // destination produces an empty list (REQ-d00150-A) and emissions
+  // carry typed `FifoEntry` (REQ-d00150-B) — no raw maps leak.
+  // Close on the backend's `_fifoChangesController` propagates via
+  // `onDone`. The per-call controller closes via `controller.close()`.
+  @override
+  Stream<List<FifoEntry>> watchFifo(String destinationId) {
+    if (_fifoChangesController.isClosed) {
+      throw StateError(
+        'SembastBackend.close has been called; watchFifo unavailable',
+      );
+    }
+    final controller = StreamController<List<FifoEntry>>.broadcast();
+    StreamSubscription<String>? changesSub;
+    var started = false;
+
+    Future<void> emitSnapshot() async {
+      try {
+        final snap = await listFifoEntries(destinationId);
+        if (!controller.isClosed) controller.add(snap);
+      } catch (err, st) {
+        if (!controller.isClosed) controller.addError(err, st);
+      }
+    }
+
+    controller
+      ..onListen = () {
+        // Broadcast controllers fire `onListen` on every fresh listen
+        // attach, but the snapshot + change-listener wiring must run
+        // only once for the lifetime of this watchFifo() call. The
+        // `started` guard ensures multiple subscribers share a single
+        // upstream subscription.
+        if (started) return;
+        started = true;
+        scheduleMicrotask(emitSnapshot);
+        changesSub = _fifoChangesController.stream.listen(
+          (changedDest) {
+            if (changedDest == destinationId) {
+              // Already inside a microtask delivered by the broadcast
+              // controller; fire the snapshot fetch directly so the
+              // re-emission lands one async tick sooner. Errors inside
+              // the async body are forwarded to the per-call controller
+              // via emitSnapshot's own try/catch.
+              unawaited(emitSnapshot());
+            }
+          },
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+      }
+      ..onCancel = () async {
+        // Broadcast `onCancel` fires when the LAST subscriber cancels;
+        // tear down the upstream change subscription so the broadcast
+        // controller does not leak after all subscribers detach.
+        await changesSub?.cancel();
+        changesSub = null;
+        started = false;
+      };
+    return controller.stream;
+  }
+
+  // Implements: REQ-d00153-A+B+C+D — reactive snapshot stream of a
+  // materialized view by name. Mirrors watchFifo's shape: snapshot on
+  // subscribe + re-emit on every mutation (upsert / delete / clear);
+  // cross-view isolation enforced by the viewName filter; broadcast so
+  // multiple subscribers per view share a single upstream subscription;
+  // close-aware via _viewChangesController's onDone propagation.
+  @override
+  Stream<List<Map<String, Object?>>> watchView(String viewName) {
+    if (_viewChangesController.isClosed) {
+      throw StateError(
+        'SembastBackend.close has been called; watchView unavailable',
+      );
+    }
+    final controller = StreamController<List<Map<String, Object?>>>.broadcast();
+    StreamSubscription<String>? changesSub;
+    var started = false;
+
+    Future<void> emitSnapshot() async {
+      try {
+        final snap = await findViewRows(viewName);
+        if (!controller.isClosed) {
+          controller.add(snap.cast<Map<String, Object?>>());
+        }
+      } catch (err, st) {
+        if (!controller.isClosed) controller.addError(err, st);
+      }
+    }
+
+    controller
+      ..onListen = () {
+        if (started) return;
+        started = true;
+        scheduleMicrotask(emitSnapshot);
+        changesSub = _viewChangesController.stream.listen(
+          (changedView) {
+            if (changedView == viewName) {
+              unawaited(emitSnapshot());
+            }
+          },
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+      }
+      ..onCancel = () async {
+        await changesSub?.cancel();
+        changesSub = null;
+        started = false;
+      };
+    return controller.stream;
+  }
+
   /// Append [attempt] to the entry's attempts[]. Does not change
   /// finalStatus. Runs in its own transaction.
   ///
@@ -874,11 +1320,13 @@ class SembastBackend extends StorageBackend {
     String entryId,
     AttemptResult attempt,
   ) async {
-    final db = _database();
-    await db.transaction((sembastTxn) async {
+    // Route through this backend's `transaction()` so post-commit FIFO
+    // emissions appended below are drained on commit (REQ-d00150-A).
+    await transaction((txn) async {
+      final t = _requireValidTxn(txn);
       final store = _fifoStore(destinationId);
       final records = await store.find(
-        sembastTxn,
+        t._sembastTxn,
         finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
       );
       if (records.isEmpty) {
@@ -887,6 +1335,7 @@ class SembastBackend extends StorageBackend {
           '$destinationId; skipping (expected during drain/unjam or '
           'drain/delete race)',
         );
+        // No row mutated -> no FIFO-change emission.
         return;
       }
       final record = records.single;
@@ -898,7 +1347,15 @@ class SembastBackend extends StorageBackend {
         attempt.toJson(),
       ];
       updated['attempts'] = attemptsRaw;
-      await store.record(record.key).put(sembastTxn, updated);
+      await store.record(record.key).put(t._sembastTxn, updated);
+      // Implements: REQ-d00150-A — emit on the broadcast controller
+      // post-commit so live `watchFifo(destinationId)` subscribers see
+      // the appended attempt.
+      _pendingPostCommit.add(() {
+        if (!_fifoChangesController.isClosed) {
+          _fifoChangesController.add(destinationId);
+        }
+      });
     });
   }
 
@@ -919,9 +1376,11 @@ class SembastBackend extends StorageBackend {
   /// branch covers both "unknown destination" and "row deleted from a
   /// known destination". No separate "store exists?" probe is needed.
   ///
-  /// The one-way transition rule (null -> terminal only) is
-  /// preserved: an already-terminal entry still throws `StateError` to
-  /// prevent silent re-stamping of `sent_at`.
+  /// The one-way transition rule is preserved with idempotency: when the
+  /// entry is already terminal with the SAME status as [status], the call
+  /// returns cleanly (no-op, no re-stamp of `sent_at`). When the entry is
+  /// already terminal with a DIFFERENT status, `StateError` is thrown —
+  /// this is real corruption and loud failure is correct.
   // Implements: REQ-d00119-D — non-null terminal entries are retained as
   // permanent send-log records.
   // Implements: REQ-d00127-A — markFinal is a no-op on missing row /
@@ -938,11 +1397,14 @@ class SembastBackend extends StorageBackend {
     // enqueueFifo. The non-null target is enforced by the parameter
     // type `FinalStatus` (non-nullable); the type system makes a
     // runtime null-check unnecessary here.
-    final db = _database();
-    await db.transaction((sembastTxn) async {
+    //
+    // Routed through this backend's `transaction()` so post-commit
+    // FIFO emissions appended below are drained on commit (REQ-d00150-A).
+    await transaction((txn) async {
+      final t = _requireValidTxn(txn);
       final store = _fifoStore(destinationId);
       final records = await store.find(
-        sembastTxn,
+        t._sembastTxn,
         finder: Finder(filter: Filter.equals('entry_id', entryId), limit: 1),
       );
       if (records.isEmpty) {
@@ -950,6 +1412,7 @@ class SembastBackend extends StorageBackend {
           'markFinal: entry $entryId absent from FIFO $destinationId; '
           'skipping (expected during drain/unjam or drain/delete race)',
         );
+        // No row mutated -> no FIFO-change emission.
         return;
       }
       final record = records.single;
@@ -959,9 +1422,16 @@ class SembastBackend extends StorageBackend {
           ? null
           : FinalStatus.fromJson(currentRaw as String);
       // final_status is one-way: null -> sent|wedged|tombstoned.
-      // Re-transitioning a terminal entry would silently re-stamp sent_at
-      // and corrupt the send-log timestamp, so reject it.
+      // A duplicate call with the SAME status is a no-op — drain() is
+      // documented at-least-once and concurrent drainers can both reach
+      // markFinal after the first completes. Matching status: return
+      // cleanly. Mismatched status: real corruption; loud failure.
       if (currentStatus != null) {
+        if (currentStatus == status) {
+          // Idempotent duplicate — first call already wrote the correct
+          // terminal state. No additional write or sent_at re-stamp needed.
+          return;
+        }
         throw StateError(
           'markFinal($destinationId, $entryId, $status): entry is already '
           '$currentStatus; final_status transitions are one-way.',
@@ -971,7 +1441,15 @@ class SembastBackend extends StorageBackend {
       if (status == FinalStatus.sent) {
         updated['sent_at'] = DateTime.now().toUtc().toIso8601String();
       }
-      await store.record(record.key).put(sembastTxn, updated);
+      await store.record(record.key).put(t._sembastTxn, updated);
+      // Implements: REQ-d00150-A — emit on the broadcast controller
+      // post-commit so live `watchFifo(destinationId)` subscribers see
+      // the terminal-status transition.
+      _pendingPostCommit.add(() {
+        if (!_fifoChangesController.isClosed) {
+          _fifoChangesController.add(destinationId);
+        }
+      });
     });
   }
 
@@ -1010,8 +1488,6 @@ class SembastBackend extends StorageBackend {
     return result;
   }
 
-  // -------- Rehabilitate helpers (REQ-d00132) --------
-
   /// Read a single FIFO row identified by [entryId] on [destinationId],
   /// or `null` when no such row exists. Non-transactional.
   ///
@@ -1019,9 +1495,6 @@ class SembastBackend extends StorageBackend {
   /// so the unknown-destination case and the unknown-row case both
   /// fall through to the `records.isEmpty` branch without needing a
   /// separate store-exists probe.
-  // Implements: REQ-d00132-A — readFifoRow returns null on unknown
-  // row / unknown destination; rehabilitate promotes null to
-  // ArgumentError at the call site.
   @override
   Future<FifoEntry?> readFifoRow(String destinationId, String entryId) async {
     final db = _database();
@@ -1036,8 +1509,6 @@ class SembastBackend extends StorageBackend {
   /// Transition the target row's `final_status` to [status] inside
   /// [txn]. The legal transitions, enforced by a guard below, are:
   ///
-  /// - `wedged -> null` — rehabilitate's flip to pre-terminal
-  ///   (REQ-d00132-B).
   /// - `null -> sent` — drain-terminal SendOk; stamps
   ///   `sent_at = DateTime.now().toUtc()`.
   /// - `null -> wedged` — drain-terminal SendPermanent / SendTransient
@@ -1051,17 +1522,13 @@ class SembastBackend extends StorageBackend {
   /// and `tombstoned` are terminal end-states; they cannot transition
   /// to anything else.
   ///
-  /// Preserves `attempts[]` verbatim on every transition (REQ-d00132-B
-  /// rehabilitate and REQ-d00144-B tombstoneAndRefill both require it).
-  /// `sent_at` is set on `null -> sent`, cleared on `-> null` (defensive
-  /// clear — rehabilitated rows are no longer terminal), and untouched
-  /// on every other transition.
+  /// Preserves `attempts[]` verbatim on every transition (REQ-d00144-B
+  /// tombstoneAndRefill requires it). `sent_at` is set on `null -> sent`
+  /// and untouched on every other transition.
   ///
   /// Throws [StateError] on a missing target row: callers verify
   /// existence before opening the transaction, so a missing row here
   /// indicates a concurrent delete race that these ops do not close.
-  // Implements: REQ-d00132-B — `wedged -> null` flip; preserves
-  // attempts[], clears sent_at.
   // Implements: REQ-d00144-B — `null|wedged -> tombstoned` flip;
   // attempts[] preserved verbatim; sent_at untouched.
   // Implements: REQ-d00119-D — one-way rule: terminal rows
@@ -1082,9 +1549,9 @@ class SembastBackend extends StorageBackend {
     if (records.isEmpty) {
       throw StateError(
         'setFinalStatusTxn($destinationId, $entryId, $status): target '
-        'row not found. Callers must verify existence (readFifoRow or '
-        'readFifoHead) before opening the transaction; a missing row '
-        'here indicates a concurrent delete race.',
+        'row not found. Callers must verify existence (readFifoHead) '
+        'before opening the transaction; a missing row here indicates '
+        'a concurrent delete race.',
       );
     }
     final record = records.single;
@@ -1098,38 +1565,40 @@ class SembastBackend extends StorageBackend {
     //  - null  -> wedged        (drain SendPermanent / max-attempts)
     //  - null  -> tombstoned    (tombstoneAndRefill on null head)
     //  - wedged -> tombstoned   (tombstoneAndRefill on wedged head)
-    //  - wedged -> null         (rehabilitate)
     final valid =
         (current == null &&
             (status == FinalStatus.sent ||
                 status == FinalStatus.wedged ||
                 status == FinalStatus.tombstoned)) ||
-        (current == FinalStatus.wedged && status == FinalStatus.tombstoned) ||
-        (current == FinalStatus.wedged && status == null);
+        (current == FinalStatus.wedged && status == FinalStatus.tombstoned);
     if (!valid) {
       throw StateError(
         'setFinalStatusTxn($destinationId, $entryId): illegal transition '
         '$current -> $status. Legal transitions: null -> {sent, wedged, '
-        'tombstoned}; wedged -> {tombstoned, null}. (REQ-d00119-D '
-        'one-way rule.)',
+        'tombstoned}; wedged -> {tombstoned}. (REQ-d00119-D one-way '
+        'rule.)',
       );
     }
     updated['final_status'] = status?.toJson();
     if (status == FinalStatus.sent) {
       // Drain-terminal SendOk stamps sent_at.
       updated['sent_at'] = DateTime.now().toUtc().toIso8601String();
-    } else if (status == null) {
-      // Rehabilitated row is no longer terminal; clear any stale
-      // sent_at defensively. In practice a wedged row has sent_at ==
-      // null already (only `sent` ever sets it).
-      updated['sent_at'] = null;
     }
-    // attempts[] is deliberately NOT touched — REQ-d00132-B rehabilitate
-    // and REQ-d00144-B tombstoneAndRefill both require verbatim
-    // preservation; the drain-terminal null->{sent,wedged} path has
-    // already appended its attempts via appendAttempt before calling
-    // markFinal/setFinalStatusTxn.
+    // attempts[] is deliberately NOT touched — REQ-d00144-B
+    // tombstoneAndRefill requires verbatim preservation; the
+    // drain-terminal null->{sent,wedged} path has already appended its
+    // attempts via appendAttempt before calling markFinal /
+    // setFinalStatusTxn.
     await store.record(record.key).put(t._sembastTxn, updated);
+    // Implements: REQ-d00150-A — emit on the broadcast controller
+    // post-commit so live `watchFifo(destinationId)` subscribers see
+    // the final-status transition (tombstone / drain-terminal). The
+    // surrounding `transaction()` drains _pendingPostCommit on commit.
+    _pendingPostCommit.add(() {
+      if (!_fifoChangesController.isClosed) {
+        _fifoChangesController.add(destinationId);
+      }
+    });
   }
 
   /// Delete every FIFO row on [destinationId] whose `sequence_in_queue`
@@ -1151,7 +1620,7 @@ class SembastBackend extends StorageBackend {
   ) async {
     final t = _requireValidTxn(txn);
     final store = _fifoStore(destinationId);
-    return store.delete(
+    final deleted = await store.delete(
       t._sembastTxn,
       finder: Finder(
         filter: Filter.and([
@@ -1160,98 +1629,32 @@ class SembastBackend extends StorageBackend {
         ]),
       ),
     );
+    if (deleted > 0) {
+      // Implements: REQ-d00150-A — emit on the broadcast controller
+      // post-commit so live `watchFifo(destinationId)` subscribers see
+      // the trail-sweep deletion. Skip when no rows were actually
+      // removed to avoid spurious wakeups.
+      _pendingPostCommit.add(() {
+        if (!_fifoChangesController.isClosed) {
+          _fifoChangesController.add(destinationId);
+        }
+      });
+    }
+    return deleted;
   }
 
-  // -------- Destination-role (ingest) write path --------
-
-  /// Reserve-and-increment the per-destination ingest counter within [txn].
-  /// Mirrors [nextSequenceNumber] for the ingest-side Chain 2 counter.
-  // Implements: REQ-d00115-I; supports REQ-d00145-E+J.
-  @override
-  Future<int> nextIngestSequenceNumber(Txn txn) async {
-    final t = _requireValidTxn(txn);
-    final current =
-        (await _backendStateStore.record(_ingestSequenceKey).get(t._sembastTxn)
-            as int?) ??
-        0;
-    final next = current + 1;
-    await _backendStateStore
-        .record(_ingestSequenceKey)
-        .put(t._sembastTxn, next);
-    return next;
-  }
-
-  /// Read the current Chain 2 tail (last ingest seq + last event_hash).
-  /// Non-transactional; reads the last-committed value.
-  // Implements: REQ-d00115-H; supports REQ-d00145-E.
-  @override
-  Future<(int, String?)> readIngestTail() async {
-    final db = _database();
-    final seq =
-        (await _backendStateStore.record(_ingestSequenceKey).get(db) as int?) ??
-        0;
-    final hash =
-        await _backendStateStore.record(_ingestTailHashKey).get(db) as String?;
-    return (seq, hash);
-  }
-
-  /// Transactional variant of [readIngestTail]. Reads within [txn] so
-  /// writes already staged in the same transaction are visible.
-  @override
-  Future<(int, String?)> readIngestTailInTxn(Txn txn) async {
-    final t = _requireValidTxn(txn);
-    final seq =
-        (await _backendStateStore.record(_ingestSequenceKey).get(t._sembastTxn)
-            as int?) ??
-        0;
-    final hash =
-        await _backendStateStore.record(_ingestTailHashKey).get(t._sembastTxn)
-            as String?;
-    return (seq, hash);
-  }
-
-  /// Append [event] to the event log keyed by its ingest_sequence_number.
-  /// Atomically updates the Chain 2 tail (last ingest seq + last event_hash)
-  /// in the same [txn]. Does NOT advance [nextSequenceNumber]'s origin counter.
-  // Implements: REQ-d00145-E.
-  @override
-  Future<void> appendIngestedEvent(Txn txn, StoredEvent event) async {
-    final t = _requireValidTxn(txn);
-
-    // Extract the receiver's stamped ingest_sequence_number from the last
-    // ProvenanceEntry in event.metadata.provenance.
-    final provenance = event.metadata['provenance'] as List<Object?>;
-    final lastEntry = provenance.last as Map<String, Object?>;
-    final ingestSeq = lastEntry['ingest_sequence_number'] as int;
-
-    // Persist to the ingested_events store using ingestSeq as the key.
-    await _ingestedEventsStore
-        .record(ingestSeq)
-        .put(t._sembastTxn, event.toMap());
-
-    // Update the Chain 2 tail atomically in the same txn.
-    await _backendStateStore
-        .record(_ingestSequenceKey)
-        .put(t._sembastTxn, ingestSeq);
-    await _backendStateStore
-        .record(_ingestTailHashKey)
-        .put(t._sembastTxn, event.eventHash);
-  }
+  // -------- Event lookup by event_id --------
 
   /// Read a single event by `event_id` within [txn]. Returns `null` when no
   /// event with that id is present. Used by ingest's idempotency check
-  /// (REQ-d00145-D): checks whether THIS event has been ingested at THIS
-  /// destination, so it queries only the destination's ingest log
-  /// (`_ingestedEventsStore`), not the origin event log.
-  // Implements: REQ-d00145-D.
+  /// (REQ-d00145-D) against the unified event store (origin and ingest
+  /// appends share `_eventStore`).
+  // Implements: REQ-d00145-D — unified-store idempotency lookup.
   @override
   Future<StoredEvent?> findEventByIdInTxn(Txn txn, String eventId) async {
     final t = _requireValidTxn(txn);
     final finder = Finder(filter: Filter.equals('event_id', eventId), limit: 1);
-    final record = await _ingestedEventsStore.findFirst(
-      t._sembastTxn,
-      finder: finder,
-    );
+    final record = await _eventStore.findFirst(t._sembastTxn, finder: finder);
     if (record == null) return null;
     return StoredEvent.fromMap(
       Map<String, Object?>.from(record.value),
@@ -1259,36 +1662,158 @@ class SembastBackend extends StorageBackend {
     );
   }
 
-  /// Enumerate events by ingest_sequence_number (the Sembast int key used by
-  /// [appendIngestedEvent]) ascending, filtered to the closed range [from, to].
-  /// When [to] is null the range has no upper bound — all events at or above
-  /// [from] are returned.
-  ///
-  /// The Sembast events store uses the ingest_sequence_number as its key
-  /// (an `int`) when written via [appendIngestedEvent]. Records whose key
-  /// falls outside [from..to] are filtered out in Dart after the sorted scan
-  /// to keep the query simple and consistent with the key-based storage.
-  // Implements: REQ-d00146-C — storage read for verifyIngestChain walk.
+  // Implements: REQ-d00147-A+B+C — non-transactional indexed lookup by
+  // event_id over the unified event store; returns null when absent.
   @override
-  Future<List<StoredEvent>> findEventsByIngestSeqRange({
-    required int from,
-    int? to,
-  }) async {
+  Future<StoredEvent?> findEventById(String eventId) async {
     final db = _database();
-    final records = await _ingestedEventsStore.find(
-      db,
-      finder: Finder(sortOrders: [SortOrder(Field.key)]),
+    final finder = Finder(filter: Filter.equals('event_id', eventId), limit: 1);
+    final record = await _eventStore.findFirst(db, finder: finder);
+    if (record == null) return null;
+    return StoredEvent.fromMap(
+      Map<String, Object?>.from(record.value),
+      record.key,
     );
-    final result = <StoredEvent>[];
-    for (final record in records) {
-      final key = record.key;
-      if (key < from) continue;
-      if (to != null && key > to) continue;
-      result.add(
-        StoredEvent.fromMap(Map<String, Object?>.from(record.value), key),
+  }
+
+  // -------- Audit query (REQ-d00151) --------
+
+  // Implements: REQ-d00151-A+B — typed cross-store audit query lives at
+  // the storage layer; SembastSecurityContextStore.queryAudit is a thin
+  // delegator (REQ-d00151-C).
+  // Implements: REQ-d00137-F — pagination + filter contract preserved
+  // verbatim from the previous SecurityContextStore-hosted implementation.
+  @override
+  Future<PagedAudit> queryAudit({
+    Initiator? initiator,
+    String? flowToken,
+    String? ipAddress,
+    DateTime? from,
+    DateTime? to,
+    int limit = 50,
+    String? cursor,
+  }) async {
+    if (limit < 1 || limit > 1000) {
+      throw ArgumentError.value(
+        limit,
+        'limit',
+        'queryAudit limit must be in [1, 1000] (REQ-d00137-F)',
       );
     }
-    return result;
+
+    _AuditCursorPoint? decodedCursor;
+    if (cursor != null) {
+      try {
+        decodedCursor = _AuditCursorPoint.decode(cursor);
+      } on Object catch (e) {
+        throw ArgumentError.value(cursor, 'cursor', 'corrupt cursor: $e');
+      }
+    }
+
+    final db = _database();
+
+    // 1. Filter security rows by ipAddress + date range.
+    final securityFilters = <Filter>[];
+    if (ipAddress != null) {
+      securityFilters.add(Filter.equals('ip_address', ipAddress));
+    }
+    if (from != null) {
+      securityFilters.add(
+        Filter.greaterThanOrEquals(
+          'recorded_at',
+          from.toUtc().toIso8601String(),
+        ),
+      );
+    }
+    if (to != null) {
+      securityFilters.add(
+        Filter.lessThanOrEquals('recorded_at', to.toUtc().toIso8601String()),
+      );
+    }
+    // NOTE: we re-sort the join result in memory (see `rows.sort(...)`
+    // below) so the in-memory order is authoritative for pagination; the
+    // Sembast sort matches it only for clarity / debuggability.
+    final securityFinder = Finder(
+      filter: securityFilters.isEmpty
+          ? null
+          : (securityFilters.length == 1
+                ? securityFilters.single
+                : Filter.and(securityFilters)),
+      sortOrders: [
+        SortOrder('recorded_at', false),
+        SortOrder(Field.key, false),
+      ],
+    );
+    final securityRecords = await _securityContextStore.find(
+      db,
+      finder: securityFinder,
+    );
+    final securityByEventId = <String, EventSecurityContext>{
+      for (final r in securityRecords)
+        r.key: EventSecurityContext.fromJson(
+          Map<String, Object?>.from(r.value),
+        ),
+    };
+    if (securityByEventId.isEmpty) {
+      return const PagedAudit(rows: <AuditRow>[]);
+    }
+
+    // 2. Fetch matching events.
+    final eventFilters = <Filter>[
+      Filter.inList('event_id', securityByEventId.keys.toList()),
+    ];
+    if (flowToken != null) {
+      eventFilters.add(Filter.equals('flow_token', flowToken));
+    }
+    final eventFinder = Finder(
+      filter: eventFilters.length == 1
+          ? eventFilters.single
+          : Filter.and(eventFilters),
+    );
+    final eventRecords = await _eventStore.find(db, finder: eventFinder);
+    var events = eventRecords
+        .map((r) => StoredEvent.fromMap(r.value, r.key))
+        .toList();
+    if (initiator != null) {
+      events = events.where((e) => e.initiator == initiator).toList();
+    }
+
+    // 3. Inner join + sort by recordedAt desc.
+    final rows = <AuditRow>[];
+    for (final event in events) {
+      final ctx = securityByEventId[event.eventId];
+      if (ctx == null) continue;
+      rows.add(AuditRow(event: event, context: ctx));
+    }
+    rows.sort((a, b) {
+      final cmp = b.context.recordedAt.compareTo(a.context.recordedAt);
+      if (cmp != 0) return cmp;
+      return b.event.eventId.compareTo(a.event.eventId);
+    });
+
+    // 4. Apply cursor (lower bound) if provided.
+    final filtered = decodedCursor == null
+        ? rows
+        : rows.where((r) {
+            final cmp = r.context.recordedAt.compareTo(
+              decodedCursor!.recordedAt,
+            );
+            if (cmp < 0) return true;
+            if (cmp == 0) {
+              return r.event.eventId.compareTo(decodedCursor.eventId) < 0;
+            }
+            return false;
+          }).toList();
+
+    // 5. Paginate.
+    final page = filtered.take(limit).toList();
+    final nextCursor = filtered.length > limit
+        ? _AuditCursorPoint(
+            recordedAt: page.last.context.recordedAt,
+            eventId: page.last.event.eventId,
+          ).encode()
+        : null;
+    return PagedAudit(rows: page, nextCursor: nextCursor);
   }
 
   /// The first non-sent entry in the FIFO when it is `wedged`. Returns
@@ -1328,5 +1853,33 @@ class _SembastTxn extends Txn {
   bool _isValid = true;
   void _invalidate() {
     _isValid = false;
+  }
+}
+
+/// Opaque pagination cursor for [SembastBackend.queryAudit]. Encodes the
+/// `(recorded_at, event_id)` tuple from the previous page's tail row;
+/// the next page is a strict lower bound under the same sort order so
+/// concurrent inserts at the head do not skew page contents.
+// Implements: REQ-d00137-F — opaque cursor encoding shared by storage
+// queryAudit and (transitively) the SecurityContextStore delegator.
+class _AuditCursorPoint {
+  const _AuditCursorPoint({required this.recordedAt, required this.eventId});
+
+  factory _AuditCursorPoint.decode(String encoded) {
+    final raw = utf8.decode(base64Url.decode(encoded));
+    final parts = raw.split('|');
+    if (parts.length != 2) throw const FormatException('bad cursor shape');
+    return _AuditCursorPoint(
+      recordedAt: DateTime.parse(parts[0]),
+      eventId: parts[1],
+    );
+  }
+
+  final DateTime recordedAt;
+  final String eventId;
+
+  String encode() {
+    final raw = '${recordedAt.toUtc().toIso8601String()}|$eventId';
+    return base64Url.encode(utf8.encode(raw));
   }
 }

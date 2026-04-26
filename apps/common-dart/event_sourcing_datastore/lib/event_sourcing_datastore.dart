@@ -117,6 +117,8 @@ export 'src/core/errors/sync_exception.dart';
 // Destinations — per-destination routing contract (Phase 4, CUR-1154).
 // FakeDestination lives in test/test_support/ and is intentionally NOT
 // exported.
+export 'src/destinations/batch_envelope_metadata.dart'
+    show BatchEnvelopeMetadata;
 export 'src/destinations/destination.dart' show Destination;
 export 'src/destinations/destination_registry.dart' show DestinationRegistry;
 export 'src/destinations/destination_schedule.dart'
@@ -147,7 +149,12 @@ export 'src/ingest/batch_envelope.dart' show BatchEnvelope;
 export 'src/ingest/chain_verdict.dart'
     show ChainFailure, ChainFailureKind, ChainVerdict;
 export 'src/ingest/ingest_errors.dart'
-    show IngestChainBroken, IngestDecodeFailure, IngestIdentityMismatch;
+    show
+        IngestChainBroken,
+        IngestDecodeFailure,
+        IngestEntryTypeVersionAhead,
+        IngestIdentityMismatch,
+        IngestLibFormatVersionAhead;
 export 'src/ingest/ingest_result.dart'
     show IngestBatchResult, IngestOutcome, PerEventIngestOutcome;
 
@@ -158,16 +165,13 @@ export 'src/ingest/ingest_result.dart'
 // under test/test_support/ so production code cannot depend on it.
 export 'src/materialization/diary_entries_materializer.dart'
     show DiaryEntriesMaterializer;
+export 'src/materialization/entry_promoter.dart'
+    show EntryPromoter, identityPromoter;
 export 'src/materialization/entry_type_definition_lookup.dart'
     show EntryTypeDefinitionLookup;
 export 'src/materialization/materializer.dart' show Materializer;
 export 'src/materialization/rebuild.dart'
     show rebuildMaterializedView, rebuildView;
-
-// Operator-recovery primitives (Phase 4.7, CUR-1154).
-// tombstoneAndRefill is the sole recovery path for a wedged FIFO head
-// under strict-order drain (REQ-d00144).
-export 'src/ops/tombstone_and_refill.dart' show tombstoneAndRefill;
 
 // Security module — Phase 4.4 Tasks 11-15: EventSecurityContext value
 // type, SecurityDetails caller input, SecurityRetentionPolicy sweeps,
@@ -183,10 +187,23 @@ export 'src/security/sembast_security_context_store.dart'
     show SembastSecurityContextStore;
 export 'src/security/system_entry_types.dart'
     show
-        kReservedSystemEntryTypeIds,
+        // Security-context lifecycle audits (Phase 4.4).
         kSecurityContextCompactedEntryType,
         kSecurityContextPurgedEntryType,
         kSecurityContextRedactedEntryType,
+        // Destination-mutation audits (Phase 4.17).
+        kDestinationDeletedEntryType,
+        kDestinationEndDateSetEntryType,
+        kDestinationRegisteredEntryType,
+        kDestinationStartDateSetEntryType,
+        kDestinationWedgeRecoveredEntryType,
+        // Retention sweep audit (Phase 4.17).
+        kRetentionPolicyAppliedEntryType,
+        // Bootstrap registry-initialized audit (Phase 4.17 cross-phase
+        // I-1 fix).
+        kEntryTypeRegistryInitializedEntryType,
+        // Aggregates over all of the above.
+        kReservedSystemEntryTypeIds,
         kSystemEntryTypes;
 
 // Storage layer — StorageBackend contract, SembastBackend concrete
@@ -199,7 +216,8 @@ export 'src/storage/fifo_entry.dart' show EventIdRange, FifoEntry;
 export 'src/storage/final_status.dart' show FinalStatus;
 export 'src/storage/initiator.dart'
     show Initiator, UserInitiator, AutomationInitiator, AnonymousInitiator;
-export 'src/storage/sembast_backend.dart' show SembastBackend;
+export 'src/storage/sembast_backend.dart'
+    show SembastBackend, SembastBackendTestSupport;
 export 'src/storage/send_result.dart'
     show SendResult, SendOk, SendTransient, SendPermanent;
 export 'src/storage/source.dart' show Source;

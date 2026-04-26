@@ -1,3 +1,5 @@
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+    show UserInitiator;
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/demo_destination.dart';
 import 'package:event_sourcing_datastore_demo/widgets/styles.dart';
@@ -107,7 +109,11 @@ class _AddDestinationDialogState extends State<AddDestinationDialog> {
       final dest = DemoDestination(id: id, allowHardDelete: _allowHardDelete);
       await widget.appState.addDestination(dest);
       if (parsedStart != null) {
-        await widget.appState.registry.setStartDate(id, parsedStart.toUtc());
+        await widget.appState.registry.setStartDate(
+          id,
+          parsedStart.toUtc(),
+          initiator: const UserInitiator('demo-user-1'),
+        );
       }
       if (!mounted) return;
       Navigator.pop(context);

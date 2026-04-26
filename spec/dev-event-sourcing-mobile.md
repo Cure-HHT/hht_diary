@@ -26,7 +26,7 @@ A chain-of-custody structure stored in `event.metadata.provenance` solves this: 
 
 The top-level `device_id`, `client_timestamp`, and `software_version` event fields remain as duplicates of `provenance[0]` as a migration bridge during the mobile refactor; they are removed once the portal ingestion reads provenance directly (deferred work).
 
-The cross-system provenance chain serves two distinct audit requirements: per-event identity preservation across hops (Chain 1), supported by `arrival_hash`; and per-destination tamper-evidence across events from multiple originators (Chain 2), supported by `previous_ingest_hash` and `ingest_sequence_number`. `batch_context` composes batch-level audit onto per-event records — an event received as part of an `esd/batch@1` batch carries its batch's identity and position, so an auditor can reconstruct the batch from stored events (see REQ-d00145) without duplicating wire bytes into the event store.
+The cross-system provenance chain serves two distinct audit requirements: per-event identity preservation across hops (Chain 1), supported by `arrival_hash`; and per-destination tamper-evidence across events from multiple originators (Chain 2), supported by `previous_ingest_hash` and `ingest_sequence_number`. `batch_context` composes batch-level audit onto per-event records — an event received as part of an `esd/batch@1` batch carries its batch's identity and position, so an auditor can reconstruct the batch from stored events (see REQ-d00145) without duplicating wire bytes into the event store. `origin_sequence_number` preserves the originator's `sequence_number` on the receiver-hop entry: receivers reassign a fresh local `sequence_number` so origin and ingested events share one event store keyed by one monotone counter, and the originator's value lives on the provenance entry where Chain 1 reconstruction can recover it.
 
 ## Assertions
 
@@ -50,7 +50,9 @@ I. A `ProvenanceEntry` MAY carry a nullable `ingest_sequence_number` integer. Th
 
 J. A `ProvenanceEntry` MAY carry a nullable `batch_context` record with fields `batch_id` (UUID string), `batch_position` (non-negative integer), `batch_size` (positive integer), `batch_wire_bytes_hash` (SHA-256 hex string), and `batch_wire_format` (string). `batch_context` SHALL be non-null on receiver-stamped entries produced by `EventStore.ingestBatch`, and SHALL be `null` on all other entries (originator entries, process-local `ingestEvent` entries, and entries on receiver-originated audit events emitted outside a batch context).
 
-*End* *ProvenanceEntry Schema and Append Rules* | **Hash**: c90dd968
+K. A `ProvenanceEntry` MAY carry a nullable `origin_sequence_number` integer. This field SHALL be `null` on the originator's entry (`provenance[0]` stamped by the originating system), where the originator's `sequence_number` is carried on the `StoredEvent` itself. For every entry stamped by a receiver hop on ingest, `origin_sequence_number` SHALL be non-null and SHALL equal the originator's `sequence_number` value as it appeared on the wire when this hop received it. Receivers reassign a fresh local `sequence_number` to the stored event so that origin and ingested events share a single event log keyed by one monotone counter (REQ-d00145-E); preserving the originator's value on the receiver-hop entry is what allows Chain 1 reconstruction to recompute the originator's identity-field set without referring to a removed top-level field.
+
+*End* *ProvenanceEntry Schema and Append Rules* | **Hash**: 194aaffd
 
 ---
 
@@ -68,7 +70,7 @@ REQ-p01050 (Event Type Registry) establishes that the system maintains a registr
 
 A. An `EntryTypeDefinition` SHALL carry an `id` string that matches the `event.entry_type` value for every event of this entry type.
 
-B. An `EntryTypeDefinition` SHALL carry a `version` string identifying the schema version under which events of this type are written.
+B. An `EntryTypeDefinition` SHALL carry a `registered_version` integer identifying the highest `entry_type_version` this lib build's registry will accept on `EventStore.ingestBatch`.
 
 C. An `EntryTypeDefinition` SHALL carry a `name` string used for display purposes by the UI and by operational tooling.
 
@@ -80,7 +82,7 @@ F. An `EntryTypeDefinition` MAY carry a nullable `effective_date_path` string; w
 
 G. An `EntryTypeDefinition` MAY carry an optional `destination_tags` list of strings; destinations SHALL be able to match on these tags via `SubscriptionFilter`.
 
-*End* *EntryTypeDefinition Schema* | **Hash**: 0bb2f928
+*End* *EntryTypeDefinition Schema* | **Hash**: f7e650e5
 
 ---
 
@@ -134,7 +136,11 @@ C. For any event whose `metadata.provenance` chain is non-empty, the top-level e
 
 D. For events written through the `EntryService.record()` path the `aggregate_id` SHALL be a UUID identifying the entry; events written through the legacy `EventRepository.append()` path MAY retain the `"diary-YYYY-M-D"` date-bucket pattern until that legacy path is removed.
 
-*End* *Event Record Schema* | **Hash**: 2937d8bc
+E. Every event record SHALL carry a top-level `entry_type_version` integer field whose value identifies the application schema version under which the event was authored. The value is supplied by the caller of `EventStore.append` and is preserved verbatim across wire transport (REQ-d00145-B) and receiver ingest (REQ-d00145-K).
+
+F. Every event record SHALL carry a top-level `lib_format_version` integer field whose value identifies the storage shape the lib used to persist the event. The value is stamped by the lib at `EventStore.append` time from the constant `StoredEvent.currentLibFormatVersion`; callers of `EventStore.append` SHALL NOT supply this field.
+
+*End* *Event Record Schema* | **Hash**: 1c010e32
 
 ---
 
@@ -152,7 +158,7 @@ A dedicated Sembast store per destination, keyed by integer insertion order, pro
 
 A. Each registered synchronization destination SHALL have exactly one associated FIFO store identified by its `destination_id`.
 
-B. A FIFO entry SHALL carry the fields `entry_id`, `event_ids`, `event_id_range`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, and `sent_at`. The `event_ids` and `event_id_range` fields hold the batch contract defined in REQ-d00128; a single-event batch is a batch of length one.
+B. A FIFO entry SHALL carry the fields `entry_id`, `event_ids`, `event_id_range`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts[]`, `final_status`, `sent_at`, and `envelope_metadata`. The `event_ids` and `event_id_range` fields hold the batch contract defined in REQ-d00128; a single-event batch is a batch of length one. `wire_payload` SHALL be non-null when `wire_format != "esd/batch@1"` (3rd-party destinations whose serialization is not round-trippable); `wire_payload` SHALL be null when `wire_format == "esd/batch@1"` (native destinations whose payload is reconstructible from `event_ids` and `envelope_metadata`).
 
 C. The `final_status` field SHALL be either `null` or one of the values `"sent"`, `"wedged"`, or `"tombstoned"`; `null` means "not yet terminal" and the three enum values are the complete set of terminal states. No other values SHALL be legal.
 
@@ -160,7 +166,9 @@ D. Once a FIFO entry's `final_status` is non-null, the entry SHALL NOT be delete
 
 E. `sequence_in_queue` SHALL be assigned monotonically at row insertion from a per-destination counter that SHALL NOT rewind and SHALL NOT reuse values when a row is deleted. A gap in `sequence_in_queue` between two surviving rows is the audit signal that one or more rows were deleted from the FIFO store (the only code path that deletes FIFO rows is REQ-d00144-C).
 
-*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 92a66dd9
+K. `envelope_metadata` SHALL be a `BatchEnvelopeMetadata` value carrying `batch_format_version`, `batch_id`, `sender_hop`, `sender_identifier`, `sender_software_version`, `sent_at`. It SHALL be non-null when `wire_format == "esd/batch@1"` and null otherwise. Native FIFO rows SHALL be enqueued with envelope metadata supplied by the library's fillBatch path (NOT parsed from destination-supplied bytes — see REQ-d00152). The values SHALL be set at enqueue time and SHALL NOT be mutated thereafter — they are part of the FIFO row's identity for retry determinism. Drain reconstructs the wire bytes by combining `envelope_metadata` with `event_ids`-resolved events through `BatchEnvelope.encode`; the encoding is deterministic across retries (RFC 8785 JCS).
+
+*End* *Per-Destination FIFO Queue Semantics* | **Hash**: 923b8d02
 
 ---
 
@@ -211,11 +219,11 @@ The `rebuildMaterializedView(backend, lookup)` helper is the disaster-recovery c
 
 A. `Materializer.apply(previous, event, def, firstEventTimestamp)` SHALL be a pure function of its inputs: it SHALL NOT perform I/O, read the clock, or consume random values, such that identical inputs always produce identical outputs.
 
-B. When `event.event_type` equals `"finalized"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `true` and whose `current_answers` equals the key-wise merge of `previous.current_answers` (or the empty map when `previous` is null) under `event.data.answers`: for each key `k` present in `event.data.answers`, the merged value SHALL equal `event.data.answers[k]` — including when that value is `null` (explicit clear); for each key `k` absent from `event.data.answers`, the merged value SHALL equal `previous.current_answers[k]` (prior value preserved).
+B. When `event.event_type` equals `"finalized"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `true` and whose `current_answers` equals the key-wise merge of `previous.current_answers` (or the empty map when `previous` is null) under `promotedData['answers']`: for each key `k` present in `promotedData['answers']`, the merged value SHALL equal `promotedData['answers'][k]` — including when that value is `null` (explicit clear); for each key `k` absent from `promotedData['answers']`, the merged value SHALL equal `previous.current_answers[k]` (prior value preserved). `promotedData` is the lib-supplied result of invoking the materializer's `EntryPromoter` per REQ-d00140-G.
 
-C. When `event.event_type` equals `"checkpoint"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_complete` is `false` and whose `current_answers` is produced by the same key-wise merge rule as assertion B.
+C. When `event.event_type` equals `"checkpoint"`, [same merge rule applies to `promotedData['answers']` per assertion B]; `is_complete` is `false`.
 
-D. When `event.event_type` equals `"tombstone"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_deleted` is `true`; all other fields, including `current_answers` and `is_complete`, SHALL carry over unchanged from the previous row.
+D. When `event.event_type` equals `"tombstone"`, `Materializer.apply` SHALL return a `DiaryEntry` whose `is_deleted` is `true`; all other fields, including `current_answers` and `is_complete`, SHALL carry over unchanged from the previous row. The promoter is still invoked per REQ-d00140-G even though tombstone events typically carry empty `data`.
 
 E. For every event, the returned `DiaryEntry.latest_event_id` SHALL equal `event.event_id` and `DiaryEntry.updated_at` SHALL equal `event.client_timestamp`.
 
@@ -229,7 +237,7 @@ I. The `diary_entries` store SHALL be treated as a cache derivable from `event_l
 
 J. `Materializer.apply` SHALL distinguish "key absent from `event.data.answers`" from "key present with value `null`" when computing the merged `current_answers`: the first preserves `previous.current_answers[key]`; the second sets `merged[key]` to `null` (the key is present in the merged map with a `null` value). Implementations SHALL iterate `event.data.answers` via its key set (e.g., `for (final k in answers.keys)`) rather than by indexing an assumed key list, so absent keys are not confused with present-`null` keys.
 
-*End* *diary_entries Materialization from Event Log* | **Hash**: aabfc89b
+*End* *diary_entries Materialization from Event Log* | **Hash**: eddbcb93
 
 ---
 
@@ -373,11 +381,13 @@ The resolution is to model `SyncPolicy` as a `const` value object with instance 
 
 A. `SyncPolicy` SHALL be a value class with `final` fields and a `const` constructor. Default values SHALL be provided as `SyncPolicy.defaults`, a `static const` instance whose field values equal the constants named in REQ-d00123.
 
-B. `drain()` and `syncCycle()` SHALL accept an optional `SyncPolicy? policy` parameter; when null, they SHALL fall back to `SyncPolicy.defaults`.
+B. `drain()` and `syncCycle()` SHALL accept an optional `SyncPolicy? policy` parameter; when null, they SHALL fall back to `SyncPolicy.defaults`. `SyncCycle` SHALL additionally accept an optional `SyncPolicy Function()? policyResolver` parameter (mutually exclusive with `policy`); when supplied, the resolver SHALL be invoked exactly once per `SyncCycle.call()` invocation, after the reentrancy guard (REQ-d00125-C) is acquired and before any destination's `drain` is invoked, and the resolved value (or `SyncPolicy.defaults` when the resolver returns `null`) SHALL be forwarded to every destination's `drain` call in that cycle.
 
 C. Phase-4 call sites that referenced `SyncPolicy.initialBackoff` (and siblings) as static members SHALL migrate to the `SyncPolicy.defaults.initialBackoff` instance-member form in one refactoring pass; no `@Deprecated` shims SHALL be introduced.
 
-*End* *SyncPolicy Injectable Value Object* | **Hash**: 8ab70c79
+D. Constructing a `SyncCycle` with both `policy` and `policyResolver` non-null SHALL throw `ArgumentError`. A resolver that throws SHALL cause the current cycle to abort: no drains run, `portalInboundPoll` is not invoked, the exception propagates out of `call()`, and the reentrancy guard is released so a subsequent trigger may invoke `call()` again.
+
+*End* *SyncPolicy Injectable Value Object* | **Hash**: 1e6a25c1
 
 ---
 
@@ -415,6 +425,8 @@ The batch shape demands a `fill_cursor` per destination, recording the highest `
 
 Batch assembly is destination-controlled: the destination declares a `canAddToBatch(currentBatch, candidate)` predicate, invoked per candidate, and a `maxAccumulateTime` hold on single-event batches so a destination that prefers to ship batches of two or more is not prematurely flushed when only one event is available.
 
+Drain halts at a wedged head per REQ-d00124-H, so any FIFO row promoted behind a wedged head is speculative work that `tombstoneAndRefill`'s trail-delete sweep (REQ-d00144-C) would have to undo. `fillBatch` therefore early-returns when the destination's head is wedged: no event-log walk, no `Destination.transform` call, no FIFO row write, no `fill_cursor` advance. After `tombstoneAndRefill` rewinds the cursor, the next `fillBatch` promotes the covered events in one pass against the current (post-fix) transform and destination state. The wedge-skip eliminates the bundle/delete/rebundle round-trip on the dominant wedge-recovery path.
+
 ## Assertions
 
 A. `FifoEntry.event_ids` SHALL be a non-empty `List<String>` identifying every event included in the batch; each element SHALL be an `event_id` from the event log.
@@ -433,7 +445,9 @@ G. The storage backend SHALL persist a `fill_cursor_{destination_id}: int` value
 
 H. `fillBatch(destination)` SHALL be idempotent: repeated invocations with no new matching events SHALL produce no new FIFO rows and SHALL NOT advance `fill_cursor`.
 
-*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: d36f1dde
+I. `fillBatch(destination)` SHALL return without promoting any events when `backend.readFifoHead(destination.id)` returns a row whose `final_status` is `FinalStatus.wedged`. The early return SHALL NOT advance `fill_cursor` and SHALL NOT call `Destination.transform`. Recovery via `tombstoneAndRefill` (REQ-d00144) rewinds `fill_cursor` so the next `fillBatch` promotes the covered events in one pass against the current transform and destination state.
+
+*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: 7b7d46d1
 
 ---
 
@@ -453,25 +467,35 @@ Hard deletion is gated because some destinations carry regulatory audit weight a
 
 ## Assertions
 
-A. `DestinationRegistry.addDestination(Destination d)` SHALL register `d` at any time after bootstrap; if another destination with `d.id` is already registered, the call SHALL throw `ArgumentError`.
+A. `DestinationRegistry.addDestination(Destination d, {required Initiator initiator})` SHALL register `d` at any time after bootstrap; if another destination with `d.id` is already registered, the call SHALL throw `ArgumentError`.
 
 B. `Destination.allowHardDelete: bool get` SHALL default to `false` in the abstract class contract; concrete destinations that permit hard deletion SHALL override the getter to `true`.
 
-C. `DestinationRegistry.setStartDate(String id, DateTime startDate)` SHALL throw `StateError` if the destination already has a non-null `startDate`. Once set, `startDate` SHALL be immutable for the lifetime of this destination registration.
+C. `DestinationRegistry.setStartDate(String id, DateTime startDate, {required Initiator initiator})` SHALL throw `StateError` if the destination already has a non-null `startDate`.
 
 D. If `setStartDate` is called with `startDate <= now()`, the library SHALL trigger historical replay synchronously in the same transaction.
 
 E. If `setStartDate` is called with `startDate > now()`, no replay SHALL occur; subsequent events accumulate in `event_log` and are batched into the FIFO only after wall-clock time has crossed `startDate` (enforced by `fillBatch`'s time-window check).
 
-F. `DestinationRegistry.setEndDate(String id, DateTime endDate)` SHALL return a `SetEndDateResult` enum; possible values are `closed` (endDate <= now), `scheduled` (endDate > now), and `applied` (no state change relative to the current wall-clock).
+F. `DestinationRegistry.setEndDate(String id, DateTime endDate, {required Initiator initiator})` SHALL return a `SetEndDateResult` enum.
 
-G. `DestinationRegistry.deactivateDestination(String id)` SHALL be equivalent to `setEndDate(id, DateTime.now())` and SHALL return `SetEndDateResult.closed`.
+G. `DestinationRegistry.deactivateDestination(String id, {required Initiator initiator})` SHALL be equivalent to `setEndDate(id, DateTime.now(), initiator: initiator)`.
 
-H. `DestinationRegistry.deleteDestination(String id)` SHALL throw `StateError` if the destination's `allowHardDelete == false`. When allowed, the call SHALL unregister the destination and delete its FIFO store in one transaction.
+H. `DestinationRegistry.deleteDestination(String id, {required Initiator initiator})` SHALL throw `StateError` if the destination's `allowHardDelete == false`.
 
 I. `fillBatch(destination)` SHALL filter candidate events by `event.client_timestamp >= dest.startDate AND event.client_timestamp <= min(dest.endDate, now())`; events outside this window SHALL NOT be enqueued to this destination.
 
-*End* *Dynamic Destination Lifecycle* | **Hash**: 17ee5d1c
+J. A successful `addDestination` call SHALL emit exactly one `system.destination_registered` event in the same backend transaction as the registration, with `aggregateType: 'system_destination'`, `aggregateId: 'destination:<id>'`, `eventType: 'finalized'`, `entryTypeVersion` stamped from `EntryTypeDefinition.registered_version` of `system.destination_registered` in the local `EntryTypeRegistry` (per REQ-d00134-G), `initiator` equal to the caller-supplied `initiator`, and `data` carrying `id`, `wire_format`, `allow_hard_delete`, `serializes_natively`, `filter_entry_types[]` (or `null`), `filter_event_types[]` (or `null`), `filter_predicate_description` (or `null`).
+
+K. A successful `setStartDate` call SHALL emit exactly one `system.destination_start_date_set` event in the same transaction with `aggregateId: 'destination:<id>'`, `data: { id, start_date }`, and `initiator` equal to the caller-supplied value.
+
+L. A successful `setEndDate` (and therefore `deactivateDestination`) call SHALL emit exactly one `system.destination_end_date_set` event in the same transaction with `aggregateId: 'destination:<id>'`, `data: { id, end_date, prior_end_date, result }`, and `initiator` equal to the caller-supplied value.
+
+M. A successful `deleteDestination` call SHALL emit exactly one `system.destination_deleted` event in the same transaction with `aggregateId: 'destination:<id>'`, `data: { id, allow_hard_delete }`, and `initiator` equal to the caller-supplied value.
+
+N. Any of the audit emissions in J, K, L, or M failing within the same transaction SHALL cause the transaction to roll back; no destination state change SHALL be observable on a node where the audit emission failed.
+
+*End* *Dynamic Destination Lifecycle* | **Hash**: a4fff316
 
 ---
 
@@ -555,7 +579,13 @@ C. `bootstrapAppendOnlyDatastore` SHALL register every supplied `Destination` in
 
 D. If any two destinations supplied to `bootstrapAppendOnlyDatastore` share an `id`, OR if any caller-supplied `EntryTypeDefinition` id collides with a reserved system entry-type id, the call SHALL throw `ArgumentError` (with an explicit "reserved" message in the id-collision case); the app SHALL NOT proceed to UI rendering.
 
-*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 1f9f50c9
+E. `bootstrapAppendOnlyDatastore` SHALL emit exactly one `system.entry_type_registry_initialized` event after `EventStore` construction and before any `Destination` is registered. The event SHALL carry `aggregateType: 'system_registry'`, `aggregateId: 'system:entry-type-registry'`, `eventType: 'finalized'`, `initiator: AutomationInitiator(service: 'lib-bootstrap')`, and `data.registry` mapping every registered `EntryTypeDefinition.id` (system + caller-supplied) to its `registered_version`.
+
+F. The `system.entry_type_registry_initialized` emission SHALL be invoked with `dedupeByContent: true` so that a reboot whose registry content matches the most recent prior emission is a no-op (no duplicate event written). A reboot whose registry content differs (added entry type, removed entry type, or `registered_version` bump on any entry type) SHALL emit a new event recording the new state.
+
+G. Every system-audit emission callsite (destination registry mutations per REQ-d00129, retention sweep per REQ-d00138-H, security-context lifecycle per REQ-d00138-D/E/F, and bootstrap registry initialization per REQ-d00134-E) SHALL stamp `entryTypeVersion` from `EntryTypeDefinition.registered_version` of the corresponding system entry type in the local `EntryTypeRegistry`. Audit-emission callsites SHALL NOT pass a literal integer version.
+
+*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 051d408e
 
 ## REQ-d00135: Initiator Polymorphic Actor Type
 
@@ -638,7 +668,9 @@ F. A non-empty purge sweep SHALL emit exactly one `security_context_purged` even
 
 G. Redaction, compact, and purge events SHALL themselves be immutable `event_log` rows (not `security_context` rows) so the action of redaction is permanently auditable even after the underlying security data is gone.
 
-*End* *Security Retention Policy and Redaction Audit* | **Hash**: 3ca5bb98
+H. Every invocation of `EventStore.applyRetentionPolicy` SHALL emit exactly one `system.retention_policy_applied` event in the same backend transaction as the sweep, with `aggregateType: 'system_retention'`, `aggregateId: 'security-retention'`, `eventType: 'finalized'`, `entryTypeVersion` stamped from `EntryTypeDefinition.registered_version` of `system.retention_policy_applied` in the local `EntryTypeRegistry` (per REQ-d00134-G), `initiator: AutomationInitiator('retention-policy-sweep')`, and `data` carrying `policy_full_retention_seconds`, `policy_truncated_retention_seconds`, `events_truncated`, `events_purged`, `cutoff_full`, `cutoff_purge`. This event SHALL be emitted regardless of whether the sweep changed any rows (zero-effect sweeps are also audited).
+
+*End* *Security Retention Policy and Redaction Audit* | **Hash**: 41a3c585
 ---
 
 ## REQ-d00139: No-Secrets Invariant on Event Data and flowToken
@@ -662,19 +694,36 @@ C. Hashes (SHA-256 or stronger, with sufficient input entropy to resist precompu
 
 ## Assertions
 
-A. `Materializer` SHALL be an abstract base class with `String get viewName`, `bool appliesTo(StoredEvent event)`, and `Future<void> applyInTxn(Txn, StorageBackend, {event, def, aggregateHistory})`.
+A. `Materializer` SHALL be an abstract base class with:
+- `String get viewName`
+- `bool appliesTo(StoredEvent event)`
+- `EntryPromoter get promoter` (required, no default)
+- `Future<int> targetVersionFor(Txn txn, StorageBackend backend, String entryType)` (default impl reads `view_target_versions` and throws `StateError` on missing)
+- `Future<void> applyInTxn(Txn, StorageBackend, {required event, required promotedData, required def, required aggregateHistory})`
 
 B. `EventStore` SHALL accept `List<Materializer> materializers` at construction and SHALL invoke each matching materializer's `applyInTxn` inside the append transaction.
 
 C. When an event's `EntryTypeDefinition.materialize == false`, NO materializer SHALL be invoked for that event regardless of `appliesTo`.
 
-D. `rebuildView(materializer, backend, lookup)` SHALL replay the event log into exactly one view; running the function twice on the same log SHALL produce the same view rows (idempotent).
+D. `rebuildView(materializer, backend, lookup, {required Map<String, int> targetVersionByEntryType})` SHALL replay the event log into exactly one view; running the function twice on the same log with the same `targetVersionByEntryType` SHALL produce the same view rows (idempotent). The supplied map SHALL be a strict superset of the keys currently stored in `view_target_versions` for this view; missing keys SHALL cause `ArgumentError`. Every event whose `entryType` is matched by `appliesTo` SHALL have a corresponding entry in `targetVersionByEntryType`; an unmapped match SHALL cause `ArgumentError` and roll back the rebuild.
 
 E. A throw from any materializer's `applyInTxn` SHALL roll back the entire append transaction — no event row, no security row, no other view rows.
 
 F. `StorageBackend` SHALL expose generic view methods `readViewRowInTxn(txn, viewName, key)`, `upsertViewRowInTxn(txn, viewName, key, row)`, `deleteViewRowInTxn(txn, viewName, key)`, `findViewRows(viewName, {limit, offset})`, and `clearViewInTxn(txn, viewName)` so materializers can read and write view rows without the backend knowing about specific views.
 
-*End* *Pluggable Materializer Contract* | **Hash**: fccf62b4
+G. Before invoking each matching materializer's `applyInTxn`, the lib SHALL invoke that materializer's `promoter` with `(entryType: event.entryType, fromVersion: event.entryTypeVersion, toVersion: <view's current target version per `view_target_versions`>, data: event.data)`. The returned `Map<String, Object?>` SHALL be passed to `applyInTxn` as `promotedData`. The lib SHALL invoke the promoter even when `fromVersion == toVersion`.
+
+H. A thrown exception from `EntryPromoter` SHALL propagate through `applyInTxn` without being wrapped by the lib; per REQ-d00140-E, the entire append (or rebuild) transaction SHALL roll back.
+
+I. `StorageBackend` SHALL expose `readViewTargetVersionInTxn(txn, viewName, entryType) → int?`, `writeViewTargetVersionInTxn(txn, viewName, entryType, version)`, `readAllViewTargetVersionsInTxn(txn, viewName) → Map<String, int>`, and `clearViewTargetVersionsInTxn(txn, viewName)`. These methods constitute the per-`(viewName, entryType)` target-version metadata that drives the `toVersion` argument supplied to the `EntryPromoter`.
+
+J. `bootstrapAppendOnlyDatastore` SHALL accept a required `Map<String, Map<String, int>> initialViewTargetVersions` parameter keyed on `viewName` then `entryType`; the bootstrap SHALL write each triple via `writeViewTargetVersionInTxn` before any event is appended. A missing entry for any supplied materializer SHALL cause `ArgumentError`; a stored-vs-supplied conflict on existing storage SHALL cause `StateError`.
+
+K. `AppendOnlyDatastore` SHALL expose `setViewTargetVersion(viewName, entryType, version)` for post-bootstrap registration of a previously-unmapped entry type; the call SHALL be idempotent on no-op writes.
+
+L. When a materializer's `targetVersionFor` cannot find a registered version for `(viewName, entryType)`, it SHALL throw `StateError` naming the missing pair; the resulting `EventStore.append` (or rebuild) SHALL fail. No silent fallback to a default version SHALL occur.
+
+*End* *Pluggable Materializer Contract* | **Hash**: a77b1ff6
 ---
 
 ## REQ-d00141: EventStore Append Contract
@@ -685,13 +734,17 @@ F. `StorageBackend` SHALL expose generic view methods `readViewRowInTxn(txn, vie
 
 A. The class named `EntryService` SHALL be renamed to `EventStore` and SHALL live at `apps/common-dart/append_only_datastore/lib/src/event_store.dart`.
 
-B. `EventStore.append({entryType, aggregateId, aggregateType, eventType, data, initiator, flowToken?, metadata?, security?, checkpointReason?, changeReason?, dedupeByContent=false})` SHALL be the single public write method serving both mobile widgets and portal callers; it SHALL return the persisted `StoredEvent` or `null` when a `dedupeByContent` no-op was detected.
+B. `EventStore.append({entryType, entryTypeVersion, aggregateId, aggregateType, eventType, data, initiator, flowToken?, metadata?, security?, checkpointReason?, changeReason?, dedupeByContent=false})` SHALL be the single public write method serving both mobile widgets and portal callers; it SHALL return the persisted `StoredEvent` or `null` when a `dedupeByContent` no-op was detected. The `entryTypeVersion` parameter is required (Dart's null-safety enforces presence at compile time); `EventStore.append` SHALL stamp the supplied value verbatim onto `StoredEvent.entry_type_version` per REQ-d00118-E.
 
 C. Mobile widget call sites SHALL pass per-field arguments directly; there SHALL NOT be an intermediate `EventDraft` value type on the mobile write path.
 
 D. Neither `EventStore` nor `SecurityContextStore` SHALL gate access by user role, scope, or tenancy; access control SHALL live in the widget / request-handler layer (permission-blind invariant).
 
-*End* *EventStore Append Contract* | **Hash**: 6e0f8625
+E. `EventStore.append` SHALL stamp `StoredEvent.lib_format_version` from the constant `StoredEvent.currentLibFormatVersion` on every event written, regardless of caller input. The constant SHALL be defined exactly once in the lib at `lib/src/storage/stored_event.dart` and SHALL identify the storage shape the current lib build produces.
+
+F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion` against `EntryTypeDefinition.registered_version` of the local registry. Local append is the local node's prerogative; cross-node validation is performed at ingest per REQ-d00145.
+
+*End* *EventStore Append Contract* | **Hash**: 5b245ace
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
@@ -748,7 +801,7 @@ When the operator's fix is valid, the fresh rows drain through successfully. Whe
 
 ## Assertions
 
-A. `tombstoneAndRefill(String destId, String fifoRowId)` SHALL throw `ArgumentError` unless `fifoRowId` identifies the current head of the destination's FIFO — equivalently, the row that `readFifoHead(destId)` (REQ-d00124-A) would return. The head's `final_status` is therefore `null` or `wedged`.
+A. `DestinationRegistry.tombstoneAndRefill(String destId, String fifoRowId, {required Initiator initiator})` SHALL be the entry point for the wedge-recovery primitive. It SHALL throw `ArgumentError` unless `fifoRowId` identifies the current head of the destination's FIFO.
 
 B. Inside one storage transaction, the target row's `final_status` SHALL transition to `tombstoned`; its `attempts[]` and all other fields SHALL be preserved unchanged.
 
@@ -760,7 +813,9 @@ E. The call SHALL return a `TombstoneAndRefillResult { String targetRowId, int d
 
 F. A subsequent `fillBatch(destination)` invocation SHALL re-promote the events covered by the tombstoned target AND by the deleted trail into fresh FIFO rows built against the current transform and destination state.
 
-*End* *tombstoneAndRefill Operation* | **Hash**: f812b27d
+G. A successful `tombstoneAndRefill` call SHALL emit exactly one `system.destination_wedge_recovered` event in the same backend transaction as the recovery, with `aggregateType: 'system_destination'`, `aggregateId: 'destination:<destId>'`, `eventType: 'finalized'`, `entryTypeVersion: 1`, `initiator` equal to the caller-supplied value, and `data` carrying `id`, `target_row_id`, `target_event_id_range_first_seq`, `target_event_id_range_last_seq`, `deleted_trail_count`, `rewound_to`.
+
+*End* *tombstoneAndRefill Operation* | **Hash**: 3fe240dc
 ---
 
 # REQ-d00145: EventStore Ingest Contract
@@ -769,9 +824,9 @@ F. A subsequent `fillBatch(destination)` invocation SHALL re-promote the events 
 
 ## Rationale
 
-Events that flow across systems require a receiver-side write path distinct from local origination. Naively re-appending a received event via `EventStore.append` (REQ-d00141) would mint fresh `event_id`, advance a local `sequence_number`, stamp a fresh `provenance[0]`, and recompute the hash chain from scratch — destroying the event's original identity and breaking cross-system verification.
+Events that flow across systems require a receiver-side write path distinct from local origination. Naively re-appending a received event via `EventStore.append` (REQ-d00141) would mint a fresh `event_id`, stamp a fresh `provenance[0]`, and recompute the hash chain from scratch — destroying the event's original identity and breaking cross-system verification. The ingest path preserves `event_id`, the originator's `provenance[0]`, and the per-hop hash chain; only the local `sequence_number` is reassigned (the originator's value is preserved on the receiver-hop ProvenanceEntry as `origin_sequence_number`, REQ-d00115-K) so that origin events and ingested events share one event store keyed by one monotone counter.
 
-`EventStore.ingestBatch` / `ingestEvent` / `logRejectedBatch` are the ingest surface. `ingestBatch` is the wire-boundary entry point: it accepts canonical-format bytes (`esd/batch@1` — the library's single canonical batch envelope), decomposes into constituent `StoredEvent` records, verifies each one's Chain 1 on the way in, stamps a receiver `ProvenanceEntry` with all four REQ-d00115 ingest fields populated (including `batch_context`), recomputes `event_hash` to cover the appended hop, and persists. `ingestEvent` is the process-local variant — no batch, so no `batch_context`. `logRejectedBatch` is a caller-composed companion: after `ingestBatch` throws, callers that want a forensic record of the rejected bytes invoke `logRejectedBatch`, which emits a single receiver-originated `ingest.batch_rejected` event carrying the bytes verbatim.
+`EventStore.ingestBatch` / `ingestEvent` / `logRejectedBatch` are the ingest surface. `ingestBatch` is the wire-boundary entry point: it accepts canonical-format bytes (`esd/batch@1` — the library's single canonical batch envelope), decomposes into constituent `StoredEvent` records, verifies each one's Chain 1 on the way in, reserves a fresh local `sequence_number`, stamps a receiver `ProvenanceEntry` with all five REQ-d00115 receiver-only fields populated (including `batch_context` and `origin_sequence_number`), recomputes `event_hash` to cover the appended hop, and persists through the same event store used for origin appends. `ingestEvent` is the process-local variant — no batch, so no `batch_context`. `logRejectedBatch` is a caller-composed companion: after `ingestBatch` throws, callers that want a forensic record of the rejected bytes invoke `logRejectedBatch`, which emits a single receiver-originated `ingest.batch_rejected` event carrying the bytes verbatim.
 
 The idempotency contract is identity-preserving. A known `event_id` whose wire `event_hash` matches the stored copy's `provenance[thisHop].arrival_hash` produces an `ingest.duplicate_received` audit event under a receiver-scoped ingest-audit aggregate — the stored subject is never re-stamped. A known `event_id` whose wire hash differs is a hard error (`IngestIdentityMismatch`). A new `event_id` proceeds normally.
 
@@ -787,7 +842,7 @@ C. On Chain 1 verification failure for any subject event in a batch, `ingestBatc
 
 D. On encountering a subject event whose `event_id` is already present in the destination's event log, `ingestBatch` SHALL perform an identity-match check: incoming wire `event_hash` SHALL equal stored `metadata.provenance[thisHop].arrival_hash`. On match, a receiver-originated `ingest.duplicate_received` event SHALL be emitted under the receiver-scoped ingest-audit aggregate with `data` containing `subject_event_id` and `subject_event_hash_on_record`, and ingest SHALL continue with the next subject event. On mismatch, `ingestBatch` SHALL raise `IngestIdentityMismatch`.
 
-E. For each subject event ingested in a batch, `ingestBatch` SHALL append a receiver `ProvenanceEntry` carrying `arrival_hash`, `previous_ingest_hash`, `ingest_sequence_number`, and `batch_context` (all four populated per REQ-d00115-G+H+I+J) to `event.metadata.provenance`, recompute `event_hash` per REQ-d00120-E, and persist the event via the destination-role storage path (keyed by `ingest_sequence_number`, per REQ-d00117 transactional semantics).
+E. For each subject event ingested in a batch, `ingestBatch` SHALL reserve a fresh local `sequence_number` via `nextSequenceNumber` and overwrite the wire-supplied `sequence_number` on the stored event. The originator's wire-supplied `sequence_number` SHALL be preserved on the receiver-hop `ProvenanceEntry` as `origin_sequence_number` (REQ-d00115-K). `ingestBatch` SHALL append a receiver `ProvenanceEntry` carrying `arrival_hash`, `previous_ingest_hash`, `ingest_sequence_number`, `batch_context`, and `origin_sequence_number` (populated per REQ-d00115-G+H+I+J+K) to `event.metadata.provenance`, recompute `event_hash` per REQ-d00120-E, and persist the event through the same event-store path used for origin appends (keyed by the local `sequence_number`, per REQ-d00117 transactional semantics). Ingested events and origin events share one event store; there is no separate ingest store.
 
 F. `EventStore.verifyEventChain(StoredEvent)` (see REQ-d00146) SHALL, after a successful `ingestBatch`, return a `ChainVerdict` with `ok: true` and `failures: []` for every subject event and every duplicate-received event produced by that batch.
 
@@ -799,9 +854,13 @@ I. The receiver-scoped ingest-audit aggregate SHALL have `aggregate_id` of the f
 
 J. Every receiver-originated audit event (`ingest.duplicate_received` and `ingest.batch_rejected`) SHALL have `provenance[0]` stamped with the receiver's own `source` (per REQ-d00115-A), `arrival_hash: null`, `previous_ingest_hash` equal to the destination-local `event_hash` of the preceding event in Chain 2, `ingest_sequence_number` equal to the next value of the destination's ingest counter, and `batch_context` non-null when emitted in response to a batch (i.e., for `duplicate_received` events emitted from `ingestBatch`).
 
-K. `ingestBatch` and `ingestEvent` SHALL NOT mutate any originator identity field (`event_id`, `aggregate_id`, `aggregate_type`, `entry_type`, `event_type`, `sequence_number`, `data`, `initiator`, `flow_token`, `client_timestamp`, `previous_event_hash`) on the incoming event. Only `metadata.provenance` is extended (one receiver entry appended), and `event_hash` is recomputed per REQ-d00120-E.
+K. `ingestBatch` and `ingestEvent` SHALL NOT mutate any originator identity field other than `sequence_number` (`event_id`, `aggregate_id`, `aggregate_type`, `entry_type`, `entry_type_version`, `lib_format_version`, `event_type`, `data`, `initiator`, `flow_token`, `client_timestamp`, `previous_event_hash`) on the incoming event. `sequence_number` is reassigned to the receiver's local counter per assertion E, with the originator's wire-supplied value preserved as `origin_sequence_number` on the receiver hop entry. `metadata.provenance` is extended (one receiver entry appended), and `event_hash` is recomputed per REQ-d00120-E.
 
-*End* *EventStore Ingest Contract* | **Hash**: 2213e000
+L. Before chain-1 verify (REQ-d00145-C), `ingestBatch` SHALL evaluate `incoming.lib_format_version > StoredEvent.currentLibFormatVersion`; on true, SHALL raise `IngestLibFormatVersionAhead` carrying the offending `event_id`, `wire_version`, and `receiver_version`, rolling back the entire batch.
+
+M. After the lib-format check (REQ-d00145-L) and before chain-1 verify (REQ-d00145-C), `ingestBatch` SHALL look up `def = registry.byId(incoming.entry_type)`; when `def != null` and `incoming.entry_type_version > def.registered_version`, SHALL raise `IngestEntryTypeVersionAhead` carrying the offending `event_id`, `entry_type`, `wire_version`, and `receiver_version`, rolling back the entire batch. When `def == null`, the existing pre-version-check failure path is unchanged.
+
+*End* *EventStore Ingest Contract* | **Hash**: 7791e856
 
 ---
 
@@ -819,12 +878,188 @@ A. `EventStore.verifyEventChain(StoredEvent event)` SHALL walk `event.metadata.p
 
 B. `EventStore.verifyEventChain` SHALL return a `ChainVerdict(ok: bool, failures: List<ChainFailure>)`. `ok` SHALL be `true` if and only if no mismatch occurred during the walk. `failures` SHALL enumerate every mismatch in walk order; a single corrupted hop produces exactly one `ChainFailure` entry with `position` equal to the hop index, `kind` equal to `ChainFailureKind.arrivalHashMismatch`, `expectedHash` equal to the stored `arrival_hash`, and `actualHash` equal to the recomputed hash.
 
-C. `EventStore.verifyIngestChain({int fromIngestSeq = 0, int? toIngestSeq})` SHALL walk this destination's Chain 2 from the event at `ingest_sequence_number >= fromIngestSeq` through the event at `ingest_sequence_number <= toIngestSeq` (or through tail if `toIngestSeq` is null). For each event at sequence `s` (s > fromIngestSeq), the method SHALL verify that `event.metadata.provenance[thisHop].previous_ingest_hash` equals the stored `event_hash` of the event at sequence `s - 1` on this destination. On mismatch, a `ChainFailure` SHALL be appended to the verdict's `failures` with `position` equal to `s`, `kind` equal to `ChainFailureKind.previousIngestHashMismatch`, `expectedHash` equal to the stored prior event's `event_hash`, and `actualHash` equal to the current event's `previous_ingest_hash`.
+C. `EventStore.verifyIngestChain({int fromSequenceNumber = 0, int? toSequenceNumber})` SHALL walk this destination's Chain 2 across the unified event store, reading events whose local `sequence_number` falls in `[fromSequenceNumber, toSequenceNumber]` (open at the upper end when `toSequenceNumber` is null) via the standard `findAllEvents(afterSequence:, limit:)` storage path — there is no ingest-only store and no ingest-only seq counter. The walk SHALL consider only events whose top provenance entry is a receiver-stamped entry (i.e., `provenance[thisHop].ingest_sequence_number != null`); origin-only events on the unified store have no Chain 2 predecessor and are skipped. For each receiver-stamped event at local sequence `s` after the first one in the walk, the method SHALL verify that `event.metadata.provenance[thisHop].previous_ingest_hash` equals the stored `event_hash` of the immediately-preceding receiver-stamped event in walk order. On mismatch, a `ChainFailure` SHALL be appended to the verdict's `failures` with `position` equal to `s`, `kind` equal to `ChainFailureKind.previousIngestHashMismatch`, `expectedHash` equal to the stored prior event's `event_hash`, and `actualHash` equal to the current event's `previous_ingest_hash`.
 
-D. Neither verification method SHALL throw on chain corruption. Exceptions MAY be thrown for programming errors (malformed `StoredEvent` argument to `verifyEventChain`), storage-backend errors, or invalid argument ranges (e.g., `fromIngestSeq > toIngestSeq`).
+D. Neither verification method SHALL throw on chain corruption. Exceptions MAY be thrown for programming errors (malformed `StoredEvent` argument to `verifyEventChain`), storage-backend errors, or invalid argument ranges (e.g., `fromSequenceNumber > toSequenceNumber`).
 
 E. Both verification methods SHALL be pure reads: they SHALL NOT write to any store, SHALL NOT advance any counter, and SHALL NOT emit audit events.
 
-*End* *Chain-of-Custody Verification APIs* | **Hash**: ba47e4ed
+*End* *Chain-of-Custody Verification APIs* | **Hash**: 10ac2d4f
 
 ---
+
+# REQ-d00147: findEventById Storage Lookup
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+Read paths that have an `event_id` (UI panels rendering FIFO contents, hash-chain walkers from the Phase 4.9 ingest path, verification flows) need to resolve that id to the rest of the event without scanning the log. The pre-existing `findEventsForAggregate` and `findAllEvents` methods on `StorageBackend` cover by-aggregate and by-range reads but not by-id lookup; consumers without a typed lookup either pull a window of events and build their own id->event map per render tick (e.g. an O(N) every 500 ms) or scan via `findAllEvents` and discard everything but the matching id. Both patterns degrade with log size and add no value over the indexed lookup the storage layer can provide directly.
+
+`findEventById` lives on `StorageBackend` rather than on `EventStore` or `EntryService` because the lookup is storage-shaped (key->row), the index belongs to the backend, and the abstract method lets future non-sembast backends provide their own efficient single-row lookup. The contract is intentionally the simplest shape — one method, one parameter, nullable return — so consumers can layer caches or batch fetches on top without the storage layer prescribing them.
+
+The non-transactional contract is sufficient because there is no read-then-write composition in the call sites this method serves; in-transaction callers already have `findEventByIdInTxn` (added in Phase 4.9 to support ingest's idempotency check).
+
+## Assertions
+
+A. `StorageBackend.findEventById(String eventId)` SHALL return the `StoredEvent` whose `event_id` equals `eventId`, or `null` when no event with that id exists in the log. The method SHALL NOT throw on a missing id; `null` is the not-found signal.
+
+B. The `SembastBackend` implementation SHALL use an indexed lookup on the `event_id` field (a sembast `Filter.equals` query against an indexed field) rather than a full-store scan. Future non-sembast backends SHALL provide an equivalent single-row lookup; the abstract contract does not specify the index mechanism but does specify the behavior: a single matching row is returned, with no obligation to enumerate the rest of the log.
+
+C. `findEventById` SHALL be non-transactional and read-only. Callers requiring read-coherence with writes staged in a same-transaction body SHALL use `findEventByIdInTxn` (REQ-d00145).
+
+*End* *findEventById Storage Lookup* | **Hash**: 2430eb1f
+
+---
+
+# REQ-d00148: listFifoEntries Queue Enumeration
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+`StorageBackend` exposes point/head/summary queries against a destination's FIFO (`readFifoHead`, `readFifoRow(dest, entryId)`, `wedgedFifos`, `anyFifoWedged`) but no "enumerate the queue." Consumers that want a queue-inspector view — operator FIFO panels, drain-progress UIs, audit walkers — either have no public path or open the underlying sembast store by name and read raw maps. The string-keyed reach-around couples consumers to the `fifo_<destination_id>` naming convention, the sembast layout, and the `debugDatabase()` test escape hatch, all of which are implementation details of the sembast backend.
+
+The new method returns typed `FifoEntry` objects, sliced by `afterSequenceInQueue` (exclusive) and `limit`. The pagination affordance matches the existing `findAllEvents(afterSequence:, limit:)` convention so consumers learn one shape. Enumeration order is `sequence_in_queue` ascending — same direction `readFifoHead` walks. UI callers that want most-recent-first reverse in the view layer.
+
+## Assertions
+
+A. `StorageBackend.listFifoEntries(String destinationId, {int? afterSequenceInQueue, int? limit})` SHALL return all FIFO entries for `destinationId`, ordered by `sequence_in_queue` ascending. When `destinationId` has no registered FIFO store, the method SHALL return an empty list (consistent with `readFifoHead` returning `null` for the same case).
+
+B. When `afterSequenceInQueue` is non-null, returned entries SHALL be strictly greater than that value (exclusive lower bound). When `limit` is non-null, at most `limit` entries SHALL be returned (taken from the start of the ordered range).
+
+C. Returned `FifoEntry` objects SHALL carry the same fields populated by `readFifoHead` and `readFifoRow` — `entry_id`, `event_ids`, `event_id_range`, `sequence_in_queue`, `wire_payload`, `wire_format`, `transform_version`, `enqueued_at`, `attempts`, `final_status`, `sent_at`. No raw-map representation SHALL be exposed.
+
+D. Callers SHALL NOT open the `fifo_<destination_id>` sembast store directly to read FIFO entries. The `fifo_<destination_id>` naming convention is an implementation detail of the sembast backend and is not part of the public storage contract; `listFifoEntries` is the supported enumeration API.
+
+*End* *listFifoEntries Queue Enumeration* | **Hash**: 398f2d6a
+
+---
+
+# REQ-d00149: watchEvents Reactive Read
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+Read paths that need fresh event-log state today either poll on `Timer.periodic` and re-scan the log per tick or wire bespoke change detection at the application layer. Both approaches scale poorly: per-tick re-scans grow with log size; bespoke change detection multiplies the wiring work per consumer. The library is the only component that knows when an event landed; exposing a reactive primitive lets every consumer (UI panels, hash-chain walkers, future ops dashboards) subscribe without re-implementing the polling loop.
+
+`watchEvents` returns a Dart `Stream<StoredEvent>` because Stream is the broadest pure-Dart concurrency primitive — broadcast-friendly, no Flutter dependency on the library, and consumers in the Flutter widget tree wrap with `StreamBuilder` cheaply. Replay-then-live semantics ("tail -F") is the well-understood pattern: caller passes the last-seen sequence and gets caught up + live updates seamlessly. The library does not retain per-subscriber state across pause/resume — slow consumers recover by canceling and re-subscribing with the last-seen sequence.
+
+The library owns the broadcast (rather than relying on sembast's `onSnapshots`) so that future non-sembast backends implement the same contract via their own write paths without leaking storage-specific types into `StorageBackend`.
+
+## Assertions
+
+A. `StorageBackend.watchEvents({int? afterSequence})` SHALL return a broadcast `Stream<StoredEvent>` that, on subscribe, first emits every event currently in the log with `sequence_number > afterSequence` (or every event when `afterSequence` is null), in `sequence_number` ascending order, then transitions to live emission of events appended via `appendEvent` or ingested via `appendIngestedEvent`.
+
+B. The replay-to-live transition SHALL be monotone: every replayed event SHALL have a strictly smaller `sequence_number` than every live event subsequently emitted to that subscriber. Implementations SHALL guard against the race where an event is appended between the replay read and the live-stream subscription by filtering live emissions to `event.sequenceNumber > lastReplayedSequenceNumber` per subscriber.
+
+C. The stream SHALL be broadcast: multiple subscribers attached to the same backend SHALL receive identical event sequences. Subscribers attached at different wall-clock times each receive their own replay-then-live sequence per subscription parameters.
+
+D. Storage errors observed during a snapshot read inside the stream's machinery SHALL propagate via `Stream.addError` without closing the stream. Fatal lifecycle errors (`SembastBackend.close` was called) SHALL close the underlying controllers, sending `done` to all subscribers. Calling `watchEvents` after `close` SHALL throw `StateError`.
+
+E. Consumers SHALL share a single `StorageBackend` instance per backing storage; constructing multiple backends over the same backing storage is undefined behavior. Broadcast deduplication is the coordination mechanism, applicable to any `StorageBackend` implementation.
+
+*End* *watchEvents Reactive Read* | **Hash**: 767dc1b4
+
+---
+
+# REQ-d00150: watchFifo Reactive Read
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+A destination's FIFO mutates via paths separate from the event log: drain appends attempts, marks rows final, the operator tombstones, and `fillBatch` enqueues fresh rows. None of these write to the event log; an `watchEvents` subscriber learns nothing about FIFO state changes. UI panels that render FIFO contents need their own change-notification path, otherwise they fall back to polling on `Timer.periodic`.
+
+`watchFifo` returns a `Stream<List<FifoEntry>>` — each emission is a fresh snapshot of the destination's queue, ordered by `sequence_in_queue` ascending (matching `listFifoEntries` and `readFifoHead`). Snapshot-on-subscribe means a `StreamBuilder` shows correct state immediately without a one-tick delay. Each subsequent FIFO mutation triggers a re-fetch and re-emission. Whole-snapshot emission (rather than per-row deltas) keeps the contract simple; consumers that want deltas diff against the prior emission.
+
+Like `watchEvents`, the library owns the broadcast — the `StorageBackend` interface declares the abstract method without sembast types. Backend implementations emit on every internal FIFO write path so the contract is consistent across backends.
+
+## Assertions
+
+A. `StorageBackend.watchFifo(String destinationId)` SHALL return a broadcast `Stream<List<FifoEntry>>` that emits the current queue snapshot on subscribe (an empty list when `destinationId` has no registered FIFO store) and re-emits a fresh snapshot on every mutation to that destination's FIFO. Mutations include enqueue (`enqueueFifo`, `enqueueFifoTxn`), `appendAttempt`, `markFinal`, `setFinalStatusTxn`, `deleteNullRowsAfterSequenceInQueueTxn`, and `deleteFifoStoreTxn`.
+
+B. Each emission SHALL be ordered by `sequence_in_queue` ascending. The emission SHALL contain `FifoEntry` objects with the same field population as `listFifoEntries`; raw maps SHALL NOT be exposed.
+
+C. The stream SHALL be broadcast: multiple subscribers per `destinationId` SHALL receive identical snapshot sequences. Cross-destination isolation is enforced — a mutation on destination A SHALL NOT cause an emission to a `watchFifo(B)` subscriber.
+
+D. Storage errors observed during a snapshot fetch SHALL propagate via `Stream.addError`; the stream stays open. Fatal lifecycle errors (`close`) SHALL close the underlying controllers. Calling `watchFifo` after `close` SHALL throw `StateError`.
+
+E. Consumers SHALL share a single `StorageBackend` instance per backing storage (REQ-d00149-E).
+
+*End* *watchFifo Reactive Read* | **Hash**: aa9d922c
+
+---
+
+# REQ-d00152: Destination Native-Serialization Declaration
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+A destination that consumes the library's canonical batch format (`esd/batch@1`) does not need to provide its own transform — the library already owns the canonical encoder. Forcing such destinations through a generic `transform(batch) → WirePayload` adds a redundant serialization pass and an opportunity for drift between the destination's encode and the library's. Greenfield design lets the destination simply declare `serializesNatively: true` and skip transform entirely; library produces envelope metadata at fillBatch time and persists it.
+
+3rd-party destinations (sponsor CSV, Rave EDC XML, etc.) declare `serializesNatively: false` (the default) and continue to provide a `transform` whose output is stored verbatim as `wire_payload`.
+
+## Assertions
+
+A. `Destination.serializesNatively: bool` SHALL be a getter on the `Destination` interface, defaulting to `false`. Concrete destinations that produce `esd/batch@1` SHALL override to `true`.
+
+B. When `destination.serializesNatively` is `true`, `fillBatch` SHALL NOT call `destination.transform`. Instead it SHALL build a `BatchEnvelopeMetadata` from the library's source identity (mint a fresh `batch_id`, stamp `sent_at = DateTime.now().toUtc()`, copy `sender_hop` / `sender_identifier` / `sender_software_version` from the library's source configuration) and pass it directly to `enqueueFifoTxn`. The resulting `FifoEntry` has `wire_payload: null` + `envelope_metadata: <non-null>` + `wire_format: "esd/batch@1"`.
+
+C. When `destination.serializesNatively` is `false`, `fillBatch` SHALL call `destination.transform(batch) → WirePayload` and pass the result to `enqueueFifoTxn`. The resulting `FifoEntry` has `wire_payload: <Map>` + `envelope_metadata: null` + `wire_format: <destination's contentType>`.
+
+D. The library SHALL NOT parse destination-supplied bytes to extract envelope metadata. Native destinations declare; library produces. Lossy 3rd-party destinations transform; library stores.
+
+E. `enqueueFifoTxn`'s signature SHALL accept either a `WirePayload` (3rd-party path) or a `BatchEnvelopeMetadata` + event list (native path) — the implementation chooses one based on `destination.serializesNatively`.
+
+*End* *Destination Native-Serialization Declaration* | **Hash**: b13db4eb
+
+---
+
+# REQ-d00151: queryAudit Storage-Layer API
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+Audit-context queries join two stores (security_context + events) with filtering, sorting, and cursor-based pagination. The implementation belongs at the storage layer because only the storage layer can do the join efficiently. Surfacing this via `StorageBackend` lets `SecurityContextStore` implementations remain narrow (single-row reads/writes) and removes the need for any consumer to reach past the abstraction via a raw-database accessor.
+
+## Assertions
+
+A. `StorageBackend.queryAudit({Initiator? initiator, String? flowToken, String? ipAddress, DateTime? from, DateTime? to, int limit = 50, String? cursor}) → Future<PagedAudit>` SHALL be the supported entry point for cross-store audit queries. The contract matches the previous `SecurityContextStore.queryAudit` signature, with the same filter / cursor / limit semantics.
+
+B. Implementations SHALL perform the cross-store join internally; consumers SHALL NOT reach past the abstraction (e.g., to a backend's raw-database accessor) to perform their own joins.
+
+C. `SecurityContextStore.queryAudit` SHALL delegate to `backend.queryAudit` so the join lives in exactly one place.
+
+*End* *queryAudit Storage-Layer API* | **Hash**: 2113ab11
+
+---
+
+# REQ-d00153: watchView Reactive Read
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004, REQ-p01001
+
+## Rationale
+
+Read paths that render a materialized view today either poll on `Timer.periodic` and re-fetch the whole view per tick, or subscribe to `watchEvents` and re-fetch the view on every event arrival. The first scales poorly with view size; the second over-fires (every event triggers a fetch even when the event does not affect the view's rows). The library is the only component that knows when a view's rows change — exposing a reactive primitive lets every consumer (UI panels, future export pipelines) subscribe without re-implementing the polling loop.
+
+`watchView` returns a Dart `Stream<List<Map<String, Object?>>>` because Stream is the broadest pure-Dart concurrency primitive (no Flutter dependency on the library; broadcast-friendly). Each emission is a fresh whole-view snapshot mirroring `findViewRows(viewName)` — same shape, same untyped row representation. Consumers that want typed rows decode the maps in their own layer, matching the existing materializer pattern (`DiaryEntry.fromJson`, etc.).
+
+The library owns the broadcast (rather than relying on sembast's `onSnapshots`) so future non-sembast backends implement the same contract via their own write paths without leaking storage-specific types into `StorageBackend`. The same `_pendingPostCommit` plumbing introduced for `watchEvents` and `watchFifo` (REQ-d00149, REQ-d00150) carries view-mutation emissions: after `upsertViewRowInTxn` / `deleteViewRowInTxn` / `clearViewInTxn` succeed inside a transaction, a callback adds the changed `viewName` to `_viewChangesController` post-commit.
+
+## Assertions
+
+A. `StorageBackend.watchView(String viewName)` SHALL return a broadcast `Stream<List<Map<String, Object?>>>` that emits the current view rows on subscribe (an empty list when `viewName` has no rows) and re-emits a fresh snapshot on every mutation (`upsertViewRowInTxn`, `deleteViewRowInTxn`, `clearViewInTxn`) to that view.
+
+B. Each emission SHALL be the same `List<Map<String, Object?>>` shape returned by `findViewRows(viewName)` — no implicit ordering imposed by the stream contract; consumers requiring a deterministic order SHALL sort in the view layer.
+
+C. The stream SHALL be broadcast: multiple subscribers per `viewName` SHALL receive identical snapshot sequences. Cross-view isolation is enforced — a mutation on view A SHALL NOT cause an emission to a `watchView(B)` subscriber.
+
+D. Storage errors observed during a snapshot fetch SHALL propagate via `Stream.addError`; the stream stays open. Fatal lifecycle errors (`close`) SHALL close the underlying controllers. Calling `watchView` after `close` SHALL throw `StateError`.
+
+E. Consumers SHALL share a single `StorageBackend` instance per backing storage (REQ-d00149-E).
+
+*End* *watchView Reactive Read* | **Hash**: 878a7d75

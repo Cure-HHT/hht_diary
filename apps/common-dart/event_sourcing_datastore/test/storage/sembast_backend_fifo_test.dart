@@ -1,3 +1,5 @@
+import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
@@ -16,7 +18,7 @@ Future<void> _rawSetFinalStatus(
   required int sequenceInQueue,
   required FinalStatus status,
 }) async {
-  final db = backend.debugDatabase();
+  final db = backend.databaseForTesting;
   final store = StoreRef<int, Map<String, Object?>>('fifo_$destinationId');
   final current = await store.record(sequenceInQueue).get(db);
   if (current == null) {
@@ -86,7 +88,7 @@ void main() {
           backend.enqueueFifo(
             'primary',
             const [],
-            wirePayloadJson(const {'k': 'v'}),
+            wirePayload: wirePayloadJson(const {'k': 'v'}),
           ),
           throwsArgumentError,
         );
@@ -132,6 +134,109 @@ void main() {
       expect(a.entryId, isNot(b.entryId));
       expect((await backend.readFifoHead('A'))?.entryId, a.entryId);
       expect((await backend.readFifoHead('B'))?.entryId, b.entryId);
+    });
+
+    // -------- enqueueFifoTxn — native vs 3rd-party wire-format branch --------
+
+    // Verifies: REQ-d00119-B+K + REQ-d00152-B+E — when nativeEnvelope is
+    // supplied, the row is persisted with envelope_metadata set,
+    // wire_payload null, and wire_format = BatchEnvelope.wireFormat.
+    test('REQ-d00119-B+K: enqueueFifo with nativeEnvelope persists '
+        'envelope_metadata and nulls wire_payload', () async {
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      final envelope = BatchEnvelopeMetadata(
+        batchFormatVersion: '1',
+        batchId: 'batch-x',
+        senderHop: 'mobile-1',
+        senderIdentifier: 'device-uuid',
+        senderSoftwareVersion: 'diary@1.2.3',
+        sentAt: DateTime.utc(2026, 4, 25, 12),
+      );
+      await backend.enqueueFifo('dest', [event], nativeEnvelope: envelope);
+      final head = await backend.readFifoHead('dest');
+      expect(head, isNotNull);
+      expect(
+        head!.wirePayload,
+        isNull,
+        reason: 'native enqueue MUST null wire_payload (REQ-d00119-B)',
+      );
+      expect(head.envelopeMetadata, isNotNull);
+      expect(head.envelopeMetadata!.batchId, 'batch-x');
+      expect(head.envelopeMetadata!.senderHop, 'mobile-1');
+      expect(head.envelopeMetadata!.senderIdentifier, 'device-uuid');
+      expect(head.envelopeMetadata!.senderSoftwareVersion, 'diary@1.2.3');
+      expect(head.envelopeMetadata!.batchFormatVersion, '1');
+      expect(head.wireFormat, BatchEnvelope.wireFormat);
+      expect(
+        head.transformVersion,
+        isNull,
+        reason: 'native rows carry no transform_version (REQ-d00152-E)',
+      );
+    });
+
+    // Verifies: REQ-d00119-B + REQ-d00152-B+E — when wirePayload is
+    // supplied, the bytes are decoded into a JSON-Map wirePayload
+    // (verbatim hand-back to Destination.send) and envelopeMetadata is
+    // null.
+    test('REQ-d00119-B: enqueueFifo with wirePayload stores '
+        'wire_payload, envelope_metadata is null', () async {
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      // 3rd-party shape: a JSON Map payload encoded to UTF-8 bytes.
+      final payload = wirePayloadJson(
+        const <String, Object?>{'kind': 'csv-row', 'value': 42},
+        contentType: 'application/json',
+        transformVersion: 'json-v1',
+      );
+      await backend.enqueueFifo('dest', [event], wirePayload: payload);
+      final head = await backend.readFifoHead('dest');
+      expect(head, isNotNull);
+      expect(head!.wirePayload, isNotNull);
+      expect(head.wirePayload, <String, Object?>{
+        'kind': 'csv-row',
+        'value': 42,
+      });
+      expect(
+        head.envelopeMetadata,
+        isNull,
+        reason:
+            '3rd-party rows MUST NOT carry envelope_metadata (REQ-d00119-K)',
+      );
+      expect(head.wireFormat, 'application/json');
+    });
+
+    // Verifies: REQ-d00152-B+E — supplying both payload shapes
+    // (wirePayload AND nativeEnvelope) is rejected with ArgumentError.
+    test('REQ-d00152-B+E: enqueueFifo rejects supplying both wirePayload '
+        'and nativeEnvelope', () async {
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      await expectLater(
+        backend.enqueueFifo(
+          'dest',
+          [event],
+          wirePayload: wirePayloadJson(const {'k': 'v'}),
+          nativeEnvelope: BatchEnvelopeMetadata(
+            batchFormatVersion: '1',
+            batchId: 'batch-x',
+            senderHop: 'mobile-1',
+            senderIdentifier: 'device-uuid',
+            senderSoftwareVersion: 'diary@1.2.3',
+            sentAt: DateTime.utc(2026, 4, 25, 12),
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    // Verifies: REQ-d00152-B+E — supplying neither payload shape is
+    // rejected with ArgumentError; the FIFO row demands one (and only
+    // one) payload column to be set.
+    test('REQ-d00152-B+E: enqueueFifo rejects supplying neither wirePayload '
+        'nor nativeEnvelope', () async {
+      final event = storedEventFixture(eventId: 'e1', sequenceNumber: 1);
+      await expectLater(
+        backend.enqueueFifo('dest', [event]),
+        throwsArgumentError,
+      );
     });
 
     // -------- FIFO ordering --------
@@ -316,10 +421,11 @@ void main() {
       // e1 and e2 are retained but not visible at head. The sent_at check
       // is validated indirectly: markFinal would have thrown if sent_at
       // wasn't being assigned, and the retain test above proves markFinal
-      // preserves the entry. Direct inspection via debugDatabase. The raw
-      // store name must match SembastBackend._fifoStore(destinationId),
-      // which is 'fifo_$destinationId'.
-      final db = backend.debugDatabase();
+      // preserves the entry. Direct inspection via the raw sembast
+      // database (test-only accessor). The raw store name must match
+      // SembastBackend._fifoStore(destinationId), which is
+      // 'fifo_$destinationId'.
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
@@ -339,7 +445,7 @@ void main() {
       await backend.markFinal('primary', e1.entryId, FinalStatus.wedged);
 
       // Raw store name must match SembastBackend._fifoStore(destinationId).
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
@@ -482,11 +588,14 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00119-D — final_status transitions are one-way. A
-    // second markFinal on an already-terminal entry would silently re-stamp
-    // sent_at, corrupting the send-log timestamp; reject it instead.
-    test('markFinal rejects a second transition '
-        '(pending -> sent -> sent blocked)', () async {
+    // Verifies: drain() at-least-once semantics — a second markFinal with
+    // the SAME status is a no-op (idempotent); it must NOT throw.
+    // Concurrent drainers can both reach markFinal after the first one
+    // succeeds; the second should observe the already-correct state and
+    // return cleanly. Re-stamping of sent_at is prevented because the
+    // idempotent branch returns before any write.
+    test('markFinal is idempotent when called twice with the same status '
+        '(pending -> sent -> sent no-op)', () async {
       final e1 = await enqueueSingle(
         backend,
         'primary',
@@ -496,7 +605,7 @@ void main() {
       await backend.markFinal('primary', e1.entryId, FinalStatus.sent);
       await expectLater(
         backend.markFinal('primary', e1.entryId, FinalStatus.sent),
-        throwsStateError,
+        completes,
       );
     });
 
@@ -638,7 +747,7 @@ void main() {
 
       // Inspect the raw store to verify the stored sequence_in_queue
       // values are 1, 2, 3.
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
@@ -677,7 +786,7 @@ void main() {
         sequenceNumber: 2,
       );
       // e2 should get sequence 2, not 1.
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
@@ -692,7 +801,7 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e1', sequenceNumber: 1);
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
 
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final raw = await StoreRef<int, Map<String, Object?>>(
         'fifo_primary',
       ).find(db);
@@ -715,7 +824,7 @@ void main() {
       await enqueueSingle(backend, 'primary', eventId: 'e2', sequenceNumber: 2);
       await enqueueSingle(backend, 'primary', eventId: 'e3', sequenceNumber: 3);
 
-      final db = backend.debugDatabase();
+      final db = backend.databaseForTesting;
       final store = StoreRef<int, Map<String, Object?>>('fifo_primary');
       final before = await store.find(db);
       expect(before.map((r) => r.value['sequence_in_queue']).toList(), [
@@ -919,6 +1028,110 @@ void main() {
       );
       // The failed write left the cursor unchanged.
       expect(await backend.readFillCursor('primary'), -1);
+    });
+  });
+
+  group('listFifoEntries', () {
+    late SembastBackend backend;
+    var dbCounter = 0;
+
+    setUp(() async {
+      dbCounter += 1;
+      final db = await newDatabaseFactoryMemory().openDatabase(
+        'list-fifo-$dbCounter.db',
+      );
+      backend = SembastBackend(database: db);
+    });
+
+    tearDown(() async {
+      await backend.close();
+    });
+
+    // Verifies: REQ-d00148-A — empty FIFO returns an empty list (no throw).
+    test(
+      'REQ-d00148-A: listFifoEntries on unknown destination returns empty list',
+      () async {
+        final result = await backend.listFifoEntries('never-registered');
+        expect(result, isEmpty);
+      },
+    );
+
+    // Verifies: REQ-d00148-A+C — entries returned in sequence_in_queue order
+    // with all FifoEntry fields populated (entryId, eventIds, sequenceInQueue
+    // — populated by enqueueSingle through the existing enqueueFifo path).
+    test(
+      'REQ-d00148-A+C: listFifoEntries returns entries ordered by sequence_in_queue',
+      () async {
+        final r1 = await enqueueSingle(
+          backend,
+          'dest',
+          eventId: 'e1',
+          sequenceNumber: 1,
+        );
+        final r2 = await enqueueSingle(
+          backend,
+          'dest',
+          eventId: 'e2',
+          sequenceNumber: 2,
+        );
+        final r3 = await enqueueSingle(
+          backend,
+          'dest',
+          eventId: 'e3',
+          sequenceNumber: 3,
+        );
+        final result = await backend.listFifoEntries('dest');
+        expect(result, hasLength(3));
+        // Ordered ascending by sequence_in_queue.
+        expect(result[0].sequenceInQueue < result[1].sequenceInQueue, isTrue);
+        expect(result[1].sequenceInQueue < result[2].sequenceInQueue, isTrue);
+        // Each row carries the event_ids it was enqueued with.
+        expect(result[0].eventIds, ['e1']);
+        expect(result[1].eventIds, ['e2']);
+        expect(result[2].eventIds, ['e3']);
+        // Each row carries the entry_id minted at enqueue.
+        expect(result[0].entryId, r1.entryId);
+        expect(result[1].entryId, r2.entryId);
+        expect(result[2].entryId, r3.entryId);
+      },
+    );
+
+    // Verifies: REQ-d00148-B — afterSequenceInQueue is exclusive.
+    test(
+      'REQ-d00148-B: listFifoEntries afterSequenceInQueue is exclusive',
+      () async {
+        for (var i = 1; i <= 4; i++) {
+          await enqueueSingle(
+            backend,
+            'dest',
+            eventId: 'e$i',
+            sequenceNumber: i,
+          );
+        }
+        final all = await backend.listFifoEntries('dest');
+        expect(all, hasLength(4));
+        final secondRow = all[1];
+        final after = await backend.listFifoEntries(
+          'dest',
+          afterSequenceInQueue: secondRow.sequenceInQueue,
+        );
+        // Exclusive: rows 3 and 4 only.
+        expect(after, hasLength(2));
+        expect(after.first.sequenceInQueue > secondRow.sequenceInQueue, isTrue);
+      },
+    );
+
+    // Verifies: REQ-d00148-B — limit caps the returned list size, taken
+    // from the start of the ordered range.
+    test('REQ-d00148-B: listFifoEntries limit caps result size', () async {
+      for (var i = 1; i <= 5; i++) {
+        await enqueueSingle(backend, 'dest', eventId: 'e$i', sequenceNumber: i);
+      }
+      final two = await backend.listFifoEntries('dest', limit: 2);
+      expect(two, hasLength(2));
+      // Limit is taken from the start of the ordered range.
+      expect(two[0].eventIds, ['e1']);
+      expect(two[1].eventIds, ['e2']);
     });
   });
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
 import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
 import 'package:event_sourcing_datastore/src/storage/final_status.dart';
 import 'package:event_sourcing_datastore/src/storage/send_result.dart';
@@ -76,15 +77,44 @@ Future<void> drain(
       if (now().isBefore(nextAllowed)) return;
     }
 
-    // Reconstruct a WirePayload from the FifoEntry's stored fields. The
-    // stored `wire_payload` is a Map (structured JSON); we re-encode to
-    // bytes for destinations that consume byte payloads. JSON encoding is
-    // deterministic for Maps with stable key order.
-    final payload = WirePayload(
-      bytes: Uint8List.fromList(utf8.encode(jsonEncode(head.wirePayload))),
-      contentType: head.wireFormat,
-      transformVersion: head.transformVersion,
-    );
+    // Reconstruct a WirePayload from the FifoEntry's stored fields.
+    // Native `esd/batch@1` rows reconstruct bytes from
+    // `envelopeMetadata` + `eventIds`-resolved events through
+    // `BatchEnvelope.encode`, which JCS-canonicalizes the envelope so
+    // the result is byte-identical across retries (REQ-d00119-K).
+    // 3rd-party rows (any other wireFormat) carry the bytes as a stored
+    // JSON-Map `wirePayload`; we re-encode that Map to bytes verbatim
+    // for `Destination.send`, preserving the previous storage shape.
+    // Implements: REQ-d00119-B+K — drain branches on envelopeMetadata
+    // presence; native re-encode is byte-deterministic across retries
+    // (RFC 8785 JCS); 3rd-party path is unchanged.
+    final WirePayload payload;
+    final envelope = head.envelopeMetadata;
+    if (envelope != null) {
+      final events = <Map<String, Object?>>[];
+      for (final eventId in head.eventIds) {
+        final ev = await backend.findEventById(eventId);
+        if (ev == null) {
+          throw StateError(
+            'native FIFO row ${head.entryId} references missing event '
+            '$eventId; cannot reconstruct esd/batch@1 wire bytes',
+          );
+        }
+        events.add(Map<String, Object?>.from(ev.toMap()));
+      }
+      final bytes = envelope.toEnvelope(events).encode();
+      payload = WirePayload(
+        bytes: bytes,
+        contentType: BatchEnvelope.wireFormat,
+        transformVersion: head.transformVersion,
+      );
+    } else {
+      payload = WirePayload(
+        bytes: Uint8List.fromList(utf8.encode(jsonEncode(head.wirePayload))),
+        contentType: head.wireFormat,
+        transformVersion: head.transformVersion,
+      );
+    }
 
     // Call the destination. Categorize any thrown error as SendTransient —
     // the drain-loop contract does not distinguish between a thrown

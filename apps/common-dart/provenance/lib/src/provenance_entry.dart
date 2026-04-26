@@ -22,8 +22,9 @@ import 'package:provenance/src/batch_context.dart';
 // received_at, identifier, software_version, and optional transform_version.
 // received_at offset validation enforced at the JSON boundary;
 // identifier and software_version shapes are caller obligations by design.
-// Implements: REQ-d00115-G+H+I+J — optional ingest fields: arrival_hash,
-// previous_ingest_hash, ingest_sequence_number, batch_context.
+// Implements: REQ-d00115-G+H+I+J+K — optional receiver-only fields:
+// arrival_hash, previous_ingest_hash, ingest_sequence_number, batch_context,
+// origin_sequence_number.
 class ProvenanceEntry {
   const ProvenanceEntry({
     required this.hop,
@@ -35,6 +36,7 @@ class ProvenanceEntry {
     this.previousIngestHash,
     this.ingestSequenceNumber,
     this.batchContext,
+    this.originSequenceNumber,
   });
 
   // Implements: REQ-d00115-C — decode from snake_case JSON; reject payloads
@@ -71,6 +73,7 @@ class ProvenanceEntry {
     final arrivalHash = _optionalString(json, 'arrival_hash');
     final previousIngestHash = _optionalString(json, 'previous_ingest_hash');
     final ingestSequenceNumber = _optionalInt(json, 'ingest_sequence_number');
+    final originSequenceNumber = _optionalInt(json, 'origin_sequence_number');
     final batchContextRaw = json['batch_context'];
     BatchContext? batchContext;
     if (batchContextRaw != null) {
@@ -91,6 +94,7 @@ class ProvenanceEntry {
       previousIngestHash: previousIngestHash,
       ingestSequenceNumber: ingestSequenceNumber,
       batchContext: batchContext,
+      originSequenceNumber: originSequenceNumber,
     );
   }
 
@@ -128,10 +132,17 @@ class ProvenanceEntry {
   // received as part of an ingestBatch call.
   final BatchContext? batchContext;
 
+  // Implements: REQ-d00115-K — preserves the originator's sequence_number on
+  // the receiver-hop entry. Receivers reassign a fresh local sequence_number
+  // to the stored event so that origin and ingested events share one event
+  // store keyed by one monotone counter; this field carries the wire-supplied
+  // value so Chain 1 reconstruction can recover the originator's identity-
+  // field set. Null on originator entries.
+  final int? originSequenceNumber;
+
   // Implements: REQ-d00115-C — encode to snake_case JSON with an ISO 8601
   // `received_at` string that preserves the source timezone (Z suffix for
-  // UTC). Ingest fields are omitted when null to preserve backward compat
-  // with pre-4.9 wire shape.
+  // UTC). Receiver-only fields are omitted when null.
   Map<String, Object?> toJson() => <String, Object?>{
     'hop': hop,
     'received_at': receivedAt.toIso8601String(),
@@ -143,6 +154,8 @@ class ProvenanceEntry {
     if (ingestSequenceNumber != null)
       'ingest_sequence_number': ingestSequenceNumber,
     if (batchContext != null) 'batch_context': batchContext!.toJson(),
+    if (originSequenceNumber != null)
+      'origin_sequence_number': originSequenceNumber,
   };
 
   @override
@@ -157,7 +170,8 @@ class ProvenanceEntry {
           arrivalHash == other.arrivalHash &&
           previousIngestHash == other.previousIngestHash &&
           ingestSequenceNumber == other.ingestSequenceNumber &&
-          batchContext == other.batchContext;
+          batchContext == other.batchContext &&
+          originSequenceNumber == other.originSequenceNumber;
 
   @override
   int get hashCode => Object.hash(
@@ -170,6 +184,7 @@ class ProvenanceEntry {
     previousIngestHash,
     ingestSequenceNumber,
     batchContext,
+    originSequenceNumber,
   );
 
   @override
@@ -183,7 +198,8 @@ class ProvenanceEntry {
       'arrivalHash: $arrivalHash, '
       'previousIngestHash: $previousIngestHash, '
       'ingestSequenceNumber: $ingestSequenceNumber, '
-      'batchContext: $batchContext)';
+      'batchContext: $batchContext, '
+      'originSequenceNumber: $originSequenceNumber)';
 }
 
 // REQ-d00115-C timezone-offset regex: matches a trailing Z or ±HH[:]MM

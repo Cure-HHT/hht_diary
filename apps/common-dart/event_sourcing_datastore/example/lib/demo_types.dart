@@ -11,7 +11,7 @@ import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 /// effective date out of `event.data.answers['date']` when present.
 const EntryTypeDefinition demoNoteType = EntryTypeDefinition(
   id: 'demo_note',
-  version: '1.0',
+  registeredVersion: 1,
   name: 'Demo note',
   widgetId: 'demo_note_widget_v1',
   widgetConfig: <String, Object?>{},
@@ -22,7 +22,7 @@ const EntryTypeDefinition demoNoteType = EntryTypeDefinition(
 /// date; action is point-in-time.
 const EntryTypeDefinition redButtonType = EntryTypeDefinition(
   id: 'red_button_pressed',
-  version: '1.0',
+  registeredVersion: 1,
   name: 'Red button pressed',
   widgetId: 'action_button_v1',
   widgetConfig: <String, Object?>{},
@@ -31,7 +31,7 @@ const EntryTypeDefinition redButtonType = EntryTypeDefinition(
 /// Green-button action event.
 const EntryTypeDefinition greenButtonType = EntryTypeDefinition(
   id: 'green_button_pressed',
-  version: '1.0',
+  registeredVersion: 1,
   name: 'Green button pressed',
   widgetId: 'action_button_v1',
   widgetConfig: <String, Object?>{},
@@ -40,7 +40,7 @@ const EntryTypeDefinition greenButtonType = EntryTypeDefinition(
 /// Blue-button action event.
 const EntryTypeDefinition blueButtonType = EntryTypeDefinition(
   id: 'blue_button_pressed',
-  version: '1.0',
+  registeredVersion: 1,
   name: 'Blue button pressed',
   widgetId: 'action_button_v1',
   widgetConfig: <String, Object?>{},

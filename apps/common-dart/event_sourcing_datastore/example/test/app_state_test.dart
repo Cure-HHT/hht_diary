@@ -9,7 +9,25 @@ import 'package:sembast/sembast_memory.dart';
 Future<DestinationRegistry> _mkRegistry(String path) async {
   final db = await newDatabaseFactoryMemory().openDatabase(path);
   final backend = SembastBackend(database: db);
-  return DestinationRegistry(backend: backend);
+  // Build a minimal EventStore wired with the system entry types so
+  // registry mutations can stamp their REQ-d00129-J/K/L/M/N audit
+  // events without bootstrapping the full datastore facade.
+  final entryTypes = EntryTypeRegistry();
+  for (final defn in kSystemEntryTypes) {
+    entryTypes.register(defn);
+  }
+  final securityContexts = SembastSecurityContextStore(backend: backend);
+  final eventStore = EventStore(
+    backend: backend,
+    entryTypes: entryTypes,
+    source: const Source(
+      hopId: 'mobile-device',
+      identifier: 'demo-test',
+      softwareVersion: 'demo@1.0.0',
+    ),
+    securityContexts: securityContexts,
+  );
+  return DestinationRegistry(backend: backend, eventStore: eventStore);
 }
 
 Future<AppState> _mkState(String path) async {
@@ -118,7 +136,7 @@ void main() {
       expect(calls, 1);
     });
 
-    test('destinations reflects only DemoDestination instances', () async {
+    test('destinations reflects every registered destination', () async {
       final s = await _mkState(nextPath());
       await s.addDestination(DemoDestination(id: 'a'));
       await s.addDestination(DemoDestination(id: 'b', allowHardDelete: true));
