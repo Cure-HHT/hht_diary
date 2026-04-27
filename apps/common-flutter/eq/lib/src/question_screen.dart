@@ -7,7 +7,6 @@
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-import 'package:eq/src/widgets/category_header.dart';
 import 'package:eq/src/widgets/question_progress_bar.dart';
 import 'package:eq/src/widgets/response_scale_selector.dart';
 import 'package:eq/src/widgets/rich_text_question.dart';
