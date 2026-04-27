@@ -1,0 +1,12 @@
+name: provenance
+description: "Chain-of-custody provenance types for cross-system event flow - REQ-d00115"
+version: 0.1.0
+publish_to: none
+homepage:
+
+environment:
+  sdk: ^3.10.1
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

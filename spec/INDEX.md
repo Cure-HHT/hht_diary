@@ -214,100 +214,138 @@
 
 ## DEVELOPMENT
 
-| ID         | Title                                              | File                           | Hash     |
-| ---------- | -------------------------------------------------- | ------------------------------ | -------- |
-| REQ-d00001 | Sponsor-Specific Configuration Loading             | dev-configuration.md           | a2825584 |
-| REQ-d00002 | Pre-Build Configuration Validation                 | dev-configuration.md           | 5dde0fc5 |
-| REQ-d00003 | Identity Platform Configuration Per Sponsor        | dev-security.md                | f4493561 |
-| REQ-d00004 | Local-First Data Entry Implementation              | dev-app.md                     | 39589dad |
-| REQ-d00005 | Sponsor Configuration Detection Implementation     | dev-app.md                     | 33d3b6b0 |
-| REQ-d00006 | Mobile App Build and Release Process               | dev-app.md                     | 3b07a626 |
-| REQ-d00007 | Database Schema Implementation and Deployment      | dev-database.md                | 94170736 |
-| REQ-d00008 | MFA Enrollment and Verification Implementation     | dev-security.md                | c60371f2 |
-| REQ-d00009 | Role-Based Permission Enforcement Implementation   | dev-security.md                | c713723f |
-| REQ-d00010 | Data Encryption Implementation                     | dev-security.md                | be1c205f |
-| REQ-d00011 | Multi-Site Schema Implementation                   | dev-database.md                | 982caeb9 |
-| REQ-d00013 | Application Instance UUID Generation               | dev-app.md                     | 5a81d46b |
-| REQ-d00014 | Requirement Validation Tooling                     | dev-requirements-management.md | ed143a48 |
-| REQ-d00015 | Traceability Matrix Auto-Generation                | dev-requirements-management.md | 235c988e |
-| REQ-d00016 | Code-to-Requirement Linking                        | dev-requirements-management.md | 7723f737 |
-| REQ-d00017 | ADR Template and Lifecycle Tooling                 | dev-requirements-management.md | 4fa259a5 |
-| REQ-d00018 | Git Hook Implementation                            | dev-requirements-management.md | fcfe6de1 |
-| REQ-d00019 | Patient Data Isolation RLS Implementation          | dev-security-RLS.md            | f3cbf5fe |
-| REQ-d00020 | Investigator Site-Scoped RLS Implementation        | dev-security-RLS.md            | 2b982234 |
-| REQ-d00021 | Investigator Annotation RLS Implementation         | dev-security-RLS.md            | 01b5e939 |
-| REQ-d00022 | Analyst Read-Only RLS Implementation               | dev-security-RLS.md            | 0a4be6ec |
-| REQ-d00023 | Sponsor Global Access RLS Implementation           | dev-security-RLS.md            | 3cad1719 |
-| REQ-d00024 | Auditor Compliance RLS Implementation              | dev-security-RLS.md            | 434eca80 |
-| REQ-d00025 | Administrator Break-Glass RLS Implementation       | dev-security-RLS.md            | ca7b4eac |
-| REQ-d00026 | Event Sourcing State Protection RLS Implementation | dev-security-RLS.md            | f670b1e5 |
-| REQ-d00027 | Containerized Development Environments             | dev-environment.md             | 380e7b8c |
-| REQ-d00028 | Event sourcing implementation                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00029 | Portal UI Design System                            | dev-deprecated.md              | 93a09d35 |
-| REQ-d00030 | Portal Routing and Navigation                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00031 | Identity Platform Integration                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00032 | Role-Based Access Control Implementation           | dev-deprecated.md              | 93a09d35 |
-| REQ-d00033 | Site-Based Data Isolation                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00034 | Login Page Implementation                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00035 | Admin Dashboard Implementation                     | dev-deprecated.md              | 93a09d35 |
-| REQ-d00036 | Create User Dialog Implementation                  | dev-deprecated.md              | 93a09d35 |
-| REQ-d00039 | Portal Users Table Schema                          | dev-deprecated.md              | 93a09d35 |
-| REQ-d00040 | User Site Access Table Schema                      | dev-deprecated.md              | 93a09d35 |
-| REQ-d00041 | Patients Table Extensions for Portal               | dev-deprecated.md              | 93a09d35 |
-| REQ-d00053 | Development Environment and Tooling Setup          | dev-requirements-management.md | 31e32e36 |
-| REQ-d00055 | Role-Based Environment Separation                  | dev-environment.md             | 9d8e2081 |
-| REQ-d00056 | Cross-Platform Development Support                 | dev-environment.md             | 7ca59703 |
-| REQ-d00057 | CI/CD Environment Parity                           | dev-environment.md             | 608781a5 |
-| REQ-d00058 | Secrets Management via Doppler                     | dev-environment.md             | 18a5881a |
-| REQ-d00059 | Development Tool Specifications                    | dev-environment.md             | 1ddd744c |
-| REQ-d00060 | VS Code Dev Containers Integration                 | dev-environment.md             | 4b7e967b |
-| REQ-d00061 | Automated QA Workflow                              | dev-environment.md             | 75dfd6e6 |
-| REQ-d00062 | Environment Validation & Change Control            | dev-environment.md             | b907aec0 |
-| REQ-d00063 | Shared Workspace and File Exchange                 | dev-environment.md             | 8a68ffca |
-| REQ-d00064 | Plugin JSON Validation Tooling                     | dev-ai-claude.md               | ade1a4f4 |
-| REQ-d00065 | Plugin Path Validation                             | dev-ai-claude.md               | 09911117 |
-| REQ-d00066 | Plugin-Specific Permission Management              | dev-marketplace-permissions.md | 03045719 |
-| REQ-d00067 | Streamlined Ticket Creation Agent                  | dev-ai-claude.md               | f6d9e288 |
-| REQ-d00068 | Enhanced Workflow New Work Detection               | dev-ai-claude.md               | 951ecf65 |
-| REQ-d00072 | ODM-XML Export Implementation                      | dev-deprecated.md              | fc88846e |
-| REQ-d00077 | Web Diary Frontend Framework                       | dev-diary-web.md               | 7adcbff1 |
-| REQ-d00078 | Linking Code Validation                            | dev-linking.md                 | 8cc744c2 |
-| REQ-d00079 | Linking Code Pattern Matching                      | dev-linking.md                 | f5e20cde |
-| REQ-d00080 | Web Session Management Implementation              | dev-diary-web.md               | 482b7002 |
-| REQ-d00081 | Linked Device Records                              | dev-linking.md                 | 16853ebd |
-| REQ-d00082 | Password Hashing Implementation                    | dev-diary-web.md               | 1174dead |
-| REQ-d00083 | Browser Storage Clearing                           | dev-diary-web.md               | dd80cdb0 |
-| REQ-d00084 | Sponsor Configuration Loading                      | dev-diary-web.md               | b8eb0a19 |
-| REQ-d00085 | Local Database Export and Import                   | dev-app.md                     | eaa18d27 |
-| REQ-d00086 | Sponsor Repository Structure Template              | dev-sponsor-repos.md           | 0ede3cec |
-| REQ-d00087 | Core Repo Reference Configuration                  | dev-sponsor-repos.md           | 2f2f7a26 |
-| REQ-d00088 | Sponsor Requirement Namespace Validation           | dev-sponsor-repos.md           | bfec100c |
-| REQ-d00089 | Cross-Repository Traceability                      | dev-sponsor-repos.md           | e0ee0f65 |
-| REQ-d00090 | Development Environment Installation Qualification | dev-environment.md             | f170b97a |
-| REQ-d00091 | Development Environment Operational Qualification  | dev-environment.md             | 1c2e52c9 |
-| REQ-d00092 | Development Environment Performance Qualification  | dev-environment.md             | fcb5c6ba |
-| REQ-d00093 | Development Environment Change Control             | dev-environment.md             | d0a9c48d |
-| REQ-d00094 | Linking Code Entry Interface                       | dev-diary-app-linking.md       | dae36394 |
-| REQ-d00095 | Linking Code Input Validation                      | dev-diary-app-linking.md       | d124cbf4 |
-| REQ-d00096 | Enrollment Token Secure Storage                    | dev-diary-app-linking.md       | 2f2321ae |
-| REQ-d00097 | Token Lifecycle and Network Resilience             | dev-diary-app-linking.md       | 8b7af588 |
-| REQ-d00098 | Token Invalidation on Disconnection                | dev-diary-app-linking.md       | 654a51e8 |
-| REQ-d00099 | Linking Code Error Handling                        | dev-diary-app-linking.md       | 3a1f9cc5 |
-| REQ-d00100 | Network Failure Handling During Linking            | dev-diary-app-linking.md       | fe5b5e9a |
-| REQ-d00101 | Enrollment State Machine                           | dev-diary-app-linking.md       | 2505852b |
-| REQ-d00102 | Enrollment State Behaviors                         | dev-diary-app-linking.md       | ae21987f |
-| REQ-d00103 | Disconnection Detection                            | dev-diary-app-linking.md       | 0ef54680 |
-| REQ-d00104 | Contact Study Coordinator Screen                   | dev-diary-app-linking.md       | 9e53fe8a |
-| REQ-d00105 | Reconnection Recovery Path                         | dev-diary-app-linking.md       | 01389d10 |
-| REQ-d00106 | Study Start Questionnaire Rendering                | dev-diary-app-linking.md       | 60f1a652 |
-| REQ-d00107 | Questionnaire Response Collection and Storage      | dev-diary-app-linking.md       | 888d43b7 |
-| REQ-d00108 | Questionnaire Submission Flow                      | dev-diary-app-linking.md       | b9a8f91b |
-| REQ-d00109 | Portal Linking Code Validation Endpoint            | dev-portal-api.md              | bac91a72 |
-| REQ-d00110 | Linking API Error Response Strategy                | dev-portal-api.md              | 39ae2a18 |
-| REQ-d00111 | Linking API Audit Trail                            | dev-portal-api.md              | 90a41f24 |
-| REQ-d00112 | Enrollment Token Revocation                        | dev-portal-api.md              | e8863441 |
-| REQ-d00113 | Deleted Questionnaire Submission Handling          | dev-questionnaire.md           | 6aaa85fd |
-| REQ-d00114 | Sync Request Device Binding Verification           | dev-portal-api.md              | b1a11feb |
+| ID         | Title                                                           | File                           | Hash     |
+| ---------- | --------------------------------------------------------------- | ------------------------------ | -------- |
+| REQ-d00001 | Sponsor-Specific Configuration Loading                          | dev-configuration.md           | a2825584 |
+| REQ-d00002 | Pre-Build Configuration Validation                              | dev-configuration.md           | 5dde0fc5 |
+| REQ-d00003 | Identity Platform Configuration Per Sponsor                     | dev-security.md                | f4493561 |
+| REQ-d00004 | Local-First Data Entry Implementation                           | dev-app.md                     | 39589dad |
+| REQ-d00005 | Sponsor Configuration Detection Implementation                  | dev-app.md                     | 33d3b6b0 |
+| REQ-d00006 | Mobile App Build and Release Process                            | dev-app.md                     | 3b07a626 |
+| REQ-d00007 | Database Schema Implementation and Deployment                   | dev-database.md                | 94170736 |
+| REQ-d00008 | MFA Enrollment and Verification Implementation                  | dev-security.md                | c60371f2 |
+| REQ-d00009 | Role-Based Permission Enforcement Implementation                | dev-security.md                | c713723f |
+| REQ-d00010 | Data Encryption Implementation                                  | dev-security.md                | be1c205f |
+| REQ-d00011 | Multi-Site Schema Implementation                                | dev-database.md                | 982caeb9 |
+| REQ-d00013 | Application Instance UUID Generation                            | dev-app.md                     | 5a81d46b |
+| REQ-d00014 | Requirement Validation Tooling                                  | dev-requirements-management.md | ed143a48 |
+| REQ-d00015 | Traceability Matrix Auto-Generation                             | dev-requirements-management.md | 235c988e |
+| REQ-d00016 | Code-to-Requirement Linking                                     | dev-requirements-management.md | 7723f737 |
+| REQ-d00017 | ADR Template and Lifecycle Tooling                              | dev-requirements-management.md | 4fa259a5 |
+| REQ-d00018 | Git Hook Implementation                                         | dev-requirements-management.md | fcfe6de1 |
+| REQ-d00019 | Patient Data Isolation RLS Implementation                       | dev-security-RLS.md            | f3cbf5fe |
+| REQ-d00020 | Investigator Site-Scoped RLS Implementation                     | dev-security-RLS.md            | 2b982234 |
+| REQ-d00021 | Investigator Annotation RLS Implementation                      | dev-security-RLS.md            | 01b5e939 |
+| REQ-d00022 | Analyst Read-Only RLS Implementation                            | dev-security-RLS.md            | 0a4be6ec |
+| REQ-d00023 | Sponsor Global Access RLS Implementation                        | dev-security-RLS.md            | 3cad1719 |
+| REQ-d00024 | Auditor Compliance RLS Implementation                           | dev-security-RLS.md            | 434eca80 |
+| REQ-d00025 | Administrator Break-Glass RLS Implementation                    | dev-security-RLS.md            | ca7b4eac |
+| REQ-d00026 | Event Sourcing State Protection RLS Implementation              | dev-security-RLS.md            | f670b1e5 |
+| REQ-d00027 | Containerized Development Environments                          | dev-environment.md             | 380e7b8c |
+| REQ-d00028 | Event sourcing implementation                                   | dev-deprecated.md              | 93a09d35 |
+| REQ-d00029 | Portal UI Design System                                         | dev-deprecated.md              | 93a09d35 |
+| REQ-d00030 | Portal Routing and Navigation                                   | dev-deprecated.md              | 93a09d35 |
+| REQ-d00031 | Identity Platform Integration                                   | dev-deprecated.md              | 93a09d35 |
+| REQ-d00032 | Role-Based Access Control Implementation                        | dev-deprecated.md              | 93a09d35 |
+| REQ-d00033 | Site-Based Data Isolation                                       | dev-deprecated.md              | 93a09d35 |
+| REQ-d00034 | Login Page Implementation                                       | dev-deprecated.md              | 93a09d35 |
+| REQ-d00035 | Admin Dashboard Implementation                                  | dev-deprecated.md              | 93a09d35 |
+| REQ-d00036 | Create User Dialog Implementation                               | dev-deprecated.md              | 93a09d35 |
+| REQ-d00039 | Portal Users Table Schema                                       | dev-deprecated.md              | 93a09d35 |
+| REQ-d00040 | User Site Access Table Schema                                   | dev-deprecated.md              | 93a09d35 |
+| REQ-d00041 | Patients Table Extensions for Portal                            | dev-deprecated.md              | 93a09d35 |
+| REQ-d00053 | Development Environment and Tooling Setup                       | dev-requirements-management.md | 31e32e36 |
+| REQ-d00055 | Role-Based Environment Separation                               | dev-environment.md             | 9d8e2081 |
+| REQ-d00056 | Cross-Platform Development Support                              | dev-environment.md             | 7ca59703 |
+| REQ-d00057 | CI/CD Environment Parity                                        | dev-environment.md             | 608781a5 |
+| REQ-d00058 | Secrets Management via Doppler                                  | dev-environment.md             | 18a5881a |
+| REQ-d00059 | Development Tool Specifications                                 | dev-environment.md             | 1ddd744c |
+| REQ-d00060 | VS Code Dev Containers Integration                              | dev-environment.md             | 4b7e967b |
+| REQ-d00061 | Automated QA Workflow                                           | dev-environment.md             | 75dfd6e6 |
+| REQ-d00062 | Environment Validation & Change Control                         | dev-environment.md             | b907aec0 |
+| REQ-d00063 | Shared Workspace and File Exchange                              | dev-environment.md             | 8a68ffca |
+| REQ-d00064 | Plugin JSON Validation Tooling                                  | dev-ai-claude.md               | ade1a4f4 |
+| REQ-d00065 | Plugin Path Validation                                          | dev-ai-claude.md               | 09911117 |
+| REQ-d00066 | Plugin-Specific Permission Management                           | dev-marketplace-permissions.md | 03045719 |
+| REQ-d00067 | Streamlined Ticket Creation Agent                               | dev-ai-claude.md               | f6d9e288 |
+| REQ-d00068 | Enhanced Workflow New Work Detection                            | dev-ai-claude.md               | 951ecf65 |
+| REQ-d00072 | ODM-XML Export Implementation                                   | dev-deprecated.md              | fc88846e |
+| REQ-d00077 | Web Diary Frontend Framework                                    | dev-diary-web.md               | 7adcbff1 |
+| REQ-d00078 | Linking Code Validation                                         | dev-linking.md                 | 8cc744c2 |
+| REQ-d00079 | Linking Code Pattern Matching                                   | dev-linking.md                 | f5e20cde |
+| REQ-d00080 | Web Session Management Implementation                           | dev-diary-web.md               | 482b7002 |
+| REQ-d00081 | Linked Device Records                                           | dev-linking.md                 | 16853ebd |
+| REQ-d00082 | Password Hashing Implementation                                 | dev-diary-web.md               | 1174dead |
+| REQ-d00083 | Browser Storage Clearing                                        | dev-diary-web.md               | dd80cdb0 |
+| REQ-d00084 | Sponsor Configuration Loading                                   | dev-diary-web.md               | b8eb0a19 |
+| REQ-d00085 | Local Database Export and Import                                | dev-app.md                     | eaa18d27 |
+| REQ-d00086 | Sponsor Repository Structure Template                           | dev-sponsor-repos.md           | 0ede3cec |
+| REQ-d00087 | Core Repo Reference Configuration                               | dev-sponsor-repos.md           | 2f2f7a26 |
+| REQ-d00088 | Sponsor Requirement Namespace Validation                        | dev-sponsor-repos.md           | bfec100c |
+| REQ-d00089 | Cross-Repository Traceability                                   | dev-sponsor-repos.md           | e0ee0f65 |
+| REQ-d00090 | Development Environment Installation Qualification              | dev-environment.md             | f170b97a |
+| REQ-d00091 | Development Environment Operational Qualification               | dev-environment.md             | 1c2e52c9 |
+| REQ-d00092 | Development Environment Performance Qualification               | dev-environment.md             | fcb5c6ba |
+| REQ-d00093 | Development Environment Change Control                          | dev-environment.md             | d0a9c48d |
+| REQ-d00094 | Linking Code Entry Interface                                    | dev-diary-app-linking.md       | dae36394 |
+| REQ-d00095 | Linking Code Input Validation                                   | dev-diary-app-linking.md       | d124cbf4 |
+| REQ-d00096 | Enrollment Token Secure Storage                                 | dev-diary-app-linking.md       | 2f2321ae |
+| REQ-d00097 | Token Lifecycle and Network Resilience                          | dev-diary-app-linking.md       | 8b7af588 |
+| REQ-d00098 | Token Invalidation on Disconnection                             | dev-diary-app-linking.md       | 654a51e8 |
+| REQ-d00099 | Linking Code Error Handling                                     | dev-diary-app-linking.md       | 3a1f9cc5 |
+| REQ-d00100 | Network Failure Handling During Linking                         | dev-diary-app-linking.md       | fe5b5e9a |
+| REQ-d00101 | Enrollment State Machine                                        | dev-diary-app-linking.md       | 2505852b |
+| REQ-d00102 | Enrollment State Behaviors                                      | dev-diary-app-linking.md       | ae21987f |
+| REQ-d00103 | Disconnection Detection                                         | dev-diary-app-linking.md       | 0ef54680 |
+| REQ-d00104 | Contact Study Coordinator Screen                                | dev-diary-app-linking.md       | 9e53fe8a |
+| REQ-d00105 | Reconnection Recovery Path                                      | dev-diary-app-linking.md       | 01389d10 |
+| REQ-d00106 | Study Start Questionnaire Rendering                             | dev-diary-app-linking.md       | 60f1a652 |
+| REQ-d00107 | Questionnaire Response Collection and Storage                   | dev-diary-app-linking.md       | 888d43b7 |
+| REQ-d00108 | Questionnaire Submission Flow                                   | dev-diary-app-linking.md       | b9a8f91b |
+| REQ-d00109 | Portal Linking Code Validation Endpoint                         | dev-portal-api.md              | bac91a72 |
+| REQ-d00110 | Linking API Error Response Strategy                             | dev-portal-api.md              | 39ae2a18 |
+| REQ-d00111 | Linking API Audit Trail                                         | dev-portal-api.md              | 90a41f24 |
+| REQ-d00112 | Enrollment Token Revocation                                     | dev-portal-api.md              | e8863441 |
+| REQ-d00113 | Deleted Questionnaire Submission Handling                       | dev-questionnaire.md           | 6aaa85fd |
+| REQ-d00114 | Sync Request Device Binding Verification                        | dev-portal-api.md              | b1a11feb |
+| REQ-d00115 | ProvenanceEntry Schema and Append Rules                         | dev-event-sourcing-mobile.md   | 194aaffd |
+| REQ-d00116 | EntryTypeDefinition Schema                                      | dev-event-sourcing-mobile.md   | f7e650e5 |
+| REQ-d00117 | StorageBackend Transaction Contract                             | dev-event-sourcing-mobile.md   | bb51d314 |
+| REQ-d00118 | Event Record Schema                                             | dev-event-sourcing-mobile.md   | 1c010e32 |
+| REQ-d00119 | Per-Destination FIFO Queue Semantics                            | dev-event-sourcing-mobile.md   | 923b8d02 |
+| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification         | dev-event-sourcing-mobile.md   | d10798de |
+| REQ-d00121 | diary_entries Materialization from Event Log                    | dev-event-sourcing-mobile.md   | fe7223f0 |
+| REQ-d00122 | Destination Contract for Per-Destination Sync                   | dev-event-sourcing-mobile.md   | 1b3481f3 |
+| REQ-d00123 | SyncPolicy Retry Backoff Curve                                  | dev-event-sourcing-mobile.md   | 3efbe4b4 |
+| REQ-d00124 | Per-Destination FIFO Drain Loop                                 | dev-event-sourcing-mobile.md   | 92afab97 |
+| REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract                  | dev-event-sourcing-mobile.md   | 03bfd328 |
+| REQ-d00126 | SyncPolicy Injectable Value Object                              | dev-event-sourcing-mobile.md   | 1e6a25c1 |
+| REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row           | dev-event-sourcing-mobile.md   | 71b33da6 |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                                | dev-event-sourcing-mobile.md   | 4603da54 |
+| REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-mobile.md   | aecd9a7f |
+| REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-mobile.md   | 254b541a |
+| REQ-d00133 | EntryService.record Contract                                    | dev-event-sourcing-mobile.md   | 6d804b0e |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                           | dev-event-sourcing-mobile.md   | 8cc7f5a2 |
+| REQ-d00135 | Initiator Polymorphic Actor Type                                | dev-event-sourcing-mobile.md   | 0b5663cc |
+| REQ-d00136 | flowToken Correlation Field                                     | dev-event-sourcing-mobile.md   | 0bf4ed09 |
+| REQ-d00137 | EventSecurityContext Sidecar Store                              | dev-event-sourcing-mobile.md   | 387fcb92 |
+| REQ-d00138 | Security Retention Policy and Redaction Audit                   | dev-event-sourcing-mobile.md   | 5bd6419f |
+| REQ-d00139 | No-Secrets Invariant on Event Data and flowToken                | dev-event-sourcing-mobile.md   | 8c4df58e |
+| REQ-d00140 | Pluggable Materializer Contract                                 | dev-event-sourcing-mobile.md   | a77b1ff6 |
+| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-mobile.md   | 5b245ace |
+| REQ-d00142 | Source Stamping Provenance Identity                             | dev-event-sourcing-mobile.md   | 02769511 |
+| REQ-d00143 | Storage Failure Taxonomy                                        | dev-event-sourcing-mobile.md   | 59ed82f7 |
+| REQ-d00144 | tombstoneAndRefill Operation                                    | dev-event-sourcing-mobile.md   | 3fe240dc |
+| REQ-d00145 | EventStore Ingest Contract                                      | dev-event-sourcing-mobile.md   | f6855b72 |
+| REQ-d00146 | Chain-of-Custody Verification APIs                              | dev-event-sourcing-mobile.md   | 10ac2d4f |
+| REQ-d00147 | findEventById Storage Lookup                                    | dev-event-sourcing-mobile.md   | 2430eb1f |
+| REQ-d00148 | listFifoEntries Queue Enumeration                               | dev-event-sourcing-mobile.md   | 398f2d6a |
+| REQ-d00149 | watchEvents Reactive Read                                       | dev-event-sourcing-mobile.md   | 767dc1b4 |
+| REQ-d00150 | watchFifo Reactive Read                                         | dev-event-sourcing-mobile.md   | aa9d922c |
+| REQ-d00151 | queryAudit Storage-Layer API                                    | dev-event-sourcing-mobile.md   | 2113ab11 |
+| REQ-d00152 | Destination Native-Serialization Declaration                    | dev-event-sourcing-mobile.md   | b13db4eb |
+| REQ-d00153 | watchView Reactive Read                                         | dev-event-sourcing-mobile.md   | 878a7d75 |
+| REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-mobile.md   | e0495b4d |
 
 ## User Journeys
 
