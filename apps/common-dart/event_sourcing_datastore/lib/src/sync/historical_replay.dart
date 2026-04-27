@@ -111,26 +111,53 @@ Future<void> runHistoricalReplay(
   );
   if (candidates.isEmpty) return;
 
-  // Trim to the destination's time-window AND its subscription filter.
-  // Implements: REQ-d00128-J — destination admission is decided by
-  //   destination.filter.matches; system events flow through to
-  //   destinations that opt in via SubscriptionFilter.includeSystemEvents
-  //   and are rejected by matches for destinations that do not opt in.
-  final inWindow = candidates.where((e) {
-    if (e.clientTimestamp.isBefore(startDate)) return false;
-    if (e.clientTimestamp.isAfter(upper)) return false;
-    return destination.filter.matches(e);
-  }).toList();
+  // Walk candidates classifying each as deferred (upper-bound rejection)
+  // or decided (in-window OR permanently rejected). Subscription-filter
+  // rejection is evaluated before the upper-bound check so an event the
+  // destination is permanently uninterested in does not block cursor
+  // advance regardless of its client_timestamp.
+  //
+  // Implements: REQ-d00128-J — admission decided by
+  //   destination.filter.matches.
+  // Implements: REQ-d00128-K — cursor advance respects rejection reason:
+  //   permanent rejections (subscription, startDate-lower) contribute to
+  //   cursor advance; deferred rejections (upper bound) stop the walk so
+  //   the cursor does not skip past them. Replay's parity with fillBatch
+  //   is required so a destination registered with a past startDate sees
+  //   the same admission semantics during catch-up as during live
+  //   operation.
+  final inWindow = <StoredEvent>[];
+  int? lastDecidedSeq;
+  for (final e in candidates) {
+    if (!destination.filter.matches(e)) {
+      // Permanent: subscription filter is stable.
+      lastDecidedSeq = e.sequenceNumber;
+      continue;
+    }
+    if (e.clientTimestamp.isBefore(startDate)) {
+      // Permanent: startDate is immutable per REQ-d00129-C.
+      lastDecidedSeq = e.sequenceNumber;
+      continue;
+    }
+    if (e.clientTimestamp.isAfter(upper)) {
+      // Deferred — endDate is mutable per REQ-d00129-F. Stop the walk;
+      // any subsequent candidates wait for the next invocation
+      // (replay or fillBatch tick).
+      break;
+    }
+    // In-window candidate.
+    inWindow.add(e);
+    lastDecidedSeq = e.sequenceNumber;
+  }
 
   if (inWindow.isEmpty) {
-    // Advance the cursor past the non-matching tail so a later
-    // fillBatch tick does not re-evaluate the same candidates
-    // (matches fillBatch's idempotent no-op branch).
-    await backend.writeFillCursorTxn(
-      txn,
-      destination.id,
-      candidates.last.sequenceNumber,
-    );
+    // No promotions to make. Advance cursor past any permanently-rejected
+    // events the walk visited; if the walk stopped at the very first
+    // candidate (deferred), do not advance — that event must remain
+    // re-evaluable when the upper bound widens.
+    if (lastDecidedSeq != null) {
+      await backend.writeFillCursorTxn(txn, destination.id, lastDecidedSeq);
+    }
     return;
   }
 

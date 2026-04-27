@@ -287,24 +287,53 @@ void main() {
         // Only the in-window event is enqueued.
         expect(head!.eventIds, ['e-active']);
         // Cursor advances to the enqueued batch's last sequence_number
-        // (1). The out-of-window event at seq 2 remains past the cursor
-        // for the next tick; on that tick fillBatch will filter it out
-        // and advance cursor to 2 via the non-matching-tail branch.
+        // (1). The out-of-window event at seq 2 is deferred per
+        // REQ-d00128-K — endDate is mutable (REQ-d00129-F) so events
+        // rejected by the upper bound stay re-evaluable. Cursor stops at
+        // 1 (last decided seq before the deferred event).
         expect(await backend.readFillCursor('fake'), 1);
 
-        // Second call: the tail event is out of window. fillBatch should
-        // advance cursor past it and enqueue nothing new.
+        // Second call: the tail event is still deferred (endDate has not
+        // moved). fillBatch's walk stops at e-after (deferred); cursor
+        // does NOT advance past it. Per REQ-d00128-K this preserves
+        // re-evaluability when endDate later widens.
         await fillBatch(
           dest,
           backend: backend,
           schedule: schedule,
           clock: () => DateTime.utc(2026, 4, 22, 12),
         );
-        expect(await backend.readFillCursor('fake'), 2);
+        expect(
+          await backend.readFillCursor('fake'),
+          1,
+          reason:
+              'cursor stays at 1; e-after at seq 2 remains deferred '
+              '(REQ-d00128-K)',
+        );
         // Head unchanged.
         final head2 = await backend.readFifoHead('fake');
         expect(head2, isNotNull);
         expect(head2!.eventIds, ['e-active']);
+
+        // Widening endDate to admit e-after: next fillBatch tick picks it
+        // up. Demonstrates the K-fix payoff — deferred events are NOT
+        // lost when the upper bound widens.
+        final widened = DestinationSchedule(
+          startDate: DateTime.utc(2026, 4, 1),
+          endDate: DateTime.utc(2026, 4, 30),
+        );
+        await fillBatch(
+          dest,
+          backend: backend,
+          schedule: widened,
+          clock: () => DateTime.utc(2026, 4, 22, 12),
+        );
+        expect(await backend.readFillCursor('fake'), 2);
+        final fifo = await backend.listFifoEntries('fake');
+        expect(
+          fifo.expand((r) => r.eventIds).toList(),
+          equals(['e-active', 'e-after']),
+        );
       },
     );
 
