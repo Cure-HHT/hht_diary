@@ -387,8 +387,7 @@ fi
 # =====================================================
 # 4. Requirement Hash Update (elspais)
 # =====================================================
-# Auto-update stale requirement hashes before commit
-# This ensures hashes are always current
+# Auto-update stale requirement hashes before commit.
 
 SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
 
@@ -455,6 +454,70 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
         echo "⚠️  WARNING: markdownlint not installed - skipping markdown linting"
         echo "   Install: npm install -g markdownlint-cli@${MARKDOWNLINT_CLI_VERSION:-latest}"
         echo ""
+    fi
+fi
+
+# =====================================================
+# 6. Phase Design Spec Requirements Check (Built-in)
+# =====================================================
+#
+# Enforces CLAUDE.md §"Phase Design Spec Requirements":
+#
+#   docs/superpowers/specs/*-design.md
+#       MUST contain a "## Requirements" section header
+#       AND at least one REQ-[pod]NNNNN reference.
+#
+#   docs/superpowers/specs/*-stub.md
+#       MUST contain "Requirements: deferred ..." line
+#       OR at least one REQ-[pod]NNNNN reference.
+#
+# Failure blocks the commit. To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^docs/superpowers/specs/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    SPEC_CHECK_FAILED=0
+    while IFS= read -r spec; do
+        # Belt-and-suspenders: skip if file doesn't exist in working tree
+        # (shouldn't happen with --diff-filter=ACM, but defensive).
+        [ -f "$spec" ] || continue
+
+        case "$spec" in
+            *-stub.md)
+                if ! grep -qE '([Rr]equirements?.{0,60}[Dd]eferred|REQ-[pod][0-9]{5})' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   stub must include a 'Requirements: deferred ...' line OR a REQ-[pod] reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *-design.md)
+                if ! grep -q '^## Requirements' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required '## Requirements' section header."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                if ! grep -qE 'REQ-[pod][0-9]{5}' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required REQ-[pod]NNNNN reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *)
+                # Other markdown files in docs/superpowers/specs/ (e.g. README.md,
+                # INDEX.md if introduced later) are not subject to this check.
+                ;;
+        esac
+    done <<< "$SPEC_FILES_CHANGED"
+
+    if [ "$SPEC_CHECK_FAILED" = "1" ]; then
+        echo ""
+        echo "Phase design spec check failed."
+        echo "To bypass (NOT RECOMMENDED): git commit --no-verify"
+        exit 1
     fi
 fi
 
