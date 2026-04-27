@@ -225,12 +225,10 @@ void main() {
   group('generatePatientLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
+        body: {'patientId': testPatientNotConnected},
       );
-      final response = await generatePatientLinkingCodeHandler(
-        request,
-        testPatientNotConnected,
-      );
+      final response = await generatePatientLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -239,48 +237,46 @@ void main() {
 
     test('returns 401 with invalid Bearer token', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
+        body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'Bearer invalid-token'},
       );
-      final response = await generatePatientLinkingCodeHandler(
-        request,
-        testPatientNotConnected,
-      );
+      final response = await generatePatientLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
     });
 
     test('returns 401 without Bearer prefix', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientNotConnected/link-code',
+        '/api/v1/portal/patients/link-code',
+        body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'some-token'},
       );
-      final response = await generatePatientLinkingCodeHandler(
-        request,
-        testPatientNotConnected,
-      );
+      final response = await generatePatientLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
     });
 
     test('returns JSON content type on all error responses', () async {
       final requests = [
-        createPostRequest('/api/v1/portal/patients/test/link-code'),
         createPostRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: {'patientId': 'test'},
+        ),
+        createPostRequest(
+          '/api/v1/portal/patients/link-code',
+          body: {'patientId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: {'patientId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
       ];
 
       for (final request in requests) {
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          'test',
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });
@@ -289,12 +285,10 @@ void main() {
   group('getPatientLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest(
-        '/api/v1/portal/patients/$testPatientLinking/link-code',
+        '/api/v1/portal/patients/link-code',
+        headers: {'x-patient-id': testPatientLinking},
       );
-      final response = await getPatientLinkingCodeHandler(
-        request,
-        testPatientLinking,
-      );
+      final response = await getPatientLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -303,19 +297,22 @@ void main() {
 
     test('returns JSON content type on all error responses', () async {
       final requests = [
-        createGetRequest('/api/v1/portal/patients/test/link-code'),
         createGetRequest(
-          '/api/v1/portal/patients/test/link-code',
-          headers: {'authorization': ''},
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': 'test'},
         ),
         createGetRequest(
-          '/api/v1/portal/patients/test/link-code',
-          headers: {'authorization': 'Bearer invalid'},
+          '/api/v1/portal/patients/link-code',
+          headers: {'authorization': '', 'x-patient-id': 'test'},
+        ),
+        createGetRequest(
+          '/api/v1/portal/patients/link-code',
+          headers: {'authorization': 'Bearer invalid', 'x-patient-id': 'test'},
         ),
       ];
 
       for (final request in requests) {
-        final response = await getPatientLinkingCodeHandler(request, 'test');
+        final response = await getPatientLinkingCodeHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });
@@ -324,13 +321,10 @@ void main() {
   group('disconnectPatientHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
-        '/api/v1/portal/patients/$testPatientConnected/disconnect',
-        body: {'reason': 'Device Issues'},
+        '/api/v1/portal/patients/disconnect',
+        body: {'patientId': testPatientConnected, 'reason': 'Device Issues'},
       );
-      final response = await disconnectPatientHandler(
-        request,
-        testPatientConnected,
-      );
+      final response = await disconnectPatientHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -339,19 +333,24 @@ void main() {
 
     test('returns JSON content type on all error responses', () async {
       final requests = [
-        createPostRequest('/api/v1/portal/patients/test/disconnect'),
         createPostRequest(
-          '/api/v1/portal/patients/test/disconnect',
+          '/api/v1/portal/patients/disconnect',
+          body: {'patientId': 'test'},
+        ),
+        createPostRequest(
+          '/api/v1/portal/patients/disconnect',
+          body: {'patientId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
-          '/api/v1/portal/patients/test/disconnect',
+          '/api/v1/portal/patients/disconnect',
+          body: {'patientId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
       ];
 
       for (final request in requests) {
-        final response = await disconnectPatientHandler(request, 'test');
+        final response = await disconnectPatientHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });

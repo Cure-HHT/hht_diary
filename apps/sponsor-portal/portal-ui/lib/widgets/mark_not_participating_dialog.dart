@@ -94,7 +94,8 @@ class _MarkNotParticipatingDialogState
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient
-        .post('/api/v1/portal/patients/${widget.patientId}/not-participating', {
+        .post('/api/v1/portal/patients/not-participating', {
+          'patientId': widget.patientId,
           'reason': _selectedReason!.label,
           if (_notesController.text.trim().isNotEmpty)
             'notes': _notesController.text.trim(),

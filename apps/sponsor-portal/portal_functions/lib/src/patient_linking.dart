@@ -58,12 +58,7 @@ String get sponsorLinkingPrefix =>
 ///   403: Unauthorized (not Investigator role or wrong site)
 ///   404: Patient not found
 ///   409: Patient already connected
-Future<Response> generatePatientLinkingCodeHandler(
-  Request request,
-  String patientId,
-) async {
-  print('[PATIENT_LINKING] generatePatientLinkingCodeHandler for: $patientId');
-
+Future<Response> generatePatientLinkingCodeHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -72,23 +67,29 @@ Future<Response> generatePatientLinkingCodeHandler(
 
   // Check role - only Investigators can generate linking codes
   if (user.activeRole != 'Investigator') {
-    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
     return _jsonResponse({
       'error': 'Only Investigators can generate patient linking codes',
     }, 403);
   }
 
-  // Parse optional reconnect_reason from request body
-  String? reconnectReason;
+  // CUR-1064: patientId moved from URL path to request body
+  Map<String, dynamic> requestData;
   try {
-    final body = await request.readAsString();
-    if (body.isNotEmpty) {
-      final requestData = jsonDecode(body) as Map<String, dynamic>;
-      reconnectReason = requestData['reconnect_reason'] as String?;
-    }
+    final bodyStr = await request.readAsString();
+    requestData = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
+        : <String, dynamic>{};
   } catch (_) {
-    // Ignore parsing errors - body is optional
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
+
+  final patientId = requestData['patientId'] as String?;
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+  final reconnectReason = requestData['reconnect_reason'] as String?;
+
+  print('[PATIENT_LINKING] generatePatientLinkingCodeHandler for: $patientId');
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -298,12 +299,7 @@ Future<Response> generatePatientLinkingCodeHandler(
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized
 ///   404: Patient not found
-Future<Response> getPatientLinkingCodeHandler(
-  Request request,
-  String patientId,
-) async {
-  print('[PATIENT_LINKING] getPatientLinkingCodeHandler for: $patientId');
-
+Future<Response> getPatientLinkingCodeHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -316,6 +312,14 @@ Future<Response> getPatientLinkingCodeHandler(
       'error': 'Only Investigators can view patient linking codes',
     }, 403);
   }
+
+  // CUR-1064: patientId moved from URL path to X-Patient-Id header (GET request)
+  final patientId = request.headers['x-patient-id'];
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing X-Patient-Id header'}, 400);
+  }
+
+  print('[PATIENT_LINKING] getPatientLinkingCodeHandler for: $patientId');
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -460,12 +464,7 @@ const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 ///   403: Unauthorized (not Investigator role or wrong site)
 ///   404: Patient not found
 ///   409: Patient is not in 'connected' status
-Future<Response> disconnectPatientHandler(
-  Request request,
-  String patientId,
-) async {
-  print('[PATIENT_LINKING] disconnectPatientHandler for: $patientId');
-
+Future<Response> disconnectPatientHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -474,28 +473,34 @@ Future<Response> disconnectPatientHandler(
 
   // Check role - only Investigators can disconnect patients
   if (user.activeRole != 'Investigator') {
-    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
     return _jsonResponse({
       'error': 'Only Investigators can disconnect patients',
     }, 403);
   }
 
-  // Parse request body
-  String body;
+  // CUR-1064: patientId moved from URL path to request body
+  String bodyStr;
   try {
-    body = await request.readAsString();
+    bodyStr = await request.readAsString();
   } catch (e) {
     return _jsonResponse({'error': 'Failed to read request body'}, 400);
   }
 
   Map<String, dynamic> requestData;
   try {
-    requestData = body.isNotEmpty
-        ? jsonDecode(body) as Map<String, dynamic>
+    requestData = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
         : <String, dynamic>{};
   } catch (e) {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
+
+  final patientId = requestData['patientId'] as String?;
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+
+  print('[PATIENT_LINKING] disconnectPatientHandler for: $patientId');
 
   // Validate reason field
   final reason = requestData['reason'] as String?;
@@ -678,12 +683,7 @@ const validNotParticipatingReasons = [
 ///   403: Unauthorized (not Investigator role or wrong site)
 ///   404: Patient not found
 ///   409: Patient is not in 'disconnected' status
-Future<Response> markPatientNotParticipatingHandler(
-  Request request,
-  String patientId,
-) async {
-  print('[PATIENT_LINKING] markPatientNotParticipatingHandler for: $patientId');
-
+Future<Response> markPatientNotParticipatingHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -692,28 +692,34 @@ Future<Response> markPatientNotParticipatingHandler(
 
   // Check role - only Investigators can mark patients as not participating
   if (user.activeRole != 'Investigator') {
-    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
     return _jsonResponse({
       'error': 'Only Investigators can mark patients as not participating',
     }, 403);
   }
 
-  // Parse request body
-  String body;
+  // CUR-1064: patientId moved from URL path to request body
+  String bodyStr;
   try {
-    body = await request.readAsString();
+    bodyStr = await request.readAsString();
   } catch (e) {
     return _jsonResponse({'error': 'Failed to read request body'}, 400);
   }
 
   Map<String, dynamic> requestData;
   try {
-    requestData = body.isNotEmpty
-        ? jsonDecode(body) as Map<String, dynamic>
+    requestData = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
         : <String, dynamic>{};
   } catch (e) {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
+
+  final patientId = requestData['patientId'] as String?;
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+
+  print('[PATIENT_LINKING] markPatientNotParticipatingHandler for: $patientId');
 
   // Validate reason field
   final reason = requestData['reason'] as String?;
@@ -862,12 +868,7 @@ Future<Response> markPatientNotParticipatingHandler(
 ///   403: Unauthorized (not Investigator role or wrong site)
 ///   404: Patient not found
 ///   409: Patient is not in 'not_participating' status
-Future<Response> reactivatePatientHandler(
-  Request request,
-  String patientId,
-) async {
-  print('[PATIENT_LINKING] reactivatePatientHandler for: $patientId');
-
+Future<Response> reactivatePatientHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -876,28 +877,34 @@ Future<Response> reactivatePatientHandler(
 
   // Check role - only Investigators can reactivate patients
   if (user.activeRole != 'Investigator') {
-    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
     return _jsonResponse({
       'error': 'Only Investigators can reactivate patients',
     }, 403);
   }
 
-  // Parse request body
-  String body;
+  // CUR-1064: patientId moved from URL path to request body
+  String bodyStr;
   try {
-    body = await request.readAsString();
+    bodyStr = await request.readAsString();
   } catch (e) {
     return _jsonResponse({'error': 'Failed to read request body'}, 400);
   }
 
   Map<String, dynamic> requestData;
   try {
-    requestData = body.isNotEmpty
-        ? jsonDecode(body) as Map<String, dynamic>
+    requestData = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
         : <String, dynamic>{};
   } catch (e) {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
+
+  final patientId = requestData['patientId'] as String?;
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+
+  print('[PATIENT_LINKING] reactivatePatientHandler for: $patientId');
 
   // Validate reason field
   final reason = requestData['reason'] as String?;
@@ -1027,9 +1034,7 @@ Future<Response> reactivatePatientHandler(
 ///   403: Unauthorized (not Investigator role or wrong site)
 ///   404: Patient not found
 ///   409: Patient is not in 'connected' status OR trial already started
-Future<Response> startTrialHandler(Request request, String patientId) async {
-  print('[PATIENT_LINKING] startTrialHandler for: $patientId');
-
+Future<Response> startTrialHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -1038,11 +1043,27 @@ Future<Response> startTrialHandler(Request request, String patientId) async {
 
   // Check role - only Investigators can start trial
   if (user.activeRole != 'Investigator') {
-    print('[PATIENT_LINKING] User ${user.id} is not Investigator');
     return _jsonResponse({
       'error': 'Only Investigators can start trial for patients',
     }, 403);
   }
+
+  // CUR-1064: patientId moved from URL path to request body
+  String? patientId;
+  try {
+    final bodyStr = await request.readAsString();
+    final bodyJson = bodyStr.isNotEmpty
+        ? jsonDecode(bodyStr) as Map<String, dynamic>
+        : <String, dynamic>{};
+    patientId = bodyJson['patientId'] as String?;
+  } catch (_) {
+    return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
+  }
+  if (patientId == null || patientId.isEmpty) {
+    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  }
+
+  print('[PATIENT_LINKING] startTrialHandler for: $patientId');
 
   final db = Database.instance;
   const serviceContext = UserContext.service;

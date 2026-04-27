@@ -111,10 +111,11 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request, 'p1');
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -124,11 +125,12 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
           headers: {'authorization': ''},
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request, 'p1');
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -138,14 +140,12 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
             headers: {'authorization': 'some-token'},
+            body: jsonEncode({'patientId': 'p1'}),
           );
 
-          final response = await generatePatientLinkingCodeHandler(
-            request,
-            'p1',
-          );
+          final response = await generatePatientLinkingCodeHandler(request);
 
           expect(response.statusCode, 401);
         },
@@ -154,10 +154,11 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request, 'p1');
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.headers['content-type'], 'application/json');
       });
@@ -169,10 +170,11 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          headers: {'x-patient-id': 'p1'},
         );
 
-        final response = await getPatientLinkingCodeHandler(request, 'p1');
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -182,11 +184,11 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
-          headers: {'authorization': ''},
+          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          headers: {'authorization': '', 'x-patient-id': 'p1'},
         );
 
-        final response = await getPatientLinkingCodeHandler(request, 'p1');
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -198,24 +200,27 @@ void main() {
       'generatePatientLinkingCodeHandler returns valid JSON on all error paths',
       () async {
         final requests = [
-          Request('POST', Uri.parse('http://localhost/')),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            body: jsonEncode({'patientId': 'test-id'}),
+          ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': ''},
+            body: jsonEncode({'patientId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'invalid'},
+            body: jsonEncode({'patientId': 'test-id'}),
           ),
         ];
 
         for (final request in requests) {
-          final response = await generatePatientLinkingCodeHandler(
-            request,
-            'test-id',
-          );
+          final response = await generatePatientLinkingCodeHandler(request);
           final body = await response.readAsString();
 
           // Should parse as valid JSON without throwing
@@ -229,24 +234,28 @@ void main() {
       'getPatientLinkingCodeHandler returns valid JSON on all error paths',
       () async {
         final requests = [
-          Request('GET', Uri.parse('http://localhost/')),
           Request(
             'GET',
             Uri.parse('http://localhost/'),
-            headers: {'authorization': ''},
+            headers: {'x-patient-id': 'test-id'},
           ),
           Request(
             'GET',
             Uri.parse('http://localhost/'),
-            headers: {'authorization': 'Bearer invalid'},
+            headers: {'authorization': '', 'x-patient-id': 'test-id'},
+          ),
+          Request(
+            'GET',
+            Uri.parse('http://localhost/'),
+            headers: {
+              'authorization': 'Bearer invalid',
+              'x-patient-id': 'test-id',
+            },
           ),
         ];
 
         for (final request in requests) {
-          final response = await getPatientLinkingCodeHandler(
-            request,
-            'test-id',
-          );
+          final response = await getPatientLinkingCodeHandler(request);
           final body = await response.readAsString();
 
           // Should parse as valid JSON without throwing
@@ -484,11 +493,11 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
-          body: jsonEncode({'reason': 'Device Issues'}),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
-        final response = await disconnectPatientHandler(request, 'p1');
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -498,12 +507,12 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
           headers: {'authorization': ''},
-          body: jsonEncode({'reason': 'Device Issues'}),
+          body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
-        final response = await disconnectPatientHandler(request, 'p1');
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -513,12 +522,12 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+            Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
             headers: {'authorization': 'some-token'},
-            body: jsonEncode({'reason': 'Device Issues'}),
+            body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
           );
 
-          final response = await disconnectPatientHandler(request, 'p1');
+          final response = await disconnectPatientHandler(request);
 
           expect(response.statusCode, 401);
         },
@@ -527,10 +536,11 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await disconnectPatientHandler(request, 'p1');
+        final response = await disconnectPatientHandler(request);
 
         expect(response.headers['content-type'], 'application/json');
       });
@@ -542,10 +552,11 @@ void main() {
         // through the response format test instead
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await disconnectPatientHandler(request, 'p1');
+        final response = await disconnectPatientHandler(request);
 
         // Without auth, returns 401, but response is still valid JSON
         expect(response.headers['content-type'], 'application/json');
@@ -559,26 +570,33 @@ void main() {
         'disconnectPatientHandler returns valid JSON on all error paths',
         () async {
           final requests = [
-            Request('POST', Uri.parse('http://localhost/')),
+            Request(
+              'POST',
+              Uri.parse('http://localhost/'),
+              body: jsonEncode({'patientId': 'test-id'}),
+            ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': ''},
+              body: jsonEncode({'patientId': 'test-id'}),
             ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': 'invalid'},
+              body: jsonEncode({'patientId': 'test-id'}),
             ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': 'Bearer invalid'},
+              body: jsonEncode({'patientId': 'test-id'}),
             ),
           ];
 
           for (final request in requests) {
-            final response = await disconnectPatientHandler(request, 'test-id');
+            final response = await disconnectPatientHandler(request);
             final body = await response.readAsString();
 
             // Should parse as valid JSON without throwing
@@ -701,15 +719,15 @@ void main() {
           // and returns JSON (auth error, but valid JSON)
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
-            body: jsonEncode({'reconnect_reason': 'Patient got new device'}),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+            body: jsonEncode({
+              'patientId': 'p1',
+              'reconnect_reason': 'Patient got new device',
+            }),
             headers: {'content-type': 'application/json'},
           );
 
-          final response = await generatePatientLinkingCodeHandler(
-            request,
-            'p1',
-          );
+          final response = await generatePatientLinkingCodeHandler(request);
 
           // Should return valid JSON even on auth error
           expect(response.headers['content-type'], 'application/json');
@@ -722,13 +740,11 @@ void main() {
           () async {
             final request = Request(
               'POST',
-              Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+              Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+              body: jsonEncode({'patientId': 'p1'}),
             );
 
-            final response = await generatePatientLinkingCodeHandler(
-              request,
-              'p1',
-            );
+            final response = await generatePatientLinkingCodeHandler(request);
 
             expect(response.headers['content-type'], 'application/json');
             final body = await response.readAsString();
@@ -739,15 +755,12 @@ void main() {
         test('handles invalid JSON body gracefully', () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
             body: 'not valid json',
             headers: {'content-type': 'application/json'},
           );
 
-          final response = await generatePatientLinkingCodeHandler(
-            request,
-            'p1',
-          );
+          final response = await generatePatientLinkingCodeHandler(request);
 
           // Should still return valid JSON (auth error, not parsing error)
           expect(response.headers['content-type'], 'application/json');
@@ -816,10 +829,11 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await startTrialHandler(request, 'p1');
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -829,11 +843,12 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
           headers: {'authorization': ''},
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await startTrialHandler(request, 'p1');
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -843,11 +858,12 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+            Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
             headers: {'authorization': 'some-token'},
+            body: jsonEncode({'patientId': 'p1'}),
           );
 
-          final response = await startTrialHandler(request, 'p1');
+          final response = await startTrialHandler(request);
 
           expect(response.statusCode, 401);
         },
@@ -856,10 +872,11 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/p1/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+          body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await startTrialHandler(request, 'p1');
+        final response = await startTrialHandler(request);
 
         expect(response.headers['content-type'], 'application/json');
       });
@@ -868,26 +885,33 @@ void main() {
     group('response format consistency', () {
       test('startTrialHandler returns valid JSON on all error paths', () async {
         final requests = [
-          Request('POST', Uri.parse('http://localhost/')),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            body: jsonEncode({'patientId': 'test-id'}),
+          ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': ''},
+            body: jsonEncode({'patientId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'invalid'},
+            body: jsonEncode({'patientId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'Bearer invalid'},
+            body: jsonEncode({'patientId': 'test-id'}),
           ),
         ];
 
         for (final request in requests) {
-          final response = await startTrialHandler(request, 'test-id');
+          final response = await startTrialHandler(request);
           final body = await response.readAsString();
 
           // Should parse as valid JSON without throwing
@@ -1014,13 +1038,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1037,13 +1059,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
         final body = await _json(response);
@@ -1058,13 +1078,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/nonexistent/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': 'nonexistent'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          'nonexistent',
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1079,13 +1097,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
         final body = await _json(response);
@@ -1102,13 +1118,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 409);
         final body = await _json(response);
@@ -1143,13 +1157,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         expect(revokedCodes, isTrue);
@@ -1183,14 +1195,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
-          body: jsonEncode({'reconnect_reason': 'New device'}),
+          '/api/v1/portal/patients/link-code',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reconnect_reason': 'New device',
+          }),
         );
 
-        final response = await generatePatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await generatePatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         expect(capturedActionType, 'RECONNECT_PATIENT');
@@ -1221,13 +1233,11 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1251,13 +1261,11 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1387,13 +1395,11 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1406,13 +1412,11 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/nonexistent/link-code',
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': 'nonexistent'},
         );
 
-        final response = await getPatientLinkingCodeHandler(
-          request,
-          'nonexistent',
-        );
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1429,13 +1433,11 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/$_testPatientId/link-code',
+          '/api/v1/portal/patients/link-code',
+          headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await getPatientLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1464,14 +1466,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Device Issues'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Device Issues',
+          }),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1487,14 +1489,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Device Issues'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Device Issues',
+          }),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1506,14 +1508,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1523,14 +1522,14 @@ void main() {
       test('returns 400 for invalid reason value', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Not a valid reason'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Not a valid reason',
+          }),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1540,14 +1539,11 @@ void main() {
       test('returns 400 when Other reason has no notes', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Other'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1562,11 +1558,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/nonexistent/disconnect',
-          body: jsonEncode({'reason': 'Device Issues'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': 'nonexistent',
+            'reason': 'Device Issues',
+          }),
         );
 
-        final response = await disconnectPatientHandler(request, 'nonexistent');
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1581,14 +1580,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Device Issues'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Device Issues',
+          }),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1603,14 +1602,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
-          body: jsonEncode({'reason': 'Device Issues'}),
+          '/api/v1/portal/patients/disconnect',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Device Issues',
+          }),
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 409);
         final body = await _json(response);
@@ -1620,14 +1619,11 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/disconnect',
+          '/api/v1/portal/patients/disconnect',
           body: 'not json',
         );
 
-        final response = await disconnectPatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1653,14 +1649,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Subject Withdrawal'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Subject Withdrawal',
+          }),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1675,14 +1671,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Death'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1690,14 +1683,14 @@ void main() {
       test('returns 400 for invalid reason', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Invalid reason'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Invalid reason',
+          }),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1705,14 +1698,11 @@ void main() {
       test('returns 400 when Other reason has no notes', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Other'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1727,14 +1717,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/nonexistent/not-participating',
-          body: jsonEncode({'reason': 'Death'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          'nonexistent',
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1749,14 +1736,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Death'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1771,14 +1755,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
-          body: jsonEncode({'reason': 'Subject Withdrawal'}),
+          '/api/v1/portal/patients/not-participating',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Subject Withdrawal',
+          }),
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 409);
       });
@@ -1786,14 +1770,11 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/not-participating',
+          '/api/v1/portal/patients/not-participating',
           body: 'not json',
         );
 
-        final response = await markPatientNotParticipatingHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await markPatientNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1819,14 +1800,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
-          body: jsonEncode({'reason': 'Patient changed mind'}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Patient changed mind',
+          }),
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1841,14 +1822,14 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
-          body: jsonEncode({'reason': 'Changed mind'}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'reason': 'Changed mind',
+          }),
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1856,14 +1837,11 @@ void main() {
       test('returns 400 when reason is missing', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
-          body: jsonEncode({}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1876,11 +1854,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/nonexistent/reactivate',
-          body: jsonEncode({'reason': 'Test'}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(request, 'nonexistent');
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1897,14 +1875,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
-          body: jsonEncode({'reason': 'Test'}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1919,14 +1894,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
-          body: jsonEncode({'reason': 'Test'}),
+          '/api/v1/portal/patients/reactivate',
+          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 409);
       });
@@ -1934,14 +1906,11 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/reactivate',
+          '/api/v1/portal/patients/reactivate',
           body: 'not json',
         );
 
-        final response = await reactivatePatientHandler(
-          request,
-          _testPatientId,
-        );
+        final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1970,10 +1939,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1987,10 +1957,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2003,10 +1974,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/nonexistent/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': 'nonexistent'}),
         );
 
-        final response = await startTrialHandler(request, 'nonexistent');
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -2021,10 +1993,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2039,10 +2012,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 409);
       });
@@ -2057,10 +2031,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 409);
         final body = await _json(response);
@@ -2088,10 +2063,11 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/$_testPatientId/start-trial',
+          '/api/v1/portal/patients/start-trial',
+          body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await startTrialHandler(request, _testPatientId);
+        final response = await startTrialHandler(request);
 
         expect(response.statusCode, 200);
       });
