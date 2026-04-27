@@ -172,15 +172,14 @@ source "$REPO_ROOT/.githooks/version-utils.sh"
 VERSION_FAILED=false
 
 for project_def in "${PROJECT_DEFS[@]}"; do
-  IFS='|' read -r name pubspec triggers <<< "$project_def"
-  own_dir=$(dirname "$pubspec")/
+  IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
   code_changed=false
   any_trigger=false
-  if has_code_changes "$own_dir" "$CHANGED_FILES"; then
+  if has_code_changes "$code_dirs" "$CHANGED_FILES"; then
     code_changed=true
     any_trigger=true
-  elif has_any_trigger "$triggers" "$CHANGED_FILES" "$own_dir"; then
+  elif has_any_trigger "$triggers" "$CHANGED_FILES"; then
     any_trigger=true
   fi
 
@@ -193,8 +192,8 @@ for project_def in "${PROJECT_DEFS[@]}"; do
       continue
     fi
 
-    if ! verify_version_bumped "$pr_ver" "$main_ver" "$code_changed"; then
-      expected=$(compute_new_version "$pr_ver" "$main_ver" "$code_changed")
+    if ! verify_version_bumped_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed"; then
+      expected=$(compute_new_version_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed")
       if [ "$code_changed" = true ]; then
         report_error "${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
       else
@@ -232,7 +231,26 @@ begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 if [ "$SPEC_CHANGED" = "true" ]; then
   elspais --version
 
-  elspais checks
+  # Capture stdout+stderr so we can both forward it to the log and scan
+  # it for "info"-downgraded findings to surface as GitHub Actions
+  # warning annotations (see lib/elspais-annotations.sh). The `if`-form
+  # deactivates `set -e` for the elspais call so we can run the
+  # annotation pass before re-asserting the exit code.
+  elspais_exit=0
+  if elspais_output=$(elspais checks 2>&1); then
+    elspais_exit=0
+  else
+    elspais_exit=$?
+  fi
+  printf '%s\n' "$elspais_output"
+
+  # shellcheck source=lib/elspais-annotations.sh
+  source "$REPO_ROOT/.github/scripts/lib/elspais-annotations.sh"
+  emit_suppressed_warnings "$elspais_output"
+
+  if [ "$elspais_exit" -ne 0 ]; then
+    exit "$elspais_exit"
+  fi
 
   # Generate traceability matrix for PR comment and artifact upload
   mkdir -p build-reports/combined/traceability
@@ -290,50 +308,51 @@ if [ "$ENFORCE_CODE_HEADERS" = "on" ] && { [ "$CODE_CHANGED" = "true" ] || [ "$D
   MISSING_HEADERS=()
   TOTAL_SCANNED=0
 
+  # Recursive SQL/Dart scans use `find -print0 | while read -d ''` rather
+  # than bash 4's `globstar`. Devs run validate-pr.sh on macOS where the
+  # default /bin/bash is 3.2 and `shopt -s globstar` is unavailable; under
+  # that shell, `database/**/*.sql` silently degrades to depth-2 matching
+  # and deeper files escape header validation without any error. The
+  # process-substitution form keeps the loop body in the same shell so
+  # MISSING_HEADERS+= and TOTAL_SCANNED= propagate.
+
   # Check SQL files in database directory
   if [ -d "database" ]; then
-    shopt -s nullglob globstar
-    for file in database/**/*.sql; do
-      # Skip tests and migrations
+    while IFS= read -r -d '' file; do
       if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
         continue
       fi
-      if [ -f "$file" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|sql")
-        fi
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|sql")
       fi
-    done
-    shopt -u globstar
+    done < <(find database -type f -name '*.sql' -print0 2>/dev/null)
   fi
 
   # Check Dart files in packages directory
   if [ -d "packages" ]; then
-    shopt -s globstar
-    for file in packages/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find packages -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Check Dart files in apps directory
   if [ -d "apps" ]; then
-    shopt -s globstar
-    for file in apps/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find apps -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Write report to ci-reports/

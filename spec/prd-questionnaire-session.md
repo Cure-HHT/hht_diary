@@ -42,7 +42,6 @@ C. If the patient defers, the system SHALL record a questionnaire-deferred event
 D. If the patient defers, the system SHALL return the patient to the previous screen.
 
 E. The system SHALL record a session-started event when the patient confirms readiness and proceeds.
-
 ### Session Timeout
 
 F. When a questionnaire is configured with a session timeout, the system SHALL track elapsed time from the most recent app-foreground interaction with the questionnaire.
@@ -54,28 +53,28 @@ H. When the timeout is exceeded before questionnaire submission, the system SHAL
 I. When the timeout is exceeded, the system SHALL record a session-expired event with reason "Questionnaire Timeout Limit Exceeded", retaining the questionnaire instance UUID.
 
 J. The expired questionnaire instance SHALL require the patient to complete the readiness gate and all questions again from the beginning.
-
 ### In-App Expiry Notification
 
 K. Upon app resume, if a questionnaire session has expired, the system SHALL display an expiry message to the patient.
 
 L. The task notification for an expired questionnaire SHALL change from the standard pending message to an expiry-specific message.
-
 ### OS-Level Notifications
 
 M. When configured, the system SHALL deliver an OS-level push notification when the session timeout is approaching (e.g., 5 minutes remaining) to allow the patient to resume.
 
 N. When configured, the system SHALL deliver an OS-level push notification when the session has expired, informing the patient they must restart the questionnaire.
-
 ### Configuration
 
 O. Each questionnaire definition SHALL support optional session management configuration including: readiness check enabled/disabled, estimated completion time, and session timeout duration.
 
 P. Questionnaires without session management configuration SHALL preserve and restore state on app resume with no timeout constraint.
-
 ### App Resume Behavior
 
 Q. When the app is resumed after being closed by the OS, if a questionnaire is in progress and has not timed out, the app SHALL open to the questionnaire for completion.
+
+## Changelog
+
+- 2026-04-24 | 3ab0f2f1 | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
 
 *End* *Questionnaire Session Management* | **Hash**: 3ab0f2f1
 
