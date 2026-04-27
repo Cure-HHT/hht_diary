@@ -387,8 +387,7 @@ fi
 # =====================================================
 # 4. Requirement Hash Update (elspais)
 # =====================================================
-# Auto-update stale requirement hashes before commit
-# This ensures hashes are always current
+# Auto-update stale requirement hashes before commit.
 
 SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
 
@@ -459,6 +458,70 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
+# 6. Phase Design Spec Requirements Check (Built-in)
+# =====================================================
+#
+# Enforces CLAUDE.md §"Phase Design Spec Requirements":
+#
+#   docs/superpowers/specs/*-design.md
+#       MUST contain a "## Requirements" section header
+#       AND at least one REQ-[pod]NNNNN reference.
+#
+#   docs/superpowers/specs/*-stub.md
+#       MUST contain "Requirements: deferred ..." line
+#       OR at least one REQ-[pod]NNNNN reference.
+#
+# Failure blocks the commit. To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^docs/superpowers/specs/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    SPEC_CHECK_FAILED=0
+    while IFS= read -r spec; do
+        # Belt-and-suspenders: skip if file doesn't exist in working tree
+        # (shouldn't happen with --diff-filter=ACM, but defensive).
+        [ -f "$spec" ] || continue
+
+        case "$spec" in
+            *-stub.md)
+                if ! grep -qE '([Rr]equirements?.{0,60}[Dd]eferred|REQ-[pod][0-9]{5})' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   stub must include a 'Requirements: deferred ...' line OR a REQ-[pod] reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *-design.md)
+                if ! grep -q '^## Requirements' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required '## Requirements' section header."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                if ! grep -qE 'REQ-[pod][0-9]{5}' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required REQ-[pod]NNNNN reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *)
+                # Other markdown files in docs/superpowers/specs/ (e.g. README.md,
+                # INDEX.md if introduced later) are not subject to this check.
+                ;;
+        esac
+    done <<< "$SPEC_FILES_CHANGED"
+
+    if [ "$SPEC_CHECK_FAILED" = "1" ]; then
+        echo ""
+        echo "Phase design spec check failed."
+        echo "To bypass (NOT RECOMMENDED): git commit --no-verify"
+        exit 1
+    fi
+fi
+
+# =====================================================
 # 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
 # =====================================================
 #
@@ -512,7 +575,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
         # runs, so lock files resolve the correct dependency versions.
 
         for project_def in "${PROJECT_DEFS[@]}"; do
-            IFS='|' read -r name pubspec triggers <<< "$project_def"
+            IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
             FULL_PUBSPEC="$REPO_ROOT/$pubspec"
 
@@ -521,15 +584,15 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 continue
             fi
 
-            # Determine what changed: code (own source) vs any trigger (infra/dep)
-            own_dir=$(dirname "$pubspec")/
+            # Determine what changed: own source (semver+build) vs external
+            # trigger (build only). Non-source own-dir changes produce neither.
             code_changed=false
             any_trigger=false
 
-            if has_code_changes "$own_dir" "$BUMP_CHANGED_FILES"; then
+            if has_code_changes "$code_dirs" "$BUMP_CHANGED_FILES"; then
                 code_changed=true
                 any_trigger=true
-            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES" "$own_dir"; then
+            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES"; then
                 any_trigger=true
             fi
 
@@ -540,11 +603,16 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
 
                 # Skip if already properly bumped for this change type
-                if verify_version_bumped "$current" "${main_version:-0}" "$code_changed"; then
+                if verify_version_bumped_for "$version_mode" "$current" "${main_version:-0}" "$code_changed"; then
                     continue
                 fi
 
-                new_version=$(compute_new_version "$current" "${main_version:-$current}" "$code_changed")
+                new_version=$(compute_new_version_for "$version_mode" "$current" "${main_version:-$current}" "$code_changed")
+
+                # Semver-only projects on a trigger-only change get no bump.
+                if [ -z "$new_version" ]; then
+                    continue
+                fi
 
                 # Update pubspec.yaml (portable: works on both BSD and GNU sed)
                 if sed --version >/dev/null 2>&1; then

@@ -18,6 +18,10 @@ E. The system SHALL operate in a manner compliant with applicable regulations.
 
 This requirement defines the existence, scope, and regulatory nature of the platform without constraining internal design or implementation mechanisms.
 
+## Changelog
+
+- 2026-04-24 | 94b86e26 | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
 *End* *Clinical Trial Compliant Diary Platform* | **Hash**: 94b86e26
 ---
 ## REQ-p01041: Open Source Licensing

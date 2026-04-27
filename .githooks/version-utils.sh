@@ -35,39 +35,40 @@ extract_semver() {
 }
 
 # IMPLEMENTS: REQ-o00017-G (validate requirements before accepting commits)
-# has_code_changes <own_dir> <changed_files>
-# Returns 0 if files in the project's own directory changed
-# (excluding pubspec.yaml/pubspec.lock to avoid self-trigger).
+# has_code_changes <code_dirs> <changed_files>
+# Returns 0 if any file in changed_files lies under any of the declared
+# code_dirs (own-project source/ship paths from project-defs.sh, e.g.
+# lib/, bin/, assets/, web/). Non-source own-dir changes (test/, tool/,
+# README, analysis_options.yaml, pubspec.*) never match because they are
+# outside the code_dirs list.
 has_code_changes() {
-    local own_dir="$1"
+    local code_dirs="$1"
     local changed_files="$2"
 
-    local relevant
-    relevant=$(echo "$changed_files" | grep "^${own_dir}" | grep -v "pubspec\.yaml" | grep -v "pubspec\.lock" || true)
-    [ -n "$relevant" ]
+    local dir
+    for dir in $code_dirs; do
+        if echo "$changed_files" | grep -q "^${dir}"; then
+            return 0
+        fi
+    done
+    return 1
 }
 
-# has_any_trigger <trigger_paths> <changed_files> <own_dir>
-# Returns 0 if any trigger path matches (code, dependency, or infra).
-# Uses self-trigger exclusion for own_dir.
+# has_any_trigger <trigger_paths> <changed_files>
+# Returns 0 if any file in changed_files lies under any external trigger
+# path (dependency lib/assets, infra, platform-native build inputs).
+# Triggers are purely external: the project's own root is not a trigger,
+# so no self-exclusion logic is needed. Own-dir source is handled by
+# has_code_changes; own-dir non-source files (test/, tool/, README)
+# produce no bump.
 has_any_trigger() {
     local triggers="$1"
     local changed_files="$2"
-    local own_dir="$3"
 
-    local trigger relevant
+    local trigger
     for trigger in $triggers; do
         if echo "$changed_files" | grep -q "^${trigger}"; then
-            if [ "$trigger" = "$own_dir" ]; then
-                # Own directory: exclude pubspec changes (avoid self-trigger)
-                relevant=$(echo "$changed_files" | grep "^${trigger}" | grep -v "pubspec\.yaml" | grep -v "pubspec\.lock" || true)
-            else
-                # Dependency/infra directory: allow all changes including pubspec bumps (cascade)
-                relevant=$(echo "$changed_files" | grep "^${trigger}" || true)
-            fi
-            if [ -n "$relevant" ]; then
-                return 0
-            fi
+            return 0
         fi
     done
     return 1
@@ -138,8 +139,13 @@ compute_new_version() {
 # Returns 0 if properly bumped, 1 if not. Used by CI (check, don't fix).
 #
 # Checks:
-#   1. Build number must be greater than main's build number
-#   2. If code_changed, semver must be greater than main's semver
+#   1. Semver must never decrease vs main (defends against stale branches
+#      whose pubspec was bumped against an old main_semver — git's merge
+#      mechanics catch most of these via "branch out of date," but
+#      depending on branch protection settings the bad value can
+#      otherwise slip through)
+#   2. Build number must be greater than main's build number
+#   3. If code_changed, semver must be greater than main's semver
 #      (unless dev manually bumped, in which case any higher semver is fine)
 verify_version_bumped() {
     local current_version="$1"
@@ -152,6 +158,11 @@ verify_version_bumped() {
     main_build=$(extract_build_number "$main_version")
     current_semver=$(extract_semver "$current_version")
     main_semver=$(extract_semver "$main_version")
+
+    # Semver must never go backward, regardless of code_changed
+    if _semver_gt "$main_semver" "$current_semver"; then
+        return 1
+    fi
 
     # Build number must have increased
     if [ "$current_build" -le "$main_build" ]; then
@@ -166,4 +177,109 @@ verify_version_bumped() {
     fi
 
     return 0
+}
+
+# compute_new_version_semver_only <current_version> <main_version>
+# Bumps semver patch when main's semver hasn't moved; preserves a manual
+# minor or major bump in current. Strips any inherited +N — semver-only
+# projects must never carry a build identifier in pubspec because the
+# build identifier is assigned downstream (callisto's portal-final
+# Dockerfile composes APP_VERSION = <semver>+cb-<short_sha>).
+#
+# Caller is responsible for only invoking this when own-source code
+# changed; trigger-only invocations on a semver-only project should
+# produce no bump (handled by compute_new_version_for).
+compute_new_version_semver_only() {
+    local current_version="$1"
+    local main_version="$2"
+
+    local current_semver main_semver
+    current_semver="$(extract_semver "$current_version")"
+    main_semver="$(extract_semver "$main_version")"
+
+    if _semver_gt "$current_semver" "$main_semver"; then
+        echo "$current_semver"
+    else
+        _bump_patch "$main_semver"
+    fi
+}
+
+# verify_version_bumped_semver_only <current_version> <main_version> <code_changed>
+# Pass iff (a) current carries no +N, (b) semver never decreases vs main,
+# and (c) when code changed, semver strictly increased relative to main.
+# Trigger-only changes don't require a bump for semver-only projects, but
+# the no-backward-semver invariant still applies.
+verify_version_bumped_semver_only() {
+    local current_version="$1"
+    local main_version="$2"
+    local code_changed="$3"
+
+    if [[ "$current_version" == *+* ]]; then
+        return 1
+    fi
+
+    local current_semver main_semver
+    current_semver="$(extract_semver "$current_version")"
+    main_semver="$(extract_semver "$main_version")"
+
+    # Semver must never go backward, regardless of code_changed
+    if _semver_gt "$main_semver" "$current_semver"; then
+        return 1
+    fi
+
+    if [ "$code_changed" = "true" ]; then
+        if ! _semver_gt "$current_semver" "$main_semver"; then
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# compute_new_version_for <version_mode> <current> <main> <code_changed>
+# Dispatches by version_mode (from PROJECT_DEFS). Standard mode mirrors
+# compute_new_version. Semver-only mode bumps semver on a code change and
+# emits empty (no bump) on a trigger-only change.
+compute_new_version_for() {
+    local mode="$1"
+    local current="$2"
+    local main="$3"
+    local code_changed="$4"
+
+    case "$mode" in
+        standard)
+            compute_new_version "$current" "$main" "$code_changed"
+            ;;
+        semver-only)
+            if [ "$code_changed" = "true" ]; then
+                compute_new_version_semver_only "$current" "$main"
+            fi
+            ;;
+        *)
+            echo "ERROR: unknown version_mode '$mode'" >&2
+            return 1
+            ;;
+    esac
+}
+
+# verify_version_bumped_for <version_mode> <current> <main> <code_changed>
+# Dispatches by version_mode. See compute_new_version_for for the modes.
+verify_version_bumped_for() {
+    local mode="$1"
+    local current="$2"
+    local main="$3"
+    local code_changed="$4"
+
+    case "$mode" in
+        standard)
+            verify_version_bumped "$current" "$main" "$code_changed"
+            ;;
+        semver-only)
+            verify_version_bumped_semver_only "$current" "$main" "$code_changed"
+            ;;
+        *)
+            echo "ERROR: unknown version_mode '$mode'" >&2
+            return 1
+            ;;
+    esac
 }
