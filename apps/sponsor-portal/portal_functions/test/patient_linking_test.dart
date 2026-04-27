@@ -1300,7 +1300,8 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/$_testPatientId/link-code',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
           );
 
           final response = await getPatientLinkingCodeHandler(request);
@@ -1333,7 +1334,8 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/$_testPatientId/link-code',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
           );
 
           final response = await getPatientLinkingCodeHandler(request);
@@ -1369,7 +1371,8 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/$_testPatientId/link-code',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
           );
 
           final response = await getPatientLinkingCodeHandler(request);
