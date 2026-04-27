@@ -75,13 +75,6 @@ class QuestionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (showCategoryHeader) ...[
-                  CategoryHeader(
-                    categoryName: category.name,
-                    stem: category.stem,
-                  ),
-                  const SizedBox(height: 24),
-                ],
                 if (question.hasSegments)
                   RichTextQuestion(
                     segments: question.segments!,
