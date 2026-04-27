@@ -160,19 +160,18 @@ void main() {
       expect(find.byIcon(Icons.person_off), findsWidgets);
     });
 
-    testWidgets('confirm state shows warning and reason dropdown', (
+    testWidgets('confirm state shows description and reason dropdown', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Warning:'), findsOneWidget);
-      expect(find.byIcon(Icons.warning_amber), findsOneWidget);
       expect(find.text('Reason *'), findsOneWidget);
       expect(find.text('Select a reason'), findsOneWidget);
-      expect(find.textContaining('Completed the trial'), findsOneWidget);
-      expect(find.textContaining('Withdrawn consent'), findsOneWidget);
+      expect(find.textContaining('completed the trial'), findsOneWidget);
+      expect(find.textContaining('withdrawn consent'), findsOneWidget);
+      expect(find.textContaining('personal-use mode'), findsOneWidget);
     });
 
     testWidgets('action button has no effect without reason selected', (
