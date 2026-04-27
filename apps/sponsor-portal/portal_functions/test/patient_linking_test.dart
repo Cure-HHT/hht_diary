@@ -1272,6 +1272,117 @@ void main() {
         expect(body['has_active_code'], false);
       });
 
+      // CUR-1069: Participant Linking Code (reference) for connected/disconnected/not_participating
+      test(
+        'returns used_code and used_at when no active code but a used code exists',
+        () async {
+          final usedAt = DateTime.utc(2024, 3, 15, 10, 30);
+
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) {
+                  return [
+                    [_testPatientId, _testSiteId, 'connected'],
+                  ];
+                }
+                if (query.contains('FROM patient_linking_codes') &&
+                    query.contains('used_at IS NULL')) {
+                  return []; // no active code
+                }
+                if (query.contains('FROM patient_linking_codes') &&
+                    query.contains('used_at IS NOT NULL')) {
+                  return [
+                    ['CAABCDEFGH', usedAt],
+                  ];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
+          );
+
+          final response = await getPatientLinkingCodeHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['has_active_code'], false);
+          expect(body['used_code'], 'CAABC-DEFGH'); // dash-formatted
+          expect(body['used_at'], isA<String>());
+          expect(body.containsKey('code'), isFalse);
+          expect(body.containsKey('expires_at'), isFalse);
+        },
+      );
+
+      test(
+        'omits used_code when no active code and no used code on record',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) {
+                  return [
+                    [_testPatientId, _testSiteId, 'connected'],
+                  ];
+                }
+                if (query.contains('FROM patient_linking_codes')) {
+                  return []; // neither active nor used
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
+          );
+
+          final response = await getPatientLinkingCodeHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['has_active_code'], false);
+          expect(body.containsKey('used_code'), isFalse);
+          expect(body.containsKey('used_at'), isFalse);
+        },
+      );
+
+      test(
+        'used_code in response is dash-formatted via formatLinkingCodeForDisplay',
+        () async {
+          final usedAt = DateTime.now().subtract(const Duration(days: 3));
+
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) {
+                  return [
+                    [_testPatientId, _testSiteId, 'disconnected'],
+                  ];
+                }
+                if (query.contains('used_at IS NULL')) return [];
+                if (query.contains('used_at IS NOT NULL')) {
+                  return [
+                    ['CAABCDEFGH', usedAt],
+                  ];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/patients/link-code',
+            headers: {'x-patient-id': _testPatientId},
+          );
+
+          final response = await getPatientLinkingCodeHandler(request);
+
+          final body = await _json(response);
+          expect(body['used_code'], contains('-'));
+          expect((body['used_code'] as String).length, 11); // XXXXX-XXXXX
+        },
+      );
+
       test('returns 403 for non-Investigator role', () async {
         requirePortalAuthOverride = (_) async =>
             _investigator(activeRole: 'Sponsor');

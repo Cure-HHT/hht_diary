@@ -367,6 +367,34 @@ Future<Response> getPatientLinkingCodeHandler(Request request) async {
   );
 
   if (codeResult.isEmpty) {
+    // CUR-1069: Also return the most recently used code for Participant Linking Code
+    // reference display (GUI-CAL-p00001-I). The plain code is stored in
+    // patient_linking_codes.code so it can be shown for reference/troubleshooting.
+    final usedCodeResult = await db.executeWithContext(
+      '''
+      SELECT code, used_at
+      FROM patient_linking_codes
+      WHERE patient_id = @patientId
+        AND used_at IS NOT NULL
+      ORDER BY used_at DESC
+      LIMIT 1
+      ''',
+      parameters: {'patientId': patientId},
+      context: serviceContext,
+    );
+
+    if (usedCodeResult.isNotEmpty) {
+      final usedCode = usedCodeResult.first[0] as String;
+      final usedAt = usedCodeResult.first[1] as DateTime;
+      return _jsonResponse({
+        'has_active_code': false,
+        'patient_id': patientId,
+        'mobile_linking_status': currentStatus,
+        'used_code': formatLinkingCodeForDisplay(usedCode),
+        'used_at': usedAt.toIso8601String(),
+      });
+    }
+
     return _jsonResponse({
       'has_active_code': false,
       'patient_id': patientId,

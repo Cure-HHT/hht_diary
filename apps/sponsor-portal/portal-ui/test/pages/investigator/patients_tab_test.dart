@@ -369,9 +369,9 @@ void main() {
           await tester.tap(find.text('PAT-002'));
           await tester.pumpAndSettle();
 
-          // PatientActionsDialog should show Show Linking Code for connected patients
+          // PatientActionsDialog should show Show Participant Linking Code for connected patients
           expect(find.text('Patient Actions'), findsOneWidget);
-          expect(find.text('Show Linking Code'), findsOneWidget);
+          expect(find.text('Show Participant Linking Code'), findsOneWidget);
         },
       );
     });
