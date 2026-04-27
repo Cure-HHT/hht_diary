@@ -191,7 +191,7 @@ void main() {
 
       await _pumpLinkPatientDialog(tester, apiClient);
 
-      expect(find.text('Link Patient'), findsOneWidget);
+      expect(find.text('Link Participant'), findsOneWidget);
       expect(find.text('999-002-320'), findsOneWidget);
       expect(find.text('Generate Code'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -239,7 +239,7 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Link Patient'), findsOneWidget);
+      expect(find.text('Link Participant'), findsOneWidget);
       expect(find.text('Generate Code'), findsOneWidget);
     });
 
@@ -251,7 +251,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Link Patient'), findsNothing);
+      expect(find.text('Link Participant'), findsNothing);
     });
   });
 

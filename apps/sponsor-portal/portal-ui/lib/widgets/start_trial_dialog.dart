@@ -110,7 +110,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Start Trial for Patient ${widget.patientDisplayId}?',
+                'Start Trial for Participant ${widget.patientDisplayId}?',
               ),
             ),
           ],
@@ -187,7 +187,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
 
               // Message about EQ questionnaire
               Text(
-                'This will send the EQ questionnaire to the patient\'s mobile app.',
+                'This will send the EQ questionnaire to the participant\'s mobile app.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
@@ -253,7 +253,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trial has been started for patient ${widget.patientDisplayId}.',
+              'Trial has been started for participant ${widget.patientDisplayId}.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -280,7 +280,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'The EQ questionnaire has been sent to the patient\'s mobile app. '
+              'The EQ questionnaire has been sent to the participant\'s mobile app. '
               'Data sync is now enabled.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,

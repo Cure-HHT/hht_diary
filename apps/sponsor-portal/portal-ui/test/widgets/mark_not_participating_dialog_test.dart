@@ -153,7 +153,10 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.textContaining('999-002-320'), findsOneWidget);
       expect(find.text('Mark as Not Participating'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -187,7 +190,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.text('Select a reason'), findsOneWidget);
     });
 
@@ -259,7 +265,10 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.text('Mark as Not Participating'), findsOneWidget);
     });
 
@@ -271,7 +280,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark Patient as Not Participating'), findsNothing);
+      expect(find.text('Mark Participant as Not Participating'), findsNothing);
     });
 
     testWidgets('success state shows reason details', (tester) async {

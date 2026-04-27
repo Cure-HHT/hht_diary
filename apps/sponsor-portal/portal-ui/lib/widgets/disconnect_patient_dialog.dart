@@ -118,7 +118,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
     } else {
       setState(() {
         _state = _DialogState.error;
-        _error = response.error ?? 'Failed to disconnect patient';
+        _error = response.error ?? 'Failed to disconnect participant';
       });
     }
   }
@@ -141,7 +141,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           children: [
             Icon(Icons.link_off, color: theme.colorScheme.error),
             const SizedBox(width: 8),
-            const Text('Disconnect Patient'),
+            const Text('Disconnect Participant'),
           ],
         );
       case _DialogState.loading:
@@ -164,7 +164,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           children: [
             Icon(Icons.check_circle, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Patient Disconnected'),
+            const Text('Participant Disconnected'),
           ],
         );
       case _DialogState.error:
@@ -188,7 +188,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Disconnect this patient from the mobile app:',
+                'Disconnect this participant from the mobile app:',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -308,7 +308,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'This will revoke all active linking codes and the patient will see a disconnection notice in their app.',
+                        'This will revoke all active linking codes and the participant will see a disconnection notice in their app.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,
                         ),
@@ -334,7 +334,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Patient ${widget.patientDisplayId} has been disconnected from the mobile app.',
+              'Participant ${widget.patientDisplayId} has been disconnected from the mobile app.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -363,7 +363,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'The patient will see a disconnection notice when they next open the app. '
+              'The participant will see a disconnection notice when they next open the app. '
               'To reconnect, generate a new linking code.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -378,7 +378,8 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _error ?? 'An error occurred while disconnecting the patient.',
+              _error ??
+                  'An error occurred while disconnecting the participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),

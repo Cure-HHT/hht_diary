@@ -234,7 +234,7 @@ class _ManageQuestionnairesDialogState
             children: [
               Text(
                 'This will remove the ${_displayName(q.type)} questionnaire '
-                'from the patient\'s mobile app.',
+                'from the participant\'s mobile app.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -404,7 +404,7 @@ class _ManageQuestionnairesDialogState
                 const Text('Manage Questionnaires'),
                 const SizedBox(height: 4),
                 Text(
-                  'Manage questionnaire status and actions for patient '
+                  'Manage questionnaire status and actions for participant '
                   '${widget.patientDisplayId}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
@@ -570,7 +570,7 @@ class _ManageQuestionnairesDialogState
         );
       case 'in_progress':
         return Text(
-          'Patient is working',
+          'Participant is working',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,

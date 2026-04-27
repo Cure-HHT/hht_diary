@@ -304,7 +304,7 @@ void main() {
       await _pumpDialog(tester, apiClient);
 
       expect(find.text('In Progress'), findsOneWidget);
-      expect(find.text('Patient is working'), findsOneWidget);
+      expect(find.text('Participant is working'), findsOneWidget);
     });
 
     testWidgets('shows empty state when all not_sent', (tester) async {

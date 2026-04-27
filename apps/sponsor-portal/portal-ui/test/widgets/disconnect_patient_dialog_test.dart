@@ -158,7 +158,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Disconnect Patient'), findsOneWidget);
+      expect(find.text('Disconnect Participant'), findsOneWidget);
       expect(find.textContaining('999-002-320'), findsOneWidget);
       expect(find.text('Disconnect'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -201,7 +201,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Disconnect Patient'), findsOneWidget);
+      expect(find.text('Disconnect Participant'), findsOneWidget);
       expect(find.text('Select a reason'), findsOneWidget);
     });
 
@@ -223,7 +223,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Success state
-      expect(find.text('Patient Disconnected'), findsOneWidget);
+      expect(find.text('Participant Disconnected'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(find.textContaining('has been disconnected'), findsOneWidget);
       expect(find.text('Done'), findsOneWidget);
@@ -278,7 +278,7 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Disconnect Patient'), findsOneWidget);
+      expect(find.text('Disconnect Participant'), findsOneWidget);
       expect(find.text('Disconnect'), findsOneWidget);
     });
 
@@ -290,7 +290,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Disconnect Patient'), findsNothing);
+      expect(find.text('Disconnect Participant'), findsNothing);
     });
   });
 }

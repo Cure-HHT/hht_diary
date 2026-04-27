@@ -184,7 +184,7 @@ void main() {
           await _pumpPatientsTab(tester);
 
           // These columns SHOULD be present
-          expect(find.text('Patient ID'), findsOneWidget);
+          expect(find.text('Participant ID'), findsOneWidget);
           expect(find.text('Site'), findsOneWidget);
           expect(find.text('Mobile Linking'), findsOneWidget);
           expect(find.text('Actions'), findsOneWidget);
@@ -219,7 +219,7 @@ void main() {
       ) async {
         await _pumpPatientsTab(tester);
 
-        expect(find.text('Patient Summary'), findsOneWidget);
+        expect(find.text('Participant Summary'), findsOneWidget);
       });
     });
 
@@ -354,7 +354,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should open PatientActionsDialog
-        expect(find.text('Patient Actions'), findsOneWidget);
+        expect(find.text('Participant Actions'), findsOneWidget);
       });
 
       testWidgets(
@@ -370,7 +370,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // PatientActionsDialog should show Show Linking Code for connected patients
-          expect(find.text('Patient Actions'), findsOneWidget);
+          expect(find.text('Participant Actions'), findsOneWidget);
           expect(find.text('Show Linking Code'), findsOneWidget);
         },
       );
@@ -381,7 +381,7 @@ void main() {
         await _pumpPatientsTab(tester);
 
         expect(find.byIcon(Icons.search), findsOneWidget);
-        expect(find.text('Search patients...'), findsOneWidget);
+        expect(find.text('Search participants...'), findsOneWidget);
       });
 
       testWidgets('should display status filter tabs', (

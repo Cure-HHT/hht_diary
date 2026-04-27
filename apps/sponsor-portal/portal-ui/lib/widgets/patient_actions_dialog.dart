@@ -71,7 +71,7 @@ class PatientActionsDialog extends StatelessWidget {
         children: [
           Icon(Icons.person, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          const Text('Patient Actions'),
+          const Text('Participant Actions'),
         ],
       ),
       content: SizedBox(
@@ -90,7 +90,7 @@ class PatientActionsDialog extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    'Patient ID: ',
+                    'Participant ID: ',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -142,7 +142,7 @@ class PatientActionsDialog extends StatelessWidget {
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.link,
-            title: 'Reconnect Patient',
+            title: 'Reconnect Participant',
             description: 'Generate new linking code to reconnect',
             iconColor: theme.colorScheme.primary,
             onTap: () async {
@@ -165,7 +165,8 @@ class PatientActionsDialog extends StatelessWidget {
           _ActionTile(
             icon: Icons.person_off,
             title: 'Mark as Not Participating',
-            description: 'Patient completed trial, withdrew, or discontinued',
+            description:
+                'Participant completed trial, withdrew, or discontinued',
             iconColor: theme.colorScheme.error,
             titleColor: theme.colorScheme.error,
             onTap: () async {
@@ -225,8 +226,8 @@ class PatientActionsDialog extends StatelessWidget {
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.link_off,
-            title: 'Disconnect Patient',
-            description: 'Disconnect patient from the mobile app',
+            title: 'Disconnect Participant',
+            description: 'Disconnect participant from the mobile app',
             iconColor: theme.colorScheme.error,
             titleColor: theme.colorScheme.error,
             onTap: () async {
@@ -268,7 +269,7 @@ class PatientActionsDialog extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'This patient is marked as not participating. Sponsor rules are not applied.',
+                    'This participant is marked as not participating. Sponsor rules are not applied.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                     ),
@@ -279,7 +280,7 @@ class PatientActionsDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'To reactivate this patient, use the "Reactivate" button in the patient list.',
+            'To reactivate this participant, use the "Reactivate" button in the participant list.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -289,7 +290,7 @@ class PatientActionsDialog extends StatelessWidget {
       default:
         return [
           Text(
-            'No actions available for this patient status.',
+            'No actions available for this participant status.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

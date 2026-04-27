@@ -134,7 +134,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
           children: [
             Icon(Icons.link, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Link Patient'),
+            const Text('Link Participant'),
           ],
         );
       case _DialogState.loading:
@@ -179,7 +179,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Generate a linking code for patient:',
+              'Generate a linking code for participant:',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
@@ -209,7 +209,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'The patient will use this code to connect their mobile app. '
+              'The participant will use this code to connect their mobile app. '
               'The code expires after 72 hours.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -240,7 +240,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
               const SizedBox(height: 4),
             ],
             Text(
-              'Patient: ${widget.patientDisplayId}',
+              'Participant: ${widget.patientDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -285,7 +285,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Share this code with the patient to connect their mobile app.',
+              'Share this code with the participant to connect their mobile app.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -543,7 +543,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
           Text('No Active Linking Code', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'This patient does not have an active linking code. '
+            'This participant does not have an active linking code. '
             'The previous code may have expired or been used.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -579,7 +579,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Patient: ${widget.patientDisplayId}',
+          'Participant: ${widget.patientDisplayId}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

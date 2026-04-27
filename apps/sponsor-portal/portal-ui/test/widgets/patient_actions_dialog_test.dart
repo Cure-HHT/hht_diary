@@ -97,7 +97,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient, 'disconnected');
 
-      expect(find.text('Patient Actions'), findsOneWidget);
+      expect(find.text('Participant Actions'), findsOneWidget);
       expect(find.byIcon(Icons.person), findsWidgets);
       expect(find.text('999-002-320'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
@@ -109,7 +109,7 @@ void main() {
       await _pumpDialog(tester, apiClient, 'disconnected');
 
       expect(find.text('Show Linking Code'), findsOneWidget);
-      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reconnect Participant'), findsOneWidget);
       expect(find.text('Mark as Not Participating'), findsOneWidget);
 
       expect(
@@ -135,7 +135,7 @@ void main() {
 
       expect(find.text('Show Linking Code'), findsOneWidget);
       expect(find.byIcon(Icons.qr_code), findsOneWidget);
-      expect(find.text('Reconnect Patient'), findsNothing);
+      expect(find.text('Reconnect Participant'), findsNothing);
       expect(find.text('Mark as Not Participating'), findsNothing);
     });
 
@@ -151,7 +151,7 @@ void main() {
       expect(find.byIcon(Icons.info_outline), findsOneWidget);
       expect(find.textContaining('Reactivate'), findsOneWidget);
       expect(find.text('Show Linking Code'), findsNothing);
-      expect(find.text('Reconnect Patient'), findsNothing);
+      expect(find.text('Reconnect Participant'), findsNothing);
     });
 
     // REQ-CAL-p00072: View Linking Code for any patient with a valid code
@@ -174,7 +174,7 @@ void main() {
 
         await _pumpDialog(tester, apiClient, 'connected');
 
-        expect(find.text('Disconnect Patient'), findsOneWidget);
+        expect(find.text('Disconnect Participant'), findsOneWidget);
       },
     );
 
@@ -184,7 +184,7 @@ void main() {
       await _pumpDialog(tester, apiClient, 'some_unknown_status');
 
       expect(
-        find.text('No actions available for this patient status.'),
+        find.text('No actions available for this participant status.'),
         findsOneWidget,
       );
     });
@@ -194,12 +194,12 @@ void main() {
 
       await _pumpDialog(tester, apiClient, 'disconnected');
 
-      expect(find.text('Patient Actions'), findsOneWidget);
+      expect(find.text('Participant Actions'), findsOneWidget);
 
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Patient Actions'), findsNothing);
+      expect(find.text('Participant Actions'), findsNothing);
     });
   });
 }
