@@ -1303,10 +1303,7 @@ void main() {
             '/api/v1/portal/patients/$_testPatientId/link-code',
           );
 
-          final response = await getPatientLinkingCodeHandler(
-            request,
-            _testPatientId,
-          );
+          final response = await getPatientLinkingCodeHandler(request);
 
           expect(response.statusCode, 200);
           final body = await _json(response);
@@ -1339,10 +1336,7 @@ void main() {
             '/api/v1/portal/patients/$_testPatientId/link-code',
           );
 
-          final response = await getPatientLinkingCodeHandler(
-            request,
-            _testPatientId,
-          );
+          final response = await getPatientLinkingCodeHandler(request);
 
           expect(response.statusCode, 200);
           final body = await _json(response);
@@ -1378,10 +1372,7 @@ void main() {
             '/api/v1/portal/patients/$_testPatientId/link-code',
           );
 
-          final response = await getPatientLinkingCodeHandler(
-            request,
-            _testPatientId,
-          );
+          final response = await getPatientLinkingCodeHandler(request);
 
           final body = await _json(response);
           expect(body['used_code'], contains('-'));
