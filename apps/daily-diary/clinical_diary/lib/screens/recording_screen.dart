@@ -13,24 +13,26 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
-import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 // CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 /// Recording flow screen for creating new nosebleed records.
 /// Creation
@@ -113,31 +115,39 @@ import 'package:intl/intl.dart';
 ///         forward or backwards by the number of minutes on the button
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({
-    required this.bridge,
+    required this.entryService,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
     // from calendar
     this.diaryEntryDate,
     // edit mode
-    this.existingRecord,
-    this.allRecords = const [],
+    this.existingEntry,
+    this.allEntries = const [],
     this.onDelete,
   }) : assert(
-         diaryEntryDate == null || existingRecord == null,
-         'Cannot specify both initialDate and existingRecord',
+         diaryEntryDate == null || existingEntry == null,
+         'Cannot specify both initialDate and existingEntry',
        ),
        assert(
-         existingRecord == null || onDelete != null,
-         'Must specify an onDelete callback when existingRecord is non null.',
+         existingEntry == null || onDelete != null,
+         'Must specify an onDelete callback when existingEntry is non null.',
        );
 
-  final DiaryEventBridge bridge;
+  final EntryService entryService;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
   final DateTime? diaryEntryDate;
-  final NosebleedRecord? existingRecord;
-  final List<NosebleedRecord> allRecords;
+
+  /// Existing nosebleed entry (`epistaxis_event`) to edit. Pulled fields:
+  /// `entryId`, `currentAnswers['startTime' | 'endTime' | 'intensity' |
+  /// 'startTimeTimezone' | 'endTimeTimezone']`, `isComplete`.
+  final DiaryEntry? existingEntry;
+
+  /// All nosebleed-related entries (`epistaxis_event` only matters here)
+  /// used to detect overlapping time ranges.
+  final List<DiaryEntry> allEntries;
+
   final Future<void> Function(String)? onDelete;
 
   @override
@@ -176,11 +186,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // REQ-CAL-p00001: Old entry justification if required
   OldEntryJustification? _oldEntryJustification;
 
+  // --- DiaryEntry answer accessors (existingEntry only) ------------------
+
+  /// Read a `DateTime` answer from `DiaryEntry.currentAnswers`. Returns
+  /// `null` when the answer is missing or malformed.
+  static DateTime? _readDateTimeAnswer(DiaryEntry e, String key) {
+    final raw = e.currentAnswers[key];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return null;
+  }
+
+  static String? _readStringAnswer(DiaryEntry e, String key) {
+    final raw = e.currentAnswers[key];
+    return raw is String ? raw : null;
+  }
+
+  static NosebleedIntensity? _readIntensity(DiaryEntry e) {
+    final raw = e.currentAnswers['intensity'];
+    return raw is String ? NosebleedIntensity.fromString(raw) : null;
+  }
+
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    if (widget.existingRecord == null) {
+    final existing = widget.existingEntry;
+    if (existing == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
       } else {
@@ -196,13 +227,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endTimeTimezone = null;
     } else {
       //defensive, startTime should always be set but json conversion could fail
-      _startDateTime = widget.existingRecord?.startTime ?? now;
-      _endDateTime = widget.existingRecord?.endTime;
-      _intensity = widget.existingRecord!.intensity;
+      _startDateTime = _readDateTimeAnswer(existing, 'startTime') ?? now;
+      _endDateTime = _readDateTimeAnswer(existing, 'endTime');
+      _intensity = _readIntensity(existing);
       _currentStep = _getInitialStepForExisting();
       // CUR-516: Restore timezones from existing record to restore UI selection
-      _startTimeTimezone = widget.existingRecord?.startTimeTimezone;
-      _endTimeTimezone = widget.existingRecord?.endTimeTimezone;
+      _startTimeTimezone = _readStringAnswer(existing, 'startTimeTimezone');
+      _endTimeTimezone = _readStringAnswer(existing, 'endTimeTimezone');
     }
   }
 
@@ -309,13 +340,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // CUR-408: _loadLinkingStatus removed - notes step removed from recording flow - TODO PUT BACK
 
   RecordingStep _getInitialStepForExisting() {
-    if (widget.existingRecord == null) {
+    final existing = widget.existingEntry;
+    if (existing == null) {
       return RecordingStep.startTime;
     }
-    if (widget.existingRecord!.intensity == null) {
+    if (_readIntensity(existing) == null) {
       return RecordingStep.intensity;
     }
-    if (widget.existingRecord!.endTime == null) {
+    if (_readDateTimeAnswer(existing, 'endTime') == null) {
       return RecordingStep.endTime;
     }
     // For complete records: show review screen if enabled, otherwise start time
@@ -381,27 +413,29 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _endDateTime!.difference(_startDateTime).inMinutes;
   }
 
-  List<NosebleedRecord> _getOverlappingEvents() {
+  List<DiaryEntry> _getOverlappingEvents() {
     if (_endDateTime == null) {
       return [];
     }
 
-    return widget.allRecords.where((record) {
+    return widget.allEntries.where((entry) {
       // You can't overlap yourself
-      if (widget.existingRecord != null &&
-          record.id == widget.existingRecord!.id) {
+      if (widget.existingEntry != null &&
+          entry.entryId == widget.existingEntry!.entryId) {
         return false;
       }
 
       // Only check real (not unknown or no nosebleed) events with
       // both start and end times
-      if (!record.isRealNosebleedEvent || record.endTime == null) {
+      if (entry.entryType != 'epistaxis_event' || entry.isDeleted) {
         return false;
       }
+      final start = _readDateTimeAnswer(entry, 'startTime');
+      final end = _readDateTimeAnswer(entry, 'endTime');
+      if (start == null || end == null) return false;
 
       // Check if events overlap
-      return _startDateTime.isBefore(record.endTime!) &&
-          _endDateTime!.isAfter(record.startTime);
+      return _startDateTime.isBefore(end) && _endDateTime!.isAfter(start);
     }).toList();
   }
 
@@ -440,36 +474,27 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() => _isSaving = true);
 
     try {
-      String recordId;
-      if (widget.existingRecord != null) {
-        // Update existing record (appends a new finalized event on the same
-        // aggregate; the materialized view replaces the prior state).
-        // CUR-447: Use _startDateTime as the primary date for the record
-        // CUR-516: Pass timezone to preserve UI selection for incomplete records
-        final record = await widget.bridge.updateRecord(
-          originalRecordId: widget.existingRecord!.id,
-          startTime: _startDateTime,
-          endTime: _endDateTime,
-          intensity: _intensity,
-          startTimeTimezone: _startTimeTimezone,
-          endTimeTimezone: _endTimeTimezone,
-          // CUR-408: notes parameter removed - TODO putback
-        );
-        recordId = record.id;
-      } else {
-        // Create new record
-        // CUR-447: Use _startDateTime as the primary date for the record
-        // CUR-516: Pass timezone to preserve UI selection for incomplete records
-        final record = await widget.bridge.addRecord(
-          startTime: _startDateTime,
-          endTime: _endDateTime,
-          intensity: _intensity,
-          startTimeTimezone: _startTimeTimezone,
-          endTimeTimezone: _endTimeTimezone,
-          // CUR-408: notes parameter removed
-        );
-        recordId = record.id;
-      }
+      // CUR-447: Use _startDateTime as the primary date for the record
+      // CUR-516: Pass timezone to preserve UI selection for incomplete records
+      final existing = widget.existingEntry;
+      final recordId = existing?.entryId ?? const Uuid().v7();
+
+      final answers = <String, Object?>{
+        'startTime': DateTimeFormatter.format(_startDateTime),
+        if (_endDateTime != null)
+          'endTime': DateTimeFormatter.format(_endDateTime!),
+        if (_intensity != null) 'intensity': _intensity!.name,
+        if (_startTimeTimezone != null) 'startTimeTimezone': _startTimeTimezone,
+        if (_endTimeTimezone != null) 'endTimeTimezone': _endTimeTimezone,
+      };
+
+      await widget.entryService.record(
+        entryType: 'epistaxis_event',
+        aggregateId: recordId,
+        eventType: 'finalized',
+        answers: answers,
+        changeReason: existing != null ? 'edited' : null,
+      );
 
       if (mounted) {
         // Return record ID so home screen can scroll to and highlight it
@@ -623,11 +648,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// Save even if the user just comes in and goes back.  The nosebleed started,
   /// it records the start, they can pick it up later, easy-peasy
   bool _hasUnsavedPartialRecord() {
+    final existing = widget.existingEntry;
     // If we're editing an existing record, check if values changed
-    if (widget.existingRecord != null) {
-      return _startDateTime != widget.existingRecord!.startTime ||
-          _endDateTime != widget.existingRecord!.endTime ||
-          _intensity != widget.existingRecord!.intensity;
+    if (existing != null) {
+      final priorStart = _readDateTimeAnswer(existing, 'startTime');
+      final priorEnd = _readDateTimeAnswer(existing, 'endTime');
+      final priorIntensity = _readIntensity(existing);
+      return _startDateTime != priorStart ||
+          _endDateTime != priorEnd ||
+          _intensity != priorIntensity;
     }
     // For new records, we have unsaved data if
     // we're not at the complete step (which has its own save button)
@@ -744,9 +773,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(
-                    overlappingRecords: overlappingEvents,
-                    onViewConflict: (conflictingRecord) {
-                      // Pop back to view the conflicting record in context
+                    overlappingEntries: overlappingEvents,
+                    onViewConflict: (conflictingEntry) {
+                      // Pop back to view the conflicting entry in context
                       Navigator.pop(context, false);
                     },
                   ),
@@ -1065,15 +1094,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Widget _buildCompleteStep(AppLocalizations l10n) {
-    final isExistingComplete =
-        widget.existingRecord != null &&
-        widget.existingRecord!.intensity != null &&
-        widget.existingRecord!.endTime != null;
+    final existing = widget.existingEntry;
+    final isExistingComplete = existing != null && existing.isComplete;
 
     // CUR-408: Notes-related currentRecord and needsNotes removed
     // CUR-443: hasOverlaps removed - overlaps show warning but don't block save
 
-    final buttonText = widget.existingRecord != null
+    final buttonText = existing != null
         ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
         : l10n.finished;
 
@@ -1084,9 +1111,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            widget.existingRecord != null && !isExistingComplete
+            existing != null && !isExistingComplete
                 ? l10n.completeRecord
-                : widget.existingRecord != null
+                : existing != null
                 ? l10n.editRecord
                 : l10n.recordComplete,
             style: Theme.of(
@@ -1097,7 +1124,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           const SizedBox(height: 8),
 
           Text(
-            widget.existingRecord != null && !isExistingComplete
+            existing != null && !isExistingComplete
                 ? l10n.reviewAndSave
                 : l10n.tapFieldToEdit,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(

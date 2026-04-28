@@ -3,29 +3,32 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/diary_entry_reader.dart';
-import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:uuid/uuid.dart';
 
 /// Calendar screen showing nosebleed history with color-coded days
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({
-    required this.bridge,
+    required this.entryService,
+    required this.reader,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
   });
 
-  final DiaryEventBridge bridge;
+  final EntryService entryService;
+  final DiaryEntryReader reader;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
 
@@ -37,7 +40,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
-  List<NosebleedRecord> _allRecords = [];
+  List<DiaryEntry> _allEntries = [];
   bool _useAnimation = true;
 
   @override
@@ -74,16 +77,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final firstDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
     final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
 
-    final statuses = await widget.bridge.getDayStatusRange(firstDay, lastDay);
+    final statuses = await widget.reader.dayStatusRange(firstDay, lastDay);
 
-    // Also load all records for overlap checking
-    final allRecords = await widget.bridge.getLocalMaterializedRecords();
+    // Also load all entries for overlap checking. Use a wide date range so
+    // every relevant entry is covered; the reader filters by local-day.
+    final allEntries = await widget.reader.entriesForDateRange(
+      DateTime.utc(1970, 1, 1),
+      DateTime.utc(9999, 1, 1),
+    );
 
     // CUR-586: Check mounted after async operations
     if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
-      _allRecords = allRecords;
+      _allEntries = allEntries
+          .where(
+            (e) =>
+                !e.isDeleted &&
+                (e.entryType == 'epistaxis_event' ||
+                    e.entryType == 'no_epistaxis_event' ||
+                    e.entryType == 'unknown_day_event'),
+          )
+          .toList();
     });
   }
 
@@ -141,8 +156,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
-    // Fetch records for the selected day
-    final records = await widget.bridge.getRecordsForStartDate(selectedDay);
+    // Fetch entries for the selected day (excluding tombstoned + non-nosebleed)
+    final entries = (await widget.reader.entriesForDate(selectedDay))
+        .where(
+          (e) =>
+              !e.isDeleted &&
+              (e.entryType == 'epistaxis_event' ||
+                  e.entryType == 'no_epistaxis_event' ||
+                  e.entryType == 'unknown_day_event'),
+        )
+        .toList();
 
     if (!mounted) return;
 
@@ -151,14 +174,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
-          records: records,
+          entries: entries,
           onAddEvent: () {
             // CUR-586: Just pop with result, let parent handle navigation
             Navigator.pop(context, 'add');
           },
-          onEditEvent: (record) {
-            // CUR-586: Just pop with record, let parent handle navigation
-            Navigator.pop(context, record);
+          onEditEvent: (entry) {
+            // CUR-586: Just pop with entry, let parent handle navigation
+            Navigator.pop(context, entry);
           },
         ),
       ),
@@ -169,8 +192,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     // CUR-586: Handle result and refresh after ALL navigation is complete
     if (result == 'add') {
       await _navigateToRecordingScreen(selectedDay);
-    } else if (result is NosebleedRecord) {
-      await _navigateToRecordingScreen(selectedDay, existingRecord: result);
+    } else if (result is DiaryEntry) {
+      await _navigateToRecordingScreen(selectedDay, existingEntry: result);
     }
 
     // Always refresh after returning
@@ -190,13 +213,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Navigator.pop(context, 'add');
           },
           onNoNosebleeds: () async {
-            await widget.bridge.markNoNosebleeds(selectedDay);
+            await widget.entryService.record(
+              entryType: 'no_epistaxis_event',
+              aggregateId: const Uuid().v7(),
+              eventType: 'finalized',
+              answers: <String, Object?>{
+                'date': DateTimeFormatter.format(selectedDay),
+              },
+            );
             if (context.mounted) {
               Navigator.pop(context, 'done');
             }
           },
           onUnknown: () async {
-            await widget.bridge.markUnknown(selectedDay);
+            await widget.entryService.record(
+              entryType: 'unknown_day_event',
+              aggregateId: const Uuid().v7(),
+              eventType: 'finalized',
+              answers: <String, Object?>{
+                'date': DateTimeFormatter.format(selectedDay),
+              },
+            );
             if (context.mounted) {
               Navigator.pop(context, 'done');
             }
@@ -223,28 +260,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// Returns: String (record ID) on save, true on delete, null on cancel, false on conflict.
   Future<dynamic> _navigateToRecordingScreen(
     DateTime selectedDay, {
-    NosebleedRecord? existingRecord,
+    DiaryEntry? existingEntry,
   }) async {
     // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
     // Using dynamic to handle both return types
     // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
-    // RecordingScreen asserts that only one of diaryEntryDate or existingRecord can be non-null.
-    // CUR-543: Must pass onDelete callback when existingRecord is non-null.
+    // RecordingScreen asserts that only one of diaryEntryDate or existingEntry can be non-null.
+    // CUR-543: Must pass onDelete callback when existingEntry is non-null.
     final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
         builder: (context) => RecordingScreen(
-          bridge: widget.bridge,
+          entryService: widget.entryService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          diaryEntryDate: existingRecord == null ? selectedDay : null,
-          existingRecord: existingRecord,
-          allRecords: _allRecords,
-          onDelete: existingRecord != null
+          diaryEntryDate: existingEntry == null ? selectedDay : null,
+          existingEntry: existingEntry,
+          allEntries: _allEntries,
+          onDelete: existingEntry != null
               ? (reason) async {
-                  await widget.bridge.deleteRecord(
-                    recordId: existingRecord.id,
-                    reason: reason,
+                  await widget.entryService.record(
+                    entryType: existingEntry.entryType,
+                    aggregateId: existingEntry.entryId,
+                    eventType: 'tombstone',
+                    answers: const <String, Object?>{},
+                    changeReason: reason,
                   );
                 }
               : null,

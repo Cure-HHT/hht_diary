@@ -2,33 +2,34 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00043: Temporal Entry Validation - Overlap Prevention
 
-import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/diary_entry_factory.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
   group('OverlapWarning', () {
-    // Helper to create test records
-    NosebleedRecord createTestRecord({
+    DiaryEntry createTestEntry({
       required DateTime startTime,
       required DateTime endTime,
     }) {
-      return NosebleedRecord(
-        id: 'test-${startTime.millisecondsSinceEpoch}',
+      return buildEpistaxisEntry(
+        entryId: 'test-${startTime.millisecondsSinceEpoch}',
         startTime: startTime,
         endTime: endTime,
         intensity: NosebleedIntensity.spotting,
       );
     }
 
-    testWidgets('returns empty widget when overlapping records list is empty', (
+    testWidgets('returns empty widget when overlapping entries list is empty', (
       tester,
     ) async {
       await tester.pumpWidget(
-        wrapWithScaffold(const OverlapWarning(overlappingRecords: [])),
+        wrapWithScaffold(const OverlapWarning(overlappingEntries: [])),
       );
       await tester.pumpAndSettle();
 
@@ -39,20 +40,19 @@ void main() {
     testWidgets('displays warning with time range when one overlap exists', (
       tester,
     ) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Overlapping Events Detected'), findsOneWidget);
-      // Should show the specific time range from the requirement
       expect(
         find.text(
           'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
@@ -62,14 +62,14 @@ void main() {
     });
 
     testWidgets(
-      'displays first overlapping record time range when multiple exist',
+      'displays first overlapping entry time range when multiple exist',
       (tester) async {
-        final overlappingRecords = [
-          createTestRecord(
+        final overlappingEntries = [
+          createTestEntry(
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
           ),
-          createTestRecord(
+          createTestEntry(
             startTime: DateTime(2024, 1, 15, 11, 0),
             endTime: DateTime(2024, 1, 15, 11, 45),
           ),
@@ -77,13 +77,12 @@ void main() {
 
         await tester.pumpWidget(
           wrapWithScaffold(
-            OverlapWarning(overlappingRecords: overlappingRecords),
+            OverlapWarning(overlappingEntries: overlappingEntries),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(find.text('Overlapping Events Detected'), findsOneWidget);
-        // Should show the first overlapping record's time range
         expect(
           find.text(
             'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
@@ -94,14 +93,14 @@ void main() {
     );
 
     testWidgets('displays warning icon', (tester) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
@@ -110,14 +109,14 @@ void main() {
     });
 
     testWidgets('has amber colored container', (tester) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
@@ -134,14 +133,14 @@ void main() {
     });
 
     testWidgets('has amber border', (tester) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
@@ -158,12 +157,12 @@ void main() {
     });
 
     testWidgets('renders as a Row with icon and text column', (tester) async {
-      final overlappingRecords = [
-        createTestRecord(
+      final overlappingEntries = [
+        createTestEntry(
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
         ),
-        createTestRecord(
+        createTestEntry(
           startTime: DateTime(2024, 1, 15, 11, 0),
           endTime: DateTime(2024, 1, 15, 11, 30),
         ),
@@ -171,7 +170,7 @@ void main() {
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: overlappingRecords),
+          OverlapWarning(overlappingEntries: overlappingEntries),
         ),
       );
       await tester.pumpAndSettle();
@@ -181,14 +180,14 @@ void main() {
     });
 
     testWidgets('icon has correct color', (tester) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
@@ -203,14 +202,14 @@ void main() {
     testWidgets('does not show View button when onViewConflict is null', (
       tester,
     ) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          OverlapWarning(overlappingRecords: [overlappingRecord]),
+          OverlapWarning(overlappingEntries: [overlappingEntry]),
         ),
       );
       await tester.pumpAndSettle();
@@ -221,7 +220,7 @@ void main() {
     testWidgets('shows View button when onViewConflict is provided', (
       tester,
     ) async {
-      final overlappingRecord = createTestRecord(
+      final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
       );
@@ -229,7 +228,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           OverlapWarning(
-            overlappingRecords: [overlappingRecord],
+            overlappingEntries: [overlappingEntry],
             onViewConflict: (_) {},
           ),
         ),
@@ -239,28 +238,28 @@ void main() {
       expect(find.text('View'), findsOneWidget);
     });
 
-    testWidgets('View button calls onViewConflict with first record', (
+    testWidgets('View button calls onViewConflict with first entry', (
       tester,
     ) async {
-      final overlappingRecords = [
-        createTestRecord(
+      final overlappingEntries = [
+        createTestEntry(
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
         ),
-        createTestRecord(
+        createTestEntry(
           startTime: DateTime(2024, 1, 15, 11, 0),
           endTime: DateTime(2024, 1, 15, 11, 30),
         ),
       ];
 
-      NosebleedRecord? tappedRecord;
+      DiaryEntry? tappedEntry;
 
       await tester.pumpWidget(
         wrapWithScaffold(
           OverlapWarning(
-            overlappingRecords: overlappingRecords,
-            onViewConflict: (record) {
-              tappedRecord = record;
+            overlappingEntries: overlappingEntries,
+            onViewConflict: (entry) {
+              tappedEntry = entry;
             },
           ),
         ),
@@ -270,8 +269,8 @@ void main() {
       await tester.tap(find.text('View'));
       await tester.pumpAndSettle();
 
-      expect(tappedRecord, isNotNull);
-      expect(tappedRecord!.id, overlappingRecords.first.id);
+      expect(tappedEntry, isNotNull);
+      expect(tappedEntry!.entryId, overlappingEntries.first.entryId);
     });
   });
 }

@@ -3,35 +3,42 @@
 //   REQ-p00001: Incomplete Entry Preservation (CUR-405)
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
-import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 /// Simplified recording screen with all controls on one page
 class SimpleRecordingScreen extends StatefulWidget {
   const SimpleRecordingScreen({
-    required this.bridge,
+    required this.entryService,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
     this.initialStartDate,
-    this.existingRecord,
-    this.allRecords = const [],
+    this.existingEntry,
+    this.allEntries = const [],
     this.onDelete,
   });
 
-  final DiaryEventBridge bridge;
+  final EntryService entryService;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
   final DateTime? initialStartDate;
-  final NosebleedRecord? existingRecord;
-  final List<NosebleedRecord> allRecords;
+
+  /// Existing nosebleed entry (`epistaxis_event`) to edit. Pulled fields:
+  /// `entryId`, `currentAnswers['startTime' | 'endTime' | 'intensity']`.
+  final DiaryEntry? existingEntry;
+
+  /// All nosebleed-related entries used for overlap checks.
+  final List<DiaryEntry> allEntries;
   final Future<void> Function(String)? onDelete;
 
   @override
@@ -55,6 +62,19 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   final _startTimePickerKey = GlobalKey<State>();
   final _endTimePickerKey = GlobalKey<State>();
 
+  // --- DiaryEntry answer accessors --------------------------------------
+
+  static DateTime? _readDateTimeAnswer(DiaryEntry e, String key) {
+    final raw = e.currentAnswers[key];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return null;
+  }
+
+  static NosebleedIntensity? _readIntensity(DiaryEntry e) {
+    final raw = e.currentAnswers['intensity'];
+    return raw is String ? NosebleedIntensity.fromString(raw) : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,10 +82,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     _startDate = initialDate;
     _endDate = initialDate;
 
-    if (widget.existingRecord != null) {
-      _startTime = widget.existingRecord!.startTime;
-      _endTime = widget.existingRecord!.endTime;
-      _intensity = widget.existingRecord!.intensity;
+    final existing = widget.existingEntry;
+    if (existing != null) {
+      _startTime = _readDateTimeAnswer(existing, 'startTime') ?? DateTime.now();
+      _endTime = _readDateTimeAnswer(existing, 'endTime');
+      _intensity = _readIntensity(existing);
       // Set dates from existing record times
       _startDate = DateTime(_startTime.year, _startTime.month, _startTime.day);
       if (_endTime != null) {
@@ -131,29 +152,31 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     return null;
   }
 
-  List<NosebleedRecord> _getOverlappingEvents() {
+  List<DiaryEntry> _getOverlappingEvents() {
     if (_endTime == null) return [];
 
-    return widget.allRecords.where((record) {
-      // Skip the current record if editing
-      if (widget.existingRecord != null &&
-          record.id == widget.existingRecord!.id) {
+    return widget.allEntries.where((entry) {
+      // Skip the current entry if editing
+      if (widget.existingEntry != null &&
+          entry.entryId == widget.existingEntry!.entryId) {
         return false;
       }
 
-      // Only check real events with both start and end times
-      if (!record.isRealNosebleedEvent || record.endTime == null) {
+      // Only check real (non-tombstone) epistaxis events with both times
+      if (entry.entryType != 'epistaxis_event' || entry.isDeleted) {
         return false;
       }
+      final start = _readDateTimeAnswer(entry, 'startTime');
+      final end = _readDateTimeAnswer(entry, 'endTime');
+      if (start == null || end == null) return false;
 
       // Check if events overlap
-      return _startTime.isBefore(record.endTime!) &&
-          _endTime!.isAfter(record.startTime);
+      return _startTime.isBefore(end) && _endTime!.isAfter(start);
     }).toList();
   }
 
   String _getButtonText(AppLocalizations l10n) {
-    final isEditing = widget.existingRecord != null;
+    final isEditing = widget.existingEntry != null;
 
     // For editing, always show "Update Nosebleed" when complete
     if (isEditing) {
@@ -200,25 +223,22 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() => _isSaving = true);
 
     try {
-      String? recordId;
-      if (widget.existingRecord != null) {
-        // Update existing record
-        final record = await widget.bridge.updateRecord(
-          originalRecordId: widget.existingRecord!.id,
-          startTime: _startTime,
-          endTime: _endTime,
-          intensity: _intensity,
-        );
-        recordId = record.id;
-      } else {
-        // Create new record (isIncomplete is calculated automatically by bridge)
-        final record = await widget.bridge.addRecord(
-          startTime: _startTime,
-          endTime: _endTime,
-          intensity: _intensity,
-        );
-        recordId = record.id;
-      }
+      final existing = widget.existingEntry;
+      final recordId = existing?.entryId ?? const Uuid().v7();
+
+      final answers = <String, Object?>{
+        'startTime': DateTimeFormatter.format(_startTime),
+        if (_endTime != null) 'endTime': DateTimeFormatter.format(_endTime!),
+        if (_intensity != null) 'intensity': _intensity!.name,
+      };
+
+      await widget.entryService.record(
+        entryType: 'epistaxis_event',
+        aggregateId: recordId,
+        eventType: 'finalized',
+        answers: answers,
+        changeReason: existing != null ? 'edited' : null,
+      );
 
       if (mounted) {
         // Return record ID so home screen can scroll to and highlight it
@@ -331,11 +351,12 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
   /// Check if we have unsaved changes that could be saved as a partial record
   bool get _hasUnsavedPartialRecord {
-    // If we're editing an existing record, check if values changed
-    if (widget.existingRecord != null) {
-      return _startTime != widget.existingRecord!.startTime ||
-          _endTime != widget.existingRecord!.endTime ||
-          _intensity != widget.existingRecord!.intensity;
+    final existing = widget.existingEntry;
+    // If we're editing an existing entry, check if values changed
+    if (existing != null) {
+      return _startTime != _readDateTimeAnswer(existing, 'startTime') ||
+          _endTime != _readDateTimeAnswer(existing, 'endTime') ||
+          _intensity != _readIntensity(existing);
     }
     // For new records, we have unsaved data if user has explicitly set any field
     return _userSetStart || _userSetEnd || _userSetIntensity;
@@ -394,7 +415,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       label: Text(l10n.back),
                     ),
                     // Delete button only for existing records
-                    if (widget.existingRecord != null)
+                    if (widget.existingEntry != null)
                       IconButton(
                         onPressed: _handleDelete,
                         icon: const Icon(Icons.delete_outline),
@@ -417,9 +438,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: OverlapWarning(
-                            overlappingRecords: overlappingEvents,
-                            onViewConflict: (conflictingRecord) {
-                              // Pop back to view the conflicting record in context
+                            overlappingEntries: overlappingEvents,
+                            onViewConflict: (conflictingEntry) {
+                              // Pop back to view the conflicting entry in context
                               Navigator.pop(context, false);
                             },
                           ),

@@ -3,8 +3,8 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -26,8 +26,8 @@ class CalendarOverlay extends StatefulWidget {
     required this.onDateSelect,
     super.key,
     this.selectedDate,
-    this.records = const [],
-    this.incompleteRecords = const [],
+    this.entries = const [],
+    this.incompleteEntries = const [],
     this.missingDays = const [],
   });
 
@@ -35,8 +35,14 @@ class CalendarOverlay extends StatefulWidget {
   final VoidCallback onClose;
   final ValueChanged<DateTime> onDateSelect;
   final DateTime? selectedDate;
-  final List<NosebleedRecord> records;
-  final List<NosebleedRecord> incompleteRecords;
+
+  /// All known materialized diary entries (used for status colouring).
+  final List<DiaryEntry> entries;
+
+  /// Materialized diary entries that are checkpointed but not finalized.
+  final List<DiaryEntry> incompleteEntries;
+
+  /// Days that should be flagged as missing data.
   final List<DateTime> missingDays;
 
   @override
@@ -68,14 +74,23 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
   bool get _animationsEnabled =>
       FeatureFlagService.instance.useAnimations && _useAnimation;
 
-  /// Get the earliest record date from all records
-  DateTime? _getEarliestRecordDate() {
-    if (widget.records.isEmpty) return null;
+  DateTime? _entryLocalDate(DiaryEntry e) {
+    final eff = e.effectiveDate;
+    if (eff == null) return null;
+    final local = eff.toLocal();
+    return DateTime(local.year, local.month, local.day);
+  }
+
+  /// Get the earliest entry date from `widget.entries`.
+  DateTime? _getEarliestEntryDate() {
+    if (widget.entries.isEmpty) return null;
 
     DateTime? earliest;
-    for (final record in widget.records) {
-      if (earliest == null || record.startTime.isBefore(earliest)) {
-        earliest = record.startTime;
+    for (final entry in widget.entries) {
+      final entryDay = _entryLocalDate(entry);
+      if (entryDay == null) continue;
+      if (earliest == null || entryDay.isBefore(earliest)) {
+        earliest = entryDay;
       }
     }
     return earliest;
@@ -84,57 +99,43 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
   /// Get the date status for classification
   DateStatus _getDateStatus(DateTime date) {
     final dateOnly = DateTime(date.year, date.month, date.day);
-    final earliestDate = _getEarliestRecordDate();
+    final earliestDate = _getEarliestEntryDate();
 
-    // Check if it's missing data
     final isMissingData = widget.missingDays.any((d) {
       final dOnly = DateTime(d.year, d.month, d.day);
       return dOnly == dateOnly;
     });
 
-    // Check if it's before the first recorded event
-    final isBeforeFirstRecord =
-        earliestDate != null &&
-        dateOnly.isBefore(
-          DateTime(earliestDate.year, earliestDate.month, earliestDate.day),
-        );
+    final isBeforeFirstEntry =
+        earliestDate != null && dateOnly.isBefore(earliestDate);
 
-    // Check for records on this date
-    final recordsForDate = widget.records.where((record) {
-      final recordDateOnly = DateTime(
-        record.startTime.year,
-        record.startTime.month,
-        record.startTime.day,
-      );
-      return recordDateOnly == dateOnly;
+    final entriesForDate = widget.entries.where((entry) {
+      final entryDay = _entryLocalDate(entry);
+      return entryDay != null && entryDay == dateOnly && !entry.isDeleted;
     }).toList();
 
-    // Check for incomplete records on this date
-    final hasIncompleteRecords = widget.incompleteRecords.any((record) {
-      final recordDateOnly = DateTime(
-        record.startTime.year,
-        record.startTime.month,
-        record.startTime.day,
-      );
-      return recordDateOnly == dateOnly;
+    final hasIncompleteEntries = widget.incompleteEntries.any((entry) {
+      final entryDay = _entryLocalDate(entry);
+      return entryDay != null && entryDay == dateOnly && !entry.isDeleted;
     });
 
-    if (hasIncompleteRecords || isMissingData) {
+    if (hasIncompleteEntries || isMissingData) {
       return DateStatus.incomplete;
     }
 
-    if (recordsForDate.isEmpty) {
-      return isBeforeFirstRecord ? DateStatus.beforeFirst : DateStatus.noEvents;
+    if (entriesForDate.isEmpty) {
+      return isBeforeFirstEntry ? DateStatus.beforeFirst : DateStatus.noEvents;
     }
 
-    // Check types of records - prioritize based on type
-    final hasNosebleedEvents = recordsForDate.any(
-      (r) => !r.isNoNosebleedsEvent && !r.isUnknownEvent,
+    final hasNosebleedEvents = entriesForDate.any(
+      (e) => e.entryType == 'epistaxis_event',
     );
-    final hasNoNosebleedEvents = recordsForDate.any(
-      (r) => r.isNoNosebleedsEvent,
+    final hasNoNosebleedEvents = entriesForDate.any(
+      (e) => e.entryType == 'no_epistaxis_event',
     );
-    final hasUnknownEvents = recordsForDate.any((r) => r.isUnknownEvent);
+    final hasUnknownEvents = entriesForDate.any(
+      (e) => e.entryType == 'unknown_day_event',
+    );
 
     if (hasNosebleedEvents) {
       return DateStatus.nosebleed;

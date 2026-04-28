@@ -17,7 +17,6 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -249,7 +248,10 @@ class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   final TaskService _taskService = TaskService();
   ClinicalDiaryRuntime? _runtime;
-  DiaryEventBridge? _bridge;
+
+  /// Persistent device install UUID, minted on first launch and reused
+  /// thereafter. Forwarded to [HomeScreen] for the export payload.
+  String? _deviceId;
   MobileNotificationService? _notificationService;
   Object? _bootstrapError;
 
@@ -307,10 +309,7 @@ class _AppRootState extends State<AppRoot> {
       if (mounted) {
         setState(() {
           _runtime = runtime;
-          _bridge = DiaryEventBridge(
-            entryService: runtime.entryService,
-            reader: runtime.reader,
-          );
+          _deviceId = deviceId;
         });
       }
     } catch (e, stack) {
@@ -435,13 +434,13 @@ class _AppRootState extends State<AppRoot> {
       );
     }
     final runtime = _runtime;
-    final bridge = _bridge;
-    if (runtime == null || bridge == null) {
+    final deviceId = _deviceId;
+    if (runtime == null || deviceId == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return HomeScreen(
       runtime: runtime,
-      bridge: bridge,
+      deviceId: deviceId,
       enrollmentService: _enrollmentService,
       taskService: _taskService,
       onLocaleChanged: widget.onLocaleChanged,
