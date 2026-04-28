@@ -4,8 +4,8 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 /// Simplified recording screen with all controls on one page
 class SimpleRecordingScreen extends StatefulWidget {
   const SimpleRecordingScreen({
-    required this.nosebleedService,
+    required this.bridge,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
@@ -26,7 +26,7 @@ class SimpleRecordingScreen extends StatefulWidget {
     this.onDelete,
   });
 
-  final NosebleedService nosebleedService;
+  final DiaryEventBridge bridge;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
   final DateTime? initialStartDate;
@@ -203,7 +203,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       String? recordId;
       if (widget.existingRecord != null) {
         // Update existing record
-        final record = await widget.nosebleedService.updateRecord(
+        final record = await widget.bridge.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           startTime: _startTime,
           endTime: _endTime,
@@ -211,8 +211,8 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         );
         recordId = record.id;
       } else {
-        // Create new record (isIncomplete is calculated automatically by service)
-        final record = await widget.nosebleedService.addRecord(
+        // Create new record (isIncomplete is calculated automatically by bridge)
+        final record = await widget.bridge.addRecord(
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,

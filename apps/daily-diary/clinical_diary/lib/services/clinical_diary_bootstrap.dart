@@ -19,6 +19,7 @@ import 'package:sembast/sembast.dart';
 /// The collaborators downstream code needs from the bootstrap.
 class ClinicalDiaryRuntime {
   ClinicalDiaryRuntime({
+    required this.backend,
     required this.entryService,
     required this.reader,
     required this.syncCycle,
@@ -26,6 +27,10 @@ class ClinicalDiaryRuntime {
     required this.destinations,
   });
 
+  /// The Sembast-backed storage backend. Exposed so callers (e.g. the home
+  /// screen wedge banner) can call [SembastBackend.anyFifoWedged] without
+  /// re-wrapping the database.
+  final SembastBackend backend;
   final EntryService entryService;
   final DiaryEntryReader reader;
   final SyncCycle syncCycle;
@@ -150,6 +155,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
 
   // 9. Return the composed runtime.
   return ClinicalDiaryRuntime(
+    backend: backend,
     entryService: entryService,
     reader: reader,
     syncCycle: syncCycle,

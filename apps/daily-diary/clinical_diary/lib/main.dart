@@ -11,17 +11,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:append_only_datastore/append_only_datastore.dart';
-import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/data_export_service.dart';
+import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
+import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/file_read_service.dart';
-import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -29,11 +26,17 @@ import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+    show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sembast/sembast_io.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 /// Flavor name from build configuration.
@@ -43,6 +46,13 @@ import 'package:uuid/uuid.dart';
 const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
     ? String.fromEnvironment('APP_FLAVOR')
     : String.fromEnvironment('FLUTTER_APP_FLAVOR');
+
+/// SharedPreferences key for the persisted device install UUID.
+const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
+
+/// Default primary diary server URL. In production this would be derived
+/// from the linking code; for now a fixed dev URL keeps bootstrap simple.
+const _kDefaultPrimaryDiaryServer = 'https://diary.example.com';
 
 void main() async {
   // Initialize flavor from native platform configuration
@@ -82,27 +92,6 @@ void main() async {
         debugPrint('Firebase initialization error: $e');
         debugPrint('Stack trace:\n$stack');
       }
-
-      // Initialize append-only datastore for offline-first event storage
-      try {
-        // Generate a stable device ID (this would normally be persisted)
-        const uuid = Uuid();
-        final deviceId = uuid.v4();
-
-        await Datastore.initialize(
-          config: DatastoreConfig.development(
-            deviceId: deviceId,
-            userId: 'anonymous', // Will be updated after enrollment
-          ),
-        );
-        debugPrint('Datastore initialized successfully');
-      } catch (e, stack) {
-        debugPrint('Datastore initialization error: $e');
-        debugPrint('Stack trace:\n$stack');
-      }
-
-      // Timezone is now embedded in ISO 8601 timestamp strings via DateTimeFormatter.
-      // No separate TimezoneService initialization needed.
 
       // CUR-546: Load Callisto feature flags by default for demo
       try {
@@ -256,34 +245,97 @@ class AppRoot extends StatefulWidget {
   State<AppRoot> createState() => _AppRootState();
 }
 
-class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
+class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   final TaskService _taskService = TaskService();
-  late final NosebleedService _nosebleedService;
+  ClinicalDiaryRuntime? _runtime;
+  DiaryEventBridge? _bridge;
   MobileNotificationService? _notificationService;
+  Object? _bootstrapError;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
-    _performAutoImport();
+    _initializeRuntime();
     _initializeNotifications();
   }
 
-  /// REQ-CAL-p00081: Sync tasks when app resumes from background
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      unawaited(_taskService.syncTasks(_enrollmentService));
+  /// Bootstrap the event-sourcing runtime: open Sembast DB, mint or read the
+  /// device ID, and compose the [ClinicalDiaryRuntime].
+  Future<void> _initializeRuntime() async {
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final dbPath = '${docsDir.path}/diary.db';
+      final db = await databaseFactoryIo.openDatabase(dbPath);
+
+      final deviceId = await _readOrMintDeviceId();
+
+      String softwareVersion;
+      try {
+        final pkg = await PackageInfo.fromPlatform();
+        softwareVersion = pkg.buildNumber.isNotEmpty
+            ? 'clinical_diary@${pkg.version}+${pkg.buildNumber}'
+            : 'clinical_diary@${pkg.version}';
+      } catch (_) {
+        softwareVersion = 'clinical_diary@0.0.0';
+      }
+
+      final userId = await _enrollmentService.getUserId() ?? 'pre-enrollment';
+
+      final runtime = await bootstrapClinicalDiary(
+        sembastDatabase: db,
+        authToken: _enrollmentService.getJwtToken,
+        deviceId: deviceId,
+        softwareVersion: softwareVersion,
+        userId: userId,
+        primaryDiaryServerBaseUrl: Uri.parse(_kDefaultPrimaryDiaryServer),
+      );
+
+      // Activate the primary destination once at boot. setStartDate is
+      // idempotent — calling it on a destination that is already at the
+      // requested startDate is a no-op.
+      try {
+        await runtime.destinations.setStartDate(
+          'primary_diary_server',
+          DateTime.utc(2020, 1, 1),
+          initiator: const AutomationInitiator(service: 'mobile-bootstrap'),
+        );
+      } catch (e, stack) {
+        debugPrint('[Bootstrap] setStartDate failed: $e\n$stack');
+      }
+
+      if (mounted) {
+        setState(() {
+          _runtime = runtime;
+          _bridge = DiaryEventBridge(
+            entryService: runtime.entryService,
+            reader: runtime.reader,
+          );
+        });
+      }
+    } catch (e, stack) {
+      debugPrint('[Bootstrap] Runtime init failed: $e\n$stack');
+      if (mounted) {
+        setState(() => _bootstrapError = e);
+      }
     }
   }
 
-  /// Initialize FCM notification service and task loading.
-  ///
-  /// REQ-CAL-p00081: Task system initialization
-  /// REQ-CAL-p00023-D: Push notification receiving
-  /// REQ-CAL-p00082: Patient Alert Delivery (FCM token registration)
+  Future<String> _readOrMintDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    var existing = prefs.getString(_kDeviceIdPrefsKey);
+    if (existing == null || existing.isEmpty) {
+      existing = const Uuid().v4();
+      await prefs.setString(_kDeviceIdPrefsKey, existing);
+    }
+    return existing;
+  }
+
+  /// Initialize FCM notification service for token registration / permissions /
+  /// topic subscription. Per the cutover plan we no longer hook FCM messages
+  /// into a sync trigger — `installTriggers` (set up by the bootstrap) covers
+  /// that path. Any FCM data messages that need to surface tasks still flow
+  /// through TaskService.handleFcmMessage as before.
   Future<void> _initializeNotifications() async {
     // Load persisted tasks from storage
     await _taskService.loadTasks();
@@ -291,7 +343,6 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
 
-    // Initialize FCM
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
       onTokenRefresh: _registerFcmToken,
@@ -309,13 +360,6 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   /// Register the FCM token with the diary server.
   ///
   /// Called on initial token retrieval and on token refresh.
-  /// The diary server stores the token in the shared database so the
-  /// portal server can send targeted notifications.
-  ///
-  /// Uses [EnrollmentService] for JWT and backend URL because the patient
-  /// authenticates via linking codes (not username/password login).
-  /// The backend URL is sponsor-specific, determined by the linking code prefix.
-  ///
   /// REQ-CAL-p00082: Patient Alert Delivery
   Future<void> _registerFcmToken(String token) async {
     final jwt = await _enrollmentService.getJwtToken();
@@ -372,58 +416,32 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _notificationService?.dispose();
     _taskService.dispose();
+    _runtime?.dispose();
     super.dispose();
-  }
-
-  /// Auto-import data from file if IMPORT_FILE was specified via dart-define.
-  /// This is useful for testing with pre-populated data.
-  Future<void> _performAutoImport() async {
-    if (!AppConfig.hasImportFile) return;
-
-    debugPrint(
-      '[AutoImport] IMPORT_FILE specified: ${AppConfig.importFilePath}',
-    );
-
-    try {
-      final fileContent = await FileReadService.readFile(
-        AppConfig.importFilePath,
-      );
-
-      if (fileContent == null) {
-        debugPrint('[AutoImport] Could not read file');
-        return;
-      }
-
-      final exportService = DataExportService(
-        nosebleedService: _nosebleedService,
-        preferencesService: widget.preferencesService,
-        enrollmentService: _enrollmentService,
-      );
-
-      final result = await exportService.importAppState(fileContent);
-
-      if (result.success) {
-        debugPrint(
-          '[AutoImport] Success: ${result.recordsImported} records imported',
-        );
-      } else {
-        debugPrint('[AutoImport] Failed: ${result.error}');
-      }
-    } catch (e, stack) {
-      debugPrint('[AutoImport] Error: $e');
-      debugPrint('[AutoImport] Stack: $stack');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Go directly to home screen - clinical trial enrollment is accessed
-    // from the user profile menu, not at app startup
+    if (_bootstrapError != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Failed to initialize storage: $_bootstrapError'),
+          ),
+        ),
+      );
+    }
+    final runtime = _runtime;
+    final bridge = _bridge;
+    if (runtime == null || bridge == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return HomeScreen(
-      nosebleedService: _nosebleedService,
+      runtime: runtime,
+      bridge: bridge,
       enrollmentService: _enrollmentService,
       taskService: _taskService,
       onLocaleChanged: widget.onLocaleChanged,

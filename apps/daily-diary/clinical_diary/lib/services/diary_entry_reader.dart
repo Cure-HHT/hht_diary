@@ -5,16 +5,31 @@ import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 
 /// Derived status for a calendar day, based on nosebleed-reporting compliance.
 ///
-/// - [recorded]: at least one `epistaxis_event` (not tombstoned) exists.
-/// - [noNosebleeds]: no epistaxis entries, but at least one `no_epistaxis_event`.
-/// - [unknown]: neither of the above, but at least one `unknown_day_event`.
-/// - [empty]: no nosebleed-related entries at all (questionnaires are ignored).
-enum DayStatus { recorded, noNosebleeds, unknown, empty }
+/// The legacy enum-name conventions (`nosebleed`, `noNosebleed`, `unknown`,
+/// `incomplete`, `notRecorded`) are preserved verbatim so calendar UI code
+/// that branches on these values can switch to the new reader without churn.
+///
+/// - [nosebleed]: at least one finalized, non-tombstoned `epistaxis_event`.
+/// - [noNosebleed]: no finalized epistaxis entries on the day, but at least one
+///   finalized, non-tombstoned `no_epistaxis_event`.
+/// - [unknown]: neither of the above, but at least one finalized,
+///   non-tombstoned `unknown_day_event`.
+/// - [incomplete]: no finalized nosebleed-related entry on the day, but at
+///   least one non-tombstoned nosebleed-related entry whose `is_complete` is
+///   false (e.g. a checkpointed-but-never-finalized epistaxis entry).
+/// - [notRecorded]: nothing relevant exists for the day.
+enum DayStatus { nosebleed, noNosebleed, unknown, incomplete, notRecorded }
 
 /// Entry-type identifiers that affect [DiaryEntryReader.dayStatus].
 const _kEpistaxisType = 'epistaxis_event';
 const _kNoEpistaxisType = 'no_epistaxis_event';
 const _kUnknownDayType = 'unknown_day_event';
+
+const List<String> _kNosebleedRelatedTypes = [
+  _kEpistaxisType,
+  _kNoEpistaxisType,
+  _kUnknownDayType,
+];
 
 /// Thin wrapper around [SembastBackend.findEntries] that adds diary-shaped
 /// [dayStatus] derivation and date-range query conveniences.
@@ -106,7 +121,7 @@ class DiaryEntryReader {
   /// yesterday?"
   Future<bool> hasEntriesForYesterday() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    for (final type in [_kEpistaxisType, _kNoEpistaxisType, _kUnknownDayType]) {
+    for (final type in _kNosebleedRelatedTypes) {
       final entries = await entriesForDate(yesterday, entryType: type);
       if (entries.isNotEmpty) return true;
     }
@@ -121,35 +136,110 @@ class DiaryEntryReader {
   /// that local calendar day.
   ///
   /// Precedence (highest to lowest):
-  /// 1. [DayStatus.recorded] — at least one non-tombstoned `epistaxis_event`.
-  /// 2. [DayStatus.noNosebleeds] — no epistaxis, but a non-tombstoned
-  ///    `no_epistaxis_event`.
-  /// 3. [DayStatus.unknown] — neither of the above, but a non-tombstoned
-  ///    `unknown_day_event`.
-  /// 4. [DayStatus.empty] — none of the above.
+  /// 1. [DayStatus.nosebleed] — at least one finalized, non-tombstoned
+  ///    `epistaxis_event`.
+  /// 2. [DayStatus.noNosebleed] — no finalized epistaxis, but a finalized,
+  ///    non-tombstoned `no_epistaxis_event`.
+  /// 3. [DayStatus.unknown] — neither of the above, but a finalized,
+  ///    non-tombstoned `unknown_day_event`.
+  /// 4. [DayStatus.incomplete] — none of the above is finalized, but a
+  ///    non-tombstoned nosebleed-related entry exists with `isComplete=false`
+  ///    (a checkpoint that has not yet been finalized).
+  /// 5. [DayStatus.notRecorded] — none of the above.
   ///
   /// Tombstoned entries ([DiaryEntry.isDeleted] == `true`) are excluded from
-  /// all categories. Questionnaire entries (e.g., `nose_hht_survey`) are
+  /// every category. Questionnaire entries (e.g., `nose_hht_survey`) are
   /// ignored entirely — they do not affect the compliance status for a day.
   // Implements: REQ-p00013-A+B+E — day-level compliance status derived from
   // the event-sourced materialized view; tombstones respected.
   // Implements: REQ-p00004-E+L — read path uses only the materialized view.
   Future<DayStatus> dayStatus(DateTime date) async {
-    bool hasLive(List<DiaryEntry> entries) => entries.any((e) => !e.isDeleted);
+    bool hasFinalized(List<DiaryEntry> entries) =>
+        entries.any((e) => !e.isDeleted && e.isComplete);
+    bool hasIncomplete(List<DiaryEntry> entries) =>
+        entries.any((e) => !e.isDeleted && !e.isComplete);
 
     final epistaxis = await entriesForDate(date, entryType: _kEpistaxisType);
-    if (hasLive(epistaxis)) return DayStatus.recorded;
+    if (hasFinalized(epistaxis)) return DayStatus.nosebleed;
 
     final noEpistaxis = await entriesForDate(
       date,
       entryType: _kNoEpistaxisType,
     );
-    if (hasLive(noEpistaxis)) return DayStatus.noNosebleeds;
+    if (hasFinalized(noEpistaxis)) return DayStatus.noNosebleed;
 
     final unknownDay = await entriesForDate(date, entryType: _kUnknownDayType);
-    if (hasLive(unknownDay)) return DayStatus.unknown;
+    if (hasFinalized(unknownDay)) return DayStatus.unknown;
 
-    return DayStatus.empty;
+    // No finalized nosebleed-related entry — check for any checkpointed
+    // (incomplete) entry that hasn't been tombstoned.
+    if (hasIncomplete(epistaxis) ||
+        hasIncomplete(noEpistaxis) ||
+        hasIncomplete(unknownDay)) {
+      return DayStatus.incomplete;
+    }
+
+    return DayStatus.notRecorded;
+  }
+
+  // ---------------------------------------------------------------------------
+  // dayStatusRange
+  // ---------------------------------------------------------------------------
+
+  /// Returns a map keyed by local-midnight `DateTime` (one entry per day in
+  /// the inclusive range `[from, to]`) whose value is the [DayStatus] for
+  /// that day. Mirrors the legacy `getDayStatusRange` API used by the
+  /// calendar.
+  ///
+  /// Internally fetches all entries in the range once and derives status per
+  /// day in Dart, rather than calling [dayStatus] N times (which would re-fetch
+  /// the entire entry list per day).
+  Future<Map<DateTime, DayStatus>> dayStatusRange(
+    DateTime from,
+    DateTime to,
+  ) async {
+    final entries = await entriesForDateRange(from, to);
+    final result = <DateTime, DayStatus>{};
+
+    final localFrom = _localDateOnly(from);
+    final localTo = _localDateOnly(to);
+
+    for (
+      var day = localFrom;
+      !day.isAfter(localTo);
+      day = day.add(const Duration(days: 1))
+    ) {
+      final dayKey = DateTime(day.year, day.month, day.day);
+      // Filter entries that fall on this local day.
+      final onThisDay = entries
+          .where((e) => _localDateOnly(e.effectiveDate!) == dayKey)
+          .toList();
+
+      result[dayKey] = _statusForEntries(onThisDay);
+    }
+    return result;
+  }
+
+  /// Pure helper: derive a [DayStatus] from a list of entries that have
+  /// already been filtered to a single local calendar day.
+  static DayStatus _statusForEntries(List<DiaryEntry> dayEntries) {
+    final live = dayEntries.where((e) => !e.isDeleted).toList();
+
+    bool hasFinalized(String type) =>
+        live.any((e) => e.entryType == type && e.isComplete);
+    bool hasIncomplete(String type) =>
+        live.any((e) => e.entryType == type && !e.isComplete);
+
+    if (hasFinalized(_kEpistaxisType)) return DayStatus.nosebleed;
+    if (hasFinalized(_kNoEpistaxisType)) return DayStatus.noNosebleed;
+    if (hasFinalized(_kUnknownDayType)) return DayStatus.unknown;
+
+    if (hasIncomplete(_kEpistaxisType) ||
+        hasIncomplete(_kNoEpistaxisType) ||
+        hasIncomplete(_kUnknownDayType)) {
+      return DayStatus.incomplete;
+    }
+    return DayStatus.notRecorded;
   }
 
   // ---------------------------------------------------------------------------

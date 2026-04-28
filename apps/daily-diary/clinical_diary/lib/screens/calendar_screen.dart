@@ -7,8 +7,9 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/services/diary_entry_reader.dart';
+import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
@@ -18,13 +19,13 @@ import 'package:table_calendar/table_calendar.dart';
 /// Calendar screen showing nosebleed history with color-coded days
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({
-    required this.nosebleedService,
+    required this.bridge,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
   });
 
-  final NosebleedService nosebleedService;
+  final DiaryEventBridge bridge;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
 
@@ -73,14 +74,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final firstDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
     final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
 
-    final statuses = await widget.nosebleedService.getDayStatusRange(
-      firstDay,
-      lastDay,
-    );
+    final statuses = await widget.bridge.getDayStatusRange(firstDay, lastDay);
 
     // Also load all records for overlap checking
-    final allRecords = await widget.nosebleedService
-        .getLocalMaterializedRecords();
+    final allRecords = await widget.bridge.getLocalMaterializedRecords();
 
     // CUR-586: Check mounted after async operations
     if (!mounted) return;
@@ -145,9 +142,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
     // Fetch records for the selected day
-    final records = await widget.nosebleedService.getRecordsForStartDate(
-      selectedDay,
-    );
+    final records = await widget.bridge.getRecordsForStartDate(selectedDay);
 
     if (!mounted) return;
 
@@ -195,13 +190,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Navigator.pop(context, 'add');
           },
           onNoNosebleeds: () async {
-            await widget.nosebleedService.markNoNosebleeds(selectedDay);
+            await widget.bridge.markNoNosebleeds(selectedDay);
             if (context.mounted) {
               Navigator.pop(context, 'done');
             }
           },
           onUnknown: () async {
-            await widget.nosebleedService.markUnknown(selectedDay);
+            await widget.bridge.markUnknown(selectedDay);
             if (context.mounted) {
               Navigator.pop(context, 'done');
             }
@@ -239,7 +234,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context,
       AppPageRoute(
         builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
+          bridge: widget.bridge,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
           diaryEntryDate: existingRecord == null ? selectedDay : null,
@@ -247,7 +242,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           allRecords: _allRecords,
           onDelete: existingRecord != null
               ? (reason) async {
-                  await widget.nosebleedService.deleteRecord(
+                  await widget.bridge.deleteRecord(
                     recordId: existingRecord.id,
                     reason: reason,
                   );

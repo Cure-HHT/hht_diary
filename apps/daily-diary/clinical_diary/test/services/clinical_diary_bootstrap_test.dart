@@ -128,6 +128,7 @@ void main() {
       'collaborators non-null', () async {
     final (:runtime, :requests) = await _buildRuntime();
 
+    expect(runtime.backend, isNotNull);
     expect(runtime.entryService, isNotNull);
     expect(runtime.reader, isNotNull);
     expect(runtime.syncCycle, isNotNull);

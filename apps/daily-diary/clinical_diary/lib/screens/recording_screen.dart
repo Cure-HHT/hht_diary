@@ -14,8 +14,8 @@
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/services/diary_event_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
@@ -113,7 +113,7 @@ import 'package:intl/intl.dart';
 ///         forward or backwards by the number of minutes on the button
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({
-    required this.nosebleedService,
+    required this.bridge,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
@@ -132,7 +132,7 @@ class RecordingScreen extends StatefulWidget {
          'Must specify an onDelete callback when existingRecord is non null.',
        );
 
-  final NosebleedService nosebleedService;
+  final DiaryEventBridge bridge;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
   final DateTime? diaryEntryDate;
@@ -442,10 +442,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
     try {
       String recordId;
       if (widget.existingRecord != null) {
-        // Update existing record (creates a new record that supersedes the original)
+        // Update existing record (appends a new finalized event on the same
+        // aggregate; the materialized view replaces the prior state).
         // CUR-447: Use _startDateTime as the primary date for the record
         // CUR-516: Pass timezone to preserve UI selection for incomplete records
-        final record = await widget.nosebleedService.updateRecord(
+        final record = await widget.bridge.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           startTime: _startDateTime,
           endTime: _endDateTime,
@@ -459,7 +460,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         // Create new record
         // CUR-447: Use _startDateTime as the primary date for the record
         // CUR-516: Pass timezone to preserve UI selection for incomplete records
-        final record = await widget.nosebleedService.addRecord(
+        final record = await widget.bridge.addRecord(
           startTime: _startDateTime,
           endTime: _endDateTime,
           intensity: _intensity,

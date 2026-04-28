@@ -325,9 +325,9 @@ void main() {
     // Test 7: dayStatus — recorded
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-p00004-E — epistaxis event on the day → DayStatus.recorded.
+    // Verifies: REQ-p00004-E — epistaxis event on the day → DayStatus.nosebleed.
     test(
-      'dayStatus returns recorded when epistaxis_event exists for that day',
+      'dayStatus returns nosebleed when epistaxis_event exists for that day',
       () async {
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
@@ -338,7 +338,7 @@ void main() {
         );
 
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.recorded);
+        expect(status, DayStatus.nosebleed);
 
         await fx.backend.close();
       },
@@ -348,9 +348,9 @@ void main() {
     // Test 8: dayStatus — noNosebleeds
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-p00004-E — no_epistaxis_event on the day → noNosebleeds.
+    // Verifies: REQ-p00004-E — no_epistaxis_event on the day → noNosebleed.
     test(
-      'dayStatus returns noNosebleeds when no_epistaxis_event exists',
+      'dayStatus returns noNosebleed when no_epistaxis_event exists',
       () async {
         final fx = await _setupFixture(entryTypeIds: ['no_epistaxis_event']);
 
@@ -361,7 +361,7 @@ void main() {
         );
 
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.noNosebleeds);
+        expect(status, DayStatus.noNosebleed);
 
         await fx.backend.close();
       },
@@ -391,15 +391,15 @@ void main() {
     // Test 10: dayStatus — empty
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-p00004-L — no nosebleed-related entries → empty.
+    // Verifies: REQ-p00004-L — no nosebleed-related entries → notRecorded.
     test(
-      'dayStatus returns empty when no entries exist for that day',
+      'dayStatus returns notRecorded when no entries exist for that day',
       () async {
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
         // No entries recorded at all.
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.empty);
+        expect(status, DayStatus.notRecorded);
 
         await fx.backend.close();
       },
@@ -412,7 +412,7 @@ void main() {
     // Verifies: REQ-p00004-E+L — epistaxis_event takes precedence over
     // no_epistaxis_event on the same day.
     test(
-      'dayStatus returns recorded when epistaxis and no_epistaxis both exist',
+      'dayStatus returns nosebleed when epistaxis and no_epistaxis both exist',
       () async {
         final fx = await _setupFixture(
           entryTypeIds: ['epistaxis_event', 'no_epistaxis_event'],
@@ -430,7 +430,7 @@ void main() {
         );
 
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.recorded);
+        expect(status, DayStatus.nosebleed);
 
         await fx.backend.close();
       },
@@ -441,8 +441,8 @@ void main() {
     // -------------------------------------------------------------------------
 
     // Verifies: REQ-p00004-E — tombstoned epistaxis_event does not count;
-    // surviving no_epistaxis_event promotes the day to noNosebleeds.
-    test('dayStatus ignores tombstoned epistaxis_event; noNosebleeds when '
+    // surviving no_epistaxis_event promotes the day to noNosebleed.
+    test('dayStatus ignores tombstoned epistaxis_event; noNosebleed when '
         'no_epistaxis_event survives', () async {
       final fx = await _setupFixture(
         entryTypeIds: ['epistaxis_event', 'no_epistaxis_event'],
@@ -471,7 +471,7 @@ void main() {
       );
 
       final status = await fx.reader.dayStatus(DateTime.now());
-      expect(status, DayStatus.noNosebleeds);
+      expect(status, DayStatus.noNosebleed);
 
       await fx.backend.close();
     });
@@ -481,9 +481,9 @@ void main() {
     // -------------------------------------------------------------------------
 
     // Verifies: REQ-p00004-E — tombstoned epistaxis_event does not count;
-    // with no other entries the day becomes empty.
+    // with no other entries the day becomes notRecorded.
     test(
-      'dayStatus returns empty when only epistaxis_event exists and is tombstoned',
+      'dayStatus returns notRecorded when only epistaxis_event exists and is tombstoned',
       () async {
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
@@ -502,7 +502,7 @@ void main() {
         );
 
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.empty);
+        expect(status, DayStatus.notRecorded);
 
         await fx.backend.close();
       },
@@ -513,9 +513,9 @@ void main() {
     // -------------------------------------------------------------------------
 
     // Verifies: REQ-p00004-L — questionnaire entries do not affect dayStatus;
-    // a day with only a survey remains empty.
+    // a day with only a survey remains notRecorded.
     test(
-      'dayStatus returns empty when only a questionnaire entry exists for a day',
+      'dayStatus returns notRecorded when only a questionnaire entry exists for a day',
       () async {
         final fx = await _setupFixture(entryTypeIds: ['nose_hht_survey']);
 
@@ -526,7 +526,32 @@ void main() {
         );
 
         final status = await fx.reader.dayStatus(DateTime.now());
-        expect(status, DayStatus.empty);
+        expect(status, DayStatus.notRecorded);
+
+        await fx.backend.close();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Test 14: dayStatus — incomplete (checkpoint, never finalized)
+    // -------------------------------------------------------------------------
+
+    // Verifies: REQ-p00004-E — a non-tombstoned, non-finalized nosebleed-related
+    // entry surfaces as DayStatus.incomplete when no finalized entry exists.
+    test(
+      'dayStatus returns incomplete when only a checkpointed epistaxis exists',
+      () async {
+        final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
+
+        await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'agg-incomplete-day-1',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{},
+        );
+
+        final status = await fx.reader.dayStatus(DateTime.now());
+        expect(status, DayStatus.incomplete);
 
         await fx.backend.close();
       },
