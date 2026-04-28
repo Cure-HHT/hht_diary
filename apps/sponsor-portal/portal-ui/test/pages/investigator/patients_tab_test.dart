@@ -344,7 +344,7 @@ void main() {
         expect(find.byType(Checkbox), findsNothing);
       });
 
-      testWidgets('tapping a patient row opens PatientActionsDialog', (
+      testWidgets('tapping a Participant row opens PatientActionsDialog', (
         WidgetTester tester,
       ) async {
         await _pumpPatientsTab(tester);
@@ -354,7 +354,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should open PatientActionsDialog
-        expect(find.text('Patient Actions'), findsOneWidget);
+        expect(find.text('Participant Actions'), findsOneWidget);
       });
 
       testWidgets(
