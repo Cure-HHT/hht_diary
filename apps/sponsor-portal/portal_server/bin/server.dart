@@ -68,7 +68,9 @@ void main(List<String> args) async {
     'FCM_PROJECT_ID',
     'FCM_ENABLED',
     'FCM_CONSOLE_MODE',
-    'IDENTITY_PLATFORM_PROJECT_ID',
+    'PORTAL_IDENTITY_PROJECT_ID',
+    'PORTAL_IDENTITY_AUTH_DOMAIN',
+    'PORTAL_IDENTITY_MESSAGING_SENDER_ID',
     'GOOGLE_CLOUD_PROJECT',
     'K_SERVICE',
     'K_REVISION',
@@ -78,7 +80,11 @@ void main(List<String> args) async {
     log.info('  $key: ${value ?? "(not set)"}');
   }
   // Log presence of secrets without revealing values
-  final secretVars = ['DB_PASSWORD', 'IDENTITY_PLATFORM_API_KEY'];
+  final secretVars = [
+    'DB_PASSWORD',
+    'PORTAL_IDENTITY_API_KEY',
+    'PORTAL_IDENTITY_APP_ID',
+  ];
   for (final key in secretVars) {
     final value = Platform.environment[key];
     log.info(
