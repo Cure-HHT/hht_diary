@@ -7,6 +7,7 @@
 import 'dart:convert';
 
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 
 /// Fetches tombstone instructions from the diary server and materialises
@@ -72,33 +73,50 @@ Future<void> portalInboundPoll({
     final response = await client.get(url, headers: headers);
 
     if (response.statusCode != 200) {
+      debugPrint(
+        '[InboundPoll] non-200 from $url: ${response.statusCode} '
+        '${response.body}',
+      );
       return;
     }
 
     final dynamic decoded;
     try {
       decoded = jsonDecode(response.body);
-    } on FormatException {
+    } on FormatException catch (e) {
+      debugPrint('[InboundPoll] body is not valid JSON: $e');
       return;
     }
 
     if (decoded is! Map<String, dynamic>) {
+      debugPrint(
+        '[InboundPoll] expected JSON object, got ${decoded.runtimeType}',
+      );
       return;
     }
 
     final dynamic rawMessages = decoded['messages'];
     if (rawMessages is! List) {
+      debugPrint(
+        '[InboundPoll] "messages" missing or wrong type: '
+        '${rawMessages.runtimeType}',
+      );
       return;
     }
 
     for (final dynamic rawMsg in rawMessages) {
       try {
         if (rawMsg is! Map<String, dynamic>) {
+          debugPrint(
+            '[InboundPoll] message is not a JSON object: '
+            '${rawMsg.runtimeType}',
+          );
           continue;
         }
 
         final type = rawMsg['type'];
         if (type != 'tombstone') {
+          debugPrint('[InboundPoll] skipping unknown message type: $type');
           continue;
         }
 
@@ -106,6 +124,9 @@ Future<void> portalInboundPoll({
         final entryType = rawMsg['entry_type'];
 
         if (entryId is! String || entryType is! String) {
+          debugPrint(
+            '[InboundPoll] tombstone missing entry_id/entry_type: $rawMsg',
+          );
           continue;
         }
 
@@ -116,16 +137,18 @@ Future<void> portalInboundPoll({
           answers: const <String, Object?>{},
           changeReason: 'portal-withdrawn',
         );
-      } catch (_) {
+      } catch (e, st) {
         // Per-message exceptions are swallowed. The next sync cycle will
         // retry; EntryService.record's no-op-on-duplicate behaviour makes
         // retries safe (REQ-d00156-D).
+        debugPrint('[InboundPoll] message processing failed: $e\n$st');
         continue;
       }
     }
-  } catch (_) {
+  } catch (e, st) {
     // Top-level network errors, JSON parse failures, and shape mismatches
     // are swallowed. Return without raising (REQ-d00156-C).
+    debugPrint('[InboundPoll] poll failed: $e\n$st');
     return;
   }
 }

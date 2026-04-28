@@ -144,11 +144,19 @@ Future<TriggerHandles> installTriggers({
 
   void fireTrigger() {
     if (disposed) return;
+    // Errors inside onTrigger are absorbed via .catchError so a single
+    // failure (e.g. a network exception bubbling out of syncCycle()) does
+    // not poison the chain and silently disable every subsequent trigger
+    // for the rest of the session.
     // ignore: prefer_final_locals
-    chain = chain.then((_) async {
-      if (disposed) return;
-      await onTrigger();
-    });
+    chain = chain
+        .then((_) async {
+          if (disposed) return;
+          await onTrigger();
+        })
+        .catchError((Object e, StackTrace st) {
+          debugPrint('[Triggers] onTrigger failed: $e\n$st');
+        });
   }
 
   // Track foreground state (starts true; the observer will update it).

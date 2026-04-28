@@ -26,7 +26,8 @@ class ClinicalDiaryRuntime {
     required this.syncCycle,
     required this.triggerHandles,
     required this.destinations,
-  });
+    required Database database,
+  }) : _database = database;
 
   /// The Sembast-backed storage backend. Exposed so callers (e.g. the home
   /// screen wedge banner) can call [SembastBackend.anyFifoWedged] without
@@ -46,16 +47,28 @@ class ClinicalDiaryRuntime {
   /// (via [DestinationRegistry.setStartDate]) and inspect their schedules.
   final DestinationRegistry destinations;
 
-  /// Cancels all installed triggers. Safe to call more than once.
-  Future<void> dispose() => triggerHandles.dispose();
+  final Database _database;
+  bool _disposed = false;
+
+  /// Cancels all installed triggers and closes the underlying Sembast
+  /// database. Safe to call more than once.
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await triggerHandles.dispose();
+    await _database.close();
+  }
 }
 
 /// Wire up the full clinical-diary runtime from a caller-opened Sembast
 /// [Database].
 ///
-/// The caller is responsible for opening (and eventually closing) the database;
-/// this function does not choose between in-memory and file-backed storage so
-/// tests can inject a `sembast_memory` database without special-casing here.
+/// The caller opens the database (this function does not choose between
+/// in-memory and file-backed storage so tests can inject a `sembast_memory`
+/// database without special-casing here). Ownership of the database
+/// thereafter belongs to the returned [ClinicalDiaryRuntime]: its
+/// [ClinicalDiaryRuntime.dispose] closes the database. Callers MUST NOT
+/// call `database.close()` themselves.
 ///
 /// Optional `@visibleForTesting` parameters let integration tests inject
 /// silent/fake trigger factories (lifecycle, timer, connectivity, FCM) so the
@@ -170,5 +183,6 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
     syncCycle: syncCycle,
     triggerHandles: triggerHandles,
     destinations: datastore.destinations,
+    database: sembastDatabase,
   );
 }

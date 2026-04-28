@@ -401,6 +401,73 @@ void main() {
     );
   });
 
+  // ---- F. onTrigger error recovery -----------------------------------------
+
+  group('onTrigger error recovery', () {
+    test(
+      // Verifies: REQ-d00157-A+B+C+D+E — a single onTrigger() failure must
+      // not poison the serial chain. Subsequent trigger sources must still
+      // fire onTrigger() on the next event.
+      'a thrown onTrigger does not disable subsequent triggers',
+      () async {
+        final lifecycleCapture = _LifecycleCapture();
+        final timerFactory = _FakeTimerFactory();
+        final connectivityController =
+            StreamController<List<ConnectivityResult>>();
+        final fcmMessageController = StreamController<RemoteMessage>();
+        final fcmOpenedController = StreamController<RemoteMessage>();
+
+        var calls = 0;
+        Future<void> failingThenPassing() async {
+          calls++;
+          if (calls == 1) {
+            throw StateError('boom');
+          }
+        }
+
+        final handles = await installTriggers(
+          onTrigger: failingThenPassing,
+          lifecycleObserverFactory: lifecycleCapture.call,
+          periodicTimerFactory: timerFactory.call,
+          connectivityStreamFactory: () => connectivityController.stream,
+          fcmOnMessageStreamFactory: () => fcmMessageController.stream,
+          fcmOnOpenedStreamFactory: () => fcmOpenedController.stream,
+        );
+
+        // First trigger throws.
+        _emitLifecycle(lifecycleCapture, AppLifecycleState.resumed);
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, 1);
+
+        // Subsequent triggers must still run.
+        timerFactory.lastTimer!.advance();
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, 2, reason: 'periodic timer must still fire after error');
+
+        // Connectivity transition off→on should also still fire.
+        connectivityController.add([ConnectivityResult.none]);
+        await Future<void>.delayed(Duration.zero);
+        connectivityController.add([ConnectivityResult.wifi]);
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, 3, reason: 'connectivity must still fire after error');
+
+        // FCM streams should still fire.
+        fcmMessageController.add(_fakeMessage());
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, 4, reason: 'FCM onMessage must still fire after error');
+
+        fcmOpenedController.add(_fakeMessage());
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, 5, reason: 'FCM onOpened must still fire after error');
+
+        await handles.dispose();
+        await connectivityController.close();
+        await fcmMessageController.close();
+        await fcmOpenedController.close();
+      },
+    );
+  });
+
   // ---- G. dispose cancels everything ---------------------------------------
 
   group('dispose', () {

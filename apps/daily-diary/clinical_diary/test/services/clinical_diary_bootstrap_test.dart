@@ -258,4 +258,45 @@ void main() {
     // dispose() should complete without throwing.
     await expectLater(runtime.dispose(), completes);
   });
+
+  // -----------------------------------------------------------------------
+  // Test 5: dispose() closes the underlying Sembast database.
+  // Verifies: REQ-d00134-A — runtime owns the database lifecycle.
+  // -----------------------------------------------------------------------
+  test('runtime.dispose() closes the underlying Sembast database', () async {
+    final db = await _openDb();
+    final runtime = await bootstrapClinicalDiary(
+      sembastDatabase: db,
+      authToken: () async => null,
+      resolveBaseUrl: () async => null,
+      deviceId: _deviceId,
+      softwareVersion: _softwareVersion,
+      userId: _userId,
+      httpClient: MockClient((_) async => http.Response('', 200)),
+      lifecycleObserverFactory: _silentLifecycleFactory,
+      periodicTimerFactory: _silentTimerFactory,
+      connectivityStreamFactory: _silentConnectivityFactory,
+      fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+      fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+    );
+
+    await runtime.dispose();
+
+    // Operating on a closed Sembast database raises; this is the cheapest
+    // observable signal that the database was indeed closed.
+    final store = StoreRef<String, Object?>.main();
+    await expectLater(store.record('k').put(db, 'v'), throwsA(anything));
+  });
+
+  // -----------------------------------------------------------------------
+  // Test 6: dispose() is idempotent.
+  // Verifies: REQ-d00134-A — calling dispose twice does not throw / does
+  // not double-close the database.
+  // -----------------------------------------------------------------------
+  test('runtime.dispose() is idempotent', () async {
+    final (:runtime, :requests) = await _buildRuntime();
+
+    await runtime.dispose();
+    await expectLater(runtime.dispose(), completes);
+  });
 }

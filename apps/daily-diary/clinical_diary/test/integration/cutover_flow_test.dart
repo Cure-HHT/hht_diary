@@ -91,8 +91,9 @@ class _Fixture {
   final List<http.Request> requests;
 
   Future<void> tearDown() async {
+    // runtime.dispose() closes the database (it owns the lifecycle now);
+    // calling db.close() again would double-close.
     await runtime.dispose();
-    await db.close();
   }
 }
 
