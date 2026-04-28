@@ -101,7 +101,8 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient
-        .post('/api/v1/portal/patients/${widget.patientId}/disconnect', {
+        .post('/api/v1/portal/patients/disconnect', {
+          'patientId': widget.patientId,
           'reason': _selectedReason!.label,
           if (_notesController.text.trim().isNotEmpty)
             'notes': _notesController.text.trim(),

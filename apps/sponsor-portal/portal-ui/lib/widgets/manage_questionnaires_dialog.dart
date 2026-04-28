@@ -89,7 +89,8 @@ class _ManageQuestionnairesDialogState
     });
 
     final response = await widget.apiClient.get(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires',
+      '/api/v1/portal/patients/questionnaires',
+      extraHeaders: {'X-Patient-Id': widget.patientId},
     );
 
     if (!mounted) return;
@@ -174,8 +175,8 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/$type/send',
-      {},
+      '/api/v1/portal/patients/questionnaires/send',
+      {'patientId': widget.patientId, 'questionnaireType': type},
     );
 
     if (!mounted) return;
@@ -201,7 +202,7 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.delete(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}',
+      '/api/v1/portal/questionnaire-instances/${q.id}',
       body: {'reason': 'Revoked by investigator'},
     );
 
@@ -292,7 +293,7 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}/unlock',
+      '/api/v1/portal/questionnaire-instances/${q.id}/unlock',
       {},
     );
 
@@ -319,7 +320,7 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}/finalize',
+      '/api/v1/portal/questionnaire-instances/${q.id}/finalize',
       {},
     );
 

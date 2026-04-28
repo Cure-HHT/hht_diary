@@ -116,30 +116,65 @@ Future<void> fillBatch(
   final candidates = await backend.findAllEvents(afterSequence: fillCursor);
   if (candidates.isEmpty) return;
 
-  // Trim to the destination's time-window AND its subscription filter.
-  // Implements: REQ-d00128-J — destination admission is decided by
-  //   destination.filter.matches; system events flow through to
-  //   destinations that opt in via SubscriptionFilter.includeSystemEvents
-  //   and are rejected by matches for destinations that do not opt in.
-  final inWindow = candidates.where((e) {
-    if (e.clientTimestamp.isBefore(schedule.startDate!)) return false;
-    if (e.clientTimestamp.isAfter(upper)) return false;
-    return destination.filter.matches(e);
-  }).toList();
+  // Walk candidates classifying each as deferred (upper-bound rejection)
+  // or decided (in-window OR permanently rejected). The walk stops at the
+  // first deferred event so its sequence_number stays "in front of"
+  // fill_cursor for re-evaluation when the upper bound widens (clock
+  // advances past the event's client_timestamp, or endDate is widened
+  // via setEndDate).
+  //
+  // Implements: REQ-d00128-J — admission decided by
+  //   destination.filter.matches.
+  // Implements: REQ-d00128-K — cursor advance respects rejection reason:
+  //   permanent rejections (subscription, startDate-lower) contribute to
+  //   cursor advance; deferred rejections (upper bound) stop the walk so
+  //   the cursor does not skip past them.
+  // Check order matters: permanent rejection reasons (subscription
+  // mismatch, startDate-lower) are evaluated BEFORE the deferred-by-upper
+  // check so an event that fails subscription does not block the walk
+  // even if its client_timestamp is past the upper bound. Otherwise a
+  // system audit emitted at real-clock-now in a test using a mock fillBatch
+  // clock would be treated as deferred and freeze cursor advance, even
+  // though the destination's subscription filter would reject it
+  // permanently.
+  final inWindow = <StoredEvent>[];
+  int? lastDecidedSeq;
+  for (final e in candidates) {
+    if (!destination.filter.matches(e)) {
+      // Permanent: subscription filter is stable for the destination's
+      // lifetime. Cursor may advance past this event.
+      lastDecidedSeq = e.sequenceNumber;
+      continue;
+    }
+    if (e.clientTimestamp.isBefore(schedule.startDate!)) {
+      // Permanent: startDate is immutable per REQ-d00129-C. Cursor may
+      // advance past this event.
+      lastDecidedSeq = e.sequenceNumber;
+      continue;
+    }
+    if (e.clientTimestamp.isAfter(upper)) {
+      // Deferred — endDate is mutable per REQ-d00129-F, so this event
+      // may become eligible later. Stop the walk; cursor must not
+      // advance past this event nor past any subsequent candidate
+      // (advancing past a later in-window event would skip this
+      // deferred one).
+      break;
+    }
+    // In-window candidate. Decided either way (will be promoted, or held
+    // by canAddToBatch / maxAccumulateTime downstream).
+    inWindow.add(e);
+    lastDecidedSeq = e.sequenceNumber;
+  }
 
   if (inWindow.isEmpty) {
-    // Advance cursor past the non-matching tail so we don't re-evaluate
-    // them on the next tick. REQ-d00128-H: "no new matching events"
-    // idempotency — this is not a NEW match, it's cursor maintenance to
-    // keep fillBatch's work bounded by new events, not total log size.
-    // Note: cursor advance here is not wrapped in an explicit
-    // transaction() because writeFillCursor already opens its own
-    // atomic transaction, and there is no second mutation to compose
-    // with in this branch.
-    await backend.writeFillCursor(
-      destination.id,
-      candidates.last.sequenceNumber,
-    );
+    // No promotions to make. Advance cursor past any permanently-rejected
+    // events the walk visited; if the walk stopped at the very first
+    // candidate (deferred), do not advance — that event must remain
+    // re-evaluable. REQ-d00128-H idempotency holds: repeated invocations
+    // with no new matching events produce no new FIFO rows.
+    if (lastDecidedSeq != null) {
+      await backend.writeFillCursor(destination.id, lastDecidedSeq);
+    }
     return;
   }
 

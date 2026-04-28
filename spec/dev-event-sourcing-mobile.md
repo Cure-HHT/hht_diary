@@ -451,7 +451,11 @@ I. `fillBatch(destination)` SHALL return without promoting any events when `back
 
 J. `SubscriptionFilter.includeSystemEvents: bool` (default `false`) SHALL, when `true`, cause `SubscriptionFilter.matches` to return `true` for any event whose `entry_type` is in `kReservedSystemEntryTypeIds`, bypassing the `entryTypes` list. When `false`, system entry types SHALL be rejected by `matches` regardless of `entryTypes` content. `fillBatch` and `historicalReplay` SHALL defer to `SubscriptionFilter.matches` for system-event admission decisions.
 
-*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: 4603da54
+K. `fill_cursor` SHALL advance only past events that have been promoted into a FIFO row OR that have been permanently rejected. Permanent rejection is by `SubscriptionFilter.matches` returning `false`, OR by `event.client_timestamp < destination.startDate` (the lower bound is monotonic per REQ-d00129-C `startDate` immutability). Subscription-filter rejection SHALL be evaluated before the upper-bound check so an event the destination is permanently uninterested in does not block cursor advance regardless of its `client_timestamp`. Events rejected because `event.client_timestamp > min(destination.endDate, now())` while otherwise passing the subscription filter are deferred — the upper bound is non-monotonic because `endDate` is mutable per REQ-d00129-F — and `fill_cursor` SHALL NOT advance past them. Both `fillBatch` and `runHistoricalReplay` SHALL honor this distinction; their candidate walks SHALL stop at the first deferred event and any later events SHALL be re-evaluated on a subsequent invocation.
+
+L. `fillBatch(destination)` SHALL return immediately without scanning the event log and without advancing `fill_cursor` when the destination's window has not yet opened (`destination.startDate > now`) or when the configured window is malformed (`destination.startDate > destination.endDate`). The early return preserves cursor state for when the window opens via wall-clock crossing `startDate` or via `setEndDate` correction. When the window has closed in the past (`destination.endDate < now` with `startDate <= endDate`), `fillBatch` SHALL still scan candidates so any in-window events not yet promoted are processed, and SHALL respect the cursor-advance discipline of REQ-d00128-K.
+
+*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: c6e20833
 
 ---
 

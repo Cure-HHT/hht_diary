@@ -354,7 +354,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should open PatientActionsDialog
-        expect(find.text('Participant Actions'), findsOneWidget);
+        expect(find.text('Patient Actions'), findsOneWidget);
       });
 
       testWidgets(
@@ -371,7 +371,7 @@ void main() {
 
           // PatientActionsDialog should show Show Linking Code for connected patients
           expect(find.text('Participant Actions'), findsOneWidget);
-          expect(find.text('Show Linking Code'), findsOneWidget);
+          expect(find.text('Show Participant Linking Code'), findsOneWidget);
         },
       );
     });

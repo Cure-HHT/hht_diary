@@ -83,10 +83,11 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
 
     setState(() => _state = _DialogState.loading);
 
-    final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/link-code',
-      {'reconnect_reason': _reasonController.text.trim()},
-    );
+    final response = await widget.apiClient
+        .post('/api/v1/portal/patients/link-code', {
+          'patientId': widget.patientId,
+          'reconnect_reason': _reasonController.text.trim(),
+        });
 
     if (!mounted) return;
 

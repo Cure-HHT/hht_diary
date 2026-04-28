@@ -12,10 +12,10 @@ enum QuestionnaireType {
   eq('eq', 'Epistaxis Questionnaire'),
 
   /// NOSE HHT - 29 questions across 3 categories (Physical, Functional, Emotional)
-  noseHht('nose_hht', 'NOSE HHT Questionnaire'),
+  noseHht('nose_hht', 'NOSE HHT Survey'),
 
   /// HHT Quality of Life - 4 questions about HHT impact on daily activities
-  qol('qol', 'Quality of Life Questionnaire');
+  qol('qol', 'HHT Quality of Life Survey');
 
   const QuestionnaireType(this.value, this.displayName);
 

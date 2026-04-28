@@ -94,7 +94,8 @@ class _MarkNotParticipatingDialogState
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient
-        .post('/api/v1/portal/patients/${widget.patientId}/not-participating', {
+        .post('/api/v1/portal/patients/not-participating', {
+          'patientId': widget.patientId,
           'reason': _selectedReason!.label,
           if (_notesController.text.trim().isNotEmpty)
             'notes': _notesController.text.trim(),
@@ -129,12 +130,16 @@ class _MarkNotParticipatingDialogState
   Widget _buildTitle(ThemeData theme) {
     switch (_state) {
       case _DialogState.confirm:
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.person_off, color: theme.colorScheme.error),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text('Mark Participant as Not Participating'),
+            const Text('Mark Participant as Not Participating'),
+            Text(
+              'Participant ID: ${widget.patientDisplayId}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         );
@@ -181,91 +186,17 @@ class _MarkNotParticipatingDialogState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Patient ID display
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Participant ID: ',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      widget.patientDisplayId,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+              Text(
+                'Use this for participant who have completed the trial, withdrawn '
+                'consent, or been discontinued from the study.',
+                style: theme.textTheme.bodyMedium,
               ),
-              const SizedBox(height: 16),
-
-              // Warning section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withValues(
-                    alpha: 0.2,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.colorScheme.error.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber,
-                          size: 20,
-                          color: theme.colorScheme.error,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Warning:',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "This will stop applying sponsor-specific rules to this participant's data. Use this status for participants who have:",
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildBulletPoint(theme, 'Completed the trial'),
-                    _buildBulletPoint(theme, 'Withdrawn consent'),
-                    _buildBulletPoint(
-                      theme,
-                      'Been discontinued from the study',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'This participant will no longer be considered actively participating in the trial.',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'All historical data will be preserved.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 12),
+              Text(
+                'Once marked, the participant is no longer actively enrolled. '
+                'Their historical data is preserved, and their mobile app '
+                'returns to personal-use mode.',
+                style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
 
@@ -381,19 +312,6 @@ class _MarkNotParticipatingDialogState
           ],
         );
     }
-  }
-
-  Widget _buildBulletPoint(ThemeData theme, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('\u2022 ', style: theme.textTheme.bodySmall),
-          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
-        ],
-      ),
-    );
   }
 
   Widget _buildInfoRow(ThemeData theme, String label, String value) {
