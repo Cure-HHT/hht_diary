@@ -16,6 +16,10 @@ import 'package:http/http.dart' as http;
 /// payloads are flushed immediately ([maxAccumulateTime] is [Duration.zero],
 /// [canAddToBatch] always returns `false`).
 ///
+/// The base URL is supplied lazily through `resolveBaseUrl`. Returning `null`
+/// (e.g. before the patient has linked) makes [send] return [SendTransient]
+/// so the FIFO preserves the events and retries on the next sync cycle.
+///
 /// HTTP response classification:
 /// - 2xx                                        → [SendOk]
 /// - 409 with `{"error": "questionnaire_deleted"}` → [SendOk]
@@ -26,6 +30,7 @@ import 'package:http/http.dart' as http;
 /// - 5xx                                        → [SendTransient]
 /// - [http.ClientException]                     → [SendTransient]
 /// - [TimeoutException]                         → [SendTransient]
+/// - `resolveBaseUrl` returns `null`            → [SendTransient]
 // Implements: REQ-d00155-A — stable id 'primary_diary_server'.
 // Implements: REQ-d00155-B — SubscriptionFilter() matches every user event.
 // Implements: REQ-d00155-C — single-event payloads (canAddToBatch = false,
@@ -36,14 +41,14 @@ import 'package:http/http.dart' as http;
 class PrimaryDiaryServerDestination extends Destination {
   PrimaryDiaryServerDestination({
     required http.Client client,
-    required Uri baseUrl,
+    required Future<Uri?> Function() resolveBaseUrl,
     required Future<String?> Function() authToken,
   }) : _client = client,
-       _baseUrl = baseUrl,
+       _resolveBaseUrl = resolveBaseUrl,
        _authToken = authToken;
 
   final http.Client _client;
-  final Uri _baseUrl;
+  final Future<Uri?> Function() _resolveBaseUrl;
   final Future<String?> Function() _authToken;
 
   // -------------------------------------------------------------------------
@@ -102,7 +107,16 @@ class PrimaryDiaryServerDestination extends Destination {
   // Implements: REQ-d00155-E — POST to {baseUrl}/events; classify response.
   // Implements: REQ-d00113-C — 409 questionnaire_deleted → SendOk.
   Future<SendResult> send(WirePayload payload) async {
-    final url = _baseUrl.resolve('events');
+    final baseUrl = await _resolveBaseUrl();
+    if (baseUrl == null) {
+      // Patient has not enrolled yet (no backend URL resolvable). Return
+      // SendTransient so the FIFO preserves the event and retries on the
+      // next sync cycle once enrollment populates the backend URL.
+      return const SendTransient(
+        error: 'patient not enrolled — base URL unavailable',
+      );
+    }
+    final url = baseUrl.resolve('events');
 
     try {
       final token = await _authToken();

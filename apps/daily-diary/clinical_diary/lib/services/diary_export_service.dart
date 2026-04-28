@@ -18,21 +18,44 @@ class DiaryExportResult {
   final Map<String, Object?> payload;
 }
 
-/// Exports the local event-sourcing log as JSON.
+/// Result of a [DiaryExportService.importAll] call.
+class DiaryImportResult {
+  const DiaryImportResult({
+    required this.imported,
+    required this.duplicates,
+    required this.skipped,
+  });
+
+  /// Events ingested as new (not previously present in the local log).
+  final int imported;
+
+  /// Events that matched an event already in the local log (idempotent
+  /// re-ingest, no mutation).
+  final int duplicates;
+
+  /// Events the importer could not parse, or that the EventStore refused
+  /// at ingest time. The remainder of the import continues regardless so
+  /// one bad row does not abort the whole file.
+  final int skipped;
+}
+
+/// Exports and re-imports the local event-sourcing log as JSON.
 ///
 /// Mirrors the legacy export's metadata wrapper but replaces the per-record
-/// nosebleed payload with the raw [StoredEvent] audit trail. Import is
-/// deferred to a follow-up ticket — re-importing JSON would require
-/// translating legacy event shapes back to the new `EntryService.record` API
-/// which would be exactly the kind of legacy-shape adapter we're avoiding.
+/// nosebleed payload with the raw [StoredEvent] audit trail. Import accepts
+/// the same shape ([_exportVersion] only) and feeds each row through
+/// [EventStore.ingestEvent], which is idempotent on `event_id`. Legacy
+/// nosebleed-shape JSON is intentionally NOT supported.
 class DiaryExportService {
   DiaryExportService({
     required SembastBackend backend,
     required String deviceId,
+    EventStore? eventStore,
     Future<PackageInfo> Function()? packageInfoLoader,
     DateTime Function()? clock,
   }) : _backend = backend,
        _deviceId = deviceId,
+       _eventStore = eventStore,
        _packageInfoLoader = packageInfoLoader ?? PackageInfo.fromPlatform,
        _clock = clock ?? DateTime.now;
 
@@ -40,6 +63,7 @@ class DiaryExportService {
 
   final SembastBackend _backend;
   final String _deviceId;
+  final EventStore? _eventStore;
   final Future<PackageInfo> Function() _packageInfoLoader;
   final DateTime Function() _clock;
 
@@ -72,6 +96,87 @@ class DiaryExportService {
     return DiaryExportResult(
       filename: _generateFilename(exportedAt),
       payload: payload,
+    );
+  }
+
+  /// Re-import a payload previously produced by [exportAll].
+  ///
+  /// Each event is fed through [EventStore.ingestEvent], which is
+  /// idempotent on `event_id`: re-importing the same export against the
+  /// same backend produces all duplicates; importing into a fresh backend
+  /// produces all new events.
+  ///
+  /// One bad row never aborts the import: parse errors and per-event
+  /// ingest exceptions count toward [DiaryImportResult.skipped] and the
+  /// remaining rows continue to be processed.
+  ///
+  /// Throws [FormatException] when the payload is missing the required
+  /// `exportVersion` / `events` fields, or when `exportVersion` does not
+  /// match this service's [_exportVersion]. Throws [StateError] when the
+  /// service was constructed without an [EventStore] (export-only mode).
+  Future<DiaryImportResult> importAll(Map<String, Object?> payload) async {
+    final eventStore = _eventStore;
+    if (eventStore == null) {
+      throw StateError(
+        'DiaryExportService was constructed without an EventStore; '
+        'importAll is unavailable.',
+      );
+    }
+
+    final version = payload['exportVersion'];
+    if (version is! int) {
+      throw const FormatException(
+        'Diary import: payload is missing required "exportVersion" int field.',
+      );
+    }
+    if (version != _exportVersion) {
+      throw FormatException(
+        'Diary import: unsupported export version: $version '
+        '(this build expects $_exportVersion).',
+      );
+    }
+
+    final rawEvents = payload['events'];
+    if (rawEvents is! List) {
+      throw const FormatException(
+        'Diary import: payload is missing required "events" list.',
+      );
+    }
+
+    var imported = 0;
+    var duplicates = 0;
+    var skipped = 0;
+
+    for (final raw in rawEvents) {
+      try {
+        if (raw is! Map) {
+          skipped++;
+          continue;
+        }
+        // StoredEvent.fromMap requires Map<String, Object?>; the JSON
+        // decoder hands us Map<String, dynamic>, so normalize the shape.
+        final eventMap = Map<String, Object?>.from(raw);
+        final stored = StoredEvent.fromMap(eventMap, 0);
+        final outcome = await eventStore.ingestEvent(stored);
+        switch (outcome.outcome) {
+          case IngestOutcome.ingested:
+            imported++;
+          case IngestOutcome.duplicate:
+            duplicates++;
+        }
+      } catch (_) {
+        // Per-event errors are absorbed: a single corrupt row should not
+        // abort the rest of the import. The caller surfaces the count via
+        // [DiaryImportResult.skipped] so the patient can see something
+        // was missed.
+        skipped++;
+      }
+    }
+
+    return DiaryImportResult(
+      imported: imported,
+      duplicates: duplicates,
+      skipped: skipped,
     );
   }
 

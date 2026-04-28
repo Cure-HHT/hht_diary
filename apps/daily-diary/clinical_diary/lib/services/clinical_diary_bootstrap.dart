@@ -21,6 +21,7 @@ class ClinicalDiaryRuntime {
   ClinicalDiaryRuntime({
     required this.backend,
     required this.entryService,
+    required this.eventStore,
     required this.reader,
     required this.syncCycle,
     required this.triggerHandles,
@@ -32,6 +33,11 @@ class ClinicalDiaryRuntime {
   /// re-wrapping the database.
   final SembastBackend backend;
   final EntryService entryService;
+
+  /// The append-only datastore's [EventStore]. Exposed so callers (e.g.
+  /// the import-data flow) can ingest StoredEvents directly via
+  /// [EventStore.ingestEvent].
+  final EventStore eventStore;
   final DiaryEntryReader reader;
   final SyncCycle syncCycle;
   final TriggerHandles triggerHandles;
@@ -57,10 +63,10 @@ class ClinicalDiaryRuntime {
 Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   required Database sembastDatabase,
   required Future<String?> Function() authToken,
+  required Future<Uri?> Function() resolveBaseUrl,
   required String deviceId,
   required String softwareVersion,
   required String userId,
-  required Uri primaryDiaryServerBaseUrl,
   http.Client? httpClient,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
@@ -88,10 +94,12 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // 2. Load the clinical-diary entry type set (nosebleed types + surveys).
   final entryTypes = await loadClinicalDiaryEntryTypes();
 
-  // 3. Primary outbound destination.
+  // 3. Primary outbound destination. URL is resolved lazily so that events
+  //    recorded before enrollment stay queued in the FIFO and ship once the
+  //    base URL becomes available.
   final primaryDestination = PrimaryDiaryServerDestination(
     client: client,
-    baseUrl: primaryDiaryServerBaseUrl,
+    resolveBaseUrl: resolveBaseUrl,
     authToken: authToken,
   );
 
@@ -142,7 +150,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       await portalInboundPoll(
         entryService: entryService,
         client: client,
-        baseUrl: primaryDiaryServerBaseUrl,
+        resolveBaseUrl: resolveBaseUrl,
         authToken: authToken,
       );
     },
@@ -157,6 +165,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   return ClinicalDiaryRuntime(
     backend: backend,
     entryService: entryService,
+    eventStore: datastore.eventStore,
     reader: reader,
     syncCycle: syncCycle,
     triggerHandles: triggerHandles,

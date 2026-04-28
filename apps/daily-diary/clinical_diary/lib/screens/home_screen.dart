@@ -22,6 +22,7 @@ import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
@@ -36,6 +37,7 @@ import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:eq/eq.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -401,14 +403,101 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Round-trip companion to [_handleExportData]: pick a JSON export file,
+  /// decode it, and feed every event back through `EventStore.ingestEvent`
+  /// via [DiaryExportService.importAll]. The library handles idempotency,
+  /// so re-importing the same export against the same backend is a no-op.
+  ///
+  /// On success we show a SnackBar carrying the imported / duplicate /
+  /// skipped counts and refresh the home screen so any newly-ingested
+  /// entries surface immediately.
   Future<void> _handleImportData() async {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.importFailed('Not implemented')),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      final pickResult = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        dialogTitle: l10n.importData,
+      );
+
+      if (pickResult == null || pickResult.files.isEmpty) {
+        // User cancelled the picker — nothing to do.
+        return;
+      }
+
+      final picked = pickResult.files.single;
+      final path = picked.path;
+      if (path == null) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importFailed('no path on selected file')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final raw = await FileReadService.readFile(path);
+      if (raw == null) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importFailed('unable to read file')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importFailed('not a diary export object')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final importer = DiaryExportService(
+        backend: widget.runtime.backend,
+        deviceId: widget.deviceId,
+        eventStore: widget.runtime.eventStore,
+      );
+
+      final result = await importer.importAll(decoded);
+
+      // Refresh the home screen so any newly-ingested entries surface.
+      await _loadRecords();
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Imported ${result.imported} events, '
+            '${result.duplicates} duplicates, '
+            '${result.skipped} skipped.',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } on FormatException catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.importFailed(e.message)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('Import error: $e\n$stack');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.importFailed(e.toString())),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Future<void> _handleResetAllData() async {

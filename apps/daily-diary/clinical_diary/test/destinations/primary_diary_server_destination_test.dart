@@ -33,10 +33,11 @@ StoredEvent _makeEvent({
 PrimaryDiaryServerDestination _destination({
   required http.Client client,
   String baseUrl = 'https://diary.example.com/',
+  Future<Uri?> Function()? resolveBaseUrl,
   Future<String?> Function()? authToken,
 }) => PrimaryDiaryServerDestination(
   client: client,
-  baseUrl: Uri.parse(baseUrl),
+  resolveBaseUrl: resolveBaseUrl ?? () async => Uri.parse(baseUrl),
   authToken: authToken ?? () async => 'test-token',
 );
 
@@ -293,6 +294,44 @@ void main() {
         await dest.send(payload);
 
         expect(hadAuthHeader, isFalse);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 11: resolveBaseUrl returns null -> SendTransient, no HTTP call
+    // -----------------------------------------------------------------------
+
+    test(
+      'resolveBaseUrl returns null -> SendTransient and no HTTP request issued',
+      () async {
+        var clientCalled = false;
+        final client = MockClient((_) async {
+          clientCalled = true;
+          return http.Response('', 200);
+        });
+        final dest = _destination(
+          client: client,
+          resolveBaseUrl: () async => null,
+        );
+        final event = _makeEvent();
+        final payload = await dest.transform([event]);
+
+        final result = await dest.send(payload);
+        expect(
+          result,
+          isA<SendTransient>(),
+          reason:
+              'When the patient has not enrolled yet (URL resolver returns '
+              'null), the destination must return SendTransient so the FIFO '
+              'preserves the event for the next sync cycle.',
+        );
+        expect(
+          clientCalled,
+          isFalse,
+          reason:
+              'No HTTP request should be issued when the base URL is '
+              'unresolved.',
+        );
       },
     );
   });

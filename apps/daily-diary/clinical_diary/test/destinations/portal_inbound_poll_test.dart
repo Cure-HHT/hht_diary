@@ -90,7 +90,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
 
       final events = await fx.backend.findAllEvents();
@@ -125,7 +125,7 @@ void main() {
         await portalInboundPoll(
           entryService: fx.service,
           client: client,
-          baseUrl: Uri.parse(_baseUrl),
+          resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
 
         final events = await fx.backend.findAllEvents();
@@ -180,7 +180,7 @@ void main() {
         await portalInboundPoll(
           entryService: fx.service,
           client: client,
-          baseUrl: Uri.parse(_baseUrl),
+          resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
 
         final events = await fx.backend.findAllEvents();
@@ -211,7 +211,7 @@ void main() {
         portalInboundPoll(
           entryService: fx.service,
           client: client,
-          baseUrl: Uri.parse(_baseUrl),
+          resolveBaseUrl: () async => Uri.parse(_baseUrl),
         ),
         completes,
       );
@@ -240,7 +240,7 @@ void main() {
           portalInboundPoll(
             entryService: fx.service,
             client: client,
-            baseUrl: Uri.parse(_baseUrl),
+            resolveBaseUrl: () async => Uri.parse(_baseUrl),
           ),
           completes,
         );
@@ -277,7 +277,7 @@ void main() {
         await portalInboundPoll(
           entryService: fx.service,
           client: client,
-          baseUrl: Uri.parse(_baseUrl),
+          resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
 
         final events = await fx.backend.findAllEvents();
@@ -310,7 +310,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
 
       final events = await fx.backend.findAllEvents();
@@ -342,7 +342,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
 
       final events = await fx.backend.findAllEvents();
@@ -369,7 +369,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
         authToken: () async => 'my-secret-token',
       );
 
@@ -393,7 +393,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
 
       expect(capturedRequest?.headers.containsKey('authorization'), isFalse);
@@ -412,7 +412,7 @@ void main() {
       await portalInboundPoll(
         entryService: fx.service,
         client: client,
-        baseUrl: Uri.parse(_baseUrl),
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
         authToken: () async => null,
       );
 
@@ -435,7 +435,7 @@ void main() {
         portalInboundPoll(
           entryService: fx.service,
           client: client,
-          baseUrl: Uri.parse(_baseUrl),
+          resolveBaseUrl: () async => Uri.parse(_baseUrl),
         ),
         completes,
       );
@@ -481,7 +481,7 @@ void main() {
           portalInboundPoll(
             entryService: fx.service,
             client: client,
-            baseUrl: Uri.parse(_baseUrl),
+            resolveBaseUrl: () async => Uri.parse(_baseUrl),
           ),
           completes,
         );
@@ -492,5 +492,40 @@ void main() {
         await fx.backend.close();
       },
     );
+
+    // -------------------------------------------------------------------------
+    // Test 12: resolveBaseUrl returns null -> no HTTP call, no exception
+    // -------------------------------------------------------------------------
+
+    test('resolveBaseUrl returns null -> no HTTP request, no record call, '
+        'completes silently', () async {
+      final fx = await _setupFixture();
+
+      var clientCalled = false;
+      final client = MockClient((_) async {
+        clientCalled = true;
+        return _ok(_envelope([]));
+      });
+
+      await expectLater(
+        portalInboundPoll(
+          entryService: fx.service,
+          client: client,
+          resolveBaseUrl: () async => null,
+        ),
+        completes,
+      );
+
+      expect(
+        clientCalled,
+        isFalse,
+        reason:
+            'No HTTP request should be issued when the base URL is '
+            'unresolved (e.g. before enrollment).',
+      );
+      final events = await fx.backend.findAllEvents();
+      expect(events, isEmpty);
+      await fx.backend.close();
+    });
   });
 }

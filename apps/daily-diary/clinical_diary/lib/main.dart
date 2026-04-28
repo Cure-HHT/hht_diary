@@ -49,10 +49,6 @@ const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
-/// Default primary diary server URL. In production this would be derived
-/// from the linking code; for now a fixed dev URL keeps bootstrap simple.
-const _kDefaultPrimaryDiaryServer = 'https://diary.example.com';
-
 void main() async {
   // Initialize flavor from native platform configuration
   F.appFlavor = Flavor.values.firstWhere(
@@ -287,10 +283,23 @@ class _AppRootState extends State<AppRoot> {
       final runtime = await bootstrapClinicalDiary(
         sembastDatabase: db,
         authToken: _enrollmentService.getJwtToken,
+        // The patient's backend URL is resolved from their linking code at
+        // enrollment time and persisted by EnrollmentService. Resolve it
+        // lazily on every use so the destination + inbound poll automatically
+        // pick up the URL the moment the patient links, without requiring a
+        // bootstrap-time restart. Returns null pre-enrollment, which the
+        // destination + inbound poll handle as "skip this cycle".
+        resolveBaseUrl: () async {
+          final base = await _enrollmentService.getBackendUrl();
+          if (base == null) return null;
+          // Trailing slash so the destination's `.resolve('events')` (and
+          // the inbound poll's `.resolve('inbound')`) produce
+          // `<backend>/api/v1/user/events` / `…/inbound`.
+          return Uri.parse('$base/api/v1/user/');
+        },
         deviceId: deviceId,
         softwareVersion: softwareVersion,
         userId: userId,
-        primaryDiaryServerBaseUrl: Uri.parse(_kDefaultPrimaryDiaryServer),
       );
 
       // Activate the primary destination once at boot. setStartDate is

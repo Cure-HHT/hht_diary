@@ -111,10 +111,10 @@ Future<_Fixture> _build() async {
   final runtime = await bootstrapClinicalDiary(
     sembastDatabase: db,
     authToken: () async => 'integration-token',
+    resolveBaseUrl: () async => Uri.parse(_baseUrl),
     deviceId: _deviceId,
     softwareVersion: _softwareVersion,
     userId: _userId,
-    primaryDiaryServerBaseUrl: Uri.parse(_baseUrl),
     httpClient: client,
     lifecycleObserverFactory: _silentLifecycleFactory,
     periodicTimerFactory: _silentTimerFactory,
@@ -394,7 +394,7 @@ void main() {
     await portalInboundPoll(
       entryService: fx.runtime.entryService,
       client: MockClient((req) async => fx.handler.impl(req)),
-      baseUrl: Uri.parse(_baseUrl),
+      resolveBaseUrl: () async => Uri.parse(_baseUrl),
     );
 
     final events = await fx.runtime.backend.findEventsForAggregate('agg-s5');

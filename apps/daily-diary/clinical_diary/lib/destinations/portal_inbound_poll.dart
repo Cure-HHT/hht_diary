@@ -15,21 +15,27 @@ import 'package:http/http.dart' as http;
 /// This is intentionally NOT a Destination subclass — inbound polling
 /// and outbound FIFO destinations are separate library concepts.
 ///
+/// The base URL is supplied lazily through [resolveBaseUrl]. Returning
+/// `null` (e.g. before the patient has linked) makes the function return
+/// silently without making an HTTP call; the next sync cycle will retry
+/// once the backend URL is available.
+///
 /// Behaviour:
-/// 1. GET `${baseUrl}/inbound` with `Authorization: Bearer <token>` if
+/// 1. Resolve base URL via [resolveBaseUrl]. If `null`, return silently.
+/// 2. GET `${baseUrl}/inbound` with `Authorization: Bearer <token>` if
 ///    [authToken] returns a non-null value.
-/// 2. Non-200 responses → return without raising.
-/// 3. 200 responses → parse body as `{"messages": [...]}`.
-/// 4. For each `type: "tombstone"` message with `entry_id` and
+/// 3. Non-200 responses → return without raising.
+/// 4. 200 responses → parse body as `{"messages": [...]}`.
+/// 5. For each `type: "tombstone"` message with `entry_id` and
 ///    `entry_type` → call
 ///    `entryService.record(entryType: …, aggregateId: …, eventType: 'tombstone',
 ///    answers: {}, changeReason: 'portal-withdrawn')`.
-/// 5. Unknown `type` values → skip.
-/// 6. Messages missing `entry_id` or `entry_type` → skip.
-/// 7. Per-message exceptions → swallowed; loop continues.
+/// 6. Unknown `type` values → skip.
+/// 7. Messages missing `entry_id` or `entry_type` → skip.
+/// 8. Per-message exceptions → swallowed; loop continues.
 ///    Retries are safe because `EntryService.record` is idempotent via
 ///    its no-op-on-duplicate detection.
-/// 8. Top-level network/parse/shape errors → swallowed; return without
+/// 9. Top-level network/parse/shape errors → swallowed; return without
 ///    raising.
 // Implements: REQ-d00113-D — inbound tombstones materialise through the
 //   same write path as user-driven deletions.
@@ -43,10 +49,16 @@ import 'package:http/http.dart' as http;
 Future<void> portalInboundPoll({
   required EntryService entryService,
   required http.Client client,
-  required Uri baseUrl,
+  required Future<Uri?> Function() resolveBaseUrl,
   Future<String?> Function()? authToken,
 }) async {
   try {
+    final baseUrl = await resolveBaseUrl();
+    if (baseUrl == null) {
+      // Patient has not enrolled yet. Skip the poll silently; the next
+      // sync cycle will retry once the backend URL is available.
+      return;
+    }
     final url = baseUrl.resolve('inbound');
 
     final headers = <String, String>{};

@@ -75,10 +75,10 @@ Future<ClinicalDiaryRuntime> _bootstrap() async {
   return bootstrapClinicalDiary(
     sembastDatabase: db,
     authToken: () async => 'test-token',
+    resolveBaseUrl: () async => Uri.parse(_baseUrl),
     deviceId: _deviceId,
     softwareVersion: _softwareVersion,
     userId: _userId,
-    primaryDiaryServerBaseUrl: Uri.parse(_baseUrl),
     httpClient: client,
     lifecycleObserverFactory: _silentLifecycleFactory,
     periodicTimerFactory: _silentTimerFactory,
