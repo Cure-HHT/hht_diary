@@ -115,11 +115,15 @@ Future<TriggerHandles> installTriggers({
   required Future<void> Function() onTrigger,
   Duration periodicInterval = const Duration(minutes: 15),
   // --- test seams (use production defaults when omitted) ---
-  @visibleForTesting LifecycleObserverFactory? lifecycleObserverFactory,
-  @visibleForTesting PeriodicTimerFactory? periodicTimerFactory,
-  @visibleForTesting ConnectivityStreamFactory? connectivityStreamFactory,
-  @visibleForTesting FcmOnMessageStreamFactory? fcmOnMessageStreamFactory,
-  @visibleForTesting FcmOnOpenedStreamFactory? fcmOnOpenedStreamFactory,
+  // The named parameters accept values typed by the @visibleForTesting
+  // typedefs above; the parameters themselves are not restricted so that
+  // clinical_diary_bootstrap.dart can plumb them through from its own
+  // @visibleForTesting overrides.
+  LifecycleObserverFactory? lifecycleObserverFactory,
+  PeriodicTimerFactory? periodicTimerFactory,
+  ConnectivityStreamFactory? connectivityStreamFactory,
+  FcmOnMessageStreamFactory? fcmOnMessageStreamFactory,
+  FcmOnOpenedStreamFactory? fcmOnOpenedStreamFactory,
 }) async {
   final resolvedLifecycleFactory =
       lifecycleObserverFactory ?? _defaultLifecycleObserverFactory;

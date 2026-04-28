@@ -25,6 +25,9 @@ dependencies:
   common_widgets:
     path: ../../common-flutter/common_widgets
 
+  # Sembast is required in main deps because clinical_diary_bootstrap.dart
+  # accepts a sembast Database parameter (caller opens the database).
+  sembast: ^3.7.3
   collection: ^1.19.1
   crypto: ^3.0.7
   dart_jsonwebtoken: ^3.3.1
@@ -53,7 +56,6 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  sembast: ^3.7.3
   fake_cloud_firestore: ^4.0.0
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.7
