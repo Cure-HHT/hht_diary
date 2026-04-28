@@ -347,6 +347,13 @@ class AppLocalizations {
       'participationStatusNotParticipatingMessage':
           'You are not currently participating in a clinical trial.',
 
+      // REQ-p00045: Clinical Trial Privacy Policy
+      'linkingConsentPrefix': 'I have read, understand, and consent to the ',
+      'linkingConsentSuffix': ' for this clinical trial',
+      'privacyPolicy': 'Privacy Policy',
+      'clinicalTrialPrivacyPolicy': 'Clinical Trial Privacy Policy',
+      'viewClinicalTrialPrivacyPolicy': 'View Clinical Trial Privacy Policy',
+
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Old Entry Modification',
       'gnuAgplTitle': 'GNU AGPL v3 License',
@@ -759,6 +766,14 @@ class AppLocalizations {
           'Has sido desconectado del ensayo clinico. Por favor contacta a tu sitio de estudio o ingresa un nuevo codigo de enlace.',
       'participationStatusNotParticipatingMessage':
           'No estas participando actualmente en un ensayo clinico.',
+
+      // REQ-p00045: Clinical Trial Privacy Policy
+      'linkingConsentPrefix': 'He leido, comprendo y acepto la ',
+      'linkingConsentSuffix': ' de este ensayo clinico',
+      'privacyPolicy': 'Politica de Privacidad',
+      'clinicalTrialPrivacyPolicy': 'Politica de Privacidad del Ensayo Clinico',
+      'viewClinicalTrialPrivacyPolicy':
+          'Ver Politica de Privacidad del Ensayo Clinico',
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Modificacion de Entrada Antigua',
@@ -1186,6 +1201,15 @@ class AppLocalizations {
       'participationStatusNotParticipatingMessage':
           'Vous ne participez actuellement a aucun essai clinique.',
 
+      // REQ-p00045: Clinical Trial Privacy Policy
+      'linkingConsentPrefix': "J'ai lu, compris et accepte la ",
+      'linkingConsentSuffix': ' de cet essai clinique',
+      'privacyPolicy': 'Politique de Confidentialite',
+      'clinicalTrialPrivacyPolicy':
+          "Politique de Confidentialite de l'Essai Clinique",
+      'viewClinicalTrialPrivacyPolicy':
+          "Voir la Politique de Confidentialite de l'Essai Clinique",
+
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': "Modification d'une Ancienne Entree",
       'gnuAgplTitle': 'Licence GNU AGPL v3',
@@ -1606,6 +1630,16 @@ class AppLocalizations {
           'Sie wurden von der klinischen Studie getrennt. Bitte kontaktieren Sie Ihr Studienzentrum oder geben Sie einen neuen Verknupfungscode ein.',
       'participationStatusNotParticipatingMessage':
           'Sie nehmen derzeit an keiner klinischen Studie teil.',
+
+      // REQ-p00045: Clinical Trial Privacy Policy
+      'linkingConsentPrefix': 'Ich habe die ',
+      'linkingConsentSuffix':
+          ' dieser klinischen Studie gelesen, verstanden und stimme ihr zu',
+      'privacyPolicy': 'Datenschutzrichtlinie',
+      'clinicalTrialPrivacyPolicy':
+          'Datenschutzrichtlinie der klinischen Studie',
+      'viewClinicalTrialPrivacyPolicy':
+          'Datenschutzrichtlinie der klinischen Studie anzeigen',
 
       // REQ-CAL-p00001: Old Entry Justification
       'oldEntryJustificationTitle': 'Alte Eintrag Anderung',
@@ -2148,6 +2182,15 @@ class AppLocalizations {
       translate('participationStatusDisconnectedMessage');
   String get participationStatusNotParticipatingMessage =>
       translate('participationStatusNotParticipatingMessage');
+
+  // REQ-p00045: Clinical Trial Privacy Policy
+  String get linkingConsentPrefix => translate('linkingConsentPrefix');
+  String get linkingConsentSuffix => translate('linkingConsentSuffix');
+  String get privacyPolicy => translate('privacyPolicy');
+  String get clinicalTrialPrivacyPolicy =>
+      translate('clinicalTrialPrivacyPolicy');
+  String get viewClinicalTrialPrivacyPolicy =>
+      translate('viewClinicalTrialPrivacyPolicy');
 }
 
 class _AppLocalizationsDelegate
