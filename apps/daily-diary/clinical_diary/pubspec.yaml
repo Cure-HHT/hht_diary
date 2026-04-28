@@ -45,6 +45,7 @@ dependencies:
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
