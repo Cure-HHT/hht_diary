@@ -48,10 +48,17 @@ EntryRecorder entryRecorderFromService(EntryService service) =>
 /// [aggregateId] — the aggregate this widget reads/writes events for.
 /// [widgetConfig] — sponsor/study configuration for the widget, including the
 ///   optional `'variant'` key that gates variant-specific UX.
-/// [initialAnswers] — non-null when opening an existing entry for editing.
+/// [initialAnswers] — non-null when opening an existing entry for editing;
+///   for survey entries, this is the cumulative answer map from the latest
+///   checkpoint (the `cycle` key is included and treated as immutable seed
+///   metadata by `SurveyRendererWidget`).
 /// [recorder] — the [EntryRecorder] function the widget uses for all writes.
 ///   Bind a real `EntryService` via `entryRecorderFromService`; supply a fake
 ///   closure in tests.
+/// [isFinalized] — true when the aggregate's latest event is `finalized`.
+///   Widgets should render read-only and hide submit actions.
+/// [isWithdrawn] — true when the aggregate has been tombstoned / deleted.
+///   Widgets should render read-only with a "withdrawn" banner and no submit.
 // Implements: REQ-d00004-F — single write path through EntryService adapter.
 class EntryWidgetContext {
   const EntryWidgetContext({
@@ -60,6 +67,8 @@ class EntryWidgetContext {
     required this.widgetConfig,
     required this.recorder,
     this.initialAnswers,
+    this.isFinalized = false,
+    this.isWithdrawn = false,
   });
 
   final String entryType;
@@ -67,4 +76,16 @@ class EntryWidgetContext {
   final Map<String, Object?> widgetConfig;
   final Map<String, Object?>? initialAnswers;
   final EntryRecorder recorder;
+
+  /// True when the aggregate has already been finalized (is_complete = true in
+  /// the view). The launching surface (home screen / Task 12) populates this
+  /// from the view row so widgets can render read-only without re-reading
+  /// events themselves.
+  // Implements: REQ-d00004-E — local-first read path surfaces completion state.
+  final bool isFinalized;
+
+  /// True when the aggregate has been tombstoned (is_deleted = true in the
+  /// view). The launching surface populates this from the view row.
+  // Implements: REQ-d00004-E — local-first read path surfaces deletion state.
+  final bool isWithdrawn;
 }
