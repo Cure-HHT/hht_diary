@@ -71,10 +71,10 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
         children: [
           Expanded(
             child: Text(
-              'Select Starting Cycle',
+              'Start Questionnaire?',
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 20,
+                fontSize: 22,
               ),
             ),
           ),
@@ -91,72 +91,9 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Subtitle with bold patient ID
-            Text.rich(
-              TextSpan(
-                text:
-                    'Choose which cycle this ${widget.questionnaireDisplayName} '
-                    'questionnaire belongs to for patient ',
-                children: [
-                  TextSpan(
-                    text: widget.patientDisplayId,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Info card with calendar icon
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFeff6ff),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFD0DBFF)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.calendar_today_outlined,
-                    color: Color(0xFF2868fc),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'Select ',
-                        children: [
-                          TextSpan(
-                            text: StudyEvent.format(1),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const TextSpan(
-                            text:
-                                ' if this is the patient\'s first cycle, or a '
-                                'later cycle if the patient started on paper diaries.',
-                          ),
-                        ],
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF334e99),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Dropdown
+            // Cycle dropdown
             PortalDropdown<int>(
-              label: 'Starting Cycle',
+              label: 'Cycle',
               value: _selectedCycle,
               items: List.generate(100, (i) {
                 final cycle = i + 1;
@@ -171,6 +108,38 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
                 }
               },
             ),
+            const SizedBox(height: 20),
+
+            // Info box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDF7ED),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFA5D6A7)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF2E7D32),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "The questionnaire will be sent to the participant's "
+                      'Daily Diary app. They will receive a notification to '
+                      'complete it.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF1B5E20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -181,7 +150,10 @@ class _SelectStartingCycleDialogState extends State<SelectStartingCycleDialog> {
         ),
         PortalButton(
           onPressed: () => Navigator.of(context).pop(_selectedCycle),
+          icon: Icons.check_circle_outline,
           label: 'Confirm and Send',
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
         ),
       ],
     );

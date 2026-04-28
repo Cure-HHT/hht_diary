@@ -223,14 +223,12 @@ void main() {
       expect(find.textContaining('999-002-320'), findsOneWidget);
     });
 
-    testWidgets('shows Nose HHT and Quality of Life cards but not EQ', (
-      tester,
-    ) async {
+    testWidgets('shows NOSE HHT and HHT-QoL cards but not EQ', (tester) async {
       final apiClient = await _createMockApiClient();
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Nose HHT'), findsOneWidget);
-      expect(find.text('Quality of Life'), findsOneWidget);
+      expect(find.text('NOSE HHT'), findsOneWidget);
+      expect(find.text('HHT-QoL'), findsOneWidget);
       expect(find.text('EQ'), findsNothing);
     });
 
@@ -240,20 +238,6 @@ void main() {
 
       expect(find.text('Send Now'), findsNWidgets(2));
       expect(find.text('Not Sent'), findsNWidgets(2));
-    });
-
-    testWidgets('shows Last Completed: Never when no history', (tester) async {
-      final apiClient = await _createMockApiClient();
-      await _pumpDialog(tester, apiClient);
-
-      expect(find.text('Never'), findsNWidgets(2));
-    });
-
-    testWidgets('shows "No questionnaires sent yet" banner', (tester) async {
-      final apiClient = await _createMockApiClient();
-      await _pumpDialog(tester, apiClient);
-
-      expect(find.text('No questionnaires sent yet'), findsOneWidget);
     });
 
     testWidgets('shows delete icon for sent status', (tester) async {
@@ -279,14 +263,16 @@ void main() {
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
     });
 
-    testWidgets('shows "Patient is working" for in_progress', (tester) async {
+    testWidgets('shows "Participant is working" for in_progress', (
+      tester,
+    ) async {
       final apiClient = await _createMockApiClient(
         noseStatus: 'in_progress',
         noseId: 'nose-1',
       );
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Patient is working'), findsOneWidget);
+      expect(find.text('Participant is working'), findsOneWidget);
     });
 
     testWidgets('Send Now shows cycle selection then sends (CUR-856)', (
@@ -298,7 +284,7 @@ void main() {
       await tester.tap(find.text('Send Now').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Select Starting Cycle'), findsOneWidget);
+      expect(find.text('Start Questionnaire?'), findsOneWidget);
 
       await tester.tap(find.text('Confirm and Send'));
       await tester.pumpAndSettle();
@@ -401,7 +387,7 @@ void main() {
         await tester.tap(find.text('Send Now').first);
         await tester.pumpAndSettle();
 
-        expect(find.text('Select Starting Cycle'), findsOneWidget);
+        expect(find.text('Start Questionnaire?'), findsOneWidget);
 
         await tester.tap(find.text('Cancel'));
         await tester.pumpAndSettle();
@@ -425,7 +411,7 @@ void main() {
         await tester.tap(find.text('Send Now').first);
         await tester.pumpAndSettle();
 
-        expect(find.text('Select Starting Cycle'), findsOneWidget);
+        expect(find.text('Start Questionnaire?'), findsOneWidget);
 
         await tester.tap(find.byIcon(Icons.close).last);
         await tester.pumpAndSettle();
@@ -447,10 +433,9 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
 
-      expect(find.text('Delete Questionnaire?'), findsOneWidget);
-      expect(find.text('Why?'), findsOneWidget);
-      expect(find.text('Enter the reason...'), findsOneWidget);
-      expect(find.text('Delete Questionnaire'), findsOneWidget);
+      expect(find.text('Call Back Questionnaire?'), findsOneWidget);
+      expect(find.text('Enter reason...'), findsOneWidget);
+      expect(find.text('Confirm'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });
 
@@ -558,10 +543,10 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      // NOSE HHT: status chip shows "Closed" (no end_event) and action
-      // area shows disabled "Start Next Cycle" button
+      // NOSE HHT: status chip shows "Closed" (no end_event); blocked cards
+      // show no action button.
       expect(find.text('Closed'), findsOneWidget);
-      expect(find.text('Start Next Cycle'), findsOneWidget);
+      expect(find.text('Start Next Cycle'), findsNothing);
       // QoL: still has Send Now
       expect(find.text('Send Now'), findsOneWidget);
     });

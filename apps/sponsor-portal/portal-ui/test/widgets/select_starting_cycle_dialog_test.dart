@@ -43,8 +43,7 @@ void main() {
     testWidgets('renders title and subtitle', (WidgetTester tester) async {
       await pumpAndShow(tester);
 
-      expect(find.text('Select Starting Cycle'), findsOneWidget);
-      expect(find.textContaining('Nose HHT questionnaire'), findsOneWidget);
+      expect(find.text('Start Questionnaire?'), findsOneWidget);
     });
 
     testWidgets('dropdown defaults to Cycle 1 when no suggestion', (
@@ -145,15 +144,15 @@ void main() {
     ) async {
       await pumpAndShow(tester);
 
-      expect(find.text('Starting Cycle'), findsOneWidget);
+      expect(find.text('Cycle'), findsOneWidget);
     });
 
-    testWidgets('shows patient display ID in subtitle', (
+    testWidgets('shows info box with Daily Diary app text', (
       WidgetTester tester,
     ) async {
       await pumpAndShow(tester);
 
-      expect(find.textContaining('002-1013456'), findsOneWidget);
+      expect(find.textContaining('Daily Diary app'), findsOneWidget);
     });
 
     testWidgets('shows info card with bold Cycle 1 Day 1', (
@@ -161,7 +160,7 @@ void main() {
     ) async {
       await pumpAndShow(tester);
 
-      expect(find.textContaining('paper diaries'), findsOneWidget);
+      expect(find.textContaining('notification'), findsOneWidget);
     });
 
     testWidgets('has close X button', (WidgetTester tester) async {

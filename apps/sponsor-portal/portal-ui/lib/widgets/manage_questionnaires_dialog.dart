@@ -12,6 +12,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 import '../services/api_client.dart';
 import 'portal_button.dart';
+import 'portal_dropdown.dart';
 import 'select_starting_cycle_dialog.dart';
 import 'start_next_cycle_dialog.dart';
 
@@ -53,9 +54,9 @@ class _QuestionnaireInfo {
   String get displayName {
     switch (type) {
       case 'nose_hht':
-        return 'Nose HHT';
+        return 'NOSE HHT';
       case 'qol':
-        return 'Quality of Life';
+        return 'HHT-QoL';
       default:
         return type;
     }
@@ -167,6 +168,13 @@ class _ManageQuestionnairesDialogState
         );
       }
 
+      const typeOrder = {'qol': 0, 'nose_hht': 1};
+      questionnaires.sort((a, b) {
+        final aOrder = typeOrder[a.type] ?? 99;
+        final bOrder = typeOrder[b.type] ?? 99;
+        return aOrder.compareTo(bOrder);
+      });
+
       setState(() {
         _questionnaires = questionnaires;
         _state = _DialogState.loaded;
@@ -272,7 +280,6 @@ class _ManageQuestionnairesDialogState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final reason = reasonController.text.trim();
-            final isValid = reason.isNotEmpty && reason.length <= 25;
 
             return AlertDialog(
               backgroundColor: Colors.white,
@@ -280,9 +287,10 @@ class _ManageQuestionnairesDialogState
                 children: [
                   Expanded(
                     child: Text(
-                      'Delete Questionnaire?',
+                      'Call Back Questionnaire?',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontSize: 22,
                       ),
                     ),
                   ),
@@ -299,37 +307,21 @@ class _ManageQuestionnairesDialogState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text.rich(
-                      TextSpan(
-                        text:
-                            'Are you sure you want to delete the '
-                            '${q.displayName} questionnaire for patient ',
-                        children: [
-                          TextSpan(
-                            text: widget.patientDisplayId,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const TextSpan(text: '?'),
-                        ],
-                      ),
+                    Text(
+                      'Please provide a reason for calling back this questionnaire.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      'Why?',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     TextField(
                       controller: reasonController,
-                      maxLength: 25,
-                      maxLines: 3,
+                      maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Enter the reason...',
+                        hintText: 'Enter reason...',
+
+                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        fillColor: Colors.transparent,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -354,10 +346,10 @@ class _ManageQuestionnairesDialogState
                   label: 'Cancel',
                 ),
                 PortalButton(
-                  onPressed: isValid
+                  onPressed: reason.isNotEmpty
                       ? () => Navigator.of(context).pop(reason)
                       : null,
-                  label: 'Delete Questionnaire',
+                  label: 'Confirm',
                   backgroundColor: theme.colorScheme.error,
                   foregroundColor: Colors.white,
                 ),
@@ -402,15 +394,20 @@ class _ManageQuestionnairesDialogState
       final confirmed = await _showSimpleFinalizeConfirmation(q);
       if (confirmed != true || !mounted) return;
     } else {
-      final result = await _showFinalizeConfirmation(q);
-      if (result == null || !mounted) return;
+      // GUI-CAL-p00007 Assertion G: cancelling the Terminal Cycle Warning
+      // returns the user to the Finalization Dialog, not all the way out.
+      while (true) {
+        final result = await _showFinalizeConfirmation(q);
+        if (result == null || !mounted) return;
 
-      endEvent = result.isEmpty ? null : result;
+        endEvent = result.isEmpty ? null : result;
 
-      // Show additional confirmation when End of Treatment / End of Study selected
-      if (endEvent != null) {
+        if (endEvent == null) break; // Normal cycle — no warning needed
+
         final confirmed = await _showEndEventConfirmation(q, endEvent);
-        if (confirmed != true || !mounted) return;
+        if (!mounted) return;
+        if (confirmed == true) break; // Warning accepted — proceed
+        // Warning cancelled → loop back to Finalization Dialog
       }
     }
 
@@ -566,20 +563,46 @@ class _ManageQuestionnairesDialogState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final isEndEvent = StudyEvent.isEndEvent(selectedValue);
+            final selectedLabel = isEndEvent
+                ? StudyEvent.endEventDisplayLabel(selectedValue)
+                : selectedValue;
+
             return AlertDialog(
-              title: const Text('Finalize Questionnaire?'),
+              backgroundColor: Colors.white,
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Finalize Questionnaire?',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(null),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
               content: SizedBox(
-                width: 400,
+                width: 420,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Subtitle — questionnaire name and patient ID both bold
                     Text.rich(
                       TextSpan(
-                        text:
-                            'Are you sure you want to finalize the '
-                            '${q.displayName} questionnaire for patient ',
+                        text: 'Are you sure you want to finalize the ',
                         children: [
+                          TextSpan(
+                            text: q.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const TextSpan(text: ' questionnaire for patient '),
                           TextSpan(
                             text: widget.patientDisplayId,
                             style: const TextStyle(fontWeight: FontWeight.bold),
@@ -592,13 +615,11 @@ class _ManageQuestionnairesDialogState
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text('Cycle', style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedValue,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
+
+                    // Cycle dropdown
+                    PortalDropdown<String>(
+                      label: 'Cycle',
+                      value: selectedValue,
                       items: [
                         DropdownMenuItem(
                           value: cycleName,
@@ -628,66 +649,96 @@ class _ManageQuestionnairesDialogState
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Blue info box — shows selected cycle dynamically
                     Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isEndEvent
-                            ? theme.colorScheme.errorContainer.withValues(
-                                alpha: 0.3,
-                              )
-                            : Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isEndEvent
-                              ? theme.colorScheme.error.withValues(alpha: 0.5)
-                              : Colors.green.withValues(alpha: 0.5),
-                        ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
-                      child: Column(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD0DBFF)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFF2868FC),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text:
+                                    'This questionnaire will be finalized as: ',
+                                children: [
+                                  TextSpan(
+                                    text: selectedLabel,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2868FC),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF334E99),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Green action box — bullet points
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDF7ED),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFA5D6A7)),
+                      ),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                isEndEvent
-                                    ? Icons.warning_amber
-                                    : Icons.check_circle_outline,
-                                color: isEndEvent
-                                    ? theme.colorScheme.error
-                                    : Colors.green,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'This action will:',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: isEndEvent
-                                      ? theme.colorScheme.error
-                                      : Colors.green.shade700,
+                          const Icon(
+                            Icons.check_circle_outline,
+                            color: Color(0xFF2E7D32),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildBulletPoint(
+                                  'Finalize this questionnaire',
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          _buildBulletPoint('Finalize this questionnaire'),
-                          const SizedBox(height: 4),
-                          _buildBulletPoint(
-                            'Calculate the score and send it to EDC',
-                          ),
-                          const SizedBox(height: 4),
-                          _buildBulletPoint(
-                            'Finalizing the questionnaire locks all patient '
-                            'responses. After this point, the patient cannot '
-                            'edit or update their answers in the Daily Diary app.',
-                          ),
-                          if (isEndEvent) ...[
-                            const SizedBox(height: 4),
-                            _buildBulletPoint(
-                              'No further ${q.displayName} '
-                              'questionnaires can be sent to this patient.',
+                                const SizedBox(height: 4),
+                                _buildBulletPoint(
+                                  'Calculate the score and send it to EDC',
+                                ),
+                                const SizedBox(height: 4),
+                                _buildBulletPoint(
+                                  'Finalizing the questionnaire locks all '
+                                  'participant responses. After this point, the '
+                                  'participant cannot edit or update their '
+                                  'answers in the Daily Diary app.',
+                                ),
+                                if (isEndEvent) ...[
+                                  const SizedBox(height: 4),
+                                  _buildBulletPoint(
+                                    'No further ${q.displayName} '
+                                    'questionnaires can be sent to this participant.',
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -774,22 +825,18 @@ class _ManageQuestionnairesDialogState
                             ' this questionnaire type for this patient. '
                             "You won't be able to send ",
                       ),
-                      TextSpan(text: q.displayName),
+                      TextSpan(
+                        text: q.displayName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const TextSpan(text: ' questionnaires to patient '),
                       TextSpan(
                         text: widget.patientDisplayId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const TextSpan(text: '.'),
+                      const TextSpan(text: '. Are you sure?'),
                     ],
                   ),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Are you sure?',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -910,10 +957,6 @@ class _ManageQuestionnairesDialogState
   }
 
   Widget _buildLoadedContent(ThemeData theme) {
-    final allNotSent = _questionnaires.every(
-      (q) => q.status == 'not_sent' && q.lastFinalizedAt == null,
-    );
-
     return Stack(
       children: [
         Column(
@@ -929,25 +972,6 @@ class _ManageQuestionnairesDialogState
                 onFinalize: () => _finalizeQuestionnaire(q),
               ),
             ),
-            if (allNotSent) ...[
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xfff8fafb),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'No questionnaires sent yet',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
         if (_actionInProgress)
@@ -1000,6 +1024,8 @@ class _QuestionnaireCard extends StatelessWidget {
         return 'In Progress';
       case 'ready_to_review':
         return 'Ready to Review';
+      case 'delivery_failed':
+        return 'Delivery Failed';
       case 'finalized':
         return 'Finalized';
       default:
@@ -1017,6 +1043,8 @@ class _QuestionnaireCard extends StatelessWidget {
         return Colors.amber.shade700;
       case 'ready_to_review':
         return const Color(0xFFC25F16);
+      case 'delivery_failed':
+        return const Color(0xFFD32F2F);
       case 'finalized':
         return Colors.green;
       default:
@@ -1030,6 +1058,8 @@ class _QuestionnaireCard extends StatelessWidget {
         return const Color(0xFFDBEAFF);
       case 'ready_to_review':
         return const Color(0xFFFEF1BA).withValues(alpha: 0.4);
+      case 'delivery_failed':
+        return const Color(0xFFFFEBEE);
       default:
         return Colors.transparent;
     }
@@ -1038,9 +1068,9 @@ class _QuestionnaireCard extends StatelessWidget {
   Color _cardBackgroundColor() {
     switch (q.status) {
       case 'ready_to_review':
-        return const Color(0xFFFFFBEA).withValues(alpha: 0.4);
+        return const Color(0xFFFFFBEA);
       default:
-        return Colors.transparent;
+        return Colors.white;
     }
   }
 
@@ -1060,6 +1090,15 @@ class _QuestionnaireCard extends StatelessWidget {
     } catch (_) {
       return isoDate;
     }
+  }
+
+  bool get _isAfterFinalize =>
+      q.status == 'not_sent' && q.lastFinalizedAt != null && !q.isBlocked;
+
+  /// Abbreviated display label: "Cycle N" or end-event display name.
+  String _cycleDisplayLabel(String studyEvent) {
+    final n = StudyEvent.parseCycleNumber(studyEvent);
+    return n != null ? 'Cycle $n' : StudyEvent.endEventDisplayLabel(studyEvent);
   }
 
   // ── build ─────────────────────────────────────────────────
@@ -1085,9 +1124,6 @@ class _QuestionnaireCard extends StatelessWidget {
         : (q.status == 'ready_to_review'
               ? const Color(0xFFFEF1BA)
               : statusColor.withValues(alpha: 0.4));
-    final lastCompleted = q.lastFinalizedAt != null
-        ? _formatDate(q.lastFinalizedAt!)
-        : 'Never';
     final currentCycle = q.studyEvent ?? q.lastFinalizedStudyEvent;
     final isClosed = q.isBlocked;
 
@@ -1095,9 +1131,9 @@ class _QuestionnaireCard extends StatelessWidget {
     final cardBorder = _cardBorderColor(theme);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: cardBg,
           border: Border.all(color: cardBorder),
@@ -1136,86 +1172,79 @@ class _QuestionnaireCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  // Status chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      border: Border.all(color: statusBorder),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: statusColor,
-                        fontWeight: FontWeight.w500,
+                  if (q.isBlocked) ...[
+                    const SizedBox(height: 10),
+                    // Last finalized: Cycle N · date  [Closed chip]
+                    if (q.lastFinalizedAt != null &&
+                        q.lastFinalizedStudyEvent != null &&
+                        !q.cycleTrackingDisabled) ...[
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'Last finalized: ',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFF7D8691),
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        '${_cycleDisplayLabel(q.lastFinalizedStudyEvent!)} · '
+                                        '${_formatDate(q.lastFinalizedAt!)}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1A1A2E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusBg,
+                              border: Border.all(color: statusBorder),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: statusColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Last Completed
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Color(0xFF7D8691),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Last Completed:  ',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF7D8691),
-                          fontWeight: FontWeight.w500,
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
                         ),
-                      ),
-                      Flexible(
+                        decoration: BoxDecoration(
+                          color: statusBg,
+                          border: Border.all(color: statusBorder),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         child: Text(
-                          lastCompleted,
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          statusLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: statusColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Current Cycle / Finalized cycle (if active and cycle tracking enabled)
-                  if (currentCycle != null && !q.cycleTrackingDisabled) ...[
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 14,
-                          color: Color(0xFF7D8691),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isClosed ? 'Finalized cycle:  ' : 'Current Cycle:  ',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF7D8691),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          currentCycle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  // Closed message (end of treatment / end of study)
-                  if (isClosed) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       'No further questionnaires of this type can be sent.',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -1223,6 +1252,289 @@ class _QuestionnaireCard extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+                  ] else if (_isAfterFinalize && !q.cycleTrackingDisabled) ...[
+                    const SizedBox(height: 10),
+                    // Last: Cycle N · date
+                    Text.rich(
+                      TextSpan(
+                        text: 'Last: ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF7D8691),
+                        ),
+                        children: [
+                          TextSpan(
+                            text:
+                                '${_cycleDisplayLabel(q.lastFinalizedStudyEvent!)} · '
+                                '${_formatDate(q.lastFinalizedAt!)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1A1A2E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Next: Cycle N [badge]
+                    Row(
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            text: 'Next: ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7D8691),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: _cycleDisplayLabel(
+                                  q.suggestedStudyEvent ?? '',
+                                ),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            border: Border.all(color: statusBorder),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (q.status == 'sent' &&
+                      !q.cycleTrackingDisabled &&
+                      currentCycle != null) ...[
+                    const SizedBox(height: 10),
+                    // Current: Cycle N Day 1 [Sent badge]
+                    Row(
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            text: 'Current: ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7D8691),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: currentCycle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            border: Border.all(color: statusBorder),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (q.status == 'delivery_failed' &&
+                      !q.cycleTrackingDisabled &&
+                      currentCycle != null) ...[
+                    const SizedBox(height: 10),
+                    // Current: Cycle X [Delivery Failed badge] [ⓘ]
+                    Row(
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            text: 'Current: ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7D8691),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: currentCycle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.4),
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTapDown: (details) => _showTroubleshootingPopover(
+                            context,
+                            theme,
+                            details.globalPosition,
+                          ),
+                          child: Icon(
+                            Icons.info_outline,
+                            color: statusColor,
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (q.status == 'ready_to_review' &&
+                      !q.cycleTrackingDisabled &&
+                      currentCycle != null) ...[
+                    const SizedBox(height: 10),
+                    // Current: Cycle N Day 1 [Ready to Review chip]
+                    Row(
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            text: 'Current: ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7D8691),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: currentCycle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            border: Border.all(color: statusBorder),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 10),
+                    // Status chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        border: Border.all(color: statusBorder),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: statusColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Current Cycle / Finalized cycle (if active and cycle tracking enabled)
+                    if (currentCycle != null && !q.cycleTrackingDisabled) ...[
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 14,
+                            color: Color(0xFF7D8691),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isClosed
+                                ? 'Finalized cycle:  '
+                                : 'Current Cycle:  ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF7D8691),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            currentCycle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    // Closed message (end of treatment / end of study)
+                    if (isClosed) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'No further questionnaires of this type can be sent.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF7D8691),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -1239,34 +1551,34 @@ class _QuestionnaireCard extends StatelessWidget {
   Widget _buildActions(ThemeData theme) {
     switch (q.status) {
       case 'not_sent':
-        if (q.isBlocked) {
-          return PortalButton(
-            onPressed: null,
-            icon: q.cycleTrackingDisabled ? Icons.send : Icons.replay,
-            label: q.cycleTrackingDisabled ? 'Send Now' : 'Start Next Cycle',
-          );
-        }
+        if (q.isBlocked) return const SizedBox.shrink();
         final isNextCycle =
             q.lastFinalizedAt != null && !q.cycleTrackingDisabled;
         return PortalButton(
           onPressed: actionInProgress ? null : onSend,
-          icon: isNextCycle ? Icons.replay : Icons.send,
+          icon: Icons.send,
           label: isNextCycle ? 'Start Next Cycle' : 'Send Now',
         );
 
       case 'sent':
-        return IconButton(
-          onPressed: actionInProgress ? null : onRevoke,
-          icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-          tooltip: 'Revoke questionnaire',
-          iconSize: 22,
-          constraints: const BoxConstraints(),
-          padding: const EdgeInsets.all(4),
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.error, width: 1.5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
+            onPressed: actionInProgress ? null : onRevoke,
+            icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+            tooltip: 'Delete',
+            iconSize: 22,
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(8),
+          ),
         );
 
       case 'in_progress':
         return Text(
-          'Patient is working',
+          'Participant is working',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
@@ -1274,26 +1586,59 @@ class _QuestionnaireCard extends StatelessWidget {
         );
 
       case 'ready_to_review':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PortalButton(
-              onPressed: actionInProgress ? null : onFinalize,
-              label: 'Finalize',
-              icon: Icons.check_circle_outline,
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: actionInProgress ? null : onRevoke,
-              icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-              tooltip: 'Revoke questionnaire',
-              iconSize: 22,
-              constraints: const BoxConstraints(),
-              padding: const EdgeInsets.all(4),
-            ),
-          ],
+        return IntrinsicHeight(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: actionInProgress ? null : onFinalize,
+                icon: const Icon(Icons.check_circle_outline, size: 15),
+                label: const Text('Finalize'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.green.withValues(alpha: 0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: actionInProgress ? null : onRevoke,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: theme.colorScheme.error, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      case 'delivery_failed':
+        return PortalButton(
+          onPressed: actionInProgress ? null : onSend,
+          icon: Icons.send,
+          label: 'Send Now',
         );
 
       case 'finalized':
@@ -1303,4 +1648,209 @@ class _QuestionnaireCard extends StatelessWidget {
         return const SizedBox.shrink();
     }
   }
+
+  void _showTroubleshootingPopover(
+    BuildContext context,
+    ThemeData theme,
+    Offset tapPosition,
+  ) {
+    final overlayState = Overlay.of(context);
+    late OverlayEntry barrier;
+    late OverlayEntry popover;
+
+    void dismiss() {
+      barrier.remove();
+      popover.remove();
+    }
+
+    barrier = OverlayEntry(
+      builder: (_) => Positioned.fill(
+        child: GestureDetector(
+          onTap: dismiss,
+          behavior: HitTestBehavior.translucent,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+
+    popover = OverlayEntry(
+      builder: (ctx) {
+        final screen = MediaQuery.of(ctx).size;
+        const popoverWidth = 340.0;
+        const arrowHeight = 10.0;
+        const arrowHalfBase = 10.0;
+
+        final left = (tapPosition.dx - popoverWidth / 2).clamp(
+          8.0,
+          screen.width - popoverWidth - 8.0,
+        );
+        final arrowX = (tapPosition.dx - left).clamp(
+          arrowHalfBase + 12,
+          popoverWidth - arrowHalfBase - 12,
+        );
+
+        return Positioned(
+          left: left,
+          bottom: screen.height - tapPosition.dy,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: popoverWidth,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: theme.colorScheme.error,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Immediate Troubleshooting Steps',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTroubleshootStep(
+                        theme,
+                        1,
+                        'Check the participant\'s phone is online',
+                        ' \u2014 confirm Wi-Fi or cellular connection is active.',
+                      ),
+                      _buildTroubleshootStep(
+                        theme,
+                        2,
+                        'Check for a captive portal',
+                        ' \u2014 if on hospital/hotel Wi-Fi, the phone may appear'
+                            ' "connected" but require logging in through a browser'
+                            ' page (accepting terms, entering a code, etc.). Open a'
+                            ' browser and complete any login page.',
+                      ),
+                      _buildTroubleshootStep(
+                        theme,
+                        3,
+                        'Wait ~1 minute after connectivity is restored',
+                        ' \u2014 the system will automatically retry delivery.',
+                      ),
+                      _buildTroubleshootStep(
+                        theme,
+                        4,
+                        'Check the app itself',
+                        ' \u2014 confirm the app launches, isn\'t crashing, and'
+                            ' the phone isn\'t out of storage (the app should'
+                            ' surface these itself, but worth verifying).',
+                      ),
+                      _buildTroubleshootStep(
+                        theme,
+                        5,
+                        'If still failing after the above',
+                        ' \u2014 fall back to a paper form and contact support /'
+                            ' the study team per escalation protocol.',
+                      ),
+                    ],
+                  ),
+                ),
+                // Downward-pointing arrow connecting popover to the ⓘ icon
+                ClipPath(
+                  clipper: _DownArrowClipper(xCenter: arrowX),
+                  child: Container(
+                    width: popoverWidth,
+                    height: arrowHeight,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    overlayState.insertAll([barrier, popover]);
+  }
+
+  Widget _buildTroubleshootStep(
+    ThemeData theme,
+    int number,
+    String boldPart,
+    String regularPart,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$number. ',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: boldPart,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: regularPart,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Clips a downward-pointing triangle arrow centered at [xCenter].
+class _DownArrowClipper extends CustomClipper<Path> {
+  final double xCenter;
+
+  const _DownArrowClipper({required this.xCenter});
+
+  @override
+  Path getClip(Size size) {
+    return Path()
+      ..moveTo(xCenter - size.height, 0)
+      ..lineTo(xCenter + size.height, 0)
+      ..lineTo(xCenter, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(_DownArrowClipper old) => old.xCenter != xCenter;
 }

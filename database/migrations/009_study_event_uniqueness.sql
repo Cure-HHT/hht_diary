@@ -1,6 +1,6 @@
 -- =====================================================
 -- Migration: Add study_event uniqueness constraint and end_event column
--- Number: 007
+-- Number: 009
 -- Date: 2026-04-02
 -- Description: Adds a partial unique index to prevent duplicate study_event
 --   values for the same patient + questionnaire type (non-deleted instances).
@@ -57,34 +57,7 @@ ALTER TABLE questionnaire_instances
   ADD COLUMN IF NOT EXISTS end_event end_event_type;
 
 -- =====================================================
--- 3. ADD QUESTIONNAIRE ACTION TYPES TO admin_action_log
--- =====================================================
--- The questionnaire handlers (send, delete, unlock, finalize) log to
--- admin_action_log with these action types, but they were never added
--- to the CHECK constraint.
-
--- Add new constraint first (NOT VALID avoids full table scan), then drop old one.
--- This ordering ensures there is never a window without a constraint.
-ALTER TABLE admin_action_log ADD CONSTRAINT admin_action_log_action_type_check_v2 CHECK (
-  action_type IN (
-    'ASSIGN_USER', 'ASSIGN_INVESTIGATOR', 'ASSIGN_ANALYST',
-    'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
-    'EMERGENCY_ACCESS', 'BULK_OPERATION',
-    'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE',
-    'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
-    'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT',
-    'START_TRIAL',
-    'QUESTIONNAIRE_SENT', 'QUESTIONNAIRE_DELETED',
-    'QUESTIONNAIRE_UNLOCKED', 'QUESTIONNAIRE_FINALIZED'
-  )
-) NOT VALID;
-
-ALTER TABLE admin_action_log DROP CONSTRAINT IF EXISTS admin_action_log_action_type_check;
-
-ALTER TABLE admin_action_log VALIDATE CONSTRAINT admin_action_log_action_type_check_v2;
-
--- =====================================================
--- 4. PARTIAL UNIQUE INDEX ON end_event (Assertion G)
+-- 3. PARTIAL UNIQUE INDEX ON end_event (Assertion G)
 -- =====================================================
 -- Ensures at most one non-deleted questionnaire instance per patient + type
 -- carries a non-null end_event (End of Treatment / End of Study).
@@ -131,5 +104,5 @@ BEGIN
         RAISE EXCEPTION 'idx_qi_unique_end_event index was not created';
     END IF;
 
-    RAISE NOTICE 'Migration 007 complete: study_event uniqueness index, end_event column, action_type constraint, and terminal cycle uniqueness index added';
+    RAISE NOTICE 'Migration 009 complete: study_event uniqueness index, end_event column, and terminal cycle uniqueness index added';
 END $$;
