@@ -2,6 +2,8 @@
 //   set: three static nosebleed variants plus one survey type per
 //   questionnaire definition in questionnaires.json. New questionnaires are
 //   added by editing the JSON only.
+// Implements: REQ-d00158-A — non-materializing audit entry type for inbound
+//   tombstone instructions that could not be applied locally.
 
 import 'dart:convert';
 
@@ -11,6 +13,27 @@ import 'package:flutter/services.dart';
 /// Path to the questionnaire definitions asset (bundled by trial_data_types).
 const _questionnairesAssetPath =
     'packages/trial_data_types/assets/data/questionnaires.json';
+
+/// Audit-only entry type recorded when `portalInboundPoll` receives a
+/// tombstone instruction it cannot apply locally (e.g. the server tombstones
+/// an entry of a type this build does not yet know about, or storage refuses
+/// the write). Materialize is `false` so the failure does not pollute the
+/// diary view; the row exists only to stamp an immutable event-log fact that
+/// will ship to the diary server through the standard FIFO drain.
+///
+/// Implements: REQ-d00158-A — see dev-event-sourcing-mobile.md.
+const String kInboundTombstoneRecordFailedEntryType =
+    'inbound_tombstone_record_failed';
+
+const EntryTypeDefinition _inboundTombstoneRecordFailedType =
+    EntryTypeDefinition(
+      id: kInboundTombstoneRecordFailedEntryType,
+      registeredVersion: 1,
+      name: 'Inbound Tombstone Record Failed',
+      widgetId: '_audit',
+      widgetConfig: <String, Object?>{},
+      materialize: false,
+    );
 
 /// The three static nosebleed entry types.
 ///
@@ -50,6 +73,8 @@ const List<EntryTypeDefinition> _nosebleedTypes = [
 ///   - One survey entry type per questionnaire definition in
 ///     questionnaires.json.  Adding a new questionnaire to the JSON
 ///     automatically yields a new entry type with no Dart change.
+///   - The audit entry type [kInboundTombstoneRecordFailedEntryType]
+///     (REQ-d00158-A).
 ///
 /// The optional `jsonLoader` parameter overrides the JSON source; it defaults
 /// to loading from the asset bundle via `rootBundle.loadString`.  Inject a
@@ -61,7 +86,11 @@ Future<List<EntryTypeDefinition>> loadClinicalDiaryEntryTypes({
       jsonLoader ?? () => rootBundle.loadString(_questionnairesAssetPath);
   final jsonString = await loader();
   final surveyTypes = _parseSurveyEntryTypes(jsonString);
-  return [..._nosebleedTypes, ...surveyTypes];
+  return [
+    ..._nosebleedTypes,
+    ...surveyTypes,
+    _inboundTombstoneRecordFailedType,
+  ];
 }
 
 /// Parse the raw questionnaires JSON string and return one [EntryTypeDefinition]

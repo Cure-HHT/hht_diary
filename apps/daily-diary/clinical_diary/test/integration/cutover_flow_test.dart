@@ -394,6 +394,7 @@ void main() {
     // the function here is a unit-level shortcut at the integration scope.)
     await portalInboundPoll(
       entryService: fx.runtime.entryService,
+      eventStore: fx.runtime.eventStore,
       client: MockClient((req) async => fx.handler.impl(req)),
       resolveBaseUrl: () async => Uri.parse(_baseUrl),
     );

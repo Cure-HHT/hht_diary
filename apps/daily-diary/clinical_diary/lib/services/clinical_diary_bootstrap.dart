@@ -162,6 +162,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       await syncCycle();
       await portalInboundPoll(
         entryService: entryService,
+        eventStore: datastore.eventStore,
         client: client,
         resolveBaseUrl: resolveBaseUrl,
         authToken: authToken,

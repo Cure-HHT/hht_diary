@@ -349,6 +349,7 @@
 | REQ-d00155 | Primary diary server destination contract                       | dev-event-sourcing-mobile.md   | 800c0418 |
 | REQ-d00156 | Portal inbound poll for tombstone instructions                  | dev-event-sourcing-mobile.md   | f96d5dbc |
 | REQ-d00157 | Clinical_diary mobile sync triggers                             | dev-event-sourcing-mobile.md   | eec937dc |
+| REQ-d00158 | Inbound Tombstone Record Failure Audit                          | dev-event-sourcing-mobile.md   | 5bb685d0 |
 
 ## User Journeys
 

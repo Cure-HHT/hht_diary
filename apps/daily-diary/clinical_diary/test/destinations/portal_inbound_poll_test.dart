@@ -1,8 +1,9 @@
-// Verifies: REQ-d00113-D, REQ-d00156-A+B+C+D.
+// Verifies: REQ-d00113-D, REQ-d00156-A+B+C+D, REQ-d00158-A+B+C.
 
 import 'dart:convert';
 
 import 'package:clinical_diary/destinations/portal_inbound_poll.dart';
+import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -15,9 +16,14 @@ import 'package:sembast/sembast_memory.dart';
 
 /// Bundles the collaborators needed to exercise [portalInboundPoll].
 class _Fixture {
-  _Fixture({required this.service, required this.backend});
+  _Fixture({
+    required this.service,
+    required this.eventStore,
+    required this.backend,
+  });
 
   final EntryService service;
+  final EventStore eventStore;
   final SembastBackend backend;
 }
 
@@ -30,10 +36,19 @@ EntryTypeDefinition _defFor(String id) => EntryTypeDefinition(
   effectiveDatePath: null,
 );
 
-/// Creates a real [EntryService] backed by an in-memory [SembastBackend].
+const _testSource = Source(
+  hopId: 'mobile-device',
+  identifier: 'device-test',
+  softwareVersion: 'clinical_diary@0.0.0',
+);
+
+/// Creates a real [EntryService] + [EventStore] backed by an in-memory
+/// [SembastBackend].
 ///
 /// [entryTypeIds] pre-registers the given entry types so that tombstone
-/// messages for those types are accepted by [EntryService.record].
+/// messages for those types are accepted by [EntryService.record]. The
+/// audit entry type for REQ-d00158 is always registered so the inbound
+/// poll's record-failure audit append succeeds.
 Future<_Fixture> _setupFixture({
   List<String> entryTypeIds = const ['epistaxis_event'],
 }) async {
@@ -42,9 +57,25 @@ Future<_Fixture> _setupFixture({
   );
   final backend = SembastBackend(database: db);
   final registry = EntryTypeRegistry();
+  for (final defn in kSystemEntryTypes) {
+    registry.register(defn);
+  }
+  // REQ-d00158-A — audit entry type is owned by clinical_diary, not the
+  // shared kSystemEntryTypes set, so register it explicitly.
+  registry.register(
+    const EntryTypeDefinition(
+      id: kInboundTombstoneRecordFailedEntryType,
+      registeredVersion: 1,
+      name: 'Inbound Tombstone Record Failed',
+      widgetId: '_audit',
+      widgetConfig: <String, Object?>{},
+      materialize: false,
+    ),
+  );
   for (final id in entryTypeIds) {
     registry.register(_defFor(id));
   }
+  final securityContexts = SembastSecurityContextStore(backend: backend);
   final service = EntryService(
     backend: backend,
     entryTypes: registry,
@@ -56,7 +87,13 @@ Future<_Fixture> _setupFixture({
       userId: 'user-test',
     ),
   );
-  return _Fixture(service: service, backend: backend);
+  final eventStore = EventStore(
+    backend: backend,
+    entryTypes: registry,
+    source: _testSource,
+    securityContexts: securityContexts,
+  );
+  return _Fixture(service: service, eventStore: eventStore, backend: backend);
 }
 
 /// Wraps [messages] in the expected server envelope.
@@ -89,6 +126,7 @@ void main() {
 
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
@@ -124,6 +162,7 @@ void main() {
 
         await portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
@@ -179,6 +218,7 @@ void main() {
 
         await portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
@@ -210,6 +250,7 @@ void main() {
       await expectLater(
         portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => Uri.parse(_baseUrl),
         ),
@@ -239,6 +280,7 @@ void main() {
         await expectLater(
           portalInboundPoll(
             entryService: fx.service,
+            eventStore: fx.eventStore,
             client: client,
             resolveBaseUrl: () async => Uri.parse(_baseUrl),
           ),
@@ -276,6 +318,7 @@ void main() {
 
         await portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => Uri.parse(_baseUrl),
         );
@@ -309,6 +352,7 @@ void main() {
 
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
@@ -341,6 +385,7 @@ void main() {
 
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
@@ -368,6 +413,7 @@ void main() {
 
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
         authToken: () async => 'my-secret-token',
@@ -392,6 +438,7 @@ void main() {
       // authToken not provided (defaults to null)
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
       );
@@ -411,6 +458,7 @@ void main() {
 
       await portalInboundPoll(
         entryService: fx.service,
+        eventStore: fx.eventStore,
         client: client,
         resolveBaseUrl: () async => Uri.parse(_baseUrl),
         authToken: () async => null,
@@ -434,6 +482,7 @@ void main() {
       await expectLater(
         portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => Uri.parse(_baseUrl),
         ),
@@ -449,15 +498,18 @@ void main() {
     // Test 11: per-message exception swallowed, loop continues
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-D — a per-message exception (e.g. unregistered
-    // entry_type causing ArgumentError) is swallowed and the loop continues
-    // to process subsequent messages.
+    // Verifies: REQ-d00156-D, REQ-d00158-B — a per-message exception
+    // (e.g. unregistered entry_type causing ArgumentError) is swallowed,
+    // the loop continues to process subsequent messages, AND the failure
+    // is recorded as an inbound_tombstone_record_failed audit event so
+    // the gap is visible to the data team.
     test(
-      'per-message exception swallowed; loop continues to next message',
+      'per-message exception swallowed; loop continues; audit event recorded',
       () async {
         // 'unknown_type' is NOT registered; 'epistaxis_event' is.
         // The first tombstone will throw ArgumentError (unregistered entryType),
-        // but the second must still be recorded.
+        // and an audit event must be appended; the second must still be
+        // recorded.
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
         final client = MockClient(
@@ -480,6 +532,7 @@ void main() {
         await expectLater(
           portalInboundPoll(
             entryService: fx.service,
+            eventStore: fx.eventStore,
             client: client,
             resolveBaseUrl: () async => Uri.parse(_baseUrl),
           ),
@@ -487,9 +540,106 @@ void main() {
         );
 
         final events = await fx.backend.findAllEvents();
+        // Audit row for the failed tombstone + the successful tombstone.
+        expect(events, hasLength(2));
+
+        final audit = events.firstWhere(
+          (e) => e.entryType == kInboundTombstoneRecordFailedEntryType,
+        );
+        // REQ-d00158-B — audit row carries identity of the failed tombstone
+        // and stamps the install's source identifier as aggregate_id.
+        expect(audit.aggregateId, 'device-test');
+        expect(audit.aggregateType, 'inbound_poll_audit');
+        expect(audit.eventType, 'finalized');
+        expect(audit.data['failed_entry_id'], 'agg-bad');
+        expect(audit.data['failed_entry_type'], 'unknown_type');
+        expect(audit.data['instruction_type'], 'tombstone');
+        expect(audit.data['error'], isA<String>());
+        expect(audit.data['error'], contains('unknown_type'));
+
+        final good = events.firstWhere((e) => e.aggregateId == 'agg-good');
+        expect(good.entryType, 'epistaxis_event');
+        expect(good.eventType, 'tombstone');
+
+        await fx.backend.close();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Test 11b: degraded event store cannot append audit row -> still completes
+    // -------------------------------------------------------------------------
+
+    // Verifies: REQ-d00158-C — failure of the audit append itself is
+    // swallowed; the surrounding loop continues to process subsequent
+    // messages without raising.
+    test(
+      'audit append failure is swallowed; loop still processes next message',
+      () async {
+        // _setupFixture without registering the audit type: the audit
+        // append will silently no-op (entryTypes.byId returns null and
+        // the helper bails). The loop must still process the next valid
+        // tombstone.
+        final db = await newDatabaseFactoryMemory().openDatabase(
+          'portal-inbound-poll-no-audit-${DateTime.now().microsecondsSinceEpoch}.db',
+        );
+        final backend = SembastBackend(database: db);
+        final registry = EntryTypeRegistry();
+        for (final defn in kSystemEntryTypes) {
+          registry.register(defn);
+        }
+        // NOTE: kInboundTombstoneRecordFailedEntryType deliberately NOT
+        // registered here.
+        registry.register(_defFor('epistaxis_event'));
+        final securityContexts = SembastSecurityContextStore(backend: backend);
+        final service = EntryService(
+          backend: backend,
+          entryTypes: registry,
+          syncCycleTrigger: () async {},
+          deviceInfo: const DeviceInfo(
+            deviceId: 'device-test',
+            softwareVersion: 'clinical_diary@0.0.0',
+            userId: 'user-test',
+          ),
+        );
+        final eventStore = EventStore(
+          backend: backend,
+          entryTypes: registry,
+          source: _testSource,
+          securityContexts: securityContexts,
+        );
+
+        final client = MockClient(
+          (_) async => _ok(
+            _envelope([
+              {
+                'type': 'tombstone',
+                'entry_id': 'agg-bad',
+                'entry_type': 'unknown_type',
+              },
+              {
+                'type': 'tombstone',
+                'entry_id': 'agg-good',
+                'entry_type': 'epistaxis_event',
+              },
+            ]),
+          ),
+        );
+
+        await expectLater(
+          portalInboundPoll(
+            entryService: service,
+            eventStore: eventStore,
+            client: client,
+            resolveBaseUrl: () async => Uri.parse(_baseUrl),
+          ),
+          completes,
+        );
+
+        // Only the successful tombstone landed; the audit append no-op'd.
+        final events = await backend.findAllEvents();
         expect(events, hasLength(1));
         expect(events.single.aggregateId, 'agg-good');
-        await fx.backend.close();
+        await backend.close();
       },
     );
 
@@ -510,6 +660,7 @@ void main() {
       await expectLater(
         portalInboundPoll(
           entryService: fx.service,
+          eventStore: fx.eventStore,
           client: client,
           resolveBaseUrl: () async => null,
         ),
