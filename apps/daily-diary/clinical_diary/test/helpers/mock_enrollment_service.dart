@@ -14,6 +14,10 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
 
+  // CUR-1165: Not participating state for testing
+  bool _isNotParticipating = false;
+  DateTime? _notParticipatingAt;
+
   @override
   Future<String?> getJwtToken() async => jwtToken;
 
@@ -61,7 +65,34 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
     _isDisconnected = isDisconnected;
+    _isNotParticipating = isNotParticipating;
+    if (isNotParticipating && _notParticipatingAt == null) {
+      _notParticipatingAt = DateTime.now();
+    } else if (!isNotParticipating) {
+      _notParticipatingAt = null;
+    }
     return isDisconnected;
   }
+
+  // CUR-1165: Not participating mock methods
+  @override
+  Future<bool> isNotParticipating() async => _isNotParticipating;
+
+  @override
+  Future<void> setNotParticipating(
+    bool notParticipating, {
+    DateTime? at,
+  }) async {
+    _isNotParticipating = notParticipating;
+    if (notParticipating) {
+      _notParticipatingAt ??= at ?? DateTime.now();
+    } else {
+      _notParticipatingAt = null;
+    }
+  }
+
+  @override
+  Future<DateTime?> getNotParticipatingAt() async => _notParticipatingAt;
 }

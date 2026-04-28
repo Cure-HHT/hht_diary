@@ -339,6 +339,7 @@ class AppLocalizations {
       'participationStatusDisconnected': 'Disconnected',
       'participationStatusNotParticipating': 'Not Participating',
       'joinedDate': 'Joined: {0}',
+      'endedDate': 'Ended: {0}',
       'linkingCode': 'Linking Code: {0}',
       'enterNewLinkingCode': 'Enter New Linking Code',
       'connectionIssueDetected': 'Connection issue detected',
@@ -349,7 +350,7 @@ class AppLocalizations {
       'participationStatusDisconnectedMessage':
           'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
       'participationStatusNotParticipatingMessage':
-          'You are not currently participating in a clinical trial.',
+          'Study participation: Ended',
 
       // REQ-p00045: Clinical Trial Privacy Policy
       'linkingConsentPrefix': 'I have read, understand, and consent to the ',
@@ -763,6 +764,7 @@ class AppLocalizations {
       'participationStatusDisconnected': 'Desconectado',
       'participationStatusNotParticipating': 'No Participando',
       'joinedDate': 'Inscrito: {0}',
+      'endedDate': 'Finalizado: {0}',
       'linkingCode': 'Codigo de Enlace: {0}',
       'enterNewLinkingCode': 'Ingresar Nuevo Codigo de Enlace',
       'connectionIssueDetected': 'Problema de conexion detectado',
@@ -773,7 +775,7 @@ class AppLocalizations {
       'participationStatusDisconnectedMessage':
           'Has sido desconectado del ensayo clinico. Por favor contacta a tu sitio de estudio o ingresa un nuevo codigo de enlace.',
       'participationStatusNotParticipatingMessage':
-          'No estas participando actualmente en un ensayo clinico.',
+          'Participacion en el estudio: Finalizada',
 
       // REQ-p00045: Clinical Trial Privacy Policy
       'linkingConsentPrefix': 'He leido, comprendo y acepto la ',
@@ -1201,6 +1203,7 @@ class AppLocalizations {
       'participationStatusDisconnected': 'Deconnecte',
       'participationStatusNotParticipating': 'Non Participant',
       'joinedDate': 'Inscrit: {0}',
+      'endedDate': 'Termine: {0}',
       'linkingCode': 'Code de Liaison: {0}',
       'enterNewLinkingCode': 'Entrer un Nouveau Code de Liaison',
       'connectionIssueDetected': 'Probleme de connexion detecte',
@@ -1211,7 +1214,7 @@ class AppLocalizations {
       'participationStatusDisconnectedMessage':
           "Vous avez ete deconnecte de l'essai clinique. Veuillez contacter votre site d'etude ou entrer un nouveau code de liaison.",
       'participationStatusNotParticipatingMessage':
-          'Vous ne participez actuellement a aucun essai clinique.',
+          "Participation a l'etude: Terminee",
 
       // REQ-p00045: Clinical Trial Privacy Policy
       'linkingConsentPrefix': "J'ai lu, compris et accepte la ",
@@ -1635,6 +1638,7 @@ class AppLocalizations {
       'participationStatusDisconnected': 'Getrennt',
       'participationStatusNotParticipating': 'Nicht Teilnehmend',
       'joinedDate': 'Angemeldet: {0}',
+      'endedDate': 'Beendet: {0}',
       'linkingCode': 'Verknupfungscode: {0}',
       'enterNewLinkingCode': 'Neuen Verknupfungscode Eingeben',
       'connectionIssueDetected': 'Verbindungsproblem erkannt',
@@ -1644,8 +1648,7 @@ class AppLocalizations {
       'participationStatusActiveMessage': 'Sie sind der Studie beigetreten',
       'participationStatusDisconnectedMessage':
           'Sie wurden von der klinischen Studie getrennt. Bitte kontaktieren Sie Ihr Studienzentrum oder geben Sie einen neuen Verknupfungscode ein.',
-      'participationStatusNotParticipatingMessage':
-          'Sie nehmen derzeit an keiner klinischen Studie teil.',
+      'participationStatusNotParticipatingMessage': 'Studienteilnahme: Beendet',
 
       // REQ-p00045: Clinical Trial Privacy Policy
       'linkingConsentPrefix': 'Ich habe die ',
@@ -2190,6 +2193,8 @@ class AppLocalizations {
   String get participationStatusNotParticipating =>
       translate('participationStatusNotParticipating');
   String joinedDate(String date) => translateWithParams('joinedDate', [date]);
+  // CUR-1165: End date shown on not_participating badge (GUI-p00076)
+  String endedDate(String date) => translateWithParams('endedDate', [date]);
   String linkingCode(String code) => translateWithParams('linkingCode', [code]);
   String get enterNewLinkingCode => translate('enterNewLinkingCode');
   String get connectionIssueDetected => translate('connectionIssueDetected');

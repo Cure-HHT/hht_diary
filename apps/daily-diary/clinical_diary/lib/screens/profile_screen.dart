@@ -23,6 +23,7 @@ class ProfileScreen extends StatefulWidget {
     required this.userName,
     required this.onUpdateUserName,
     this.isDisconnected = false,
+    this.isNotParticipating = false,
     this.enrollmentCode,
     this.enrollmentDateTime,
     this.enrollmentEndDateTime,
@@ -39,6 +40,8 @@ class ProfileScreen extends StatefulWidget {
   final VoidCallback onStopSharingWithCureHHT;
   final bool isEnrolledInTrial;
   final bool isDisconnected;
+  // CUR-1165: True when sponsor portal has marked patient as not participating
+  final bool isNotParticipating;
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
@@ -261,8 +264,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
 
                       // 3. REQ-CAL-p00076: Participation Status Badge or Link Button
-                      if (!widget.isEnrolledInTrial ||
-                          widget.isDisconnected) ...[
+                      // CUR-1165: Hide enroll button when not_participating — this
+                      // is not a disconnection; patient should not re-enroll.
+                      if ((!widget.isEnrolledInTrial ||
+                              widget.isDisconnected) &&
+                          !widget.isNotParticipating) ...[
                         OutlinedButton.icon(
                           onPressed: widget.onStartClinicalTrialEnrollment,
                           icon: const Icon(Icons.description, size: 20),
@@ -295,7 +301,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // 5. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
                       const SizedBox(height: 24),
-                      if (widget.isEnrolledInTrial || widget.isDisconnected)
+                      if (widget.isEnrolledInTrial ||
+                          widget.isDisconnected ||
+                          widget.isNotParticipating)
                         _buildParticipationStatusBadge(theme, l10n),
                     ],
                   ),
@@ -314,8 +322,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     AppLocalizations l10n,
   ) {
     // Determine status and colors
-    final isActive = widget.isEnrolledInTrial && !widget.isDisconnected;
+    final isNotParticipating = widget.isNotParticipating;
     final isDisconnected = widget.isDisconnected;
+    // CUR-1165: not_participating is distinct from active — exclude it explicitly
+    final isActive =
+        widget.isEnrolledInTrial && !isDisconnected && !isNotParticipating;
 
     Color bgColor;
     Color borderColor;
@@ -332,6 +343,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       subtextColor = const Color(0xFF7B3306);
       statusIcon = Icons.warning_amber_rounded;
       statusMessage = l10n.participationStatusDisconnectedMessage;
+    } else if (isNotParticipating) {
+      // CUR-1165: Not participating state — grey/inactive styling (GUI-p00076)
+      bgColor = Colors.grey.shade100;
+      borderColor = Colors.grey.shade300;
+      iconColor = Colors.grey.shade600;
+      subtextColor = Colors.grey.shade600;
+      statusIcon = Icons.check;
+      statusMessage = l10n.participationStatusNotParticipatingMessage;
     } else if (isActive) {
       // Active state - green styling
       bgColor = Colors.green.shade50;
@@ -341,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       statusIcon = Icons.check;
       statusMessage = l10n.participationStatusActiveMessage;
     } else {
-      // Not participating state - grey styling
+      // Fallback: enrolled but status unknown
       bgColor = Colors.grey.shade100;
       borderColor = Colors.grey.shade300;
       iconColor = Colors.grey.shade600;
@@ -517,6 +536,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   l10n.joinedDate(
                                     _formatEnrollmentDateTime(
                                       widget.enrollmentDateTime!,
+                                    ),
+                                  ),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: subtextColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                              // CUR-1165: Show end date when not_participating (GUI-p00076)
+                              if (widget.enrollmentEndDateTime != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n.endedDate(
+                                    _formatEnrollmentDateTime(
+                                      widget.enrollmentEndDateTime!,
                                     ),
                                   ),
                                   style: theme.textTheme.bodySmall?.copyWith(

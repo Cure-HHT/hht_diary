@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00076: Participation Status Badge
+//   GUI-p00076: Not Participating state
+//   REQ-p01065: Deactivate sync and rules on Not Participating
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
@@ -22,9 +24,11 @@ void main() {
     Widget buildProfileScreen({
       bool isEnrolledInTrial = false,
       bool isDisconnected = false,
+      bool isNotParticipating = false,
       String enrollmentStatus = 'none',
       String? enrollmentCode,
       DateTime? enrollmentDateTime,
+      DateTime? enrollmentEndDateTime,
       String? siteName,
       String? sitePhoneNumber,
       String? sponsorLogo,
@@ -40,12 +44,14 @@ void main() {
           onStopSharingWithCureHHT: () {},
           isEnrolledInTrial: isEnrolledInTrial,
           isDisconnected: isDisconnected,
+          isNotParticipating: isNotParticipating,
           enrollmentStatus: enrollmentStatus,
           isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
           onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
           enrollmentDateTime: enrollmentDateTime,
+          enrollmentEndDateTime: enrollmentEndDateTime,
           siteName: siteName,
           sitePhoneNumber: sitePhoneNumber,
         ),
@@ -544,6 +550,117 @@ void main() {
 
         final card = tester.widget<Card>(cardFinder);
         expect(card.color, equals(const Color(0xFFFFFBEA)));
+      });
+    });
+
+    // CUR-1165: Not Participating state tests (GUI-p00076, REQ-p01065-D)
+    group('Not Participating state', () {
+      testWidgets('badge shows grey background when not_participating', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        final cardFinder = find.ancestor(
+          of: find.text('Study participation: Ended'),
+          matching: find.byType(Card),
+        );
+        expect(cardFinder, findsOneWidget);
+
+        final card = tester.widget<Card>(cardFinder);
+        expect(card.color, equals(Colors.grey.shade100));
+      });
+
+      testWidgets('badge shows "Study participation: Ended" message', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Study participation: Ended'), findsOneWidget);
+      });
+
+      testWidgets(
+        'badge does not show "Reconnect" button when not_participating',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isNotParticipating: true,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Enter New Linking Code'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        '"Enroll in Clinical Trial" button is hidden when not_participating',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isNotParticipating: true,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Enroll in Clinical Trial'), findsNothing);
+        },
+      );
+
+      testWidgets('shows ended date when enrollmentEndDateTime is provided', (
+        tester,
+      ) async {
+        final endDate = DateTime(2026, 4, 23, 13, 47);
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isNotParticipating: true,
+            enrollmentEndDateTime: endDate,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Ended:'), findsOneWidget);
+      });
+
+      testWidgets('does not show orange disconnection banner styling', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        // Orange card (disconnected) must not appear
+        final orangeCard = find.byWidgetPredicate((w) {
+          if (w is Card) {
+            return w.color == Colors.orange.shade50;
+          }
+          return false;
+        });
+        expect(orangeCard, findsNothing);
+      });
+
+      testWidgets('sponsor logo still shown when not_participating', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isNotParticipating: true,
+            sponsorLogo: 'assets/sponsor-content/status_badge.png',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Image), findsWidgets);
       });
     });
 
