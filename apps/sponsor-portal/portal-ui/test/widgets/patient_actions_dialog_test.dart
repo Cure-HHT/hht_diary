@@ -103,17 +103,18 @@ void main() {
       expect(find.text('Close'), findsOneWidget);
     });
 
+    // CUR-1069: disconnected now shows "Show Participant Linking Code" (reference)
     testWidgets('disconnected status shows 3 action tiles', (tester) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient, 'disconnected');
 
-      expect(find.text('Show Linking Code'), findsOneWidget);
+      expect(find.text('Show Participant Linking Code'), findsOneWidget);
       expect(find.text('Reconnect Participant'), findsOneWidget);
       expect(find.text('Mark as Not Participating'), findsOneWidget);
 
       expect(
-        find.text('View active linking code if available'),
+        find.text('View the code used to link this device (reference only)'),
         findsOneWidget,
       );
       expect(
@@ -121,7 +122,7 @@ void main() {
         findsOneWidget,
       );
 
-      expect(find.byIcon(Icons.visibility), findsOneWidget);
+      expect(find.byIcon(Icons.history), findsOneWidget);
       expect(find.byIcon(Icons.link), findsOneWidget);
       expect(find.byIcon(Icons.person_off), findsOneWidget);
     });
@@ -139,42 +140,60 @@ void main() {
       expect(find.text('Mark as Not Participating'), findsNothing);
     });
 
-    testWidgets('not_participating shows info message', (tester) async {
-      final apiClient = await _createMockApiClient();
-
-      await _pumpDialog(tester, apiClient, 'not_participating');
-
-      expect(
-        find.textContaining('marked as not participating'),
-        findsOneWidget,
-      );
-      expect(find.byIcon(Icons.info_outline), findsOneWidget);
-      expect(find.textContaining('Reactivate'), findsOneWidget);
-      expect(find.text('Show Linking Code'), findsNothing);
-      expect(find.text('Reconnect Participant'), findsNothing);
-    });
-
-    // REQ-CAL-p00072: View Linking Code for any patient with a valid code
-    // REQ-CAL-p00073 Assertion C: Show Linking Code for connected patients
+    // CUR-1069: not_participating now includes "Show Participant Linking Code"
     testWidgets(
-      'connected status (Trial Active) shows Show Linking Code action',
+      'not_participating shows info message and Show Participant Linking Code',
       (tester) async {
         final apiClient = await _createMockApiClient();
 
-        await _pumpDialog(tester, apiClient, 'connected');
+        await _pumpDialog(tester, apiClient, 'not_participating');
 
-        expect(find.text('Show Linking Code'), findsOneWidget);
+        expect(
+          find.textContaining('marked as not participating'),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.info_outline), findsOneWidget);
+        expect(find.textContaining('Reactivate'), findsOneWidget);
+        expect(find.text('Show Linking Code'), findsNothing);
+        expect(find.text('Reconnect Participant'), findsNothing);
       },
     );
 
+    // REQ-CAL-p00072: View Linking Code for any patient with a valid code
+    // REQ-CAL-p00073 Assertion C: Show Linking Code for connected patients
+    // CUR-1069: connected now shows "Show Participant Linking Code" (reference)
+    testWidgets('connected status shows Show Participant Linking Code action', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient, 'connected');
+
+      expect(find.text('Show Participant Linking Code'), findsOneWidget);
+      expect(find.byIcon(Icons.history), findsOneWidget);
+      expect(find.text('Show Linking Code'), findsNothing);
+    });
+
+    testWidgets('connected status shows Disconnect Participant action', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient, 'connected');
+
+      expect(find.text('Disconnect Participant'), findsOneWidget);
+    });
+
     testWidgets(
-      'connected status (Trial Active) shows Disconnect Patient action',
+      'linking_in_progress shows "Show Linking Code" (not Participant)',
       (tester) async {
         final apiClient = await _createMockApiClient();
 
-        await _pumpDialog(tester, apiClient, 'connected');
+        await _pumpDialog(tester, apiClient, 'linking_in_progress');
 
-        expect(find.text('Disconnect Participant'), findsOneWidget);
+        expect(find.text('Show Linking Code'), findsOneWidget);
+        expect(find.text('Show Participant Linking Code'), findsNothing);
+        expect(find.byIcon(Icons.qr_code), findsOneWidget);
       },
     );
 
