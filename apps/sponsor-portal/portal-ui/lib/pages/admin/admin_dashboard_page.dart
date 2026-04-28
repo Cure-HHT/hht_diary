@@ -111,7 +111,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       NavigationRailDestination(
                         icon: Icon(Icons.people_alt_outlined),
                         selectedIcon: Icon(Icons.people_alt),
-                        label: Text('Patients'),
+                        label: Text('Participants'),
                       ),
                     ],
                   ),
@@ -182,9 +182,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               _buildStatCard(
                 theme,
-                'Patients',
+                'Participants',
                 Icons.people_alt,
-                'View patients from EDC',
+                'View participants from EDC',
                 () => setState(() => _selectedIndex = 3),
               ),
               _buildStatCard(

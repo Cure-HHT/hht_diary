@@ -83,7 +83,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
     } else {
       setState(() {
         _state = _DialogState.error;
-        _error = response.error ?? 'Failed to reactivate patient';
+        _error = response.error ?? 'Failed to reactivate participant';
       });
     }
   }
@@ -106,7 +106,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           children: [
             Icon(Icons.refresh, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Reactivate Patient'),
+            const Text('Reactivate Participant'),
           ],
         );
       case _DialogState.loading:
@@ -129,7 +129,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           children: [
             Icon(Icons.check_circle, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Patient Reactivated'),
+            const Text('Participant Reactivated'),
           ],
         );
       case _DialogState.error:
@@ -153,7 +153,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reactivate this patient to resume participation:',
+                'Reactivate this participant to resume participation:',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -205,7 +205,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'The patient will be moved to "disconnected" status. '
+                        'The participant will be moved to "disconnected" status. '
                         'You will need to generate a new linking code to reconnect them.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onTertiaryContainer,
@@ -230,7 +230,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
                   hintText: 'Enter reason for reactivation...',
                   contentPadding: EdgeInsets.all(12),
                   helperText:
-                      'Required - explain why this patient is being reactivated',
+                      'Required - explain why this participant is being reactivated',
                   helperMaxLines: 2,
                 ),
                 maxLines: 3,
@@ -253,7 +253,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Patient ${widget.patientDisplayId} has been reactivated.',
+              'Participant ${widget.patientDisplayId} has been reactivated.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -274,7 +274,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Use the "Reconnect" action to generate a new linking code for this patient.',
+              'Use the "Reconnect" action to generate a new linking code for this participant.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -288,7 +288,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _error ?? 'An error occurred while reactivating the patient.',
+              _error ?? 'An error occurred while reactivating the participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
