@@ -1102,3 +1102,57 @@ F. When a destination's `SubscriptionFilter.includeSystemEvents == true`, the de
 
 *End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: e0495b4d
 ---
+
+## REQ-d00155: Primary diary server destination contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The destination's `wireFormat` SHALL be `'json-v1'`. Its `transform(batch)` SHALL produce a `WirePayload` whose `contentType` is `'application/json'` and whose `bytes` are the UTF-8 JSON encoding of the single event in the batch.
+
+B. HTTP 2xx responses SHALL classify as `SendOk()`.
+
+C. HTTP 4xx responses (other than the 409 case in REQ-d00113-C) SHALL classify as `SendPermanent`.
+
+D. HTTP 5xx responses SHALL classify as `SendTransient` carrying the status code.
+
+E. Network exceptions and timeouts SHALL classify as `SendTransient`.
+
+*End* *Primary diary server destination contract* | **Hash**: 800c0418
+---
+
+## REQ-d00156: Portal inbound poll for tombstone instructions
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. `portalInboundPoll` SHALL GET the inbound endpoint and parse a JSON body of shape `{"messages": [...]}`.
+
+B. For each message of `type: "tombstone"`, the function SHALL invoke `EntryService.record(entryType: <message.entry_type>, aggregateId: <message.entry_id>, eventType: 'tombstone', answers: {}, changeReason: 'portal-withdrawn')`.
+
+C. Idempotency SHALL rely on `EntryService.record`'s no-op-on-duplicate behavior; a redelivered tombstone is harmless.
+
+D. Network errors, non-200 responses, and unrecognized message types SHALL be skipped without raising; the next sync cycle retries.
+
+*End* *Portal inbound poll for tombstone instructions* | **Hash**: f96d5dbc
+---
+
+## REQ-d00157: Clinical_diary mobile sync triggers
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The app SHALL invoke `syncCycle()` when `AppLifecycleState` transitions to `resumed`.
+
+B. While the app is in the foreground, a periodic `Timer.periodic` SHALL invoke `syncCycle()` at the configured interval (default 15 minutes).
+
+C. The app SHALL invoke `syncCycle()` when network connectivity transitions from offline to online.
+
+D. The app SHALL invoke `syncCycle()` on `FirebaseMessaging.onMessage` and `FirebaseMessaging.onMessageOpenedApp` deliveries.
+
+E. No background isolate (no WorkManager, no BGTaskScheduler) SHALL be registered. All triggers are foreground-only.
+
+*End* *Clinical_diary mobile sync triggers* | **Hash**: eec937dc
