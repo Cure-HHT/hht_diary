@@ -351,6 +351,7 @@
 | REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md | 1bf115c6 |
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 51024af7 |
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | de9dec4a |
+| REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |
 
 ## User Journeys
 

@@ -1232,4 +1232,30 @@ G. Cross-references: REQ-d00115 (provenance), REQ-d00134 / REQ-d00154-D (reserve
 
 *End* *Library Lifecycle Event Protocol* | **Hash**: de9dec4a
 
+# REQ-d00160: Lifecycle Hook Surface for Storage-Specific Operations
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+The library does not own backup, snapshot, or storage-specific recovery actions. The library exposes callback hooks invoked at lifecycle inflection points (REQ-d00159) so consumers can wire storage-implementation concerns — Postgres `pg_basebackup`, Sembast file copy, Cloud Run admin trigger, operator notifications — without the library taking a position on storage technology.
+
+## Assertions
+
+A. `EventStore` SHALL accept a `LifecycleHooks` registry at construction, admitting zero or more callbacks for each defined inflection point (assertions B, C, D below).
+
+B. `LifecycleHooks.beforeShutdownDrain` callbacks SHALL be invoked after `lifecycle.shutdown_requested` is appended (REQ-d00159-B) and before the drain phase begins. The library SHALL await callback completion within the caller-supplied `drainTimeout` budget.
+
+C. `LifecycleHooks.afterShutdownComplete` callbacks SHALL be invoked after `lifecycle.shutdown_completed` or `lifecycle.shutdown_timed_out` is appended and before `EventStore.requestGracefulShutdown` returns.
+
+D. `LifecycleHooks.afterUnexpectedBoot` callbacks SHALL be invoked after `lifecycle.boot_unexpected_restart` is appended (REQ-d00159-D) and before the library accepts caller-driven append calls.
+
+E. Each callback SHALL receive a `LifecycleContext` carrying at minimum the relevant lifecycle event's `event_id`, `software_version`, and (where applicable) prior-tail metadata.
+
+F. The library SHALL NOT prescribe what callbacks do (no built-in backup, no built-in restore). A callback throw SHALL surface as a typed exception from the lifecycle method; the library SHALL roll back the lifecycle method's pending non-event work but SHALL NOT attempt to undo or rewrite the lifecycle event already appended.
+
+G. Cross-references: REQ-d00141-D (permission-blind invariant — callbacks are caller-supplied, library embeds no policy), REQ-d00159 (lifecycle event protocol).
+
+*End* *Lifecycle Hook Surface for Storage-Specific Operations* | **Hash**: 5146a6b9
+
 ---
