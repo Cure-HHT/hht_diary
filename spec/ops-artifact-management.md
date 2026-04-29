@@ -390,9 +390,18 @@ resource "google_storage_bucket" "archive" {
 
 ## Automated Archival Workflows
 
+> **Note (CUR-1200):** The deploy-artifact and deployment-log archival
+> listeners formerly lived in this repo, listening on workflow names
+> ("Deploy to Production", "Deploy to Development", etc.) that did not
+> exist here. Those listeners now live in each sponsor repo
+> (e.g. `hht_diary_callisto/.github/workflows/archive-artifacts.yml` and
+> `archive-deployment-logs.yml`), retargeted at the sponsor's real deploy
+> and rollback workflows. The pattern below remains an illustrative
+> design template; the live implementation is the sponsor-side workflow.
+
 ### GitHub Actions: Archive Build Artifacts
 
-File: `.github/workflows/archive-artifacts.yml`
+File: `.github/workflows/archive-artifacts.yml` (sponsor-side; see callout above)
 
 ```yaml
 name: Archive Build Artifacts
