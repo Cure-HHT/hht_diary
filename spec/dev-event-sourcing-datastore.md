@@ -1160,7 +1160,7 @@ E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId),
 
 Future multi-source editing will need (a) a way for an event to identify the events it amends or supersedes, and (b) a stable per-aggregate version reference for optimistic concurrency control. Reserve the schema field shape and the read-side query now so that introducing those flows does not require a schema migration or a hash-chain rewrite. At the current phase the causality field is empty on every event and the version query exists for read-side use only (audit displays, integration tests).
 
-## Assertions
+*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: N/A
 
 ### Causality field
 
@@ -1187,5 +1187,27 @@ I. A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expecte
 J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00145 (ingest contract).
 
 *End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 00000000
+
+# REQ-d00158: StorageBackend Interface Storage-Neutrality
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+The abstract `StorageBackend` interface expresses what consumers (`EventStore`, materializers, registries) need from storage. It SHALL NOT bake in single-isolate primitives — in-memory broadcast streams owned by the abstract interface, single-process reentrancy guards, in-memory caches without invalidation channels — that would prevent a future Postgres-backed implementation from deferring concurrency to the database layer (advisory locks, `LISTEN`/`NOTIFY`, serializable transactions). The current `SembastBackend` implementation MAY use such primitives internally; the abstract interface SHALL NOT.
+
+## Assertions
+
+A. The `StorageBackend` interface SHALL express change-notification via an implementable hook (payload-passing) rather than a `Stream` controller owned by the abstract interface.
+
+B. The interface SHALL NOT expose process-local reentrancy guards (e.g., `_inFlight` booleans, currently in `SyncCycle`) as part of its contract; serialization is the implementation's responsibility.
+
+C. Caches that span transactions (e.g., destination-schedule caches like `DestinationRegistry._schedules`) SHALL be authored against an interface admitting cross-process invalidation; library tests SHALL exercise such caches against a stub backend simulating a competing writer.
+
+D. A future Postgres-backed implementation of `StorageBackend` SHALL be permitted to use Postgres-native primitives (advisory locks, `LISTEN`/`NOTIFY`, serializable transactions) without modifying the abstract interface.
+
+E. Cross-references: REQ-d00117 (transaction atomicity), REQ-d00141-D (permission-blind invariant).
+
+*End* *StorageBackend Interface Storage-Neutrality* | **Hash**: 51024af7
 
 ---
