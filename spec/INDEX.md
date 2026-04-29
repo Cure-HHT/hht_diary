@@ -352,6 +352,7 @@
 | REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | 50947b1a |
 | REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md | 1bf115c6 |
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 51024af7 |
+| REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | de9dec4a |
 
 ## User Journeys
 

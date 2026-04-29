@@ -1206,4 +1206,30 @@ E. Cross-references: REQ-d00117 (transaction atomicity), REQ-d00141-D (permissio
 
 *End* *StorageBackend Interface Storage-Neutrality* | **Hash**: 51024af7
 
+# REQ-d00159: Library Lifecycle Event Protocol
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+The library participates in process-level lifecycle (graceful shutdown, unexpected restart) by emitting defined system events. Two boot paths are distinguished by inspecting the local event log's tail at startup: a tail of `lifecycle.shutdown_completed` indicates an expected restart; any other tail indicates an unexpected restart. The protocol provides FDA 21 CFR Part 11 attribution of process-level events through the same audit infrastructure as data events.
+
+## Assertions
+
+A. The library SHALL define lifecycle entry types: `lifecycle.shutdown_requested`, `lifecycle.shutdown_completed`, `lifecycle.shutdown_timed_out`, `lifecycle.boot_started`, `lifecycle.boot_unexpected_restart`. Each SHALL be a reserved system entry type per REQ-d00134 / REQ-d00154-D (`materialize == false`).
+
+B. The library SHALL provide `EventStore.requestGracefulShutdown({required Duration drainTimeout})` which: (1) emits `lifecycle.shutdown_requested`, (2) causes subsequent `EventStore.append` calls to throw `ShutdownInProgress`, (3) allows in-flight transactions to complete, (4) on quiescence emits `lifecycle.shutdown_completed`, OR on `drainTimeout` expiry emits `lifecycle.shutdown_timed_out`, as the final event before the method returns.
+
+C. The library SHALL emit `lifecycle.boot_started` as the first event of every process boot, before any caller-driven append. Event `data` SHALL include `software_version` (REQ-d00115-E format), `lib_format_version` (matching `StoredEvent.currentLibFormatVersion`), and `boot_verdict` whose value is `"expected"` when the immediately preceding event in the log is `lifecycle.shutdown_completed`, else `"unexpected"`.
+
+D. When `boot_verdict == "unexpected"`, the library SHALL emit `lifecycle.boot_unexpected_restart` immediately after `lifecycle.boot_started`. Event `data` SHALL include `last_seen_event_id`, `last_seen_event_type`, and `last_seen_client_timestamp` from the prior tail.
+
+E. When the library detects on boot that the local event log contains any event with `lib_format_version > StoredEvent.currentLibFormatVersion`, it SHALL refuse to start, write a structured diagnostic to stderr identifying the offending `event_id` and version mismatch, and exit with a non-zero status. The library SHALL NOT attempt to append `lifecycle.boot_started` in this case.
+
+F. Lifecycle events SHALL follow the system-event aggregate convention (REQ-d00154) so that bridged system streams from multiple installations remain distinguishable on receivers.
+
+G. Cross-references: REQ-d00115 (provenance), REQ-d00134 / REQ-d00154-D (reserved system entry types, no materialization), REQ-d00141-E (lib_format_version stamping), REQ-d00145-L (lib_format-too-new on ingest).
+
+*End* *Library Lifecycle Event Protocol* | **Hash**: de9dec4a
+
 ---
