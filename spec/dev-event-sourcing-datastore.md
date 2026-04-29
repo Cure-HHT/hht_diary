@@ -754,7 +754,11 @@ E. `EventStore.append` SHALL stamp `StoredEvent.lib_format_version` from the con
 
 F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion` against `EntryTypeDefinition.registered_version` of the local registry. Local append is the local node's prerogative; cross-node validation is performed at ingest per REQ-d00145.
 
-*End* *EventStore Append Contract* | **Hash**: 8fe7cb8d
+G. `EventStore.append` SHALL NOT consult `EntryTypeDefinition.originatorHopId` (REQ-d00155-A) for any gate or filter, preserving the permission-blind invariant of assertion D. The binding from entry type to authorized `Source.hopId` is consumer-side metadata enforced in the request-handler layer (REQ-d00155-C, REQ-d00156-B+C).
+
+H. `EventStore.append` SHALL accept caller-supplied `metadata['causality']` (REQ-d00157-A) verbatim and stamp it onto the persisted event without inspection (REQ-d00157-B); the library SHALL NOT validate `causality.supersedes` content. The `causality` shape participates in `event_hash` because `metadata` is in the identity-fields list per REQ-d00120-B.
+
+*End* *EventStore Append Contract* | **Hash**: cc192fb1
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
