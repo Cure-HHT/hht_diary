@@ -325,7 +325,7 @@
 | REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-datastore.md | aecd9a7f |
 | REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-datastore.md | 254b541a |
 | REQ-d00133 | EntryService.record Contract                                    | dev-event-sourcing-datastore.md | 6d804b0e |
-| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                           | dev-event-sourcing-datastore.md | 8cc7f5a2 |
+| REQ-d00134 | bootstrapAppendOnlyDatastore Contract                           | dev-event-sourcing-datastore.md | a4940098 |
 | REQ-d00135 | Initiator Polymorphic Actor Type                                | dev-event-sourcing-datastore.md | 0b5663cc |
 | REQ-d00136 | flowToken Correlation Field                                     | dev-event-sourcing-datastore.md | 0bf4ed09 |
 | REQ-d00137 | EventSecurityContext Sidecar Store                              | dev-event-sourcing-datastore.md | 387fcb92 |
@@ -345,7 +345,7 @@
 | REQ-d00151 | queryAudit Storage-Layer API                                    | dev-event-sourcing-datastore.md | 2113ab11 |
 | REQ-d00152 | Destination Native-Serialization Declaration                    | dev-event-sourcing-datastore.md | b13db4eb |
 | REQ-d00153 | watchView Reactive Read                                         | dev-event-sourcing-datastore.md | 878a7d75 |
-| REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-datastore.md | e0495b4d |
+| REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-datastore.md | 075441b7 |
 | REQ-d00155 | Originator Hop Binding and Unanimity Verification               | dev-event-sourcing-datastore.md | 29966189 |
 | REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | 50947b1a |
 | REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md | 1bf115c6 |

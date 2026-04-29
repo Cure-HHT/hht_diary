@@ -583,7 +583,7 @@ Id-collision on a destination registration is promoted from a warning to a hard 
 
 A. `bootstrapAppendOnlyDatastore({backend, source, entryTypes, destinations, materializers?, syncCycleTrigger?})` SHALL be the single entry point for initializing the datastore from an app's `main()`, and SHALL return an `AppendOnlyDatastore` facade carrying `eventStore`, `entryTypes`, `destinations`, and `securityContexts`.
 
-B. `bootstrapAppendOnlyDatastore` SHALL auto-register the three reserved system entry types (`security_context_redacted`, `security_context_compacted`, `security_context_purged`; all `materialize: false`) BEFORE iterating the caller-supplied list, and SHALL register every caller-supplied `EntryTypeDefinition` into the `EntryTypeRegistry` before any `Destination` is registered.
+B. `bootstrapAppendOnlyDatastore` SHALL auto-register every reserved system entry type in `kReservedSystemEntryTypeIds` (the canonical list defined in `lib/src/security/system_entry_types.dart` and constrained by REQ-d00154-D and REQ-d00159-A; all `materialize: false`) BEFORE iterating the caller-supplied list, and SHALL register every caller-supplied `EntryTypeDefinition` into the `EntryTypeRegistry` before any `Destination` is registered.
 
 C. `bootstrapAppendOnlyDatastore` SHALL register every supplied `Destination` into the `DestinationRegistry` via `addDestination`. The registry SHALL remain open to subsequent runtime `addDestination` calls per REQ-d00129-A.
 
@@ -595,7 +595,7 @@ F. The `system.entry_type_registry_initialized` emission SHALL be invoked with `
 
 G. Every system-audit emission callsite (destination registry mutations per REQ-d00129, retention sweep per REQ-d00138-H, security-context lifecycle per REQ-d00138-D/E/F, and bootstrap registry initialization per REQ-d00134-E) SHALL stamp `entryTypeVersion` from `EntryTypeDefinition.registered_version` of the corresponding system entry type in the local `EntryTypeRegistry`. Audit-emission callsites SHALL NOT pass a literal integer version.
 
-*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: 8cc7f5a2
+*End* *bootstrapAppendOnlyDatastore Contract* | **Hash**: a4940098
 
 ## REQ-d00135: Initiator Polymorphic Actor Type
 
@@ -1094,13 +1094,13 @@ B. `EventStore.isLocallyOriginated(StoredEvent event)` SHALL return `true` iff `
 
 C. `StorageBackend.findAllEvents` SHALL accept two new optional named parameters: `String? originatorHopId` (matches `provenance[0].hopId`) and `String? originatorIdentifier` (matches `provenance[0].identifier`). When both are supplied, results SHALL match both (AND semantics). Implementations MAY project the two fields onto queryable storage columns or filter via JSON-path on the persisted `metadata.provenance[0]` shape.
 
-D. Reserved system entry type definitions (the 10 from REQ-d00134) SHALL ship with `EntryTypeDefinition.materialize == false`. No materializer SHALL fire on system events on either the append or ingest path. (Future cross-aggregate stream projections — out of scope for this phase — will use a different abstraction than `Materializer`.)
+D. Reserved system entry type definitions (every entry in `kReservedSystemEntryTypeIds`, defined in `lib/src/security/system_entry_types.dart` per REQ-d00134-B and extended by REQ-d00159-A) SHALL ship with `EntryTypeDefinition.materialize == false`. No materializer SHALL fire on system events on either the append or ingest path. (Future cross-aggregate stream projections — out of scope for this phase — will use a different abstraction than `Materializer`.)
 
 E. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL NOT call any method on `DestinationRegistry`, `EntryTypeRegistry`, or FIFO state. Bridged system audit events are stored in `event_log` only; the receiver-stays-passive invariant (§3.5) is permanent.
 
 F. When a destination's `SubscriptionFilter.includeSystemEvents == true`, the destination SHALL receive every event whose `entry_type` is in `kReservedSystemEntryTypeIds` and whose `client_timestamp` is within the destination's active time window (REQ-d00129-I), regardless of `entryTypes` content. When `false`, system entry types are rejected before `entryTypes` is consulted.
 
-*End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: e0495b4d
+*End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: 075441b7
 
 # REQ-d00155: Originator Hop Binding and Unanimity Verification
 
