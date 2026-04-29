@@ -193,6 +193,26 @@ void main() {
       });
 
       testWidgets(
+        'shows Clinical Trial Privacy Policy link when active (REQ-p00045)',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              enrollmentStatus: 'active',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text('View Clinical Trial Privacy Policy'),
+            findsOneWidget,
+          );
+          expect(find.byIcon(Icons.open_in_new), findsOneWidget);
+        },
+      );
+
+      testWidgets(
         'does not show Share with CureHHT button when enrolled (CUR-1116)',
         (tester) async {
           await tester.pumpWidget(
@@ -244,6 +264,25 @@ void main() {
 
         expect(find.text('Enter New Linking Code'), findsOneWidget);
       });
+
+      testWidgets(
+        'shows Clinical Trial Privacy Policy link when disconnected (REQ-p00045)',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(isEnrolledInTrial: true, isDisconnected: true),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.scrollUntilVisible(
+            find.text('View Clinical Trial Privacy Policy'),
+            300,
+          );
+          expect(
+            find.text('View Clinical Trial Privacy Policy'),
+            findsOneWidget,
+          );
+        },
+      );
 
       testWidgets('shows site contact info when disconnected with site name', (
         tester,

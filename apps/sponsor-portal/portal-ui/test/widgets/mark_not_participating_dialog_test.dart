@@ -153,26 +153,28 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.textContaining('999-002-320'), findsOneWidget);
       expect(find.text('Mark as Not Participating'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.byIcon(Icons.person_off), findsWidgets);
     });
 
-    testWidgets('confirm state shows warning and reason dropdown', (
+    testWidgets('confirm state shows description and reason dropdown', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Warning:'), findsOneWidget);
-      expect(find.byIcon(Icons.warning_amber), findsOneWidget);
       expect(find.text('Reason *'), findsOneWidget);
       expect(find.text('Select a reason'), findsOneWidget);
-      expect(find.textContaining('Completed the trial'), findsOneWidget);
-      expect(find.textContaining('Withdrawn consent'), findsOneWidget);
+      expect(find.textContaining('completed the trial'), findsOneWidget);
+      expect(find.textContaining('withdrawn consent'), findsOneWidget);
+      expect(find.textContaining('personal-use mode'), findsOneWidget);
     });
 
     testWidgets('action button has no effect without reason selected', (
@@ -187,7 +189,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.text('Select a reason'), findsOneWidget);
     });
 
@@ -259,7 +264,10 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark Patient as Not Participating'), findsOneWidget);
+      expect(
+        find.text('Mark Participant as Not Participating'),
+        findsOneWidget,
+      );
       expect(find.text('Mark as Not Participating'), findsOneWidget);
     });
 
@@ -271,7 +279,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark Patient as Not Participating'), findsNothing);
+      expect(find.text('Mark Participant as Not Participating'), findsNothing);
     });
 
     testWidgets('success state shows reason details', (tester) async {

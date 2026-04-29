@@ -124,7 +124,8 @@ class _ManageQuestionnairesDialogState
     });
 
     final response = await widget.apiClient.get(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires',
+      '/api/v1/portal/patients/questionnaires',
+      extraHeaders: {'X-Patient-Id': widget.patientId},
     );
 
     if (!mounted) return;
@@ -221,8 +222,8 @@ class _ManageQuestionnairesDialogState
         ? {'study_event': studyEvent}
         : <String, dynamic>{};
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/$type/send',
-      body,
+      '/api/v1/portal/patients/questionnaires/send',
+      {...body, 'patientId': widget.patientId, 'questionnaireType': type},
     );
 
     if (!mounted) return;
@@ -248,7 +249,7 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.delete(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}',
+      '/api/v1/portal/questionnaire-instances/${q.id}',
       body: {'reason': reason},
     );
 
@@ -366,7 +367,7 @@ class _ManageQuestionnairesDialogState
     setState(() => _actionInProgress = true);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}/unlock',
+      '/api/v1/portal/questionnaire-instances/${q.id}/unlock',
       {},
     );
 
@@ -417,7 +418,7 @@ class _ManageQuestionnairesDialogState
         ? {'end_event': endEvent}
         : <String, dynamic>{};
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/questionnaires/${q.id}/finalize',
+      '/api/v1/portal/questionnaire-instances/${q.id}/finalize',
       body,
     );
 

@@ -74,8 +74,8 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/link-code',
-      {}, // Empty body - no request payload needed
+      '/api/v1/portal/patients/link-code',
+      {'patientId': widget.patientId},
     );
 
     if (!mounted) return;
@@ -134,7 +134,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
           children: [
             Icon(Icons.link, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Link Patient'),
+            const Text('Link Participant'),
           ],
         );
       case _DialogState.loading:
@@ -179,7 +179,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Generate a linking code for patient:',
+              'Generate a linking code for participant:',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
@@ -209,7 +209,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'The patient will use this code to connect their mobile app. '
+              'The participant will use this code to connect their mobile app. '
               'The code expires after 72 hours.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -240,7 +240,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
               const SizedBox(height: 4),
             ],
             Text(
-              'Patient: ${widget.patientDisplayId}',
+              'Participant: ${widget.patientDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -285,7 +285,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Share this code with the patient to connect their mobile app.',
+              'Share this code with the participant to connect their mobile app.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -365,11 +365,18 @@ class ShowLinkingCodeDialog extends StatefulWidget {
   final String patientDisplayId;
   final ApiClient apiClient;
 
+  /// When true, displays the Participant Linking Code (previously used code,
+  /// for reference/troubleshooting only — GUI-CAL-p00001-I).
+  /// When false (default), displays the live Mobile Linking Code with expiry
+  /// countdown and generate option (GUI-CAL-p00001-G).
+  final bool isReference;
+
   const ShowLinkingCodeDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
     required this.apiClient,
+    this.isReference = false,
   });
 
   /// Shows the dialog.
@@ -378,6 +385,7 @@ class ShowLinkingCodeDialog extends StatefulWidget {
     required String patientId,
     required String patientDisplayId,
     required ApiClient apiClient,
+    bool isReference = false,
   }) async {
     await showDialog<void>(
       context: context,
@@ -385,6 +393,7 @@ class ShowLinkingCodeDialog extends StatefulWidget {
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         apiClient: apiClient,
+        isReference: isReference,
       ),
     );
   }
@@ -399,6 +408,8 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   bool _hasActiveCode = false;
   String? _code;
   String? _expiresAt;
+  String? _usedCode;
+  String? _usedAt;
   String? _error;
   String? _generateError;
 
@@ -410,7 +421,8 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
 
   Future<void> _fetchCode() async {
     final response = await widget.apiClient.get(
-      '/api/v1/portal/patients/${widget.patientId}/link-code',
+      '/api/v1/portal/patients/link-code/active',
+      extraHeaders: {'X-Patient-Id': widget.patientId},
     );
 
     if (!mounted) return;
@@ -422,6 +434,8 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
         _hasActiveCode = data['has_active_code'] as bool? ?? false;
         _code = data['code'] as String?;
         _expiresAt = data['expires_at'] as String?;
+        _usedCode = data['used_code'] as String?;
+        _usedAt = data['used_at'] as String?;
       });
     } else {
       setState(() {
@@ -438,8 +452,8 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
     });
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/link-code',
-      {},
+      '/api/v1/portal/patients/link-code',
+      {'patientId': widget.patientId},
     );
 
     if (!mounted) return;
@@ -494,7 +508,9 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
         children: [
           Icon(Icons.qr_code, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          const Text('Linking Code'),
+          Text(
+            widget.isReference ? 'Participant Linking Code' : 'Linking Code',
+          ),
         ],
       ),
       content: _buildContent(theme),
@@ -534,6 +550,41 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
     }
 
     if (!_hasActiveCode) {
+      // CUR-1069: Reference mode — show the previously used code if available.
+      // For non-pending statuses the active code was consumed; the used code
+      // is stored in patient_linking_codes.code and returned by the server.
+      if (widget.isReference && _usedCode != null) {
+        return _buildReferenceCodeDisplay(theme, _usedCode!, _usedAt);
+      }
+
+      // Reference mode with no record at all (edge case: never linked)
+      if (widget.isReference) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: theme.colorScheme.outline,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No linking code on record',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No linking code has been recorded for this patient.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      }
+
+      // Live mode (pending) — offer generate option
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,7 +594,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
           Text('No Active Linking Code', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'This patient does not have an active linking code. '
+            'This participant does not have an active linking code. '
             'The previous code may have expired or been used.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -574,6 +625,73 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       );
     }
 
+    // Active code display (live mode: with expiry; reference mode: code only)
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Participant: ${widget.patientDisplayId}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_code != null)
+          ActivationCodeDisplay(
+            code: _code!,
+            label: widget.isReference
+                ? 'Participant Linking Code'
+                : 'Linking Code',
+            fontSize: 20,
+          ),
+        if (!widget.isReference) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.tertiary.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer, size: 18, color: theme.colorScheme.tertiary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Expires in ${_formatExpiresAt(_expiresAt)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Displays a previously used linking code in reference-only mode.
+  Widget _buildReferenceCodeDisplay(
+    ThemeData theme,
+    String code,
+    String? usedAt,
+  ) {
+    String usedAtLabel = 'Previously used';
+    if (usedAt != null) {
+      try {
+        final dt = DateTime.parse(usedAt).toLocal();
+        usedAtLabel =
+            'Used on ${dt.day}/${dt.month}/${dt.year} at '
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } catch (_) {}
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,31 +703,33 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
           ),
         ),
         const SizedBox(height: 16),
-        if (_code != null)
-          ActivationCodeDisplay(
-            code: _code!,
-            label: 'Linking Code',
-            fontSize: 20,
-          ),
-        const SizedBox(height: 16),
+        ActivationCodeDisplay(
+          code: code,
+          label: 'Participant Linking Code',
+          fontSize: 20,
+        ),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: theme.colorScheme.tertiary.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
           child: Row(
             children: [
-              Icon(Icons.timer, size: 18, color: theme.colorScheme.tertiary),
+              Icon(
+                Icons.info_outline,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Expires in ${_formatExpiresAt(_expiresAt)}',
+                  'Reference only — $usedAtLabel. '
+                  'This code cannot be used to establish a new connection.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onTertiaryContainer,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

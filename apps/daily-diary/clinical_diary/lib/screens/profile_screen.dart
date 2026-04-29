@@ -1,9 +1,11 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: User Profile Screen Implementation
 //   REQ-CAL-p00076: Participation Status Badge
+//   REQ-p00045: Clinical Trial Privacy Policy
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -98,6 +100,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isEditingName = false;
     });
+  }
+
+  void _openClinicalTrialPrivacyPolicy() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ClinicalTrialPrivacyPolicyScreen(),
+      ),
+    );
   }
 
   String _getPrivacyText() {
@@ -448,6 +458,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                           ],
+
+                          // REQ-p00045: Clinical Trial Privacy Policy link
+                          const SizedBox(height: 12),
+                          InkWell(
+                            onTap: _openClinicalTrialPrivacyPolicy,
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.open_in_new,
+                                    size: 14,
+                                    color: subtextColor,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      l10n.viewClinicalTrialPrivacyPolicy,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: subtextColor,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 12,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
 
                           // Reconnect button for disconnected state
                           if (isDisconnected) ...[

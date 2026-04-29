@@ -7,7 +7,6 @@
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-import 'package:eq/src/widgets/category_header.dart';
 import 'package:eq/src/widgets/question_progress_bar.dart';
 import 'package:eq/src/widgets/response_scale_selector.dart';
 import 'package:eq/src/widgets/rich_text_question.dart';
@@ -75,13 +74,6 @@ class QuestionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (showCategoryHeader) ...[
-                  CategoryHeader(
-                    categoryName: category.name,
-                    stem: category.stem,
-                  ),
-                  const SizedBox(height: 24),
-                ],
                 if (question.hasSegments)
                   RichTextQuestion(
                     segments: question.segments!,

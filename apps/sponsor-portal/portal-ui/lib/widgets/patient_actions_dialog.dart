@@ -71,7 +71,7 @@ class PatientActionsDialog extends StatelessWidget {
         children: [
           Icon(Icons.person, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          const Text('Patient Actions'),
+          const Text('Participant Actions'),
         ],
       ),
       content: SizedBox(
@@ -90,7 +90,7 @@ class PatientActionsDialog extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    'Patient ID: ',
+                    'Participant ID: ',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -126,9 +126,10 @@ class PatientActionsDialog extends StatelessWidget {
       case 'disconnected':
         return [
           _ActionTile(
-            icon: Icons.visibility,
-            title: 'Show Linking Code',
-            description: 'View active linking code if available',
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
             onTap: () async {
               Navigator.of(context).pop(PatientActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
@@ -136,13 +137,14 @@ class PatientActionsDialog extends StatelessWidget {
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
+                isReference: true,
               );
             },
           ),
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.link,
-            title: 'Reconnect Patient',
+            title: 'Reconnect Participant',
             description: 'Generate new linking code to reconnect',
             iconColor: theme.colorScheme.primary,
             onTap: () async {
@@ -165,7 +167,8 @@ class PatientActionsDialog extends StatelessWidget {
           _ActionTile(
             icon: Icons.person_off,
             title: 'Mark as Not Participating',
-            description: 'Patient completed trial, withdrew, or discontinued',
+            description:
+                'Participant completed trial, withdrew, or discontinued',
             iconColor: theme.colorScheme.error,
             titleColor: theme.colorScheme.error,
             onTap: () async {
@@ -204,14 +207,15 @@ class PatientActionsDialog extends StatelessWidget {
           ),
         ];
 
-      // REQ-CAL-p00072: Show Linking Code for any patient with a valid code
-      // REQ-CAL-p00073 Assertion C: connected patients can view linking code
+      // CUR-1069: connected patients see the Participant Linking Code (reference)
+      // per GUI-CAL-p00001-F and GUI-CAL-p00001-I.
       case 'connected':
         return [
           _ActionTile(
-            icon: Icons.qr_code,
-            title: 'Show Linking Code',
-            description: 'View active linking code if available',
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
             onTap: () async {
               Navigator.of(context).pop(PatientActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
@@ -219,14 +223,15 @@ class PatientActionsDialog extends StatelessWidget {
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
+                isReference: true,
               );
             },
           ),
           const SizedBox(height: 8),
           _ActionTile(
             icon: Icons.link_off,
-            title: 'Disconnect Patient',
-            description: 'Disconnect patient from the mobile app',
+            title: 'Disconnect Participant',
+            description: 'Disconnect participant from the mobile app',
             iconColor: theme.colorScheme.error,
             titleColor: theme.colorScheme.error,
             onTap: () async {
@@ -247,6 +252,8 @@ class PatientActionsDialog extends StatelessWidget {
           ),
         ];
 
+      // CUR-1069: not_participating patients can view the Participant Linking
+      // Code for reference/troubleshooting (GUI-CAL-p00001-F, GUI-CAL-p00001-I).
       case 'not_participating':
         return [
           Container(
@@ -268,7 +275,7 @@ class PatientActionsDialog extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'This patient is marked as not participating. Sponsor rules are not applied.',
+                    'This participant is marked as not participating. Sponsor rules are not applied.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                     ),
@@ -277,9 +284,26 @@ class PatientActionsDialog extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
+            onTap: () async {
+              Navigator.of(context).pop(PatientActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                patientId: patientId,
+                patientDisplayId: patientDisplayId,
+                apiClient: apiClient,
+                isReference: true,
+              );
+            },
+          ),
           const SizedBox(height: 12),
           Text(
-            'To reactivate this patient, use the "Reactivate" button in the patient list.',
+            'To reactivate this participant, use the "Reactivate" button in the participant list.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -289,7 +313,7 @@ class PatientActionsDialog extends StatelessWidget {
       default:
         return [
           Text(
-            'No actions available for this patient status.',
+            'No actions available for this participant status.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

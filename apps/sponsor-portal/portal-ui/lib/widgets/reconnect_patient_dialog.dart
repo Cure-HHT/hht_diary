@@ -83,10 +83,11 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
 
     setState(() => _state = _DialogState.loading);
 
-    final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/${widget.patientId}/link-code',
-      {'reconnect_reason': _reasonController.text.trim()},
-    );
+    final response = await widget.apiClient
+        .post('/api/v1/portal/patients/link-code', {
+          'patientId': widget.patientId,
+          'reconnect_reason': _reasonController.text.trim(),
+        });
 
     if (!mounted) return;
 
@@ -101,7 +102,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
     } else {
       setState(() {
         _state = _DialogState.error;
-        _error = response.error ?? 'Failed to reconnect patient';
+        _error = response.error ?? 'Failed to reconnect participant';
       });
     }
   }
@@ -144,7 +145,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
           children: [
             Icon(Icons.link, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Reconnect Patient'),
+            const Text('Reconnect Participant'),
           ],
         );
       case _DialogState.loading:
@@ -191,7 +192,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reconnect this disconnected patient to the mobile app:',
+                'Reconnect this disconnected participant to the mobile app:',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -234,7 +235,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
                   hintText: 'Enter reason for reconnection...',
                   contentPadding: const EdgeInsets.all(12),
                   helperText:
-                      'Required - explain why this patient is being reconnected',
+                      'Required - explain why this participant is being reconnected',
                   helperMaxLines: 2,
                   errorText: _reasonController.text.isEmpty ? null : null,
                 ),
@@ -265,7 +266,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'A new linking code will be generated. The patient will use this code to reconnect their mobile app.',
+                        'A new linking code will be generated. The participant will use this code to reconnect their mobile app.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onTertiaryContainer,
                         ),
@@ -300,7 +301,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
               const SizedBox(height: 4),
             ],
             Text(
-              'Patient: ${widget.patientDisplayId}',
+              'Participant: ${widget.patientDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -352,7 +353,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Share this code with the patient to reconnect their mobile app.',
+              'Share this code with the participant to reconnect their mobile app.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -366,7 +367,7 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _error ?? 'An error occurred while reconnecting the patient.',
+              _error ?? 'An error occurred while reconnecting the participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
