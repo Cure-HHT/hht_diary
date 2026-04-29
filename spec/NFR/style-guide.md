@@ -1,3 +1,8 @@
+<!-- markdownlint-disable MD050 -->
+<!-- This file deliberately uses __term__ (Reference-Document terms) alongside
+     **term** (System-Glossary terms); see the example block referencing
+     __TLA__ for the convention. -->
+
 # Requirement Style Guide
 
 This document formalizes the authoring rules for requirements in this project.

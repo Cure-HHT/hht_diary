@@ -1,3 +1,7 @@
+<!-- markdownlint-disable MD050 -->
+<!-- This file deliberately mixes __term__ (Reference-Document terms) and **term**
+     (System-Glossary terms) per the design notes at the bottom of the file. -->
+
 Full Name
 : A common name, which is __PII__, of the person associated with a **User Account** that
   that uniquely identifies a specific individual in the context of the **Sponsor Portal**.
