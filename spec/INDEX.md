@@ -334,7 +334,7 @@
 | REQ-d00138 | Security Retention Policy and Redaction Audit                   | dev-event-sourcing-datastore.md | 5bd6419f |
 | REQ-d00139 | No-Secrets Invariant on Event Data and flowToken                | dev-event-sourcing-datastore.md | 8c4df58e |
 | REQ-d00140 | Pluggable Materializer Contract                                 | dev-event-sourcing-datastore.md | a77b1ff6 |
-| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | 8fe7cb8d |
+| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | cc192fb1 |
 | REQ-d00142 | Source Stamping Provenance Identity                             | dev-event-sourcing-datastore.md | 02769511 |
 | REQ-d00143 | Storage Failure Taxonomy                                        | dev-event-sourcing-datastore.md | 59ed82f7 |
 | REQ-d00144 | tombstoneAndRefill Operation                                    | dev-event-sourcing-datastore.md | 3fe240dc |
