@@ -1,2 +1,9 @@
 node_modules/
 build-reports/
+# spec/NFR/ is sponsor-shared governance/authoring guidance imported from the
+# platform repo. It uses the underscore-vs-asterisk strong-marker distinction
+# meaningfully (see spec/NFR/glossary-example.md design notes: __term__ is a
+# Reference Document term; **term** is a System Glossary term). The local
+# markdownlint config enforces a single strong style (MD050), which conflicts
+# with that convention. Lint these files under the source-repo conventions.
+spec/NFR/
