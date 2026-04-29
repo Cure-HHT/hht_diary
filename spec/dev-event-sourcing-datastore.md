@@ -878,7 +878,9 @@ M. After the lib-format check (REQ-d00145-L) and before chain-1 verify (REQ-d001
 
 N. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL fire materializers per-event inside the existing ingest transaction, with the same gates as `EventStore.append` (`def.materialize` flag and `m.appliesTo(event)` predicate). A materializer or promoter throw SHALL cause the entire batch transaction to roll back per REQ-d00145-A. Cross-references REQ-d00121-K.
 
-*End* *EventStore Ingest Contract* | **Hash**: f6855b72
+O. The `<source.hop>` segment of the receiver-scoped ingest-audit `aggregate_id` (assertion I) SHALL be the receiver's declared `Source.hopId` (per REQ-d00142, with consumer-discipline pinning per REQ-d00156-A). The library SHALL NOT prescribe specific hopId values; concrete role-class values for each receiver are pinned in that consumer's dev implementation spec.
+
+*End* *EventStore Ingest Contract* | **Hash**: adb4d1f2
 
 ---
 
