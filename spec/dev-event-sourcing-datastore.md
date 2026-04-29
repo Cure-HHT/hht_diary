@@ -1160,33 +1160,29 @@ E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId),
 
 Future multi-source editing will need (a) a way for an event to identify the events it amends or supersedes, and (b) a stable per-aggregate version reference for optimistic concurrency control. Reserve the schema field shape and the read-side query now so that introducing those flows does not require a schema migration or a hash-chain rewrite. At the current phase the causality field is empty on every event and the version query exists for read-side use only (audit displays, integration tests).
 
-*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: N/A
+## Assertions
 
-### Causality field
+A. (Causality field) `StoredEvent.metadata` SHALL include a nullable `causality` record with fields `supersedes: List<String>` (event_ids; empty when no causal links) and `kind: String?` (optional categorization, e.g., `"correction"`, `"amendment"`).
 
-A. `StoredEvent.metadata` SHALL include a nullable `causality` record with fields `supersedes: List<String>` (event_ids; empty when no causal links) and `kind: String?` (optional categorization, e.g., `"correction"`, `"amendment"`).
+B. (Causality field) `EventStore.append` SHALL accept a caller-supplied `causality` value verbatim and stamp it onto the persisted event without inspection.
 
-B. `EventStore.append` SHALL accept a caller-supplied `causality` value verbatim and stamp it onto the persisted event without inspection.
+C. (Causality field) `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.causality` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
 
-C. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.causality` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
+D. (Causality field) `causality` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with causal links is detectable via Chain 1 verification.
 
-D. `causality` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with causal links is detectable via Chain 1 verification.
+E. (Causality field) At the current phase, `causality.supersedes` SHALL be empty on every event written by every consumer.
 
-E. At the current phase, `causality.supersedes` SHALL be empty on every event written by every consumer.
+F. (Aggregate version query) `EventStore` SHALL provide `aggregateVersion(String aggregateId, {SequenceNumber? at})` returning `AggregateVersion(eventCount: int, headEventHash: String)`.
 
-### Aggregate version query
+G. (Aggregate version query) The result SHALL be deterministic and reproducible from the persisted event log alone.
 
-F. `EventStore` SHALL provide `aggregateVersion(String aggregateId, {SequenceNumber? at})` returning `AggregateVersion(eventCount: int, headEventHash: String)`.
+H. (Aggregate version query) The query SHALL run inside a `StorageBackend.transaction` consistent snapshot (per REQ-d00117-A).
 
-G. The result SHALL be deterministic and reproducible from the persisted event log alone.
-
-H. The query SHALL run inside a `StorageBackend.transaction` consistent snapshot (per REQ-d00117-A).
-
-I. A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expectedVersion, ...)` for conditional append; naming and shape SHALL leave room for it.
+I. (Aggregate version query) A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expectedVersion, ...)` for conditional append; naming and shape SHALL leave room for it.
 
 J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00145 (ingest contract).
 
-*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 00000000
+*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 1bf115c6
 
 # REQ-d00158: StorageBackend Interface Storage-Neutrality
 
