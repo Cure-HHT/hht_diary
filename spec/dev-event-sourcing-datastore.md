@@ -1104,7 +1104,9 @@ E. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL NOT call any meth
 
 F. When a destination's `SubscriptionFilter.includeSystemEvents == true`, the destination SHALL receive every event whose `entry_type` is in `kReservedSystemEntryTypeIds` and whose `client_timestamp` is within the destination's active time window (REQ-d00129-I), regardless of `entryTypes` content. When `false`, system entry types are rejected before `entryTypes` is consulted.
 
-*End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: 075441b7
+G. `isLocallyOriginated` (assertion B) and `verifyOriginatorUnanimity` (REQ-d00155-D) discriminate on different fields of `provenance[0]` and are complementary: assertion B compares on `identifier` (per-installation), correctly answering "did this install originate this event"; REQ-d00155-D enumerates distinct `hopId` values (role-class), correctly answering "was every event in this aggregate originated by an authorized hop role." A future multi-source-edit deployment SHALL use both: `isLocallyOriginated` to gate writeback into local state, and `verifyOriginatorUnanimity` to audit role-class invariants across an aggregate's history.
+
+*End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: 00169ff6
 
 # REQ-d00155: Originator Hop Binding and Unanimity Verification
 
