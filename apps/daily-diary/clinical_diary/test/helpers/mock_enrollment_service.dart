@@ -1,5 +1,6 @@
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// Mock EnrollmentService for testing
 class MockEnrollmentService implements EnrollmentService {
@@ -9,7 +10,9 @@ class MockEnrollmentService implements EnrollmentService {
 
   // REQ-CAL-p00077: Disconnection state for testing
   bool _isDisconnected = false;
-  bool _bannerDismissed = false;
+
+  @override
+  final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
 
   @override
   Future<String?> getJwtToken() async => jwtToken;
@@ -52,22 +55,7 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   Future<void> setDisconnected(bool disconnected) async {
     _isDisconnected = disconnected;
-    if (!disconnected) {
-      _bannerDismissed = false;
-    }
-  }
-
-  @override
-  Future<bool> isDisconnectionBannerDismissed() async => _bannerDismissed;
-
-  @override
-  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
-    _bannerDismissed = dismissed;
-  }
-
-  @override
-  Future<void> resetDisconnectionBannerDismissed() async {
-    _bannerDismissed = false;
+    disconnectedNotifier.value = disconnected;
   }
 
   @override

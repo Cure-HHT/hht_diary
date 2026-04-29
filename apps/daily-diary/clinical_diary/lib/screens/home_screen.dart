@@ -85,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // REQ-CAL-p00077: Disconnection banner state
   bool _isDisconnected = false;
-  bool _disconnectionBannerDismissed = false;
   String? _siteName;
   String? _sitePhoneNumber;
 
@@ -100,8 +99,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadPreferences();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
-    // REQ-CAL-p00077: Reset banner dismissed state on app start
-    widget.enrollmentService.resetDisconnectionBannerDismissed();
+    // CUR-1164: React immediately when a background sync detects disconnection
+    widget.enrollmentService.disconnectedNotifier.addListener(
+      _onDisconnectionChanged,
+    );
   }
 
   SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
@@ -118,6 +119,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    widget.enrollmentService.disconnectedNotifier.removeListener(
+      _onDisconnectionChanged,
+    );
     _scrollController.dispose();
     super.dispose();
   }
@@ -141,28 +145,48 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// REQ-CAL-p00077: Check if patient is disconnected from the study
-  Future<void> _checkDisconnectionStatus() async {
-    final isDisconnected = await widget.enrollmentService.isDisconnected();
-    final bannerDismissed = await widget.enrollmentService
-        .isDisconnectionBannerDismissed();
-    // REQ-CAL-p00065: Get site contact info for disconnection banner
+  /// CUR-1164: Called immediately when background sync detects disconnection.
+  /// Only reads from the notifier — does NOT call isDisconnected() or
+  /// checkDisconnectionStatus() to avoid a race with the in-flight
+  /// SharedPreferences write inside setDisconnected().
+  void _onDisconnectionChanged() {
+    if (!mounted) return;
+    final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
+    setState(() => _isDisconnected = isDisconnected);
+    if (isDisconnected) {
+      // Clear cached tasks — disconnected patients have no valid questionnaires
+      unawaited(widget.taskService.clearAll());
+      // Separately refresh site name/phone for the banner contact details
+      unawaited(_refreshSiteInfo());
+    }
+  }
+
+  /// Refresh site name and phone number from stored enrollment data.
+  Future<void> _refreshSiteInfo() async {
     final enrollment = await widget.enrollmentService.getEnrollment();
     if (mounted) {
       setState(() {
-        _isDisconnected = isDisconnected;
-        _disconnectionBannerDismissed = bannerDismissed;
         _siteName = enrollment?.siteName;
         _sitePhoneNumber = enrollment?.sitePhoneNumber;
       });
     }
   }
 
-  /// REQ-CAL-p00077: Handle dismissing the disconnection banner
-  Future<void> _handleDismissDisconnectionBanner() async {
-    await widget.enrollmentService.setDisconnectionBannerDismissed(true);
+  /// REQ-CAL-p00077: Check if patient is disconnected from the study.
+  /// Seeds [_isDisconnected] from SharedPreferences and syncs the notifier
+  /// so the initial persisted state is reflected in the banner on startup.
+  Future<void> _checkDisconnectionStatus() async {
+    final isDisconnected = await widget.enrollmentService.isDisconnected();
+    // Seed the notifier from the persisted value so it stays in sync
+    widget.enrollmentService.disconnectedNotifier.value = isDisconnected;
+    // REQ-CAL-p00065: Get site contact info for disconnection banner
+    final enrollment = await widget.enrollmentService.getEnrollment();
     if (mounted) {
-      setState(() => _disconnectionBannerDismissed = true);
+      setState(() {
+        _isDisconnected = isDisconnected;
+        _siteName = enrollment?.siteName;
+        _sitePhoneNumber = enrollment?.sitePhoneNumber;
+      });
     }
   }
 
@@ -183,6 +207,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _incompleteRecords = incomplete;
       _isLoading = false;
     });
+
+    // CUR-1164: Refresh disconnection status after any record load/sync
+    // so the banner appears without requiring an app restart.
+    unawaited(_checkDisconnectionStatus());
   }
 
   Future<void> _navigateToRecording() async {
@@ -511,6 +539,8 @@ class _HomeScreenState extends State<HomeScreen> {
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
   Future<void> _handleShowProfile() async {
     final enrollment = await widget.enrollmentService.getEnrollment();
+    // CUR-1164: Read fresh disconnection status to avoid stale-state race condition
+    final isDisconnected = await widget.enrollmentService.isDisconnected();
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -560,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // TODO: Implement stop sharing
           },
           isEnrolledInTrial: _isEnrolled,
-          isDisconnected: _isDisconnected,
+          isDisconnected: isDisconnected,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
           sponsorLogo: sponsorBranding.appLogoUrl,
@@ -970,10 +1000,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Banners section
             if (!_isLoading) ...[
-              // REQ-CAL-p00077: Disconnection banner (red) - highest priority
-              if (_isDisconnected && !_disconnectionBannerDismissed)
+              // REQ-CAL-p00077: Disconnection banner — persistent, non-dismissible (REQ-p05004)
+              if (_isDisconnected)
                 DisconnectionBanner(
-                  onDismiss: _handleDismissDisconnectionBanner,
                   siteName: _siteName,
                   sitePhoneNumber: _sitePhoneNumber,
                 ),
@@ -1028,12 +1057,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
 
-              // REQ-CAL-p00081: Task list (questionnaires, etc.)
-              TaskListWidget(
-                taskService: widget.taskService,
-                // REQ-CAL-p00081-D: Navigate to relevant screen
-                onTaskTap: _navigateToQuestionnaire,
-              ),
+              // REQ-CAL-p00081: Task list — hidden when disconnected (sponsor
+              // connection required for questionnaire tasks to be valid)
+              if (!_isDisconnected)
+                TaskListWidget(
+                  taskService: widget.taskService,
+                  // REQ-CAL-p00081-D: Navigate to relevant screen
+                  onTaskTap: _navigateToQuestionnaire,
+                ),
 
               // Yesterday confirmation banner (yellow)
               if (!_hasYesterdayRecords)

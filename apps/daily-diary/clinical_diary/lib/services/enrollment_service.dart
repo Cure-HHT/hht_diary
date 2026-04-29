@@ -6,13 +6,15 @@
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-p05004: Disconnection Notification (persistent banner)
+//   REQ-p01065: Deactivate sync on disconnect (Assertion D)
 
 import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,8 +33,13 @@ class EnrollmentService {
 
   static const _storageKey = 'user_enrollment';
   static const _disconnectedKey = 'patient_disconnected';
-  static const _disconnectionBannerDismissedKey =
-      'disconnection_banner_dismissed';
+
+  /// CUR-1164: Real-time notifier for disconnection state.
+  /// Updated synchronously by setDisconnected() so the home screen banner
+  /// appears immediately when a background sync detects disconnection,
+  /// without requiring a page navigation or app restart.
+  final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
+
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -73,13 +80,20 @@ class EnrollmentService {
       // CUR-1055: Client-side duplicate enrollment check.
       // If enrollment data already exists in secure storage, this device is already
       // linked to a study. Reject immediately without hitting the server.
+      // CUR-1164: Exception — a disconnected patient may re-enroll with a new code.
       final existing = await getEnrollment();
       if (existing != null) {
-        throw EnrollmentException(
-          'This phone is already enrolled in this study. '
-          'Please contact your site coordinator if this is incorrect.',
-          EnrollmentErrorType.deviceAlreadyEnrolled,
-        );
+        final disconnected = await isDisconnected();
+        if (!disconnected) {
+          throw EnrollmentException(
+            'This phone is already enrolled in this study. '
+            'Please contact your site coordinator if this is incorrect.',
+            EnrollmentErrorType.deviceAlreadyEnrolled,
+          );
+        }
+        // Disconnected: clear old enrollment so the new linking code takes over.
+        await clearEnrollment();
+        await setDisconnected(false);
       }
 
       // Normalize code: uppercase, remove dash
@@ -302,42 +316,19 @@ class EnrollmentService {
 
   // REQ-CAL-p00077: Disconnection status tracking
 
-  /// Check if the patient has been disconnected from the study
+  /// Check if the patient has been disconnected from the study.
   Future<bool> isDisconnected() async {
     final prefs = await _getPrefs();
     return prefs.getBool(_disconnectedKey) ?? false;
   }
 
-  /// Set the disconnection status
-  /// Called when sync response indicates patient is disconnected
+  /// Set the disconnection status.
+  /// Updates [disconnectedNotifier] synchronously so listeners (e.g. home
+  /// screen banner) react immediately without waiting for the next state read.
   Future<void> setDisconnected(bool disconnected) async {
+    disconnectedNotifier.value = disconnected; // notify listeners first
     final prefs = await _getPrefs();
     await prefs.setBool(_disconnectedKey, disconnected);
-
-    // If reconnected, also clear the banner dismissed state
-    if (!disconnected) {
-      await prefs.remove(_disconnectionBannerDismissedKey);
-    }
-  }
-
-  /// Check if the disconnection banner has been dismissed by the user
-  /// The banner reappears on app restart even if dismissed
-  Future<bool> isDisconnectionBannerDismissed() async {
-    final prefs = await _getPrefs();
-    return prefs.getBool(_disconnectionBannerDismissedKey) ?? false;
-  }
-
-  /// Set the banner dismissed state
-  /// Called when user taps the dismiss button
-  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
-    final prefs = await _getPrefs();
-    await prefs.setBool(_disconnectionBannerDismissedKey, dismissed);
-  }
-
-  /// Reset banner dismissed state (called on app restart)
-  Future<void> resetDisconnectionBannerDismissed() async {
-    final prefs = await _getPrefs();
-    await prefs.remove(_disconnectionBannerDismissedKey);
   }
 
   /// Process a sync/records response to check for disconnection status
@@ -359,6 +350,7 @@ class EnrollmentService {
   /// Dispose resources
   void dispose() {
     _httpClient.close();
+    disconnectedNotifier.dispose();
   }
 }
 
