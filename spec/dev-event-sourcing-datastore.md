@@ -754,7 +754,7 @@ E. `EventStore.append` SHALL stamp `StoredEvent.lib_format_version` from the con
 
 F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion` against `EntryTypeDefinition.registered_version` of the local registry. Local append is the local node's prerogative; cross-node validation is performed at ingest per REQ-d00145.
 
-*End* *EventStore Append Contract* | **Hash**: 5b245ace
+*End* *EventStore Append Contract* | **Hash**: 8fe7cb8d
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
