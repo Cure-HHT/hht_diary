@@ -140,7 +140,9 @@ E. Every event record SHALL carry a top-level `entry_type_version` integer field
 
 F. Every event record SHALL carry a top-level `lib_format_version` integer field whose value identifies the storage shape the lib used to persist the event. The value is stamped by the lib at `EventStore.append` time from the constant `StoredEvent.currentLibFormatVersion`; callers of `EventStore.append` SHALL NOT supply this field.
 
-*End* *Event Record Schema* | **Hash**: 1c010e32
+G. Every event record's `metadata` field MAY carry a nullable `causality` record per REQ-d00157-A (`supersedes: List<String>`, `kind: String?`); the field is part of `metadata` (not a top-level event field) and therefore participates in `event_hash` via the existing `metadata` identity-field clause of REQ-d00120-B. At the current phase `causality.supersedes` SHALL be empty on every event written (REQ-d00157-E).
+
+*End* *Event Record Schema* | **Hash**: 47a8db0d
 
 ---
 
@@ -197,7 +199,9 @@ D. The canonicalization scheme used SHALL NOT be changed without a spec amendmen
 E. When a receiver appends a `ProvenanceEntry` to `metadata.provenance` during ingest, the event's `event_hash` SHALL be recomputed over the identity field set specified in assertion B (which includes `metadata`, and therefore the extended provenance chain), and the recomputed value SHALL be stored in place of the wire `event_hash`. The originator's `event_hash` remains recoverable via the Chain 1 walk specified in REQ-d00146-A. Cross-store byte-for-byte comparison of raw `event_hash` is not a valid identity check on ingested events; the Chain 1 walk is the specified mechanism.
 On every ingest hop the `event_hash` field is a function of the provenance chain as it stood at that hop. A receiver's stored `event_hash` is therefore the receiver's own output hash, not the originator's output hash. Identity preservation across hops is verified by the Chain 1 walk (each receiver entry's `arrival_hash` equals the hash the prior state would produce), not by naive field equality.
 
-*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: d10798de
+F. Sub-fields of `metadata` introduced by other REQs (e.g., `metadata.provenance` per REQ-d00115, `metadata.causality` per REQ-d00157-A) participate in `event_hash` via the `metadata` identity-field clause of assertion B; no per-sub-field amendment to assertion B is required when a new sub-field is introduced.
+
+*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: f6b8a664
 
 ---
 
