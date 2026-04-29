@@ -190,7 +190,7 @@ class _StudyCoordinatorPatientsTabState
       });
     } else {
       setState(() {
-        _error = response.error ?? 'Failed to load patients';
+        _error = response.error ?? 'Failed to load participants';
         _isLoading = false;
       });
     }
@@ -273,7 +273,10 @@ class _StudyCoordinatorPatientsTabState
         children: [
           Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
           const SizedBox(height: 16),
-          Text('Error loading patients', style: theme.textTheme.headlineSmall),
+          Text(
+            'Error loading participants',
+            style: theme.textTheme.headlineSmall,
+          ),
           const SizedBox(height: 8),
           Text(
             _error!,
@@ -332,14 +335,14 @@ class _StudyCoordinatorPatientsTabState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Patient Summary',
+                'Participant Summary',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                '${_patients?.length ?? 0} patients across ${_assignedSites.length} sites',
+                '${_patients?.length ?? 0} participants across ${_assignedSites.length} sites',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -353,7 +356,7 @@ class _StudyCoordinatorPatientsTabState
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search patients...',
+              hintText: 'Search participants...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -377,7 +380,7 @@ class _StudyCoordinatorPatientsTabState
         IconButton.filled(
           onPressed: _loadPatients,
           icon: const Icon(Icons.refresh),
-          tooltip: 'Refresh patients',
+          tooltip: 'Refresh participants',
         ),
       ],
     );
@@ -422,7 +425,7 @@ class _StudyCoordinatorPatientsTabState
               theme.colorScheme.surfaceContainerHighest,
             ),
             columns: const [
-              DataColumn(label: Text('Patient ID')),
+              DataColumn(label: Text('Participant ID')),
               DataColumn(label: Text('Site')),
               DataColumn(label: Text('Mobile Linking')),
               DataColumn(label: Text('Actions')),
@@ -450,14 +453,16 @@ class _StudyCoordinatorPatientsTabState
           ),
           const SizedBox(height: 16),
           Text(
-            hasPatients ? 'No Matching Patients' : 'No Patients Available',
+            hasPatients
+                ? 'No Matching Participants'
+                : 'No Participants Available',
             style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
             hasPatients
                 ? 'Try adjusting your search or filter criteria.'
-                : 'Patients will appear here once synced from the EDC system.',
+                : 'Participants will appear here once synced from the EDC system.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -543,7 +548,7 @@ class _StudyCoordinatorPatientsTabState
         return TextButton.icon(
           onPressed: () => _linkPatient(patient, apiClient),
           icon: const Icon(Icons.link, size: 16),
-          label: const Text('Link Patient'),
+          label: const Text('Link Participant'),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         );
       case 'linking_in_progress':

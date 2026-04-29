@@ -86,7 +86,7 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
                       NavigationRailDestination(
                         icon: Icon(Icons.people_alt_outlined),
                         selectedIcon: Icon(Icons.people_alt),
-                        label: Text('Patients'),
+                        label: Text('Participants'),
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.history_outlined),

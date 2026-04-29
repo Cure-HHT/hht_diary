@@ -111,7 +111,7 @@ class _MarkNotParticipatingDialogState
       setState(() {
         _state = _DialogState.error;
         _error =
-            response.error ?? 'Failed to mark patient as not participating';
+            response.error ?? 'Failed to mark participant as not participating';
       });
     }
   }
@@ -134,9 +134,9 @@ class _MarkNotParticipatingDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Mark Patient as Not Participating'),
+            const Text('Mark Participant as Not Participating'),
             Text(
-              'Patient ID: ${widget.patientDisplayId}',
+              'Participant ID: ${widget.patientDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -187,13 +187,13 @@ class _MarkNotParticipatingDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Use this for patients who have completed the trial, withdrawn '
+                'Use this for participant who have completed the trial, withdrawn '
                 'consent, or been discontinued from the study.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
               Text(
-                'Once marked, the patient is no longer actively enrolled. '
+                'Once marked, the participant is no longer actively enrolled. '
                 'Their historical data is preserved, and their mobile app '
                 'returns to personal-use mode.',
                 style: theme.textTheme.bodyMedium,
@@ -259,7 +259,7 @@ class _MarkNotParticipatingDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Patient ${widget.patientDisplayId} has been marked as not participating.',
+              'Participant ${widget.patientDisplayId} has been marked as not participating.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -282,7 +282,7 @@ class _MarkNotParticipatingDialogState
             ),
             const SizedBox(height: 16),
             Text(
-              'Sponsor-specific rules will no longer be applied to this patient. '
+              'Sponsor-specific rules will no longer be applied to this participant. '
               'To reactivate them, use the "Reactivate" action.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
