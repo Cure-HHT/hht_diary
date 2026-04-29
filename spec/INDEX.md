@@ -338,7 +338,7 @@
 | REQ-d00142 | Source Stamping Provenance Identity                             | dev-event-sourcing-datastore.md | 02769511 |
 | REQ-d00143 | Storage Failure Taxonomy                                        | dev-event-sourcing-datastore.md | 59ed82f7 |
 | REQ-d00144 | tombstoneAndRefill Operation                                    | dev-event-sourcing-datastore.md | 3fe240dc |
-| REQ-d00145 | EventStore Ingest Contract                                      | dev-event-sourcing-datastore.md | f6855b72 |
+| REQ-d00145 | EventStore Ingest Contract                                      | dev-event-sourcing-datastore.md | adb4d1f2 |
 | REQ-d00146 | Chain-of-Custody Verification APIs                              | dev-event-sourcing-datastore.md | 10ac2d4f |
 | REQ-d00147 | findEventById Storage Lookup                                    | dev-event-sourcing-datastore.md | 2430eb1f |
 | REQ-d00148 | listFifoEntries Queue Enumeration                               | dev-event-sourcing-datastore.md | 398f2d6a |
