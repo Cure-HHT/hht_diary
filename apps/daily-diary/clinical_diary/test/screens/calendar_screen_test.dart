@@ -334,7 +334,9 @@ void main() {
         await pumpScreen(tester);
 
         final today = DateTime.now();
-        await tester.tap(find.text(today.day.toString()).first);
+        // Use .last because TableCalendar renders outside-month padding
+        // days (e.g. March 29 in April's view) before the in-month cell.
+        await tester.tap(find.text(today.day.toString()).last);
         await _settle(tester);
 
         expect(find.byType(DaySelectionScreen), findsOneWidget);
@@ -369,7 +371,9 @@ void main() {
       await pumpScreen(tester);
 
       final today = DateTime.now();
-      await tester.tap(find.text(today.day.toString()).first);
+      // Use .last because TableCalendar renders outside-month padding
+      // days (e.g. March 29 in April's view) before the in-month cell.
+      await tester.tap(find.text(today.day.toString()).last);
       await _settle(tester);
 
       expect(find.byType(DateRecordsScreen), findsOneWidget);
@@ -381,7 +385,9 @@ void main() {
         await pumpScreen(tester);
 
         final today = DateTime.now();
-        await tester.tap(find.text(today.day.toString()).first);
+        // Use .last because TableCalendar renders outside-month padding
+        // days (e.g. March 29 in April's view) before the in-month cell.
+        await tester.tap(find.text(today.day.toString()).last);
         await _settle(tester);
         expect(find.byType(DaySelectionScreen), findsOneWidget);
 
