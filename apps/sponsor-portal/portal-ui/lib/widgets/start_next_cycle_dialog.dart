@@ -123,7 +123,7 @@ class StartNextCycleDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Patient: $patientDisplayId',
+                          'Participant: $patientDisplayId',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
