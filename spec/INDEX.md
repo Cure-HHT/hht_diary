@@ -131,6 +131,7 @@
 | REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
 | REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | d5afe3ec |
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
+| REQ-p01087 | UI Stability During User Interaction                | prd-system.md                       | 11950574 |
 | REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
 | REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
 | REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
