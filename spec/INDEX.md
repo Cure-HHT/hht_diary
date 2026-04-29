@@ -348,6 +348,7 @@
 | REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-datastore.md | e0495b4d |
 | REQ-d00155 | Originator Hop Binding and Unanimity Verification               | dev-event-sourcing-datastore.md | 29966189 |
 | REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | 50947b1a |
+| REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md |          |
 
 ## User Journeys
 
