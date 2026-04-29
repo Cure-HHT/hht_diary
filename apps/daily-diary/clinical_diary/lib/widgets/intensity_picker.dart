@@ -1,5 +1,5 @@
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:flutter/material.dart';
 
 /// Intensity selection widget with visual icons

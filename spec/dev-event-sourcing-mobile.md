@@ -1102,3 +1102,80 @@ F. When a destination's `SubscriptionFilter.includeSystemEvents == true`, the de
 
 *End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: e0495b4d
 ---
+
+## REQ-d00155: Primary diary server destination contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The destination's `wireFormat` SHALL be `'json-v1'`. Its `transform(batch)` SHALL produce a `WirePayload` whose `contentType` is `'application/json'` and whose `bytes` are the UTF-8 JSON encoding of the single event in the batch.
+
+B. HTTP 2xx responses SHALL classify as `SendOk()`.
+
+C. HTTP 4xx responses (other than the 409 case in REQ-d00113-C) SHALL classify as `SendPermanent`.
+
+D. HTTP 5xx responses SHALL classify as `SendTransient` carrying the status code.
+
+E. Network exceptions and timeouts SHALL classify as `SendTransient`.
+
+*End* *Primary diary server destination contract* | **Hash**: 800c0418
+---
+
+## REQ-d00156: Portal inbound poll for tombstone instructions
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. `portalInboundPoll` SHALL GET the inbound endpoint and parse a JSON body of shape `{"messages": [...]}`.
+
+B. For each message of `type: "tombstone"`, the function SHALL invoke `EntryService.record(entryType: <message.entry_type>, aggregateId: <message.entry_id>, eventType: 'tombstone', answers: {}, changeReason: 'portal-withdrawn')`.
+
+C. Idempotency SHALL rely on `EntryService.record`'s no-op-on-duplicate behavior; a redelivered tombstone is harmless.
+
+D. Network errors, non-200 responses, and unrecognized message types SHALL be skipped without raising; the next sync cycle retries.
+
+*End* *Portal inbound poll for tombstone instructions* | **Hash**: f96d5dbc
+---
+
+## REQ-d00157: Clinical_diary mobile sync triggers
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The app SHALL invoke `syncCycle()` when `AppLifecycleState` transitions to `resumed`.
+
+B. While the app is in the foreground, a periodic `Timer.periodic` SHALL invoke `syncCycle()` at the configured interval (default 15 minutes).
+
+C. The app SHALL invoke `syncCycle()` when network connectivity transitions from offline to online.
+
+D. The app SHALL invoke `syncCycle()` on `FirebaseMessaging.onMessage` and `FirebaseMessaging.onMessageOpenedApp` deliveries.
+
+E. No background isolate (no WorkManager, no BGTaskScheduler) SHALL be registered. All triggers are foreground-only.
+
+*End* *Clinical_diary mobile sync triggers* | **Hash**: eec937dc
+---
+
+## REQ-d00158: Inbound Tombstone Record Failure Audit
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+`portalInboundPoll` (REQ-d00156) translates server-issued tombstone instructions into local tombstone events through `EntryService.record`. When `record` refuses an instruction — for example because the inbound tombstone targets an `entry_type` not registered on this device, or because storage rejected the write — the inbound batch must continue (REQ-d00156-D) yet the resulting per-device data drift (the device acked the instruction at HTTP level but did not apply it) must remain visible to the data team. A `debugPrint` is not visible to anyone with audit responsibility; this requirement records the failure as an immutable event-log row that ships through the standard FIFO drain.
+
+Other `portalInboundPoll` failure modes (network errors, non-200 responses, malformed bodies, unknown message types, missing required fields) deliberately remain silent: those are either transient (retried on the next sync cycle) or server-side contract regressions already observed by the diary server's OTel pipeline, and recording them per device would generate uniform noise across the fleet without adding signal.
+
+## Assertions
+
+A. The clinical_diary entry-type set SHALL include a non-materializing audit entry type with id `inbound_tombstone_record_failed` and `registered_version: 1`. The type's `materialize` flag SHALL be `false` so audit rows do not enter the diary view.
+
+B. When `portalInboundPoll` catches an exception thrown from `EntryService.record(...)` while applying a tombstone message, it SHALL append an `inbound_tombstone_record_failed` event to the local event log carrying `failed_entry_id`, `failed_entry_type`, `instruction_type`, and a stringified `error`. The append SHALL use the install's `Source.identifier` as `aggregate_id`, `aggregateType: 'inbound_poll_audit'`, `eventType: 'finalized'`, and `Initiator: AutomationInitiator(service: 'inbound-poll')`. The poll loop SHALL continue with the next message regardless of whether the audit append succeeded.
+
+C. Failure of the audit append itself SHALL be swallowed: a degraded event store must not turn `portalInboundPoll` into a raise, because that would break REQ-d00156-D's "exceptions swallowed; loop continues" guarantee for the surrounding sync cycle.
+
+D. The audit entry type SHALL be admissible by the default `SubscriptionFilter` so that `PrimaryDiaryServerDestination` (REQ-d00155) ships these audit rows to the diary server through the same FIFO drain as user data. The audit row therefore reaches the data team's pipeline without per-destination configuration.
+
+*End* *Inbound Tombstone Record Failure Audit* | **Hash**: 5bb685d0

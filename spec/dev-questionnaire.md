@@ -13,7 +13,7 @@
 
 # REQ-d00113: Deleted Questionnaire Submission Handling
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01074, REQ-p01064
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01064, REQ-p01074
 
 ## Rationale
 
@@ -25,12 +25,12 @@ A. When a patient submits a questionnaire, the server SHALL validate that the qu
 
 B. If the questionnaire was deleted since the patient began filling it out, the server SHALL reject the submission with a `questionnaire_deleted` error code.
 
-C. Upon receiving a `questionnaire_deleted` error, the app SHALL display a message that clearly communicates the questionnaire was removed by the study team.
+C. `PrimaryDiaryServerDestination.send` SHALL translate an HTTP 409 response with body containing `"error": "questionnaire_deleted"` to `SendOk`. The submitted event remains in the local event log as the audit fact.
 
-D. The error message SHALL acknowledge that the patient's responses could not be submitted.
+D. The portal inbound-poll endpoint SHALL deliver `{"type": "tombstone", "entry_id": "<uuid>", "entry_type": "<type>"}` messages for entries withdrawn server-side. On receipt, the app SHALL invoke `EntryService.record(entryType: <type>, aggregateId: <entry_id>, eventType: 'tombstone', answers: {}, changeReason: 'portal-withdrawn')`.
 
-E. After displaying the error, the app SHALL return the patient to their home or task screen, and the deleted questionnaire SHALL no longer appear as an actionable item.
+E. After a tombstone event materializes, the entry SHALL appear in the materialized `diary_entries` view with `is_deleted = true`. The home screen SHALL NOT offer the entry as an actionable task. The audit history view SHALL still show the entry.
 
-F. The system SHALL NOT require real-time polling, push notifications, or mid-session interruption to handle this scenario; validation SHALL occur at submission time only.
+F. Withdrawal becomes visible to the patient via the entry's tombstoned state in their history; submit-time error dialogs are not used.
 
-*End* *Deleted Questionnaire Submission Handling* | **Hash**: 6aaa85fd
+*End* *Deleted Questionnaire Submission Handling* | **Hash**: 80d904c9

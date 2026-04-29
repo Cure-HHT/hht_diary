@@ -2,12 +2,14 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00008: Mobile App Diary Entry (CUR-407 - future date blocking)
 
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/widgets/calendar_overlay.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../helpers/diary_entry_factory.dart';
 import '../helpers/test_helpers.dart';
 
 // Helper to build calendar overlay with adequate screen size
@@ -16,7 +18,7 @@ Widget buildCalendarOverlay({
   required bool isOpen,
   required VoidCallback onClose,
   required ValueChanged<DateTime> onDateSelect,
-  List<NosebleedRecord> records = const [],
+  List<DiaryEntry> entries = const [],
   DateTime? selectedDate,
 }) {
   return wrapWithMaterialApp(
@@ -29,7 +31,7 @@ Widget buildCalendarOverlay({
             isOpen: isOpen,
             onClose: onClose,
             onDateSelect: onDateSelect,
-            records: records,
+            entries: entries,
             selectedDate: selectedDate,
           ),
         ),
@@ -196,10 +198,10 @@ void main() {
       expect(find.byType(Material), findsWidgets);
     });
 
-    testWidgets('renders records with correct date status', (tester) async {
-      final records = [
-        NosebleedRecord(
-          id: 'test-1',
+    testWidgets('renders entries with correct date status', (tester) async {
+      final entries = [
+        buildEpistaxisEntry(
+          entryId: 'test-1',
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.dripping,
@@ -211,12 +213,12 @@ void main() {
           isOpen: true,
           onClose: () {},
           onDateSelect: (_) {},
-          records: records,
+          entries: entries,
         ),
       );
       await tester.pumpAndSettle();
 
-      // The calendar should render with records
+      // The calendar should render with entries
       expect(find.byType(TableCalendar<dynamic>), findsOneWidget);
     });
 

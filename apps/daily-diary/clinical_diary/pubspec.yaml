@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.19+38
+version: 0.9.20+39
 
 environment:
   sdk: ^3.10.7
@@ -13,9 +13,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # Append-only datastore for FDA 21 CFR Part 11 compliant event sourcing
-  append_only_datastore:
-    path: ../../common-dart/append_only_datastore
+  # Event-sourcing datastore for FDA 21 CFR Part 11 compliant event sourcing
+  event_sourcing_datastore:
+    path: ../../common-dart/event_sourcing_datastore
   trial_data_types:
     path: ../../common-dart/trial_data_types
   eq:
@@ -23,6 +23,9 @@ dependencies:
   common_widgets:
     path: ../../common-flutter/common_widgets
 
+  # Sembast is required in main deps because clinical_diary_bootstrap.dart
+  # accepts a sembast Database parameter (caller opens the database).
+  sembast: ^3.7.3
   collection: ^1.19.1
   crypto: ^3.0.7
   dart_jsonwebtoken: ^3.3.1
@@ -33,6 +36,7 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
   package_info_plus: ^9.0.0
+  path_provider: ^2.1.4
   pdfx: ^2.9.2
   shared_preferences: ^2.5.3
   sugar: ^4.0.0
@@ -43,6 +47,7 @@ dependencies:
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

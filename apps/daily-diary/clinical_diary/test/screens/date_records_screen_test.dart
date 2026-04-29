@@ -1,12 +1,14 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
 
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
+import '../helpers/diary_entry_factory.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
@@ -18,7 +20,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: const [],
+            entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -35,7 +37,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: const [],
+            entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -51,7 +53,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: const [],
+            entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -71,7 +73,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: const [],
+            entries: const [],
             onAddEvent: () => called = true,
             onEditEvent: (_) {},
           ),
@@ -85,12 +87,12 @@ void main() {
       expect(called, true);
     });
 
-    testWidgets('displays empty state when no records', (tester) async {
+    testWidgets('displays empty state when no entries', (tester) async {
       await tester.pumpWidget(
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: const [],
+            entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -102,16 +104,16 @@ void main() {
     });
 
     // CUR-443: One-line format shows times, not intensity names
-    testWidgets('displays list of records', (tester) async {
-      final records = [
-        NosebleedRecord(
-          id: 'test-1',
+    testWidgets('displays list of entries', (tester) async {
+      final entries = [
+        buildEpistaxisEntry(
+          entryId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        NosebleedRecord(
-          id: 'test-2',
+        buildEpistaxisEntry(
+          entryId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -122,7 +124,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: records,
+            entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -130,18 +132,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Should display both records by their start times
       expect(find.textContaining('10:30 AM'), findsOneWidget);
       expect(find.textContaining('2:00 PM'), findsOneWidget);
-      // Intensity is shown as images, not text
       expect(find.byType(Image), findsNWidgets(2));
     });
 
     // CUR-443: One-line format - tap by start time, not intensity name
-    testWidgets('calls onEditEvent when record is tapped', (tester) async {
-      NosebleedRecord? tappedRecord;
-      final record = NosebleedRecord(
-        id: 'test-1',
+    testWidgets('calls onEditEvent when entry is tapped', (tester) async {
+      DiaryEntry? tappedEntry;
+      final entry = buildEpistaxisEntry(
+        entryId: 'test-1',
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -151,9 +151,9 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: [record],
+            entries: [entry],
             onAddEvent: () {},
-            onEditEvent: (r) => tappedRecord = r,
+            onEditEvent: (e) => tappedEntry = e,
           ),
         ),
       );
@@ -163,22 +163,21 @@ void main() {
       await tester.tap(find.textContaining('10:30 AM'));
       await tester.pump();
 
-      expect(tappedRecord, isNotNull);
-      expect(tappedRecord!.id, 'test-1');
+      expect(tappedEntry, isNotNull);
+      expect(tappedEntry!.entryId, 'test-1');
     });
 
     testWidgets('displays No nosebleed event card correctly', (tester) async {
-      final record = NosebleedRecord(
-        id: 'test-1',
-        isNoNosebleedsEvent: true,
-        startTime: DateTime.now(),
+      final entry = buildNoEpistaxisEntry(
+        entryId: 'test-1',
+        date: DateTime.now(),
       );
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: [record],
+            entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -190,17 +189,13 @@ void main() {
     });
 
     testWidgets('displays Unknown event card correctly', (tester) async {
-      final record = NosebleedRecord(
-        id: 'test-1',
-        isUnknownEvent: true,
-        startTime: testDate,
-      );
+      final entry = buildUnknownDayEntry(entryId: 'test-1', date: testDate);
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: [record],
+            entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -212,15 +207,15 @@ void main() {
     });
 
     testWidgets('displays event count in subtitle', (tester) async {
-      final records = [
-        NosebleedRecord(
-          id: 'test-1',
+      final entries = [
+        buildEpistaxisEntry(
+          entryId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        NosebleedRecord(
-          id: 'test-2',
+        buildEpistaxisEntry(
+          entryId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -231,7 +226,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: records,
+            entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -242,10 +237,10 @@ void main() {
       expect(find.text('2 events'), findsOneWidget);
     });
 
-    testWidgets('displays "1 event" for single record', (tester) async {
-      final records = [
-        NosebleedRecord(
-          id: 'test-1',
+    testWidgets('displays "1 event" for single entry', (tester) async {
+      final entries = [
+        buildEpistaxisEntry(
+          entryId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -256,7 +251,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: testDate,
-            records: records,
+            entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),

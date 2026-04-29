@@ -11,7 +11,6 @@ import 'dart:convert';
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
@@ -20,15 +19,16 @@ import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
-import 'package:clinical_diary/services/data_export_service.dart';
+import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
+import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
-import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
-import 'package:clinical_diary/services/questionnaire_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
@@ -36,16 +36,20 @@ import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:eq/eq.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
-    required this.nosebleedService,
+    required this.runtime,
+    required this.deviceId,
     required this.enrollmentService,
     required this.taskService,
     required this.onLocaleChanged,
@@ -56,7 +60,15 @@ class HomeScreen extends StatefulWidget {
     this.onEnrolled,
     super.key,
   });
-  final NosebleedService nosebleedService;
+
+  /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
+  /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
+  /// [ClinicalDiaryRuntime.reader] for diary-shaped queries.
+  final ClinicalDiaryRuntime runtime;
+
+  /// Persistent device install UUID. Stamped into the export payload so the
+  /// downstream tooling can identify which device produced the JSON dump.
+  final String deviceId;
   final EnrollmentService enrollmentService;
   // REQ-CAL-p00081: Task service for questionnaire task management
   final TaskService taskService;
@@ -74,14 +86,20 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<NosebleedRecord> _records = [];
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  /// Materialized nosebleed-related entries (epistaxis_event,
+  /// no_epistaxis_event, unknown_day_event), tombstones excluded.
+  List<DiaryEntry> _entries = [];
   bool _hasYesterdayRecords = false;
   bool _isLoading = true;
-  List<NosebleedRecord> _incompleteRecords = [];
+
+  /// Subset of [_entries] that are checkpointed but not finalized.
+  List<DiaryEntry> _incompleteEntries = [];
   bool _isEnrolled = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
+  // Wedge banner state — refreshed on init and on resume.
+  bool _hasWedgedFifo = false;
 
   // REQ-CAL-p00077: Disconnection banner state
   bool _isDisconnected = false;
@@ -96,12 +114,35 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadRecords();
     _loadPreferences();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
+    _refreshWedgeStatus();
     // REQ-CAL-p00077: Reset banner dismissed state on app start
     widget.enrollmentService.resetDisconnectionBannerDismissed();
+    // Forward-looking: surface incomplete surveys via a modal route. The
+    // FCM-prompt handler that creates the checkpoint is out of scope for this
+    // ticket, but the routing exists so it can land later without screen edits.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePushIncompleteSurvey();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshWedgeStatus();
+      _maybePushIncompleteSurvey();
+    }
+  }
+
+  Future<void> _refreshWedgeStatus() async {
+    final wedged = await widget.runtime.backend.anyFifoWedged();
+    if (mounted) {
+      setState(() => _hasWedgedFifo = wedged);
+    }
   }
 
   SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
@@ -118,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
@@ -169,18 +211,33 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadRecords() async {
     setState(() => _isLoading = true);
 
-    final records = await widget.nosebleedService.getLocalMaterializedRecords();
-    final hasYesterday = await widget.nosebleedService.hasRecordsForYesterday();
+    // Wide range covers all real entries; the reader filters by local-day.
+    final allEntries = await widget.runtime.reader.entriesForDateRange(
+      DateTime.utc(1970, 1, 1),
+      DateTime.utc(9999, 1, 1),
+    );
+    final entries =
+        allEntries
+            .where(
+              (e) =>
+                  !e.isDeleted &&
+                  (e.entryType == 'epistaxis_event' ||
+                      e.entryType == 'no_epistaxis_event' ||
+                      e.entryType == 'unknown_day_event'),
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final hasYesterday = await widget.runtime.reader.hasEntriesForYesterday();
 
-    // Get incomplete records
-    final incomplete = records
-        .where((r) => r.isIncomplete && r.isRealNosebleedEvent)
+    // Get incomplete real-nosebleed entries.
+    final incomplete = entries
+        .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
         .toList();
 
     setState(() {
-      _records = records;
+      _entries = entries;
       _hasYesterdayRecords = hasYesterday;
-      _incompleteRecords = incomplete;
+      _incompleteEntries = incomplete;
       _isLoading = false;
     });
   }
@@ -194,16 +251,16 @@ class _HomeScreenState extends State<HomeScreen> {
       AppPageRoute(
         builder: (context) => useOnePage
             ? SimpleRecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                allRecords: _records,
+                allEntries: _entries,
               )
             : RecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                allRecords: _records,
+                allEntries: _entries,
               ),
       ),
     );
@@ -243,7 +300,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleYesterdayNoNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    await widget.nosebleedService.markNoNosebleeds(yesterday);
+    await widget.runtime.entryService.record(
+      entryType: 'no_epistaxis_event',
+      aggregateId: const Uuid().v7(),
+      eventType: 'finalized',
+      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
+    );
     unawaited(_loadRecords());
   }
 
@@ -257,18 +319,18 @@ class _HomeScreenState extends State<HomeScreen> {
       AppPageRoute(
         builder: (context) => useOnePage
             ? SimpleRecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
                 initialStartDate: yesterday,
-                allRecords: _records,
+                allEntries: _entries,
               )
             : RecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
                 diaryEntryDate: yesterday,
-                allRecords: _records,
+                allEntries: _entries,
               ),
       ),
     );
@@ -284,32 +346,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleYesterdayDontRemember() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    await widget.nosebleedService.markUnknown(yesterday);
+    await widget.runtime.entryService.record(
+      entryType: 'unknown_day_event',
+      aggregateId: const Uuid().v7(),
+      eventType: 'finalized',
+      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
+    );
     unawaited(_loadRecords());
   }
 
+  /// Export the local event log as JSON via [DiaryExportService] and hand the
+  /// payload to the platform file-save dialog.
+  ///
+  /// Import is deferred to a follow-up ticket — re-importing the JSON would
+  /// require translating legacy event shapes back to the new
+  /// `EntryService.record` API, which would be a one-shot adapter. The button
+  /// stays in the menu so the spec/UX surface is preserved; tapping it shows
+  /// a "not implemented" message.
   Future<void> _handleExportData() async {
     final l10n = AppLocalizations.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      final exportService = DataExportService(
-        nosebleedService: widget.nosebleedService,
-        preferencesService: widget.preferencesService,
-        enrollmentService: widget.enrollmentService,
+      final exportService = DiaryExportService(
+        backend: widget.runtime.backend,
+        deviceId: widget.deviceId,
       );
 
-      final jsonData = await exportService.exportAppState();
-      final filename = exportService.generateExportFilename();
+      final result = await exportService.exportAll();
 
-      // Save file using platform-aware service
-      final result = await FileSaveService.saveFile(
-        fileName: filename,
+      const encoder = JsonEncoder.withIndent('  ');
+      final jsonData = encoder.convert(result.payload);
+
+      final saved = await FileSaveService.saveFile(
+        fileName: result.filename,
         data: jsonData,
         dialogTitle: l10n.exportData,
       );
 
-      if (result) {
+      if (saved) {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(l10n.exportSuccess),
@@ -328,85 +403,94 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Round-trip companion to [_handleExportData]: pick a JSON export file,
+  /// decode it, and feed every event back through `EventStore.ingestEvent`
+  /// via [DiaryExportService.importAll]. The library handles idempotency,
+  /// so re-importing the same export against the same backend is a no-op.
+  ///
+  /// On success we show a SnackBar carrying the imported / duplicate /
+  /// skipped counts and refresh the home screen so any newly-ingested
+  /// entries surface immediately.
   Future<void> _handleImportData() async {
     final l10n = AppLocalizations.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.importConfirmTitle),
-        content: Text(l10n.importConfirmMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
     try {
-      // Pick file
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: l10n.importData,
+      final pickResult = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['json'],
-        withData: true,
+        allowedExtensions: const ['json'],
+        dialogTitle: l10n.importData,
       );
 
-      if (result == null || result.files.isEmpty) return;
+      if (pickResult == null || pickResult.files.isEmpty) {
+        // User cancelled the picker — nothing to do.
+        return;
+      }
 
-      final file = result.files.first;
-      if (file.bytes == null) {
+      final picked = pickResult.files.single;
+      final path = picked.path;
+      if (path == null) {
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text(l10n.importFailed('Could not read file')),
+            content: Text(l10n.importFailed('no path on selected file')),
             duration: const Duration(seconds: 3),
           ),
         );
         return;
       }
 
-      final jsonData = utf8.decode(file.bytes!);
-
-      final exportService = DataExportService(
-        nosebleedService: widget.nosebleedService,
-        preferencesService: widget.preferencesService,
-        enrollmentService: widget.enrollmentService,
-      );
-
-      final importResult = await exportService.importAppState(jsonData);
-
-      if (importResult.success) {
-        unawaited(_loadRecords());
-        unawaited(_loadPreferences());
-
+      final raw = await FileReadService.readFile(path);
+      if (raw == null) {
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text(l10n.importSuccess(importResult.recordsImported)),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n.importFailed(importResult.error ?? 'Unknown error'),
-            ),
+            content: Text(l10n.importFailed('unable to read file')),
             duration: const Duration(seconds: 3),
           ),
         );
+        return;
       }
-    } catch (e) {
-      debugPrint('Import error: $e');
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importFailed('not a diary export object')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final importer = DiaryExportService(
+        backend: widget.runtime.backend,
+        deviceId: widget.deviceId,
+        eventStore: widget.runtime.eventStore,
+      );
+
+      final result = await importer.importAll(decoded);
+
+      // Refresh the home screen so any newly-ingested entries surface.
+      await _loadRecords();
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Imported ${result.imported} events, '
+            '${result.duplicates} duplicates, '
+            '${result.skipped} skipped.',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } on FormatException catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.importFailed(e.message)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('Import error: $e\n$stack');
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(l10n.importFailed(e.toString())),
@@ -440,8 +524,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed ?? false) {
-      // ignore: invalid_use_of_visible_for_testing_member
-      await widget.nosebleedService.clearLocalData();
+      // The event-sourcing datastore is append-only; resetting all data is
+      // a dev-only feature in the legacy stack. Show a message instead and
+      // leave the underlying records untouched.
       unawaited(_loadRecords());
 
       if (mounted) {
@@ -580,7 +665,12 @@ class _HomeScreenState extends State<HomeScreen> {
     await _checkDisconnectionStatus();
   }
 
-  // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire
+  // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire.
+  //
+  // The QuestionnaireDefinition is loaded from the bundled
+  // packages/trial_data_types/assets/data/questionnaires.json asset (the same
+  // source loadClinicalDiaryEntryTypes uses to build EntryTypeDefinitions).
+  // Submission writes a finalized survey event via EntryService.record.
   Future<void> _navigateToQuestionnaire(Task task) async {
     final qType = task.questionnaireType;
 
@@ -598,18 +688,38 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final questionnaireService = QuestionnaireService(
-      enrollmentService: widget.enrollmentService,
-    );
-    final definition = await questionnaireService.getDefinition(qType);
+    final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
+
+    final aggregateId = task.targetId ?? task.id;
+    final entryType = '${qType.value}_survey';
 
     await Navigator.of(context).push(
       AppPageRoute<void>(
         builder: (context) => QuestionnaireFlowScreen(
           definition: definition,
-          instanceId: task.targetId ?? task.id,
-          onSubmit: questionnaireService.submitResponses,
+          instanceId: aggregateId,
+          onSubmit: (submission) async {
+            try {
+              await widget.runtime.entryService.record(
+                entryType: entryType,
+                aggregateId: aggregateId,
+                eventType: 'finalized',
+                answers: <String, Object?>{
+                  ...{
+                    for (final r in submission.responses) r.questionId: r.value,
+                  },
+                  'instanceId': submission.instanceId,
+                  'questionnaireType': submission.questionnaireType,
+                  'version': submission.version,
+                  'completedAt': submission.completedAt.toIso8601String(),
+                },
+              );
+              return const SubmitResult(success: true);
+            } catch (e) {
+              return SubmitResult(success: false, error: e.toString());
+            }
+          },
           onComplete: () {
             // REQ-CAL-p00081-E: Remove task after completion
             widget.taskService.removeTask(task.id);
@@ -621,46 +731,131 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _handleIncompleteRecordsClick() async {
-    if (_incompleteRecords.isEmpty) return;
+  /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
+  static List<QuestionnaireDefinition>? _cachedQuestionnaires;
 
-    // Navigate to edit the first incomplete record
+  Future<QuestionnaireDefinition?> _loadQuestionnaireDefinition(
+    QuestionnaireType type,
+  ) async {
+    final cached = _cachedQuestionnaires;
+    final defs =
+        cached ??
+        QuestionnaireDefinition.loadAll(
+          await rootBundle.loadString(
+            'packages/trial_data_types/assets/data/questionnaires.json',
+          ),
+        );
+    _cachedQuestionnaires = defs;
+    return QuestionnaireDefinition.findById(defs, type.value);
+  }
+
+  /// Surfaces an incomplete survey via a modal route on resume / mount.
+  ///
+  /// Forward-looking: the FCM-prompt handler that creates an in-progress
+  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
+  /// operation `incomplete` will be empty. The modal route is wired up
+  /// regardless so it can light up automatically once checkpoints land.
+  Future<void> _maybePushIncompleteSurvey() async {
+    if (!mounted) return;
+    final incomplete = await widget.runtime.reader.incompleteEntries();
+    DiaryEntry? survey;
+    for (final entry in incomplete) {
+      if (entry.entryType == 'nose_hht_survey' ||
+          entry.entryType == 'hht_qol_survey') {
+        survey = entry;
+        break;
+      }
+    }
+    if (survey == null || !mounted) return;
+
+    final qType = survey.entryType == 'nose_hht_survey'
+        ? QuestionnaireType.noseHht
+        : QuestionnaireType.qol;
+    final definition = await _loadQuestionnaireDefinition(qType);
+    if (definition == null || !mounted) return;
+
+    final aggregateId = survey.entryId;
+    final entryType = survey.entryType;
+
+    await Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: true,
+        barrierDismissible: false,
+        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
+          canPop: false,
+          child: QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: aggregateId,
+            onSubmit: (submission) async {
+              try {
+                await widget.runtime.entryService.record(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  eventType: 'finalized',
+                  answers: <String, Object?>{
+                    ...{
+                      for (final r in submission.responses)
+                        r.questionId: r.value,
+                    },
+                    'instanceId': submission.instanceId,
+                    'questionnaireType': submission.questionnaireType,
+                    'version': submission.version,
+                    'completedAt': submission.completedAt.toIso8601String(),
+                  },
+                );
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
+            onComplete: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleIncompleteRecordsClick() async {
+    if (_incompleteEntries.isEmpty) return;
+
+    // Navigate to edit the first incomplete entry
     // CUR-508: Use feature flag to determine which recording screen to show
     final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
-    final firstIncomplete = _incompleteRecords.first;
+    final firstIncomplete = _incompleteEntries.first;
+    final firstStart = _readStartTime(firstIncomplete);
+
+    Future<void> tombstone(String reason) async {
+      await widget.runtime.entryService.record(
+        entryType: firstIncomplete.entryType,
+        aggregateId: firstIncomplete.entryId,
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+        changeReason: reason,
+      );
+      unawaited(_loadRecords());
+    }
+
     final result = await Navigator.push<bool>(
       context,
       AppPageRoute(
         builder: (context) => useOnePage
             ? SimpleRecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialStartDate: firstIncomplete.startTime,
-                existingRecord: firstIncomplete,
-                allRecords: _records,
-                onDelete: (reason) async {
-                  await widget.nosebleedService.deleteRecord(
-                    recordId: firstIncomplete.id,
-                    reason: reason,
-                  );
-                  unawaited(_loadRecords());
-                },
+                initialStartDate: firstStart,
+                existingEntry: firstIncomplete,
+                allEntries: _entries,
+                onDelete: tombstone,
               )
             : RecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                diaryEntryDate: firstIncomplete.startTime,
-                existingRecord: firstIncomplete,
-                allRecords: _records,
-                onDelete: (reason) async {
-                  await widget.nosebleedService.deleteRecord(
-                    recordId: firstIncomplete.id,
-                    reason: reason,
-                  );
-                  unawaited(_loadRecords());
-                },
+                diaryEntryDate: firstStart,
+                existingEntry: firstIncomplete,
+                allEntries: _entries,
+                onDelete: tombstone,
               ),
       ),
     );
@@ -670,43 +865,41 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _navigateToEditRecord(NosebleedRecord record) async {
+  Future<void> _navigateToEditRecord(DiaryEntry entry) async {
     // CUR-464: Result is now record ID (String) instead of bool
     // CUR-508: Use feature flag to determine which recording screen to show
     final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+
+    Future<void> tombstone(String reason) async {
+      await widget.runtime.entryService.record(
+        entryType: entry.entryType,
+        aggregateId: entry.entryId,
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+        changeReason: reason,
+      );
+      unawaited(_loadRecords());
+    }
+
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
         builder: (context) => useOnePage
             ? SimpleRecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialStartDate: null,
-                existingRecord: record,
-                allRecords: _records,
-                onDelete: (reason) async {
-                  await widget.nosebleedService.deleteRecord(
-                    recordId: record.id,
-                    reason: reason,
-                  );
-                  unawaited(_loadRecords());
-                },
+                existingEntry: entry,
+                allEntries: _entries,
+                onDelete: tombstone,
               )
             : RecordingScreen(
-                nosebleedService: widget.nosebleedService,
+                entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                diaryEntryDate: null,
-                existingRecord: record,
-                allRecords: _records,
-                onDelete: (reason) async {
-                  await widget.nosebleedService.deleteRecord(
-                    recordId: record.id,
-                    reason: reason,
-                  );
-                  unawaited(_loadRecords());
-                },
+                existingEntry: entry,
+                allEntries: _entries,
+                onDelete: tombstone,
               ),
       ),
     );
@@ -720,25 +913,36 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Check if a record overlaps with any other record in the list
+  /// Read the `startTime` answer from a [DiaryEntry], or fall back to its
+  /// effective date / updated-at.
+  static DateTime _readStartTime(DiaryEntry entry) {
+    final raw = entry.currentAnswers['startTime'];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return entry.effectiveDate ?? entry.updatedAt;
+  }
+
+  /// Read the `endTime` answer from a [DiaryEntry] (null when absent).
+  static DateTime? _readEndTime(DiaryEntry entry) {
+    final raw = entry.currentAnswers['endTime'];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return null;
+  }
+
+  /// Check if an entry overlaps with any other entry in the list.
   /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(NosebleedRecord record) {
-    if (!record.isRealNosebleedEvent || record.endTime == null) {
-      return false;
-    }
+  bool _hasOverlap(DiaryEntry entry) {
+    if (entry.entryType != 'epistaxis_event') return false;
+    final start = _readStartTime(entry);
+    final end = _readEndTime(entry);
+    if (end == null) return false;
 
-    for (final other in _records) {
-      // Skip same record
-      if (other.id == record.id) continue;
-
-      // Only check real events with both start and end times
-      if (!other.isRealNosebleedEvent || other.endTime == null) {
-        continue;
-      }
-
-      // Check if events overlap
-      if (record.startTime.isBefore(other.endTime!) &&
-          record.endTime!.isAfter(other.startTime)) {
+    for (final other in _entries) {
+      if (other.entryId == entry.entryId) continue;
+      if (other.entryType != 'epistaxis_event') continue;
+      final otherEnd = _readEndTime(other);
+      if (otherEnd == null) continue;
+      final otherStart = _readStartTime(other);
+      if (start.isBefore(otherEnd) && end.isAfter(otherStart)) {
         return true;
       }
     }
@@ -753,64 +957,62 @@ class _HomeScreenState extends State<HomeScreen> {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    String entryDateStr(DiaryEntry e) {
+      return DateFormat('yyyy-MM-dd').format(_readStartTime(e));
+    }
+
     final groups = <_GroupedRecords>[];
 
-    // Get incomplete records that are older than yesterday
-    final olderIncompleteRecords = _records.where((r) {
-      if (!r.isIncomplete || !r.isRealNosebleedEvent) return false;
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+    // Get incomplete real-nosebleed entries that are older than yesterday.
+    final olderIncompleteEntries = _entries.where((e) {
+      if (e.isComplete || e.entryType != 'epistaxis_event') return false;
+      final dateStr = entryDateStr(e);
       return dateStr != todayStr && dateStr != yesterdayStr;
-    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
+    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
 
-    if (olderIncompleteRecords.isNotEmpty) {
+    if (olderIncompleteEntries.isNotEmpty) {
       groups.add(
         _GroupedRecords(
           label: l10n.incompleteRecords,
-          records: olderIncompleteRecords,
+          entries: olderIncompleteEntries,
           isIncomplete: true,
         ),
       );
     }
 
-    // Yesterday's records (excluding incomplete ones shown above)
-    final yesterdayRecords = _records.where((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
-      return dateStr == yesterdayStr && r.isRealNosebleedEvent;
-    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
+    // Yesterday's real-nosebleed entries (excluding incomplete ones shown above).
+    final yesterdayEntries = _entries.where((e) {
+      return entryDateStr(e) == yesterdayStr &&
+          e.entryType == 'epistaxis_event';
+    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
 
-    // Check if there are ANY records for yesterday (including special events)
-    final hasAnyYesterdayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
-      return dateStr == yesterdayStr;
-    });
+    // Check if there are ANY entries for yesterday (including special events).
+    final hasAnyYesterdayEntries = _entries.any(
+      (e) => entryDateStr(e) == yesterdayStr,
+    );
 
     groups.add(
       _GroupedRecords(
         label: l10n.yesterday,
         date: yesterday,
-        records: yesterdayRecords,
-        isEmpty: !hasAnyYesterdayRecords,
+        entries: yesterdayEntries,
+        isEmpty: !hasAnyYesterdayEntries,
       ),
     );
 
-    // Today's records (including incomplete - CUR-488)
-    final todayRecords = _records.where((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
-      return dateStr == todayStr && r.isRealNosebleedEvent;
-    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
+    // Today's real-nosebleed entries (including incomplete - CUR-488).
+    final todayEntries = _entries.where((e) {
+      return entryDateStr(e) == todayStr && e.entryType == 'epistaxis_event';
+    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
 
-    // Check if there are ANY records for today (including special events)
-    final hasAnyTodayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
-      return dateStr == todayStr;
-    });
+    final hasAnyTodayEntries = _entries.any((e) => entryDateStr(e) == todayStr);
 
     groups.add(
       _GroupedRecords(
         label: l10n.today,
         date: today,
-        records: todayRecords,
-        isEmpty: !hasAnyTodayRecords,
+        entries: todayEntries,
+        isEmpty: !hasAnyTodayEntries,
       ),
     );
 
@@ -970,6 +1172,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Banners section
             if (!_isLoading) ...[
+              // Wedge banner: at least one destination FIFO is wedged on a
+              // unknown event-type bridge mismatch — patient should update
+              // the app to drain it.
+              if (_hasWedgedFifo) const _SyncWedgedBanner(),
+
               // REQ-CAL-p00077: Disconnection banner (red) - highest priority
               if (_isDisconnected && !_disconnectionBannerDismissed)
                 DisconnectionBanner(
@@ -979,7 +1186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               // Incomplete records banner (orange)
-              if (_incompleteRecords.isNotEmpty)
+              if (_incompleteEntries.isNotEmpty)
                 Builder(
                   builder: (context) {
                     final l10n = AppLocalizations.of(context);
@@ -1006,7 +1213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: Text(
                                 l10n.incompleteRecordCount(
-                                  _incompleteRecords.length,
+                                  _incompleteEntries.length,
                                 ),
                                 style: TextStyle(
                                   color: Colors.orange.shade800,
@@ -1115,7 +1322,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       await showDialog<void>(
                         context: context,
                         builder: (context) => CalendarScreen(
-                          nosebleedService: widget.nosebleedService,
+                          entryService: widget.runtime.entryService,
+                          reader: widget.runtime.reader,
                           enrollmentService: widget.enrollmentService,
                           preferencesService: widget.preferencesService,
                         ),
@@ -1204,7 +1412,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
         // Records or empty state
-        if (group.records.isEmpty && !group.isIncomplete)
+        if (group.entries.isEmpty && !group.isIncomplete)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Center(
@@ -1219,15 +1427,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         else
-          ...group.records.map(
-            (record) => Padding(
+          ...group.entries.map(
+            (entry) => Padding(
               // CUR-489: Use GlobalKey for scroll-to-item functionality
-              key: _getKeyForRecord(record.id),
+              key: _getKeyForRecord(entry.entryId),
               // CUR-464: Use smaller gap when compact view is enabled
               padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               child: FlashHighlight(
-                flash: record.id == _flashRecordId,
+                flash: entry.entryId == _flashRecordId,
                 enabled: _useAnimation,
                 onFlashComplete: () {
                   if (mounted) {
@@ -1237,9 +1445,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
                 builder: (context, highlightColor) => EventListItem(
-                  record: record,
-                  onTap: () => _navigateToEditRecord(record),
-                  hasOverlap: _hasOverlap(record),
+                  entry: entry,
+                  onTap: () => _navigateToEditRecord(entry),
+                  hasOverlap: _hasOverlap(entry),
                   highlightColor: highlightColor,
                 ),
               ),
@@ -1253,14 +1461,48 @@ class _HomeScreenState extends State<HomeScreen> {
 class _GroupedRecords {
   _GroupedRecords({
     required this.label,
-    required this.records,
+    required this.entries,
     this.date,
     this.isIncomplete = false,
     this.isEmpty = false,
   });
   final String label;
   final DateTime? date;
-  final List<NosebleedRecord> records;
+  final List<DiaryEntry> entries;
   final bool isIncomplete;
   final bool isEmpty;
+}
+
+/// Banner shown when at least one destination FIFO is wedged on a
+/// `unknown_event_type` bridge.  Surfaces the situation so the patient
+/// updates the app; underlying scope is "visible state", not UX polish.
+class _SyncWedgedBanner extends StatelessWidget {
+  const _SyncWedgedBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.sync_problem, color: Colors.red.shade800, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Some data is not syncing — please update the app.',
+              style: TextStyle(
+                color: Colors.red.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

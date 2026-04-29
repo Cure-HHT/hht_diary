@@ -306,7 +306,7 @@
 | REQ-d00110 | Linking API Error Response Strategy                             | dev-portal-api.md              | 39ae2a18 |
 | REQ-d00111 | Linking API Audit Trail                                         | dev-portal-api.md              | 90a41f24 |
 | REQ-d00112 | Enrollment Token Revocation                                     | dev-portal-api.md              | e8863441 |
-| REQ-d00113 | Deleted Questionnaire Submission Handling                       | dev-questionnaire.md           | 6aaa85fd |
+| REQ-d00113 | Deleted Questionnaire Submission Handling                       | dev-questionnaire.md           | 80d904c9 |
 | REQ-d00114 | Sync Request Device Binding Verification                        | dev-portal-api.md              | b1a11feb |
 | REQ-d00115 | ProvenanceEntry Schema and Append Rules                         | dev-event-sourcing-mobile.md   | 194aaffd |
 | REQ-d00116 | EntryTypeDefinition Schema                                      | dev-event-sourcing-mobile.md   | f7e650e5 |
@@ -346,6 +346,10 @@
 | REQ-d00152 | Destination Native-Serialization Declaration                    | dev-event-sourcing-mobile.md   | b13db4eb |
 | REQ-d00153 | watchView Reactive Read                                         | dev-event-sourcing-mobile.md   | 878a7d75 |
 | REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-mobile.md   | e0495b4d |
+| REQ-d00155 | Primary diary server destination contract                       | dev-event-sourcing-mobile.md   | 800c0418 |
+| REQ-d00156 | Portal inbound poll for tombstone instructions                  | dev-event-sourcing-mobile.md   | f96d5dbc |
+| REQ-d00157 | Clinical_diary mobile sync triggers                             | dev-event-sourcing-mobile.md   | eec937dc |
+| REQ-d00158 | Inbound Tombstone Record Failure Audit                          | dev-event-sourcing-mobile.md   | 5bb685d0 |
 
 ## User Journeys
 

@@ -3,42 +3,55 @@
 //   REQ-p00043: Temporal Entry Validation - Overlap Prevention
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Warning widget for overlapping events
-/// Displays the specific time range of the first conflicting record
-/// and provides a button to navigate to view it, as required by REQ-p00043
+/// Warning widget for overlapping events.
+///
+/// Displays the specific time range of the first conflicting [DiaryEntry] and
+/// provides a button to navigate to view it, as required by REQ-p00043.
+///
+/// Each entry's `currentAnswers['startTime']` and `currentAnswers['endTime']`
+/// supply the displayed range; entries that have no parsable startTime fall
+/// back to `entry.effectiveDate` (which is the materialized derivation).
 class OverlapWarning extends StatelessWidget {
   const OverlapWarning({
-    required this.overlappingRecords,
+    required this.overlappingEntries,
     this.onViewConflict,
     super.key,
   });
 
-  final List<NosebleedRecord> overlappingRecords;
+  final List<DiaryEntry> overlappingEntries;
 
-  /// Callback when user taps "View" to navigate to the conflicting record.
-  /// Passes the first overlapping record.
-  final void Function(NosebleedRecord record)? onViewConflict;
+  /// Callback when user taps "View" to navigate to the conflicting entry.
+  /// Passes the first overlapping entry.
+  final void Function(DiaryEntry entry)? onViewConflict;
 
   String _formatTime(DateTime? time, String locale) {
     if (time == null) return '--:--';
     return DateFormat.jm(locale).format(time);
   }
 
+  DateTime? _readTime(DiaryEntry entry, String key) {
+    final raw = entry.currentAnswers[key];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (overlappingRecords.isEmpty) return const SizedBox.shrink();
+    if (overlappingEntries.isEmpty) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
 
-    // Get the first overlapping record to display its time range
-    final firstOverlap = overlappingRecords.first;
-    final startTimeStr = _formatTime(firstOverlap.startTime, locale);
-    final endTimeStr = _formatTime(firstOverlap.endTime, locale);
+    final firstOverlap = overlappingEntries.first;
+    final start = _readTime(firstOverlap, 'startTime');
+    final end = _readTime(firstOverlap, 'endTime');
+    final startTimeStr = _formatTime(start, locale);
+    final endTimeStr = _formatTime(end, locale);
 
     return Container(
       padding: const EdgeInsets.all(12),
