@@ -1128,4 +1128,28 @@ F. Cross-references: REQ-d00115 (provenance), REQ-d00141-D (permission-blind), R
 
 *End* *Originator Hop Binding and Unanimity Verification* | **Hash**: 29966189
 
+# REQ-d00156: Consumer Append Discipline
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+At the current phase, each server-side consumer of `event_sourcing_datastore` mints events only for entry types whose `originatorHopId` (per REQ-d00155-A) matches the consumer's own `Source.hopId` (per REQ-d00142). Patient-data events reach a server's event store exclusively via `EventStore.ingestBatch` / `EventStore.ingestEvent`. This guardrail prevents accidental introduction of multi-originator edits before the multi-source-editing protocol is designed.
+
+The taxonomy of `hopId` values is defined by REQ-d00142 and is open ("other hop identifiers are permitted"); this REQ does not prescribe specific values, only the discipline that each consumer's `Source.hopId` matches the entry types it is allowed to append. Concrete `hopId` values for each consumer are pinned in that consumer's dev implementation spec.
+
+## Assertions
+
+A. Each server consumer SHALL declare a `Source.hopId` drawn from REQ-d00142's hopId taxonomy.
+
+B. A server consumer SHALL invoke `EventStore.append` only for entry types whose `originatorHopId == source.hopId`.
+
+C. A server consumer's HTTP append handler SHALL refuse any client-submitted event whose entry type's `originatorHopId` does not match the role-class hopId of the originating client.
+
+D. Compliance SHALL be testable by an enumeration of all server-side `EventStore.append` call sites and a static assertion that each call site's entry type is bound to the consumer's declared `Source.hopId`.
+
+E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId), REQ-d00145-I (receiver-scoped audit aggregates), REQ-d00154-B (isLocallyOriginated), REQ-d00155 (originatorHopId binding).
+
+*End* *Consumer Append Discipline* | **Hash**: 50947b1a
+
 ---
