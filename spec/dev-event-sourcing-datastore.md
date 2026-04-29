@@ -1,4 +1,4 @@
-# Mobile Event-Sourcing Implementation
+# event_sourcing_datastore Library Specification
 
 **Version**: 1.0
 **Audience**: Development Specification
@@ -7,10 +7,10 @@
 
 > **See**: prd-database.md for the immutable audit trail principle (REQ-p00004) and complete data change history (REQ-p00013)
 > **See**: prd-event-sourcing-system.md for the Event Type Registry (REQ-p01050) and offline event queue (REQ-p01001)
-> **See**: docs/superpowers/2026-04-21-mobile-event-sourcing-refactor-design.md for the target architecture
+> **See**: docs/superpowers/2026-04-21-mobile-event-sourcing-refactor-design.md for the architecture document
 > **See**: docs/superpowers/plans/2026-04-21-mobile-event-sourcing-refactor/ for the phased implementation plan (CUR-1154)
 
-This specification defines the mobile-side implementation of the event-sourcing architecture described in prd-database.md and prd-event-sourcing-system.md. It accumulates DEV-level requirements added across the 5 phases of CUR-1154. Phase 1 introduces the two pure-Dart data types that underpin all subsequent work: `ProvenanceEntry` (chain-of-custody) and `EntryTypeDefinition` (registry entry shape).
+This specification defines the `event_sourcing_datastore` library — a shared, platform-agnostic Dart library for local-first, event-sourced, multi-destination data capture. The library is consumed by mobile and server-side applications via a common `StorageBackend` abstraction; the requirements collected here describe the library's mechanism — provenance chains, the entry-type registry, the storage-backend transaction contract, append and ingest contracts, FIFO per-destination queues, the reactive read APIs, and the system-aggregate conventions for cross-hop event discrimination.
 
 ---
 
@@ -742,7 +742,7 @@ L. When a materializer's `targetVersionFor` cannot find a registered version for
 
 ## Assertions
 
-A. The class named `EntryService` SHALL be renamed to `EventStore` and SHALL live at `apps/common-dart/append_only_datastore/lib/src/event_store.dart`.
+A. `EventStore` SHALL live at `apps/common-dart/event_sourcing_datastore/lib/src/event_store.dart`.
 
 B. `EventStore.append({entryType, entryTypeVersion, aggregateId, aggregateType, eventType, data, initiator, flowToken?, metadata?, security?, checkpointReason?, changeReason?, dedupeByContent=false})` SHALL be the single public write method serving both mobile widgets and portal callers; it SHALL return the persisted `StoredEvent` or `null` when a `dedupeByContent` no-op was detected. The `entryTypeVersion` parameter is required (Dart's null-safety enforces presence at compile time); `EventStore.append` SHALL stamp the supplied value verbatim onto `StoredEvent.entry_type_version` per REQ-d00118-E.
 
