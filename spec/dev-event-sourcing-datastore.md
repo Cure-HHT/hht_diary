@@ -1101,4 +1101,31 @@ E. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL NOT call any meth
 F. When a destination's `SubscriptionFilter.includeSystemEvents == true`, the destination SHALL receive every event whose `entry_type` is in `kReservedSystemEntryTypeIds` and whose `client_timestamp` is within the destination's active time window (REQ-d00129-I), regardless of `entryTypes` content. When `false`, system entry types are rejected before `entryTypes` is consulted.
 
 *End* *Cross-Hop Event Discrimination and Bridged System-Event Storage* | **Hash**: e0495b4d
+
+# REQ-d00155: Originator Hop Binding and Unanimity Verification
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
+
+## Rationale
+
+Each entry type declares which `Source.hopId` (per REQ-d00142) is authorized to originate events of its kind. The library exposes the binding as queryable metadata and provides a verification helper for audit reports and integration tests; gating remains in the consumer's request-handler layer per REQ-d00141-D (permission-blind invariant). The taxonomy of `hopId` values lives in REQ-d00142; this REQ does not prescribe specific values.
+
+When multi-source editing is introduced, the unanimity API broadens to "every originator listed is one of the authorized originators for this aggregate's entry-type bundle"; the API surface defined here remains.
+
+## Assertions
+
+A. `EntryTypeDefinition` SHALL carry a non-null `originatorHopId` string field whose value names the `Source.hopId` (per REQ-d00142) authorized to originate events of this entry type.
+
+B. `EntryTypeRegistry` SHALL provide `originatorHopIdFor(String entryType)` returning the declared hopId for that entry type.
+
+C. `EventStore.append` and `EventStore.ingestBatch` SHALL NOT consult `originatorHopId` for any gate or filter (preserving REQ-d00141-D permission-blind invariant). The field is metadata for the request-handler layer only.
+
+D. `EventStore.verifyOriginatorUnanimity(String aggregateId)` SHALL return a verdict listing every distinct `provenance[0].hopId` observed across the aggregate's events.
+
+E. The verification API SHALL be exposed for audit reports and integration tests; the library SHALL NOT invoke it on the append/ingest hot path.
+
+F. Cross-references: REQ-d00115 (provenance), REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId taxonomy), REQ-d00154-B (isLocallyOriginated).
+
+*End* *Originator Hop Binding and Unanimity Verification* | **Hash**: 29966189
+
 ---
