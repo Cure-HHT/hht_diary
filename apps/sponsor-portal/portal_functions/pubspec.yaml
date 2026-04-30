@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.15+32
+version: 0.1.16+33
 publish_to: none
 
 environment:
@@ -39,6 +39,10 @@ dependencies:
   # Shared server-side utilities
   shared_functions:
     path: ../../common-dart/shared_functions
+
+  # Shared data types — StudyEvent validation, QuestionnaireInstance, etc.
+  trial_data_types:
+    path: ../../common-dart/trial_data_types
 
   # EDC Integration (RAVE)
   rave_integration:
