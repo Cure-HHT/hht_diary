@@ -140,9 +140,9 @@ E. Every event record SHALL carry a top-level `entry_type_version` integer field
 
 F. Every event record SHALL carry a top-level `lib_format_version` integer field whose value identifies the storage shape the lib used to persist the event. The value is stamped by the lib at `EventStore.append` time from the constant `StoredEvent.currentLibFormatVersion`; callers of `EventStore.append` SHALL NOT supply this field.
 
-G. Every event record's `metadata` field MAY carry a nullable `causality` record per REQ-d00157-A (`supersedes: List<String>`, `kind: String?`); the field is part of `metadata` (not a top-level event field) and therefore participates in `event_hash` via the existing `metadata` identity-field clause of REQ-d00120-B. At the current phase `causality.supersedes` SHALL be empty on every event written (REQ-d00157-E).
+G. Every event record's `metadata` field MAY carry a nullable `supersedes` record per REQ-d00157-A (`event_ids: List<String>`, `kind: String?`); the field is part of `metadata` (not a top-level event field) and therefore participates in `event_hash` via the existing `metadata` identity-field clause of REQ-d00120-B. At the current phase `supersedes.event_ids` SHALL be empty on every event written (REQ-d00157-E).
 
-*End* *Event Record Schema* | **Hash**: 47a8db0d
+*End* *Event Record Schema* | **Hash**: 2e87c198
 
 ---
 
@@ -199,9 +199,9 @@ D. The canonicalization scheme used SHALL NOT be changed without a spec amendmen
 E. When a receiver appends a `ProvenanceEntry` to `metadata.provenance` during ingest, the event's `event_hash` SHALL be recomputed over the identity field set specified in assertion B (which includes `metadata`, and therefore the extended provenance chain), and the recomputed value SHALL be stored in place of the wire `event_hash`. The originator's `event_hash` remains recoverable via the Chain 1 walk specified in REQ-d00146-A. Cross-store byte-for-byte comparison of raw `event_hash` is not a valid identity check on ingested events; the Chain 1 walk is the specified mechanism.
 On every ingest hop the `event_hash` field is a function of the provenance chain as it stood at that hop. A receiver's stored `event_hash` is therefore the receiver's own output hash, not the originator's output hash. Identity preservation across hops is verified by the Chain 1 walk (each receiver entry's `arrival_hash` equals the hash the prior state would produce), not by naive field equality.
 
-F. Sub-fields of `metadata` introduced by other REQs (e.g., `metadata.provenance` per REQ-d00115, `metadata.causality` per REQ-d00157-A) participate in `event_hash` via the `metadata` identity-field clause of assertion B; no per-sub-field amendment to assertion B is required when a new sub-field is introduced.
+F. Sub-fields of `metadata` introduced by other REQs (e.g., `metadata.provenance` per REQ-d00115, `metadata.supersedes` per REQ-d00157-A) participate in `event_hash` via the `metadata` identity-field clause of assertion B; no per-sub-field amendment to assertion B is required when a new sub-field is introduced.
 
-*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: f6b8a664
+*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: 550c623e
 
 ---
 
@@ -760,9 +760,9 @@ F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion`
 
 G. `EventStore.append` SHALL NOT consult `EntryTypeDefinition.allowedOriginatorHopIds` (REQ-d00155-A) for any gate or filter, preserving the permission-blind invariant of assertion D. The binding from entry type to authorized `Source.hopId` values is consumer-side metadata enforced in the request-handler layer (REQ-d00155-C, REQ-d00156-B+C).
 
-H. `EventStore.append` SHALL accept caller-supplied `metadata['causality']` (REQ-d00157-A) verbatim and stamp it onto the persisted event without inspection (REQ-d00157-B); the library SHALL NOT validate `causality.supersedes` content. The `causality` shape participates in `event_hash` because `metadata` is in the identity-fields list per REQ-d00120-B.
+H. `EventStore.append` SHALL accept caller-supplied `metadata['supersedes']` (REQ-d00157-A) and stamp it onto the persisted event without semantic inspection of `event_ids` membership or graph rules (REQ-d00157-B). At the current phase `EventStore.append` SHALL reject events whose `metadata['supersedes'].event_ids` is non-empty (REQ-d00157-E); the empty-invariant is enforced library-side rather than as consumer discipline. The `supersedes` shape participates in `event_hash` because `metadata` is in the identity-fields list per REQ-d00120-B.
 
-*End* *EventStore Append Contract* | **Hash**: ffc6363b
+*End* *EventStore Append Contract* | **Hash**: df6e02fe
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
@@ -1172,19 +1172,32 @@ E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId),
 
 ## Rationale
 
-Future multi-source editing will need (a) a way for an event to identify the events it amends or supersedes, and (b) a stable per-aggregate version reference for optimistic concurrency control. Reserve the schema field shape and the read-side query now so that introducing those flows does not require a schema migration or a hash-chain rewrite. At the current phase the causality field is empty on every event and the version query exists for read-side use only (audit displays, integration tests).
+Future multi-source editing will need (a) a way for an event to identify the events it replaces, and (b) a stable per-aggregate version reference for optimistic concurrency control. Reserve the schema field shape and the read-side query now so that introducing those flows does not require a schema migration or a hash-chain rewrite. At the current phase the `supersedes` field is empty on every event (library-enforced) and the version query exists for read-side use only (audit displays, integration tests).
+
+## Scope
+
+This REQ reserves field shape and a read-side query only. It does NOT define the semantics of multi-source editing. The following are intentionally NOT specified here and are deferred to the multi-source-edit design REQ (not yet authored):
+
+1. **Authorization** — who (which `Source.hopId` role-class) is permitted to author an event with non-empty `supersedes.event_ids` against which entry types.
+2. **Graph rules** — whether `supersedes.event_ids` may reference events in a different aggregate, a different installation, or events older than some retention boundary; whether chains may branch or must be linear.
+3. **Materializer interpretation** — whether projections render the chain head only, render original + corrections side-by-side, or honor a per-entry-type policy.
+4. **Concurrent supersession conflict policy** — what happens when two writers independently mint events superseding the same `event_id`.
+5. **Patient-review state** — whether a clinician-authored superseding event becomes live immediately on the patient-facing projection or waits on a separate consent / review event.
+6. **`kind` value taxonomy** — whether `kind` is a closed enum (`"correction"`, `"amendment"`, `"retraction"`, ...) or open free-form. Today it is open and the library SHALL NOT validate values.
+
+Implementations of multi-source editing SHALL author a follow-on REQ that resolves all six items above before any consumer is permitted to mint events with non-empty `supersedes.event_ids`.
 
 ## Assertions
 
-A. (Causality field) `StoredEvent.metadata` SHALL include a nullable `causality` record with fields `supersedes: List<String>` (event_ids; empty when no causal links) and `kind: String?` (optional categorization, e.g., `"correction"`, `"amendment"`).
+A. (Supersedes field) `StoredEvent.metadata` SHALL include a nullable `supersedes` record with fields `event_ids: List<String>` (the `event_id` values this event replaces; empty when no replacement links) and `kind: String?` (optional categorization, e.g., `"correction"`, `"amendment"`).
 
-B. (Causality field) `EventStore.append` SHALL accept a caller-supplied `causality` value verbatim and stamp it onto the persisted event without inspection.
+B. (Supersedes field) `EventStore.append` SHALL accept a caller-supplied `supersedes` value and stamp it onto the persisted event without inspecting graph membership of `event_ids` (the library does not validate that referenced ids exist, are in the same aggregate, or were authored by an authorized hop). The library is permission-blind on the *content* of the field per REQ-d00141-D; assertion E below is the one and only library-enforced rule on this field at the current phase.
 
-C. (Causality field) `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.causality` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
+C. (Supersedes field) `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.supersedes` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
 
-D. (Causality field) `causality` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with causal links is detectable via Chain 1 verification.
+D. (Supersedes field) `supersedes` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with replacement links is detectable via Chain 1 verification.
 
-E. (Causality field) At the current phase, `causality.supersedes` SHALL be empty on every event written by every consumer.
+E. (Supersedes field — current-phase invariant) `EventStore.append` SHALL reject events whose `metadata['supersedes'].event_ids` is non-empty by throwing `MultiSourceEditingNotEnabled`. This rejection is library-enforced (NOT consumer discipline) so that the empty-invariant cannot be silently violated by a misbehaving consumer; it preserves the permission-blind invariant per REQ-d00141-D because it depends only on the literal field value, not on caller identity. Lifting this rejection requires the follow-on multi-source-edit REQ that resolves the deferred items in the Scope section above.
 
 F. (Aggregate version query) `EventStore` SHALL provide `aggregateVersion(String aggregateId, {SequenceNumber? at})` returning `AggregateVersion(eventCount: int, headEventHash: String)`.
 
@@ -1194,9 +1207,9 @@ H. (Aggregate version query) The query SHALL run inside a `StorageBackend.transa
 
 I. (Aggregate version query) A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expectedVersion, ...)` for conditional append; naming and shape SHALL leave room for it.
 
-J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00145 (ingest contract).
+J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00141-D (permission-blind invariant — assertion E is consistent with this), REQ-d00145 (ingest contract).
 
-*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 1bf115c6
+*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: fece9973
 
 # REQ-d00158: StorageBackend Interface Storage-Neutrality
 
@@ -1208,17 +1221,17 @@ The abstract `StorageBackend` interface expresses what consumers (`EventStore`, 
 
 ## Assertions
 
-A. The `StorageBackend` interface SHALL express change-notification via an implementable hook (payload-passing) rather than a `Stream` controller owned by the abstract interface.
+A. The `StorageBackend` interface SHALL express change-notification via an implementable hook accepting a payload, NOT a `Stream` controller owned by the abstract interface. (Rationale: a single-process `Stream` controller binds the interface to in-memory fan-out and forecloses cross-process notification mechanisms.)
 
-B. The interface SHALL NOT expose process-local reentrancy guards (e.g., `_inFlight` booleans, currently in `SyncCycle`) as part of its contract; serialization is the implementation's responsibility.
+B. The interface SHALL NOT expose serialization-or-reentrancy-control primitives as part of its contract — neither booleans, locks, mutexes, nor any other in-memory mutual-exclusion handle. The interface SHALL specify the *concurrency property required of an implementation* (e.g., "concurrent calls to `transaction(...)` SHALL be serializable per-aggregate") and SHALL leave the realization mechanism to the implementation, so that an in-process implementation MAY use a local mutex while a Postgres implementation MAY use advisory locks or serializable isolation. (Non-normative: today's `SembastBackend` realizes this with an in-memory reentrancy guard; that guard is an implementation detail not part of the interface.)
 
-C. Caches that span transactions (e.g., destination-schedule caches like `DestinationRegistry._schedules`) SHALL be authored against an interface admitting cross-process invalidation; library tests SHALL exercise such caches against a stub backend simulating a competing writer.
+C. Caches whose lifetime spans more than one transaction SHALL be authored against an interface that admits cross-process invalidation — i.e., a cache MUST NOT assume that the only writer to its underlying data is the local process. The interface SHALL provide either an explicit invalidation hook or change-notification (assertion A). Library tests SHALL exercise such caches against a stub backend simulating a competing writer.
 
-D. A future Postgres-backed implementation of `StorageBackend` SHALL be permitted to use Postgres-native primitives (advisory locks, `LISTEN`/`NOTIFY`, serializable transactions) without modifying the abstract interface.
+D. A future Postgres-backed implementation of `StorageBackend` SHALL be permitted to use Postgres-native primitives (advisory locks, `LISTEN`/`NOTIFY`, serializable transactions) without modifying the abstract interface, exactly because assertions A–C constrain the interface to abstract concurrency properties rather than in-process mechanisms.
 
 E. Cross-references: REQ-d00117 (transaction atomicity), REQ-d00141-D (permission-blind invariant).
 
-*End* *StorageBackend Interface Storage-Neutrality* | **Hash**: 51024af7
+*End* *StorageBackend Interface Storage-Neutrality* | **Hash**: 1174b482
 
 # REQ-d00159: Library Lifecycle Event Protocol
 
@@ -1226,25 +1239,34 @@ E. Cross-references: REQ-d00117 (transaction atomicity), REQ-d00141-D (permissio
 
 ## Rationale
 
-The library participates in process-level lifecycle (graceful shutdown, unexpected restart) by emitting defined system events. Two boot paths are distinguished by inspecting the local event log's tail at startup: a tail of `lifecycle.shutdown_completed` indicates an expected restart; any other tail indicates an unexpected restart. The protocol provides FDA 21 CFR Part 11 attribution of process-level events through the same audit infrastructure as data events.
+The library participates in process-level lifecycle (graceful shutdown, unexpected restart, first install) by emitting defined system events. Three boot paths are distinguished by inspecting the local event log's tail at startup: an empty log indicates a first boot, a tail of `lifecycle.shutdown_completed` indicates an expected restart, any other tail indicates an unexpected restart. The protocol provides FDA 21 CFR Part 11 attribution of process-level events through the same audit infrastructure as data events.
+
+The library is a library, not a process owner: when it cannot safely initialize (e.g., the local log was written by a future incompatible build), it raises a typed error and refuses to return an `EventStore` instance. The host wrapper decides what to do with that error (log, exit, surface to UI). The library SHALL NOT call `exit` itself.
 
 ## Assertions
 
-A. The library SHALL define lifecycle entry types: `lifecycle.shutdown_requested`, `lifecycle.shutdown_completed`, `lifecycle.shutdown_timed_out`, `lifecycle.boot_started`, `lifecycle.boot_unexpected_restart`. Each SHALL be a reserved system entry type per REQ-d00134 / REQ-d00154-D (`materialize == false`).
+A. The library SHALL define lifecycle entry types: `lifecycle.shutdown_requested`, `lifecycle.shutdown_completed`, `lifecycle.shutdown_timed_out`, `lifecycle.boot_started`, `lifecycle.boot_unexpected_restart`, `lifecycle.first_boot`. Each SHALL be a reserved system entry type per REQ-d00134 / REQ-d00154-D (`materialize == false`).
 
-B. The library SHALL provide `EventStore.requestGracefulShutdown({required Duration drainTimeout})` which: (1) emits `lifecycle.shutdown_requested`, (2) causes subsequent `EventStore.append` calls to throw `ShutdownInProgress`, (3) allows in-flight transactions to complete, (4) on quiescence emits `lifecycle.shutdown_completed`, OR on `drainTimeout` expiry emits `lifecycle.shutdown_timed_out`, as the final event before the method returns.
+B. The library SHALL provide `EventStore.requestGracefulShutdown({required Duration drainTimeout})` which establishes a *write-frozen* state for the duration of the drain, with the following operational contract:
+  1. The method emits `lifecycle.shutdown_requested` as its first action.
+  2. Once `lifecycle.shutdown_requested` has been appended, the library SHALL refuse all caller-driven mutating entry points by throwing `ShutdownInProgress`. The frozen surface SHALL include at minimum: `EventStore.append`, `EventStore.ingestBatch`, `EventStore.ingestEvent`, any caller-driven mutation of per-destination FIFO state introduced by REQ-d00119 (e.g., enqueue, advance-cursor, defer), and any caller-driven invocation of recovery operations (rebuild, reseed, retention compaction).
+  3. Reads SHALL remain available throughout the drain: `EventStore` query methods, `aggregateVersion` (REQ-d00157-F), `verifyOriginatorUnanimity` (REQ-d00155-D), `verifyEventChain`, and any read-only `StorageBackend` query SHALL continue to succeed.
+  4. In-flight transactions begun before `lifecycle.shutdown_requested` SHALL be allowed to complete; transactions begun after SHALL fail with `ShutdownInProgress`.
+  5. Background materializer / FIFO drain work SHALL continue to flush queued work but SHALL NOT accept new enqueue calls (covered by clause 2).
+  6. `LifecycleHooks.beforeShutdownDrain` callbacks (REQ-d00160-B) SHALL run after `lifecycle.shutdown_requested` and before quiescence is awaited.
+  7. On quiescence the library emits `lifecycle.shutdown_completed`, OR on `drainTimeout` expiry emits `lifecycle.shutdown_timed_out`, as the final event before the method returns. `LifecycleHooks.afterShutdownComplete` (REQ-d00160-C) SHALL run after this final event and before the method returns.
 
-C. The library SHALL emit `lifecycle.boot_started` as the first event of every process boot, before any caller-driven append. Event `data` SHALL include `software_version` (REQ-d00115-E format), `lib_format_version` (matching `StoredEvent.currentLibFormatVersion`), and `boot_verdict` whose value is `"expected"` when the immediately preceding event in the log is `lifecycle.shutdown_completed`, else `"unexpected"`.
+C. The library SHALL emit `lifecycle.boot_started` as the first event of every process boot, before any caller-driven append. Event `data` SHALL include `software_version` (REQ-d00115-E format), `lib_format_version` (matching `StoredEvent.currentLibFormatVersion`), and `boot_verdict` taking exactly one of three values: `"first_boot"` when the local event log is empty (no prior events from any boot), `"expected"` when the immediately preceding event in the log is `lifecycle.shutdown_completed`, else `"unexpected"`.
 
-D. When `boot_verdict == "unexpected"`, the library SHALL emit `lifecycle.boot_unexpected_restart` immediately after `lifecycle.boot_started`. Event `data` SHALL include `last_seen_event_id`, `last_seen_event_type`, and `last_seen_client_timestamp` from the prior tail.
+D. When `boot_verdict == "unexpected"`, the library SHALL emit `lifecycle.boot_unexpected_restart` immediately after `lifecycle.boot_started`. Event `data` SHALL include `last_seen_event_id`, `last_seen_event_type`, and `last_seen_client_timestamp` from the prior tail. When `boot_verdict == "first_boot"`, the library SHALL emit `lifecycle.first_boot` immediately after `lifecycle.boot_started` (with no prior-tail metadata, since the log is empty). When `boot_verdict == "expected"`, neither follow-on event is emitted.
 
-E. When the library detects on boot that the local event log contains any event with `lib_format_version > StoredEvent.currentLibFormatVersion`, it SHALL refuse to start, write a structured diagnostic to stderr identifying the offending `event_id` and version mismatch, and exit with a non-zero status. The library SHALL NOT attempt to append `lifecycle.boot_started` in this case.
+E. When the library detects on boot that the local event log contains any event with `lib_format_version > StoredEvent.currentLibFormatVersion`, it SHALL refuse to initialize by raising a typed `LibFormatTooNewError` from the bootstrap entry point (e.g., `bootstrapEventSourcingDatastore`). The error SHALL carry the offending `event_id`, the observed `lib_format_version`, and the local `currentLibFormatVersion`. The library SHALL NOT call `exit`, write to stderr, or otherwise prescribe host-process behavior. The library SHALL NOT attempt to append `lifecycle.boot_started` in this case. The host wrapper SHALL decide log-routing, exit code, or UI surfacing.
 
 F. Lifecycle events SHALL follow the system-event aggregate convention (REQ-d00154) so that bridged system streams from multiple installations remain distinguishable on receivers.
 
-G. Cross-references: REQ-d00115 (provenance), REQ-d00134 / REQ-d00154-D (reserved system entry types, no materialization), REQ-d00141-E (lib_format_version stamping), REQ-d00145-L (lib_format-too-new on ingest).
+G. Cross-references: REQ-d00115 (provenance), REQ-d00119 (per-destination FIFO), REQ-d00134 / REQ-d00154-D (reserved system entry types, no materialization), REQ-d00141-E (lib_format_version stamping), REQ-d00145-L (lib_format-too-new on ingest), REQ-d00160 (lifecycle hooks).
 
-*End* *Library Lifecycle Event Protocol* | **Hash**: de9dec4a
+*End* *Library Lifecycle Event Protocol* | **Hash**: 7b728e05
 
 # REQ-d00160: Lifecycle Hook Surface for Storage-Specific Operations
 
