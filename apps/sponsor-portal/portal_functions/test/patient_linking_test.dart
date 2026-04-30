@@ -693,14 +693,14 @@ void main() {
       expect(invalidReasonError['error'], contains('Other'));
     });
 
-    test('other reason requires notes', () {
-      final notesRequiredError = {
-        'error': 'Notes are required when reason is "Other"',
-      };
-
-      expect(notesRequiredError['error'], contains('Notes'));
-      expect(notesRequiredError['error'], contains('Other'));
-    });
+    test(
+      'other reason does not require notes (predefined list only per REQ-CAL-p00020)',
+      () {
+        // Notes are no longer required for "Other" — the UI shows only the predefined
+        // dropdown and never sends notes. The backend accepts "Other" without notes.
+        expect(validDisconnectReasons, contains('Other'));
+      },
+    );
 
     test('role error message is specific to disconnect', () {
       final roleError = {'error': 'Only Investigators can disconnect patients'};
@@ -1530,19 +1530,29 @@ void main() {
         expect(body['error'], contains('Invalid reason'));
       });
 
-      test('returns 400 when Other reason has no notes', () async {
-        final request = _request(
-          'POST',
-          '/api/v1/portal/patients/disconnect',
-          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
-        );
+      test(
+        'accepts Other reason without notes (REQ-CAL-p00020: predefined list only)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) return [];
+                return [];
+              };
 
-        final response = await disconnectPatientHandler(request);
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/disconnect',
+            body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
+          );
 
-        expect(response.statusCode, 400);
-        final body = await _json(response);
-        expect(body['error'], contains('Notes'));
-      });
+          final response = await disconnectPatientHandler(request);
+
+          // Proceeds past notes validation to DB lookup (404) — not a 400 notes error
+          expect(response.statusCode, isNot(400));
+          final body = await _json(response);
+          expect(body['error'], isNot(contains('Notes')));
+        },
+      );
 
       test('returns 404 when patient not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {

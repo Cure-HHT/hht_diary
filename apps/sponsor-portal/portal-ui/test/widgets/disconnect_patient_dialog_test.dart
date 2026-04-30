@@ -132,7 +132,10 @@ void main() {
         DisconnectReason.technicalIssues.description,
         'App not working, sync problems',
       );
-      expect(DisconnectReason.other.description, 'Specify reason in notes');
+      expect(
+        DisconnectReason.other.description,
+        'No additional details required',
+      );
     });
 
     test('has exactly 3 values matching spec', () {
@@ -165,17 +168,19 @@ void main() {
       expect(find.byIcon(Icons.link_off), findsWidgets);
     });
 
-    testWidgets('confirm state shows reason dropdown and notes field', (
-      tester,
-    ) async {
-      final apiClient = await _createMockApiClient();
+    testWidgets(
+      'confirm state shows reason dropdown only (no free text field)',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
 
-      await _pumpDialog(tester, apiClient);
+        await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reason for disconnection *'), findsOneWidget);
-      expect(find.text('Select a reason'), findsOneWidget);
-      expect(find.textContaining('Additional notes'), findsOneWidget);
-    });
+        expect(find.text('Reason for disconnection *'), findsOneWidget);
+        expect(find.text('Select a reason'), findsOneWidget);
+        expect(find.textContaining('Additional notes'), findsNothing);
+        expect(find.byType(TextField), findsNothing);
+      },
+    );
 
     testWidgets('confirm state shows warning message', (tester) async {
       final apiClient = await _createMockApiClient();

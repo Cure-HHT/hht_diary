@@ -448,7 +448,7 @@ const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 /// Disconnect a patient from the mobile app
 /// POST /api/v1/portal/patients/:patientId/disconnect
 /// Authorization: Bearer <Identity Platform ID token>
-/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other", "notes": "..." }
+/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other", "notes": "..." (optional) }
 ///
 /// Disconnects a connected patient:
 /// - Requires Investigator role with site access to patient's site
@@ -515,13 +515,7 @@ Future<Response> disconnectPatientHandler(Request request) async {
     }, 400);
   }
 
-  // If reason is "Other", notes are required
   final notes = requestData['notes'] as String?;
-  if (reason == 'Other' && (notes == null || notes.trim().isEmpty)) {
-    return _jsonResponse({
-      'error': 'Notes are required when reason is "Other"',
-    }, 400);
-  }
 
   final db = Database.instance;
   const serviceContext = UserContext.service;

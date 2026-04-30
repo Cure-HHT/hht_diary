@@ -13,7 +13,7 @@ import '../services/api_client.dart';
 enum DisconnectReason {
   deviceIssues('Device Issues', 'Lost, stolen, or damaged device'),
   technicalIssues('Technical Issues', 'App not working, sync problems'),
-  other('Other', 'Specify reason in notes');
+  other('Other', 'No additional details required');
 
   final String label;
   final String description;
@@ -76,37 +76,20 @@ class DisconnectPatientDialog extends StatefulWidget {
 class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
   _DialogState _state = _DialogState.confirm;
   DisconnectReason? _selectedReason;
-  final _notesController = TextEditingController();
   String? _error;
   int _codesRevoked = 0;
 
-  @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  bool get _canSubmit {
-    if (_selectedReason == null) return false;
-    if (_selectedReason == DisconnectReason.other &&
-        _notesController.text.trim().isEmpty) {
-      return false;
-    }
-    return true;
-  }
+  bool get _canSubmit => _selectedReason != null;
 
   Future<void> _disconnect() async {
     if (!_canSubmit) return;
 
     setState(() => _state = _DialogState.loading);
 
-    final response = await widget.apiClient
-        .post('/api/v1/portal/patients/disconnect', {
-          'patientId': widget.patientId,
-          'reason': _selectedReason!.label,
-          if (_notesController.text.trim().isNotEmpty)
-            'notes': _notesController.text.trim(),
-        });
+    final response = await widget.apiClient.post(
+      '/api/v1/portal/patients/disconnect',
+      {'patientId': widget.patientId, 'reason': _selectedReason!.label},
+    );
 
     if (!mounted) return;
 
@@ -264,29 +247,6 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Notes field
-              Text(
-                _selectedReason == DisconnectReason.other
-                    ? 'Additional notes *'
-                    : 'Additional notes (optional)',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _notesController,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter details...',
-                  contentPadding: const EdgeInsets.all(12),
-                  helperText: _selectedReason == DisconnectReason.other
-                      ? 'Required when reason is "Other"'
-                      : null,
-                ),
-                maxLines: 3,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 16),
-
               // Warning message
               Container(
                 padding: const EdgeInsets.all(12),
@@ -349,10 +309,6 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildInfoRow(theme, 'Reason', _selectedReason?.label ?? '-'),
-                  if (_notesController.text.trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _buildInfoRow(theme, 'Notes', _notesController.text.trim()),
-                  ],
                   const SizedBox(height: 8),
                   _buildInfoRow(
                     theme,
