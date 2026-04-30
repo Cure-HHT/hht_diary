@@ -88,9 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _siteName;
   String? _sitePhoneNumber;
 
-  // CUR-1165: Not participating state (REQ-p01065-D)
-  bool _isNotParticipating = false;
-
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
@@ -198,11 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkNotParticipatingStatus() async {
     final isNotParticipating = await widget.enrollmentService
         .isNotParticipating();
-    if (mounted) {
-      setState(() {
-        _isNotParticipating = isNotParticipating;
-      });
-    }
     // REQ-p01065-D: Remove sponsor-specific rules when not participating
     if (isNotParticipating) {
       FeatureFlagService.instance.resetToDefaults();
@@ -898,9 +890,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
                     isEnrolled: _isEnrolled,
-                    // CUR-1165: Hide "End Clinical Trial" when not_participating —
-                    // sponsor portal already ended the participation.
-                    onEndClinicalTrial: _isEnrolled && !_isNotParticipating
+                    onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
