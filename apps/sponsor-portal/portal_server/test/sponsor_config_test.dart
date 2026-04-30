@@ -144,7 +144,36 @@ void main() {
         expect(flags.containsKey('availableFonts'), isTrue);
         // REQ-p01044-C: inactivity timeout must be present
         expect(flags.containsKey('inactivityTimeoutMinutes'), isTrue);
+        // REQ-p70010-C: disconnect reason format flag must be present
+        expect(flags.containsKey('disconnectReasonDropdown'), isTrue);
       });
+    });
+
+    // REQ-p70010-C: default is predefined dropdown
+    test('default disconnectReasonDropdown is true', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=curehht'),
+      );
+
+      final response = sponsorConfigHandler(request);
+      final body = await response.readAsString();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+
+      expect(json['flags']['disconnectReasonDropdown'], isTrue);
+    });
+
+    test('unknown sponsor disconnectReasonDropdown defaults to true', () async {
+      final request = Request(
+        'GET',
+        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=unknown'),
+      );
+
+      final response = sponsorConfigHandler(request);
+      final body = await response.readAsString();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+
+      expect(json['flags']['disconnectReasonDropdown'], isTrue);
     });
 
     // REQ-p01044-B: default timeout is 2 minutes

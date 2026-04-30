@@ -41,12 +41,15 @@ class DisconnectPatientDialog extends StatefulWidget {
   final String patientId;
   final String patientDisplayId;
   final ApiClient apiClient;
+  // REQ-p70010-C: true = predefined dropdown, false = free text field
+  final bool useDropdown;
 
   const DisconnectPatientDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
     required this.apiClient,
+    this.useDropdown = true,
   });
 
   /// Shows the dialog and returns true if the patient was disconnected successfully.
@@ -55,6 +58,7 @@ class DisconnectPatientDialog extends StatefulWidget {
     required String patientId,
     required String patientDisplayId,
     required ApiClient apiClient,
+    bool useDropdown = true,
   }) async {
     final result = await showDialog<bool>(
       context: context,
@@ -63,6 +67,7 @@ class DisconnectPatientDialog extends StatefulWidget {
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         apiClient: apiClient,
+        useDropdown: useDropdown,
       ),
     );
     return result ?? false;
@@ -76,19 +81,31 @@ class DisconnectPatientDialog extends StatefulWidget {
 class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
   _DialogState _state = _DialogState.confirm;
   DisconnectReason? _selectedReason;
+  final _reasonTextController = TextEditingController();
   String? _error;
   int _codesRevoked = 0;
 
-  bool get _canSubmit => _selectedReason != null;
+  bool get _canSubmit => widget.useDropdown
+      ? _selectedReason != null
+      : _reasonTextController.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _reasonTextController.dispose();
+    super.dispose();
+  }
 
   Future<void> _disconnect() async {
     if (!_canSubmit) return;
 
     setState(() => _state = _DialogState.loading);
 
+    final reason = widget.useDropdown
+        ? _selectedReason!.label
+        : _reasonTextController.text.trim();
     final response = await widget.apiClient.post(
       '/api/v1/portal/patients/disconnect',
-      {'patientId': widget.patientId, 'reason': _selectedReason!.label},
+      {'patientId': widget.patientId, 'reason': reason},
     );
 
     if (!mounted) return;
@@ -202,49 +219,64 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
               ),
               const SizedBox(height: 20),
 
-              // Reason dropdown
+              // Reason input — dropdown or free text based on sponsor config
               Text(
                 'Reason for disconnection *',
                 style: theme.textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<DisconnectReason>(
-                initialValue: _selectedReason,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Select a reason',
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                items: DisconnectReason.values.map((reason) {
-                  return DropdownMenuItem(
-                    value: reason,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(reason.label),
-                        Text(
-                          reason.description,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+              if (widget.useDropdown)
+                DropdownButtonFormField<DisconnectReason>(
+                  initialValue: _selectedReason,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Select a reason',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedReason = value);
-                },
-                selectedItemBuilder: (context) {
-                  return DisconnectReason.values.map((reason) {
-                    return Text(reason.label);
-                  }).toList();
-                },
-              ),
+                  ),
+                  items: DisconnectReason.values.map((reason) {
+                    return DropdownMenuItem(
+                      value: reason,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(reason.label),
+                          Text(
+                            reason.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedReason = value);
+                  },
+                  selectedItemBuilder: (context) {
+                    return DisconnectReason.values.map((reason) {
+                      return Text(reason.label);
+                    }).toList();
+                  },
+                )
+              else
+                TextField(
+                  controller: _reasonTextController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter reason for disconnection',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  maxLines: 3,
+                  onChanged: (_) => setState(() {}),
+                ),
               const SizedBox(height: 16),
 
               // Warning message

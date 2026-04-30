@@ -9,6 +9,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:meta/meta.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -51,6 +52,10 @@ class SponsorFeatureFlags {
   // When false, single-use: one send, one finalize, done.
   final bool enableCycleTracking;
 
+  // REQ-p70010-C: sponsor-configurable disconnect reason format.
+  // true = predefined dropdown (default, per REQ-CAL-p00020), false = free text field.
+  final bool disconnectReasonDropdown;
+
   SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
@@ -62,6 +67,7 @@ class SponsorFeatureFlags {
     this.inactivityTimeoutMinutes = 2,
     this.requireInitialCycleSelection = true,
     this.enableCycleTracking = true,
+    this.disconnectReasonDropdown = true,
   }) : assert(
          inactivityTimeoutMinutes >= 1 && inactivityTimeoutMinutes <= 30,
          'inactivityTimeoutMinutes must be between 1 and 30 (got $inactivityTimeoutMinutes)',
@@ -81,6 +87,8 @@ class SponsorFeatureFlags {
     'requireInitialCycleSelection': requireInitialCycleSelection,
     // REQ-CAL-p00080-M: cycle tracking toggle
     'enableCycleTracking': enableCycleTracking,
+    // REQ-p70010-C: disconnect reason format
+    'disconnectReasonDropdown': disconnectReasonDropdown,
   };
 }
 
@@ -112,8 +120,13 @@ final _sponsorConfigs = <String, SponsorFeatureFlags>{
   ),
 };
 
+/// Test-only: Override [getCurrentSponsorFlags] to return specific flags.
+@visibleForTesting
+SponsorFeatureFlags? getCurrentSponsorFlagsOverride;
+
 /// Returns the feature flags for the current sponsor (from SPONSOR_ID env var).
 SponsorFeatureFlags getCurrentSponsorFlags() {
+  if (getCurrentSponsorFlagsOverride != null) return getCurrentSponsorFlagsOverride!;
   final sponsorId = (Platform.environment['SPONSOR_ID'] ?? '')
       .toLowerCase()
       .trim();

@@ -23,6 +23,7 @@ import 'package:portal_functions/src/database.dart';
 import 'package:portal_functions/src/notification_service.dart';
 import 'package:portal_functions/src/patient_linking.dart';
 import 'package:portal_functions/src/portal_auth.dart';
+import 'package:portal_functions/src/sponsor.dart';
 
 /// Test constants
 const _testPatientId = 'patient-001';
@@ -1630,6 +1631,106 @@ void main() {
         final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
+      });
+
+      group('sponsor-aware reason validation (REQ-p70010-C)', () {
+        tearDown(() => getCurrentSponsorFlagsOverride = null);
+
+        test(
+          'rejects non-predefined reason when disconnectReasonDropdown=true',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: true,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('Invalid reason'));
+          },
+        );
+
+        test(
+          'accepts free-text reason when disconnectReasonDropdown=false',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              if (query.contains('FROM patients')) {
+                return [_patientRow(status: 'connected')];
+              }
+              return [];
+            };
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 200);
+            final body = await _json(response);
+            expect(body['reason'], 'Custom free text reason');
+          },
+        );
+
+        test(
+          'rejects empty reason regardless of disconnectReasonDropdown value',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({'patientId': _testPatientId, 'reason': ''}),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('reason'));
+          },
+        );
       });
     });
 

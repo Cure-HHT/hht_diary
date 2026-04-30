@@ -272,6 +272,9 @@ class AuthService extends ChangeNotifier {
   // REQ-p01044-C: mutable so sponsor config can override after login
   Duration _inactivityTimeout;
 
+  // REQ-p70010-C: sponsor-configurable disconnect reason format
+  bool _disconnectReasonDropdown = true;
+
   PortalUser? _currentUser;
   bool _isLoading = false;
   String? _error;
@@ -325,6 +328,9 @@ class AuthService extends ChangeNotifier {
   // Exposes the current inactivity timeout for testing.
   @visibleForTesting
   Duration get currentInactivityTimeout => _inactivityTimeout;
+
+  // REQ-p70010-C: whether this sponsor uses predefined dropdown (true) or free text (false).
+  bool get disconnectReasonDropdown => _disconnectReasonDropdown;
 
   /// Update the inactivity timeout.
   ///
@@ -902,6 +908,9 @@ class AuthService extends ChangeNotifier {
           updateInactivityTimeout(Duration(minutes: clamped));
           debugPrint('[AuthService] Sponsor timeout applied: $clamped min');
         }
+        // REQ-p70010-C: disconnect reason format flag
+        _disconnectReasonDropdown =
+            flags?['disconnectReasonDropdown'] as bool? ?? true;
       }
     } catch (e) {
       debugPrint(

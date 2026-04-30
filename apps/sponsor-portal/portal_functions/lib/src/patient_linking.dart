@@ -28,6 +28,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'notification_service.dart';
 import 'portal_auth.dart';
+import 'sponsor.dart';
 
 /// Expiration duration for linking codes (72 hours per REQ-p70007)
 const linkingCodeExpiration = Duration(hours: 72);
@@ -448,7 +449,8 @@ const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 /// Disconnect a patient from the mobile app
 /// POST /api/v1/portal/patients/:patientId/disconnect
 /// Authorization: Bearer <Identity Platform ID token>
-/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other", "notes": "..." (optional) }
+/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other" }
+///   When sponsor config disconnectReasonDropdown=false: reason may be any non-empty string.
 ///
 /// Disconnects a connected patient:
 /// - Requires Investigator role with site access to patient's site
@@ -508,14 +510,15 @@ Future<Response> disconnectPatientHandler(Request request) async {
     return _jsonResponse({'error': 'Missing required field: reason'}, 400);
   }
 
-  if (!validDisconnectReasons.contains(reason)) {
-    return _jsonResponse({
-      'error':
-          'Invalid reason. Must be one of: ${validDisconnectReasons.join(", ")}',
-    }, 400);
+  final sponsorFlags = getCurrentSponsorFlags();
+  if (sponsorFlags.disconnectReasonDropdown) {
+    if (!validDisconnectReasons.contains(reason)) {
+      return _jsonResponse({
+        'error':
+            'Invalid reason. Must be one of: ${validDisconnectReasons.join(", ")}',
+      }, 400);
+    }
   }
-
-  final notes = requestData['notes'] as String?;
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -626,7 +629,6 @@ Future<Response> disconnectPatientHandler(Request request) async {
         'previous_status': currentStatus,
         'new_status': 'disconnected',
         'reason': reason,
-        'notes': notes,
         'codes_revoked': codesRevoked,
         'disconnected_by_email': user.email,
         'disconnected_by_name': user.name,
