@@ -311,9 +311,9 @@
 | REQ-d00115 | ProvenanceEntry Schema and Append Rules                         | dev-event-sourcing-datastore.md | 194aaffd |
 | REQ-d00116 | EntryTypeDefinition Schema                                      | dev-event-sourcing-datastore.md | f7e650e5 |
 | REQ-d00117 | StorageBackend Transaction Contract                             | dev-event-sourcing-datastore.md | bb51d314 |
-| REQ-d00118 | Event Record Schema                                             | dev-event-sourcing-datastore.md | 2e87c198 |
+| REQ-d00118 | Event Record Schema                                             | dev-event-sourcing-datastore.md | 1c010e32 |
 | REQ-d00119 | Per-Destination FIFO Queue Semantics                            | dev-event-sourcing-datastore.md | 923b8d02 |
-| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification         | dev-event-sourcing-datastore.md | 550c623e |
+| REQ-d00120 | Canonical Hashing for Cross-Platform Event Verification         | dev-event-sourcing-datastore.md | d10798de |
 | REQ-d00121 | diary_entries Materialization from Event Log                    | dev-event-sourcing-datastore.md | fe7223f0 |
 | REQ-d00122 | Destination Contract for Per-Destination Sync                   | dev-event-sourcing-datastore.md | 1b3481f3 |
 | REQ-d00123 | SyncPolicy Retry Backoff Curve                                  | dev-event-sourcing-datastore.md | 3efbe4b4 |
@@ -332,7 +332,7 @@
 | REQ-d00138 | Security Retention Policy and Redaction Audit                   | dev-event-sourcing-datastore.md | 5bd6419f |
 | REQ-d00139 | No-Secrets Invariant on Event Data and flowToken                | dev-event-sourcing-datastore.md | 8c4df58e |
 | REQ-d00140 | Pluggable Materializer Contract                                 | dev-event-sourcing-datastore.md | a77b1ff6 |
-| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | df6e02fe |
+| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | 8b87ea13 |
 | REQ-d00142 | Source Stamping Provenance Identity                             | dev-event-sourcing-datastore.md | 02769511 |
 | REQ-d00143 | Storage Failure Taxonomy                                        | dev-event-sourcing-datastore.md | 59ed82f7 |
 | REQ-d00144 | tombstoneAndRefill Operation                                    | dev-event-sourcing-datastore.md | 3fe240dc |
@@ -348,7 +348,7 @@
 | REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-datastore.md | 00169ff6 |
 | REQ-d00155 | Originator Hop Binding and Unanimity Verification               | dev-event-sourcing-datastore.md | a42e6221 |
 | REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | c191b368 |
-| REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md | fece9973 |
+| REQ-d00157 | Aggregate Version Snapshot for Optimistic Concurrency           | dev-event-sourcing-datastore.md | eccc11d9 |
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 1174b482 |
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | 7b728e05 |
 | REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |

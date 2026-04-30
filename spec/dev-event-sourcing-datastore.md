@@ -140,9 +140,7 @@ E. Every event record SHALL carry a top-level `entry_type_version` integer field
 
 F. Every event record SHALL carry a top-level `lib_format_version` integer field whose value identifies the storage shape the lib used to persist the event. The value is stamped by the lib at `EventStore.append` time from the constant `StoredEvent.currentLibFormatVersion`; callers of `EventStore.append` SHALL NOT supply this field.
 
-G. Every event record's `metadata` field MAY carry a nullable `supersedes` record per REQ-d00157-A (`event_ids: List<String>`, `kind: String?`); the field is part of `metadata` (not a top-level event field) and therefore participates in `event_hash` via the existing `metadata` identity-field clause of REQ-d00120-B. At the current phase `supersedes.event_ids` SHALL be empty on every event written (REQ-d00157-E).
-
-*End* *Event Record Schema* | **Hash**: 2e87c198
+*End* *Event Record Schema* | **Hash**: 1c010e32
 
 ---
 
@@ -199,9 +197,7 @@ D. The canonicalization scheme used SHALL NOT be changed without a spec amendmen
 E. When a receiver appends a `ProvenanceEntry` to `metadata.provenance` during ingest, the event's `event_hash` SHALL be recomputed over the identity field set specified in assertion B (which includes `metadata`, and therefore the extended provenance chain), and the recomputed value SHALL be stored in place of the wire `event_hash`. The originator's `event_hash` remains recoverable via the Chain 1 walk specified in REQ-d00146-A. Cross-store byte-for-byte comparison of raw `event_hash` is not a valid identity check on ingested events; the Chain 1 walk is the specified mechanism.
 On every ingest hop the `event_hash` field is a function of the provenance chain as it stood at that hop. A receiver's stored `event_hash` is therefore the receiver's own output hash, not the originator's output hash. Identity preservation across hops is verified by the Chain 1 walk (each receiver entry's `arrival_hash` equals the hash the prior state would produce), not by naive field equality.
 
-F. Sub-fields of `metadata` introduced by other REQs (e.g., `metadata.provenance` per REQ-d00115, `metadata.supersedes` per REQ-d00157-A) participate in `event_hash` via the `metadata` identity-field clause of assertion B; no per-sub-field amendment to assertion B is required when a new sub-field is introduced.
-
-*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: 550c623e
+*End* *Canonical Hashing for Cross-Platform Event Verification* | **Hash**: d10798de
 
 ---
 
@@ -760,9 +756,7 @@ F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion`
 
 G. `EventStore.append` SHALL NOT consult `EntryTypeDefinition.allowedOriginatorHopIds` (REQ-d00155-A) for any gate or filter, preserving the permission-blind invariant of assertion D. The binding from entry type to authorized `Source.hopId` values is consumer-side metadata enforced in the request-handler layer (REQ-d00155-C, REQ-d00156-B+C).
 
-H. `EventStore.append` SHALL accept caller-supplied `metadata['supersedes']` (REQ-d00157-A) and stamp it onto the persisted event without semantic inspection of `event_ids` membership or graph rules (REQ-d00157-B). At the current phase `EventStore.append` SHALL reject events whose `metadata['supersedes'].event_ids` is non-empty (REQ-d00157-E); the empty-invariant is enforced library-side rather than as consumer discipline. The `supersedes` shape participates in `event_hash` because `metadata` is in the identity-fields list per REQ-d00120-B.
-
-*End* *EventStore Append Contract* | **Hash**: df6e02fe
+*End* *EventStore Append Contract* | **Hash**: 8b87ea13
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
@@ -1166,50 +1160,49 @@ E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId),
 
 *End* *Consumer Append Discipline* | **Hash**: c191b368
 
-# REQ-d00157: Multi-Writer Forward-Compatibility Primitives
+# REQ-d00157: Aggregate Version Snapshot for Optimistic Concurrency
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
 ## Rationale
 
-Future multi-source editing will need (a) a way for an event to identify the events it replaces, and (b) a stable per-aggregate version reference for optimistic concurrency control. Reserve the schema field shape and the read-side query now so that introducing those flows does not require a schema migration or a hash-chain rewrite. At the current phase the `supersedes` field is empty on every event (library-enforced) and the version query exists for read-side use only (audit displays, integration tests).
+Future multi-source editing will need a stable per-aggregate version reference for optimistic concurrency control. Reserve the read-side query now so that introducing the conditional-append flow does not require a schema migration. At the current phase the version query exists for read-side use only (audit displays, integration tests); a future REQ will introduce `appendIfVersion` for conditional append that consumes the same shape.
 
-## Scope
+## Out of scope: multi-source-edit semantics
 
-This REQ reserves field shape and a read-side query only. It does NOT define the semantics of multi-source editing. The following are intentionally NOT specified here and are deferred to the multi-source-edit design REQ (not yet authored):
+This REQ does NOT define multi-source-edit semantics. When multi-source editing is designed, supersession (one event canonically replacing another) SHALL be expressed via a dedicated **`conflict_resolution` entry type** authored as its own event, NOT by attaching supersession links to the metadata of the data event itself. The follow-on multi-source-edit design REQ SHALL specify that entry type. Guidance for that future REQ:
 
-1. **Authorization** — who (which `Source.hopId` role-class) is permitted to author an event with non-empty `supersedes.event_ids` against which entry types.
-2. **Graph rules** — whether `supersedes.event_ids` may reference events in a different aggregate, a different installation, or events older than some retention boundary; whether chains may branch or must be linear.
-3. **Materializer interpretation** — whether projections render the chain head only, render original + corrections side-by-side, or honor a per-entry-type policy.
-4. **Concurrent supersession conflict policy** — what happens when two writers independently mint events superseding the same `event_id`.
-5. **Patient-review state** — whether a clinician-authored superseding event becomes live immediately on the patient-facing projection or waits on a separate consent / review event.
-6. **`kind` value taxonomy** — whether `kind` is a closed enum (`"correction"`, `"amendment"`, `"retraction"`, ...) or open free-form. Today it is open and the library SHALL NOT validate values.
+1. **Dedicated entry type, generic resolution.** Supersession SHALL be expressed as a `conflict_resolution` (or analogously-named) event with its own `entry_type` rather than as metadata on the superseding data event. The library SHALL implement a generic resolution rule in the materializer pipeline so that consumers do not each re-implement it: when materializing aggregate A, an event E SHALL be suppressed iff there exists a `conflict_resolution` event whose `superseded_event_ids` contains `E.event_id`.
 
-Implementations of multi-source editing SHALL author a follow-on REQ that resolves all six items above before any consumer is permitted to mint events with non-empty `supersedes.event_ids`.
+2. **Authorization via existing machinery.** The `conflict_resolution` entry type SHALL declare `allowedOriginatorHopIds` (per REQ-d00155-A) restricting which role-classes may author resolution events (typically clinician-only). Authorization is enforced at the request-handler layer per REQ-d00155-C and REQ-d00156-C. No new authorization machinery is required.
+
+3. **Hard rule: same aggregate.** A `conflict_resolution` event SHALL reference only events that share its own `aggregate_id`. The library SHALL enforce this at append time by rejecting resolution events whose `superseded_event_ids` references events in any other aggregate.
+
+4. **Soft rule: entry-type compatibility, registry-declared.** The library SHALL NOT default to "any entry type may supersede any other entry type within an aggregate." The `EntryTypeDefinition` for each `conflict_resolution`-style entry type SHALL declare which superseded entry types it accepts (e.g., `bp_correction` may supersede `bp_reading`). The default if not declared is "may only supersede events of the same `entry_type`."
+
+5. **Fan-out: list, not single id.** The resolution event SHALL carry `superseded_event_ids: List<String>` to support deduplication ("X1 and X2 are duplicates, X1 is the keeper") without needing a second entry type. Single-event supersession is a list of length 1.
+
+6. **Reason text.** The resolution event's `data` SHALL carry a `reason` string captured from the authoring actor, for audit attribution per FDA 21 CFR Part 11.
+
+7. **Concurrent supersession is naturally well-defined.** If two clinicians independently issue resolution events for the same superseded event_id, both events are persisted and the materializer rule ("suppress E iff any resolution lists E") is idempotent in their composition. No tie-breaker policy is required.
+
+8. **Patient-review and other lifecycle states.** If the multi-source-edit design requires that resolutions await patient consent or clinician sign-off before they take effect, that lifecycle SHALL be expressed as further events (e.g., `conflict_resolution_accepted` referencing the resolution event), not as mutable state on the resolution event itself.
+
+This REQ does NOT define `conflict_resolution` today. No metadata field is reserved for supersession. Adding the entry type later is a normal additive change to the entry-type registry; no schema migration is needed.
 
 ## Assertions
 
-A. (Supersedes field) `StoredEvent.metadata` SHALL include a nullable `supersedes` record with fields `event_ids: List<String>` (the `event_id` values this event replaces; empty when no replacement links) and `kind: String?` (optional categorization, e.g., `"correction"`, `"amendment"`).
+A. `EventStore` SHALL provide `aggregateVersion(String aggregateId, {SequenceNumber? at})` returning `AggregateVersion(eventCount: int, headEventHash: String)`.
 
-B. (Supersedes field) `EventStore.append` SHALL accept a caller-supplied `supersedes` value and stamp it onto the persisted event without inspecting graph membership of `event_ids` (the library does not validate that referenced ids exist, are in the same aggregate, or were authored by an authorized hop). The library is permission-blind on the *content* of the field per REQ-d00141-D; assertion E below is the one and only library-enforced rule on this field at the current phase.
+B. The result SHALL be deterministic and reproducible from the persisted event log alone.
 
-C. (Supersedes field) `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.supersedes` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
+C. The query SHALL run inside a `StorageBackend.transaction` consistent snapshot (per REQ-d00117-A).
 
-D. (Supersedes field) `supersedes` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with replacement links is detectable via Chain 1 verification.
+D. A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expectedVersion, ...)` for conditional append; naming and shape SHALL leave room for it.
 
-E. (Supersedes field — current-phase invariant) `EventStore.append` SHALL reject events whose `metadata['supersedes'].event_ids` is non-empty by throwing `MultiSourceEditingNotEnabled`. This rejection is library-enforced (NOT consumer discipline) so that the empty-invariant cannot be silently violated by a misbehaving consumer; it preserves the permission-blind invariant per REQ-d00141-D because it depends only on the literal field value, not on caller identity. Lifting this rejection requires the follow-on multi-source-edit REQ that resolves the deferred items in the Scope section above.
+E. Cross-references: REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00145 (ingest contract), REQ-d00155 (allowedOriginatorHopIds — used by future `conflict_resolution` entry type), REQ-d00156 (consumer append discipline — applies to future `conflict_resolution` authoring).
 
-F. (Aggregate version query) `EventStore` SHALL provide `aggregateVersion(String aggregateId, {SequenceNumber? at})` returning `AggregateVersion(eventCount: int, headEventHash: String)`.
-
-G. (Aggregate version query) The result SHALL be deterministic and reproducible from the persisted event log alone.
-
-H. (Aggregate version query) The query SHALL run inside a `StorageBackend.transaction` consistent snapshot (per REQ-d00117-A).
-
-I. (Aggregate version query) A future REQ SHALL introduce `EventStore.appendIfVersion(aggregateId, expectedVersion, ...)` for conditional append; naming and shape SHALL leave room for it.
-
-J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00141-D (permission-blind invariant — assertion E is consistent with this), REQ-d00145 (ingest contract).
-
-*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: fece9973
+*End* *Aggregate Version Snapshot for Optimistic Concurrency* | **Hash**: eccc11d9
 
 # REQ-d00158: StorageBackend Interface Storage-Neutrality
 
