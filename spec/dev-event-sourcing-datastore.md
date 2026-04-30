@@ -758,11 +758,11 @@ E. `EventStore.append` SHALL stamp `StoredEvent.lib_format_version` from the con
 
 F. `EventStore.append` SHALL NOT validate the caller-supplied `entryTypeVersion` against `EntryTypeDefinition.registered_version` of the local registry. Local append is the local node's prerogative; cross-node validation is performed at ingest per REQ-d00145.
 
-G. `EventStore.append` SHALL NOT consult `EntryTypeDefinition.originatorHopId` (REQ-d00155-A) for any gate or filter, preserving the permission-blind invariant of assertion D. The binding from entry type to authorized `Source.hopId` is consumer-side metadata enforced in the request-handler layer (REQ-d00155-C, REQ-d00156-B+C).
+G. `EventStore.append` SHALL NOT consult `EntryTypeDefinition.allowedOriginatorHopIds` (REQ-d00155-A) for any gate or filter, preserving the permission-blind invariant of assertion D. The binding from entry type to authorized `Source.hopId` values is consumer-side metadata enforced in the request-handler layer (REQ-d00155-C, REQ-d00156-B+C).
 
 H. `EventStore.append` SHALL accept caller-supplied `metadata['causality']` (REQ-d00157-A) verbatim and stamp it onto the persisted event without inspection (REQ-d00157-B); the library SHALL NOT validate `causality.supersedes` content. The `causality` shape participates in `event_hash` because `metadata` is in the identity-fields list per REQ-d00120-B.
 
-*End* *EventStore Append Contract* | **Hash**: cc192fb1
+*End* *EventStore Append Contract* | **Hash**: ffc6363b
 ---
 
 ## REQ-d00142: Source Stamping Provenance Identity
@@ -1120,25 +1120,27 @@ G. `isLocallyOriginated` (assertion B) and `verifyOriginatorUnanimity` (REQ-d001
 
 ## Rationale
 
-Each entry type declares which `Source.hopId` (per REQ-d00142) is authorized to originate events of its kind. The library exposes the binding as queryable metadata and provides a verification helper for audit reports and integration tests; gating remains in the consumer's request-handler layer per REQ-d00141-D (permission-blind invariant). The taxonomy of `hopId` values lives in REQ-d00142; this REQ does not prescribe specific values.
+Each entry type declares which `Source.hopId` values (per REQ-d00142) are authorized to originate events of its kind. The library exposes the binding as queryable metadata (a list — single-element today, multi-element when multi-source editing is introduced) and provides a verification helper for audit reports and integration tests; gating remains in the consumer's request-handler layer per REQ-d00141-D (permission-blind invariant). The taxonomy of `hopId` values lives in REQ-d00142; this REQ does not prescribe specific values.
 
-When multi-source editing is introduced, the unanimity API broadens to "every originator listed is one of the authorized originators for this aggregate's entry-type bundle"; the API surface defined here remains.
+The list shape is declared now — rather than a singular field — so that introducing multi-source editing later does not require a schema migration of `EntryTypeDefinition`. At the current phase every entry type's `allowedOriginatorHopIds` is exactly length 1 (REQ-d00156-B); the unanimity verifier already accepts and reports against the set form.
 
 ## Assertions
 
-A. `EntryTypeDefinition` SHALL carry a non-null `originatorHopId` string field whose value names the `Source.hopId` (per REQ-d00142) authorized to originate events of this entry type.
+A. `EntryTypeDefinition` SHALL carry a non-empty `allowedOriginatorHopIds: List<String>` field whose values name the `Source.hopId` values (per REQ-d00142) authorized to originate events of this entry type. Order SHALL NOT be significant; duplicates SHALL be rejected at registration.
 
-B. `EntryTypeRegistry` SHALL provide `originatorHopIdFor(String entryType)` returning the declared hopId for that entry type.
+B. `EntryTypeRegistry` SHALL provide `allowedOriginatorHopIdsFor(String entryType)` returning the declared set for that entry type.
 
-C. `EventStore.append` and `EventStore.ingestBatch` SHALL NOT consult `originatorHopId` for any gate or filter (preserving REQ-d00141-D permission-blind invariant). The field is metadata for the request-handler layer only.
+C. `EventStore.append` and `EventStore.ingestBatch` SHALL NOT consult `allowedOriginatorHopIds` for any gate or filter (preserving REQ-d00141-D permission-blind invariant). The field is metadata for the request-handler layer only.
 
-D. `EventStore.verifyOriginatorUnanimity(String aggregateId)` SHALL return a verdict listing every distinct `provenance[0].hopId` observed across the aggregate's events.
+D. `EventStore.verifyOriginatorUnanimity(String aggregateId)` SHALL return a verdict listing every distinct `provenance[0].hopId` observed across the aggregate's events, and (when the aggregate's entry types share an `allowedOriginatorHopIds` set) whether every observed hopId is a member of that authorized set.
 
 E. The verification API SHALL be exposed for audit reports and integration tests; the library SHALL NOT invoke it on the append/ingest hot path.
 
-F. Cross-references: REQ-d00115 (provenance), REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId taxonomy), REQ-d00154-B (isLocallyOriginated).
+F. At the current phase every `EntryTypeDefinition.allowedOriginatorHopIds` SHALL be length 1; this single-element invariant is enforced as consumer discipline by REQ-d00156-B and is NOT enforced by the library (preserving the permission-blind invariant).
 
-*End* *Originator Hop Binding and Unanimity Verification* | **Hash**: 29966189
+G. Cross-references: REQ-d00115 (provenance), REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId taxonomy), REQ-d00154-B (isLocallyOriginated).
+
+*End* *Originator Hop Binding and Unanimity Verification* | **Hash**: a42e6221
 
 # REQ-d00156: Consumer Append Discipline
 
@@ -1146,7 +1148,7 @@ F. Cross-references: REQ-d00115 (provenance), REQ-d00141-D (permission-blind), R
 
 ## Rationale
 
-At the current phase, each server-side consumer of `event_sourcing_datastore` mints events only for entry types whose `originatorHopId` (per REQ-d00155-A) matches the consumer's own `Source.hopId` (per REQ-d00142). Patient-data events reach a server's event store exclusively via `EventStore.ingestBatch` / `EventStore.ingestEvent`. This guardrail prevents accidental introduction of multi-originator edits before the multi-source-editing protocol is designed.
+At the current phase, each server-side consumer of `event_sourcing_datastore` mints events only for entry types whose `allowedOriginatorHopIds` (per REQ-d00155-A) is exactly `[source.hopId]` — the consumer's own `Source.hopId` (per REQ-d00142) and nothing else. Patient-data events reach a server's event store exclusively via `EventStore.ingestBatch` / `EventStore.ingestEvent`. This guardrail prevents accidental introduction of multi-originator edits before the multi-source-editing protocol is designed.
 
 The taxonomy of `hopId` values is defined by REQ-d00142 and is open ("other hop identifiers are permitted"); this REQ does not prescribe specific values, only the discipline that each consumer's `Source.hopId` matches the entry types it is allowed to append. Concrete `hopId` values for each consumer are pinned in that consumer's dev implementation spec.
 
@@ -1154,15 +1156,15 @@ The taxonomy of `hopId` values is defined by REQ-d00142 and is open ("other hop 
 
 A. Each server consumer SHALL declare a `Source.hopId` drawn from REQ-d00142's hopId taxonomy.
 
-B. A server consumer SHALL invoke `EventStore.append` only for entry types whose `originatorHopId == source.hopId`.
+B. A server consumer SHALL invoke `EventStore.append` only for entry types whose `allowedOriginatorHopIds == [source.hopId]` (length 1, single-element matching the consumer's own hopId). At the current phase every entry type registered in any server consumer's `EntryTypeRegistry` SHALL satisfy this length-1 invariant (REQ-d00155-F).
 
-C. A server consumer's HTTP append handler SHALL refuse any client-submitted event whose entry type's `originatorHopId` does not match the role-class hopId of the originating client.
+C. A server consumer's HTTP append handler SHALL refuse any client-submitted event whose entry type's `allowedOriginatorHopIds` does not contain the role-class hopId of the originating client.
 
 D. Compliance SHALL be testable by an enumeration of all server-side `EventStore.append` call sites and a static assertion that each call site's entry type is bound to the consumer's declared `Source.hopId`.
 
-E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId), REQ-d00145-I (receiver-scoped audit aggregates), REQ-d00154-B (isLocallyOriginated), REQ-d00155 (originatorHopId binding).
+E. Cross-references: REQ-d00141-D (permission-blind), REQ-d00142 (Source.hopId), REQ-d00145-I (receiver-scoped audit aggregates), REQ-d00154-B (isLocallyOriginated), REQ-d00155 (allowedOriginatorHopIds binding).
 
-*End* *Consumer Append Discipline* | **Hash**: 50947b1a
+*End* *Consumer Append Discipline* | **Hash**: c191b368
 
 # REQ-d00157: Multi-Writer Forward-Compatibility Primitives
 

@@ -332,7 +332,7 @@
 | REQ-d00138 | Security Retention Policy and Redaction Audit                   | dev-event-sourcing-datastore.md | 5bd6419f |
 | REQ-d00139 | No-Secrets Invariant on Event Data and flowToken                | dev-event-sourcing-datastore.md | 8c4df58e |
 | REQ-d00140 | Pluggable Materializer Contract                                 | dev-event-sourcing-datastore.md | a77b1ff6 |
-| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | cc192fb1 |
+| REQ-d00141 | EventStore Append Contract                                      | dev-event-sourcing-datastore.md | ffc6363b |
 | REQ-d00142 | Source Stamping Provenance Identity                             | dev-event-sourcing-datastore.md | 02769511 |
 | REQ-d00143 | Storage Failure Taxonomy                                        | dev-event-sourcing-datastore.md | 59ed82f7 |
 | REQ-d00144 | tombstoneAndRefill Operation                                    | dev-event-sourcing-datastore.md | 3fe240dc |
@@ -346,8 +346,8 @@
 | REQ-d00152 | Destination Native-Serialization Declaration                    | dev-event-sourcing-datastore.md | b13db4eb |
 | REQ-d00153 | watchView Reactive Read                                         | dev-event-sourcing-datastore.md | 878a7d75 |
 | REQ-d00154 | Cross-Hop Event Discrimination and Bridged System-Event Storage | dev-event-sourcing-datastore.md | 00169ff6 |
-| REQ-d00155 | Originator Hop Binding and Unanimity Verification               | dev-event-sourcing-datastore.md | 29966189 |
-| REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | 50947b1a |
+| REQ-d00155 | Originator Hop Binding and Unanimity Verification               | dev-event-sourcing-datastore.md | a42e6221 |
+| REQ-d00156 | Consumer Append Discipline                                      | dev-event-sourcing-datastore.md | c191b368 |
 | REQ-d00157 | Multi-Writer Forward-Compatibility Primitives                   | dev-event-sourcing-datastore.md | 1bf115c6 |
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 51024af7 |
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | de9dec4a |
