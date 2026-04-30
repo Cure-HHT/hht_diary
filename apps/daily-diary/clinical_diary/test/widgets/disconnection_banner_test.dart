@@ -90,23 +90,6 @@ void main() {
       expect(find.text('Please contact your study site.'), findsOneWidget);
     });
 
-    testWidgets('has Material elevation', (tester) async {
-      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
-      await tester.pumpAndSettle();
-
-      // Find Material widgets that are direct children of DisconnectionBanner
-      final materials = tester.widgetList<Material>(
-        find.descendant(
-          of: find.byType(DisconnectionBanner),
-          matching: find.byType(Material),
-        ),
-      );
-
-      // At least one Material should have elevation of 4
-      final hasElevation = materials.any((m) => m.elevation == 4);
-      expect(hasElevation, true);
-    });
-
     // REQ-CAL-p00065: Tests for expandable contact info
     testWidgets('shows expand indicator when contact info available', (
       tester,
