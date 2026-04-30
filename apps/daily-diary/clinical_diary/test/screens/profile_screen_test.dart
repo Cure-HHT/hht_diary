@@ -251,7 +251,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('disconnected'), findsOneWidget);
+        expect(find.text('Connection issue detected'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'Your connection with the study sponsor has been interrupted.',
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('shows Enter New Linking Code button when disconnected', (
@@ -266,25 +272,18 @@ void main() {
       });
 
       testWidgets(
-        'shows Clinical Trial Privacy Policy link when disconnected (REQ-p00045)',
+        'does not show Clinical Trial Privacy Policy link when disconnected',
         (tester) async {
           await tester.pumpWidget(
             buildProfileScreen(isEnrolledInTrial: true, isDisconnected: true),
           );
           await tester.pumpAndSettle();
 
-          await tester.scrollUntilVisible(
-            find.text('View Clinical Trial Privacy Policy'),
-            300,
-          );
-          expect(
-            find.text('View Clinical Trial Privacy Policy'),
-            findsOneWidget,
-          );
+          expect(find.text('View Clinical Trial Privacy Policy'), findsNothing);
         },
       );
 
-      testWidgets('shows site contact info when disconnected with site name', (
+      testWidgets('does not show site name text in disconnected card', (
         tester,
       ) async {
         await tester.pumpWidget(
@@ -296,7 +295,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('Test Clinic'), findsOneWidget);
+        // Site name is not shown in the disconnected card (per REQ-CAL-p00020 UI)
+        expect(find.textContaining('Test Clinic'), findsNothing);
       });
 
       testWidgets('Enter New Linking Code button is tappable', (tester) async {
@@ -537,15 +537,13 @@ void main() {
         await tester.pumpAndSettle();
 
         final cardFinder = find.ancestor(
-          of: find.text(
-            'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
-          ),
+          of: find.text('Connection issue detected'),
           matching: find.byType(Card),
         );
         expect(cardFinder, findsOneWidget);
 
         final card = tester.widget<Card>(cardFinder);
-        expect(card.color, equals(Colors.orange.shade50));
+        expect(card.color, equals(const Color(0xFFFFFBEA)));
       });
     });
 

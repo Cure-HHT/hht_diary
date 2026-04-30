@@ -53,7 +53,6 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
         widget.siteName != null || widget.sitePhoneNumber != null;
 
     return Material(
-      elevation: 4,
       child: InkWell(
         onTap: hasContactInfo
             ? () => setState(() => _isExpanded = !_isExpanded)
