@@ -2,34 +2,25 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00065: Reactivate Patient
+//   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
 //
-// Dismissable warning banner shown when patient is disconnected from the study.
-// Tapping the banner shows site contact information with a tappable phone number.
+// Persistent warning banner shown when patient is disconnected from the study.
+// Non-dismissible per REQ-p05004. Tapping shows site contact info with phone.
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Dismissable warning banner shown when a patient has been disconnected
+/// Persistent warning banner shown when a patient has been disconnected
 /// from the study by their Study Coordinator.
 ///
+/// Non-dismissible per REQ-p05004 — stays visible until patient reconnects.
 /// Displays at the top of the screen with:
 /// - Warning icon and message to contact the study site
-/// - Dismiss button (X) to hide the banner
 /// - Tap to expand and show site contact details
 /// - Tappable phone number to initiate a call
-///
-/// The banner reappears on app restart until the patient is reconnected.
 class DisconnectionBanner extends StatefulWidget {
-  const DisconnectionBanner({
-    required this.onDismiss,
-    this.siteName,
-    this.sitePhoneNumber,
-    super.key,
-  });
-
-  /// Called when user dismisses the banner
-  final VoidCallback onDismiss;
+  const DisconnectionBanner({this.siteName, this.sitePhoneNumber, super.key});
 
   /// Optional site name to include in the message
   final String? siteName;
@@ -62,7 +53,6 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
         widget.siteName != null || widget.sitePhoneNumber != null;
 
     return Material(
-      elevation: 4,
       child: InkWell(
         onTap: hasContactInfo
             ? () => setState(() => _isExpanded = !_isExpanded)
@@ -120,7 +110,7 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
                     ),
 
                     // Expand indicator (if has contact info)
-                    if (hasContactInfo) ...[
+                    if (hasContactInfo)
                       Icon(
                         _isExpanded
                             ? Icons.keyboard_arrow_up
@@ -128,21 +118,6 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
                         color: Colors.red.shade600,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-
-                    // Dismiss button
-                    IconButton(
-                      onPressed: widget.onDismiss,
-                      icon: Icon(
-                        Icons.close,
-                        color: Colors.red.shade600,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: l10n.close,
-                    ),
                   ],
                 ),
 
