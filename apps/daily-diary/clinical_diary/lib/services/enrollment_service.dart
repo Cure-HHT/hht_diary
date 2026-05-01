@@ -33,13 +33,15 @@ class EnrollmentService {
 
   static const _storageKey = 'user_enrollment';
   static const _disconnectedKey = 'patient_disconnected';
+  // CUR-1165: Not participating state storage keys
+  static const _notParticipatingKey = 'patient_not_participating';
+  static const _notParticipatingAtKey = 'patient_not_participating_at';
 
   /// CUR-1164: Real-time notifier for disconnection state.
   /// Updated synchronously by setDisconnected() so the home screen banner
   /// appears immediately when a background sync detects disconnection,
   /// without requiring a page navigation or app restart.
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
-
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -331,18 +333,63 @@ class EnrollmentService {
     await prefs.setBool(_disconnectedKey, disconnected);
   }
 
+  // CUR-1165: Not participating state tracking (REQ-p01065-D)
+
+  /// Check if the patient has been marked as not participating by the sponsor
+  Future<bool> isNotParticipating() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_notParticipatingKey) ?? false;
+  }
+
+  /// Set the not participating status.
+  /// Pass [at] to record the timestamp when the status was first detected.
+  Future<void> setNotParticipating(
+    bool notParticipating, {
+    DateTime? at,
+  }) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_notParticipatingKey, notParticipating);
+    if (notParticipating && at != null) {
+      await prefs.setString(_notParticipatingAtKey, at.toIso8601String());
+    }
+    if (!notParticipating) {
+      await prefs.remove(_notParticipatingAtKey);
+    }
+  }
+
+  /// Get the timestamp when not_participating was first detected locally.
+  /// Returns null if status is not set or no timestamp was recorded.
+  Future<DateTime?> getNotParticipatingAt() async {
+    final prefs = await _getPrefs();
+    final raw = prefs.getString(_notParticipatingAtKey);
+    if (raw == null) return null;
+    return DateTime.tryParse(raw);
+  }
+
   /// Process a sync/records response to check for disconnection status
   /// Returns true if the patient is disconnected
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
     final status = response['mobileLinkingStatus'] as String?;
 
     debugPrint(
-      '[LINKING] Checking disconnection: status=$status, isDisconnected=$isDisconnected',
+      '[LINKING] Checking status: status=$status, isDisconnected=$isDisconnected, '
+      'isNotParticipating=$isNotParticipating',
     );
 
     // Update local disconnection state asynchronously
     setDisconnected(isDisconnected);
+
+    // CUR-1165: Store not_participating state; record detection time on first detection
+    if (isNotParticipating) {
+      getNotParticipatingAt().then((existing) {
+        // Only record the timestamp the first time we detect the status
+        setNotParticipating(true, at: existing ?? DateTime.now());
+      });
+    } else {
+      setNotParticipating(false);
+    }
 
     return isDisconnected;
   }

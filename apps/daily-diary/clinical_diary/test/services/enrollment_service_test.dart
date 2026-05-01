@@ -752,6 +752,109 @@ void main() {
         );
       });
     });
+
+    // CUR-1165: Not participating state tests (REQ-p01065-D)
+    group('Not Participating State', () {
+      late EnrollmentService service;
+
+      setUp(() {
+        SharedPreferences.setMockInitialValues({});
+        service = EnrollmentService(
+          secureStorage: MockSecureStorage(),
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+      });
+
+      tearDown(() {
+        service.dispose();
+      });
+
+      test('isNotParticipating returns false by default', () async {
+        final result = await service.isNotParticipating();
+        expect(result, false);
+      });
+
+      test('setNotParticipating persists true', () async {
+        await service.setNotParticipating(true);
+        final result = await service.isNotParticipating();
+        expect(result, true);
+      });
+
+      test('setNotParticipating persists false', () async {
+        await service.setNotParticipating(true);
+        await service.setNotParticipating(false);
+        final result = await service.isNotParticipating();
+        expect(result, false);
+      });
+
+      test('getNotParticipatingAt returns null by default', () async {
+        final result = await service.getNotParticipatingAt();
+        expect(result, isNull);
+      });
+
+      test('setNotParticipating stores provided timestamp', () async {
+        final timestamp = DateTime(2026, 4, 23, 13, 47);
+        await service.setNotParticipating(true, at: timestamp);
+        final result = await service.getNotParticipatingAt();
+        expect(result, equals(timestamp));
+      });
+
+      test('setNotParticipating(false) clears stored timestamp', () async {
+        await service.setNotParticipating(true, at: DateTime(2026, 4, 23));
+        await service.setNotParticipating(false);
+        final result = await service.getNotParticipatingAt();
+        expect(result, isNull);
+      });
+
+      test(
+        'processDisconnectionStatus sets not_participating when flag is true',
+        () async {
+          final response = {
+            'isDisconnected': false,
+            'isNotParticipating': true,
+            'mobileLinkingStatus': 'not_participating',
+          };
+
+          service.processDisconnectionStatus(response);
+
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          expect(await service.isNotParticipating(), true);
+          expect(await service.isDisconnected(), false);
+        },
+      );
+
+      test(
+        'processDisconnectionStatus clears not_participating when flag is false',
+        () async {
+          await service.setNotParticipating(true, at: DateTime(2026, 4, 23));
+
+          final response = {
+            'isDisconnected': false,
+            'isNotParticipating': false,
+            'mobileLinkingStatus': 'connected',
+          };
+
+          service.processDisconnectionStatus(response);
+
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          expect(await service.isNotParticipating(), false);
+        },
+      );
+
+      test(
+        'setNotParticipating preserves first timestamp on repeated calls',
+        () async {
+          final first = DateTime(2026, 4, 23, 10, 0);
+          await service.setNotParticipating(true, at: first);
+          // Second call without at — should keep the first timestamp
+          await service.setNotParticipating(true);
+          final result = await service.getNotParticipatingAt();
+          expect(result, equals(first));
+        },
+      );
+    });
   });
 }
 
