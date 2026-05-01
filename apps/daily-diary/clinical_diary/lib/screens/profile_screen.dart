@@ -499,213 +499,216 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(),
                   const SizedBox(height: 12),
 
-                if (isDisconnected) ...[
-                  // Disconnected layout: icon + bold title, then code + body + button
-                  Row(
-                    children: [
-                      Container(
-                        height: 40,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.amber.shade100,
+                  if (isDisconnected) ...[
+                    // Disconnected layout: icon + bold title, then code + body + button
+                    Row(
+                      children: [
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.amber.shade100,
+                          ),
+                          child: Icon(statusIcon, color: iconColor, size: 22),
                         ),
-                        child: Icon(statusIcon, color: iconColor, size: 22),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          l10n.connectionIssueDetected,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF7B3306),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            l10n.connectionIssueDetected,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF7B3306),
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (widget.enrollmentCode != null)
+                      Text(
+                        l10n.currentCode(
+                          _formatEnrollmentCode(widget.enrollmentCode!),
+                        ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFC05C0D),
+                          fontFamily: 'monospace',
+                        ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (widget.enrollmentCode != null)
+                    const SizedBox(height: 8),
                     Text(
-                      l10n.currentCode(
-                        _formatEnrollmentCode(widget.enrollmentCode!),
-                      ),
+                      l10n.connectionIssueBody,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFC05C0D),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.connectionIssueBody,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF7B3306),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: widget.onStartClinicalTrialEnrollment,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      backgroundColor: const Color(0xFFF6F8F5),
-                      foregroundColor: const Color(0xFF7B3306),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      l10n.enterNewLinkingCode,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
                         color: const Color(0xFF7B3306),
                       ),
                     ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        height: 40,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: borderColor,
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      onPressed: widget.onStartClinicalTrialEnrollment,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        backgroundColor: const Color(0xFFF6F8F5),
+                        foregroundColor: const Color(0xFF7B3306),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(statusIcon, color: iconColor),
                       ),
-                      const SizedBox(width: 20),
-                      Flexible(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              statusMessage,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: subtextColor,
+                      child: Text(
+                        l10n.enterNewLinkingCode,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF7B3306),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: borderColor,
+                          ),
+                          child: Icon(statusIcon, color: iconColor),
+                        ),
+                        const SizedBox(width: 20),
+                        Flexible(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                statusMessage,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: subtextColor,
+                                ),
+                                textAlign: TextAlign.start,
                               ),
-                              textAlign: TextAlign.start,
-                            ),
 
-                            // Linking details (if linked)
-                            if (widget.isEnrolledInTrial) ...[
-                              const SizedBox(height: 5),
-                              if (widget.enrollmentCode != null)
-                                Text(
-                                  l10n.linkingCode(
-                                    _formatEnrollmentCode(
-                                      widget.enrollmentCode!,
-                                    ),
-                                  ),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: subtextColor,
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              if (widget.enrollmentDateTime != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  l10n.joinedDate(
-                                    _formatEnrollmentDateTime(
-                                      widget.enrollmentDateTime!,
-                                    ),
-                                  ),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: subtextColor,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                              // CUR-1165: Show end date when not_participating (GUI-p00076)
-                              if (widget.enrollmentEndDateTime != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  l10n.endedDate(
-                                    _formatEnrollmentDateTime(
-                                      widget.enrollmentEndDateTime!,
-                                    ),
-                                  ),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: subtextColor,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ],
-
-                            // REQ-p00045: Clinical Trial Privacy Policy link
-                            const SizedBox(height: 12),
-                            InkWell(
-                              onTap: _openClinicalTrialPrivacyPolicy,
-                              borderRadius: BorderRadius.circular(4),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.open_in_new,
-                                      size: 14,
-                                      color: subtextColor,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        l10n.viewClinicalTrialPrivacyPolicy,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: subtextColor,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 12,
-                                            ),
+                              // Linking details (if linked)
+                              if (widget.isEnrolledInTrial) ...[
+                                const SizedBox(height: 5),
+                                if (widget.enrollmentCode != null)
+                                  Text(
+                                    l10n.linkingCode(
+                                      _formatEnrollmentCode(
+                                        widget.enrollmentCode!,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: subtextColor,
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                if (widget.enrollmentDateTime != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    l10n.joinedDate(
+                                      _formatEnrollmentDateTime(
+                                        widget.enrollmentDateTime!,
+                                      ),
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: subtextColor,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                                // CUR-1165: Show end date when not_participating (GUI-p00076)
+                                if (widget.enrollmentEndDateTime != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    l10n.endedDate(
+                                      _formatEnrollmentDateTime(
+                                        widget.enrollmentEndDateTime!,
+                                      ),
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: subtextColor,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
 
-                            // Reconnect button for disconnected state
-                            if (isDisconnected) ...[
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed:
-                                    widget.onStartClinicalTrialEnrollment,
-                                icon: const Icon(Icons.link, size: 18),
-                                label: Text(l10n.enterNewLinkingCode),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange.shade600,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size(double.infinity, 44),
+                              // REQ-p00045: Clinical Trial Privacy Policy link
+                              const SizedBox(height: 12),
+                              InkWell(
+                                onTap: _openClinicalTrialPrivacyPolicy,
+                                borderRadius: BorderRadius.circular(4),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.open_in_new,
+                                        size: 14,
+                                        color: subtextColor,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          l10n.viewClinicalTrialPrivacyPolicy,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: subtextColor,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 12,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              if (widget.siteName != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  l10n.contactYourSiteWithName(
-                                    widget.siteName!,
+
+                              // Reconnect button for disconnected state
+                              if (isDisconnected) ...[
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed:
+                                      widget.onStartClinicalTrialEnrollment,
+                                  icon: const Icon(Icons.link, size: 18),
+                                  label: Text(l10n.enterNewLinkingCode),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade600,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      44,
+                                    ),
                                   ),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: subtextColor,
-                                    fontSize: 11,
-                                  ),
-                                  textAlign: TextAlign.center,
                                 ),
+                                if (widget.siteName != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    l10n.contactYourSiteWithName(
+                                      widget.siteName!,
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: subtextColor,
+                                      fontSize: 11,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
                 ],
               ],
             ),
