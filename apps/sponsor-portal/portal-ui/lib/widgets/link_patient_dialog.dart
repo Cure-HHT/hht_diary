@@ -697,7 +697,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Patient: ${widget.patientDisplayId}',
+          'Participant: ${widget.patientDisplayId}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

@@ -7,7 +7,9 @@
 // Sponsor configuration handler - converted from Firebase sponsor.ts
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:meta/meta.dart';
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -42,6 +44,18 @@ class SponsorFeatureFlags {
   // Defaults to 2 minutes (REQ-p01044-B).
   final int inactivityTimeoutMinutes;
 
+  // REQ-CAL-p00080-I: When true, prompt SC for starting cycle on first send.
+  // When false, auto-assign Cycle 1 Day 1.
+  final bool requireInitialCycleSelection;
+
+  // REQ-CAL-p00080-M: When true, full cycle tracking (multiple sends per type).
+  // When false, single-use: one send, one finalize, done.
+  final bool enableCycleTracking;
+
+  // REQ-p70010-C: sponsor-configurable disconnect reason format.
+  // true = predefined dropdown (default, per REQ-CAL-p00020), false = free text field.
+  final bool disconnectReasonDropdown;
+
   SponsorFeatureFlags({
     required this.useReviewScreen,
     required this.useAnimations,
@@ -51,6 +65,9 @@ class SponsorFeatureFlags {
     required this.longDurationThresholdMinutes,
     required this.availableFonts,
     this.inactivityTimeoutMinutes = 2,
+    this.requireInitialCycleSelection = true,
+    this.enableCycleTracking = true,
+    this.disconnectReasonDropdown = true,
   }) : assert(
          inactivityTimeoutMinutes >= 1 && inactivityTimeoutMinutes <= 30,
          'inactivityTimeoutMinutes must be between 1 and 30 (got $inactivityTimeoutMinutes)',
@@ -66,6 +83,12 @@ class SponsorFeatureFlags {
     'availableFonts': availableFonts,
     // REQ-p01044-C: returned to UI so AuthService can apply the correct timeout
     'inactivityTimeoutMinutes': inactivityTimeoutMinutes,
+    // REQ-CAL-p00080-I: cycle prompt configuration
+    'requireInitialCycleSelection': requireInitialCycleSelection,
+    // REQ-CAL-p00080-M: cycle tracking toggle
+    'enableCycleTracking': enableCycleTracking,
+    // REQ-p70010-C: disconnect reason format
+    'disconnectReasonDropdown': disconnectReasonDropdown,
   };
 }
 
@@ -96,6 +119,19 @@ final _sponsorConfigs = <String, SponsorFeatureFlags>{
     inactivityTimeoutMinutes: 30,
   ),
 };
+
+/// Test-only: Override [getCurrentSponsorFlags] to return specific flags.
+@visibleForTesting
+SponsorFeatureFlags? getCurrentSponsorFlagsOverride;
+
+/// Returns the feature flags for the current sponsor (from SPONSOR_ID env var).
+SponsorFeatureFlags getCurrentSponsorFlags() {
+  if (getCurrentSponsorFlagsOverride != null) return getCurrentSponsorFlagsOverride!;
+  final sponsorId = (Platform.environment['SPONSOR_ID'] ?? '')
+      .toLowerCase()
+      .trim();
+  return _sponsorConfigs[sponsorId] ?? _defaultFlags;
+}
 
 /// Sponsor config handler
 /// GET /api/v1/sponsor/config?sponsorId=curehht

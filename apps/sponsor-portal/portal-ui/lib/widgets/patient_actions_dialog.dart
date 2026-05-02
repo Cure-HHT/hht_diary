@@ -33,6 +33,8 @@ class PatientActionsDialog extends StatelessWidget {
   final String patientDisplayId;
   final String mobileLinkingStatus;
   final ApiClient apiClient;
+  // REQ-p70010-C: passed through to DisconnectPatientDialog
+  final bool disconnectReasonDropdown;
 
   const PatientActionsDialog({
     super.key,
@@ -40,6 +42,7 @@ class PatientActionsDialog extends StatelessWidget {
     required this.patientDisplayId,
     required this.mobileLinkingStatus,
     required this.apiClient,
+    this.disconnectReasonDropdown = true,
   });
 
   /// Shows the dialog and returns whether an action was taken.
@@ -49,6 +52,7 @@ class PatientActionsDialog extends StatelessWidget {
     required String patientDisplayId,
     required String mobileLinkingStatus,
     required ApiClient apiClient,
+    bool disconnectReasonDropdown = true,
   }) async {
     final result = await showDialog<PatientActionResult>(
       context: context,
@@ -57,6 +61,7 @@ class PatientActionsDialog extends StatelessWidget {
         patientDisplayId: patientDisplayId,
         mobileLinkingStatus: mobileLinkingStatus,
         apiClient: apiClient,
+        disconnectReasonDropdown: disconnectReasonDropdown,
       ),
     );
     return result ?? PatientActionResult.cancelled;
@@ -240,6 +245,7 @@ class PatientActionsDialog extends StatelessWidget {
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
                 apiClient: apiClient,
+                useDropdown: disconnectReasonDropdown,
               );
               if (context.mounted) {
                 Navigator.of(context).pop(

@@ -1,5 +1,6 @@
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// Mock EnrollmentService for testing
 class MockEnrollmentService implements EnrollmentService {
@@ -9,7 +10,13 @@ class MockEnrollmentService implements EnrollmentService {
 
   // REQ-CAL-p00077: Disconnection state for testing
   bool _isDisconnected = false;
-  bool _bannerDismissed = false;
+
+  @override
+  final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
+
+  // CUR-1165: Not participating state for testing
+  bool _isNotParticipating = false;
+  DateTime? _notParticipatingAt;
 
   @override
   Future<String?> getJwtToken() async => jwtToken;
@@ -52,28 +59,40 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   Future<void> setDisconnected(bool disconnected) async {
     _isDisconnected = disconnected;
-    if (!disconnected) {
-      _bannerDismissed = false;
-    }
-  }
-
-  @override
-  Future<bool> isDisconnectionBannerDismissed() async => _bannerDismissed;
-
-  @override
-  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
-    _bannerDismissed = dismissed;
-  }
-
-  @override
-  Future<void> resetDisconnectionBannerDismissed() async {
-    _bannerDismissed = false;
+    disconnectedNotifier.value = disconnected;
   }
 
   @override
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
     _isDisconnected = isDisconnected;
+    _isNotParticipating = isNotParticipating;
+    if (isNotParticipating && _notParticipatingAt == null) {
+      _notParticipatingAt = DateTime.now();
+    } else if (!isNotParticipating) {
+      _notParticipatingAt = null;
+    }
     return isDisconnected;
   }
+
+  // CUR-1165: Not participating mock methods
+  @override
+  Future<bool> isNotParticipating() async => _isNotParticipating;
+
+  @override
+  Future<void> setNotParticipating(
+    bool notParticipating, {
+    DateTime? at,
+  }) async {
+    _isNotParticipating = notParticipating;
+    if (notParticipating) {
+      _notParticipatingAt ??= at ?? DateTime.now();
+    } else {
+      _notParticipatingAt = null;
+    }
+  }
+
+  @override
+  Future<DateTime?> getNotParticipatingAt() async => _notParticipatingAt;
 }
