@@ -213,6 +213,7 @@
 | REQ-o00081 | Code Quality and Static Analysis                  | ops-cicd.md                     | 0b222d9e |
 | REQ-o00082 | Automated Test Execution                          | ops-cicd.md                     | 63cc8fe6 |
 | REQ-o00083 | QA Promotion Gate                                 | ops-cicd.md                     | dd06f8de |
+| REQ-o00084 | DevOps Break-Glass GCP Access                     | ops-break-glass.md              | 30792df1 |
 
 ## DEVELOPMENT
 
@@ -354,6 +355,7 @@
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 51024af7 |
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | 709a8186 |
 | REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |
+| REQ-d00161 | Break-Glass Workflow Implementation                             | dev-break-glass.md              | 31cdee00 |
 
 ## User Journeys
 
