@@ -355,7 +355,7 @@
 | REQ-d00158 | StorageBackend Interface Storage-Neutrality                     | dev-event-sourcing-datastore.md | 51024af7 |
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | 709a8186 |
 | REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |
-| REQ-d00161 | Break-Glass Workflow Implementation                             | dev-break-glass.md              | 31cdee00 |
+| REQ-d00161 | Break-Glass Workflow Implementation                             | dev-break-glass.md              | 4cc5e2e4 |
 
 ## User Journeys
 

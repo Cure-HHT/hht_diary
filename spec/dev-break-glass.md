@@ -11,7 +11,7 @@ This document specifies the implementation contract for the DevOps break-glass G
 
 > **See**: ops-break-glass.md for the operational requirements
 > **See**: docs/superpowers/specs/2026-05-02-break-glass-design.md for the phase design
-> **See**: infrastructure/runbooks/break-glass.md for operator procedures
+> **See**: docs/runbooks/break-glass.md for operator procedures
 
 ## Architecture
 
@@ -72,8 +72,8 @@ K. The doctor composite action SHALL implement three modes: `static` (no live AP
 
 L. The doctor composite action SHALL verify the requester's resolved Workspace email via the Cloud Identity API; verification failure SHALL block elevated grants and SHALL emit a warning (without blocking) for read-only grants.
 
-M. The roster file `breakglass-roster.yml` SHALL be the sole source of truth for `github.actor` → `@anspar.org` email mapping in the workflows, and SHALL be protected by a CODEOWNERS rule requiring two reviewers on any modification.
+M. The roster file `breakglass-roster.yml` SHALL be the sole source of truth for `github.actor` → `@anspar.org` email mapping in the workflows, and SHALL be protected either by a CODEOWNERS rule requiring code-owner review on any modification or by a branch-protection rule requiring at least two reviewers — sponsor repos may pick whichever GitHub plan tier supports.
 
 N. The reusable workflows SHALL be referenced from sponsor wrappers by commit SHA or release tag, never by branch name, to ensure audit reproducibility; the doctor `static` mode SHALL flag any branch-pinned reference.
 
-*End* *Break-Glass Workflow Implementation* | **Hash**: 31cdee00
+*End* *Break-Glass Workflow Implementation* | **Hash**: 4cc5e2e4

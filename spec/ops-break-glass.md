@@ -12,15 +12,12 @@ This document specifies the on-demand, time-bound, audit-grade GCP IAM access me
 Engineers hold no standing GCP roles. When elevated access is required for incident response, deployment troubleshooting, or recurring administrative tasks, they request a time-bound binding via a GitHub Actions workflow. The binding goes directly to the engineer's `@anspar.org` Workspace identity, expires automatically via an IAM Condition, and is logged in GCP Cloud Audit Logs.
 
 > **See**: dev-break-glass.md for the workflow implementation contract
-> **See**: infrastructure/runbooks/break-glass.md for operator procedures
+> **See**: docs/runbooks/break-glass.md for operator procedures
 > **See**: ops-cicd.md for the broader CI/CD enforcement framework
 
 ## Table of Contents
 
 - [Requirements](#requirements)
-- [Identity and Authentication](#identity-and-authentication)
-- [Approval and Audit](#approval-and-audit)
-- [Failure Modes](#failure-modes)
 
 ---
 

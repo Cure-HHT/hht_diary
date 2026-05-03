@@ -63,7 +63,7 @@ hht_diary_callisto/.github/
 │   ├── break-glass-sweep.yml               # cron 0 18 * * 1 + dispatch
 │   └── break-glass-doctor.yml              # workflow_dispatch
 ├── breakglass-roster.yml                   # github_login -> @anspar.org email
-└── CODEOWNERS                              # 2 reviewers required on roster
+└── CODEOWNERS                              # code-owner review on roster (or equivalent branch-protection rule)
 ```
 
 ## Components
@@ -145,7 +145,7 @@ Three modes:
 
 ### 6. Runbook
 
-`infrastructure/runbooks/break-glass.md` — operator-facing doc covering when to use readonly vs. elevated, who can approve, finding/creating a CUR ticket, what to do if Slack is down, what to do if doctor preflight fails mid-incident. Referenced from each `workflow_dispatch` description.
+`docs/runbooks/break-glass.md` — operator-facing doc covering when to use readonly vs. elevated, who can approve, finding/creating a CUR ticket, what to do if Slack is down, what to do if doctor preflight fails mid-incident. Referenced from each `workflow_dispatch` description.
 
 ## Security model
 
@@ -217,7 +217,7 @@ This phase introduces:
   - B. The grant workflow SHALL invoke the doctor's preflight checks before any IAM mutation and SHALL abort with the doctor's remediation message on failure.
   - C. The sweeper workflow SHALL identify stale bindings by `condition.title` prefix `breakglass-` AND past-expiry parsed from `condition.description.expires_at`, and SHALL retry etag conflicts up to three times with exponential backoff before deferring.
   - D. The Slack composite action SHALL route events to channels per a fixed routing table owned in the composite, and SHALL exit success on Slack post failure (the binding is the system of record).
-  - E. The roster file SHALL be the sole source of `github.actor` → `@anspar.org` email mapping, and SHALL be CODEOWNERS-protected requiring two reviewers.
+  - E. The roster file SHALL be the sole source of `github.actor` → `@anspar.org` email mapping, and SHALL be protected either by a CODEOWNERS rule requiring code-owner review or by an equivalent branch-protection / ruleset requirement of at least two reviewers.
   - F. Identity verification SHALL include a Cloud Identity API lookup of the resolved email; verification failure SHALL abort elevated grants and SHALL warn but proceed for readonly grants.
 
 Per CLAUDE.md §"Phase Design Spec Requirements", per-implementation `// Implements: REQ-X-A+B — prose` and per-test `// Verifies: REQ-X-A` annotations are required on every implementation/test file this phase touches. The implementation plan will write REQ-o00084 and REQ-d00161 to `spec/ops-break-glass.md` and `spec/dev-break-glass.md` respectively, and `elspais fix` will regenerate `spec/INDEX.md`.
