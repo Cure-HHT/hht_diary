@@ -160,10 +160,12 @@ jobs:
               fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
-              # Clean up any previous failure comment
+              # Clean up any previous failure comment. The legacy marker covers
+              # comments posted before the CUR-1246 rename of "CI Gate" to "Validation Summary".
               MARKER="<!-- validation-summary -->"
+              LEGACY_MARKER="<!-- ci-gate-summary -->"
               EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-                --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+                --jq "[.[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id] | first" 2>/dev/null || true)
               if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
                 gh api "repos/${REPO}/issues/comments/${EXISTING}" -X DELETE > /dev/null 2>&1 || true
                 echo "Cleaned up previous Validation Summary failure comment"
@@ -203,13 +205,16 @@ jobs:
           fi
 
           MARKER="<!-- validation-summary -->"
+          # Legacy marker: comments posted before CUR-1246 rename. Recognized so
+          # orphaned pre-rename comments get updated in place rather than spawning a duplicate.
+          LEGACY_MARKER="<!-- ci-gate-summary -->"
           SUMMARY_CONTENT=$(cat /tmp/validation-summary.md)
           UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
           printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
 
           # Find existing Validation Summary comment to update (avoid spam on re-runs)
           EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+            --jq "[.[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id] | first" 2>/dev/null || true)
 
           if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
             gh api "repos/${REPO}/issues/comments/${EXISTING}" \
