@@ -300,6 +300,9 @@ class _AppRootState extends State<AppRoot> {
         deviceId: deviceId,
         softwareVersion: softwareVersion,
         userId: userId,
+        // CUR-1164: Skip outbound sync + inbound poll while disconnected.
+        // Closure over the notifier value keeps the check sync.
+        isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
       );
 
       // Activate the primary destination once at boot. setStartDate is

@@ -81,6 +81,11 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   required String softwareVersion,
   required String userId,
   http.Client? httpClient,
+  // CUR-1164 (REQ-p01065-D): When supplied and returns true, the trigger
+  // skips outbound sync and inbound poll for that tick. Caller closes over
+  // EnrollmentService.disconnectedNotifier so the predicate is sync and
+  // O(1). Bootstrap stays neutral — no EnrollmentService dependency.
+  bool Function()? isDisconnected,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
   // typedefs from triggers.dart) so this production file avoids @visibleForTesting
@@ -157,8 +162,10 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   final reader = DiaryEntryReader(backend: backend);
 
   // 8. Install triggers. Each tick: drain FIFO → inbound poll.
+  //    Skip both when the caller's predicate reports disconnected (CUR-1164).
   final triggerHandles = await installTriggers(
     onTrigger: () async {
+      if (isDisconnected != null && isDisconnected()) return;
       await syncCycle();
       await portalInboundPoll(
         entryService: entryService,
