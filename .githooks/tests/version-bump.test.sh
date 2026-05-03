@@ -320,9 +320,13 @@ eq "$(gated_dart_format_pass)" "formatted" \
 
 cd "$ORIG_DIR"
 
-# Structural: pre-commit must actually call is_merge_commit_in_progress
-# inside the dart-quality section. Otherwise the behavioural test above
-# is locked-in but the real hook is unguarded.
+# Structural: pre-commit must actually CALL is_merge_commit_in_progress
+# from a non-comment conditional inside the dart-quality section.
+# Otherwise the behavioural test above is locked-in but the real hook
+# is unguarded — e.g. if a future edit demoted the gate into a comment,
+# a loose substring grep would still pass. Anchor on `if|elif <fn>;
+# then` at line start (no leading `#`) so a commented-out call no
+# longer counts.
 PRE_COMMIT="$HOOKS_DIR/pre-commit"
 DART_SECTION_LINES=$(awk '
     /^# 2\. Dart Code Quality/      { in_section = 1 }
@@ -330,7 +334,7 @@ DART_SECTION_LINES=$(awk '
     in_section { print }
 ' "$PRE_COMMIT")
 
-if echo "$DART_SECTION_LINES" | grep -q 'is_merge_commit_in_progress'; then
+if echo "$DART_SECTION_LINES" | grep -qE '^[[:space:]]*(if|elif)[[:space:]]+is_merge_commit_in_progress[[:space:]]*;[[:space:]]*then'; then
     PASS=$((PASS + 1))
     printf '  ok    %-60s -> gate wired in section 2\n' \
         "pre-commit section 2 invokes is_merge_commit_in_progress"
