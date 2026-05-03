@@ -51,19 +51,20 @@ ENFORCE_CODE_HEADERS="${ENFORCE_CODE_HEADERS:-off}"
 # Tier 0: Instant checks (< 5 seconds)
 # ============================================================================
 
-# --- 1. PR title must contain [CUR-XXX] ---
+# --- 1. PR title must contain [CUR-XXX] (or [Dependabot] for bot PRs, CUR-1149) ---
 begin_group "PR Title Validation"
 echo "PR #${PR_NUMBER}: ${PR_TITLE}"
 echo ""
 
-if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
-  echo "PR title contains Linear ticket reference"
+if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]|\[Dependabot\]'; then
+  echo "PR title contains accepted prefix ([CUR-XXX] or [Dependabot])"
 else
   report_error "PR title missing [CUR-XXX] reference"
   echo ""
   echo "PR TITLE VALIDATION FAILED"
   echo ""
   echo "The PR title must include a Linear ticket reference in the format [CUR-XXX]."
+  echo "Dependabot-authored PRs may use the [Dependabot] prefix instead."
   echo "This is required because squash merge uses the PR title as the commit message."
   echo ""
   echo "Required format:"

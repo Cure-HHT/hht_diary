@@ -34,11 +34,11 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # Validate PR title contains [CUR-XXX] reference. Squash-merge uses the PR
-  # title verbatim as the main-branch commit subject, so this guards
-  # downstream traceability. Emitted as a separate check so the org-level
-  # ruleset's required-status name "Validate PR Title" is satisfied
-  # (CUR-1246).
+  # Validate PR title contains [CUR-XXX] reference (or [Dependabot] for bot
+  # PRs — see CUR-1149). Squash-merge uses the PR title verbatim as the
+  # main-branch commit subject, so this guards downstream traceability.
+  # Emitted as a separate check so the org-level ruleset's required-status
+  # name "Validate PR Title" is satisfied (CUR-1246).
   # IMPLEMENTS REQUIREMENTS:
   #   REQ-o00079: Commit and PR Traceability Enforcement (PR title)
   # ===========================================================================
@@ -58,8 +58,8 @@ jobs:
           set -euo pipefail
           echo "PR #${PR_NUMBER}: ${PR_TITLE}"
 
-          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
-            echo "PR title contains Linear ticket reference"
+          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]|\[Dependabot\]'; then
+            echo "PR title contains accepted prefix ([CUR-XXX] or [Dependabot])"
             exit 0
           fi
 
@@ -67,6 +67,7 @@ jobs:
           echo ""
           echo "Squash merge uses the PR title verbatim as the commit message."
           echo "Required format: [CUR-XXX] Description of changes"
+          echo "(Dependabot-authored PRs may use the [Dependabot] prefix instead.)"
           echo "Edit the PR title at: ${PR_URL}"
           exit 1
 
@@ -334,6 +335,16 @@ jobs:
           echo "Checking merge commit: ${COMMIT_SHA:0:7}"
           echo "Subject: $COMMIT_SUBJECT"
           echo ""
+
+          # Dependabot bot PRs are exempted from the CUR requirement — their
+          # PR titles use the [Dependabot] prefix instead, anchored by
+          # CUR-1149 ("Dependabot open ticket"). See pr-validation.yml's
+          # validate-pr-title job for the parallel exemption.
+          if echo "$COMMIT_SUBJECT" | grep -qE '\[Dependabot\]'; then
+            echo "Merge commit is a Dependabot update ([Dependabot] prefix accepted)"
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           HAS_CUR=false
           if echo "$COMMIT_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
