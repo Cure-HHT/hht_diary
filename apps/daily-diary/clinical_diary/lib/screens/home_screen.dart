@@ -3,7 +3,9 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00076: Participation Status Badge
+//   REQ-CAL-p00080: Questionnaire Study Event Association (cycle label stamp)
 //   REQ-CAL-p00081: Patient Task System
+//   REQ-p01065:    Clinical Questionnaire System (D: deactivate sync; not-participating reset)
 
 import 'dart:async';
 import 'dart:convert';
@@ -219,6 +221,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       unawaited(widget.taskService.clearAll());
       // Refresh site name/phone for the banner contact details
       unawaited(_refreshSiteInfo());
+    } else {
+      // CUR-1164: On reconnect, kick the FIFO drain immediately so any events
+      // recorded while the gate was closed ship without waiting up to 15
+      // minutes for the next periodic tick.
+      unawaited(widget.runtime.syncCycle());
     }
   }
 

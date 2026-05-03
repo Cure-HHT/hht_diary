@@ -249,6 +249,92 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
+  // CUR-1164: isDisconnected predicate gates the trigger lambda
+  // -----------------------------------------------------------------------
+  test(
+    'trigger lambda short-circuits while isDisconnected predicate is true',
+    () async {
+      final db = await _openDb();
+      final captured = <http.Request>[];
+      final client = MockClient((req) async {
+        captured.add(req);
+        if (req.url.path.endsWith('inbound')) {
+          return http.Response('{"messages":[]}', 200);
+        }
+        return http.Response('', 200);
+      });
+
+      // Controllable connectivity stream so the test can fire the trigger
+      // lambda by emitting a none -> wifi transition.
+      final connectivity = StreamController<List<ConnectivityResult>>();
+      var disconnected = true;
+
+      final runtime = await bootstrapClinicalDiary(
+        sembastDatabase: db,
+        authToken: () async => 'test-token',
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
+        deviceId: _deviceId,
+        softwareVersion: _softwareVersion,
+        userId: _userId,
+        httpClient: client,
+        isDisconnected: () => disconnected,
+        lifecycleObserverFactory: _silentLifecycleFactory,
+        periodicTimerFactory: _silentTimerFactory,
+        connectivityStreamFactory: () => connectivity.stream,
+        fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+        fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+      );
+
+      // Record a finalized event so the destination FIFO has content.
+      final now = DateTime.now().toUtc();
+      await runtime.entryService.record(
+        entryType: 'epistaxis_event',
+        aggregateId: 'agg-cur1164-gate',
+        eventType: 'finalized',
+        answers: {'startTime': now.toIso8601String()},
+      );
+      await runtime.destinations.setStartDate(
+        'primary_diary_server',
+        now.subtract(const Duration(seconds: 1)),
+        initiator: const AutomationInitiator(service: 'test'),
+      );
+
+      // Seed connectivity as 'none' so the next emit is a meaningful
+      // none -> connected transition that fires fireTrigger().
+      connectivity.add([ConnectivityResult.none]);
+      await Future<void>.delayed(Duration.zero);
+
+      // Fire trigger while disconnected: lambda short-circuits, no POST.
+      connectivity.add([ConnectivityResult.wifi]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        captured.where((r) => r.method == 'POST').toList(),
+        isEmpty,
+        reason: 'POST suppressed while isDisconnected returns true',
+      );
+
+      // Flip the predicate to false. Reset connectivity to 'none' so the
+      // next emit is again a transition that fires fireTrigger().
+      disconnected = false;
+      connectivity.add([ConnectivityResult.none]);
+      await Future<void>.delayed(Duration.zero);
+      connectivity.add([ConnectivityResult.wifi]);
+      // Trigger chain awaits a Future, give it a couple microtasks to drain.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        captured.where((r) => r.method == 'POST').toList(),
+        isNotEmpty,
+        reason: 'POST resumes once isDisconnected returns false',
+      );
+
+      await connectivity.close();
+      await runtime.dispose();
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // Test 4: dispose() completes without error
   // Verifies: REQ-d00134-A — dispose() cancels triggers cleanly.
   // -----------------------------------------------------------------------
