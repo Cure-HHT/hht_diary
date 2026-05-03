@@ -552,8 +552,14 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     # in, not just files the developer authored — so without this gate
     # the bump pass would re-bump pubspecs for code already shipped (and
     # bumped) on the source branch's own PR.
+    #
+    # Conflict-resolution edits in a merge commit go unbumped here; CI's
+    # validate-pr.sh re-runs verify_version_bumped_for against the full
+    # branch diff and fails the PR if any code-dir change is missing a
+    # bump, so the dev gets a clear signal to add a follow-up commit.
     if is_merge_commit_in_progress; then
         echo "  ⏭️  Skipping version-bump pass (merge in progress; merged-in code was already bumped on its source PR)"
+        echo "     If you resolved conflicts or made other authored edits, add a follow-up non-merge commit to trigger version bumps."
     else
 
     # Get repo root
