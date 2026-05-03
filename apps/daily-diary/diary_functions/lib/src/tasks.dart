@@ -63,6 +63,19 @@ Future<Response> getTasksHandler(Request request) async {
         if (mobileLinkingStatus != null)
           'mobileLinkingStatus': mobileLinkingStatus,
         'isDisconnected': mobileLinkingStatus == 'disconnected',
+        // CUR-1165: REQ-p01065-D
+        'isNotParticipating': mobileLinkingStatus == 'not_participating',
+      });
+    }
+
+    // CUR-1165: REQ-p01065-D — stop delivering tasks when patient is not participating.
+    // Sponsor-specific rules (including questionnaire tasks) must be deactivated.
+    if (mobileLinkingStatus == 'not_participating') {
+      return _jsonResponse({
+        'tasks': <Map<String, dynamic>>[],
+        'mobileLinkingStatus': mobileLinkingStatus,
+        'isDisconnected': false,
+        'isNotParticipating': true,
       });
     }
 
@@ -102,6 +115,8 @@ Future<Response> getTasksHandler(Request request) async {
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
+      // CUR-1165: REQ-p01065-D
+      'isNotParticipating': mobileLinkingStatus == 'not_participating',
     });
   } catch (e, stackTrace) {
     reportAndRecordError(e, stackTrace: stackTrace);

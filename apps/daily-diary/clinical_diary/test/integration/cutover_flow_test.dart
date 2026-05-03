@@ -1,5 +1,5 @@
-// Verifies: REQ-d00155 (destination contract); REQ-d00156 (inbound poll);
-//   REQ-d00157 (sync triggers); REQ-d00113-C (questionnaire 409 translation);
+// Verifies: REQ-d00162 (destination contract); REQ-d00163 (inbound poll);
+//   REQ-d00164 (sync triggers); REQ-d00113-C (questionnaire 409 translation);
 //   REQ-d00113-D (tombstone inbound).
 
 import 'dart:async';
@@ -251,7 +251,7 @@ void main() {
     expect(posts.length, greaterThanOrEqualTo(2));
 
     // FIFO drain order is sequence_in_queue ascending; both rows must be
-    // sent (REQ-d00155 — destination contract drains in order).
+    // sent (REQ-d00162 — destination contract drains in order).
     final fifo = await fx.runtime.backend.listFifoEntries(
       'primary_diary_server',
     );

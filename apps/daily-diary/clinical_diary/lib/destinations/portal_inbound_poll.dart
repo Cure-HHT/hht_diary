@@ -1,9 +1,9 @@
 // Implements: REQ-d00113-D — tombstone instructions arriving from the
 //   portal materialize as tombstone events through the same write path
 //   user-driven deletions take, so the materialized view converges.
-// Implements: REQ-d00156-A+B+C+D — HTTP shape, idempotency via record
+// Implements: REQ-d00163-A+B+C+D — HTTP shape, idempotency via record
 //   no-op detection, error handling, message-type filtering.
-// Implements: REQ-d00158-A+B — when EntryService.record refuses to apply
+// Implements: REQ-d00165-A+B — when EntryService.record refuses to apply
 //   a received tombstone, the failure is appended to the local event log
 //   as an inbound_tombstone_record_failed audit event so the data team
 //   has an immutable per-device record of the gap.
@@ -51,7 +51,7 @@ const _inboundPollInitiator = AutomationInitiator(service: 'inbound-poll');
 ///    raising.
 ///
 /// Silent-skip rationale (do NOT add observability without reading this):
-/// REQ-d00156-C/D require swallowing rather than raising. Each branch
+/// REQ-d00163-C/D require swallowing rather than raising. Each branch
 /// carries an inline note explaining why a silent skip is the correct
 /// response — almost all of them are either transient (retried next
 /// tick) or a server-side contract regression that the server already
@@ -60,14 +60,14 @@ const _inboundPollInitiator = AutomationInitiator(service: 'inbound-poll');
 /// drift, and it is recorded as an audit event rather than a log line.
 // Implements: REQ-d00113-D — inbound tombstones materialise through the
 //   same write path as user-driven deletions.
-// Implements: REQ-d00156-A — GET /inbound with optional Bearer header;
+// Implements: REQ-d00163-A — GET /inbound with optional Bearer header;
 //   parse messages array; record each tombstone.
-// Implements: REQ-d00156-B — skip messages of unknown type or missing
+// Implements: REQ-d00163-B — skip messages of unknown type or missing
 //   required fields.
-// Implements: REQ-d00156-C — top-level network/parse errors swallowed.
-// Implements: REQ-d00156-D — per-message exceptions swallowed; loop
+// Implements: REQ-d00163-C — top-level network/parse errors swallowed.
+// Implements: REQ-d00163-D — per-message exceptions swallowed; loop
 //   continues; idempotency via EntryService.record no-op detection.
-// Implements: REQ-d00158-B — per-message record failures appended as
+// Implements: REQ-d00165-B — per-message record failures appended as
 //   audit events instead of debug-printed.
 Future<void> portalInboundPoll({
   required EntryService entryService,
@@ -166,7 +166,7 @@ Future<void> portalInboundPoll({
           changeReason: 'portal-withdrawn',
         );
       } catch (e) {
-        // REQ-d00156-D + REQ-d00158-B — the EntryService.record call
+        // REQ-d00163-D + REQ-d00165-B — the EntryService.record call
         // refused this tombstone (e.g. the entry_type is not registered
         // in this build, schema validation rejected it, or storage
         // raised). Record the failure as an audit event so the gap is
@@ -185,7 +185,7 @@ Future<void> portalInboundPoll({
     }
   } catch (_) {
     // Silent-skip: network errors, JSON parse failures, and shape
-    // mismatches at the request envelope level (REQ-d00156-C). Same
+    // mismatches at the request envelope level (REQ-d00163-C). Same
     // server-side observability rationale as the body-shape branches
     // above; we do not want an audit row for every offline tick.
     return;
@@ -202,9 +202,9 @@ Future<void> portalInboundPoll({
 /// Failures of THIS append are themselves swallowed — if the event store
 /// is so degraded that it cannot record the audit, the original failure
 /// is unrecoverable and re-raising would only crash the sync cycle.
-// Implements: REQ-d00158-A — the audit entry type is registered with
+// Implements: REQ-d00165-A — the audit entry type is registered with
 //   materialize=false so the row never reaches the diary view.
-// Implements: REQ-d00158-B — payload carries entry_id, entry_type, and
+// Implements: REQ-d00165-B — payload carries entry_id, entry_type, and
 //   stringified error.
 Future<void> _recordRecordFailure({
   required EventStore eventStore,
@@ -218,7 +218,7 @@ Future<void> _recordRecordFailure({
     if (def == null) {
       // The entry type is not registered. This indicates a bootstrap
       // wiring bug rather than a runtime fault; failing silently here
-      // is consistent with REQ-d00156-D (the loop must not raise),
+      // is consistent with REQ-d00163-D (the loop must not raise),
       // and the test suite covers the registration path.
       return;
     }

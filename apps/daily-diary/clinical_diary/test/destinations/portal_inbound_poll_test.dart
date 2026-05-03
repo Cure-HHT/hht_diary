@@ -1,4 +1,4 @@
-// Verifies: REQ-d00113-D, REQ-d00156-A+B+C+D, REQ-d00158-A+B+C.
+// Verifies: REQ-d00113-D, REQ-d00163-A+B+C+D, REQ-d00165-A+B+C.
 
 import 'dart:convert';
 
@@ -47,7 +47,7 @@ const _testSource = Source(
 ///
 /// [entryTypeIds] pre-registers the given entry types so that tombstone
 /// messages for those types are accepted by [EntryService.record]. The
-/// audit entry type for REQ-d00158 is always registered so the inbound
+/// audit entry type for REQ-d00165 is always registered so the inbound
 /// poll's record-failure audit append succeeds.
 Future<_Fixture> _setupFixture({
   List<String> entryTypeIds = const ['epistaxis_event'],
@@ -60,7 +60,7 @@ Future<_Fixture> _setupFixture({
   for (final defn in kSystemEntryTypes) {
     registry.register(defn);
   }
-  // REQ-d00158-A — audit entry type is owned by clinical_diary, not the
+  // REQ-d00165-A — audit entry type is owned by clinical_diary, not the
   // shared kSystemEntryTypes set, so register it explicitly.
   registry.register(
     const EntryTypeDefinition(
@@ -118,7 +118,7 @@ void main() {
     // Test 1: empty messages list -> no record calls
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-A — empty messages list produces no record calls.
+    // Verifies: REQ-d00163-A — empty messages list produces no record calls.
     test('empty messages: [] produces no record calls', () async {
       final fx = await _setupFixture();
 
@@ -140,7 +140,7 @@ void main() {
     // Test 2: one tombstone message -> exactly one record call
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00113-D, REQ-d00156-A — a single tombstone message
+    // Verifies: REQ-d00113-D, REQ-d00163-A — a single tombstone message
     // materialises exactly one tombstone event via EntryService.record with
     // the correct fields.
     test(
@@ -185,7 +185,7 @@ void main() {
     // Test 3: multiple tombstones -> one record per message, order preserved
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-A — multiple tombstone messages each produce one
+    // Verifies: REQ-d00163-A — multiple tombstone messages each produce one
     // record call; order matches message order.
     test(
       'multiple tombstones -> one record per message, order preserved',
@@ -240,7 +240,7 @@ void main() {
     // Test 4: 5xx response -> no calls, no exception
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-C — non-200 HTTP response is swallowed; no record
+    // Verifies: REQ-d00163-C — non-200 HTTP response is swallowed; no record
     // calls are made and no exception propagates to the caller.
     test('5xx response -> no record calls and no exception thrown', () async {
       final fx = await _setupFixture();
@@ -266,7 +266,7 @@ void main() {
     // Test 5: network exception -> no calls, no exception
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-C — a ClientException from the HTTP layer is
+    // Verifies: REQ-d00163-C — a ClientException from the HTTP layer is
     // swallowed at the top level; no record calls and no exception propagates.
     test(
       'network ClientException -> no record calls and no exception thrown',
@@ -297,7 +297,7 @@ void main() {
     // Test 6: unknown message type -> skipped
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-B — messages with unknown type are skipped;
+    // Verifies: REQ-d00163-B — messages with unknown type are skipped;
     // no record call is made.
     test(
       'unknown message type "announce" -> skipped, no record call',
@@ -333,7 +333,7 @@ void main() {
     // Test 7: tombstone missing entry_id -> skipped
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-B — tombstone messages missing entry_id are
+    // Verifies: REQ-d00163-B — tombstone messages missing entry_id are
     // skipped without raising.
     test('tombstone missing entry_id -> skipped', () async {
       final fx = await _setupFixture();
@@ -366,7 +366,7 @@ void main() {
     // Test 8: tombstone missing entry_type -> skipped
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-B — tombstone messages missing entry_type are
+    // Verifies: REQ-d00163-B — tombstone messages missing entry_type are
     // skipped without raising.
     test('tombstone missing entry_type -> skipped', () async {
       final fx = await _setupFixture();
@@ -399,7 +399,7 @@ void main() {
     // Test 9: auth header included when token non-null; absent when null/omitted
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-A — the Authorization: Bearer header is attached
+    // Verifies: REQ-d00163-A — the Authorization: Bearer header is attached
     // when authToken() returns a non-null token, and is absent when authToken
     // is omitted or returns null.
     test('auth header present when authToken returns token', () async {
@@ -472,7 +472,7 @@ void main() {
     // Test 10: non-JSON body -> no calls, no exception
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-C — a 200 response with a non-JSON body is
+    // Verifies: REQ-d00163-C — a 200 response with a non-JSON body is
     // swallowed; no record calls and no exception propagates.
     test('non-JSON body -> no record calls and no exception thrown', () async {
       final fx = await _setupFixture();
@@ -498,7 +498,7 @@ void main() {
     // Test 11: per-message exception swallowed, loop continues
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00156-D, REQ-d00158-B — a per-message exception
+    // Verifies: REQ-d00163-D, REQ-d00165-B — a per-message exception
     // (e.g. unregistered entry_type causing ArgumentError) is swallowed,
     // the loop continues to process subsequent messages, AND the failure
     // is recorded as an inbound_tombstone_record_failed audit event so
@@ -546,7 +546,7 @@ void main() {
         final audit = events.firstWhere(
           (e) => e.entryType == kInboundTombstoneRecordFailedEntryType,
         );
-        // REQ-d00158-B — audit row carries identity of the failed tombstone
+        // REQ-d00165-B — audit row carries identity of the failed tombstone
         // and stamps the install's source identifier as aggregate_id.
         expect(audit.aggregateId, 'device-test');
         expect(audit.aggregateType, 'inbound_poll_audit');
@@ -569,7 +569,7 @@ void main() {
     // Test 11b: degraded event store cannot append audit row -> still completes
     // -------------------------------------------------------------------------
 
-    // Verifies: REQ-d00158-C — failure of the audit append itself is
+    // Verifies: REQ-d00165-C — failure of the audit append itself is
     // swallowed; the surrounding loop continues to process subsequent
     // messages without raising.
     test(

@@ -111,7 +111,6 @@ Both authenticate via Workload Identity Federation (WIF) — no JSON key files.
 | `build-sponsor-ci.yml` | Builds the shared base image on push to main |
 | `terraform-validate.yml` | Sponsor-envs Terraform plan/apply |
 | `qa-automation.yml` | PR validation (tests, linting, analysis) |
-| `reset-db-gcp.yml` | Database schema reset for dev/qa/uat |
 
 ---
 

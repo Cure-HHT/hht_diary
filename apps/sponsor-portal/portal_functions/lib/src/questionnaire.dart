@@ -11,12 +11,225 @@
 import 'dart:convert';
 
 import 'package:otel_common/otel_common.dart';
+import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 import 'database.dart';
 import 'notification_service.dart';
 import 'portal_auth.dart';
 import 'portal_metrics.dart';
+import 'sponsor.dart';
+
+// ============================================================
+// Sealed result type for _computeNextCycleInfo
+// ============================================================
+
+/// Typed result returned by [_computeNextCycleInfo].
+///
+/// Replaces the previous loosely-typed [Map<String, dynamic>] to make the
+/// compiler enforce exhaustive handling at every call site.
+sealed class NextCycleResult {
+  const NextCycleResult();
+
+  /// Serialise to the wire-format map that is embedded in the GET response
+  /// under `next_cycle_info`.
+  Map<String, dynamic> toJson();
+}
+
+/// No further questionnaires of this type may be sent.
+///
+/// Caused either by a finalised end-event or (when [cycleTrackingDisabled]
+/// is true) by a sponsor policy that limits each type to one submission.
+class NextCycleBlocked extends NextCycleResult {
+  const NextCycleBlocked({
+    required this.blockedReason,
+    this.endEvent,
+    this.endedOnStudyEvent,
+    this.cycleTrackingDisabled = false,
+  });
+
+  final String blockedReason;
+
+  /// The end-event value (e.g. `'end_of_treatment'`) if blocked by an end-event.
+  final String? endEvent;
+
+  /// The study_event on which the end-event was finalised, if known.
+  final String? endedOnStudyEvent;
+
+  /// True when the sponsor has disabled cycle tracking entirely.
+  final bool cycleTrackingDisabled;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'blocked': true,
+    'blocked_reason': blockedReason,
+    if (endEvent != null) 'end_event': endEvent,
+    if (endedOnStudyEvent != null) 'ended_on_study_event': endedOnStudyEvent,
+    if (cycleTrackingDisabled) 'cycle_tracking_disabled': true,
+  };
+}
+
+/// Sponsor has disabled cycle tracking; a send is allowed but [study_event]
+/// will be null.
+class NextCycleCycleTrackingDisabled extends NextCycleResult {
+  const NextCycleCycleTrackingDisabled();
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'needs_initial_selection': false,
+    'cycle_tracking_disabled': true,
+  };
+}
+
+/// The study_event has been auto-computed (auto-increment or Cycle 1 default).
+/// The caller may use [studyEvent] directly without prompting the SC.
+class NextCycleAutoComputed extends NextCycleResult {
+  const NextCycleAutoComputed({
+    required this.suggestedCycle,
+    required this.studyEvent,
+  });
+
+  final int suggestedCycle;
+  final String studyEvent;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'needs_initial_selection': false,
+    'suggested_cycle': suggestedCycle,
+    'study_event': studyEvent,
+  };
+}
+
+/// No prior cycles exist and the sponsor requires the SC to pick a starting
+/// cycle (REQ-CAL-p00080 Assertion H).
+class NextCycleNeedsSelection extends NextCycleResult {
+  const NextCycleNeedsSelection();
+
+  @override
+  Map<String, dynamic> toJson() => {'needs_initial_selection': true};
+}
+
+// ============================================================
+
+/// Computes the next cycle info for a (patient, questionnaire type) pair.
+///
+/// Per REQ-CAL-p00080 Assertions C, D, H.
+Future<NextCycleResult> _computeNextCycleInfo(
+  Database db,
+  UserContext ctx,
+  String patientId,
+  String questionnaireType, {
+  SponsorFeatureFlags? sponsorFlags,
+}) async {
+  // REQ-CAL-p00080-M: If cycle tracking disabled, single-use per type
+  final flags = sponsorFlags ?? getCurrentSponsorFlags();
+  if (!flags.enableCycleTracking) {
+    final anyFinalized = await db.executeWithContext(
+      '''
+      SELECT 1 FROM questionnaire_instances
+      WHERE patient_id = @patientId
+        AND questionnaire_type = @questionnaireType::questionnaire_type
+        AND status = 'finalized'
+        AND deleted_at IS NULL
+      LIMIT 1
+      ''',
+      parameters: {
+        'patientId': patientId,
+        'questionnaireType': questionnaireType,
+      },
+      context: ctx,
+    );
+    if (anyFinalized.isNotEmpty) {
+      return const NextCycleBlocked(
+        blockedReason: 'Questionnaire completed',
+        cycleTrackingDisabled: true,
+      );
+    }
+    return const NextCycleCycleTrackingDisabled();
+  }
+
+  // REQ-CAL-p00080-G: Check for finalized end events (blocks further sends)
+  final endEventResult = await db.executeWithContext(
+    '''
+    SELECT qi.end_event::text, qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type = @questionnaireType::questionnaire_type
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+      AND qi.end_event IS NOT NULL
+    LIMIT 1
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'questionnaireType': questionnaireType,
+    },
+    context: ctx,
+  );
+
+  if (endEventResult.isNotEmpty) {
+    final endEvent = endEventResult.first[0].toString();
+    final studyEvent = endEventResult.first[1]?.toString();
+    return NextCycleBlocked(
+      blockedReason:
+          '${StudyEvent.endEventDisplayLabel(endEvent)} was finalized'
+          '${studyEvent != null ? ' on $studyEvent' : ''}',
+      endEvent: endEvent,
+      endedOnStudyEvent: studyEvent,
+    );
+  }
+
+  // Query 1: Max cycle from finalized, non-deleted instances
+  final finalizedResult = await db.executeWithContext(
+    '''
+    SELECT qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type = @questionnaireType::questionnaire_type
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+      AND qi.study_event ~ '^Cycle [1-9]\\d* Day 1\$'  -- matches StudyEvent._cyclePattern
+    ''',
+    parameters: {
+      'patientId': patientId,
+      'questionnaireType': questionnaireType,
+    },
+    context: ctx,
+  );
+
+  int? maxFinalizedCycle;
+  for (final row in finalizedResult) {
+    final studyEvent = row[0] as String?;
+    if (studyEvent == null) continue;
+    final cycle = StudyEvent.parseCycleNumber(studyEvent);
+    if (cycle != null &&
+        (maxFinalizedCycle == null || cycle > maxFinalizedCycle)) {
+      maxFinalizedCycle = cycle;
+    }
+  }
+
+  // If finalized cycles exist → auto-increment
+  if (maxFinalizedCycle != null) {
+    final nextCycle = maxFinalizedCycle + 1;
+    return NextCycleAutoComputed(
+      suggestedCycle: nextCycle,
+      studyEvent: StudyEvent.format(nextCycle),
+    );
+  }
+
+  // No finalized cycles — check sponsor config
+  // REQ-CAL-p00080-I/J: If sponsor disabled the prompt, auto-assign Cycle 1
+  if (!flags.requireInitialCycleSelection) {
+    return NextCycleAutoComputed(
+      suggestedCycle: 1,
+      studyEvent: StudyEvent.format(1),
+    );
+  }
+
+  // Prompt SC for starting cycle
+  return const NextCycleNeedsSelection();
+}
 
 /// GET /api/v1/portal/patients/questionnaires (X-Patient-Id header)
 ///
@@ -108,6 +321,78 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
     }
   }
 
+  // Fetch once — used inside the loop and forwarded to _computeNextCycleInfo
+  // to avoid a second env-lookup per type (Issue 9).
+  final sponsorFlags = getCurrentSponsorFlags();
+
+  // REQ-CAL-p00080: Fetch last-finalized metadata for nose_hht and qol in one query
+  final lastFinalizedBatch = await db.executeWithContext(
+    '''
+    SELECT DISTINCT ON (qi.questionnaire_type)
+           qi.questionnaire_type::text, qi.finalized_at, qi.study_event
+    FROM questionnaire_instances qi
+    WHERE qi.patient_id = @patientId
+      AND qi.questionnaire_type IN ('nose_hht'::questionnaire_type, 'qol'::questionnaire_type)
+      AND qi.status = 'finalized'
+      AND qi.deleted_at IS NULL
+    ORDER BY qi.questionnaire_type, qi.finalized_at DESC
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  // Index batch results by type
+  final lastFinalizedByType = <String, List<dynamic>>{};
+  for (final row in lastFinalizedBatch) {
+    lastFinalizedByType[row[0] as String] = row;
+  }
+
+  // Compute next cycle info and add finalized metadata
+  // for nose_hht and qol (eq excluded — managed via Start Trial)
+  for (final type in ['nose_hht', 'qol']) {
+    final entry = statusMap[type]!;
+    final status = entry['status'] as String;
+
+    // Apply last-finalized metadata from batch query
+    final lastFinalizedRow = lastFinalizedByType[type];
+    if (lastFinalizedRow != null) {
+      entry['last_finalized_at'] = (lastFinalizedRow[1] as DateTime?)
+          ?.toIso8601String();
+      entry['last_finalized_study_event'] = lastFinalizedRow[2] as String?;
+    }
+
+    // If the latest instance is "finalized", transform to "not_sent".
+    // This matches the Miro flow: "Now questionnaire is available to be
+    // sent again in the next Cycle."
+    if (status == 'finalized') {
+      entry['status'] = 'not_sent';
+      entry.remove('id');
+      entry.remove('study_event');
+      entry.remove('version');
+      entry.remove('sent_at');
+      entry.remove('submitted_at');
+      entry.remove('finalized_at');
+      entry.remove('score');
+    }
+
+    // Always include cycle_tracking_disabled flag
+    if (!sponsorFlags.enableCycleTracking) {
+      entry['cycle_tracking_disabled'] = true;
+    }
+
+    // Compute next cycle info for types that are ready for a new send
+    if (entry['status'] == 'not_sent') {
+      final nextCycleInfo = await _computeNextCycleInfo(
+        db,
+        serviceContext,
+        patientId,
+        type,
+        sponsorFlags: sponsorFlags,
+      );
+      entry['next_cycle_info'] = nextCycleInfo.toJson();
+    }
+  }
+
   return _jsonResponse({
     'patient_id': patientId,
     'questionnaires': statusMap.values.toList(),
@@ -157,7 +442,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     }, 400);
   }
 
-  final studyEvent = bodyJson['study_event'] as String?;
+  var studyEvent = bodyJson['study_event'] as String?;
 
   // Validate questionnaire type per REQ-CAL-p00047-A
   const validTypes = ['nose_hht', 'qol', 'eq'];
@@ -180,6 +465,16 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   final clientIp =
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
+
+  // REQ-CAL-p00080-B: Validate study_event format if provided.
+  // StudyEvent.isValid enforces both the strict regex (N >= 1) and maxLength.
+  if (studyEvent != null && !StudyEvent.isValid(studyEvent)) {
+    return _jsonResponse({
+      'error':
+          'Invalid study_event format. Must be "Cycle N Day 1" '
+          'where N is a positive integer (max ${StudyEvent.maxLength} chars).',
+    }, 400);
+  }
 
   // Verify patient exists, has trial started, and user has site access
   final patientResult = await db.executeWithContext(
@@ -242,35 +537,118 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     }, 409);
   }
 
+  // REQ-CAL-p00080: Auto-compute study_event if not provided (for nose_hht/qol)
+  if (questionnaireType == 'nose_hht' || questionnaireType == 'qol') {
+    final nextCycleInfo = await _computeNextCycleInfo(
+      db,
+      serviceContext,
+      patientId,
+      questionnaireType,
+    );
+
+    switch (nextCycleInfo) {
+      // REQ-CAL-p00080-G: Block sends after finalized end events or when
+      // the single-use quota is exhausted (cycle tracking disabled).
+      case NextCycleBlocked(:final blockedReason):
+        return _jsonResponse({
+          'error': 'Cannot send questionnaire: $blockedReason',
+        }, 409);
+
+      // Cycle tracking disabled — study_event stays null, proceed to INSERT.
+      case NextCycleCycleTrackingDisabled():
+        break;
+
+      // study_event auto-computed — use it if the caller didn't supply one.
+      case NextCycleAutoComputed(studyEvent: final computed):
+        studyEvent ??= computed;
+
+      // SC must pick a starting cycle — reject if study_event not provided.
+      case NextCycleNeedsSelection():
+        if (studyEvent == null) {
+          return _jsonResponse({
+            'error':
+                'Initial cycle selection required for the first $questionnaireType '
+                'questionnaire. Provide study_event in the request body.',
+          }, 400);
+        }
+    }
+  }
+
+  // REQ-CAL-p00080-E: Pre-check for study_event uniqueness to return a clean
+  // 409 rather than leaking a raw PostgreSQL unique-constraint violation.
+  // The idx_qi_unique_study_event index is the authoritative enforcement;
+  // this check provides a user-readable error for defence-in-depth.
+  if (studyEvent != null) {
+    final conflictResult = await db.executeWithContext(
+      '''
+      SELECT 1 FROM questionnaire_instances
+      WHERE patient_id = @patientId
+        AND questionnaire_type = @questionnaireType::questionnaire_type
+        AND study_event = @studyEvent
+        AND deleted_at IS NULL
+      LIMIT 1
+      ''',
+      parameters: {
+        'patientId': patientId,
+        'questionnaireType': questionnaireType,
+        'studyEvent': studyEvent,
+      },
+      context: serviceContext,
+    );
+
+    if (conflictResult.isNotEmpty) {
+      return _jsonResponse({
+        'error':
+            'A $questionnaireType questionnaire for study event '
+            '"$studyEvent" already exists and has not been deleted. '
+            'Delete it first or choose a different cycle.',
+      }, 409);
+    }
+  }
+
   // Determine questionnaire version per REQ-CAL-p00047-E
   const versionMap = {'nose_hht': '1.0.0', 'qol': '1.0.0', 'eq': '1.0.0'};
   final version = versionMap[questionnaireType]!;
 
   final now = DateTime.now().toUtc();
 
-  // Create questionnaire instance
-  final insertResult = await db.executeWithContext(
-    '''
-    INSERT INTO questionnaire_instances (
-      patient_id, questionnaire_type, status, study_event,
-      version, sent_by, sent_at, created_at, updated_at
-    )
-    VALUES (
-      @patientId, @questionnaireType::questionnaire_type, 'sent', @studyEvent,
-      @version, @sentBy, @sentAt, @sentAt, @sentAt
-    )
-    RETURNING id
-    ''',
-    parameters: {
-      'patientId': patientId,
-      'questionnaireType': questionnaireType,
-      'studyEvent': studyEvent,
-      'version': version,
-      'sentBy': user.id,
-      'sentAt': now.toIso8601String(),
-    },
-    context: serviceContext,
-  );
+  // Create questionnaire instance.
+  // Catch UniqueViolationException (SQLSTATE 23505) in case two concurrent
+  // requests both pass the pre-check above and race to INSERT. The pre-check
+  // already provides a clean 409 for the common case; this catch ensures the
+  // rare concurrent race also returns a 409 instead of a raw 500.
+  final List<List<dynamic>> insertResult;
+  try {
+    insertResult = await db.executeWithContext(
+      '''
+      INSERT INTO questionnaire_instances (
+        patient_id, questionnaire_type, status, study_event,
+        version, sent_by, sent_at, created_at, updated_at
+      )
+      VALUES (
+        @patientId, @questionnaireType::questionnaire_type, 'sent', @studyEvent,
+        @version, @sentBy, @sentAt, @sentAt, @sentAt
+      )
+      RETURNING id
+      ''',
+      parameters: {
+        'patientId': patientId,
+        'questionnaireType': questionnaireType,
+        'studyEvent': studyEvent,
+        'version': version,
+        'sentBy': user.id,
+        'sentAt': now.toIso8601String(),
+      },
+      context: serviceContext,
+    );
+  } on UniqueViolationException {
+    return _jsonResponse({
+      'error':
+          'A $questionnaireType questionnaire for study event '
+          '"$studyEvent" already exists and has not been deleted. '
+          'Delete it first or choose a different cycle.',
+    }, 409);
+  }
 
   final instanceId = insertResult.first[0] as String;
 
@@ -436,7 +814,7 @@ Future<Response> deleteQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at, p.site_id
+           qi.deleted_at, p.site_id, qi.study_event
     FROM questionnaire_instances qi
     JOIN patients p ON p.patient_id = qi.patient_id
     WHERE qi.id = @instanceId::uuid
@@ -473,7 +851,18 @@ Future<Response> deleteQuestionnaireHandler(
     }, 409);
   }
 
-  // REQ-CAL-p00023-I: Cannot delete after finalization
+  // REQ-CAL-p00023-I: Cannot delete after finalization.
+  //
+  // This also covers terminal-cycle questionnaires (end_event IS NOT NULL,
+  // REQ-CAL-p00080-G): end_event is only set during finalization, so a
+  // terminal-cycle questionnaire is always 'finalized' by the time it carries
+  // a non-null end_event. Deletion is therefore permanently blocked at the
+  // application layer once a terminal cycle is finalized.
+  //
+  // Corollary (REQ-CAL-p00080-G): if the questionnaire is still in 'sent'
+  // or 'ready_to_review' status (i.e. finalization has not yet happened),
+  // it CAN be deleted — and doing so clears the end_event block, allowing a
+  // new send. See: _computeNextCycleInfo end_event check (deleted_at IS NULL).
   if (currentStatus == 'finalized') {
     return _jsonResponse({
       'error': 'Cannot delete a finalized questionnaire',
@@ -553,6 +942,7 @@ Future<Response> deleteQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
         'reason': reason.trim(),
         'deleted_at': now.toIso8601String(),
@@ -615,7 +1005,7 @@ Future<Response> unlockQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at, p.site_id
+           qi.deleted_at, p.site_id, qi.study_event
     FROM questionnaire_instances qi
     JOIN patients p ON p.patient_id = qi.patient_id
     WHERE qi.id = @instanceId::uuid
@@ -726,6 +1116,7 @@ Future<Response> unlockQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
         'new_status': 'sent',
         'unlocked_at': now.toIso8601String(),
@@ -789,7 +1180,7 @@ Future<Response> finalizeQuestionnaireHandler(
   final instanceResult = await db.executeWithContext(
     '''
     SELECT qi.id, qi.questionnaire_type::text, qi.status::text, qi.patient_id,
-           qi.deleted_at, p.site_id
+           qi.deleted_at, p.site_id, qi.study_event
     FROM questionnaire_instances qi
     JOIN patients p ON p.patient_id = qi.patient_id
     WHERE qi.id = @instanceId::uuid
@@ -833,17 +1224,42 @@ Future<Response> finalizeQuestionnaireHandler(
     }, 409);
   }
 
+  // REQ-CAL-p00080-F: Parse optional end_event from body
+  String? endEvent;
+  try {
+    final body = await request.readAsString();
+    if (body.isNotEmpty) {
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      endEvent = json['end_event'] as String?;
+    }
+  } catch (_) {
+    // Body is optional for finalize
+  }
+
+  // Validate end_event if provided
+  if (endEvent != null && !StudyEvent.isEndEvent(endEvent)) {
+    return _jsonResponse({
+      'error':
+          'Invalid end_event. Must be "${StudyEvent.endOfTreatment}" '
+          'or "${StudyEvent.endOfStudy}".',
+    }, 400);
+  }
+
   final now = DateTime.now().toUtc();
 
-  // Placeholder score calculation (real scoring deferred to questionnaire content sprint)
+  // TODO(CUR-856): Replace with real scoring logic before EDC integration.
+  // WARNING: This placeholder sends score=0 for all finalizations.
+  // Do NOT consume this value downstream until scoring is implemented.
   const score = 0;
 
-  // Set status to finalized
+  // Set status to finalized, optionally set end_event
   await db.executeWithContext(
     '''
     UPDATE questionnaire_instances
     SET status = 'finalized',
         finalized_at = @finalizedAt,
+        finalized_by = @finalizedBy,
+        end_event = @endEvent::end_event_type,
         score = @score,
         updated_at = @finalizedAt
     WHERE id = @instanceId::uuid
@@ -851,6 +1267,8 @@ Future<Response> finalizeQuestionnaireHandler(
     parameters: {
       'instanceId': instanceId,
       'finalizedAt': now.toIso8601String(),
+      'finalizedBy': user.id,
+      'endEvent': endEvent,
       'score': score,
     },
     context: serviceContext,
@@ -875,14 +1293,18 @@ Future<Response> finalizeQuestionnaireHandler(
         'instance_id': instanceId,
         'patient_id': patientId,
         'questionnaire_type': instanceResult.first[1] as String,
+        'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
         'new_status': 'finalized',
+        'end_event': endEvent,
         'score': score,
         'finalized_at': now.toIso8601String(),
         'finalized_by_email': user.email,
         'finalized_by_name': user.name,
       }),
-      'justification': 'Questionnaire finalized with score $score',
+      'justification': endEvent != null
+          ? 'Questionnaire finalized as ${StudyEvent.endEventDisplayLabel(endEvent)}'
+          : 'Questionnaire finalized with score $score',
       'ipAddress': clientIp,
     },
     context: serviceContext,
@@ -896,6 +1318,7 @@ Future<Response> finalizeQuestionnaireHandler(
       'instance_id': instanceId,
       'patient_id': patientId,
       'score': score.toString(),
+      if (endEvent != null) 'end_event': endEvent,
     },
   );
 
@@ -904,6 +1327,7 @@ Future<Response> finalizeQuestionnaireHandler(
     'instance_id': instanceId,
     'patient_id': patientId,
     'status': 'finalized',
+    'end_event': endEvent,
     'score': score,
     'finalized_at': now.toIso8601String(),
   });

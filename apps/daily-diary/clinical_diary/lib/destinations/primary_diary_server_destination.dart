@@ -1,4 +1,4 @@
-// Implements: REQ-d00155-A+B+C+D+E (destination contract); REQ-d00113-C
+// Implements: REQ-d00162-A+B+C+D+E (destination contract); REQ-d00113-C
 //   (409 questionnaire_deleted → SendOk so the FIFO drains; the locally
 //   recorded event remains the audit fact).
 
@@ -31,12 +31,12 @@ import 'package:http/http.dart' as http;
 /// - [http.ClientException]                     → [SendTransient]
 /// - [TimeoutException]                         → [SendTransient]
 /// - `resolveBaseUrl` returns `null`            → [SendTransient]
-// Implements: REQ-d00155-A — stable id 'primary_diary_server'.
-// Implements: REQ-d00155-B — SubscriptionFilter() matches every user event.
-// Implements: REQ-d00155-C — single-event payloads (canAddToBatch = false,
+// Implements: REQ-d00162-A — stable id 'primary_diary_server'.
+// Implements: REQ-d00162-B — SubscriptionFilter() matches every user event.
+// Implements: REQ-d00162-C — single-event payloads (canAddToBatch = false,
 //   maxAccumulateTime = Duration.zero).
-// Implements: REQ-d00155-D — transform serializes the event to JSON bytes.
-// Implements: REQ-d00155-E — send classifies HTTP responses into SendResult.
+// Implements: REQ-d00162-D — transform serializes the event to JSON bytes.
+// Implements: REQ-d00162-E — send classifies HTTP responses into SendResult.
 // Implements: REQ-d00113-C — 409 questionnaire_deleted translated to SendOk.
 class PrimaryDiaryServerDestination extends Destination {
   PrimaryDiaryServerDestination({
@@ -56,11 +56,11 @@ class PrimaryDiaryServerDestination extends Destination {
   // -------------------------------------------------------------------------
 
   @override
-  // Implements: REQ-d00155-A — stable FIFO store key.
+  // Implements: REQ-d00162-A — stable FIFO store key.
   String get id => 'primary_diary_server';
 
   @override
-  // Implements: REQ-d00155-B — every user entry-type / event-type is admitted;
+  // Implements: REQ-d00162-B — every user entry-type / event-type is admitted;
   // system events excluded by the default SubscriptionFilter.
   SubscriptionFilter get filter => const SubscriptionFilter();
 
@@ -72,11 +72,11 @@ class PrimaryDiaryServerDestination extends Destination {
   // -------------------------------------------------------------------------
 
   @override
-  // Implements: REQ-d00155-C — flush immediately; never accumulate.
+  // Implements: REQ-d00162-C — flush immediately; never accumulate.
   Duration get maxAccumulateTime => Duration.zero;
 
   @override
-  // Implements: REQ-d00155-C — each event becomes its own independent FIFO
+  // Implements: REQ-d00162-C — each event becomes its own independent FIFO
   // entry, keeping events strictly ordered in the drain queue.
   bool canAddToBatch(List<StoredEvent> currentBatch, StoredEvent candidate) =>
       false;
@@ -86,7 +86,7 @@ class PrimaryDiaryServerDestination extends Destination {
   // -------------------------------------------------------------------------
 
   @override
-  // Implements: REQ-d00155-D — serialize the single event in the batch as a
+  // Implements: REQ-d00162-D — serialize the single event in the batch as a
   // flat JSON object; the batch always has length 1 because canAddToBatch
   // returns false.
   Future<WirePayload> transform(List<StoredEvent> batch) async {
@@ -104,7 +104,7 @@ class PrimaryDiaryServerDestination extends Destination {
   // -------------------------------------------------------------------------
 
   @override
-  // Implements: REQ-d00155-E — POST to {baseUrl}/events; classify response.
+  // Implements: REQ-d00162-E — POST to {baseUrl}/events; classify response.
   // Implements: REQ-d00113-C — 409 questionnaire_deleted → SendOk.
   Future<SendResult> send(WirePayload payload) async {
     final baseUrl = await _resolveBaseUrl();

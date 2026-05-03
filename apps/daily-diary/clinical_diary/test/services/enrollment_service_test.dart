@@ -3,6 +3,7 @@
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-p05004: Disconnection Notification (persistent banner)
 
 import 'dart:convert';
 
@@ -252,6 +253,10 @@ void main() {
             enrolledAt: DateTime.now(),
           );
           mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
+          // CUR-1164: patient is NOT disconnected, so re-enrollment is blocked
+          SharedPreferences.setMockInitialValues({
+            'patient_disconnected': false,
+          });
 
           var httpCalled = false;
           final mockClient = MockClient((request) async {
@@ -599,37 +604,6 @@ void main() {
         expect(result, true);
       });
 
-      test('setDisconnected(false) clears banner dismissed state', () async {
-        // Set disconnected and dismiss banner
-        await service.setDisconnected(true);
-        await service.setDisconnectionBannerDismissed(true);
-
-        // Reconnect
-        await service.setDisconnected(false);
-
-        // Banner dismissed state should be cleared
-        final bannerDismissed = await service.isDisconnectionBannerDismissed();
-        expect(bannerDismissed, false);
-      });
-
-      test('isDisconnectionBannerDismissed returns false by default', () async {
-        final result = await service.isDisconnectionBannerDismissed();
-        expect(result, false);
-      });
-
-      test('setDisconnectionBannerDismissed updates state', () async {
-        await service.setDisconnectionBannerDismissed(true);
-        final result = await service.isDisconnectionBannerDismissed();
-        expect(result, true);
-      });
-
-      test('resetDisconnectionBannerDismissed clears state', () async {
-        await service.setDisconnectionBannerDismissed(true);
-        await service.resetDisconnectionBannerDismissed();
-        final result = await service.isDisconnectionBannerDismissed();
-        expect(result, false);
-      });
-
       test('processDisconnectionStatus returns true when disconnected', () {
         final response = {
           'isDisconnected': true,
@@ -671,6 +645,215 @@ void main() {
         final result = await service.isDisconnected();
         expect(result, true);
       });
+    });
+
+    // CUR-1164: Re-enrollment when disconnected
+    group('re-enrollment when disconnected', () {
+      late MockSecureStorage mockStorage;
+      late EnrollmentService service;
+
+      final validLinkResponse = jsonEncode({
+        'jwt': 'new-token',
+        'userId': 'user-456',
+        'patientId': 'patient-456',
+        'linkingCode': 'CAHELLO WORLD',
+        'siteId': 'site-1',
+        'siteName': 'Test Site',
+        'sitePhoneNumber': '+1-555-0000',
+        'studyPatientId': 'SP-001',
+      });
+
+      setUp(() {
+        SharedPreferences.setMockInitialValues({});
+        mockStorage = MockSecureStorage();
+      });
+
+      tearDown(() {
+        service.dispose();
+      });
+
+      test('allows re-enrollment when patient is disconnected', () async {
+        // Arrange: existing enrollment + disconnected state
+        final existing = UserEnrollment(
+          userId: 'user-old',
+          jwtToken: 'old-token',
+          enrolledAt: DateTime.now(),
+          backendUrl: 'https://ca.example.com',
+          linkingCode: 'CAOLDCODE',
+        );
+        mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
+        SharedPreferences.setMockInitialValues({'patient_disconnected': true});
+
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: MockClient(
+            (_) async => http.Response(validLinkResponse, 200),
+          ),
+        );
+
+        // Act: re-enroll — should NOT throw deviceAlreadyEnrolled
+        final result = await service.enroll('CAHELLOWORLD');
+
+        expect(result.userId, 'user-456');
+        expect(result.jwtToken, 'new-token');
+      });
+
+      test(
+        'clears disconnected state after successful re-enrollment',
+        () async {
+          final existing = UserEnrollment(
+            userId: 'user-old',
+            jwtToken: 'old-token',
+            enrolledAt: DateTime.now(),
+            backendUrl: 'https://ca.example.com',
+            linkingCode: 'CAOLDCODE',
+          );
+          mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
+          SharedPreferences.setMockInitialValues({
+            'patient_disconnected': true,
+          });
+
+          service = EnrollmentService(
+            secureStorage: mockStorage,
+            httpClient: MockClient(
+              (_) async => http.Response(validLinkResponse, 200),
+            ),
+          );
+
+          await service.enroll('CAHELLOWORLD');
+
+          final isDisconnected = await service.isDisconnected();
+          expect(isDisconnected, false);
+        },
+      );
+
+      test('still blocks re-enrollment when not disconnected', () async {
+        // Arrange: existing enrollment, NOT disconnected
+        final existing = UserEnrollment(
+          userId: 'user-old',
+          jwtToken: 'old-token',
+          enrolledAt: DateTime.now(),
+        );
+        mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
+        SharedPreferences.setMockInitialValues({'patient_disconnected': false});
+
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+
+        expect(
+          () => service.enroll('CAHELLOWORLD'),
+          throwsA(
+            predicate<EnrollmentException>(
+              (e) => e.type == EnrollmentErrorType.deviceAlreadyEnrolled,
+            ),
+          ),
+        );
+      });
+    });
+
+    // CUR-1165: Not participating state tests (REQ-p01065-D)
+    group('Not Participating State', () {
+      late EnrollmentService service;
+
+      setUp(() {
+        SharedPreferences.setMockInitialValues({});
+        service = EnrollmentService(
+          secureStorage: MockSecureStorage(),
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+      });
+
+      tearDown(() {
+        service.dispose();
+      });
+
+      test('isNotParticipating returns false by default', () async {
+        final result = await service.isNotParticipating();
+        expect(result, false);
+      });
+
+      test('setNotParticipating persists true', () async {
+        await service.setNotParticipating(true);
+        final result = await service.isNotParticipating();
+        expect(result, true);
+      });
+
+      test('setNotParticipating persists false', () async {
+        await service.setNotParticipating(true);
+        await service.setNotParticipating(false);
+        final result = await service.isNotParticipating();
+        expect(result, false);
+      });
+
+      test('getNotParticipatingAt returns null by default', () async {
+        final result = await service.getNotParticipatingAt();
+        expect(result, isNull);
+      });
+
+      test('setNotParticipating stores provided timestamp', () async {
+        final timestamp = DateTime(2026, 4, 23, 13, 47);
+        await service.setNotParticipating(true, at: timestamp);
+        final result = await service.getNotParticipatingAt();
+        expect(result, equals(timestamp));
+      });
+
+      test('setNotParticipating(false) clears stored timestamp', () async {
+        await service.setNotParticipating(true, at: DateTime(2026, 4, 23));
+        await service.setNotParticipating(false);
+        final result = await service.getNotParticipatingAt();
+        expect(result, isNull);
+      });
+
+      test(
+        'processDisconnectionStatus sets not_participating when flag is true',
+        () async {
+          final response = {
+            'isDisconnected': false,
+            'isNotParticipating': true,
+            'mobileLinkingStatus': 'not_participating',
+          };
+
+          service.processDisconnectionStatus(response);
+
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          expect(await service.isNotParticipating(), true);
+          expect(await service.isDisconnected(), false);
+        },
+      );
+
+      test(
+        'processDisconnectionStatus clears not_participating when flag is false',
+        () async {
+          await service.setNotParticipating(true, at: DateTime(2026, 4, 23));
+
+          final response = {
+            'isDisconnected': false,
+            'isNotParticipating': false,
+            'mobileLinkingStatus': 'connected',
+          };
+
+          service.processDisconnectionStatus(response);
+
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          expect(await service.isNotParticipating(), false);
+        },
+      );
+
+      test(
+        'setNotParticipating preserves first timestamp on repeated calls',
+        () async {
+          final first = DateTime(2026, 4, 23, 10, 0);
+          await service.setNotParticipating(true, at: first);
+          // Second call without at — should keep the first timestamp
+          await service.setNotParticipating(true);
+          final result = await service.getNotParticipatingAt();
+          expect(result, equals(first));
+        },
+      );
     });
   });
 }

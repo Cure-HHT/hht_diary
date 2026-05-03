@@ -651,12 +651,14 @@ class _StudyCoordinatorPatientsTabState
     _PatientData patient,
     ApiClient apiClient,
   ) async {
+    final authService = context.read<AuthService>();
     final result = await PatientActionsDialog.show(
       context: context,
       patientId: patient.patientId,
       patientDisplayId: patient.edcSubjectKey,
       mobileLinkingStatus: patient.mobileLinkingStatus,
       apiClient: apiClient,
+      disconnectReasonDropdown: authService.disconnectReasonDropdown,
     );
 
     // Refresh the patient list if an action was taken

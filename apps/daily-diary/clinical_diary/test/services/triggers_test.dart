@@ -1,4 +1,4 @@
-// Verifies: REQ-d00157-A+B+C+D+E.
+// Verifies: REQ-d00164-A+B+C+D+E.
 
 import 'dart:async';
 
@@ -114,7 +114,7 @@ void main() {
 
   group('A — Lifecycle resumed', () {
     test(
-      // Verifies: REQ-d00157-A
+      // Verifies: REQ-d00164-A
       'AppLifecycleState.resumed calls onTrigger once',
       () async {
         final lifecycleCapture = _LifecycleCapture();
@@ -152,7 +152,7 @@ void main() {
 
   group('B — Periodic timer', () {
     test(
-      // Verifies: REQ-d00157-B
+      // Verifies: REQ-d00164-B
       'Three timer ticks while in foreground → 3 onTrigger calls',
       () async {
         final lifecycleCapture = _LifecycleCapture();
@@ -189,7 +189,7 @@ void main() {
 
   group('B+A — Timer gated by foreground state', () {
     test(
-      // Verifies: REQ-d00157-A+B
+      // Verifies: REQ-d00164-A+B
       'Paused stops timer firing; resumed restarts it',
       () async {
         final lifecycleCapture = _LifecycleCapture();
@@ -271,7 +271,7 @@ void main() {
     });
 
     test(
-      // Verifies: REQ-d00157-C
+      // Verifies: REQ-d00164-C
       'offline → online fires onTrigger once',
       () async {
         // First event: offline (sets baseline as none).
@@ -287,7 +287,7 @@ void main() {
     );
 
     test(
-      // Verifies: REQ-d00157-C
+      // Verifies: REQ-d00164-C
       'online → offline fires 0 onTrigger calls',
       () async {
         // First event: online (sets baseline as connected).
@@ -309,7 +309,7 @@ void main() {
     );
 
     test(
-      // Verifies: REQ-d00157-C
+      // Verifies: REQ-d00164-C
       'online → different-network-type does NOT fire onTrigger',
       () async {
         // Establish online baseline.
@@ -333,7 +333,7 @@ void main() {
 
   group('D — FCM onMessage', () {
     test(
-      // Verifies: REQ-d00157-D
+      // Verifies: REQ-d00164-D
       'FCM onMessage event fires onTrigger once',
       () async {
         final lifecycleCapture = _LifecycleCapture();
@@ -369,7 +369,7 @@ void main() {
 
   group('E — FCM onMessageOpenedApp', () {
     test(
-      // Verifies: REQ-d00157-E
+      // Verifies: REQ-d00164-E
       'FCM onMessageOpenedApp event fires onTrigger once',
       () async {
         final lifecycleCapture = _LifecycleCapture();
@@ -405,7 +405,7 @@ void main() {
 
   group('onTrigger error recovery', () {
     test(
-      // Verifies: REQ-d00157-A+B+C+D+E — a single onTrigger() failure must
+      // Verifies: REQ-d00164-A+B+C+D+E — a single onTrigger() failure must
       // not poison the serial chain. Subsequent trigger sources must still
       // fire onTrigger() on the next event.
       'a thrown onTrigger does not disable subsequent triggers',
@@ -472,7 +472,7 @@ void main() {
 
   group('dispose', () {
     test(
-      // Verifies: REQ-d00157-A+B+C+D+E
+      // Verifies: REQ-d00164-A+B+C+D+E
       'dispose cancels all triggers — nothing fires after dispose()',
       () async {
         final lifecycleCapture = _LifecycleCapture();

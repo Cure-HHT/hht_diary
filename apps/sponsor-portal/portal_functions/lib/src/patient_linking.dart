@@ -28,6 +28,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'notification_service.dart';
 import 'portal_auth.dart';
+import 'sponsor.dart';
 
 /// Expiration duration for linking codes (72 hours per REQ-p70007)
 const linkingCodeExpiration = Duration(hours: 72);
@@ -448,7 +449,8 @@ const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 /// Disconnect a patient from the mobile app
 /// POST /api/v1/portal/patients/:patientId/disconnect
 /// Authorization: Bearer <Identity Platform ID token>
-/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other", "notes": "..." }
+/// Body: { "reason": "Device Issues" | "Technical Issues" | "Other" }
+///   When sponsor config disconnectReasonDropdown=false: reason may be any non-empty string.
 ///
 /// Disconnects a connected patient:
 /// - Requires Investigator role with site access to patient's site
@@ -508,19 +510,14 @@ Future<Response> disconnectPatientHandler(Request request) async {
     return _jsonResponse({'error': 'Missing required field: reason'}, 400);
   }
 
-  if (!validDisconnectReasons.contains(reason)) {
-    return _jsonResponse({
-      'error':
-          'Invalid reason. Must be one of: ${validDisconnectReasons.join(", ")}',
-    }, 400);
-  }
-
-  // If reason is "Other", notes are required
-  final notes = requestData['notes'] as String?;
-  if (reason == 'Other' && (notes == null || notes.trim().isEmpty)) {
-    return _jsonResponse({
-      'error': 'Notes are required when reason is "Other"',
-    }, 400);
+  final sponsorFlags = getCurrentSponsorFlags();
+  if (sponsorFlags.disconnectReasonDropdown) {
+    if (!validDisconnectReasons.contains(reason)) {
+      return _jsonResponse({
+        'error':
+            'Invalid reason. Must be one of: ${validDisconnectReasons.join(", ")}',
+      }, 400);
+    }
   }
 
   final db = Database.instance;
@@ -632,7 +629,6 @@ Future<Response> disconnectPatientHandler(Request request) async {
         'previous_status': currentStatus,
         'new_status': 'disconnected',
         'reason': reason,
-        'notes': notes,
         'codes_revoked': codesRevoked,
         'disconnected_by_email': user.email,
         'disconnected_by_name': user.name,

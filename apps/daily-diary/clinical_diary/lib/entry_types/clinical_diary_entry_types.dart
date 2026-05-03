@@ -2,7 +2,7 @@
 //   set: three static nosebleed variants plus one survey type per
 //   questionnaire definition in questionnaires.json. New questionnaires are
 //   added by editing the JSON only.
-// Implements: REQ-d00158-A — non-materializing audit entry type for inbound
+// Implements: REQ-d00165-A — non-materializing audit entry type for inbound
 //   tombstone instructions that could not be applied locally.
 
 import 'dart:convert';
@@ -21,7 +21,7 @@ const _questionnairesAssetPath =
 /// diary view; the row exists only to stamp an immutable event-log fact that
 /// will ship to the diary server through the standard FIFO drain.
 ///
-/// Implements: REQ-d00158-A — see dev-event-sourcing-mobile.md.
+/// Implements: REQ-d00165-A — see dev-event-sourcing-mobile.md.
 const String kInboundTombstoneRecordFailedEntryType =
     'inbound_tombstone_record_failed';
 
@@ -74,7 +74,7 @@ const List<EntryTypeDefinition> _nosebleedTypes = [
 ///     questionnaires.json.  Adding a new questionnaire to the JSON
 ///     automatically yields a new entry type with no Dart change.
 ///   - The audit entry type [kInboundTombstoneRecordFailedEntryType]
-///     (REQ-d00158-A).
+///     (REQ-d00165-A).
 ///
 /// The optional `jsonLoader` parameter overrides the JSON source; it defaults
 /// to loading from the asset bundle via `rootBundle.loadString`.  Inject a

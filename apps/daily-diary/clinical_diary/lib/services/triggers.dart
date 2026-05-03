@@ -1,4 +1,4 @@
-// Implements: REQ-d00157-A+B+C+D+E — clinical_diary sync triggers.
+// Implements: REQ-d00164-A+B+C+D+E — clinical_diary sync triggers.
 //   Lifecycle resumed, periodic timer (foreground only), connectivity
 //   restored, FCM onMessage and onMessageOpenedApp. No background isolate.
 

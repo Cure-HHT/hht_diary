@@ -3,10 +3,12 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00047: Hard-Coded Questionnaires
 //   REQ-CAL-p00079: Start Trial Workflow
+//   REQ-CAL-p00080: Questionnaire Study Event Association
 //   REQ-CAL-p00081: Patient Task System
 //
 // Comprehensive tests for questionnaire handlers (get, send, delete,
-// unlock, finalize). Covers all CUR-823 acceptance criteria:
+// unlock, finalize) and NextCycleResult sealed class serialisation.
+// Covers all CUR-823 acceptance criteria:
 //   1. GET returns statuses per patient
 //   2. POST sends questionnaire + triggers FCM
 //   3. Nose HHT and QoL can be sent multiple times (after finalize)
@@ -76,7 +78,7 @@ List<dynamic> _patientRow({
 }
 
 /// Standard questionnaire instance row:
-/// [id, type::text, status::text, patient_id, deleted_at, site_id]
+/// [id, type::text, status::text, patient_id, deleted_at, site_id,study_event]
 /// The site_id comes from the JOIN with patients (added for CUR-1064 site access check).
 List<dynamic> _instanceRow({
   String id = _testInstanceId,
@@ -84,8 +86,9 @@ List<dynamic> _instanceRow({
   String status = 'sent',
   DateTime? deletedAt,
   String siteId = _testSiteId,
+  String? studyEvent = 'Cycle 1 Day 1',
 }) {
-  return [id, type, status, _testPatientId, deletedAt, siteId];
+  return [id, type, status, _testPatientId, deletedAt, siteId, studyEvent];
 }
 
 /// Build a shelf Request with optional body and headers.
@@ -395,6 +398,15 @@ void main() {
         if (query.contains('FROM patients')) {
           return [_patientRow()];
         }
+        // CUR-856: Last-finalized query (2-column result)
+        if (query.contains("status = 'finalized'") &&
+            query.contains('finalized_at')) {
+          return [];
+        }
+        // CUR-856: End-event blocking query
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
         if (query.contains('FROM questionnaire_instances')) {
           return [
             // [id, type, status, study_event, version, sent_at,
@@ -475,6 +487,83 @@ void main() {
       expect(response.statusCode, 403);
       final body = await _json(response);
       expect(body['error'], contains('site'));
+    });
+
+    test('shows blocked next_cycle_info and end_event metadata after terminal '
+        'cycle finalization (REQ-CAL-p00080-G)', () async {
+      // Scenario: nose_hht Cycle 5 Day 1 was finalized with
+      // end_event='end_of_treatment'. The handler must:
+      //   1. Transform 'finalized' → 'not_sent' so the type shows as sendable
+      //   2. Still expose last_finalized_study_event
+      //   3. Call _computeNextCycleInfo which detects the end_event and
+      //      returns blocked=true with end_event / ended_on_study_event fields
+      final finalizedAt = DateTime.now().toUtc();
+
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // Last-finalized query (runs per type to populate last_finalized_*)
+        // columns: [questionnaire_type, finalized_at, study_event]
+        if (query.contains("status = 'finalized'") &&
+            query.contains('finalized_at')) {
+          return [
+            ['nose_hht', finalizedAt, 'Cycle 5 Day 1'],
+          ];
+        }
+        // End-event blocking query — terminal cycle still active (not deleted)
+        if (query.contains('end_event IS NOT NULL')) {
+          return [
+            ['end_of_treatment', 'Cycle 5 Day 1'],
+          ];
+        }
+        // Main instances query: nose_hht is finalized on Cycle 5 Day 1
+        // columns: [id, type, status, study_event, version,
+        //           sent_at, submitted_at, finalized_at, score, sent_by]
+        if (query.contains('FROM questionnaire_instances')) {
+          return [
+            [
+              _testInstanceId,
+              'nose_hht',
+              'finalized',
+              'Cycle 5 Day 1',
+              '1.0.0',
+              finalizedAt,
+              finalizedAt,
+              finalizedAt,
+              null,
+              _testUserId,
+            ],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'GET',
+        '/api/v1/portal/patients/questionnaires',
+        headers: {'x-patient-id': _testPatientId},
+      );
+
+      final response = await getQuestionnaireStatusHandler(request);
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      final questionnaires = body['questionnaires'] as List<dynamic>;
+
+      final noseHht = questionnaires.firstWhere(
+        (q) => q['questionnaire_type'] == 'nose_hht',
+      );
+
+      // Finalized status is exposed as not_sent — ready for next-cycle send
+      expect(noseHht['status'], 'not_sent');
+      // Last finalized metadata is preserved so the UI can display it
+      expect(noseHht['last_finalized_study_event'], 'Cycle 5 Day 1');
+      // Terminal cycle blocks further sends
+      final nextCycleInfo = noseHht['next_cycle_info'] as Map<String, dynamic>;
+      expect(nextCycleInfo['blocked'], true);
+      expect(nextCycleInfo['end_event'], 'end_of_treatment');
+      expect(nextCycleInfo['ended_on_study_event'], 'Cycle 5 Day 1');
     });
   });
 
@@ -580,6 +669,8 @@ void main() {
           body: jsonEncode({
             'patientId': _testPatientId,
             'questionnaireType': type,
+            if (type == 'nose_hht' || type == 'qol')
+              'study_event': 'Cycle 1 Day 1',
           }),
         );
 
@@ -712,12 +803,14 @@ void main() {
         return [];
       };
 
+      // CUR-856: study_event required per REQ-CAL-p00080
       final request = _request(
         'POST',
         '/api/v1/portal/patients/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
         }),
       );
 
@@ -730,6 +823,58 @@ void main() {
 
       // Action type is hardcoded in SQL, not a named parameter
       expect(auditQuery.first.query, contains('QUESTIONNAIRE_SENT'));
+    });
+
+    test('returns 409 with user-readable error when study_event conflicts '
+        'with an existing non-deleted instance (REQ-CAL-p00080-E)', () async {
+      // Scenario: Cycle 1 is finalized. System auto-suggests Cycle 2.
+      // But another concurrent send already created Cycle 2 Day 1 (e.g.
+      // race condition or manual override). The conflict check must return
+      // a clean 409 before the INSERT reaches the DB constraint.
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // No active non-finalized instance
+        if (query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // No terminal cycle block
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
+        // Finalized cycles: Cycle 1 exists → auto-suggests Cycle 2
+        if (query.contains("status = 'finalized'") &&
+            query.contains('study_event ~')) {
+          return [
+            ['Cycle 1 Day 1'],
+          ];
+        }
+        // study_event conflict check — Cycle 2 Day 1 already taken
+        if (query.contains('study_event = @studyEvent')) {
+          return [
+            [1],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/questionnaires/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+          'study_event': 'Cycle 2 Day 1',
+        }),
+      );
+
+      final response = await sendQuestionnaireHandler(request);
+
+      expect(response.statusCode, 409);
+      final body = await _json(response);
+      expect(body['error'], contains('Cycle 2 Day 1'));
+      expect(body['error'], contains('already exists'));
     });
   });
 
@@ -1401,6 +1546,491 @@ void main() {
       );
 
       expect(response.statusCode, 409);
+    });
+  });
+
+  // ====================================================================
+  // Phase 2: End Events (CUR-856, REQ-CAL-p00080 Assertions F, G)
+  // ====================================================================
+  group('finalizeQuestionnaireHandler — end events (CUR-856)', () {
+    test('stores end_event when provided in body', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        capturedQueries.add((query: query, params: parameters));
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'end_of_treatment'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], 'end_of_treatment');
+
+      // Verify end_event was passed to the UPDATE query
+      final updateQuery = capturedQueries.where(
+        (q) => q.query.contains('UPDATE questionnaire_instances'),
+      );
+      expect(updateQuery, isNotEmpty);
+      expect(updateQuery.first.params?['endEvent'], 'end_of_treatment');
+    });
+
+    test('stores end_of_study end_event', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'end_of_study'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], 'end_of_study');
+    });
+
+    test('end_event is null when not provided (normal finalization)', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        capturedQueries.add((query: query, params: parameters));
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 200);
+      final body = await _json(response);
+      expect(body['end_event'], isNull);
+
+      final updateQuery = capturedQueries.where(
+        (q) => q.query.contains('UPDATE questionnaire_instances'),
+      );
+      expect(updateQuery.first.params?['endEvent'], isNull);
+    });
+
+    test('returns 400 for invalid end_event string', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM questionnaire_instances')) {
+          return [_instanceRow(status: 'ready_to_review')];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
+        body: jsonEncode({'end_event': 'invalid value'}),
+      );
+
+      final response = await finalizeQuestionnaireHandler(
+        request,
+        _testInstanceId,
+      );
+
+      expect(response.statusCode, 400);
+      final body = await _json(response);
+      expect(body['error'], contains('Invalid end_event'));
+    });
+  });
+
+  group('sendQuestionnaireHandler — end event blocking (CUR-856)', () {
+    test('returns 409 when end event is finalized for that type', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        // No active non-finalized instance
+        if (query.contains('FROM questionnaire_instances') &&
+            query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // End event check — return a finalized end event
+        if (query.contains('end_event IS NOT NULL')) {
+          return [
+            ['end_of_treatment', 'Cycle 5 Day 1'],
+          ];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/questionnaires/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+          'study_event': 'Cycle 6 Day 1',
+        }),
+      );
+
+      final response = await sendQuestionnaireHandler(request);
+
+      expect(response.statusCode, 409);
+      final body = await _json(response);
+      expect(body['error'], contains('Cannot send questionnaire'));
+      // Error message uses the human-readable display label, not snake_case (CUR-856).
+      expect(body['error'], contains('End of Treatment'));
+    });
+
+    test('does not block when no end event finalized', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM patients')) {
+          return [_patientRow()];
+        }
+        if (query.contains('FROM questionnaire_instances') &&
+            query.contains("status != 'finalized'")) {
+          return [];
+        }
+        // End event check — none found
+        if (query.contains('end_event IS NOT NULL')) {
+          return [];
+        }
+        // Finalized cycles for auto-increment
+        if (query.contains("status = 'finalized'") &&
+            query.contains('study_event')) {
+          return [
+            ['Cycle 3 Day 1'],
+          ];
+        }
+        if (query.contains('INSERT INTO questionnaire_instances')) {
+          return [
+            ['new-instance-id'],
+          ];
+        }
+        if (query.contains('FROM patient_fcm_tokens')) {
+          return [];
+        }
+        if (query.contains('INSERT INTO admin_action_log')) {
+          return [];
+        }
+        return [];
+      };
+
+      final request = _request(
+        'POST',
+        '/api/v1/portal/patients/questionnaires/send',
+        body: jsonEncode({
+          'patientId': _testPatientId,
+          'questionnaireType': 'nose_hht',
+        }),
+      );
+
+      final response = await sendQuestionnaireHandler(request);
+
+      expect(response.statusCode, 200);
+    });
+  });
+
+  // REQ-CAL-p00080-E: when a questionnaire is deleted before finalization,
+  // the system SHALL reassign the same Cycle value to the next questionnaire.
+  // The implementation satisfies this because Next Cycle is always
+  // (max FINALIZED cycle + 1) — deleted cycles are never finalized, so
+  // they are transparently re-suggested.
+  group(
+    'sendQuestionnaireHandler — deleted cycle re-suggestion (REQ-CAL-p00080-E)',
+    () {
+      test(
+        'reassigns deleted cycle as next cycle when no newer finalized cycle exists',
+        () async {
+          // Scenario:
+          //   Cycle 1 sent → finalized  (Finalized Cycle = 1)
+          //   Cycle 2 sent → deleted before finalization
+          //
+          // Expected: system auto-assigns Cycle 2 Day 1 (not Cycle 3 Day 1),
+          // because Next Cycle = Finalized Cycle (1) + 1 = 2.
+          databaseQueryOverride = (query, {parameters, required context}) async {
+            if (query.contains('FROM patients')) {
+              return [_patientRow()];
+            }
+            // No active non-finalized instance — Cycle 2 was soft-deleted
+            if (query.contains('FROM questionnaire_instances') &&
+                query.contains("status != 'finalized'")) {
+              return [];
+            }
+            // No terminal cycle finalized
+            if (query.contains('end_event IS NOT NULL')) {
+              return [];
+            }
+            // Only Cycle 1 is finalized; Cycle 2 was deleted, never finalized
+            if (query.contains("status = 'finalized'") &&
+                query.contains('study_event')) {
+              return [
+                ['Cycle 1 Day 1'],
+              ];
+            }
+            if (query.contains('INSERT INTO questionnaire_instances')) {
+              return [
+                ['new-instance-id'],
+              ];
+            }
+            if (query.contains('FROM patient_fcm_tokens')) {
+              return [];
+            }
+            if (query.contains('INSERT INTO admin_action_log')) {
+              return [];
+            }
+            return [];
+          };
+
+          // No study_event in the request — system must auto-compute it
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/questionnaires/send',
+            body: jsonEncode({
+              'patientId': _testPatientId,
+              'questionnaireType': 'nose_hht',
+            }),
+          );
+
+          final response = await sendQuestionnaireHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          // Must re-assign Cycle 2 (the deleted cycle), NOT skip to Cycle 3
+          expect(body['study_event'], equals('Cycle 2 Day 1'));
+        },
+      );
+
+      test(
+        'skips multiple deleted cycles and re-assigns the first un-finalized one',
+        () async {
+          // Scenario:
+          //   Cycle 1 finalized, Cycle 2 finalized  (Finalized Cycle = 2)
+          //   Cycle 3 sent → deleted
+          //   Cycle 4 sent → deleted
+          //
+          // Expected: system assigns Cycle 3 Day 1 (Finalized Cycle 2 + 1),
+          // not Cycle 5.
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) {
+                  return [_patientRow()];
+                }
+                if (query.contains('FROM questionnaire_instances') &&
+                    query.contains("status != 'finalized'")) {
+                  return [];
+                }
+                if (query.contains('end_event IS NOT NULL')) {
+                  return [];
+                }
+                // Cycles 1 and 2 finalized; Cycles 3 and 4 were deleted
+                if (query.contains("status = 'finalized'") &&
+                    query.contains('study_event')) {
+                  return [
+                    ['Cycle 1 Day 1'],
+                    ['Cycle 2 Day 1'],
+                  ];
+                }
+                if (query.contains('INSERT INTO questionnaire_instances')) {
+                  return [
+                    ['new-instance-id'],
+                  ];
+                }
+                if (query.contains('FROM patient_fcm_tokens')) {
+                  return [];
+                }
+                if (query.contains('INSERT INTO admin_action_log')) {
+                  return [];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/questionnaires/send',
+            body: jsonEncode({
+              'patientId': _testPatientId,
+              'questionnaireType': 'nose_hht',
+            }),
+          );
+
+          final response = await sendQuestionnaireHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['study_event'], equals('Cycle 3 Day 1'));
+        },
+      );
+    },
+  );
+
+  // ====================================================================
+  // Terminal cycle: soft-delete allows resend (REQ-CAL-p00080-G)
+  // ====================================================================
+  //
+  // The end_event IS NOT NULL query includes `deleted_at IS NULL`, so a
+  // soft-deleted terminal-cycle row does not permanently block further sends.
+  // This verifies the database query correctly excludes deleted rows.
+  group('sendQuestionnaireHandler — terminal cycle soft-delete allows resend '
+      '(REQ-CAL-p00080-G)', () {
+    test(
+      'permits send after terminal-cycle questionnaire is soft-deleted',
+      () async {
+        // Scenario:
+        //   A questionnaire was sent for a terminal cycle (end_of_treatment)
+        //   but was soft-deleted before finalization (end_event was never set).
+        //   Because the end_event IS NOT NULL query has deleted_at IS NULL,
+        //   the deleted row is excluded — the type is unblocked.
+        //
+        // Expected: 200 — system allows a new send.
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM patients')) {
+            return [_patientRow()];
+          }
+          // No active non-finalized instance (deleted one is excluded)
+          if (query.contains('FROM questionnaire_instances') &&
+              query.contains("status != 'finalized'")) {
+            return [];
+          }
+          // Terminal-cycle row is soft-deleted → excluded by deleted_at IS NULL
+          if (query.contains('end_event IS NOT NULL')) {
+            return [];
+          }
+          // No finalized cycles remain
+          if (query.contains("status = 'finalized'") &&
+              query.contains('study_event')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              [_testInstanceId],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/questionnaires/send',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'questionnaireType': 'nose_hht',
+            'study_event': 'Cycle 1 Day 1',
+          }),
+        );
+
+        final response = await sendQuestionnaireHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['study_event'], 'Cycle 1 Day 1');
+      },
+    );
+  });
+
+  // ================================================================
+  // NextCycleResult sealed class — toJson() wire format
+  // ================================================================
+  //
+  // These tests pin the JSON shape embedded in next_cycle_info so that
+  // any accidental change to the serialisation is caught immediately,
+  // independently of the full handler integration tests above.
+
+  group('NextCycleResult.toJson()', () {
+    test('NextCycleBlocked produces correct shape (end-event block)', () {
+      const result = NextCycleBlocked(
+        blockedReason: 'End of Treatment was finalized on Cycle 3 Day 1',
+        endEvent: 'end_of_treatment',
+        endedOnStudyEvent: 'Cycle 3 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['blocked'], true);
+      expect(json['blocked_reason'], contains('End of Treatment'));
+      expect(json['end_event'], 'end_of_treatment');
+      expect(json['ended_on_study_event'], 'Cycle 3 Day 1');
+      expect(json.containsKey('cycle_tracking_disabled'), isFalse);
+    });
+
+    test(
+      'NextCycleBlocked produces correct shape (cycle-tracking-disabled block)',
+      () {
+        const result = NextCycleBlocked(
+          blockedReason: 'Questionnaire completed',
+          cycleTrackingDisabled: true,
+        );
+        final json = result.toJson();
+        expect(json['blocked'], true);
+        expect(json['blocked_reason'], 'Questionnaire completed');
+        expect(json['cycle_tracking_disabled'], true);
+        expect(json.containsKey('end_event'), isFalse);
+        expect(json.containsKey('ended_on_study_event'), isFalse);
+      },
+    );
+
+    test('NextCycleCycleTrackingDisabled produces correct shape', () {
+      const result = NextCycleCycleTrackingDisabled();
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['cycle_tracking_disabled'], true);
+      expect(json.containsKey('blocked'), isFalse);
+    });
+
+    test('NextCycleAutoComputed produces correct shape', () {
+      const result = NextCycleAutoComputed(
+        suggestedCycle: 4,
+        studyEvent: 'Cycle 4 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['suggested_cycle'], 4);
+      expect(json['study_event'], 'Cycle 4 Day 1');
+      expect(json.containsKey('blocked'), isFalse);
+    });
+
+    test('NextCycleAutoComputed Cycle 1 produces correct shape', () {
+      const result = NextCycleAutoComputed(
+        suggestedCycle: 1,
+        studyEvent: 'Cycle 1 Day 1',
+      );
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], false);
+      expect(json['suggested_cycle'], 1);
+      expect(json['study_event'], 'Cycle 1 Day 1');
+    });
+
+    test('NextCycleNeedsSelection produces correct shape', () {
+      const result = NextCycleNeedsSelection();
+      final json = result.toJson();
+      expect(json['needs_initial_selection'], true);
+      expect(json.containsKey('blocked'), isFalse);
+      expect(json.containsKey('study_event'), isFalse);
     });
   });
 }

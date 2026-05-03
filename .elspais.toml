@@ -71,7 +71,12 @@ skip = ["node_modules", ".git", "__pycache__", "*.pyc", ".venv", ".env"]
 directories = ["spec"]
 file_patterns = ["*.md"]
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap", "regulations"]
+# NFR/ contains sponsor-shared governance / authoring guidance (style guide,
+# review checklist, glossary, SDLC SOP) imported from the platform repo. Its
+# requirements use a different namespace (REQ-CAL-*) and are intentionally not
+# part of the local traceability graph; cite them by file path in dev specs
+# when needed.
+skip_dirs = ["roadmap", "regulations", "NFR"]
 # index_file = "INDEX.md"  # Index file for ordering
 
 [scanning.code] # Code file scanning

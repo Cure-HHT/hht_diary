@@ -39,6 +39,7 @@ database/init-consolidated.sql
 # Claude Code local settings
 .claude/settings.local.json
 .claude/permissions-registry.json
+.claude/scheduled_tasks.lock
 
 # Logs
 *.log

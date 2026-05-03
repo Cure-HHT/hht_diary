@@ -86,7 +86,7 @@ Questionnaire definitions are not Dart constants. They live in `packages/trial_d
 - `apps/daily-diary/clinical_diary/lib/services/notification_service.dart` (keep FCM; remove legacy sync-trigger subscriptions)
 - `apps/daily-diary/clinical_diary/lib/widgets/{event_list_item,calendar_overlay,overlap_warning}.dart`
 - `spec/dev-questionnaire.md` (REQ-d00113 assertions C/D/E/F rewrite)
-- `spec/dev-event-sourcing-mobile.md` (REQ-d00155/156/157 appended)
+- `spec/dev-event-sourcing-mobile.md` (REQ-d00162/163/164 appended)
 - `spec/INDEX.md` (content-hash refresh + new REQ entries)
 
 **Deleted (pre-cutover):**
@@ -112,12 +112,12 @@ Questionnaire definitions are not Dart constants. They live in `packages/trial_d
 
 ### Phase 2 — REQ updates and pubspec
 
-#### Task 2: Update REQ-d00113 and claim REQ-d00155/156/157 [x]
+#### Task 2: Update REQ-d00113 and claim REQ-d00162/163/164 [x]
 
 **Files:** `spec/dev-questionnaire.md`, `spec/dev-event-sourcing-mobile.md`, `spec/INDEX.md`.
 
 - [x] Discover existing applicable REQs via the `elspais` MCP.
-- [x] Claim REQ-d00155 (PrimaryDiaryServerDestination contract), REQ-d00156 (portalInboundPoll tombstone path), REQ-d00157 (clinical_diary sync triggers).
+- [x] Claim REQ-d00162 (PrimaryDiaryServerDestination contract), REQ-d00163 (portalInboundPoll tombstone path), REQ-d00164 (clinical_diary sync triggers).
 - [x] Rewrite REQ-d00113 assertions C/D/E/F:
 
   C. `PrimaryDiaryServerDestination.send` SHALL translate an HTTP 409 response with body containing `"error": "questionnaire_deleted"` to `SendOk`. The submitted event remains in the local event log as the audit fact.
@@ -128,9 +128,9 @@ Questionnaire definitions are not Dart constants. They live in `packages/trial_d
 
   F. Withdrawal becomes visible to the patient via the entry's tombstoned state in their history; submit-time error dialogs are not used.
 
-- [x] Append REQ-d00155/156/157 to `spec/dev-event-sourcing-mobile.md`.
+- [x] Append REQ-d00162/163/164 to `spec/dev-event-sourcing-mobile.md`.
 - [x] Update `spec/INDEX.md` with new REQs and refreshed REQ-d00113 hash.
-- [x] Commit: `git commit -m "Update REQ-d00113 and add REQ-d00155/156/157 for clinical_diary cutover"`.
+- [x] Commit: `git commit -m "Update REQ-d00113 and add REQ-d00162/163/164 for clinical_diary cutover"`.
 
 ---
 
@@ -204,7 +204,7 @@ HTTP classification:
 | 5xx | any | `SendTransient(error: ..., httpStatus: code)` |
 | network/timeout | — | `SendTransient(error: ...)` |
 
-**Header:** `// Implements: REQ-d00155-A+B+C+D+E; REQ-d00113-C`
+**Header:** `// Implements: REQ-d00162-A+B+C+D+E; REQ-d00113-C`
 
 - [x] Write tests; implement; run tests (PASS).
 - [x] Commit: `git commit -m "Add PrimaryDiaryServerDestination with REQ-d00113-C 409 translation"`.
@@ -228,7 +228,7 @@ Future<void> portalInboundPoll({
 
 GETs `{baseUrl}/inbound`. Body: `{"messages": [{"type":"tombstone", "entry_id":"...", "entry_type":"..."}, ...]}`. Each tombstone message → one `entryService.record(eventType: 'tombstone', changeReason: 'portal-withdrawn')` call. Network errors and non-200 responses are swallowed. Unknown message types are skipped.
 
-**Header:** `// Implements: REQ-d00113-D, REQ-d00156-A+B+C+D`
+**Header:** `// Implements: REQ-d00113-D, REQ-d00163-A+B+C+D`
 
 - [x] Write tests; implement; run tests (PASS).
 - [x] Commit: `git commit -m "Add portalInboundPoll for tombstone inbound path"`.
@@ -285,7 +285,7 @@ Future<TriggerHandles> installTriggers({
 
 Foreground only. No background isolate (per design §11 decision 11). `onTrigger` is passed in by `bootstrapClinicalDiary` — triggers don't depend on lib types beyond `Duration`. Trigger sources: `AppLifecycleState.resumed`, `Timer.periodic` while foreground, connectivity restored, FCM `onMessage` and `onMessageOpenedApp`. `dispose()` cancels all.
 
-**Header:** `// Implements: REQ-d00157-A+B+C+D+E`
+**Header:** `// Implements: REQ-d00164-A+B+C+D+E`
 
 - [x] Write tests; implement; run tests (PASS).
 - [x] Commit: `git commit -m "Wire clinical_diary sync triggers (foreground-only)"`.
@@ -527,7 +527,7 @@ gh pr create --title "[CUR-1169] Mobile daily-diary cutover to event_sourcing_da
 - All patient writes (nosebleed, questionnaires, no-nosebleeds, unknown-day) flow through EntryService.record().
 - NosebleedService and QuestionnaireService are deleted.
 - REQ-d00113 updated: 409 questionnaire_deleted translates to SendOk; tombstoning happens via portal inbound poll.
-- New REQs: REQ-d00155 (PrimaryDiaryServerDestination), REQ-d00156 (portalInboundPoll), REQ-d00157 (clinical_diary triggers).
+- New REQs: REQ-d00162 (PrimaryDiaryServerDestination), REQ-d00163 (portalInboundPoll), REQ-d00164 (clinical_diary triggers).
 - FIFO-wedge banner appears on home when any destination is wedged.
 
 ## Test plan

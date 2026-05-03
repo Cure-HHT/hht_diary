@@ -487,6 +487,8 @@ Future<Response> syncHandler(Request request) async {
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
+      // CUR-1165: REQ-p01065-D — signal not_participating so app removes sponsor rules
+      'isNotParticipating': mobileLinkingStatus == 'not_participating',
     });
   } catch (e, stackTrace) {
     reportAndRecordError(e, stackTrace: stackTrace);
@@ -561,6 +563,8 @@ Future<Response> getRecordsHandler(Request request) async {
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
+      // CUR-1165: REQ-p01065-D — signal not_participating so app removes sponsor rules
+      'isNotParticipating': mobileLinkingStatus == 'not_participating',
     });
   } catch (e, stackTrace) {
     reportAndRecordError(e, stackTrace: stackTrace);

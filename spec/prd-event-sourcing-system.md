@@ -426,10 +426,16 @@ Without an explicit type registry, the relationship between versioned schemas (e
 
 *End* *Event Type Registry* | **Hash**: 52464e42
 ---
-## REQ-p01051: Questionnaire Versioning Model
+# REQ-p01051: Questionnaire Versioning Model
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p01050-A, REQ-p01050-C
+**Refines**: REQ-p01050
+
+## Rationale
+
+Clinical questionnaires evolve across multiple independent dimensions. Structural changes add or remove data fields requiring database schema updates. Content changes refine question wording to improve clarity or address translation issues without altering the underlying data structure. Presentation changes enhance user experience through visual redesign without modifying what questions are asked. Conflating these three evolution paths into a single version number creates unnecessary coupling: wording improvements would trigger schema migrations, UI redesigns would invalidate validated instrument versions, and the audit trail would obscure which dimension actually changed. By tracking schema, content, and GUI versions independently, clinical teams can refine instrument language without engineering involvement, UX teams can improve presentation without affecting clinical validation, and regulatory audits can reconstruct the exact patient experience across all three dimensions.
+
+Once a version is deployed and used to capture patient data, it becomes an immutable artifact. Modifying a deployed version would silently alter the instrument for patients already using it, breaking the ability to reconstruct what the patient experienced (assertions M, N) and severing audit traceability (assertion S). Any change -- whether bug fix or improvement -- must produce a new version. The prior version remains frozen and available for sponsors that have not opted into the update. This immutability applies to all three dimensions independently: a GUI can be frozen at v1.0 for one sponsor while another adopts v1.1, without affecting the content or schema versions either sponsor uses.
 
 ## Assertions
 
@@ -461,29 +467,19 @@ M. The system SHALL enable complete reconstruction of what the patient saw using
 
 N. The system SHALL enable complete reconstruction of how the data was captured using the recorded version identifiers.
 
-O. The system SHALL track schema version via the versioned_type field.
+O. Wording changes SHALL create a new content version without requiring schema migration.
 
-P. The system SHALL record content version in event_data for each response.
+P. UI redesigns SHALL create a new GUI version without requiring content version changes.
 
-Q. The system SHALL record GUI version in event_data for each response.
+Q. UI redesigns SHALL create a new GUI version without requiring schema version changes.
 
-R. Wording changes SHALL create a new content version without requiring schema migration.
+R. The system SHALL enable retrieval of historical responses with exact version context for all three version dimensions.
 
-S. UI redesigns SHALL create a new GUI version without requiring content version changes.
+S. The platform SHALL maintain complete audit traceability across all three versioning dimensions.
 
-T. UI redesigns SHALL create a new GUI version without requiring schema version changes.
+T. Once a questionnaire version has been used to capture patient data, that version SHALL be immutable.
 
-U. The system SHALL enable retrieval of historical responses with exact version context for all three version dimensions.
-
-V. Version relationships SHALL be documented in the questionnaire registry.
-
-W. The platform SHALL maintain complete audit traceability across all three versioning dimensions.
-
-## Rationale
-
-Clinical questionnaires evolve across multiple independent dimensions. Structural changes add or remove data fields requiring database schema updates. Content changes refine question wording to improve clarity or address translation issues without altering the underlying data structure. Presentation changes enhance user experience through visual redesign without modifying what questions are asked. Conflating these three evolution paths into a single version number creates unnecessary coupling: wording improvements would trigger schema migrations, UI redesigns would invalidate validated instrument versions, and the audit trail would obscure which dimension actually changed. By tracking schema, content, and GUI versions independently, clinical teams can refine instrument language without engineering involvement, UX teams can improve presentation without affecting clinical validation, and regulatory audits can reconstruct the exact patient experience across all three dimensions.
-
-*End* *Questionnaire Versioning Model* | **Hash**: e311e5fc
+*End* *Questionnaire Versioning Model* | **Hash**: 6d08845d
 ---
 ## REQ-p01052: Questionnaire Localization and Translation Tracking
 
@@ -555,13 +551,13 @@ L. The system SHALL enforce sponsor eligibility constraints during all data capt
 
 M. Configuration changes SHALL NOT invalidate existing historical questionnaire data.
 
-N. The system SHALL support addition of new questionnaire types without requiring platform code changes.
+N. The system SHALL support addition of new questionnaire types whose content conforms to an existing renderer class through catalog entry creation and sponsor configuration update, without requiring renderer code changes.
 
 ## Rationale
 
 Multi-sponsor deployments require sponsor-specific questionnaire portfolios to accommodate varying study designs. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints enable patients in ongoing studies to continue using validated instrument versions while new enrollments can use updated versions, ensuring data consistency within study cohorts. Language enablement ensures only properly validated translations are offered to participants. This configuration-driven approach allows questionnaire changes to be managed deliberately, preventing unintended mid-study modifications that could impact response patterns and data quality. The platform enforces these constraints at data capture time to maintain study protocol compliance and data integrity across the multi-sponsor environment.
 
-*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: 3bc66244
+*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: ac2f2aac
 ---
 ## REQ-p01011: Event Transformation and Migration
 
