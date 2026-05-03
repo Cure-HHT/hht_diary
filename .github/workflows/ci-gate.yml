@@ -160,13 +160,22 @@ jobs:
               fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
-              # Clean up any previous failure comment
+              # Clean up any previous failure comment(s). The legacy marker covers
+              # comments posted before the CUR-1246 rename of "CI Gate" to "Validation Summary".
+              # Paginate so chatty PRs are fully scanned, and delete every match to
+              # converge on zero failure comments when the gate is green.
               MARKER="<!-- validation-summary -->"
-              EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-                --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
-              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-                gh api "repos/${REPO}/issues/comments/${EXISTING}" -X DELETE > /dev/null 2>&1 || true
-                echo "Cleaned up previous Validation Summary failure comment"
+              LEGACY_MARKER="<!-- ci-gate-summary -->"
+              EXISTING_IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+                --jq ".[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id" 2>/dev/null || true)
+              if [ -n "$EXISTING_IDS" ]; then
+                DELETED=0
+                while IFS= read -r ID; do
+                  [ -z "$ID" ] && continue
+                  gh api "repos/${REPO}/issues/comments/${ID}" -X DELETE > /dev/null 2>&1 || true
+                  DELETED=$((DELETED + 1))
+                done <<< "$EXISTING_IDS"
+                echo "Cleaned up ${DELETED} previous Validation Summary failure comment(s)"
               fi
               exit 0
             fi
@@ -203,16 +212,31 @@ jobs:
           fi
 
           MARKER="<!-- validation-summary -->"
+          # Legacy marker: comments posted before CUR-1246 rename. Recognized so
+          # orphaned pre-rename comments get updated in place rather than spawning a duplicate.
+          LEGACY_MARKER="<!-- ci-gate-summary -->"
           SUMMARY_CONTENT=$(cat /tmp/validation-summary.md)
           UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
           printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
 
-          # Find existing Validation Summary comment to update (avoid spam on re-runs)
-          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
+          # Find every Validation Summary comment (paginated) so chatty PRs are
+          # fully scanned. PATCH the first one to the new body and delete the
+          # rest, converging on a single comment regardless of marker mix.
+          EXISTING_IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id" 2>/dev/null || true)
 
-          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-            gh api "repos/${REPO}/issues/comments/${EXISTING}" \
+          KEEP_ID=""
+          while IFS= read -r ID; do
+            [ -z "$ID" ] && continue
+            if [ -z "$KEEP_ID" ]; then
+              KEEP_ID="$ID"
+            else
+              gh api "repos/${REPO}/issues/comments/${ID}" -X DELETE > /dev/null 2>&1 || true
+            fi
+          done <<< "$EXISTING_IDS"
+
+          if [ -n "$KEEP_ID" ]; then
+            gh api "repos/${REPO}/issues/comments/${KEEP_ID}" \
               -X PATCH -f body="$BODY" > /dev/null
             echo "Updated existing Validation Summary comment"
           else
