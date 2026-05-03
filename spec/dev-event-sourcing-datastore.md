@@ -1180,7 +1180,7 @@ B. (Causality field) `EventStore.append` SHALL accept a caller-supplied `causali
 
 C. (Causality field) `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL preserve `metadata.causality` on bridged events, treating it as originator-identity per REQ-d00145-K (ingest SHALL NOT mutate it).
 
-D. (Causality field) `causality` SHALL participate in `event_hash` per REQ-d00120-E, so tampering with causal links is detectable via Chain 1 verification.
+D. (Causality field) `causality` SHALL participate in `event_hash` via the `metadata` identity-field clause of REQ-d00120-B, as called out explicitly in REQ-d00120-F. Tampering with causal links is therefore detectable via Chain 1 verification (REQ-d00146-A).
 
 E. (Causality field) At the current phase, `causality.supersedes` SHALL be empty on every event written by every consumer.
 
@@ -1194,7 +1194,7 @@ I. (Aggregate version query) A future REQ SHALL introduce `EventStore.appendIfVe
 
 J. Cross-references: REQ-d00115 (provenance), REQ-d00117 (transaction), REQ-d00118 (StoredEvent schema), REQ-d00120 (canonical hashing), REQ-d00145 (ingest contract).
 
-*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 1bf115c6
+*End* *Multi-Writer Forward-Compatibility Primitives* | **Hash**: 96b60987
 
 # REQ-d00158: StorageBackend Interface Storage-Neutrality
 
@@ -1236,13 +1236,13 @@ C. The library SHALL emit `lifecycle.boot_started` as the first event of every p
 
 D. When `boot_verdict == "unexpected"`, the library SHALL emit `lifecycle.boot_unexpected_restart` immediately after `lifecycle.boot_started`. Event `data` SHALL include `last_seen_event_id`, `last_seen_event_type`, and `last_seen_client_timestamp` from the prior tail.
 
-E. When the library detects on boot that the local event log contains any event with `lib_format_version > StoredEvent.currentLibFormatVersion`, it SHALL refuse to start, write a structured diagnostic to stderr identifying the offending `event_id` and version mismatch, and exit with a non-zero status. The library SHALL NOT attempt to append `lifecycle.boot_started` in this case.
+E. When the library detects on boot that the local event log contains any event with `lib_format_version > StoredEvent.currentLibFormatVersion`, the boot API SHALL raise `BootLibFormatVersionAhead` carrying the offending `event_id`, `log_version`, and `library_version`, and SHALL NOT attempt to append `lifecycle.boot_started`. The library itself SHALL NOT call `exit` or write to stderr; the embedding application or service is responsible for converting the exception into a deployment-appropriate surface (e.g., stderr diagnostic + non-zero exit on a server, error UI on mobile). This mirrors the ingest-side handling in REQ-d00145-L (`IngestLibFormatVersionAhead`).
 
 F. Lifecycle events SHALL follow the system-event aggregate convention (REQ-d00154) so that bridged system streams from multiple installations remain distinguishable on receivers.
 
 G. Cross-references: REQ-d00115 (provenance), REQ-d00134 / REQ-d00154-D (reserved system entry types, no materialization), REQ-d00141-E (lib_format_version stamping), REQ-d00145-L (lib_format-too-new on ingest).
 
-*End* *Library Lifecycle Event Protocol* | **Hash**: de9dec4a
+*End* *Library Lifecycle Event Protocol* | **Hash**: 709a8186
 
 # REQ-d00160: Lifecycle Hook Surface for Storage-Specific Operations
 
