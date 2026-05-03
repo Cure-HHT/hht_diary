@@ -89,6 +89,14 @@ CODE_CHANGED=false
 DB_CHANGED=false
 DOCS_CHANGED=false
 WORKFLOWS_CHANGED=false
+# True when any changed file lives under a path that elspais scans (per
+# .elspais.toml [scanning.*]). Such files can introduce or remove
+# REQ- references (in IMPLEMENTS / Verifies headers, prose, or test
+# annotations), so elspais must validate them on every PR — not just
+# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
+# app code with no spec/ change, so elspais was silently skipped and
+# the broken-reference landed on main (CUR-1246).
+ELSPAIS_RELEVANT_CHANGED=false
 
 CHANGED_FILES=$(git diff --name-only "${BASE_SHA}".."${HEAD_SHA}" || true)
 
@@ -115,6 +123,14 @@ fi
 if echo "$CHANGED_FILES" | grep -qE '^\.github/workflows/'; then
   WORKFLOWS_CHANGED=true
   echo "Workflow files changed"
+fi
+
+# Mirror of [scanning.*].directories in .elspais.toml. Keep this regex in
+# sync with that file so we don't quietly skip elspais on a path it does
+# scan.
+if echo "$CHANGED_FILES" | grep -qE '^(spec|apps|packages|src|tools|database|docs)/'; then
+  ELSPAIS_RELEVANT_CHANGED=true
+  echo "Files in elspais scan paths changed - requirement validation will run"
 fi
 
 if [ "$SPEC_CHANGED" = "false" ] && [ "$CODE_CHANGED" = "false" ] && \
@@ -225,10 +241,13 @@ end_group
 # Tier 3: Conditional checks (only when relevant files changed)
 # ============================================================================
 
-# --- 4. Elspais - requirement validation (only when spec/ files change) ---
+# --- 4. Elspais - requirement validation ---
+# Triggered whenever any file under an elspais scan path changes (see
+# Change Detection above). Catches broken REQ references introduced
+# from code, tests, journeys, or docs — not just spec edits (CUR-1246).
 begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 
-if [ "$SPEC_CHANGED" = "true" ]; then
+if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   elspais --version
 
   # Capture stdout+stderr so we can both forward it to the log and scan
@@ -259,7 +278,7 @@ if [ "$SPEC_CHANGED" = "true" ]; then
 
   echo "Requirement validation passed"
 else
-  echo "Skipped - no spec/ changes [Passed]"
+  echo "Skipped - no changes under elspais scan paths [Passed]"
 fi
 
 end_group
