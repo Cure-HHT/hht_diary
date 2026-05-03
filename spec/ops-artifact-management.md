@@ -401,7 +401,7 @@ resource "google_storage_bucket" "archive" {
 
 ### GitHub Actions: Archive Build Artifacts
 
-File: `.github/workflows/archive-artifacts.yml` (sponsor-side; see callout above)
+File: `<sponsor-repo>/.github/workflows/archive-artifacts.yml` (sponsor-side; see callout above)
 
 ```yaml
 name: Archive Build Artifacts
