@@ -342,74 +342,67 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 ### pr-health.yml
 
 **File**: `.github/workflows/pr-health.yml`
-**Purpose**: Validates requirements and traceability on every PR
-**Triggers**: Pull requests to `main`, `develop`, `feature/**`, `release/**`
+**Purpose**: PR-shape and traceability checks (the umbrella workflow housing every PR-time native-runner job plus the comprehensive in-container validator)
+**Triggers**: `pull_request` on every base branch (types: opened, synchronize, reopened, edited); `push` on `main` and `develop` (for `Post-Merge Validation` only)
 
 #### Jobs
 
-**1. validate-requirements**
+**1. Validate PR Title** (job: `validate-pr-title`)
 
-- Validates requirement format using `validate_requirements.py`
-- Generates traceability matrices (HTML + Markdown)
-- Uploads artifacts
-- Comments on PR with results
-- **Blocking**: YES
+- Asserts PR title carries `[CUR-XXX]` (or `[Dependabot]`) prefix — squash-merge uses the title verbatim as the main-branch commit subject.
+- Native runner, ~10s.
+- **Required by org ruleset 11337030** — emits status check `Validate PR Title`.
 
-**2. validate-code-headers**
+**2. Security - Check for Secrets** (job: `security-secrets`)
 
-- Checks SQL and Dart files for requirement headers
-- Validates header format per `spec/requirements-format.md`
-- **Blocking**: NO (warning only)
+- Installs gitleaks at the version pinned in `.github/versions.env` and runs `gitleaks detect` over the full tree.
+- Native runner, ~30s.
+- **Required by org ruleset 11337030** — emits status check `Security - Check for Secrets`.
+- Local equivalent: `.githooks/pre-push` runs the same scan delta-only (`--log-opts="$REMOTE_BRANCH..HEAD"`).
 
-**3. validate-migrations**
+**3. Security Scan** (job: `security-scan`)
 
-- Checks migration files for proper headers
-- Validates per `database/migrations/README.md`
-- **Blocking**: YES
-- **Conditional Validation**: Checks if migrations were modified; if not, passes immediately
-- **Always Shows**: ✅ PASSED (either "all valid" or "no migrations to validate")
-- **Audit Note**: Job always runs but exits early with success when no migrations modified
+- Runs Trivy with `scanners: vuln,misconfig,secret` over the workspace; uploads SARIF to GitHub Code Scanning (`github/codeql-action/upload-sarif`).
+- Native runner, ~5min.
+- Advisory (not in ruleset) but uploads results to satisfy GitHub Code Scanning's repository-level requirement.
 
-**4. security-check**
+**4. PR Health** (job: `pr-health`)
 
-- Scans for API keys, passwords, secrets
-- Checks for committed .env files
-- **Blocking**: YES
+- Starts the CI container (`./.github/actions/start-ci-container`), then runs `.github/scripts/validate-pr.sh`. The script performs change-category detection, version-bump enforcement, elspais (REQ format / hierarchy / broken-reference / index-currency / changelog checks), code-implementation header checks, migration header checks, and doc lint.
+- Generates the traceability matrix and posts it as a PR comment (gated on `ELSPAIS_RELEVANT_CHANGED`).
+- Container runner, ~3-4min.
+- Not directly required by the ruleset — covered transitively by `Validation Summary` (see `ci-gate.yml`).
 
-**5. fda-compliance-check**
+**5. Post-Merge Validation** (job: `post-merge`)
 
-- Verifies audit trail requirements exist
-- Checks for RLS policies
-- Validates event sourcing implementation
-- **Blocking**: YES
-
-**6. validate-infrastructure**
-
-- Checks if Terraform configs were modified in the PR
-- Validates HCL syntax (`terraform validate`)
-- Runs `terraform plan` to verify infrastructure changes
-- **Blocking**: YES (if infrastructure changes detected)
-- **Conditional Validation**: Checks if `infrastructure/terraform/` was modified; if not, passes immediately
-- **Always Shows**: ✅ PASSED (either "plan successful" or "no infra changes")
-- **Audit Note**: Job always runs but exits early with success when no infrastructure modified
-
-**7. summary**
-
-- Aggregates results from all jobs
-- Posts to GitHub Step Summary
-- Determines overall pass/fail
-- **Blocking**: YES
+- Runs only on push to `main`/`develop`. Inspects the squash-merge commit subject; if it lacks a `[CUR-XXX]` reference (and isn't `[Dependabot]`), opens a Linear compliance ticket.
+- Skipped on pull_request events.
 
 #### Artifact Outputs
 
 | Artifact | Format | Retention | Purpose |
 | --- | --- | --- | --- |
-| `traceability_matrix.md` | Markdown | 90 days | Human-readable audit trail |
-| `traceability_matrix.html` | HTML | 90 days | Presentation-quality report |
+| `build-reports-{sha}` | Directory | 90 days | Traceability matrix, elspais reports, audit artifacts |
 
 #### Environment Variables
 
-None required. All validation uses tools checked into the repository.
+`LINEAR_API_KEY`, `LINEAR_TEAM_ID` (Post-Merge Validation only — opens compliance tickets for non-compliant merge commits).
+
+### ci-gate.yml
+
+**File**: `.github/workflows/ci-gate.yml`
+**Purpose**: Aggregator over all check-runs on the PR head SHA; emits a single ruleset-required status check
+**Triggers**: `pull_request` targeting `main` only (types: opened, synchronize, reopened, edited)
+
+#### Jobs
+
+**1. Validation Summary** (job: `gate`)
+
+- Polls `repos/{}/commits/{sha}/check-runs` every 30s, deduplicates by name (latest wins), and waits for every other check on the SHA to complete. Treats `cancelled` as pending (waits for re-run), `skipped` as OK, `failure` as block.
+- On failure, posts a per-check status table to the PR (single comment, updated in place) with annotation excerpts from each failed check.
+- 30-minute timeout.
+- **Required by org ruleset 11337030** — emits status check `Validation Summary`.
+- Trigger types mirror `pr-health.yml` (CUR-1261) so the supervisor re-evaluates whenever a worker re-fires; without `edited`, an edit-triggered PR Health re-run could complete after Validation Summary already exited SUCCESS, leaving the stale verdict on the SHA.
 
 ---
 
