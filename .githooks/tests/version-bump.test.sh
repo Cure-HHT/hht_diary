@@ -265,6 +265,81 @@ eq "$(gated_classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/li
 
 cd "$ORIG_DIR"
 
+# ===== Dart format/analyze pass merge-commit short-circuit (CUR-1250) =====
+#
+# Sister bug to CUR-1249, one layer up: when `git merge origin/main` brings
+# in code formatted by the project-pinned Dart SDK and the local Dart SDK
+# differs, the pre-commit format pass would re-run `dart format` on staged
+# (merged-in) files and stage the resulting whitespace drift. That shows
+# up on origin/main's PR as a "code change" and trips the version-bump
+# verifier on CI.
+#
+# Fix mirrors CUR-1249: gate the dart format/analyze pass on
+# is_merge_commit_in_progress. These tests lock in both the gate
+# semantics (behavioural) and the fact that pre-commit actually calls the
+# gate around section 2 (structural).
+
+echo ""
+echo "  -- dart format pass merge-commit short-circuit (CUR-1250) --"
+
+MERGE_TMPDIR2=$(mktemp -d)
+trap 'rm -rf "$MERGE_TMPDIR" "$MERGE_TMPDIR2"' EXIT
+
+git -C "$MERGE_TMPDIR2" init -q
+git -C "$MERGE_TMPDIR2" -c user.email=t@t -c user.name=T commit --allow-empty -q -m init
+
+cd "$MERGE_TMPDIR2"
+
+# Stand-in for the dart format/analyze block in pre-commit's section 2.
+# Returns "formatted" if the pass ran, "skipped" if it was gated out.
+fake_dart_format_pass() {
+    echo "formatted"
+}
+
+# Mirrors how the real pre-commit must wrap section 2: gate on the
+# helper, then dispatch.
+gated_dart_format_pass() {
+    if is_merge_commit_in_progress; then
+        echo "skipped"
+        return 0
+    fi
+    fake_dart_format_pass
+}
+
+# With MERGE_HEAD present, the gate must short-circuit BEFORE the format
+# pass runs — matching the CUR-1249 bump-pass contract.
+touch ".git/MERGE_HEAD"
+eq "$(gated_dart_format_pass)" "skipped" \
+    "merge in progress -> dart format pass is short-circuited"
+
+# Without MERGE_HEAD, the format pass must run as before — single-commit
+# behaviour unchanged (ticket acceptance criterion #3).
+rm -f ".git/MERGE_HEAD"
+eq "$(gated_dart_format_pass)" "formatted" \
+    "no merge in progress -> dart format pass runs as before"
+
+cd "$ORIG_DIR"
+
+# Structural: pre-commit must actually call is_merge_commit_in_progress
+# inside the dart-quality section. Otherwise the behavioural test above
+# is locked-in but the real hook is unguarded.
+PRE_COMMIT="$HOOKS_DIR/pre-commit"
+DART_SECTION_LINES=$(awk '
+    /^# 2\. Dart Code Quality/      { in_section = 1 }
+    /^# 3\. TypeScript Code Quality/{ in_section = 0 }
+    in_section { print }
+' "$PRE_COMMIT")
+
+if echo "$DART_SECTION_LINES" | grep -q 'is_merge_commit_in_progress'; then
+    PASS=$((PASS + 1))
+    printf '  ok    %-60s -> gate wired in section 2\n' \
+        "pre-commit section 2 invokes is_merge_commit_in_progress"
+else
+    FAIL=$((FAIL + 1))
+    printf '  FAIL  %-60s gate NOT found in section 2\n' \
+        "pre-commit section 2 invokes is_merge_commit_in_progress"
+fi
+
 # ===== Summary =====
 echo ""
 if [ "$FAIL" -eq 0 ]; then
