@@ -173,7 +173,7 @@ fi
 if [ "$SPEC_CHANGED" = "false" ] && [ "$CODE_CHANGED" = "false" ] && \
    [ "$DB_CHANGED" = "false" ] && [ "$DOCS_CHANGED" = "false" ] && \
    [ "$WORKFLOWS_CHANGED" = "false" ] && [ "$TOOLS_CHANGED" = "false" ] && \
-   [ "$SRC_CHANGED" = "false" ]; then
+   [ "$SRC_CHANGED" = "false" ] && [ "$ELSPAIS_CONFIG_CHANGED" = "false" ]; then
   echo "No categorized changes detected"
 fi
 
