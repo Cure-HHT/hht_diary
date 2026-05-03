@@ -126,7 +126,8 @@ SponsorFeatureFlags? getCurrentSponsorFlagsOverride;
 
 /// Returns the feature flags for the current sponsor (from SPONSOR_ID env var).
 SponsorFeatureFlags getCurrentSponsorFlags() {
-  if (getCurrentSponsorFlagsOverride != null) return getCurrentSponsorFlagsOverride!;
+  if (getCurrentSponsorFlagsOverride != null)
+    return getCurrentSponsorFlagsOverride!;
   final sponsorId = (Platform.environment['SPONSOR_ID'] ?? '')
       .toLowerCase()
       .trim();
