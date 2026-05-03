@@ -34,6 +34,97 @@ permissions:
 
 jobs:
   # ===========================================================================
+  # Validate PR title contains [CUR-XXX] reference. Squash-merge uses the PR
+  # title verbatim as the main-branch commit subject, so this guards
+  # downstream traceability. Emitted as a separate check so the org-level
+  # ruleset's required-status name "Validate Commit Messages (CUR + REQ)"
+  # is satisfied (CUR-1246).
+  # IMPLEMENTS REQUIREMENTS:
+  #   REQ-o00079: Commit and PR Traceability Enforcement (PR title)
+  # ===========================================================================
+  validate-commit-messages:
+    name: Validate Commit Messages (CUR + REQ)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          echo "PR #${PR_NUMBER}: ${PR_TITLE}"
+
+          if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
+            echo "PR title contains Linear ticket reference"
+            exit 0
+          fi
+
+          echo "::error::PR title missing [CUR-XXX] reference"
+          echo ""
+          echo "Squash merge uses the PR title verbatim as the commit message."
+          echo "Required format: [CUR-XXX] Description of changes"
+          echo "Edit the PR title at: ${PR_URL}"
+          exit 1
+
+  # ===========================================================================
+  # Dedicated gitleaks secret scan. Emitted as the ruleset-required check
+  # name "Security - Check for Secrets" (CUR-1246). Trivy below also covers
+  # secrets, but gitleaks is the canonical, fast-failing gate matching the
+  # org standard (and hht_diary_callisto).
+  # IMPLEMENTS REQUIREMENTS:
+  #   REQ-o00080-A: Secret scanning on every push
+  #   REQ-o00080-E: Block merge on secret detection
+  # ===========================================================================
+  security-secrets:
+    name: Security - Check for Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
+
+      - name: Load version configuration
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "gitleaks_version=${GITLEAKS_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: ${{ steps.versions.outputs.gitleaks_version }}
+        run: |
+          set -euo pipefail
+          for i in 1 2 3; do
+            if wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"; then
+              break
+            fi
+            echo "Download attempt $i failed, retrying..."
+            sleep 5
+          done
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          sudo mv gitleaks /usr/local/bin/
+          rm "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          gitleaks version
+
+      - name: Scan for secrets
+        run: |
+          set -euo pipefail
+          if gitleaks detect --verbose --no-banner --redact --log-level info; then
+            echo "No secrets detected"
+          else
+            echo "::error::Gitleaks detected secrets in the repository"
+            echo "Remove all secrets before merging. Use Doppler / env vars."
+            exit 1
+          fi
+
+  # ===========================================================================
   # Security scan — Combined Trivy vuln + IaC + secret scanning with SARIF upload
   # Runs on every PR and push to main/develop so GitHub Code Scanning always
   # has results, unblocking the repository ruleset requirement.
