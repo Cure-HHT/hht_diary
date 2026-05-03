@@ -15,6 +15,13 @@ on:
     paths:
       - 'apps/common-dart/trial_data_types/**'
       - '.github/workflows/trial_data_types-ci.yml'
+      # Toolchain triggers — mirror start-ci-container/action.yml's
+      # detection regex. A bump to any of these changes the runtime image
+      # or pinned tool versions this CI consumes, so the job must re-run
+      # on PRs that touch them — even if no apps/** files change.
+      - '.github/versions.env'
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
   workflow_dispatch:
 
 concurrency:

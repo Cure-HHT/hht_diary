@@ -18,6 +18,13 @@ on:
     paths:
       - "apps/daily-diary/clinical_diary/**"
       - ".github/workflows/clinical_diary-ci.yml"
+      # Toolchain triggers — mirror start-ci-container/action.yml's
+      # detection regex. A bump to any of these changes the runtime image
+      # or pinned tool versions this CI consumes, so the job must re-run
+      # on PRs that touch them — even if no apps/** files change.
+      - ".github/versions.env"
+      - "tools/dev-env/docker/**"
+      - "tools/dev-env/docker-compose.yml"
   workflow_dispatch:
 
 concurrency:

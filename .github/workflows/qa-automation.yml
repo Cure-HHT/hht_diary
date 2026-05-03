@@ -25,6 +25,11 @@ on:
       - 'tools/dev-env/**'
       - 'database/**'
       - '.github/workflows/qa-automation.yml'
+      # Toolchain trigger — a bump in pinned tool versions changes the
+      # runtime image this QA pass consumes, so it must re-run on PRs
+      # that touch versions.env even if no apps/** or tools/dev-env/**
+      # files change. (Docker paths are already covered by tools/dev-env/**.)
+      - '.github/versions.env'
   workflow_dispatch:
     inputs:
       test_suite:

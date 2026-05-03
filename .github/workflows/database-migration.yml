@@ -19,6 +19,15 @@ on:
     paths:
       - 'database/**'
       - '.github/workflows/database-migration.yml'
+      # Toolchain triggers — mirror start-ci-container/action.yml's
+      # detection regex. A bump to any of these changes the runtime image
+      # or pinned tool versions this migration validation consumes
+      # (notably POSTGRESQL_CLIENT_VERSION, POSTGRES_VERSION), so the
+      # job must re-run on PRs that touch them — even if no database/**
+      # files change.
+      - '.github/versions.env'
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
   workflow_dispatch:
 
 concurrency:

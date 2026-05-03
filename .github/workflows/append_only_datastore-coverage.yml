@@ -6,6 +6,14 @@ on:
     paths:
       - 'apps/common-dart/append_only_datastore/**'
       - '.github/workflows/append_only_datastore-coverage.yml'
+      # Toolchain triggers — mirror start-ci-container/action.yml's
+      # detection regex. A bump to any of these changes the runtime image
+      # or pinned tool versions this coverage job consumes, so the job
+      # must re-run on PRs that touch them — even if no apps/** files
+      # change.
+      - '.github/versions.env'
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
   workflow_dispatch:
 
 jobs:
