@@ -759,6 +759,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   'questionnaireType': submission.questionnaireType,
                   'version': submission.version,
                   'completedAt': submission.completedAt.toIso8601String(),
+                  // CUR-856 (REQ-CAL-p00080): stamp the cycle label into the
+                  // event log so it round-trips to the portal on ingest.
+                  if (task.studyEvent != null) 'study_event': task.studyEvent,
                 },
               );
               return const SubmitResult(success: true);
