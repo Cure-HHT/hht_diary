@@ -160,6 +160,18 @@ if [ -f .github/versions.env ]; then
     done < .github/versions.env
 fi
 
+# =====================================================
+# 0.4. Load Shared Hook Helpers
+# =====================================================
+# version-utils.sh provides is_merge_commit_in_progress, used by both
+# section 2 (dart format/analyze) and section 7 (version bumps) to skip
+# their pass when a merge is in flight — merged-in code was already
+# format-checked and bumped on its source branch's PR.
+
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=./version-utils.sh
+source "$HOOK_DIR/version-utils.sh"
+
 # Check elspais version against minimum required
 if [ -n "$ELSPAIS_VERSION" ]; then
     if command -v elspais &> /dev/null; then
@@ -221,10 +233,26 @@ fi
 # For Dart code changes in apps/ directory:
 #   - Run dart format on changed files
 #   - Run dart analyze and reject commit if it fails
+#
+# Sister gate to section 7's bump-pass guard (CUR-1249): `git diff
+# --cached` during a merge returns every merged-in file, not just files
+# the developer authored. If the local Dart SDK differs from the
+# project pin (.github/versions.env: DART_VERSION), re-running
+# `dart format` here reformats merged-in files using the local SDK's
+# rules, stages the whitespace drift, and trips CI's version-bump
+# verifier on the receiving PR. Skip the pass on merge commits — the
+# merged-in code was already format-checked on its source branch's PR.
+# Conflict-resolution edits go uncovered here; a follow-up non-merge
+# commit re-runs the pass against any authored changes.
 
 DART_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^apps/.*\.dart$' || true)
 
-if [ -n "$DART_FILES_CHANGED" ]; then
+if is_merge_commit_in_progress; then
+    if [ -n "$DART_FILES_CHANGED" ]; then
+        echo "  ⏭️  Skipping dart format/analyze pass (merge in progress; merged-in code was already checked on its source PR)"
+        echo "     If you resolved conflicts or made other authored edits, add a follow-up non-merge commit to re-run format/analyze."
+    fi
+elif [ -n "$DART_FILES_CHANGED" ]; then
     echo "🎯 Checking Dart code quality..."
     echo ""
 
@@ -543,10 +571,8 @@ fi
 # Skip bumps on main/master (already checked above, but be safe)
 if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
 
-    # Load shared project definitions and version utilities
-    HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    # Load shared project definitions (version-utils.sh sourced above)
     source "$HOOK_DIR/project-defs.sh"
-    source "$HOOK_DIR/version-utils.sh"
 
     # `git diff --cached` during a merge returns every file being merged
     # in, not just files the developer authored — so without this gate
