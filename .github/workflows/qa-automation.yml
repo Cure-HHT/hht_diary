@@ -25,6 +25,14 @@ on:
       - 'tools/dev-env/**'
       - 'database/**'
       - '.github/workflows/qa-automation.yml'
+      # Toolchain triggers — a bump in pinned tool versions, a change to
+      # the image-build workflow, or a change to the start-ci-container
+      # action all affect the runtime image this QA pass consumes, so it
+      # must re-run on PRs that touch any of them. (Docker paths are
+      # already covered by tools/dev-env/**.)
+      - '.github/versions.env'
+      - '.github/workflows/build-ghcr-containers.yml'
+      - '.github/actions/start-ci-container/**'
   workflow_dispatch:
     inputs:
       test_suite:

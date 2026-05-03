@@ -90,16 +90,16 @@ CODE_CHANGED=false
 DB_CHANGED=false
 DOCS_CHANGED=false
 WORKFLOWS_CHANGED=false
-# True when any changed file lives under a path that elspais scans (per
-# .elspais.toml [scanning.*]). Such files can introduce or remove
-# REQ- references (in IMPLEMENTS / Verifies headers, prose, or test
-# annotations), so elspais must validate them on every PR — not just
-# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
-# app code with no spec/ change, so elspais was silently skipped and
-# the broken-reference landed on main (CUR-1246).
-ELSPAIS_RELEVANT_CHANGED=false
+TOOLS_CHANGED=false
+SRC_CHANGED=false
 
 CHANGED_FILES=$(git diff --name-only "${BASE_SHA}".."${HEAD_SHA}" || true)
+
+# Each path category is detected exactly once below; downstream gates
+# (including ELSPAIS_RELEVANT_CHANGED) compose these flags rather than
+# repeating regexes. If you add a new scanning directory in .elspais.toml,
+# add a per-category flag here and OR it into the derivation block at the
+# end of this section.
 
 if echo "$CHANGED_FILES" | grep -qE '^spec/'; then
   SPEC_CHANGED=true
@@ -126,22 +126,65 @@ if echo "$CHANGED_FILES" | grep -qE '^\.github/workflows/'; then
   echo "Workflow files changed"
 fi
 
-# Mirror of [scanning.*].directories in .elspais.toml. Keep this regex in
-# sync with that file so we don't quietly skip elspais on a path it does
-# scan.
-if echo "$CHANGED_FILES" | grep -qE '^(spec|apps|packages|src|tools|database|docs)/'; then
+if echo "$CHANGED_FILES" | grep -qE '^tools/'; then
+  TOOLS_CHANGED=true
+  echo "Tools files changed"
+fi
+
+if echo "$CHANGED_FILES" | grep -qE '^src/'; then
+  SRC_CHANGED=true
+  echo "Src files changed"
+fi
+
+# Elspais behavior can change without any scanned source file changing:
+# a config edit in .elspais.toml (different scan paths, severity rules,
+# id patterns) or a pinned-version bump in versions.env (different
+# parser, hashing, or coverage logic) reshapes the matrix output.
+# Treat both as elspais-relevant so the gate fires and the matrix
+# re-renders.
+ELSPAIS_CONFIG_CHANGED=false
+if echo "$CHANGED_FILES" | grep -qE '^(\.elspais\.toml|\.github/versions\.env)$'; then
+  ELSPAIS_CONFIG_CHANGED=true
+  echo "Elspais config or pinned version changed"
+fi
+
+# Derive elspais trigger from the per-category flags above. Mirrors
+# [scanning.*].directories in .elspais.toml without restating the regex:
+# spec, apps/packages (CODE), database, docs (or any .md), tools, src.
+# Plus ELSPAIS_CONFIG_CHANGED for config/version-only PRs that still
+# alter elspais output. Such files can introduce or remove REQ-
+# references (in IMPLEMENTS / Verifies headers, prose, or test
+# annotations), so elspais must validate them on every PR — not just
+# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
+# app code with no spec/ change, so elspais was silently skipped and
+# the broken reference landed on main (CUR-1246). DOCS_CHANGED is
+# broader than elspais's strict docs/ scan (it also matches bare .md
+# anywhere); the extra coverage is harmless — at most one extra
+# elspais run on a docs-only PR.
+ELSPAIS_RELEVANT_CHANGED=false
+if [ "$SPEC_CHANGED" = "true" ] || [ "$CODE_CHANGED" = "true" ] || \
+   [ "$DB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || \
+   [ "$TOOLS_CHANGED" = "true" ] || [ "$SRC_CHANGED" = "true" ] || \
+   [ "$ELSPAIS_CONFIG_CHANGED" = "true" ]; then
   ELSPAIS_RELEVANT_CHANGED=true
   echo "Files in elspais scan paths changed - requirement validation will run"
 fi
 
 if [ "$SPEC_CHANGED" = "false" ] && [ "$CODE_CHANGED" = "false" ] && \
    [ "$DB_CHANGED" = "false" ] && [ "$DOCS_CHANGED" = "false" ] && \
-   [ "$WORKFLOWS_CHANGED" = "false" ]; then
+   [ "$WORKFLOWS_CHANGED" = "false" ] && [ "$TOOLS_CHANGED" = "false" ] && \
+   [ "$SRC_CHANGED" = "false" ] && [ "$ELSPAIS_CONFIG_CHANGED" = "false" ]; then
   echo "No categorized changes detected"
 fi
 
 # Export for workflow steps that follow the script
 echo "SPEC_CHANGED=${SPEC_CHANGED}" >> "$GITHUB_ENV"
+# Used by the post-validation step to decide whether to (re)post the
+# traceability-matrix PR comment. Gated on the broader elspais trigger
+# rather than SPEC_CHANGED so the matrix re-renders for any change that
+# could shift its contents — code coverage rollups, retired-reference
+# counts, code→REQ link counts, etc. — not just spec/*.md edits.
+echo "ELSPAIS_RELEVANT_CHANGED=${ELSPAIS_RELEVANT_CHANGED}" >> "$GITHUB_ENV"
 
 end_group
 

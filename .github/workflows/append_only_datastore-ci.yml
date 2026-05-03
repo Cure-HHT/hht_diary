@@ -12,6 +12,12 @@ on:
     paths:
       - 'apps/common-dart/append_only_datastore/**'
       - '.github/workflows/append_only_datastore-ci.yml'
+      # Toolchain trigger — this workflow uses subosito/flutter-action
+      # (not the start-ci-container dev container), but reads
+      # FLUTTER_VERSION from versions.env, so a bump there should re-run
+      # against the new pin. Docker / start-ci-container paths are
+      # intentionally NOT here — they don't affect this workflow.
+      - '.github/versions.env'
   workflow_dispatch:
 
 permissions:
