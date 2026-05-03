@@ -164,6 +164,12 @@ fi
 
 # Export for workflow steps that follow the script
 echo "SPEC_CHANGED=${SPEC_CHANGED}" >> "$GITHUB_ENV"
+# Used by the post-validation step to decide whether to (re)post the
+# traceability-matrix PR comment. Gated on the broader elspais trigger
+# rather than SPEC_CHANGED so the matrix re-renders for any change that
+# could shift its contents — code coverage rollups, retired-reference
+# counts, code→REQ link counts, etc. — not just spec/*.md edits.
+echo "ELSPAIS_RELEVANT_CHANGED=${ELSPAIS_RELEVANT_CHANGED}" >> "$GITHUB_ENV"
 
 end_group
 

@@ -261,7 +261,7 @@ jobs:
           if-no-files-found: ignore  # Not all PRs generate traceability reports
 
       - name: Comment on PR with results
-        if: success() && env.SPEC_CHANGED == 'true'
+        if: success() && env.ELSPAIS_RELEVANT_CHANGED == 'true'
         uses: actions/github-script@v9
         with:
           script: |
