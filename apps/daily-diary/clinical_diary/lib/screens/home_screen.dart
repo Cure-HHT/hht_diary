@@ -118,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _loadPreferences();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
+    _checkNotParticipatingStatus();
     _refreshWedgeStatus();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
@@ -229,6 +230,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _siteName = enrollment?.siteName;
         _sitePhoneNumber = enrollment?.sitePhoneNumber;
       });
+    }
+  }
+
+  /// CUR-1165: Check if patient is marked as not participating (REQ-p01065-D).
+  /// When true, sponsor-specific feature flags are reset to defaults so the
+  /// app falls back to neutral behavior.
+  Future<void> _checkNotParticipatingStatus() async {
+    final isNotParticipating = await widget.enrollmentService
+        .isNotParticipating();
+    if (isNotParticipating) {
+      FeatureFlagService.instance.resetToDefaults();
     }
   }
 
@@ -619,7 +631,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
   Future<void> _handleShowProfile() async {
+    // Read all values fresh from the service to avoid stale cached state
+    // (initState calls are async and may not have settled yet on first open).
     final enrollment = await widget.enrollmentService.getEnrollment();
+    final isDisconnected = await widget.enrollmentService.isDisconnected();
+    final isNotParticipating = await widget.enrollmentService
+        .isNotParticipating();
+    final notParticipatingAt = await widget.enrollmentService
+        .getNotParticipatingAt();
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -669,7 +688,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // TODO: Implement stop sharing
           },
           isEnrolledInTrial: _isEnrolled,
-          isDisconnected: _isDisconnected,
+          isDisconnected: isDisconnected,
+          isNotParticipating: isNotParticipating,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
           sponsorLogo: sponsorBranding.appLogoUrl,
@@ -679,6 +699,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           },
           enrollmentCode: enrollment?.linkingCode,
           enrollmentDateTime: enrollment?.enrolledAt,
+          enrollmentEndDateTime: notParticipatingAt,
           siteName: _siteName,
           sitePhoneNumber: _sitePhoneNumber,
         ),
@@ -687,6 +708,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Refresh linking status after returning from profile
     await _checkEnrollmentStatus();
     await _checkDisconnectionStatus();
+    await _checkNotParticipatingStatus();
   }
 
   // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire.
