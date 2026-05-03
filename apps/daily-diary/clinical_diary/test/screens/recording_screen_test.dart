@@ -185,6 +185,44 @@ void main() {
       },
     );
 
+    // CUR-560: When intensity is already set on an existing entry, modifying
+    // the start time should skip the intensity step and advance directly to
+    // the end-time step. Previously the recording flow forced the user back
+    // through intensity even when no change was needed.
+    testWidgets(
+      'skips intensity and advances to end time when intensity already set',
+      (tester) async {
+        final start = DateTime.now().subtract(const Duration(hours: 2));
+        final existing = buildEpistaxisEntry(
+          entryId: 'entry-cur560',
+          startTime: start,
+          intensity: NosebleedIntensity.dripping,
+          isComplete: false,
+        );
+
+        // Initial step lands on endTime (intensity is set, endTime is not).
+        await pumpScreen(
+          tester,
+          existingEntry: existing,
+          onDelete: (_) async {},
+        );
+        expect(find.text('Nosebleed End Time'), findsOneWidget);
+
+        // Navigate back to the startTime step via the summary bar's "Start"
+        // chip, then re-confirm the start time.
+        await tester.tap(find.text('Start'));
+        await tester.pumpAndSettle();
+        expect(find.text('Nosebleed Start'), findsOneWidget);
+
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // Should land on end time, NOT intensity.
+        expect(find.text('Nosebleed End Time'), findsOneWidget);
+        expect(find.byType(IntensityPicker), findsNothing);
+      },
+    );
+
     testWidgets(
       'completing all three steps records a finalized epistaxis_event '
       'with startTime, intensity, and endTime in answers',
