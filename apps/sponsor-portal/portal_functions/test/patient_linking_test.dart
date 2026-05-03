@@ -1680,12 +1680,13 @@ void main() {
               availableFonts: [],
               disconnectReasonDropdown: false,
             );
-            databaseQueryOverride = (query, {parameters, required context}) async {
-              if (query.contains('FROM patients')) {
-                return [_patientRow(status: 'connected')];
-              }
-              return [];
-            };
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  if (query.contains('FROM patients')) {
+                    return [_patientRow(status: 'connected')];
+                  }
+                  return [];
+                };
 
             final request = _request(
               'POST',
