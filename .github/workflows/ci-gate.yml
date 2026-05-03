@@ -9,14 +9,21 @@
 #
 # Individual workflows are free to use `paths` filters and skip entirely —
 # Validation Summary treats skipped as OK. Pair this with the per-concern
-# named jobs in pr-validation.yml ("Validate Commit Messages (CUR + REQ)",
-# "Security - Check for Secrets") which the same ruleset also requires.
+# named jobs in pr-health.yml ("Validate PR Title", "Security - Check for
+# Secrets") which the same ruleset also requires.
+#
+# Trigger types must mirror pr-health.yml so the supervisor re-evaluates on
+# every event that re-fires its workers — notably `edited`, which re-runs
+# PR Health on PR title/body edits. Without `edited` here, an edit can land
+# a new PR Health run while the supervisor's prior SUCCESS still satisfies
+# the ruleset (CUR-1261).
 
 name: Validation Summary
 
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
 
 concurrency:
   group: validation-summary-${{ github.ref }}
