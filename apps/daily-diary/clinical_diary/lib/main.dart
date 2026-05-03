@@ -35,6 +35,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
+import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -262,9 +263,20 @@ class _AppRootState extends State<AppRoot> {
   /// device ID, and compose the [ClinicalDiaryRuntime].
   Future<void> _initializeRuntime() async {
     try {
-      final docsDir = await getApplicationDocumentsDirectory();
-      final dbPath = '${docsDir.path}/diary.db';
-      final db = await databaseFactoryIo.openDatabase(dbPath);
+      // Cross-platform Sembast: io for native (file-backed), web for browser
+      // (IndexedDB-backed via sembast_web). path_provider has no web
+      // implementation, so the docs-dir lookup is io-only.
+      final DatabaseFactory factory;
+      final String dbPath;
+      if (kIsWeb) {
+        factory = databaseFactoryWeb;
+        dbPath = 'diary.db'; // IndexedDB store name
+      } else {
+        factory = databaseFactoryIo;
+        final docsDir = await getApplicationDocumentsDirectory();
+        dbPath = '${docsDir.path}/diary.db';
+      }
+      final db = await factory.openDatabase(dbPath);
 
       final deviceId = await _readOrMintDeviceId();
 
