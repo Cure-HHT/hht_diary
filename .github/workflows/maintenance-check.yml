@@ -197,7 +197,7 @@ jobs:
 
       - name: Notify Slack if maintenance overdue
         if: failure() && github.event_name == 'schedule'
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
