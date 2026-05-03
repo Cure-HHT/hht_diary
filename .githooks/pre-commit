@@ -548,6 +548,14 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     source "$HOOK_DIR/project-defs.sh"
     source "$HOOK_DIR/version-utils.sh"
 
+    # `git diff --cached` during a merge returns every file being merged
+    # in, not just files the developer authored — so without this gate
+    # the bump pass would re-bump pubspecs for code already shipped (and
+    # bumped) on the source branch's own PR.
+    if is_merge_commit_in_progress; then
+        echo "  ⏭️  Skipping version-bump pass (merge in progress; merged-in code was already bumped on its source PR)"
+    else
+
     # Get repo root
     REPO_ROOT=$(git rev-parse --show-toplevel)
 
@@ -670,6 +678,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
             echo ""
         fi
     fi
+    fi  # is_merge_commit_in_progress
 fi
 
 # =====================================================

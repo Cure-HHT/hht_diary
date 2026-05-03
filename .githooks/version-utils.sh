@@ -74,6 +74,21 @@ has_any_trigger() {
     return 1
 }
 
+# is_merge_commit_in_progress
+# Returns 0 (true) if a git merge is currently in progress (MERGE_HEAD
+# present in the git dir), 1 otherwise.
+#
+# The version-bump pass in .githooks/pre-commit short-circuits on this:
+# a merge commit by definition brings in code that was already bumped
+# on its own PR, so re-bumping on the receiving branch would
+# double-count. The developer's next non-merge commit on the branch
+# bumps anything they actually authored.
+is_merge_commit_in_progress() {
+    local git_dir
+    git_dir=$(git rev-parse --git-dir 2>/dev/null) || return 1
+    [ -f "$git_dir/MERGE_HEAD" ]
+}
+
 # _bump_patch "0.1.0" → "0.1.1"
 _bump_patch() {
     local semver="$1"

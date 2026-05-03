@@ -219,6 +219,52 @@ eq "$(classify_and_bump clinical_diary 'apps/common-dart/trial_data_types/lib/x.
 eq "$(classify_and_bump diary_server 'apps/daily-diary/diary_server/bin/server.dart' '0.1.0+11' '0.1.0+11')" \
     "0.1.1+12" "diary_server bin/ change -> +N applied (standard)"
 
+# ===== Merge-commit short-circuit (CUR-1249) =====
+#
+# `git diff --cached` during a merge returns every file being merged
+# in, not just files the developer authored. Without a gate, the bump
+# pass would re-bump pubspecs for code already shipped (and bumped) on
+# the source branch's own PR. The hook gates the bump pass on
+# is_merge_commit_in_progress; these tests exercise that gate.
+echo ""
+echo "  -- is_merge_commit_in_progress (CUR-1249) --"
+
+MERGE_TMPDIR=$(mktemp -d)
+trap 'rm -rf "$MERGE_TMPDIR"' EXIT
+ORIG_DIR=$(pwd)
+
+git -C "$MERGE_TMPDIR" init -q
+git -C "$MERGE_TMPDIR" -c user.email=t@t -c user.name=T commit --allow-empty -q -m init
+
+cd "$MERGE_TMPDIR"
+rc 1 "no MERGE_HEAD -> not a merge commit"           is_merge_commit_in_progress
+
+# Simulate `git merge` in flight by touching the sentinel file git itself
+# creates while a merge is unresolved. Real merges also write MERGE_MSG /
+# MERGE_MODE / index entries, but the hook's gate only checks MERGE_HEAD,
+# so that's the contract we lock in here.
+touch ".git/MERGE_HEAD"
+rc 0 "MERGE_HEAD present -> merge commit detected"   is_merge_commit_in_progress
+
+# End-to-end: with MERGE_HEAD set, a clinical_diary code-dir change that
+# would otherwise yield "0.1.1+12" must produce no bump. Mirrors the
+# pre-commit conditional: gate on the helper, then dispatch.
+gated_classify_and_bump() {
+    if is_merge_commit_in_progress; then
+        return 0
+    fi
+    classify_and_bump "$@"
+}
+eq "$(gated_classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.dart' '0.1.0+11' '0.1.0+11')" \
+    "" "merge in progress -> clinical_diary code change yields no bump"
+
+# Sanity: clear MERGE_HEAD and confirm normal bump behaviour returns.
+rm -f ".git/MERGE_HEAD"
+eq "$(gated_classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.dart' '0.1.0+11' '0.1.0+11')" \
+    "0.1.1+12" "no merge in progress -> bump pass runs as before"
+
+cd "$ORIG_DIR"
+
 # ===== Summary =====
 echo ""
 if [ "$FAIL" -eq 0 ]; then
