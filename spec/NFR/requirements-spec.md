@@ -10,9 +10,9 @@ This document intentionally avoids workflow, tooling, or process guidance. Those
 
 ---
 
-## Files Containting Requirements
+## Files Containing Requirements
 
-Files containing formal requirements may also have informal documentation such as user journeys, user stories, or other background information. Content outside of formal "requirements" blocks are not subject the rules about requirements.
+Files containing formal requirements may also have informal documentation such as user journeys, user stories, or other background information. Content outside of formal "requirements" blocks is not subject to the rules about requirements.
 
 ---
 
@@ -37,7 +37,7 @@ REQ-{prefix}{number}[-{assertion}]
 
 Where:
 - `prefix` indicates audience:
-  - `p` = PRD = Product Requirements Documention
+  - `p` = PRD = Product Requirements Documentation
   - `d` = DEV = Development Specification
   - `o` = OPS = Operations Documentation
 - `number` is a zero-padded integer

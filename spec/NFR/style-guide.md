@@ -186,12 +186,12 @@ project-specific terminology.
 
 ### Example
 
-  can be used an acryonym.
+The following entry defines an acronym in the System Glossary; later
+requirement text may then reference the acronym as `__TLA__`:
 
-See the above example for the definition of __TLA__.
-
-Three Letter Acryonym (TLA)
-: This is an example of the syntax for defining a term which
+Three Letter Acronym (TLA)
+: This is an example of the syntax for defining a term whose label can be
+  used as an acronym in subsequent requirement text.
 
 ## Variable Placeholders
 

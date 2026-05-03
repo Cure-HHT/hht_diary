@@ -61,9 +61,9 @@ Before drafting or reviewing any REQ, read:
 1. `spec/requirements-spec.md` — the canonical grammar, identity rules, hashing, decomposition, and reference rules for THIS repo's `REQ-{p|o|d}NNNNN` namespace (336 lines; the authoritative formal-requirements spec).
 2. `spec/NFR/style-guide.md` — sponsor-shared authoring style rules: EARS syntax for conditional REQs, glossary term enforcement, assertion independence, assertion clarity (no ambiguous adjectives), notation and formatting (ISO 8601 dates/times, acronym definition, variable placeholders).
 3. `spec/NFR/spec-review-checklist.md` — the peer-review checklist used as the human-in-the-loop gate before a REQ is hashed into the validation suite.
-4. `spec/NFR/glossary-core.md`, `spec/NFR/glossary-conflict.md`, `spec/NFR/glossary-example.md` — the System Glossary plus authoring conventions for marking domain-specific terms (`**term**` for System-Glossary terms, `__term__` for Reference-Document terms).
+4. `spec/NFR/glossary-core.md`, `spec/NFR/glossary-precedence.md`, `spec/NFR/glossary-example.md` — the System Glossary plus authoring conventions for marking domain-specific terms (`**term**` for System-Glossary terms, `__term__` for Reference-Document terms).
 5. `spec/NFR/requirements-spec.md` — sponsor-shared formal-requirements spec from the platform repo (complements this repo's `spec/requirements-spec.md`).
-6. `spec/NFR/SDLC-SOP.md`, `spec/NFR/change_control.md`, `spec/NFR/standard_changes.md`, `spec/NFR/risks.md`, `spec/NFR/software-validation-plan.md`, `spec/NFR/validation-package.md` — process / governance docs for the SDLC, change control, and validation packaging.
+6. `spec/NFR/SDLC-SOP.md`, `spec/NFR/change-control.md`, `spec/NFR/standard-changes.md`, `spec/NFR/risks.md`, `spec/NFR/software-validation-plan.md`, `spec/NFR/validation-package.md` — process / governance docs for the SDLC, change control, and validation packaging.
 7. `spec/AI-AGENT.md` — the AI-agent usage note for requirements authoring (non-negotiable constraints: one-way traceability, no acceptance-criteria sections, atomic assertions, stable assertion labels).
 8. `spec/EXAMPLE-requirement.md` — a one-screen example showing the structural template (heading, level/status/implements line, assertions, rationale, end-marker with hash).
 
