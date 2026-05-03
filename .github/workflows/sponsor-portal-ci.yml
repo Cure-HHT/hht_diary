@@ -252,21 +252,21 @@ jobs:
             > $GITHUB_WORKSPACE/portal-ui-lcov.info || true
 
       - name: Upload portal_functions coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: portal-functions-lcov.info
           flags: portal-functions
           fail_ci_if_error: false
 
       - name: Upload portal_server coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: portal-server-lcov.info
           flags: portal-server
           fail_ci_if_error: false
 
       - name: Upload portal-ui coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: portal-ui-lcov.info
           flags: portal-ui
