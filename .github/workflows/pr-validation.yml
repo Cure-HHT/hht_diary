@@ -37,13 +37,13 @@ jobs:
   # Validate PR title contains [CUR-XXX] reference. Squash-merge uses the PR
   # title verbatim as the main-branch commit subject, so this guards
   # downstream traceability. Emitted as a separate check so the org-level
-  # ruleset's required-status name "Validate Commit Messages (CUR + REQ)"
-  # is satisfied (CUR-1246).
+  # ruleset's required-status name "Validate PR Title" is satisfied
+  # (CUR-1246).
   # IMPLEMENTS REQUIREMENTS:
   #   REQ-o00079: Commit and PR Traceability Enforcement (PR title)
   # ===========================================================================
-  validate-commit-messages:
-    name: Validate Commit Messages (CUR + REQ)
+  validate-pr-title:
+    name: Validate PR Title
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 2
