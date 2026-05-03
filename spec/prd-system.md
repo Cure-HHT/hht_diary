@@ -87,6 +87,31 @@ Multi-user clinical systems allow staff actions (deletion, reassignment, protoco
 
 *End* *User-Facing State Change Communication* | **Hash**: ec6b0b1d
 ---
+## REQ-p01087: UI Stability During User Interaction
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00044-A
+
+## Assertions
+
+A. The visible appearance, position, label, and tap target of an interactive element SHALL remain stable from the moment the element becomes visible to the user until the user completes or abandons the interaction.
+
+B. Asynchronous data loads, lazy rendering, and background refreshes SHALL NOT cause layout shifts that displace, resize, or replace interactive elements while the user is engaged with the screen.
+
+C. When a control's visual state (color, badge, label, enabled/disabled) is derived from cached or asynchronously-loaded data, the action triggered by the control SHALL be consistent with the visual state shown to the user at the moment of the tap, even if newer data has since arrived.
+
+D. When stale visual state cannot be reconciled with the underlying data without violating assertion C, the control SHALL be disabled or the screen SHALL present a non-interactive loading state until the data and the visuals are in sync, rather than allowing a tap to dispatch an action inconsistent with what the user saw.
+
+E. Skeleton placeholders, fixed-height containers, and pre-allocated layout slots SHALL be preferred over render-on-arrival patterns for any region the user is likely to interact with.
+
+F. Interactive elements that are newly rendered, repositioned, or whose visible state changes due to asynchronous data SHALL apply a brief input-suppression window (target: 200 ms) during which taps are ignored and the element visually indicates that it is not yet active (e.g., reduced opacity or disabled styling), to prevent inadvertent activation when a control changes under the user's finger.
+
+## Rationale
+
+Patients interact with the diary app reflexively — they look at a control, decide what it will do based on what they see, and then tap. If the control's appearance, position, or behavior changes between the moment of decision and the moment of tap, the patient performs an action they did not intend. This is disorienting in any application and unacceptable in a clinical context where the user may be unwell, distracted, or relying on muscle memory to log time-sensitive events. Asynchronous data loads, lazy rendering, and background cache refreshes are common sources of this class of defect; this requirement establishes that the interface the user sees is the contract the application honors, and provides a concrete fallback (assertion F) for cases where the underlying data legitimately arrives after first paint.
+
+*End* *UI Stability During User Interaction* | **Hash**: 11950574
+---
 # Veritite (tm) - the Open eSource
 
 **Version**: 1.1
