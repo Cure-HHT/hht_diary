@@ -28,7 +28,7 @@ This specification defines the mobile app implementation details for linking to 
 
 # REQ-d00094: Linking Code Entry Interface
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007, REQ-p00007
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00007, REQ-p70007
 
 ## Rationale
 
@@ -74,7 +74,8 @@ P. The system SHALL provide haptic feedback on successful code submission (iOS/A
 
 # REQ-d00095: Linking Code Input Validation
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00079
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70007
+**Refines**: REQ-d00079
 
 ## Rationale
 
@@ -110,7 +111,8 @@ J. The system SHALL clear validation errors when the user modifies the input.
 
 # REQ-d00096: Enrollment Token Secure Storage
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00043 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00043
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -150,7 +152,8 @@ M. The system SHALL regenerate storage encryption key if device security state c
 
 # REQ-d00097: Token Lifecycle and Network Resilience
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00006 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00006
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -186,7 +189,8 @@ K. The system SHALL distinguish between network errors (retry-able) and token re
 
 # REQ-d00098: Token Invalidation on Disconnection
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70010
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -222,7 +226,8 @@ J. The system SHALL NOT automatically request a new linking code; this must be i
 
 # REQ-d00099: Linking Code Error Handling
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70007
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -258,7 +263,8 @@ K. The system SHALL display remaining cooldown time in the rate limit message.
 
 # REQ-d00100: Network Failure Handling During Linking
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00006 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00006
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -298,7 +304,7 @@ L. The system SHALL preserve entered linking code during network retry attempts.
 
 # REQ-d00101: Enrollment State Machine
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00043, REQ-p70000, REQ-p01065
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00043, REQ-p01065, REQ-p70000
 
 ## Rationale
 
@@ -340,7 +346,8 @@ N. The system SHALL queue synchronization requests during STUDY_START_PENDING st
 
 # REQ-d00102: Enrollment State Behaviors
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70000 | **Refines**: REQ-d00101
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70000
+**Refines**: REQ-d00101
 
 ## Rationale
 
@@ -388,7 +395,8 @@ Q. In NOT_PARTICIPATING state, the system SHALL allow continued diary entry crea
 
 # REQ-d00103: Disconnection Detection
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00098
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70010
+**Refines**: REQ-d00098
 
 ## Rationale
 
@@ -422,7 +430,8 @@ J. The system SHALL log disconnection detection with timestamp and detection met
 
 # REQ-d00104: Contact Study Coordinator Screen
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-p70011 | **Refines**: REQ-d00101
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70010, REQ-p70011
+**Refines**: REQ-d00101
 
 ## Rationale
 
@@ -464,7 +473,8 @@ N. The screen SHALL use sponsor branding colors if available in cached configura
 
 # REQ-d00105: Reconnection Recovery Path
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70011 | **Refines**: REQ-d00101
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70011
+**Refines**: REQ-d00101
 
 ## Rationale
 
@@ -504,7 +514,7 @@ L. The system SHALL NOT require the user to re-enter diary entries created durin
 
 # REQ-d00106: Study Start Questionnaire Rendering
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01065, REQ-p01066
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01065, REQ-p01066
 
 ## Rationale
 
@@ -540,7 +550,8 @@ M. The system SHALL allow sponsors to configure alternative Study Start question
 
 # REQ-d00107: Questionnaire Response Collection and Storage
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01066, REQ-p00004, REQ-p00011-E, REQ-p00011-F
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00004, REQ-p01066
 
 ## Rationale
 
@@ -570,15 +581,15 @@ J. The system SHALL maintain referential integrity between questionnaire instanc
 
 K. The system SHALL encrypt stored questionnaire responses using the same encryption as diary entries.
 
-L. Questionnaire response values SHALL be stored as human-readable strings rather than numeric codes, such that stored data is interpretable without external reference tables (per REQ-p00011-E).
+L. Questionnaire response values SHALL be stored as human-readable strings rather than numeric codes, such that stored data is interpretable without external reference tables (per the ALCOA++ Legibility principle; see `spec/regulations/fda/prd-fda-21-cfr-11.md` REQ-p80004-R).
 
-*End* *Questionnaire Response Collection and Storage* | **Hash**: c2019383
+*End* *Questionnaire Response Collection and Storage* | **Hash**: 50a1761d
 
 ---
 
 # REQ-d00108: Questionnaire Submission Flow
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01065, REQ-p01064
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01064, REQ-p01065
 
 ## Rationale
 

@@ -13,7 +13,7 @@
 
 # REQ-d00113: Deleted Questionnaire Submission Handling
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01074, REQ-p01064
+**Level**: Dev | **Status**: Draft | **Refines**: REQ-p01064, REQ-p01074
 
 ## Rationale
 
@@ -41,17 +41,17 @@ F. The system SHALL NOT require real-time polling, push notifications, or mid-se
 
 # REQ-d80064: Questionnaire Version Integrity Enforcement
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01051, REQ-p00004, REQ-p00011-H
+**Level**: Dev | **Status**: Draft | **Refines**: REQ-p01051, REQ-p00004
 
 > **See**: [docs/questionnaire-versioning.md](../docs/questionnaire-versioning.md) for architecture decisions: directory structure, locking workflow, hash algorithm, and CI check design.
 
 ## Rationale
 
-REQ-p01051-T establishes that deployed questionnaire versions are immutable. REQ-p00004 requires immutable, append-only records with tamper prevention through database constraints. REQ-p00011-H requires data to be "original by representing the first recording." These principles extend beyond runtime data to the version artifacts themselves: if the code, content, or schema definition behind a version can be silently modified after deployment, the system can no longer guarantee that reconstructed patient experiences are authentic.
+REQ-p01051-T establishes that deployed questionnaire versions are immutable. REQ-p00004 requires immutable, append-only records with tamper prevention through database constraints. The ALCOA++ Original principle (see `spec/regulations/fda/prd-fda-21-cfr-11.md` REQ-p80004-R) requires data to be preserved as first captured. These principles extend beyond runtime data to the version artifacts themselves: if the catalog entry, renderer class bundle, or schema definition behind a version can be silently modified after deployment, the system can no longer guarantee that reconstructed patient experiences are authentic.
 
-Convention alone is insufficient for FDA compliance -- immutability must be mechanically enforced. The CI/CD system serves as the enforcement layer, using cryptographic hashes to detect unauthorized modifications to locked version artifacts. The version lock registry follows the same append-only principle as the event store (REQ-p00004-B, REQ-p00004-P): entries are added but never modified or removed, providing a tamper-evident chain of version provenance.
+The locked artifacts are clinically validated. A questionnaire catalog entry encodes the result of formal research validation; each translation is independently validated per language at considerable expense. The lock machinery enforces that the bytes the clinical team validated are the bytes that ship -- not that an engineer did not accidentally edit a widget. Convention alone is insufficient for this guarantee under FDA 21 CFR Part 11; immutability must be mechanically enforced.
 
-Each questionnaire version exists as a self-contained set of artifacts (widget code for GUI, content bundles for content, JSON Schema definitions for schema). Locking a version computes a deterministic cryptographic hash over its artifacts, recording the hash in a registry file. The CI system validates both that locked artifacts remain unchanged and that the registry itself has not been tampered with, using the branch-protected baseline as the trust anchor.
+The CI/CD system serves as the enforcement layer, using cryptographic hashes to detect unauthorized modifications to locked artifacts. The version lock registry follows the same append-only principle as the event store (REQ-p00004-B, REQ-p00004-P): entries are added but never modified or removed, providing a tamper-evident chain of version provenance. Locked units are small and slow-changing -- catalog entry JSON files, translation bundles, schema definitions, and the source bundle of each versioned renderer class. The CI system validates both that locked artifacts remain unchanged and that the registry itself has not been tampered with, using the branch-protected baseline as the trust anchor.
 
 ## Assertions
 

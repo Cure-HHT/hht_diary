@@ -428,7 +428,8 @@ Without an explicit type registry, the relationship between versioned schemas (e
 ---
 # REQ-p01051: Questionnaire Versioning Model
 
-**Level**: PRD | **Status**: Draft | **Implements**: p01050
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01050
 
 ## Rationale
 
@@ -550,13 +551,13 @@ L. The system SHALL enforce sponsor eligibility constraints during all data capt
 
 M. Configuration changes SHALL NOT invalidate existing historical questionnaire data.
 
-N. The system SHALL support addition of new questionnaire types without requiring platform code changes.
+N. The system SHALL support addition of new questionnaire types whose content conforms to an existing renderer class through catalog entry creation and sponsor configuration update, without requiring renderer code changes.
 
 ## Rationale
 
 Multi-sponsor deployments require sponsor-specific questionnaire portfolios to accommodate varying study designs. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints enable patients in ongoing studies to continue using validated instrument versions while new enrollments can use updated versions, ensuring data consistency within study cohorts. Language enablement ensures only properly validated translations are offered to participants. This configuration-driven approach allows questionnaire changes to be managed deliberately, preventing unintended mid-study modifications that could impact response patterns and data quality. The platform enforces these constraints at data capture time to maintain study protocol compliance and data integrity across the multi-sponsor environment.
 
-*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: 3bc66244
+*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: ac2f2aac
 ---
 ## REQ-p01011: Event Transformation and Migration
 

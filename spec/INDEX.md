@@ -97,9 +97,9 @@
 | REQ-p01048 | Web Diary Login Interface                           | prd-diary-web.md                    | d643690a |
 | REQ-p01049 | Web Diary Lost Credential Recovery                  | prd-diary-web.md                    | 0af0c79c |
 | REQ-p01050 | Event Type Registry                                 | prd-event-sourcing-system.md        | 52464e42 |
-| REQ-p01051 | Questionnaire Versioning Model                      | prd-event-sourcing-system.md        | e311e5fc |
+| REQ-p01051 | Questionnaire Versioning Model                      | prd-event-sourcing-system.md        | 6d08845d |
 | REQ-p01052 | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md        | 4218237c |
-| REQ-p01053 | Sponsor Questionnaire Eligibility Configuration     | prd-event-sourcing-system.md        | 3bc66244 |
+| REQ-p01053 | Sponsor Questionnaire Eligibility Configuration     | prd-event-sourcing-system.md        | ac2f2aac |
 | REQ-p01054 | Complete Infrastructure Isolation Per Sponsor       | prd-architecture-multi-sponsor.md   | dae0f167 |
 | REQ-p01055 | Sponsor Confidentiality                             | prd-architecture-multi-sponsor.md   | 364675e2 |
 | REQ-p01056 | Confidentiality Sufficiency                         | prd-architecture-multi-sponsor.md   | f29524ee |
@@ -109,7 +109,7 @@
 | REQ-p01060 | UX Changes During Trials                            | prd-architecture-multi-sponsor.md   | 2f531460 |
 | REQ-p01062 | GDPR Data Portability                               | prd-deprecated.md                   | 37ef744e |
 | REQ-p01064 | Investigator Questionnaire Approval Workflow        | prd-questionnaire-approval.md       | 735ee5a6 |
-| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | 0a17515d |
+| REQ-p01065 | Clinical Questionnaire System                       | prd-questionnaire-system.md         | a475dc2e |
 | REQ-p01066 | Daily Epistaxis Record Questionnaire                | prd-questionnaire-epistaxis.md      | 29498f8f |
 | REQ-p01067 | NOSE HHT Questionnaire                              | prd-questionnaire-nose-hht.md       | 23b411c6 |
 | REQ-p01068 | HHT Quality of Life Questionnaire                   | prd-questionnaire-qol.md            | d3970cea |
@@ -303,7 +303,7 @@
 | REQ-d00104 | Contact Study Coordinator Screen                                | dev-diary-app-linking.md        | 9e53fe8a |
 | REQ-d00105 | Reconnection Recovery Path                                      | dev-diary-app-linking.md        | 01389d10 |
 | REQ-d00106 | Study Start Questionnaire Rendering                             | dev-diary-app-linking.md        | 60f1a652 |
-| REQ-d00107 | Questionnaire Response Collection and Storage                   | dev-diary-app-linking.md        | 888d43b7 |
+| REQ-d00107 | Questionnaire Response Collection and Storage                   | dev-diary-app-linking.md        | 50a1761d |
 | REQ-d00108 | Questionnaire Submission Flow                                   | dev-diary-app-linking.md        | b9a8f91b |
 | REQ-d00109 | Portal Linking Code Validation Endpoint                         | dev-portal-api.md               | bac91a72 |
 | REQ-d00110 | Linking API Error Response Strategy                             | dev-portal-api.md               | 39ae2a18 |
@@ -356,6 +356,7 @@
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | 709a8186 |
 | REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |
 | REQ-d00161 | Break-Glass Workflow Implementation                             | dev-break-glass.md              | 4cc5e2e4 |
+| REQ-d80064 | Questionnaire Version Integrity Enforcement                     | dev-questionnaire.md            | dd2e9ea1 |
 
 ## User Journeys
 
