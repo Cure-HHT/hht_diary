@@ -136,21 +136,36 @@ if echo "$CHANGED_FILES" | grep -qE '^src/'; then
   echo "Src files changed"
 fi
 
+# Elspais behavior can change without any scanned source file changing:
+# a config edit in .elspais.toml (different scan paths, severity rules,
+# id patterns) or a pinned-version bump in versions.env (different
+# parser, hashing, or coverage logic) reshapes the matrix output.
+# Treat both as elspais-relevant so the gate fires and the matrix
+# re-renders.
+ELSPAIS_CONFIG_CHANGED=false
+if echo "$CHANGED_FILES" | grep -qE '^(\.elspais\.toml|\.github/versions\.env)$'; then
+  ELSPAIS_CONFIG_CHANGED=true
+  echo "Elspais config or pinned version changed"
+fi
+
 # Derive elspais trigger from the per-category flags above. Mirrors
 # [scanning.*].directories in .elspais.toml without restating the regex:
 # spec, apps/packages (CODE), database, docs (or any .md), tools, src.
-# Such files can introduce or remove REQ- references (in IMPLEMENTS /
-# Verifies headers, prose, or test annotations), so elspais must validate
-# them on every PR — not just spec-file edits. PR #539 (CUR-1164) added
-# REQ-p05004 references in app code with no spec/ change, so elspais was
-# silently skipped and the broken reference landed on main (CUR-1246).
-# DOCS_CHANGED is broader than elspais's strict docs/ scan (it also
-# matches bare .md anywhere); the extra coverage is harmless — at most
-# one extra elspais run on a docs-only PR.
+# Plus ELSPAIS_CONFIG_CHANGED for config/version-only PRs that still
+# alter elspais output. Such files can introduce or remove REQ-
+# references (in IMPLEMENTS / Verifies headers, prose, or test
+# annotations), so elspais must validate them on every PR — not just
+# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
+# app code with no spec/ change, so elspais was silently skipped and
+# the broken reference landed on main (CUR-1246). DOCS_CHANGED is
+# broader than elspais's strict docs/ scan (it also matches bare .md
+# anywhere); the extra coverage is harmless — at most one extra
+# elspais run on a docs-only PR.
 ELSPAIS_RELEVANT_CHANGED=false
 if [ "$SPEC_CHANGED" = "true" ] || [ "$CODE_CHANGED" = "true" ] || \
    [ "$DB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || \
-   [ "$TOOLS_CHANGED" = "true" ] || [ "$SRC_CHANGED" = "true" ]; then
+   [ "$TOOLS_CHANGED" = "true" ] || [ "$SRC_CHANGED" = "true" ] || \
+   [ "$ELSPAIS_CONFIG_CHANGED" = "true" ]; then
   ELSPAIS_RELEVANT_CHANGED=true
   echo "Files in elspais scan paths changed - requirement validation will run"
 fi
