@@ -535,7 +535,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _startDateTime = storedStartTime;
-      _currentStep = RecordingStep.intensity;
+      // CUR-560: If intensity is already set, skip to end time instead of
+      // forcing the user to re-select intensity after modifying start time.
+      _currentStep = _intensity != null
+          ? RecordingStep.endTime
+          : RecordingStep.intensity;
     });
   }
 

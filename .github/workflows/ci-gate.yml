@@ -1,23 +1,25 @@
-# CI Gate — Single required status check that aggregates all other workflow results
+# Validation Summary — Aggregates all other workflow results into a single
+# required status check. Emitted under the name "Validation Summary" to match
+# the org-level branch-protection ruleset (and hht_diary_callisto). Replaces
+# the prior "CI Gate" name (CUR-1246).
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00052: CI/CD Pipeline with Automated Quality Gates
 #   REQ-o00078: Change-Appropriate CI Validation
 #
-# This workflow replaces multiple individual required status checks in branch
-# protection with a single "CI Gate" check. Individual workflows are free to
-# use `paths` filters and skip entirely — CI Gate treats skipped as OK.
-#
-# Only CI Gate needs to be a required status check in branch protection.
+# Individual workflows are free to use `paths` filters and skip entirely —
+# Validation Summary treats skipped as OK. Pair this with the per-concern
+# named jobs in pr-validation.yml ("Validate Commit Messages (CUR + REQ)",
+# "Security - Check for Secrets") which the same ruleset also requires.
 
-name: CI Gate
+name: Validation Summary
 
 on:
   pull_request:
     branches: [main]
 
 concurrency:
-  group: ci-gate-${{ github.ref }}
+  group: validation-summary-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -28,7 +30,7 @@ permissions:
 
 jobs:
   gate:
-    name: CI Gate
+    name: Validation Summary
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -40,7 +42,7 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "CI Gate: Waiting for all checks on commit ${SHA:0:7}"
+          echo "Validation Summary: Waiting for all checks on commit ${SHA:0:7}"
           echo ""
 
           # Fetch check runs with retry on rate limit (HTTP 403)
@@ -97,7 +99,7 @@ jobs:
               HTML_URL=$(echo "$check" | jq -r '.html_url // empty')
 
               # Skip our own check
-              [ "$NAME" = "CI Gate" ] && continue
+              [ "$NAME" = "Validation Summary" ] && continue
 
               TOTAL=$((TOTAL + 1))
 
@@ -148,23 +150,23 @@ jobs:
                 echo ""
                 echo "FAILED: ${FAILED} check(s) failed (see PR comment for details)"
                 # Write step summary with full check status table
-                printf -v SUMMARY_BODY '## CI Gate: %d of %d check(s) failed\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$FAILED" "$TOTAL" "$SUMMARY_ROWS"
+                printf -v SUMMARY_BODY '## Validation Summary: %d of %d check(s) failed\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$FAILED" "$TOTAL" "$SUMMARY_ROWS"
                 echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
                 # Save for the PR comment step
-                echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
+                echo "$SUMMARY_BODY" > /tmp/validation-summary.md
                 # Emit ::error:: annotation (visible in checks list)
-                echo "::error::CI Gate: ${FAILED} check(s) failed:${FAILED_CHECK_NAMES}"
+                echo "::error::Validation Summary: ${FAILED} check(s) failed:${FAILED_CHECK_NAMES}"
                 exit 1
               fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
               # Clean up any previous failure comment
-              MARKER="<!-- ci-gate-summary -->"
+              MARKER="<!-- validation-summary -->"
               EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
                 --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
               if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
                 gh api "repos/${REPO}/issues/comments/${EXISTING}" -X DELETE > /dev/null 2>&1 || true
-                echo "Cleaned up previous CI Gate failure comment"
+                echo "Cleaned up previous Validation Summary failure comment"
               fi
               exit 0
             fi
@@ -181,10 +183,10 @@ jobs:
           echo "TIMEOUT: Not all checks completed within 30 minutes."
           echo "Pending checks:"
           echo -e "$PENDING_NAMES"
-          printf -v SUMMARY_BODY '## CI Gate: Timed out\n\n%d of %d checks completed. %d failed.\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$COMPLETED" "$TOTAL" "$FAILED" "$SUMMARY_ROWS"
+          printf -v SUMMARY_BODY '## Validation Summary: Timed out\n\n%d of %d checks completed. %d failed.\n\n| Check | Status | Details |\n|-------|--------|---------|\n%s' "$COMPLETED" "$TOTAL" "$FAILED" "$SUMMARY_ROWS"
           echo "$SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
-          echo "$SUMMARY_BODY" > /tmp/ci-gate-summary.md
-          ANNOTATION=$(echo -e "CI Gate timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
+          echo "$SUMMARY_BODY" > /tmp/validation-summary.md
+          ANNOTATION=$(echo -e "Validation Summary timed out. Checks still pending:\n${PENDING_NAMES}" | sed 's/$/%0A/' | tr -d '\n')
           echo "::error::${ANNOTATION}"
           exit 1
 
@@ -195,26 +197,26 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [ ! -f /tmp/ci-gate-summary.md ]; then
+          if [ ! -f /tmp/validation-summary.md ]; then
             echo "No summary file found, skipping comment"
             exit 0
           fi
 
-          MARKER="<!-- ci-gate-summary -->"
-          SUMMARY_CONTENT=$(cat /tmp/ci-gate-summary.md)
+          MARKER="<!-- validation-summary -->"
+          SUMMARY_CONTENT=$(cat /tmp/validation-summary.md)
           UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
           printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
 
-          # Find existing CI Gate comment to update (avoid spam on re-runs)
+          # Find existing Validation Summary comment to update (avoid spam on re-runs)
           EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
             --jq "[.[] | select(.body | startswith(\"${MARKER}\")) | .id] | first" 2>/dev/null || true)
 
           if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
             gh api "repos/${REPO}/issues/comments/${EXISTING}" \
               -X PATCH -f body="$BODY" > /dev/null
-            echo "Updated existing CI Gate comment"
+            echo "Updated existing Validation Summary comment"
           else
             gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
               -f body="$BODY" > /dev/null
-            echo "Posted new CI Gate comment"
+            echo "Posted new Validation Summary comment"
           fi

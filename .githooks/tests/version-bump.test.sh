@@ -219,6 +219,131 @@ eq "$(classify_and_bump clinical_diary 'apps/common-dart/trial_data_types/lib/x.
 eq "$(classify_and_bump diary_server 'apps/daily-diary/diary_server/bin/server.dart' '0.1.0+11' '0.1.0+11')" \
     "0.1.1+12" "diary_server bin/ change -> +N applied (standard)"
 
+# ===== Merge-commit short-circuit (CUR-1249) =====
+#
+# `git diff --cached` during a merge returns every file being merged
+# in, not just files the developer authored. Without a gate, the bump
+# pass would re-bump pubspecs for code already shipped (and bumped) on
+# the source branch's own PR. The hook gates the bump pass on
+# is_merge_commit_in_progress; these tests exercise that gate.
+echo ""
+echo "  -- is_merge_commit_in_progress (CUR-1249) --"
+
+MERGE_TMPDIR=$(mktemp -d)
+trap 'rm -rf "$MERGE_TMPDIR"' EXIT
+ORIG_DIR=$(pwd)
+
+git -C "$MERGE_TMPDIR" init -q
+git -C "$MERGE_TMPDIR" -c user.email=t@t -c user.name=T commit --allow-empty -q -m init
+
+cd "$MERGE_TMPDIR"
+rc 1 "no MERGE_HEAD -> not a merge commit"           is_merge_commit_in_progress
+
+# Simulate `git merge` in flight by touching the sentinel file git itself
+# creates while a merge is unresolved. Real merges also write MERGE_MSG /
+# MERGE_MODE / index entries, but the hook's gate only checks MERGE_HEAD,
+# so that's the contract we lock in here.
+touch ".git/MERGE_HEAD"
+rc 0 "MERGE_HEAD present -> merge commit detected"   is_merge_commit_in_progress
+
+# End-to-end: with MERGE_HEAD set, a clinical_diary code-dir change that
+# would otherwise yield "0.1.1+12" must produce no bump. Mirrors the
+# pre-commit conditional: gate on the helper, then dispatch.
+gated_classify_and_bump() {
+    if is_merge_commit_in_progress; then
+        return 0
+    fi
+    classify_and_bump "$@"
+}
+eq "$(gated_classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.dart' '0.1.0+11' '0.1.0+11')" \
+    "" "merge in progress -> clinical_diary code change yields no bump"
+
+# Sanity: clear MERGE_HEAD and confirm normal bump behaviour returns.
+rm -f ".git/MERGE_HEAD"
+eq "$(gated_classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.dart' '0.1.0+11' '0.1.0+11')" \
+    "0.1.1+12" "no merge in progress -> bump pass runs as before"
+
+cd "$ORIG_DIR"
+
+# ===== Dart format/analyze pass merge-commit short-circuit (CUR-1250) =====
+#
+# Sister bug to CUR-1249, one layer up: when `git merge origin/main` brings
+# in code formatted by the project-pinned Dart SDK and the local Dart SDK
+# differs, the pre-commit format pass would re-run `dart format` on staged
+# (merged-in) files and stage the resulting whitespace drift. That shows
+# up on origin/main's PR as a "code change" and trips the version-bump
+# verifier on CI.
+#
+# Fix mirrors CUR-1249: gate the dart format/analyze pass on
+# is_merge_commit_in_progress. These tests lock in both the gate
+# semantics (behavioural) and the fact that pre-commit actually calls the
+# gate around section 2 (structural).
+
+echo ""
+echo "  -- dart format pass merge-commit short-circuit (CUR-1250) --"
+
+MERGE_TMPDIR2=$(mktemp -d)
+trap 'rm -rf "$MERGE_TMPDIR" "$MERGE_TMPDIR2"' EXIT
+
+git -C "$MERGE_TMPDIR2" init -q
+git -C "$MERGE_TMPDIR2" -c user.email=t@t -c user.name=T commit --allow-empty -q -m init
+
+cd "$MERGE_TMPDIR2"
+
+# Stand-in for the dart format/analyze block in pre-commit's section 2.
+# Returns "formatted" if the pass ran, "skipped" if it was gated out.
+fake_dart_format_pass() {
+    echo "formatted"
+}
+
+# Mirrors how the real pre-commit must wrap section 2: gate on the
+# helper, then dispatch.
+gated_dart_format_pass() {
+    if is_merge_commit_in_progress; then
+        echo "skipped"
+        return 0
+    fi
+    fake_dart_format_pass
+}
+
+# With MERGE_HEAD present, the gate must short-circuit BEFORE the format
+# pass runs — matching the CUR-1249 bump-pass contract.
+touch ".git/MERGE_HEAD"
+eq "$(gated_dart_format_pass)" "skipped" \
+    "merge in progress -> dart format pass is short-circuited"
+
+# Without MERGE_HEAD, the format pass must run as before — single-commit
+# behaviour unchanged (ticket acceptance criterion #3).
+rm -f ".git/MERGE_HEAD"
+eq "$(gated_dart_format_pass)" "formatted" \
+    "no merge in progress -> dart format pass runs as before"
+
+cd "$ORIG_DIR"
+
+# Structural: pre-commit must actually CALL is_merge_commit_in_progress
+# from a non-comment conditional inside the dart-quality section.
+# Otherwise the behavioural test above is locked-in but the real hook
+# is unguarded — e.g. if a future edit demoted the gate into a comment,
+# a loose substring grep would still pass. Anchor on `if|elif <fn>;
+# then` at line start (no leading `#`) so a commented-out call no
+# longer counts.
+PRE_COMMIT="$HOOKS_DIR/pre-commit"
+DART_SECTION_LINES=$(awk '
+    /^# 2\. Dart Code Quality/      { in_section = 1 }
+    /^# 3\. TypeScript Code Quality/{ in_section = 0 }
+    in_section { print }
+' "$PRE_COMMIT")
+
+if echo "$DART_SECTION_LINES" | grep -qE '^[[:space:]]*(if|elif)[[:space:]]+is_merge_commit_in_progress[[:space:]]*;[[:space:]]*then'; then
+    PASS=$((PASS + 1))
+    printf '  ok    %-60s -> gate wired in section 2\n' \
+        "pre-commit section 2 invokes is_merge_commit_in_progress"
+else
+    FAIL=$((FAIL + 1))
+    printf '  FAIL  %-60s gate NOT found in section 2\n' \
+        "pre-commit section 2 invokes is_merge_commit_in_progress"
+fi
+
 # ===== Summary =====
 echo ""
 if [ "$FAIL" -eq 0 ]; then

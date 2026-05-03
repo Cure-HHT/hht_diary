@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00076: Participation Status Badge
+//   GUI-p00076: Not Participating state
+//   REQ-p01065: Deactivate sync and rules on Not Participating
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
@@ -22,9 +24,11 @@ void main() {
     Widget buildProfileScreen({
       bool isEnrolledInTrial = false,
       bool isDisconnected = false,
+      bool isNotParticipating = false,
       String enrollmentStatus = 'none',
       String? enrollmentCode,
       DateTime? enrollmentDateTime,
+      DateTime? enrollmentEndDateTime,
       String? siteName,
       String? sitePhoneNumber,
       String? sponsorLogo,
@@ -40,12 +44,14 @@ void main() {
           onStopSharingWithCureHHT: () {},
           isEnrolledInTrial: isEnrolledInTrial,
           isDisconnected: isDisconnected,
+          isNotParticipating: isNotParticipating,
           enrollmentStatus: enrollmentStatus,
           isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
           onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
           enrollmentDateTime: enrollmentDateTime,
+          enrollmentEndDateTime: enrollmentEndDateTime,
           siteName: siteName,
           sitePhoneNumber: sitePhoneNumber,
         ),
@@ -251,7 +257,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('disconnected'), findsOneWidget);
+        expect(find.text('Connection issue detected'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'Your connection with the study sponsor has been interrupted.',
+          ),
+          findsOneWidget,
+        );
       });
 
       testWidgets('shows Enter New Linking Code button when disconnected', (
@@ -266,25 +278,18 @@ void main() {
       });
 
       testWidgets(
-        'shows Clinical Trial Privacy Policy link when disconnected (REQ-p00045)',
+        'does not show Clinical Trial Privacy Policy link when disconnected',
         (tester) async {
           await tester.pumpWidget(
             buildProfileScreen(isEnrolledInTrial: true, isDisconnected: true),
           );
           await tester.pumpAndSettle();
 
-          await tester.scrollUntilVisible(
-            find.text('View Clinical Trial Privacy Policy'),
-            300,
-          );
-          expect(
-            find.text('View Clinical Trial Privacy Policy'),
-            findsOneWidget,
-          );
+          expect(find.text('View Clinical Trial Privacy Policy'), findsNothing);
         },
       );
 
-      testWidgets('shows site contact info when disconnected with site name', (
+      testWidgets('does not show site name text in disconnected card', (
         tester,
       ) async {
         await tester.pumpWidget(
@@ -296,7 +301,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('Test Clinic'), findsOneWidget);
+        // Site name is not shown in the disconnected card (per REQ-CAL-p00020 UI)
+        expect(find.textContaining('Test Clinic'), findsNothing);
       });
 
       testWidgets('Enter New Linking Code button is tappable', (tester) async {
@@ -537,15 +543,124 @@ void main() {
         await tester.pumpAndSettle();
 
         final cardFinder = find.ancestor(
-          of: find.text(
-            'You have been disconnected from the clinical trial. Please contact your study site or enter a new linking code.',
-          ),
+          of: find.text('Connection issue detected'),
           matching: find.byType(Card),
         );
         expect(cardFinder, findsOneWidget);
 
         final card = tester.widget<Card>(cardFinder);
-        expect(card.color, equals(Colors.orange.shade50));
+        expect(card.color, equals(const Color(0xFFFFFBEA)));
+      });
+    });
+
+    // CUR-1165: Not Participating state tests (GUI-p00076, REQ-p01065-D)
+    group('Not Participating state', () {
+      testWidgets('badge shows grey background when not_participating', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        final cardFinder = find.ancestor(
+          of: find.text('Study participation: Ended'),
+          matching: find.byType(Card),
+        );
+        expect(cardFinder, findsOneWidget);
+
+        final card = tester.widget<Card>(cardFinder);
+        expect(card.color, equals(const Color(0xFFF9FAFB)));
+      });
+
+      testWidgets('badge shows "Study participation: Ended" message', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Study participation: Ended'), findsOneWidget);
+      });
+
+      testWidgets(
+        'badge does not show "Reconnect" button when not_participating',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isNotParticipating: true,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Enter New Linking Code'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        '"Enroll in Clinical Trial" button is hidden when not_participating',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isNotParticipating: true,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Enroll in Clinical Trial'), findsNothing);
+        },
+      );
+
+      testWidgets('shows ended date when enrollmentEndDateTime is provided', (
+        tester,
+      ) async {
+        final endDate = DateTime(2026, 4, 23, 13, 47);
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isNotParticipating: true,
+            enrollmentEndDateTime: endDate,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Ended:'), findsOneWidget);
+      });
+
+      testWidgets('does not show orange disconnection banner styling', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(isEnrolledInTrial: true, isNotParticipating: true),
+        );
+        await tester.pumpAndSettle();
+
+        // Orange card (disconnected) must not appear
+        final orangeCard = find.byWidgetPredicate((w) {
+          if (w is Card) {
+            return w.color == Colors.orange.shade50;
+          }
+          return false;
+        });
+        expect(orangeCard, findsNothing);
+      });
+
+      testWidgets('sponsor logo still shown when not_participating', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isNotParticipating: true,
+            sponsorLogo: 'assets/sponsor-content/status_badge.png',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Image), findsWidgets);
       });
     });
 

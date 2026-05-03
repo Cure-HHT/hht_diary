@@ -23,6 +23,7 @@ import 'package:portal_functions/src/database.dart';
 import 'package:portal_functions/src/notification_service.dart';
 import 'package:portal_functions/src/patient_linking.dart';
 import 'package:portal_functions/src/portal_auth.dart';
+import 'package:portal_functions/src/sponsor.dart';
 
 /// Test constants
 const _testPatientId = 'patient-001';
@@ -693,14 +694,14 @@ void main() {
       expect(invalidReasonError['error'], contains('Other'));
     });
 
-    test('other reason requires notes', () {
-      final notesRequiredError = {
-        'error': 'Notes are required when reason is "Other"',
-      };
-
-      expect(notesRequiredError['error'], contains('Notes'));
-      expect(notesRequiredError['error'], contains('Other'));
-    });
+    test(
+      'other reason does not require notes (predefined list only per REQ-CAL-p00020)',
+      () {
+        // Notes are no longer required for "Other" — the UI shows only the predefined
+        // dropdown and never sends notes. The backend accepts "Other" without notes.
+        expect(validDisconnectReasons, contains('Other'));
+      },
+    );
 
     test('role error message is specific to disconnect', () {
       final roleError = {'error': 'Only Investigators can disconnect patients'};
@@ -1530,19 +1531,29 @@ void main() {
         expect(body['error'], contains('Invalid reason'));
       });
 
-      test('returns 400 when Other reason has no notes', () async {
-        final request = _request(
-          'POST',
-          '/api/v1/portal/patients/disconnect',
-          body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
-        );
+      test(
+        'accepts Other reason without notes (REQ-CAL-p00020: predefined list only)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM patients')) return [];
+                return [];
+              };
 
-        final response = await disconnectPatientHandler(request);
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/disconnect',
+            body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
+          );
 
-        expect(response.statusCode, 400);
-        final body = await _json(response);
-        expect(body['error'], contains('Notes'));
-      });
+          final response = await disconnectPatientHandler(request);
+
+          // Proceeds past notes validation to DB lookup (404) — not a 400 notes error
+          expect(response.statusCode, isNot(400));
+          final body = await _json(response);
+          expect(body['error'], isNot(contains('Notes')));
+        },
+      );
 
       test('returns 404 when patient not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
@@ -1620,6 +1631,106 @@ void main() {
         final response = await disconnectPatientHandler(request);
 
         expect(response.statusCode, 400);
+      });
+
+      group('sponsor-aware reason validation (REQ-p70010-C)', () {
+        tearDown(() => getCurrentSponsorFlagsOverride = null);
+
+        test(
+          'rejects non-predefined reason when disconnectReasonDropdown=true',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: true,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('Invalid reason'));
+          },
+        );
+
+        test(
+          'accepts free-text reason when disconnectReasonDropdown=false',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              if (query.contains('FROM patients')) {
+                return [_patientRow(status: 'connected')];
+              }
+              return [];
+            };
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 200);
+            final body = await _json(response);
+            expect(body['reason'], 'Custom free text reason');
+          },
+        );
+
+        test(
+          'rejects empty reason regardless of disconnectReasonDropdown value',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({'patientId': _testPatientId, 'reason': ''}),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('reason'));
+          },
+        );
       });
     });
 

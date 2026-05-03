@@ -3,6 +3,7 @@
 //   REQ-d00013: Application Instance UUID Generation
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-p01065: Deactivate sync on disconnect (Assertion D)
 
 import 'dart:async';
 import 'dart:convert';
@@ -355,6 +356,8 @@ class NosebleedService {
   Future<void> _syncRecordToCloud(NosebleedRecord record) async {
     // Skip sync in unit tests
     if (!_enableCloudSync) return;
+    // CUR-1164: Stop sync when patient is disconnected (REQ-p01065-D)
+    if (await _enrollmentService.isDisconnected()) return;
 
     try {
       final jwtToken = await _enrollmentService.getJwtToken();
@@ -399,6 +402,10 @@ class NosebleedService {
   /// Sync all unsynced records to cloud and return result
   /// Returns [SyncResult] indicating success or failure with details
   Future<SyncResult> syncAllRecordsWithResult() async {
+    // CUR-1164: Stop sync when patient is disconnected (REQ-p01065-D)
+    if (await _enrollmentService.isDisconnected()) {
+      return SyncResult.success(syncedCount: 0);
+    }
     final unsyncedEvents = await _eventRepository.getUnsyncedEvents();
     final unsynced = unsyncedEvents
         .where((e) => e.eventType == 'NosebleedRecorded')
@@ -467,6 +474,8 @@ class NosebleedService {
 
   /// Fetch records from cloud and merge with local
   Future<void> fetchRecordsFromCloud() async {
+    // CUR-1164: Stop fetch when patient is disconnected (REQ-p01065-D)
+    if (await _enrollmentService.isDisconnected()) return;
     try {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;

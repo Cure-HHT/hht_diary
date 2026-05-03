@@ -48,9 +48,9 @@ jobs:
           ./tool/coverage.sh
       
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
-          file: apps/common-dart/append_only_datastore/coverage/lcov.info
+          files: apps/common-dart/append_only_datastore/coverage/lcov.info
           flags: append_only_datastore
           name: append-only-datastore-coverage
           fail_ci_if_error: false

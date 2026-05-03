@@ -228,14 +228,14 @@ jobs:
             > $GITHUB_WORKSPACE/diary-functions-lcov.info || true
 
       - name: Upload diary_functions coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: diary-functions-lcov.info
           flags: diary-functions
           fail_ci_if_error: false
 
       - name: Upload diary_server coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: diary-server-lcov.info
           flags: diary-server

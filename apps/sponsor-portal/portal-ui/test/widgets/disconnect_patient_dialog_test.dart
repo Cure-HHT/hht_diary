@@ -79,7 +79,11 @@ Future<ApiClient> _createMockApiClient({bool shouldFail = false}) async {
   return ApiClient(authService, httpClient: mockHttpClient);
 }
 
-Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
+Future<void> _pumpDialog(
+  WidgetTester tester,
+  ApiClient apiClient, {
+  bool useDropdown = true,
+}) async {
   // Use a large surface to avoid dialog overflow in tests
   tester.view.physicalSize = const Size(800, 1200);
   tester.view.devicePixelRatio = 1.0;
@@ -101,6 +105,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
+                  useDropdown: useDropdown,
                 ),
               );
             });
@@ -132,7 +137,10 @@ void main() {
         DisconnectReason.technicalIssues.description,
         'App not working, sync problems',
       );
-      expect(DisconnectReason.other.description, 'Specify reason in notes');
+      expect(
+        DisconnectReason.other.description,
+        'No additional details required',
+      );
     });
 
     test('has exactly 3 values matching spec', () {
@@ -165,17 +173,19 @@ void main() {
       expect(find.byIcon(Icons.link_off), findsWidgets);
     });
 
-    testWidgets('confirm state shows reason dropdown and notes field', (
-      tester,
-    ) async {
-      final apiClient = await _createMockApiClient();
+    testWidgets(
+      'confirm state shows reason dropdown only (no free text field)',
+      (tester) async {
+        final apiClient = await _createMockApiClient();
 
-      await _pumpDialog(tester, apiClient);
+        await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reason for disconnection *'), findsOneWidget);
-      expect(find.text('Select a reason'), findsOneWidget);
-      expect(find.textContaining('Additional notes'), findsOneWidget);
-    });
+        expect(find.text('Reason for disconnection *'), findsOneWidget);
+        expect(find.text('Select a reason'), findsOneWidget);
+        expect(find.textContaining('Additional notes'), findsNothing);
+        expect(find.byType(TextField), findsNothing);
+      },
+    );
 
     testWidgets('confirm state shows warning message', (tester) async {
       final apiClient = await _createMockApiClient();
@@ -291,6 +301,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Disconnect Participant'), findsNothing);
+    });
+  });
+
+  group('DisconnectPatientDialog free-text mode (useDropdown=false)', () {
+    testWidgets('shows TextField instead of dropdown', (tester) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient, useDropdown: false);
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Select a reason'), findsNothing);
+      expect(find.text('Reason for disconnection *'), findsOneWidget);
+    });
+
+    testWidgets('Disconnect button disabled when text field is empty', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient, useDropdown: false);
+
+      await tester.tap(find.text('Disconnect'));
+      await tester.pumpAndSettle();
+
+      // Still in confirm state — empty text, button has no effect
+      expect(find.text('Disconnect Participant'), findsOneWidget);
+    });
+
+    testWidgets('entering text and tapping Disconnect shows success', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient();
+
+      await _pumpDialog(tester, apiClient, useDropdown: false);
+
+      await tester.enterText(find.byType(TextField), 'Device stopped working');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Disconnect'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Participant Disconnected'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
     });
   });
 }

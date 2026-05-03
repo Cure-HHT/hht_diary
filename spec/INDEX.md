@@ -117,7 +117,7 @@
 | REQ-p01070 | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md       | 84fa171d |
 | REQ-p01071 | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md            | a231a942 |
 | REQ-p01072 | Mobile App Linking Status and History               | prd-diary-app.md                    | cf32de6c |
-| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 3ab0f2f1 |
+| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 994067e9 |
 | REQ-p01074 | User-Facing State Change Communication              | prd-system.md                       | ec6b0b1d |
 | REQ-p01075 | Top Navigation Bar                                  | prd-diary-gui.md                    | 027debad |
 | REQ-p01076 | User Menu                                           | prd-diary-gui.md                    | 9c51b097 |
@@ -132,6 +132,7 @@
 | REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | d5afe3ec |
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
 | REQ-p01087 | UI Stability During User Interaction                | prd-system.md                       | 11950574 |
+| REQ-p05004 | Disconnection Notification                          | prd-diary-gui.md                    | a5c5984b |
 | REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
 | REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
 | REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
