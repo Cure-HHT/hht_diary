@@ -384,7 +384,7 @@ Implements: REQ-d00027"
 [CUR-265] Refactor authentication module
 ```
 
-### PR Validation Checks
+### PR Health Checks
 
 Automatic checks run on all PRs:
 

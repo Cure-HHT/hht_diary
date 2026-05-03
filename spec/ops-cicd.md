@@ -339,9 +339,9 @@ E. The QA promotion gate SHALL support manual triggering via `workflow_dispatch`
 
 ## GitHub Actions Workflows
 
-### pr-validation.yml
+### pr-health.yml
 
-**File**: `.github/workflows/pr-validation.yml`
+**File**: `.github/workflows/pr-health.yml`
 **Purpose**: Validates requirements and traceability on every PR
 **Triggers**: Pull requests to `main`, `develop`, `feature/**`, `release/**`
 
@@ -784,7 +784,7 @@ Expected output:
 **Resolution**:
 
 1. Fix any errors in traceability generation
-2. Verify file paths in `.github/workflows/pr-validation.yml`
+2. Verify file paths in `.github/workflows/pr-health.yml`
 3. Ensure workflow has `contents: read` permission
 
 ---
@@ -949,7 +949,7 @@ When infrastructure was changed:
 **Monitoring**:
 
 - Check "Workflow runs" for recent status
-- Filter by workflow: "PR Validation"
+- Filter by workflow: "PR Health"
 - Review failure trends
 
 **Alerts**:

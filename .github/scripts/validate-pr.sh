@@ -2,7 +2,6 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
 #   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit message checks)
-#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks)
 #   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
 #   REQ-d00014: Requirement Validation Tooling (elspais)
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability (elspais, traceability matrix)
@@ -188,32 +187,14 @@ echo "ELSPAIS_RELEVANT_CHANGED=${ELSPAIS_RELEVANT_CHANGED}" >> "$GITHUB_ENV"
 
 end_group
 
-# ============================================================================
-# Tier 2: Security (always runs)
-# ============================================================================
-
-# --- 2. Gitleaks - secret scanning ---
-begin_group "Secret Scanning (gitleaks v${GITLEAKS_VERSION})"
-
-gitleaks version
-
-if gitleaks detect --verbose --no-banner --redact --log-level info; then
-  echo "No secrets detected by gitleaks"
-else
-  report_error "Gitleaks detected secrets in the repository"
-  echo ""
-  echo "SECRET SCANNING FAILED"
-  echo ""
-  echo "Remove all secrets from the codebase before merging."
-  echo "Use environment variables or Doppler for secret management."
-  end_group
-  exit 1
-fi
-
-end_group
+# Note: secret scanning (gitleaks) is intentionally NOT run from this script.
+# It runs in the dedicated `Security - Check for Secrets` job in pr-health.yml
+# (org ruleset-required, native runner) and locally via .githooks/pre-push.
+# Running it here would duplicate either the CI job or the pre-push hook with
+# no added coverage. (CUR-1261)
 
 # ============================================================================
-# Tier 2.5: Version bump enforcement (always runs when trigger paths change)
+# Tier 2: Version bump enforcement (always runs when trigger paths change)
 # ============================================================================
 
 # IMPLEMENTS REQUIREMENTS:

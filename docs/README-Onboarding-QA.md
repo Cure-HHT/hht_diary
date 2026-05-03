@@ -161,7 +161,7 @@ This is the primary QA workflow:
 | `clinical_diary-ci.yml` | Flutter analysis + unit tests | PR to main |
 | `clinical_diary-coverage.yml` | Coverage reporting to Codecov | PR to main |
 | `build-test.yml` | Requirement validation + traceability | PR to main |
-| `pr-validation.yml` | PR gate checks | All PRs |
+| `pr-health.yml` | PR gate checks | All PRs |
 | `requirement-verification.yml` | Requirement compliance | On demand |
 
 ## Security Scanning
