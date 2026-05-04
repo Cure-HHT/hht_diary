@@ -7,6 +7,8 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'dart:js_interop';
+
 import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -121,24 +123,47 @@ void main() async {
     }
   }
 
-  // CUR-1118: Ensure Firebase Auth persists sessions in IndexedDB so they
-  // survive page reloads. Without this, the Auth Emulator (and some browser
-  // contexts) may default to in-memory-only persistence.
-  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  // CUR-1157: Do NOT call setPersistence(Persistence.LOCAL) here.
+  // On Flutter web, Persistence.LOCAL maps to browserLocalPersistence
+  // (localStorage), not IndexedDB as the previous comment claimed. The
+  // SDK's default on web is already indexedDBLocalPersistence, which
+  // survives refresh. Calling setPersistence(LOCAL) forced a migration to
+  // localStorage on every load, and under Safari ITP / partitioned storage
+  // / certain embed contexts that backend silently falls back to
+  // in-memory — which is exactly the symptom CUR-1118 was meant to fix.
 
-  // CUR-1118: Distinguish page refresh from a fresh tab load / post-close.
+  // CUR-1157: Distinguish page refresh from a fresh tab load / post-close
+  // using the Performance Navigation Timing API rather than a beforeunload
+  // sessionStorage handshake.
   //
-  // BrowserLifecycleService sets '_portalRefreshing' in sessionStorage on
-  // every beforeunload event.  sessionStorage survives a same-tab reload but
-  // is destroyed by the browser when the tab is genuinely closed.
+  // The previous CUR-1118 approach set a '_portalRefreshing' flag in
+  // sessionStorage from a beforeunload listener and read it back on the
+  // next load. That handshake is fragile:
+  //   • beforeunload doesn't fire reliably on all browsers / contexts
+  //     (mobile Safari, some embed contexts, abrupt unloads),
+  //   • sessionStorage writes during unload can be discarded under memory
+  //     pressure or BFCache transitions,
+  //   • any code path that registered the listener late (initial load
+  //     before BrowserLifecycleService.register, hot reload during dev,
+  //     background-tab discard) misses the write entirely.
+  // When the flag is missing the AuthService treats the load as a fresh
+  // tab and signs out the Firebase session — the exact symptom users see.
   //
-  //  • Flag present  → user pressed F5 / Cmd+R.  Keep the Firebase session
-  //                    so the user does not have to log in again.
-  //  • Flag absent   → fresh tab or return after tab-close.  AuthService
-  //                    signs out any stale Firebase session in _init().
-  final isPageRefresh =
-      web.window.sessionStorage.getItem('_portalRefreshing') != null;
-  web.window.sessionStorage.removeItem('_portalRefreshing');
+  // PerformanceNavigationTiming.type is the browser's authoritative answer
+  // to "how did this document arrive?" and does not depend on prior code
+  // having executed:
+  //   • 'reload'        → F5 / Cmd+R / browser reload button
+  //   • 'navigate'      → fresh tab, address-bar nav, link click
+  //   • 'back_forward'  → BFCache restore (treat as refresh: session is
+  //                       still the user's, no need to log them out)
+  //   • 'prerender'     → speculative prerender (treat as fresh)
+  final navEntries = web.window.performance
+      .getEntriesByType('navigation')
+      .toDart;
+  final navType = navEntries.isNotEmpty
+      ? (navEntries.first as web.PerformanceNavigationTiming).type
+      : '';
+  final isPageRefresh = navType == 'reload' || navType == 'back_forward';
 
   // Create AuthService here so the browser lifecycle service can hold a
   // direct reference before the widget tree is built.
