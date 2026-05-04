@@ -78,7 +78,7 @@
 | REQ-p01029 | Device Fingerprinting                               | prd-evidence-records.md             | 8e10b85a |
 | REQ-p01030 | Patient Authentication for Data Attribution         | prd-evidence-records.md             | fc02cd59 |
 | REQ-p01031 | Optional Geolocation Tagging                        | prd-evidence-records.md             | f9a69607 |
-| REQ-p01032 | Hashed Email Identity Verification                  | prd-evidence-records.md             | 0ba2d208 |
+| REQ-p01032 | Hashed Email Identity Verification                  | prd-evidence-records.md             | 92c5e2b7 |
 | REQ-p01033 | Customer Incident Notification                      | prd-SLA.md                          | 3ca3df0f |
 | REQ-p01034 | Root Cause Analysis                                 | prd-SLA.md                          | 0778e3bb |
 | REQ-p01035 | Corrective and Preventive Action                    | prd-SLA.md                          | f2c78d76 |
@@ -127,7 +127,7 @@
 | REQ-p01080 | Policies Screen                                     | prd-diary-gui.md                    | 0962c04b |
 | REQ-p01081 | Help Center Screen                                  | prd-diary-gui.md                    | f5ecea75 |
 | REQ-p01082 | Join Study Screen                                   | prd-diary-gui.md                    | 8eb89d10 |
-| REQ-p01083 | Account Settings Screen                             | prd-diary-gui.md                    | 63efe18c |
+| REQ-p01083 | Account Settings Screen                             | prd-diary-gui.md                    | 1fa51c44 |
 | REQ-p01084 | Diary App Licenses Screen                           | prd-diary-gui.md                    | 621882cb |
 | REQ-p01085 | Compliance Systems                                  | prd-clinical-trials.md              | d5afe3ec |
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
@@ -278,7 +278,7 @@
 | REQ-d00079 | Linking Code Pattern Matching                                   | dev-linking.md                  | f5e20cde |
 | REQ-d00080 | Web Session Management Implementation                           | dev-diary-web.md                | 482b7002 |
 | REQ-d00081 | Linked Device Records                                           | dev-linking.md                  | 16853ebd |
-| REQ-d00082 | Password Hashing Implementation                                 | dev-diary-web.md                | 1174dead |
+| REQ-d00082 | Password Hashing Implementation                                 | dev-diary-web.md                | 54b6a510 |
 | REQ-d00083 | Browser Storage Clearing                                        | dev-diary-web.md                | dd80cdb0 |
 | REQ-d00084 | Sponsor Configuration Loading                                   | dev-diary-web.md                | b8eb0a19 |
 | REQ-d00085 | Local Database Export and Import                                | dev-app.md                      | eaa18d27 |

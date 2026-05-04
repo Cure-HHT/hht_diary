@@ -63,7 +63,7 @@ void main() async {
       if (kDebugMode) {
         // In debug mode, fall back to emulator with warning
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         // In release mode, show error app
         runApp(ConfigErrorApp(error: e.message));
@@ -74,7 +74,7 @@ void main() async {
 
       if (kDebugMode) {
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
         return;
@@ -99,27 +99,56 @@ void main() async {
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connect to Firebase Emulator only for local flavor (if emulator is running)
+  // Connect to Firebase Auth Emulator for local flavor.
+  //
+  // Must run before any other Auth operation (including setPersistence).
+  // Failures here are fatal in local flavor — falling through to real
+  // Firebase produces a misleading "api-key-not-valid" error from the
+  // production endpoint instead of a clear "emulator unreachable" one.
+  // CUR-1264 follow-up: the previous swallow-and-debugPrint left users
+  // staring at activation_page.dart's misleading translation of api-key-
+  // not-valid as "Firebase Auth emulator is running (port 9099)" with no
+  // actionable signal.
   if (F.useEmulator) {
     const emulatorHost = String.fromEnvironment(
       'FIREBASE_AUTH_EMULATOR_HOST',
       defaultValue: '',
     );
-    if (emulatorHost.isNotEmpty) {
-      final parts = emulatorHost.split(':');
-      final host = parts[0];
-      final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
-      try {
-        await FirebaseAuth.instance.useAuthEmulator(host, port);
-        debugPrint('Using Firebase Auth Emulator at $host:$port');
-      } catch (e) {
-        debugPrint('Failed to connect to Firebase Auth Emulator: $e');
-      }
-    } else {
-      debugPrint(
-        'WARNING: Local flavor but no FIREBASE_AUTH_EMULATOR_HOST set',
+    if (emulatorHost.isEmpty) {
+      runApp(
+        const ConfigErrorApp(
+          error:
+              'FIREBASE_AUTH_EMULATOR_HOST is not set. The Firebase Auth '
+              'emulator can only be reached when this value is baked into '
+              'the build (it is read via String.fromEnvironment, not '
+              'window-injected).\n\n'
+              'For local-stack: rebuild the portal-final image (in the '
+              'sponsor repo) with '
+              '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099.\n\n'
+              'For developer flutter run: re-run with the same '
+              '--dart-define flag.',
+        ),
       );
-      debugPrint('Using real Firebase Auth with local flavor config');
+      return;
+    }
+    final parts = emulatorHost.split(':');
+    final host = parts[0];
+    final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
+    try {
+      await FirebaseAuth.instance.useAuthEmulator(host, port);
+      debugPrint('[AUTH] Connected to Firebase Auth Emulator at $host:$port');
+    } catch (e, st) {
+      debugPrint('[AUTH] FATAL: useAuthEmulator($host, $port) failed: $e\n$st');
+      runApp(
+        ConfigErrorApp(
+          error:
+              'Could not connect Firebase Auth to the local emulator at '
+              '$host:$port.\n\nUnderlying error: $e\n\nVerify the '
+              'firebase-emulator container is running and reachable, '
+              'then refresh this page.',
+        ),
+      );
+      return;
     }
   }
 
@@ -266,12 +295,7 @@ class ConfigErrorApp extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // Reload the page to retry
-                    // ignore: avoid_dynamic_calls
-                    // HTML reload equivalent for web
-                    debugPrint('Retry requested - user should refresh page');
-                  },
+                  onPressed: () => web.window.location.reload(),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Page'),
                 ),
