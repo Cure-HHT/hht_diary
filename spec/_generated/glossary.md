@@ -2,87 +2,32 @@
 <!-- Do not edit manually; changes will be overwritten. -->
 # Glossary
 
-## *
-
-********Email Address********
-: A unique technical identifier used as a destination for system notifications
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-********Full Name********
-: A common name, which is __PII__, of the person associated with a **User Account** that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-********ISO/IEC 24760-1********
-: IT Security and Privacy — A framework for identity management
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-********Three Letter Acryonym (TLA)********
-: This is an example of the syntax for defining a term which
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-********User Account********
-: The complete set of identity, credential, and authorization data that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-******Email Address******
-: A unique technical identifier used as a destination for system notifications
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-******Full Name******
-: A common name, which is __PII__, of the person associated with a **User Account** that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-******ISO/IEC 24760-1******
-: IT Security and Privacy — A framework for identity management
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-******Three Letter Acryonym (TLA)******
-: This is an example of the syntax for defining a term which
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-******User Account******
-: The complete set of identity, credential, and authorization data that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-****Email Address****
-: A unique technical identifier used as a destination for system notifications
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-****Full Name****
-: A common name, which is __PII__, of the person associated with a **User Account** that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-****ISO/IEC 24760-1****
-: IT Security and Privacy — A framework for identity management
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-****Three Letter Acryonym (TLA)****
-: This is an example of the syntax for defining a term which
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-****User Account****
-: The complete set of identity, credential, and authorization data that
-*Defined in: file:spec/_generated/glossary.md (REQ)*
-
 ## E
 
 **Email Address**
 : A unique technical identifier used as a destination for system notifications
-and as a primary User ID for authentication.
-*Reference Term: Registered Notification Address (ISO/IEC 24760-1)*
-*Defined in: file:spec/NFR/glossary-example.md (REQ-CAL)*
+*Defined in: file:spec/_generated/glossary.md (REQ)*
 
 ## F
 
 **Full Name**
 : A common name, which is __PII__, of the person associated with a **User Account** that
-that uniquely identifies a specific individual in the context of the **Sponsor Portal**.
-*Defined in: file:spec/NFR/glossary-example.md (REQ-CAL)*
+*Defined in: file:spec/_generated/glossary.md (REQ)*
+
+## I
+
+**ISO/IEC 24760-1**
+: IT Security and Privacy — A framework for identity management
+*Defined in: file:spec/_generated/glossary.md (REQ)*
 
 ## T
 
 **Three Letter Acryonym (TLA)**
 : This is an example of the syntax for defining a term which
-*Defined in: REQ-CAL-o00005 (REQ-CAL)*
+*Defined in: file:spec/_generated/glossary.md (REQ)*
 
 ## U
 
 **User Account**
 : The complete set of identity, credential, and authorization data that
-*Defined in: REQ-CAL-p00030 (REQ-CAL)*
-
-# References
-
-**ISO/IEC 24760-1**
-: IT Security and Privacy — A framework for identity management
-: Version: ISO/IEC 24760-1:2019
-: Effective Date: 2026-03-22
-: URL: <https://www.iso.org>
-*Defined in: file:spec/NFR/glossary-example.md (REQ-CAL)*
-
+*Defined in: file:spec/_generated/glossary.md (REQ)*

@@ -275,13 +275,13 @@ N. The system SHALL start the session timer using the sessionTimeoutMinutes valu
 
 **Content Security Policy**:
 ```
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'wasm-unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com;
+  img-src 'self' data: https:;
+  frame-ancestors 'none';
 ```
 
 **Cookie Security**:

@@ -452,91 +452,91 @@ Third-party timestamps strengthen compliance by providing evidence that:
 The following diagram illustrates the complete chain of evidence from data collection to audit verification, showing how each evidence component establishes the **when**, **how**, and **who** of data provenance.
 
 ```
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DATA PROVENANCE CHAIN                                │
+│                                                                             │
+│  ALCOA+ Principles:  Attributable (WHO) │ Contemporaneous (WHEN) │         │
+│                      Original (HOW)                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
+                              UPSTREAM TRACE
+                          (Auditor → Data Source)
+                                    │
+┌───────────────────────────────────▼───────────────────────────────────────┐
+│                            AUDITOR                                         │
+│  Receives: Evidence Record + Sponsor-provided email                        │
+│  Verifies: Hash(email) matches stored value                                │
+│  Action:   Contacts patient directly to confirm participation              │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     EVENT DATA STORE (EDS)                                 │
+│                                                                            │
+│  Evidence Record Contains:                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  • Clinical data hash ─────────────────── ORIGINAL (data integrity) │  │
+│  │  • Blockchain timestamp proof ─────────── CONTEMPORANEOUS (when)    │  │
+│  │  • Device fingerprint (hashed) ────────── HOW (collection method)   │  │
+│  │  • Hashed patient email ───────────────── ATTRIBUTABLE (who)        │  │
+│  │  • Geolocation (if enabled) ───────────── Additional context        │  │
+│  │  • Authentication status ──────────────── WHO (privileged access)   │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         REVERSE PROXY                                      │
+│  Records: Source IP, TLS session, request timestamp                        │
+│  Evidence: Server-side receipt confirmation                                │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                          PATIENT DEVICE                                    │
+│                                                                            │
+│  Authentication Layer:                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  Device Lock Screen ───────── Primary auth (OS-level security)      │  │
+│  │         OR                                                          │  │
+│  │  In-App PIN ───────────────── Fallback (when lock screen disabled)  │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  Device Fingerprint Sources:                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  • Hardware identifiers (hashed) ──────── Unique device binding     │  │
+│  │  • Platform/OS version ────────────────── Collection context        │  │
+│  │  • App installation ID ────────────────── Session continuity        │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                            PATIENT                                         │
+│                                                                            │
+│  Identity Verification:                                                    │
+│  • Enrolled with *Email Address* (hashed in system)                          │
+│  • Possesses device with privileged access                                 │
+│  • Can be contacted by auditor via Sponsor-provided email                  │
+│  • Can confirm participation and data authenticity                         │
+└───────────────────────────────────────────────────────────────────────────┘
 
 
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    VERIFICATION SUMMARY                                     │
+├─────────────────┬───────────────────────────────────────────────────────────┤
+│ WHEN            │ Blockchain timestamp (Bitcoin block time ±2 hours)        │
+│ (Contemporaneous)│ + Server timestamp (sub-second precision)                │
+│                 │ + Client timestamp (device clock at entry)                │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ HOW             │ Device fingerprint proves specific device used            │
+│ (Original)      │ + Data hash proves content unchanged                      │
+│                 │ + Geolocation (optional) confirms physical context        │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ WHO             │ Authentication proves privileged device access            │
+│ (Attributable)  │ + Hashed email links to contactable individual            │
+│                 │ + Auditor can verify identity via direct contact          │
+└─────────────────┴───────────────────────────────────────────────────────────┘
 ```
 
 ---
