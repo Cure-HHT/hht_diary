@@ -897,40 +897,40 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 ### Component Architecture
 
 ```
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
-<!-- fenced -->
+┌─────────────────────────────────────────────────────┐
+│          Flutter Application Layer                  │
+│  (Business Logic, UI, ViewModels)                  │
+└─────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│      Flutter Event Sourcing Module                  │
+│                                                     │
+│  ┌────────────────┐  ┌───────────────────────┐    │
+│  │ Event Store    │  │ Materialized View     │    │
+│  │ Repository     │  │ Query Service         │    │
+│  └────────────────┘  └───────────────────────┘    │
+│                                                     │
+│  ┌────────────────┐  ┌───────────────────────┐    │
+│  │ Offline Queue  │  │ Conflict Resolution   │    │
+│  │ Manager        │  │ Engine                │    │
+│  └────────────────┘  └───────────────────────┘    │
+│                                                     │
+│  ┌────────────────┐  ┌───────────────────────┐    │
+│  │ Schema         │  │ Real-time             │    │
+│  │ Migration      │  │ Subscription          │    │
+│  └────────────────┘  └───────────────────────┘    │
+└─────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│         PostgreSQL Database                         │
+│                                                     │
+│  ┌────────────────┐  ┌───────────────────────┐    │
+│  │ events         │  │ materialized_views    │    │
+│  │ (append-only)  │  │ (current state)       │    │
+│  └────────────────┘  └───────────────────────┘    │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
