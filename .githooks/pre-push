@@ -190,6 +190,25 @@ else
     VALIDATION_FAILED=true
 fi
 
+# Surface a notice when defined-terms checks have been relaxed to info-level
+# in .elspais.toml so the validator pass doesn't silently mask real coverage
+# loss. Triggers on any of the four signal severities being "info".
+if [ -f "$REPO_ROOT/.elspais.toml" ]; then
+    TERMS_INFO_COUNT=$(awk '
+        /^\[terms\.severity\]/ { in_section=1; next }
+        /^\[/                  { in_section=0 }
+        in_section && /^[ \t]*(undefined|unmarked|unused|canonical_form)[ \t]*=[ \t]*"info"/ { count++ }
+        END                    { print count+0 }
+    ' "$REPO_ROOT/.elspais.toml")
+
+    if [ "${TERMS_INFO_COUNT:-0}" -gt 0 ]; then
+        echo ""
+        printf '%b\n' "${YELLOW}--- info ---${NC} ${TERMS_INFO_COUNT} defined-terms check(s) are at info-level"
+        printf '%b\n' "${YELLOW}--- info ---${NC} They are NOT being enforced. See [terms.severity] in .elspais.toml"
+        printf '%b\n' "${YELLOW}--- info ---${NC} Tracking: github.com/Anspar-Org/elspais (term-context filter)"
+    fi
+fi
+
 echo ""
 
 # =====================================================
