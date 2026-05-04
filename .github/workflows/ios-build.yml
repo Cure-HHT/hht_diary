@@ -29,7 +29,6 @@ on:
         required: true
         type: choice
         options:
-          - none
           - internal
           - external
           - release
