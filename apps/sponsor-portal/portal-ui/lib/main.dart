@@ -97,33 +97,59 @@ void main() async {
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connect to Firebase Emulator only for local flavor (if emulator is running)
+  // Connect to Firebase Auth Emulator for local flavor.
+  //
+  // Must run before any other Auth operation (including setPersistence).
+  // Failures here are fatal in local flavor — falling through to real
+  // Firebase produces a misleading "api-key-not-valid" error from the
+  // production endpoint instead of a clear "emulator unreachable" one.
+  // CUR-1264 follow-up: the previous swallow-and-debugPrint left users
+  // staring at activation_page.dart's misleading translation of api-key-
+  // not-valid as "Firebase Auth emulator is running (port 9099)" with no
+  // actionable signal.
   if (F.useEmulator) {
     const emulatorHost = String.fromEnvironment(
       'FIREBASE_AUTH_EMULATOR_HOST',
       defaultValue: '',
     );
-    if (emulatorHost.isNotEmpty) {
-      final parts = emulatorHost.split(':');
-      final host = parts[0];
-      final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
-      try {
-        await FirebaseAuth.instance.useAuthEmulator(host, port);
-        debugPrint('Using Firebase Auth Emulator at $host:$port');
-      } catch (e) {
-        debugPrint('Failed to connect to Firebase Auth Emulator: $e');
-      }
-    } else {
-      debugPrint(
-        'WARNING: Local flavor but no FIREBASE_AUTH_EMULATOR_HOST set',
+    if (emulatorHost.isEmpty) {
+      runApp(
+        const ConfigErrorApp(
+          error:
+              'Local-flavor build is missing FIREBASE_AUTH_EMULATOR_HOST. '
+              'Rebuild the portal-final image with '
+              '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 '
+              '(see deployment/docker/portal-final.Dockerfile when '
+              'FLAVOR=local).',
+        ),
       );
-      debugPrint('Using real Firebase Auth with local flavor config');
+      return;
+    }
+    final parts = emulatorHost.split(':');
+    final host = parts[0];
+    final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
+    try {
+      await FirebaseAuth.instance.useAuthEmulator(host, port);
+      debugPrint('[AUTH] Connected to Firebase Auth Emulator at $host:$port');
+    } catch (e, st) {
+      debugPrint('[AUTH] FATAL: useAuthEmulator($host, $port) failed: $e\n$st');
+      runApp(
+        ConfigErrorApp(
+          error:
+              'Could not connect Firebase Auth to the local emulator at '
+              '$host:$port.\n\nUnderlying error: $e\n\nVerify the '
+              'firebase-emulator container is running and reachable, '
+              'then refresh this page.',
+        ),
+      );
+      return;
     }
   }
 
-  // CUR-1118: Ensure Firebase Auth persists sessions in IndexedDB so they
-  // survive page reloads. Without this, the Auth Emulator (and some browser
-  // contexts) may default to in-memory-only persistence.
+  // CUR-1118: Persist Firebase Auth sessions in IndexedDB so they survive
+  // page reloads. Must run AFTER useAuthEmulator above — the Firebase JS
+  // SDK requires the emulator URL to be set before any other auth call,
+  // and setPersistence counts as one.
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
   // CUR-1118: Distinguish page refresh from a fresh tab load / post-close.
