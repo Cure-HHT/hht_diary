@@ -2,7 +2,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00006: Mobile App Build and Release Process
 
-# Build the Clinical Diary Android app with DEV flavor
+# Build the Clinical Diary Android app with DEV flavor (unsigned/debug-signed)
 # Usage: ./tool/build_android_dev.sh
 
 set -e

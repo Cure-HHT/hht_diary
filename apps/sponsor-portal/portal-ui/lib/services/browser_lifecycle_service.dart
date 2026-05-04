@@ -22,29 +22,23 @@ class BrowserLifecycleService {
 
   /// Register browser-level event listeners.
   void register(AuthService authService) {
-    // REQ-d00080-G, REQ-d00080-H/I/J, REQ-p01044-D: clear storage and sign
-    // out when the tab or window is closed.
+    // REQ-d00080-G, REQ-d00080-H/I/J, REQ-p01044-D: detect tab/window close.
     //
-    // CUR-1118: beforeunload fires on BOTH page refresh (F5/Cmd+R) and tab
-    // close. We must not destroy the Firebase Auth session on a refresh or
-    // the user will be redirected to login after every reload.
+    // CUR-1157: We no longer write a sessionStorage refresh flag here.
+    // The CUR-1118 implementation used a beforeunload→sessionStorage
+    // handshake (set '_portalRefreshing' before unload, read it after
+    // load) to tell refresh from tab close. That handshake is unreliable
+    // — beforeunload doesn't fire in every browser/context, and
+    // sessionStorage writes during unload can be discarded — which left
+    // refreshed users falsely classified as "fresh tabs" and signed out.
     //
-    // Strategy: set a sessionStorage flag before unloading.
-    //   - On page refresh: the flag survives (sessionStorage persists
-    //     across same-tab reloads) → startup detects a refresh, keeps session.
-    //   - On tab close: the browser destroys sessionStorage → startup sees no
-    //     flag, treats it as a fresh load and signs out any stale session.
-    _beforeUnloadListener = ((web.Event _) {
-      // Mark the upcoming unload as a potential refresh.
-      // main.dart checks and removes this flag on the next page load.
-      web.window.sessionStorage.setItem('_portalRefreshing', 'true');
-
-      // NOTE: No storage is cleared here. Firebase Auth persists its session
-      // in IndexedDB, and clearing any storage would destroy the session
-      // before the page has a chance to reload.
-      // Session teardown on genuine tab close is handled by AuthService._init()
-      // which detects the missing flag and signs out stale sessions.
-    }).toJS;
+    // main.dart now uses PerformanceNavigationTiming.type for that check,
+    // which doesn't depend on any pre-unload code path having run. The
+    // beforeunload listener is kept (no-op) so this class still owns the
+    // unload event surface for any future per-unload work, but it must
+    // not sign out or clear storage — Firebase Auth persists in
+    // IndexedDB and we want refresh to keep the user logged in.
+    _beforeUnloadListener = ((web.Event _) {}).toJS;
 
     // REQ-d00080-K: register visibilitychange handler.
     // REQ-d00080-L: switching tabs MUST NOT trigger logout.

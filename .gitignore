@@ -110,6 +110,10 @@ Pods/
 **/ios/.symlinks/
 **/ios/Podfile.lock
 
+# Fastlane auto-generated docs (regenerated on every fastlane run)
+**/ios/fastlane/README.md
+**/ios/fastlane/report.xml
+
 # macOS Flutter ephemeral (generated, contains machine-specific paths)
 **/macos/Flutter/ephemeral/
 

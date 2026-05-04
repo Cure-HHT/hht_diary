@@ -118,7 +118,7 @@ identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
 # "diary-qa.callisto.anspar.org", 
 
 portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
-diary_server_url  = "https://diary-server-421945483876.europe-west9.run.app"
+diary_server_url  = "https://diary-service-421945483876.europe-west9.run.app"
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
