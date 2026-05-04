@@ -108,25 +108,25 @@ class FlavorConfig {
   /// Development flavor configuration
   static const dev = FlavorValues(
     name: 'dev',
-    apiBase: 'https://diary-server-1012274191696.europe-west9.run.app',
+    apiBase: 'https://diary-service-1012274191696.europe-west9.run.app',
     environment: 'dev',
     showDevTools: true,
     showBanner: true,
     sponsorBackends: {
       // Callisto dev Cloud Run
-      'CA': 'https://diary-server-1012274191696.europe-west9.run.app',
+      'CA': 'https://diary-service-1012274191696.europe-west9.run.app',
     },
   );
 
   /// QA flavor configuration
   static const qa = FlavorValues(
     name: 'qa',
-    apiBase: 'https://diary-server-421945483876.europe-west9.run.app',
+    apiBase: 'https://diary-service-421945483876.europe-west9.run.app',
     environment: 'qa',
     showDevTools: true,
     showBanner: true,
     sponsorBackends: {
-      'CA': 'https://diary-server-421945483876.europe-west9.run.app',
+      'CA': 'https://diary-service-421945483876.europe-west9.run.app',
     },
   );
 

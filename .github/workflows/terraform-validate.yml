@@ -107,7 +107,10 @@ jobs:
 
       - name: 'Terraform Init (sponsor-envs)'
         working-directory: infrastructure/terraform/sponsor-envs
-        run: terraform init -input=false
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=cure-hht-terraform-state" \
+            -backend-config="prefix=sponsor-envs/callisto4-dev"
 
       - name: 'Terraform Plan (callisto4-dev)'
         id: plan
@@ -195,7 +198,10 @@ jobs:
 
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
-        run: terraform init -input=false
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=cure-hht-terraform-state" \
+            -backend-config="prefix=sponsor-envs/callisto4-dev"
 
       - name: 'Terraform Apply (callisto4-dev)'
         working-directory: infrastructure/terraform/sponsor-envs
@@ -253,7 +259,10 @@ jobs:
 
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
-        run: terraform init -input=false
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=cure-hht-terraform-state" \
+            -backend-config="prefix=sponsor-envs/${{ inputs.sponsor }}-${{ inputs.environment }}"
 
       - name: 'Resolve DB password for environment'
         id: db-password
