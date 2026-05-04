@@ -1,7 +1,7 @@
 ## REQ-p01025: Third-Party Timestamp Attestation Capability
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01085
+**Refines**: REQ-p01085
 
 ## Assertions
 
@@ -38,7 +38,7 @@ Self-asserted timestamps can be questioned during regulatory audits. Independent
 ## REQ-p01026: Bitcoin-Based Timestamp Implementation
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-A, p01025-B, p01025-F
+**Refines**: REQ-p01025-A, REQ-p01025-B, REQ-p01025-F
 
 ## Assertions
 
@@ -71,7 +71,7 @@ This requirement establishes Bitcoin blockchain as the cryptographic timestamp m
 ## REQ-p01027: Timestamp Verification Interface
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-H, p01025-K
+**Refines**: REQ-p01025-H, REQ-p01025-K
 
 ## Assertions
 
@@ -106,7 +106,7 @@ Timestamp proofs provide cryptographic evidence of when data existed, but this e
 ## REQ-p01028: Timestamp Proof Archival
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00012-C, p00012-E, p00012-F, p01025-G
+**Refines**: REQ-p00012-C, REQ-p00012-E, REQ-p00012-F, REQ-p01025-G
 
 ## Assertions
 
@@ -139,7 +139,7 @@ Clinical trial data must be retained for 15-25 years per regulatory requirements
 ## REQ-p01029: Device Fingerprinting
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-B
+**Refines**: REQ-p01025-B
 
 ## Assertions
 
@@ -170,7 +170,7 @@ Device fingerprinting establishes how data was collected by binding each submiss
 ## REQ-p01030: Patient Authentication for Data Attribution
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-B
+**Refines**: REQ-p01025-B
 
 ## Assertions
 
@@ -209,7 +209,7 @@ This requirement establishes the authentication framework for attributing clinic
 ## REQ-p01031: Optional Geolocation Tagging
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-B
+**Refines**: REQ-p01025-B
 
 ## Assertions
 
@@ -250,11 +250,11 @@ Geolocation provides additional evidence of data collection context, strengtheni
 ## REQ-p01032: Hashed Email Identity Verification
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01025-B
+**Refines**: REQ-p01025-B
 
 ## Assertions
 
-A. The system SHALL record a hashed patient email address as an identity fingerprint with enrollment data.
+A. The system SHALL record a hashed patient *Email Address* as an identity fingerprint with enrollment data.
 
 B. The system SHALL include the hashed email in the evidence record for each data submission.
 
@@ -266,15 +266,15 @@ E. The system SHALL enable Sponsors to retrieve the original email for auditor d
 
 F. The system SHALL allow auditors to independently hash a provided email and confirm it matches the stored hash value.
 
-G. The system SHALL support auditor contact with the patient via the verified email address.
+G. The system SHALL support auditor contact with the patient via the verified *Email Address*.
 
 H. The hash algorithm SHALL be documented for long-term reproducibility.
 
 ## Rationale
 
-This requirement establishes a privacy-preserving identity verification mechanism for clinical trial data by using cryptographically hashed email addresses. The hash serves as a tamper-evident fingerprint that links data submissions to a specific patient without exposing personally identifiable information (PII) in the evidence record. This approach enables auditors to independently verify data provenance by contacting patients directly through their verified email address, supporting FDA 21 CFR Part 11 audit trail requirements while maintaining HIPAA compliance. The sponsor maintains the original email separately for auditor disclosure when needed, allowing independent hash verification while keeping PII out of the main evidence chain.
+This requirement establishes a privacy-preserving identity verification mechanism for clinical trial data by using cryptographically hashed email addresses. The hash serves as a tamper-evident fingerprint that links data submissions to a specific patient without exposing personally identifiable information (PII) in the evidence record. This approach enables auditors to independently verify data provenance by contacting patients directly through their verified *Email Address*, supporting FDA 21 CFR Part 11 audit trail requirements while maintaining HIPAA compliance. The sponsor maintains the original email separately for auditor disclosure when needed, allowing independent hash verification while keeping PII out of the main evidence chain.
 
-*End* *Hashed Email Identity Verification* | **Hash**: 0ba2d208
+*End* *Hashed Email Identity Verification* | **Hash**: 92c5e2b7
 ---
 # Evidence Records and Data Provenance
 
@@ -452,91 +452,91 @@ Third-party timestamps strengthen compliance by providing evidence that:
 The following diagram illustrates the complete chain of evidence from data collection to audit verification, showing how each evidence component establishes the **when**, **how**, and **who** of data provenance.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        DATA PROVENANCE CHAIN                                │
-│                                                                             │
-│  ALCOA+ Principles:  Attributable (WHO) │ Contemporaneous (WHEN) │         │
-│                      Original (HOW)                                         │
-└─────────────────────────────────────────────────────────────────────────────┘
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
-                              UPSTREAM TRACE
-                          (Auditor → Data Source)
-                                    │
-┌───────────────────────────────────▼───────────────────────────────────────┐
-│                            AUDITOR                                         │
-│  Receives: Evidence Record + Sponsor-provided email                        │
-│  Verifies: Hash(email) matches stored value                                │
-│  Action:   Contacts patient directly to confirm participation              │
-└───────────────────────────────────┬───────────────────────────────────────┘
-                                    │
-                                    ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                     EVENT DATA STORE (EDS)                                 │
-│                                                                            │
-│  Evidence Record Contains:                                                 │
-│  ┌─────────────────────────────────────────────────────────────────────┐  │
-│  │  • Clinical data hash ─────────────────── ORIGINAL (data integrity) │  │
-│  │  • Blockchain timestamp proof ─────────── CONTEMPORANEOUS (when)    │  │
-│  │  • Device fingerprint (hashed) ────────── HOW (collection method)   │  │
-│  │  • Hashed patient email ───────────────── ATTRIBUTABLE (who)        │  │
-│  │  • Geolocation (if enabled) ───────────── Additional context        │  │
-│  │  • Authentication status ──────────────── WHO (privileged access)   │  │
-│  └─────────────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────┬───────────────────────────────────────┘
-                                    │
-                                    ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                         REVERSE PROXY                                      │
-│  Records: Source IP, TLS session, request timestamp                        │
-│  Evidence: Server-side receipt confirmation                                │
-└───────────────────────────────────┬───────────────────────────────────────┘
-                                    │
-                                    ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                          PATIENT DEVICE                                    │
-│                                                                            │
-│  Authentication Layer:                                                     │
-│  ┌─────────────────────────────────────────────────────────────────────┐  │
-│  │  Device Lock Screen ───────── Primary auth (OS-level security)      │  │
-│  │         OR                                                          │  │
-│  │  In-App PIN ───────────────── Fallback (when lock screen disabled)  │  │
-│  └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                            │
-│  Device Fingerprint Sources:                                               │
-│  ┌─────────────────────────────────────────────────────────────────────┐  │
-│  │  • Hardware identifiers (hashed) ──────── Unique device binding     │  │
-│  │  • Platform/OS version ────────────────── Collection context        │  │
-│  │  • App installation ID ────────────────── Session continuity        │  │
-│  └─────────────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────┬───────────────────────────────────────┘
-                                    │
-                                    ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                            PATIENT                                         │
-│                                                                            │
-│  Identity Verification:                                                    │
-│  • Enrolled with email address (hashed in system)                          │
-│  • Possesses device with privileged access                                 │
-│  • Can be contacted by auditor via Sponsor-provided email                  │
-│  • Can confirm participation and data authenticity                         │
-└───────────────────────────────────────────────────────────────────────────┘
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    VERIFICATION SUMMARY                                     │
-├─────────────────┬───────────────────────────────────────────────────────────┤
-│ WHEN            │ Blockchain timestamp (Bitcoin block time ±2 hours)        │
-│ (Contemporaneous)│ + Server timestamp (sub-second precision)                │
-│                 │ + Client timestamp (device clock at entry)                │
-├─────────────────┼───────────────────────────────────────────────────────────┤
-│ HOW             │ Device fingerprint proves specific device used            │
-│ (Original)      │ + Data hash proves content unchanged                      │
-│                 │ + Geolocation (optional) confirms physical context        │
-├─────────────────┼───────────────────────────────────────────────────────────┤
-│ WHO             │ Authentication proves privileged device access            │
-│ (Attributable)  │ + Hashed email links to contactable individual            │
-│                 │ + Auditor can verify identity via direct contact          │
-└─────────────────┴───────────────────────────────────────────────────────────┘
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
+<!-- fenced -->
 ```
 
 ---
