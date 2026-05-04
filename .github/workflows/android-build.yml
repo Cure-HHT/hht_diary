@@ -223,78 +223,24 @@ jobs:
             echo "| **Triggered by** | $ACTOR |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Build Slack success payload
-        id: slack_success
+      - name: Notify Slack on success
         if: success()
-        env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          TRACK: ${{ steps.inputs.outputs.track }}
-          STATUS: ${{ steps.inputs.outputs.status }}
-          VERSION: ${{ steps.version.outputs.version }}
-          PACKAGE: ${{ steps.package.outputs.name }}
-          ACTOR: ${{ github.actor }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          PAYLOAD_FILE="$RUNNER_TEMP/slack_success.json"
-          jq -n \
-            --arg flavor "$FLAVOR" \
-            --arg track "$TRACK" \
-            --arg status "$STATUS" \
-            --arg version "$VERSION" \
-            --arg package "$PACKAGE" \
-            --arg actor "$ACTOR" \
-            --arg run_url "$RUN_URL" \
-            '{
-              text: (
-                ":robot_face: *Android Build & Play Store Upload*\n\n" +
-                "*Flavor:* " + $flavor + "\n" +
-                "*Version:* " + $version + "\n" +
-                "*Package:* " + $package + "\n" +
-                "*Play Store:* " + $track + " track (" + $status + ")\n" +
-                "*Triggered by:* " + $actor + "\n\n" +
-                "<" + $run_url + "|View workflow run>"
-              )
-            }' > "$PAYLOAD_FILE"
-          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Notify Slack
-        if: success()
-        uses: slackapi/slack-github-action@v2.1.1
+        uses: slackapi/slack-github-action@v3.0.3
         with:
-          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload-file-path: ${{ steps.slack_success.outputs.payload_file }}
-
-      - name: Build Slack failure payload
-        id: slack_failure
-        if: failure()
-        env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          VERSION: ${{ steps.version.outputs.version }}
-          ACTOR: ${{ github.actor }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          PAYLOAD_FILE="$RUNNER_TEMP/slack_failure.json"
-          jq -n \
-            --arg flavor "${FLAVOR:-unknown}" \
-            --arg version "${VERSION:-unknown}" \
-            --arg actor "$ACTOR" \
-            --arg run_url "$RUN_URL" \
-            '{
-              text: (
-                ":x: *Android Build Failed*\n\n" +
-                "*Flavor:* " + $flavor + "\n" +
-                "*Version:* " + $version + "\n" +
-                "*Triggered by:* " + $actor + "\n\n" +
-                "<" + $run_url + "|View workflow run>"
-              )
-            }' > "$PAYLOAD_FILE"
-          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ steps.inputs.outputs.track }} track (${{ steps.inputs.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
       - name: Notify Slack on failure
         if: failure()
-        uses: slackapi/slack-github-action@v2.1.1
+        uses: slackapi/slack-github-action@v3.0.3
         with:
-          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload-file-path: ${{ steps.slack_failure.outputs.payload_file }}
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            text: ":x: *Android Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
