@@ -2,7 +2,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00006: Mobile App Build and Release Process
 
-# Build the Clinical Diary Android app with QA flavor
+# Build the Clinical Diary Android app with QA flavor (unsigned/debug-signed)
 # Usage: ./tool/build_android_qa.sh
 
 set -e

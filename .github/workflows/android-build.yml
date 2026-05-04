@@ -1,0 +1,300 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
+#   REQ-o00043: Automated Deployment Pipeline
+
+name: Android Build & Store Artifact
+
+on:
+  # Auto-triggers on merge to main when app code changes.
+  # Both Android and iOS workflows trigger in parallel — this is intentional
+  # for continuous deployment (Android → Play Store internal/draft, iOS → TestFlight internal).
+  push:
+    branches: [main]
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+      - '.github/workflows/android-build.yml'
+      - '.github/versions.env'
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Build flavor"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+      status:
+        description: "Release status for Google Play"
+        required: true
+        type: choice
+        default: "draft"
+        options:
+          - draft
+          - completed
+          - inProgress
+          - halted
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: |
+          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Resolve build inputs
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FLAVOR="${{ inputs.flavor }}"
+            TRACK="${{ inputs.track }}"
+            STATUS="${{ inputs.status }}"
+          else
+            # push to main → continuous deployment defaults
+            FLAVOR="dev"
+            TRACK="internal"
+            STATUS="draft"
+          fi
+          if [ -z "$FLAVOR" ] || [ -z "$TRACK" ] || [ -z "$STATUS" ]; then
+            echo "::error::flavor/track/status is empty (flavor=$FLAVOR track=$TRACK status=$STATUS)"
+            exit 1
+          fi
+          echo "flavor=$FLAVOR" >> "$GITHUB_OUTPUT"
+          echo "track=$TRACK" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Pre-install CMake
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          if [ ! -d "$SDK/cmake/${ANDROID_CMAKE_VERSION}" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;${ANDROID_CMAKE_VERSION}" > /dev/null 2>&1
+          else
+            echo "CMake ${ANDROID_CMAKE_VERSION} already installed, skipping."
+          fi
+
+      - name: Install Flutter dependencies
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+
+      - name: Run Flutter analyze
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter test
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION"
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Build signed Android ${{ steps.inputs.outputs.flavor }}
+        working-directory: apps/daily-diary/clinical_diary
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          doppler run \
+            --project "$DOPPLER_PROJECT" \
+            --config "$FLAVOR" \
+            -- bash "./tool/build_android_${FLAVOR}_signed.sh"
+
+      - name: Determine artifact path
+        id: artifact
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHORT_SHA: ${{ steps.sha.outputs.short }}
+        run: |
+          if [ "$FLAVOR" = "prod" ]; then
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/prodRelease/app-prod-release.aab" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-prod-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.path }}
+          retention-days: 90
+
+      - name: Determine package name
+        id: package
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          if [ "$FLAVOR" = "prod" ]; then
+            echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+          create_credentials_file: true
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          packageName: ${{ steps.package.outputs.name }}
+          releaseFiles: ${{ steps.artifact.outputs.path }}
+          track: ${{ steps.inputs.outputs.track }}
+          status: ${{ steps.inputs.outputs.status }}
+
+      - name: Build summary
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          TRACK: ${{ steps.inputs.outputs.track }}
+          STATUS: ${{ steps.inputs.outputs.status }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PACKAGE: ${{ steps.package.outputs.name }}
+          ARTIFACT: ${{ steps.artifact.outputs.name }}
+          SHORT_SHA: ${{ steps.sha.outputs.short }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          {
+            echo "### Android Build & Play Store Upload Complete"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| **Flavor** | $FLAVOR |"
+            echo "| **Version** | $VERSION |"
+            echo "| **Package** | $PACKAGE |"
+            echo "| **Artifact** | $ARTIFACT |"
+            echo "| **Play Store** | $TRACK track ($STATUS) |"
+            echo "| **Commit** | $SHORT_SHA |"
+            echo "| **Triggered by** | $ACTOR |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build Slack success payload
+        id: slack_success
+        if: success()
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          TRACK: ${{ steps.inputs.outputs.track }}
+          STATUS: ${{ steps.inputs.outputs.status }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PACKAGE: ${{ steps.package.outputs.name }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD_FILE="$RUNNER_TEMP/slack_success.json"
+          jq -n \
+            --arg flavor "$FLAVOR" \
+            --arg track "$TRACK" \
+            --arg status "$STATUS" \
+            --arg version "$VERSION" \
+            --arg package "$PACKAGE" \
+            --arg actor "$ACTOR" \
+            --arg run_url "$RUN_URL" \
+            '{
+              text: (
+                ":robot_face: *Android Build & Play Store Upload*\n\n" +
+                "*Flavor:* " + $flavor + "\n" +
+                "*Version:* " + $version + "\n" +
+                "*Package:* " + $package + "\n" +
+                "*Play Store:* " + $track + " track (" + $status + ")\n" +
+                "*Triggered by:* " + $actor + "\n\n" +
+                "<" + $run_url + "|View workflow run>"
+              )
+            }' > "$PAYLOAD_FILE"
+          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Slack
+        if: success()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ steps.slack_success.outputs.payload_file }}
+
+      - name: Build Slack failure payload
+        id: slack_failure
+        if: failure()
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD_FILE="$RUNNER_TEMP/slack_failure.json"
+          jq -n \
+            --arg flavor "${FLAVOR:-unknown}" \
+            --arg version "${VERSION:-unknown}" \
+            --arg actor "$ACTOR" \
+            --arg run_url "$RUN_URL" \
+            '{
+              text: (
+                ":x: *Android Build Failed*\n\n" +
+                "*Flavor:* " + $flavor + "\n" +
+                "*Version:* " + $version + "\n" +
+                "*Triggered by:* " + $actor + "\n\n" +
+                "<" + $run_url + "|View workflow run>"
+              )
+            }' > "$PAYLOAD_FILE"
+          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ steps.slack_failure.outputs.payload_file }}

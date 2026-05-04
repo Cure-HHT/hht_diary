@@ -1,0 +1,258 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
+#   REQ-o00043: Automated Deployment Pipeline
+
+name: iOS Build & Store Artifact
+
+on:
+  # Auto-triggers on merge to main when app code changes.
+  # Both Android and iOS workflows trigger in parallel — this is intentional
+  # for continuous deployment (Android → Play Store internal/draft, iOS → TestFlight internal).
+  push:
+    branches: [main]
+    paths:
+      - 'apps/daily-diary/clinical_diary/**'
+      - '.github/workflows/ios-build.yml'
+      - '.github/versions.env'
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Build flavor"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      deployment:
+        description: "Deployment target"
+        required: true
+        type: choice
+        options:
+          - none
+          - internal
+          - external
+          - release
+      release_notes:
+        description: "Release notes / changelog (required for App Store release)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: |
+          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Resolve build inputs
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FLAVOR="${{ inputs.flavor }}"
+            DEPLOYMENT="${{ inputs.deployment }}"
+          else
+            # push to main → continuous deployment defaults
+            FLAVOR="dev"
+            DEPLOYMENT="internal"
+          fi
+          if [ -z "$FLAVOR" ] || [ -z "$DEPLOYMENT" ]; then
+            echo "::error::flavor or deployment is empty (flavor=$FLAVOR deployment=$DEPLOYMENT)"
+            exit 1
+          fi
+          echo "flavor=$FLAVOR" >> "$GITHUB_OUTPUT"
+          echo "deployment=$DEPLOYMENT" >> "$GITHUB_OUTPUT"
+
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: apps/daily-diary/clinical_diary/ios
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Install Flutter dependencies
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: apps/daily-diary/clinical_diary/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
+      - name: Install CocoaPods dependencies
+        working-directory: apps/daily-diary/clinical_diary/ios
+        run: bundle exec pod install
+
+      - name: Run Flutter analyze
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter test
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION"
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Build iOS ${{ steps.inputs.outputs.flavor }} with Fastlane
+        working-directory: apps/daily-diary/clinical_diary/ios
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          DEPLOYMENT_TARGET: ${{ steps.inputs.outputs.deployment }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          doppler run \
+            --project "$DOPPLER_PROJECT" \
+            --config "$FLAVOR" \
+            -- bundle exec fastlane "build_${FLAVOR}"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-diary-${{ steps.inputs.outputs.flavor }}-${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}.ipa
+          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ steps.inputs.outputs.flavor }}.ipa
+          retention-days: 90
+
+      - name: Build summary
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          DEPLOYMENT: ${{ steps.inputs.outputs.deployment }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHORT_SHA: ${{ steps.sha.outputs.short }}
+          ACTOR: ${{ github.actor }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          {
+            echo "### iOS Build Complete"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| **Flavor** | $FLAVOR |"
+            echo "| **Deployment** | $DEPLOYMENT |"
+            echo "| **Version** | $VERSION |"
+            echo "| **Artifact** | clinical-diary-$FLAVOR-$VERSION-$SHORT_SHA.ipa |"
+            echo "| **Commit** | $SHORT_SHA |"
+            echo "| **Triggered by** | $ACTOR |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DEPLOYMENT" = "release" ] && [ -n "$RELEASE_NOTES" ]; then
+            {
+              echo ""
+              echo "### Release Notes"
+              echo "$RELEASE_NOTES"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build Slack success payload
+        id: slack_success
+        if: success() && steps.inputs.outputs.deployment != 'none'
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          DEPLOYMENT: ${{ steps.inputs.outputs.deployment }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ACTOR: ${{ github.actor }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD_FILE="$RUNNER_TEMP/slack_success.json"
+          jq -n \
+            --arg flavor "$FLAVOR" \
+            --arg deployment "$DEPLOYMENT" \
+            --arg version "$VERSION" \
+            --arg actor "$ACTOR" \
+            --arg release_notes "$RELEASE_NOTES" \
+            --arg run_url "$RUN_URL" \
+            '{
+              text: (
+                ":iphone: *iOS Build Deployed*\n\n" +
+                "*Flavor:* " + $flavor + "\n" +
+                "*Deployment:* " + $deployment + "\n" +
+                "*Version:* " + $version + "\n" +
+                "*Triggered by:* " + $actor +
+                (if $release_notes == "" then "" else "\n*Release Notes:* " + $release_notes end) +
+                "\n<" + $run_url + "|View workflow run>"
+              )
+            }' > "$PAYLOAD_FILE"
+          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Slack
+        if: success() && steps.inputs.outputs.deployment != 'none'
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ steps.slack_success.outputs.payload_file }}
+
+      - name: Build Slack failure payload
+        id: slack_failure
+        if: failure()
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD_FILE="$RUNNER_TEMP/slack_failure.json"
+          jq -n \
+            --arg flavor "${FLAVOR:-unknown}" \
+            --arg version "${VERSION:-unknown}" \
+            --arg actor "$ACTOR" \
+            --arg run_url "$RUN_URL" \
+            '{
+              text: (
+                ":x: *iOS Build Failed*\n\n" +
+                "*Flavor:* " + $flavor + "\n" +
+                "*Version:* " + $version + "\n" +
+                "*Triggered by:* " + $actor + "\n\n" +
+                "<" + $run_url + "|View workflow run>"
+              )
+            }' > "$PAYLOAD_FILE"
+          echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ steps.slack_failure.outputs.payload_file }}
