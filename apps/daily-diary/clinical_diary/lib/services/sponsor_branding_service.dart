@@ -30,7 +30,7 @@ class SponsorBrandingConfig {
   /// Convention-based URL for the app logo.
   String? get appLogoUrl {
     if (assetBaseUrl == null) return null;
-    return '${AppConfig.apiBase}$assetBaseUrl/mobile/assets/images/app_logo.png';
+    return '${AppConfig.apiBase}$assetBaseUrl/portal/assets/images/app_logo.png';
   }
 
   bool get hasLogo => appLogoUrl != null;

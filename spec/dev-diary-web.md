@@ -35,7 +35,7 @@ The lack of a local database conflicts with REQ-p01001: Offline Event Queue with
 
 # REQ-d00077: Web Diary Frontend Framework
 
-**Level**: Dev | **Status**: Draft | **Implements**: p01042
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01042
 
 ## Rationale
 
@@ -83,7 +83,7 @@ Q. Shared components SHALL render consistently between web and mobile applicatio
 
 # REQ-d00080: Web Session Management Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p01044
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01044
 
 ## Rationale
 
@@ -131,7 +131,7 @@ TODO - move to dev-app.md
 
 # REQ-d00082: Password Hashing Implementation
 
-**Level**: Dev | **Status**: Draft | **Implements**: p01043, p01046
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01043, REQ-p01046
 
 ## Rationale
 
@@ -151,7 +151,7 @@ E. The system SHALL configure Argon2id with parallelism parameter of 4 lanes.
 
 F. The system SHALL configure Argon2id with hash length of 32 bytes.
 
-G. The system SHALL generate a unique cryptographic salt for each user account.
+G. The system SHALL generate a unique cryptographic salt for each *User Account*.
 
 H. The system SHALL store the salt value alongside the password hash in the database.
 
@@ -169,13 +169,13 @@ N. The system SHALL generate a new unique salt when a user changes their passwor
 
 O. The system SHALL re-hash the password with the new salt when a user changes their password.
 
-*End* *Password Hashing Implementation* | **Hash**: 1174dead
+*End* *Password Hashing Implementation* | **Hash**: 54b6a510
 
 ---
 
 # REQ-d00083: Browser Storage Clearing
 
-**Level**: Dev | **Status**: Draft | **Implements**: p01044
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01044
 
 ## Rationale
 
@@ -225,7 +225,7 @@ R. Patient data SHALL NOT be recoverable via browser developer tools after logou
 TODO - remove or move to dev-app.md
 # REQ-d00084: Sponsor Configuration Loading
 
-**Level**: Dev | **Status**: Draft | **Implements**: p01042, p01043
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01042, REQ-p01043
 
 ## Rationale
 

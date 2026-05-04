@@ -7,6 +7,8 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'dart:js_interop';
+
 import 'package:common_widgets/common_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -61,7 +63,7 @@ void main() async {
       if (kDebugMode) {
         // In debug mode, fall back to emulator with warning
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         // In release mode, show error app
         runApp(ConfigErrorApp(error: e.message));
@@ -72,7 +74,7 @@ void main() async {
 
       if (kDebugMode) {
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
         return;
@@ -97,48 +99,100 @@ void main() async {
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connect to Firebase Emulator only for local flavor (if emulator is running)
+  // Connect to Firebase Auth Emulator for local flavor.
+  //
+  // Must run before any other Auth operation (including setPersistence).
+  // Failures here are fatal in local flavor — falling through to real
+  // Firebase produces a misleading "api-key-not-valid" error from the
+  // production endpoint instead of a clear "emulator unreachable" one.
+  // CUR-1264 follow-up: the previous swallow-and-debugPrint left users
+  // staring at activation_page.dart's misleading translation of api-key-
+  // not-valid as "Firebase Auth emulator is running (port 9099)" with no
+  // actionable signal.
   if (F.useEmulator) {
     const emulatorHost = String.fromEnvironment(
       'FIREBASE_AUTH_EMULATOR_HOST',
       defaultValue: '',
     );
-    if (emulatorHost.isNotEmpty) {
-      final parts = emulatorHost.split(':');
-      final host = parts[0];
-      final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
-      try {
-        await FirebaseAuth.instance.useAuthEmulator(host, port);
-        debugPrint('Using Firebase Auth Emulator at $host:$port');
-      } catch (e) {
-        debugPrint('Failed to connect to Firebase Auth Emulator: $e');
-      }
-    } else {
-      debugPrint(
-        'WARNING: Local flavor but no FIREBASE_AUTH_EMULATOR_HOST set',
+    if (emulatorHost.isEmpty) {
+      runApp(
+        const ConfigErrorApp(
+          error:
+              'FIREBASE_AUTH_EMULATOR_HOST is not set. The Firebase Auth '
+              'emulator can only be reached when this value is baked into '
+              'the build (it is read via String.fromEnvironment, not '
+              'window-injected).\n\n'
+              'For local-stack: rebuild the portal-final image (in the '
+              'sponsor repo) with '
+              '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099.\n\n'
+              'For developer flutter run: re-run with the same '
+              '--dart-define flag.',
+        ),
       );
-      debugPrint('Using real Firebase Auth with local flavor config');
+      return;
+    }
+    final parts = emulatorHost.split(':');
+    final host = parts[0];
+    final port = int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099;
+    try {
+      await FirebaseAuth.instance.useAuthEmulator(host, port);
+      debugPrint('[AUTH] Connected to Firebase Auth Emulator at $host:$port');
+    } catch (e, st) {
+      debugPrint('[AUTH] FATAL: useAuthEmulator($host, $port) failed: $e\n$st');
+      runApp(
+        ConfigErrorApp(
+          error:
+              'Could not connect Firebase Auth to the local emulator at '
+              '$host:$port.\n\nUnderlying error: $e\n\nVerify the '
+              'firebase-emulator container is running and reachable, '
+              'then refresh this page.',
+        ),
+      );
+      return;
     }
   }
 
-  // CUR-1118: Ensure Firebase Auth persists sessions in IndexedDB so they
-  // survive page reloads. Without this, the Auth Emulator (and some browser
-  // contexts) may default to in-memory-only persistence.
-  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  // CUR-1157: Do NOT call setPersistence(Persistence.LOCAL) here.
+  // On Flutter web, Persistence.LOCAL maps to browserLocalPersistence
+  // (localStorage), not IndexedDB as the previous comment claimed. The
+  // SDK's default on web is already indexedDBLocalPersistence, which
+  // survives refresh. Calling setPersistence(LOCAL) forced a migration to
+  // localStorage on every load, and under Safari ITP / partitioned storage
+  // / certain embed contexts that backend silently falls back to
+  // in-memory — which is exactly the symptom CUR-1118 was meant to fix.
 
-  // CUR-1118: Distinguish page refresh from a fresh tab load / post-close.
+  // CUR-1157: Distinguish page refresh from a fresh tab load / post-close
+  // using the Performance Navigation Timing API rather than a beforeunload
+  // sessionStorage handshake.
   //
-  // BrowserLifecycleService sets '_portalRefreshing' in sessionStorage on
-  // every beforeunload event.  sessionStorage survives a same-tab reload but
-  // is destroyed by the browser when the tab is genuinely closed.
+  // The previous CUR-1118 approach set a '_portalRefreshing' flag in
+  // sessionStorage from a beforeunload listener and read it back on the
+  // next load. That handshake is fragile:
+  //   • beforeunload doesn't fire reliably on all browsers / contexts
+  //     (mobile Safari, some embed contexts, abrupt unloads),
+  //   • sessionStorage writes during unload can be discarded under memory
+  //     pressure or BFCache transitions,
+  //   • any code path that registered the listener late (initial load
+  //     before BrowserLifecycleService.register, hot reload during dev,
+  //     background-tab discard) misses the write entirely.
+  // When the flag is missing the AuthService treats the load as a fresh
+  // tab and signs out the Firebase session — the exact symptom users see.
   //
-  //  • Flag present  → user pressed F5 / Cmd+R.  Keep the Firebase session
-  //                    so the user does not have to log in again.
-  //  • Flag absent   → fresh tab or return after tab-close.  AuthService
-  //                    signs out any stale Firebase session in _init().
-  final isPageRefresh =
-      web.window.sessionStorage.getItem('_portalRefreshing') != null;
-  web.window.sessionStorage.removeItem('_portalRefreshing');
+  // PerformanceNavigationTiming.type is the browser's authoritative answer
+  // to "how did this document arrive?" and does not depend on prior code
+  // having executed:
+  //   • 'reload'        → F5 / Cmd+R / browser reload button
+  //   • 'navigate'      → fresh tab, address-bar nav, link click
+  //   • 'back_forward'  → BFCache restore (treat as refresh: session is
+  //                       still the user's, no need to log them out)
+  //   • 'prerender'     → speculative prerender (treat as fresh)
+  final navEntries = web.window.performance
+      .getEntriesByType('navigation')
+      .toDart;
+  final navType = navEntries.isNotEmpty
+      ? (navEntries.first as web.PerformanceNavigationTiming).type
+      : '';
+  final isPageRefresh = navType == 'reload' || navType == 'back_forward';
 
   // Create AuthService here so the browser lifecycle service can hold a
   // direct reference before the widget tree is built.
@@ -241,12 +295,7 @@ class ConfigErrorApp extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // Reload the page to retry
-                    // ignore: avoid_dynamic_calls
-                    // HTML reload equivalent for web
-                    debugPrint('Retry requested - user should refresh page');
-                  },
+                  onPressed: () => web.window.location.reload(),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Page'),
                 ),

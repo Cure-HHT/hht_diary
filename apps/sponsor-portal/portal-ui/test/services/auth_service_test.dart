@@ -1232,8 +1232,14 @@ void main() {
       },
     );
 
+    // CUR-1157: a transient HTTP 500 on the initial restore must NOT flip
+    // isInitialized=true with currentUser=null. Doing so causes dashboards
+    // to redirect a still-Firebase-authenticated user to /login on every
+    // page refresh whenever the API has a hiccup. While retries are in
+    // flight, dashboards must keep showing the spinner.
     test(
-      'isInitialized becomes true even when fetchPortalUser fails (HTTP 500)',
+      'CUR-1157: isInitialized stays false during retries when fetchPortalUser '
+      'fails transiently (HTTP 500)',
       () {
         fakeAsync((fake) {
           final failingHttpClient = MockClient((request) async {
@@ -1254,15 +1260,106 @@ void main() {
 
           expect(
             authService.isInitialized,
-            isTrue,
+            isFalse,
             reason:
-                'isInitialized must be set even when fetchPortalUser fails, '
-                'so dashboards stop showing a spinner and redirect to login '
-                'instead of spinning forever',
+                'CUR-1157: while the initial /portal/me retry is pending, '
+                'isInitialized must stay false so dashboards keep showing '
+                'the spinner instead of redirecting to /login',
           );
+          expect(authService.isAuthenticated, isFalse);
         });
       },
     );
+
+    test(
+      'CUR-1157: isInitialized eventually flips after retries are exhausted',
+      () {
+        fakeAsync((fake) {
+          final failingHttpClient = MockClient((request) async {
+            return http.Response('Internal Server Error', 500);
+          });
+          final mockFirebaseAuth = MockFirebaseAuth(
+            mockUser: mockUser,
+            signedIn: true,
+          );
+          final authService = AuthService(
+            firebaseAuth: mockFirebaseAuth,
+            httpClient: failingHttpClient,
+            enableInactivityTimer: false,
+            clearStorage: () async {},
+            isPageRefresh: true,
+          );
+          // Drain microtasks then advance past the full retry budget
+          // (3 retries * 2s spacing, with margin).
+          fake.flushMicrotasks();
+          fake.elapse(const Duration(seconds: 10));
+          fake.flushMicrotasks();
+
+          expect(
+            authService.isInitialized,
+            isTrue,
+            reason:
+                'After exhausting retries, isInitialized must flip true so '
+                'the user is no longer stuck on a perpetual spinner',
+          );
+          expect(authService.isAuthenticated, isFalse);
+        });
+      },
+    );
+
+    test('CUR-1157: a transient failure that recovers on retry populates '
+        'currentUser without bouncing through /login', () {
+      fakeAsync((fake) {
+        var callCount = 0;
+        final flakyHttpClient = MockClient((request) async {
+          callCount++;
+          if (callCount == 1) {
+            return http.Response('Internal Server Error', 500);
+          }
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: flakyHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {},
+          isPageRefresh: true,
+        );
+        fake.flushMicrotasks();
+        // Advance past the first retry delay.
+        fake.elapse(const Duration(seconds: 3));
+        fake.flushMicrotasks();
+
+        expect(
+          authService.isInitialized,
+          isTrue,
+          reason: 'Retry succeeded — initialization is complete',
+        );
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason:
+              'CUR-1157: after a transient failure recovers, the user '
+              'must remain authenticated rather than being kicked to login',
+        );
+      });
+    });
   });
 
   // CUR-1118: fresh-tab stale-session handling — when a user opens a new tab

@@ -4,7 +4,7 @@
 # Tip: Create .elspais.local.toml alongside this file for developer-local
 # overrides (e.g. associate paths). It is deep-merged and gitignored.
 
-version = 3
+version = 4
 
 # Project identity
 
@@ -229,9 +229,24 @@ allow_unresolved_cross_repo = true
 
 [terms]
 output_dir = "spec/_generated"
-duplicate_severity = "error"
-undefined_severity = "warning"
-unmarked_severity = "warning"
+
+[terms.severity]
+# Defined-terms checks are intentionally relaxed to info-level until the
+# elspais term scanner gains a "term-context" filter (excluding labels in
+# `**Field**: value` syntax and inline `code` spans). Today, every
+# **bold** text is treated as a candidate term reference, producing
+# thousands of false positives for structural document labels (Status,
+# Version, Last Updated, Audience, etc.) that aren't glossary terms.
+#
+# The pre-push hook surfaces a notice when these are at info-level so we
+# don't silently lose checking.
+duplicate = "error"      # real corruption; keep as error
+bad_definition = "error" # malformed definition_block; keep as error
+undefined = "info"
+unmarked = "info"
+unused = "info"
+canonical_form = "info"
+collection_empty = "info"
 
 # Output settings
 

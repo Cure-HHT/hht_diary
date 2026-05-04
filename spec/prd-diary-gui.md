@@ -141,11 +141,11 @@ A. The Account Settings screen SHALL be accessible from the User Profile screen.
 
 B. The Account Settings screen SHALL allow the patient to change their password.
 
-C. The Account Settings screen SHALL allow the patient to change their email address.
+C. The Account Settings screen SHALL allow the patient to change their *Email Address*.
 
 D. The Account Settings screen SHALL display a back arrow or close button that returns the patient to the previous screen.
 
-*End* *Account Settings Screen* | **Hash**: 63efe18c
+*End* *Account Settings Screen* | **Hash**: 1fa51c44
 
 ---
 

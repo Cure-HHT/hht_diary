@@ -231,6 +231,23 @@ class PortalUser {
 // main.dart injects the real browser implementation on web.
 Future<void> _noopStorage() async {}
 
+/// Outcome of [AuthService._fetchPortalUser].
+///
+/// CUR-1157: split the fetch outcomes so the initial-restore path can tell
+/// "user is not authorized for the portal" (403 — redirect to login) apart
+/// from "we couldn't reach the API" (5xx / network — retry, do not log the
+/// user out of a still-valid Firebase session).
+enum _PortalFetchResult {
+  /// HTTP 200 — `_currentUser` populated.
+  success,
+
+  /// HTTP 403 — Firebase user is not authorized for portal access.
+  unauthorized,
+
+  /// HTTP 5xx, network error, or any other non-deterministic failure.
+  transientFailure,
+}
+
 /// Authentication service using Firebase Auth and portal API
 class AuthService extends ChangeNotifier {
   /// Create AuthService with optional dependencies for testing.
@@ -485,10 +502,16 @@ class AuthService extends ChangeNotifier {
         // CUR-1118: Track the UID so cross-tab collision detection (CUR-982)
         // works after a page refresh, not only after an explicit signIn().
         _sessionUid ??= user.uid;
-        await _fetchPortalUser();
-        // Ensure _isInitialized is set even if _fetchPortalUser() fails
-        // (e.g. 403 or network error), so dashboard pages stop showing
-        // a spinner and redirect to login instead of spinning forever.
+        final result = await _fetchPortalUser();
+        // CUR-1157: do NOT unconditionally flip _isInitialized after a
+        // transient API failure on the initial restore — doing so leaves
+        // dashboards in (isAuthenticated=false, isInitialized=true) and
+        // they redirect to /login, which the user perceives as "refresh
+        // logged me out" even though the Firebase session is valid.
+        if (result == _PortalFetchResult.transientFailure && !_isInitialized) {
+          _scheduleInitialFetchRetry();
+          return;
+        }
         if (!_isInitialized) {
           _isInitialized = true;
           notifyListeners();
@@ -530,9 +553,11 @@ class AuthService extends ChangeNotifier {
       _sessionUid = _auth.currentUser?.uid;
 
       // Fetch portal user info
-      final success = await _fetchPortalUser();
-      if (!success) {
-        // User authenticated but not authorized for portal
+      final result = await _fetchPortalUser();
+      if (result != _PortalFetchResult.success) {
+        // User authenticated but not authorized (or API unreachable) — fail
+        // the login so the user can retry rather than landing on a half-
+        // initialized dashboard.
         await _auth.signOut();
         return false;
       }
@@ -635,8 +660,8 @@ class AuthService extends ChangeNotifier {
       _mfaResolver = null;
 
       // Fetch portal user info
-      final success = await _fetchPortalUser();
-      if (!success) {
+      final result = await _fetchPortalUser();
+      if (result != _PortalFetchResult.success) {
         await _auth.signOut();
         return false;
       }
@@ -673,6 +698,8 @@ class AuthService extends ChangeNotifier {
     _inactivityTimer = null;
     _warningTimer?.cancel();
     _warningTimer = null;
+    _initialFetchRetryTimer?.cancel();
+    _initialFetchRetryTimer = null;
     super.dispose();
   }
 
@@ -796,6 +823,12 @@ class AuthService extends ChangeNotifier {
     _inactivityTimer = null;
     _warningTimer?.cancel();
     _warningTimer = null;
+    // CUR-1157: drop any pending initial-fetch retry — the user is leaving
+    // anyway, and we don't want a delayed retry to flip _isInitialized while
+    // signOut is still tearing down.
+    _initialFetchRetryTimer?.cancel();
+    _initialFetchRetryTimer = null;
+    _initialFetchRetryCount = 0;
     _isWarning = false;
     if (fromInactivity) {
       _timedOut = true;
@@ -821,13 +854,18 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Fetch portal user info from server
-  /// [selectedRole] - Optionally specify which role to activate
-  Future<bool> _fetchPortalUser([String? selectedRole]) async {
+  /// Fetch portal user info from server.
+  ///
+  /// [selectedRole] - Optionally specify which role to activate.
+  ///
+  /// Returns a [_PortalFetchResult] so callers can distinguish a real
+  /// authorization rejection (403) from a transient connectivity / 5xx
+  /// failure (CUR-1157).
+  Future<_PortalFetchResult> _fetchPortalUser([String? selectedRole]) async {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        return false;
+        return _PortalFetchResult.transientFailure;
       }
 
       // Get ID token for API authentication
@@ -859,7 +897,7 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         // REQ-p01044-C: apply sponsor-configurable inactivity timeout
         await _fetchSponsorTimeout();
-        return true;
+        return _PortalFetchResult.success;
       } else if (response.statusCode == 403) {
         // User not authorized for portal access
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -868,16 +906,57 @@ class AuthService extends ChangeNotifier {
         if (data['status'] == 'pending') {
           _error = 'pending_activation';
         }
-        return false;
+        return _PortalFetchResult.unauthorized;
       } else {
         _error = 'Failed to fetch user information';
-        return false;
+        return _PortalFetchResult.transientFailure;
       }
     } catch (e) {
       debugPrint('Error fetching portal user: $e');
       _error = 'Failed to connect to server';
-      return false;
+      return _PortalFetchResult.transientFailure;
     }
+  }
+
+  /// CUR-1157: how many times to retry the initial `/portal/me` fetch
+  /// before giving up and letting dashboards redirect to /login.
+  static const int _initialFetchMaxRetries = 3;
+
+  /// CUR-1157: backoff between initial-fetch retries.
+  static const Duration _initialFetchRetryDelay = Duration(seconds: 2);
+
+  Timer? _initialFetchRetryTimer;
+  int _initialFetchRetryCount = 0;
+
+  /// CUR-1157: Schedule another `_fetchPortalUser` attempt after a transient
+  /// failure during the initial session restore. While retries are pending,
+  /// `_isInitialized` stays false so dashboards keep showing the spinner
+  /// instead of bouncing the user to /login despite a valid Firebase session.
+  void _scheduleInitialFetchRetry() {
+    _initialFetchRetryTimer?.cancel();
+    _initialFetchRetryTimer = Timer(_initialFetchRetryDelay, () async {
+      _initialFetchRetryTimer = null;
+      // If the user signed out, the auth state changed, or we already
+      // succeeded via another path, drop the retry.
+      if (_isInitialized || _auth.currentUser == null) return;
+
+      _initialFetchRetryCount++;
+      final result = await _fetchPortalUser();
+      if (result == _PortalFetchResult.success) return;
+
+      if (result == _PortalFetchResult.transientFailure &&
+          _initialFetchRetryCount < _initialFetchMaxRetries) {
+        _scheduleInitialFetchRetry();
+        return;
+      }
+
+      // Out of retries (or 403). Let the dashboard route based on the
+      // current state — currentUser is still null, so it will redirect to
+      // /login, which is the correct fallback after we've genuinely failed
+      // to load portal info.
+      _isInitialized = true;
+      notifyListeners();
+    });
   }
 
   /// Whether the sponsor timeout has already been fetched this session.
@@ -959,7 +1038,8 @@ class AuthService extends ChangeNotifier {
     if (!_currentUser!.roles.contains(newRole)) return false;
 
     // Update active role by re-fetching with role parameter
-    return await _fetchPortalUser(newRole.displayName);
+    final result = await _fetchPortalUser(newRole.displayName);
+    return result == _PortalFetchResult.success;
   }
 
   /// Check if user needs to select a role (has multiple roles and none selected)
