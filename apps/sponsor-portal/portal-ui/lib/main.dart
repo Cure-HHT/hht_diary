@@ -61,7 +61,7 @@ void main() async {
       if (kDebugMode) {
         // In debug mode, fall back to emulator with warning
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         // In release mode, show error app
         runApp(ConfigErrorApp(error: e.message));
@@ -72,7 +72,7 @@ void main() async {
 
       if (kDebugMode) {
         debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback(flavor);
+        FlavorConfig.initializeWithEmulatorFallback();
       } else {
         runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
         return;
@@ -117,10 +117,9 @@ void main() async {
         const ConfigErrorApp(
           error:
               'Local-flavor build is missing FIREBASE_AUTH_EMULATOR_HOST. '
-              'Rebuild the portal-final image with '
+              'Rebuild the portal-final image (in the sponsor repo) with '
               '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 '
-              '(see deployment/docker/portal-final.Dockerfile when '
-              'FLAVOR=local).',
+              'baked in for FLAVOR=local.',
         ),
       );
       return;
