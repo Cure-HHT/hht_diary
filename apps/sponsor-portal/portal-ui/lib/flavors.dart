@@ -183,8 +183,13 @@ class FlavorConfig {
   ///
   /// Use this when config fetch fails in debug mode. Shows a warning
   /// but allows development to continue with emulator.
-  static void initializeWithEmulatorFallback(Flavor flavor) {
-    F.appFlavor = flavor;
+  ///
+  /// Forces [F.appFlavor] to [Flavor.local] so that downstream emulator-
+  /// connection logic (gated on `F.useEmulator`) actually runs. Otherwise
+  /// the placeholder `demo-api-key` would be sent to real Firebase and
+  /// surface as a misleading `api-key-not-valid` error.
+  static void initializeWithEmulatorFallback() {
+    F.appFlavor = Flavor.local;
     _values = const FlavorValues(
       apiBaseUrl: 'http://localhost:8084',
       firebaseApiKey: 'demo-api-key',

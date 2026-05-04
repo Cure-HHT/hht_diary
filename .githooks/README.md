@@ -65,9 +65,7 @@ When skipped, a notice is printed confirming the checks were bypassed.
 
 1. **PR Detection**: Uses `gh` CLI to check if the current branch has an open PR
 2. **Requirement Validation**:
-   - Runs `elspais validate` (requirement format, links, hashes)
-   - Runs `elspais index validate` (INDEX.md accuracy and completeness)
-   - Falls back to `validate_requirements.py` and `validate_index.py` if elspais not available
+   - Runs `elspais checks` (requirement format, links, hashes, INDEX.md accuracy)
 3. **Markdown Linting**: Runs `markdownlint` on changed `.md` files
 4. **Secret Detection**: Runs `gitleaks` to detect accidentally committed secrets
 5. **Plugin Hooks**: Auto-discovers and runs pre-push hooks from installed plugins
@@ -93,10 +91,12 @@ git push --no-verify
 
 **Requirements**:
 
-- `elspais` CLI for requirement validation (primary): `pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3`
+- `elspais` CLI for requirement validation (primary). Minimum version is pinned in `.github/versions.env` (`ELSPAIS_VERSION`); the hook fails fast on older installs. Install/upgrade with one of:
+  - `pip install --upgrade elspais`
+  - `pipx upgrade elspais`
+  - `brew tap anspar-org/anspar && brew upgrade elspais`
 - `gh` CLI for PR detection: <https://cli.github.com/>
 - `jq` for JSON parsing (used with gh CLI)
-- Python 3.8+ for validation scripts (fallback if elspais not available)
 - `markdownlint` for markdown linting: `npm install -g markdownlint-cli`
 - `gitleaks` for secret detection (REQUIRED): <https://github.com/gitleaks/gitleaks#installing>
 
