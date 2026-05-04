@@ -43,27 +43,33 @@ platform :ios do
     app_id = APP_IDENTIFIERS[flavor]
     profile_name = PROFILE_NAMES[flavor]
 
+    # Required env vars — fail loudly if missing so misconfiguration surfaces early.
+    apple_team_id = ENV.fetch("APPLE_TEAM_ID")
+    cert_b64 = ENV.fetch("IOS_DISTRIBUTION_CERT_BASE64")
+    cert_password = ENV.fetch("IOS_DISTRIBUTION_CERT_PASSWORD")
+    profile_env_key = "IOS_PROVISIONING_PROFILE_#{flavor.upcase}_BASE64"
+    profile_b64 = ENV.fetch(profile_env_key)
+
     # Import distribution certificate from Doppler env var into CI keychain
     cert_path = File.join(Dir.tmpdir, "distribution.p12")
-    File.write(cert_path, Base64.decode64(ENV["IOS_DISTRIBUTION_CERT_BASE64"]))
+    File.write(cert_path, Base64.decode64(cert_b64))
     import_certificate(
       certificate_path: cert_path,
-      certificate_password: ENV["IOS_DISTRIBUTION_CERT_PASSWORD"],
+      certificate_password: cert_password,
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: ""
     )
 
     # Install provisioning profile from Doppler env var
-    env_key = "IOS_PROVISIONING_PROFILE_#{flavor.upcase}_BASE64"
     profile_path = File.join(Dir.tmpdir, "profile_#{flavor}.mobileprovision")
-    File.write(profile_path, Base64.decode64(ENV[env_key]))
+    File.write(profile_path, Base64.decode64(profile_b64))
     install_provisioning_profile(path: profile_path)
 
     # Switch Xcode project to manual signing for the Runner target
     update_code_signing_settings(
       use_automatic_signing: false,
       path: File.join(FLUTTER_DIR, "ios", "Runner.xcodeproj"),
-      team_id: ENV["APPLE_TEAM_ID"],
+      team_id: apple_team_id,
       bundle_identifier: app_id,
       code_sign_identity: "Apple Distribution",
       profile_name: profile_name
@@ -86,7 +92,7 @@ platform :ios do
       output_name: "clinical-diary-#{flavor}.ipa",
       export_options: {
         signingStyle: "manual",
-        teamID: ENV["APPLE_TEAM_ID"],
+        teamID: apple_team_id,
         provisioningProfiles: {
           app_id => profile_name
         }
@@ -96,12 +102,16 @@ platform :ios do
     # Upload to TestFlight (CI only)
     deployment = ENV["DEPLOYMENT_TARGET"] || "none"
     if ENV["CI"] && deployment != "none"
+      api_key_b64 = ENV.fetch("APP_STORE_CONNECT_API_KEY_MGR_BASE64")
+      api_key_id = ENV.fetch("APP_STORE_CONNECT_API_KEY_MGR_ID")
+      api_issuer_id = ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID")
+
       api_key_path = File.join(Dir.tmpdir, "AuthKey.p8")
-      File.write(api_key_path, Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_MGR_BASE64"]))
+      File.write(api_key_path, Base64.decode64(api_key_b64))
 
       api_key = app_store_connect_api_key(
-        key_id: ENV["APP_STORE_CONNECT_API_KEY_MGR_ID"],
-        issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+        key_id: api_key_id,
+        issuer_id: api_issuer_id,
         key_filepath: api_key_path
       )
 
