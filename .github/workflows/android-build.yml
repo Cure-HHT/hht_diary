@@ -32,7 +32,7 @@ on:
         description: "Release status for Google Play"
         required: true
         type: choice
-        default: "draft"
+        default: "completed"
         options:
           - draft
           - completed
