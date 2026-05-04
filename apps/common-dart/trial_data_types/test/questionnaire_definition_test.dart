@@ -37,7 +37,7 @@ void main() {
     });
 
     test('has correct metadata', () {
-      expect(noseHht.name, 'NOSE HHT');
+      expect(noseHht.name, 'NOSE HHT Survey');
       expect(noseHht.version, '1.0');
       expect(noseHht.recallPeriod, '2 weeks');
       expect(noseHht.totalQuestions, 29);
@@ -120,7 +120,7 @@ void main() {
     });
 
     test('has correct metadata', () {
-      expect(qol.name, 'Quality of Life Survey');
+      expect(qol.name, 'HHT Quality of Life Survey');
       expect(qol.version, '1.0');
       expect(qol.recallPeriod, '4 weeks');
       expect(qol.totalQuestions, 4);
@@ -174,7 +174,7 @@ void main() {
     test('finds by id', () {
       final found = QuestionnaireDefinition.findById(definitions, 'nose_hht');
       expect(found, isNotNull);
-      expect(found!.name, 'NOSE HHT');
+      expect(found!.name, 'NOSE HHT Survey');
     });
 
     test('returns null for unknown id', () {

@@ -71,7 +71,12 @@ skip = ["node_modules", ".git", "__pycache__", "*.pyc", ".venv", ".env"]
 directories = ["spec"]
 file_patterns = ["*.md"]
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap", "regulations"]
+# NFR/ contains sponsor-shared governance / authoring guidance (style guide,
+# review checklist, glossary, SDLC SOP) imported from the platform repo. Its
+# requirements use a different namespace (REQ-CAL-*) and are intentionally not
+# part of the local traceability graph; cite them by file path in dev specs
+# when needed.
+skip_dirs = ["roadmap", "regulations", "NFR"]
 # index_file = "INDEX.md"  # Index file for ordering
 
 [scanning.code] # Code file scanning
@@ -134,6 +139,12 @@ require_rationale = false
 require_assertions = true
 require_status = true
 allowed_statuses = ["Active", "Proposed", "Draft", "Deprecated", "Superseded"]
+# Standing repo-wide condition: ~53 code files (mostly older Dart and SQL
+# predating the traceability-marker requirement) lack `IMPLEMENTS
+# REQUIREMENTS:` headers. Downgrade to info so this doesn't block PRs
+# until a separate cleanup ticket addresses them. Already enforced
+# locally via .elspais.local.toml; promoted here so CI matches.
+no_traceability_severity = "info"
 # content_rules = []            # Content validation rules
 
 [rules.format.status_roles]
@@ -141,6 +152,13 @@ active = ["Active"]
 provisional = ["Draft", "Proposed"]
 aspirational = ["Roadmap"]
 retired = ["Deprecated"]
+
+# Standing repo-wide condition: ~157 code references to requirements that
+# have since been Deprecated. Downgrade to info so this doesn't block PRs
+# until a separate cleanup ticket re-anchors them. Already enforced
+# locally via .elspais.local.toml; promoted here so CI matches.
+[rules.references]
+retired = "info"
 
 [rules.coverage.implemented]
 full_direct = "ok"

@@ -48,60 +48,48 @@ Router createRouter() {
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
   router.get('/api/v1/portal/patients', getPortalPatientsHandler);
 
-  // Patient linking code endpoints (Investigator role)
+  // Patient operations — patientId in request body/header, not URL (CUR-1064)
+  // POST routes: patientId in JSON body
+  // GET routes: patientId in X-Patient-Id header (not logged by CDN/proxy)
   router.post(
-    '/api/v1/portal/patients/<patientId>/link-code',
+    '/api/v1/portal/patients/link-code',
     generatePatientLinkingCodeHandler,
   );
   router.get(
-    '/api/v1/portal/patients/<patientId>/link-code',
+    '/api/v1/portal/patients/link-code/active',
     getPatientLinkingCodeHandler,
   );
-
-  // Patient disconnection endpoint (Investigator role)
+  router.post('/api/v1/portal/patients/disconnect', disconnectPatientHandler);
   router.post(
-    '/api/v1/portal/patients/<patientId>/disconnect',
-    disconnectPatientHandler,
-  );
-
-  // Mark patient as not participating endpoint (Investigator role)
-  router.post(
-    '/api/v1/portal/patients/<patientId>/not-participating',
+    '/api/v1/portal/patients/not-participating',
     markPatientNotParticipatingHandler,
   );
-
-  // Reactivate patient endpoint (Investigator role)
-  router.post(
-    '/api/v1/portal/patients/<patientId>/reactivate',
-    reactivatePatientHandler,
-  );
-
-  // Start trial endpoint (Investigator role)
-  router.post(
-    '/api/v1/portal/patients/<patientId>/start-trial',
-    startTrialHandler,
-  );
+  router.post('/api/v1/portal/patients/reactivate', reactivatePatientHandler);
+  router.post('/api/v1/portal/patients/start-trial', startTrialHandler);
 
   // Questionnaire management endpoints (Investigator role)
   // REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+  // GET: patientId in X-Patient-Id header; POST send: patientId + questionnaireType in body
   router.get(
-    '/api/v1/portal/patients/<patientId>/questionnaires',
+    '/api/v1/portal/patients/questionnaires',
     getQuestionnaireStatusHandler,
   );
   router.post(
-    '/api/v1/portal/patients/<patientId>/questionnaires/<questionnaireType>/send',
+    '/api/v1/portal/patients/questionnaires/send',
     sendQuestionnaireHandler,
   );
+
+  // Questionnaire instance operations — instanceId (opaque UUID) in URL, patientId looked up server-side
   router.delete(
-    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>',
+    '/api/v1/portal/questionnaire-instances/<instanceId>',
     deleteQuestionnaireHandler,
   );
   router.post(
-    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/unlock',
+    '/api/v1/portal/questionnaire-instances/<instanceId>/unlock',
     unlockQuestionnaireHandler,
   );
   router.post(
-    '/api/v1/portal/patients/<patientId>/questionnaires/<instanceId>/finalize',
+    '/api/v1/portal/questionnaire-instances/<instanceId>/finalize',
     finalizeQuestionnaireHandler,
   );
 

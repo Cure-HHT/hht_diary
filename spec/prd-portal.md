@@ -212,6 +212,10 @@ J. The Sponsor Portal SHALL provide real-time patient engagement monitoring.
 
 K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the interface.
 
+## Changelog
+
+- 2026-04-24 | 08b8f03a | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
 *End* *Sponsor Portal Application* | **Hash**: 08b8f03a
 ---
 

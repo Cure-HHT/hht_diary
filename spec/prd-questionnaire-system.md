@@ -11,9 +11,9 @@
 
 ## Overview
 
-This specification defines the Clinical Questionnaire System, a framework for implementing structured data collection instruments in the Diary Platform. Questionnaires are individually coded Flutter components designed for high-quality user experience, not a generic form-builder system.
+This specification defines the Clinical Questionnaire System, a framework for administering clinically validated data collection instruments in the Diary Platform. A questionnaire's content (questions, response options, scoring, recall period) is a validated artifact authored through formal clinical research; the platform's job is to administer it faithfully, preserve audit traceability, and present it through a quality user experience.
 
-The system supports an extensible set of questionnaire types, each implemented through platform development rather than end-user configuration. New questionnaires may be added over time as sponsor requirements dictate.
+The system supports an extensible set of questionnaire types. Each questionnaire is defined by a bespoke catalog entry and is rendered by a renderer class drawn from a closed, platform-controlled taxonomy. Adding a questionnaire that fits an existing renderer class requires a new catalog entry and a sponsor configuration update. Adding a new renderer class is a platform-level decision.
 
 ---
 
@@ -22,16 +22,17 @@ The system supports an extensible set of questionnaire types, each implemented t
 A questionnaire in this system is:
 
 - A **structured data collection instrument** with defined questions, response options, and scoring algorithms
-- **Individually implemented** as custom Flutter components with optimized GUI/UX
+- Defined by a **bespoke catalog entry** that pins content, scoring, and renderer binding
+- Rendered by a **renderer class** drawn from a closed taxonomy; renderer classes may be shared across questionnaires of similar shape
 - **Version-controlled** per the questionnaire versioning model (REQ-p01051)
 - **Localizable** per the localization tracking model (REQ-p01052)
-- **Sponsor-configurable** for trial eligibility (REQ-p01053)
+- **Sponsor-selectable** for trial eligibility (REQ-p01053); content is not sponsor-customizable
 
 Questionnaires are NOT:
 
 - Dynamically definable by end users or third parties
-- Generic forms rendered from configuration data
-- Extensible without platform development
+- Generic forms rendered from runtime configuration without a corresponding catalog entry
+- Customizable per sponsor at the content level
 
 ---
 
@@ -66,7 +67,7 @@ Questionnaires are NOT:
 
 ### Future Questionnaires
 
-Additional questionnaires are added through platform development as sponsors require them. Each new questionnaire receives its own requirement specification and custom Flutter implementation.
+Additional questionnaires are added through platform development as sponsors require them. Each new questionnaire receives its own requirement specification and a corresponding catalog entry. When a new questionnaire's content conforms to an existing renderer class, no renderer code is added. When it does not, a new renderer class is added to the platform taxonomy via the requirement amendment process described in REQ-p01065 (assertions K, L).
 
 ---
 
@@ -112,17 +113,17 @@ All questionnaire data follows the event sourcing model:
 
 ## Rationale
 
-Clinical trials require structured data collection instruments that ensure data quality, regulatory compliance, and optimal patient experience. A coded implementation approach provides superior GUI/UX compared to generic form builders, allows questionnaire-specific optimizations, and maintains full control over data integrity. The extensible model allows new questionnaires to be added as sponsor needs evolve while maintaining consistent quality standards.
+Clinical trials require structured data collection instruments that ensure data quality, regulatory compliance, and optimal patient experience. Each questionnaire is a clinically validated artifact whose content (questions, response options, scoring algorithms, recall periods) is defined through formal research processes; sponsors select among validated questionnaires but do not customize their content. To preserve this validation guarantee while keeping engineering effort proportionate to clinical work, the platform separates content from presentation: each questionnaire is defined by a bespoke catalog entry, while presentation is delegated to a closed taxonomy of renderer classes that may be shared across questionnaires of similar shape. Adding a new questionnaire that conforms to an existing renderer class requires a new catalog entry but no new renderer code; adding a new renderer class is a platform-level decision.
 
-**Design Choice**: Questionnaires are not definable or configurable by third parties or end users. This ensures quality control and regulatory compliance.
+**Design Choice**: Questionnaires are not definable or configurable by third parties or end users. The set of renderer classes is closed and platform-controlled. These constraints together preserve quality control, regulatory traceability, and validated-instrument fidelity.
 
 ## Assertions
 
-A. The system SHALL support multiple questionnaire types, each implemented as individual coded components.
+A. The system SHALL support multiple questionnaire types, each defined by a bespoke catalog entry.
 
-B. The GUI of each questionnaire SHALL NOT change unless approved by the Sponsor.
+B. A questionnaire catalog entry SHALL define the questionnaire's content, response options, scoring rules, recall period, and renderer binding.
 
-C. Each questionnaire SHALL have a user-experience that is optimized for that specific questionnaire.
+C. A questionnaire catalog entry SHALL specify the renderer class identifier and minimum compatible renderer class version that the questionnaire requires.
 
 D. Questionnaires SHALL support versioning.
 
@@ -136,8 +137,24 @@ H. The system shall support sponsor configurable study start date.
 
 I. The system SHALL NOT sync patient data to the Sponsor Portal until the Study Start questionnaire has been approved by an investigator.
 
+J. The platform SHALL provide a closed taxonomy of renderer classes.
 
-*End* *Clinical Questionnaire System* | **Hash**: 0a17515d
+K. Addition of a new renderer class to the taxonomy SHALL require a platform-level requirement.
+
+L. A single renderer class MAY be referenced by multiple questionnaire catalog entries whose content conforms to its shape.
+
+M. A questionnaire whose content does not conform to any existing renderer class SHALL be served by a renderer class registered specifically for it; a renderer class may have a single member questionnaire.
+
+N. The content of a catalog entry SHALL NOT be customized or overridden per-sponsor at configuration time; modifications to a deployed catalog entry SHALL produce a new catalog entry version.
+
+O. A catalog entry MAY be authored exclusively for a single sponsor's use; sponsor-exclusive catalog entries are subject to the same validation, lock, and immutability requirements as shared catalog entries.
+
+## Changelog
+
+- 2026-05-03 | a475dc2e | - | Developer (dev@example.com) | Auto-fix: update hash
+- 2026-04-24 | 0a17515d | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
+
+*End* *Clinical Questionnaire System* | **Hash**: a475dc2e
 ---
 
 ## Child Requirements

@@ -51,6 +51,7 @@ What other options did we consider and why were they rejected?
 | [010](./ADR-010-requirements-format-enhancements.md) | Requirements Format Enhancements | Accepted | 2025-11-15 |
 | [011](./ADR-011-event-sourcing-refinements.md) | Event Sourcing Refinements | Accepted | 2026-01-01 |
 | [012](./ADR-012-terminology-standardization.md) | Terminology Standardization | Accepted | 2026-01-25 |
+| [013](./ADR-013-portal-event-sourcing-cutover-iac-decisions.md) | Portal `event_sourcing_datastore` Cutover — DB Administration & IaC Boundary Decisions | Proposed (decisions deferred) | 2026-04-26 |
 
 ## When to Create an ADR
 

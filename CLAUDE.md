@@ -57,6 +57,17 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 - because agents cannot communicate directly with each other, 
 they should report to the orchestrator any messages they want to pass to another sub-agent
 
+### 7. Phase Design Spec Requirements
+Every new phase design spec at `docs/superpowers/specs/*-design.md` MUST include a `## Requirements` section that:
+- Lists existing applicable REQs (use `discover_requirements` via the elspais MCP to find candidates).
+- Drafts new REQ entries (title, rationale, assertion list A/B/C/...) for any new functionality, with intent that the implementation plan will claim REQ-d numbers and write them into `spec/dev-*.md`.
+- Identifies the per-class `// Implements: REQ-X-A+B — prose` and per-test `// Verifies: REQ-X-A` annotations the plan must enforce on every implementation/test file it touches.
+- References the required `spec/dev-*.md` and `spec/INDEX.md` updates.
+
+For stub files at `docs/superpowers/specs/*-stub.md`: a single line "Requirements: deferred until full design" suffices — the obligation lands when the stub is upgraded to a full design spec.
+
+This rule is enforced by `.githooks/pre-commit` (section 6 — Phase Design Spec Requirements Check). Commits that introduce a non-compliant spec are blocked. To bypass (NOT RECOMMENDED): `git commit --no-verify`.
+
 
 ## Project Structure
 

@@ -1,8 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//   REQ-p00045: Clinical Trial Privacy Policy
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/widgets/enrollment_success_dialog.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -94,6 +98,14 @@ class _ClinicalTrialEnrollmentScreenState
         });
       }
     }
+  }
+
+  void _openClinicalTrialPrivacyPolicy() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ClinicalTrialPrivacyPolicyScreen(),
+      ),
+    );
   }
 
   void _onCode1Changed(String value) {
@@ -306,7 +318,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         const SizedBox(height: 24),
 
-                        // Sharing agreement checkboxes
+                        // Linking consent checkbox (REQ-p00045)
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -316,7 +328,7 @@ class _ClinicalTrialEnrollmentScreenState
                           ),
                           child: Column(
                             children: [
-                              // Required: Consent to sharing agreement
+                              // Required: Consent to Clinical Trial Privacy Policy
                               InkWell(
                                 onTap: _isLoading
                                     ? null
@@ -339,11 +351,37 @@ class _ClinicalTrialEnrollmentScreenState
                                     Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.only(top: 12),
-                                        child: Text(
-                                          'I have read, understand, and consent to the sharing agreement for this clinical trial',
-                                          style: TextStyle(
-                                            color: Colors.blue.shade800,
-                                            fontSize: 14,
+                                        child: Text.rich(
+                                          TextSpan(
+                                            style: TextStyle(
+                                              color: Colors.blue.shade800,
+                                              fontSize: 14,
+                                            ),
+                                            children: [
+                                              TextSpan(
+                                                text: AppLocalizations.of(
+                                                  context,
+                                                ).linkingConsentPrefix,
+                                              ),
+                                              TextSpan(
+                                                text: AppLocalizations.of(
+                                                  context,
+                                                ).privacyPolicy,
+                                                style: const TextStyle(
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                recognizer: TapGestureRecognizer()
+                                                  ..onTap =
+                                                      _openClinicalTrialPrivacyPolicy,
+                                              ),
+                                              TextSpan(
+                                                text: AppLocalizations.of(
+                                                  context,
+                                                ).linkingConsentSuffix,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),

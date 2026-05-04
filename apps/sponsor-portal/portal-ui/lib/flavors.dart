@@ -156,8 +156,12 @@ class FlavorConfig {
       // Emulator doesn't validate these, so placeholders are fine
       firebaseApiKey: 'demo-api-key',
       firebaseAppId: '1:000000000000:web:0000000000000000000000',
-      firebaseProjectId: 'demo-sponsor-portal',
-      firebaseAuthDomain: 'demo-sponsor-portal.firebaseapp.com',
+      // CUR-1263: must match the firebase emulator's startup --project flag
+      // and the local-stack seed script's effective project id (composed as
+      // ${--project}-${--env}). All three live in
+      // hht_diary_callisto/deployment/local-stack/.
+      firebaseProjectId: 'demo-local-stack',
+      firebaseAuthDomain: 'demo-local-stack.firebaseapp.com',
       firebaseMessagingSenderId: '000000000000',
     );
   }
@@ -185,8 +189,12 @@ class FlavorConfig {
       apiBaseUrl: 'http://localhost:8084',
       firebaseApiKey: 'demo-api-key',
       firebaseAppId: '1:000000000000:web:0000000000000000000000',
-      firebaseProjectId: 'demo-sponsor-portal',
-      firebaseAuthDomain: 'demo-sponsor-portal.firebaseapp.com',
+      // CUR-1263: must match the firebase emulator's startup --project flag
+      // and the local-stack seed script's effective project id (composed as
+      // ${--project}-${--env}). All three live in
+      // hht_diary_callisto/deployment/local-stack/.
+      firebaseProjectId: 'demo-local-stack',
+      firebaseAuthDomain: 'demo-local-stack.firebaseapp.com',
       firebaseMessagingSenderId: '000000000000',
     );
   }

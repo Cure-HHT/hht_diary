@@ -51,7 +51,7 @@ The traditional RFC 3161 Time-Stamp Authority approach is **deprecated** due to:
 
 ### Existing Hash Chain Implementation
 
-The `append_only_datastore` package implements:
+The `event_sourcing_datastore` package implements:
 
 ```dart
 // Current hash chain (simplified)
@@ -96,7 +96,7 @@ OpenTimestamps is a free, open-source protocol that aggregates hash commitments 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Clinical Diary App                            │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │              append_only_datastore                          │ │
+│  │              event_sourcing_datastore                       │ │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │ │
 │  │  │ Event Store  │  │ Hash Chain   │  │ Sync Engine      │  │ │
 │  │  │ (Sembast)    │  │ (SHA-256)    │  │ (REST API)       │  │ │
@@ -891,7 +891,7 @@ class EvidenceRecordRenewalService {
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Clinical Diary App                            │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │              append_only_datastore                          │ │
+│  │              event_sourcing_datastore                       │ │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │ │
 │  │  │ Event Store  │  │ Hash Chain   │  │ Sync Engine      │  │ │
 │  │  │ (Sembast)    │  │ (SHA-256)    │  │ (REST API)       │  │ │

@@ -1126,4 +1126,279 @@ void main() {
       },
     );
   });
+
+  // CUR-1118: isInitialized flag — dashboard pages must wait for Firebase to
+  // finish restoring its session before deciding to redirect to /login.
+  group('CUR-1118: isInitialized flag', () {
+    late MockUser mockUser;
+    late MockClient mockHttpClient;
+
+    setUp(() {
+      mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+    });
+
+    test('isInitialized is false immediately after construction', () {
+      fakeAsync((fake) {
+        final mockFirebaseAuth = MockFirebaseAuth(signedIn: false);
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+        );
+
+        // Before any authStateChanges event is processed, flag is false.
+        expect(
+          authService.isInitialized,
+          isFalse,
+          reason:
+              'isInitialized must be false before Firebase restores session '
+              'so dashboard pages can show a spinner instead of redirecting',
+        );
+      });
+    });
+
+    test('isInitialized becomes true when Firebase confirms no session', () {
+      fakeAsync((fake) {
+        // signedIn: false → authStateChanges emits null immediately
+        final mockFirebaseAuth = MockFirebaseAuth(signedIn: false);
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+        );
+        fake.flushMicrotasks();
+
+        expect(
+          authService.isInitialized,
+          isTrue,
+          reason:
+              'isInitialized must flip to true once Firebase confirms the '
+              'user is signed out, so login page can render',
+        );
+        expect(authService.isAuthenticated, isFalse);
+      });
+    });
+
+    test(
+      'isInitialized becomes true after successful session restore on refresh',
+      () {
+        fakeAsync((fake) {
+          // Simulate page refresh: Firebase restores session from IndexedDB.
+          // Pass isPageRefresh: true so the stale-session guard is bypassed.
+          final mockFirebaseAuth = MockFirebaseAuth(
+            mockUser: mockUser,
+            signedIn: true,
+          );
+          final authService = AuthService(
+            firebaseAuth: mockFirebaseAuth,
+            httpClient: mockHttpClient,
+            enableInactivityTimer: false,
+            clearStorage: () async {},
+            isPageRefresh: true,
+          );
+          fake.flushMicrotasks();
+
+          expect(
+            authService.isInitialized,
+            isTrue,
+            reason:
+                'isInitialized must be true after Firebase restores a valid '
+                'session on page refresh',
+          );
+          expect(authService.isAuthenticated, isTrue);
+        });
+      },
+    );
+
+    test(
+      'isInitialized becomes true even when fetchPortalUser fails (HTTP 500)',
+      () {
+        fakeAsync((fake) {
+          final failingHttpClient = MockClient((request) async {
+            return http.Response('Internal Server Error', 500);
+          });
+          final mockFirebaseAuth = MockFirebaseAuth(
+            mockUser: mockUser,
+            signedIn: true,
+          );
+          final authService = AuthService(
+            firebaseAuth: mockFirebaseAuth,
+            httpClient: failingHttpClient,
+            enableInactivityTimer: false,
+            clearStorage: () async {},
+            isPageRefresh: true,
+          );
+          fake.flushMicrotasks();
+
+          expect(
+            authService.isInitialized,
+            isTrue,
+            reason:
+                'isInitialized must be set even when fetchPortalUser fails, '
+                'so dashboards stop showing a spinner and redirect to login '
+                'instead of spinning forever',
+          );
+        });
+      },
+    );
+  });
+
+  // CUR-1118: fresh-tab stale-session handling — when a user opens a new tab
+  // (or returns after closing the previous tab), any Firebase session still
+  // in IndexedDB is stale and must be cleared so the user is prompted to log in.
+  group('CUR-1118: fresh-tab stale session handling', () {
+    late MockUser mockUser;
+    late MockClient mockHttpClient;
+
+    setUp(() {
+      mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'test@example.com',
+        displayName: 'Test User',
+      );
+      mockHttpClient = MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'user-001',
+              'email': 'test@example.com',
+              'name': 'Test User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not found', 404);
+      });
+    });
+
+    test(
+      'fresh tab with stale Firebase session calls clearStorage and signs out',
+      () {
+        fakeAsync((fake) {
+          var clearStorageCalled = false;
+          // Firebase still has a session in IndexedDB (signedIn: true),
+          // but this is a fresh tab (isPageRefresh: false).
+          final mockFirebaseAuth = MockFirebaseAuth(
+            mockUser: mockUser,
+            signedIn: true,
+          );
+          final authService = AuthService(
+            firebaseAuth: mockFirebaseAuth,
+            httpClient: mockHttpClient,
+            enableInactivityTimer: false,
+            clearStorage: () async {
+              clearStorageCalled = true;
+            },
+            isPageRefresh: false,
+          );
+          fake.flushMicrotasks();
+
+          expect(
+            clearStorageCalled,
+            isTrue,
+            reason:
+                'clearStorage must be called when a fresh tab finds a stale '
+                'Firebase session — the user closed the previous tab, so the '
+                'session in IndexedDB is not valid for a new tab',
+          );
+          expect(
+            authService.isAuthenticated,
+            isFalse,
+            reason:
+                'The stale session must not result in an authenticated state',
+          );
+        });
+      },
+    );
+
+    test('page refresh preserves session and does not call clearStorage', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: true,
+        );
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isFalse,
+          reason:
+              'clearStorage must NOT be called on a page refresh — the '
+              'Firebase session is still valid and should be kept',
+        );
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason: 'Session must be preserved on page refresh',
+        );
+      });
+    });
+
+    test(
+      'fresh tab with no existing Firebase session does not call clearStorage',
+      () {
+        fakeAsync((fake) {
+          var clearStorageCalled = false;
+          // No Firebase session at all (signedIn: false).
+          final mockFirebaseAuth = MockFirebaseAuth(signedIn: false);
+          final authService = AuthService(
+            firebaseAuth: mockFirebaseAuth,
+            httpClient: mockHttpClient,
+            enableInactivityTimer: false,
+            clearStorage: () async {
+              clearStorageCalled = true;
+            },
+            isPageRefresh: false,
+          );
+          fake.flushMicrotasks();
+
+          expect(
+            clearStorageCalled,
+            isFalse,
+            reason:
+                'clearStorage must not be called when there is no Firebase '
+                'session to clear — nothing stale to remove',
+          );
+          expect(authService.isAuthenticated, isFalse);
+        });
+      },
+    );
+  });
 }

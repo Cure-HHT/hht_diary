@@ -88,16 +88,19 @@ void main() {
         );
       });
 
-      testWidgets('displays sharing agreement checkbox', (tester) async {
+      testWidgets('displays linking consent checkbox with Privacy Policy link', (
+        tester,
+      ) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
         // Only one checkbox remains after removing the optional share-prior-to-linking one
         expect(find.byType(Checkbox), findsOneWidget);
+        // The consent text is now a RichText with "Privacy Policy" as a tappable link
+        expect(find.byType(RichText), findsWidgets);
+        // Verify the consent text with clickable Privacy Policy link
         expect(
-          find.textContaining(
-            'I have read, understand, and consent to the sharing agreement',
-          ),
+          find.textContaining('I have read, understand, and consent to the'),
           findsOneWidget,
         );
       });
@@ -356,8 +359,8 @@ void main() {
         navMockStorage.data['auth_username'] = 'test-user-id';
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
+          wrapWithMaterialApp(
+            Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
@@ -381,6 +384,7 @@ void main() {
           ),
         );
 
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 

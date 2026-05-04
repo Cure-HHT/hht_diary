@@ -6,16 +6,19 @@
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
+//   REQ-p05004: Disconnection Notification (persistent banner)
+//   REQ-p01065: Deactivate sync on disconnect (Assertion D)
 
 import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service for handling patient linking with 10-character codes
 /// Uses HTTP calls to server functions for linking
@@ -30,8 +33,15 @@ class EnrollmentService {
 
   static const _storageKey = 'user_enrollment';
   static const _disconnectedKey = 'patient_disconnected';
-  static const _disconnectionBannerDismissedKey =
-      'disconnection_banner_dismissed';
+  // CUR-1165: Not participating state storage keys
+  static const _notParticipatingKey = 'patient_not_participating';
+  static const _notParticipatingAtKey = 'patient_not_participating_at';
+
+  /// CUR-1164: Real-time notifier for disconnection state.
+  /// Updated synchronously by setDisconnected() so the home screen banner
+  /// appears immediately when a background sync detects disconnection,
+  /// without requiring a page navigation or app restart.
+  final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -69,6 +79,25 @@ class EnrollmentService {
   /// REQ-d00078: Code is validated via SHA-256 hash lookup
   Future<UserEnrollment> enroll(String code) async {
     try {
+      // CUR-1055: Client-side duplicate enrollment check.
+      // If enrollment data already exists in secure storage, this device is already
+      // linked to a study. Reject immediately without hitting the server.
+      // CUR-1164: Exception — a disconnected patient may re-enroll with a new code.
+      final existing = await getEnrollment();
+      if (existing != null) {
+        final disconnected = await isDisconnected();
+        if (!disconnected) {
+          throw EnrollmentException(
+            'This phone is already enrolled in this study. '
+            'Please contact your site coordinator if this is incorrect.',
+            EnrollmentErrorType.deviceAlreadyEnrolled,
+          );
+        }
+        // Disconnected: clear old enrollment so the new linking code takes over.
+        await clearEnrollment();
+        await setDisconnected(false);
+      }
+
       // Normalize code: uppercase, remove dash
       final normalizedCode = code.toUpperCase().replaceAll('-', '').trim();
 
@@ -92,8 +121,15 @@ class EnrollmentService {
       // Build the full link URL for this sponsor's backend
       final linkUrl = '$backendUrl/api/v1/user/link';
 
-      // Get app UUID for tracking (device identifier)
-      final appUuid = await _secureStorage.read(key: 'app_uuid');
+      // CUR-1055: Ensure a stable device identifier is always sent with enrollment.
+      // app_uuid is written here on first enrollment and reused on subsequent calls.
+      // This allows the server to detect and reject duplicate enrollment attempts
+      // from the same device via ON CONFLICT (app_uuid) in the upsert.
+      var appUuid = await _secureStorage.read(key: 'app_uuid');
+      if (appUuid == null) {
+        appUuid = const Uuid().v4();
+        await _secureStorage.write(key: 'app_uuid', value: appUuid);
+      }
 
       // Call the link function via HTTP (REQ-p70007)
       // No JWT required - the linking code IS the authentication
@@ -101,16 +137,26 @@ class EnrollmentService {
       final response = await _httpClient.post(
         Uri.parse(linkUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': normalizedCode, 'appUuid': ?appUuid}),
+        body: jsonEncode({'code': normalizedCode, 'appUuid': appUuid}),
       );
 
       debugPrint('Link response status: ${response.statusCode}');
       debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
+        // Server returns two distinct 409 messages — use the body directly
+        // so the user sees the correct reason (code already used vs device already linked).
+        final errorBody = jsonDecode(response.body) as Map<String, dynamic>;
+        final serverMessage = errorBody['error']?.toString();
+        final isDeviceDuplicate =
+            serverMessage != null &&
+            serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
-          'This code has already been used. Please request a new code from your research coordinator.',
-          EnrollmentErrorType.codeAlreadyUsed,
+          serverMessage ??
+              'This code has already been used. Please request a new code from your research coordinator.',
+          isDeviceDuplicate
+              ? EnrollmentErrorType.deviceAlreadyEnrolled
+              : EnrollmentErrorType.codeAlreadyUsed,
         );
       }
 
@@ -272,56 +318,78 @@ class EnrollmentService {
 
   // REQ-CAL-p00077: Disconnection status tracking
 
-  /// Check if the patient has been disconnected from the study
+  /// Check if the patient has been disconnected from the study.
   Future<bool> isDisconnected() async {
     final prefs = await _getPrefs();
     return prefs.getBool(_disconnectedKey) ?? false;
   }
 
-  /// Set the disconnection status
-  /// Called when sync response indicates patient is disconnected
+  /// Set the disconnection status.
+  /// Updates [disconnectedNotifier] synchronously so listeners (e.g. home
+  /// screen banner) react immediately without waiting for the next state read.
   Future<void> setDisconnected(bool disconnected) async {
+    disconnectedNotifier.value = disconnected; // notify listeners first
     final prefs = await _getPrefs();
     await prefs.setBool(_disconnectedKey, disconnected);
+  }
 
-    // If reconnected, also clear the banner dismissed state
-    if (!disconnected) {
-      await prefs.remove(_disconnectionBannerDismissedKey);
+  // CUR-1165: Not participating state tracking (REQ-p01065-D)
+
+  /// Check if the patient has been marked as not participating by the sponsor
+  Future<bool> isNotParticipating() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_notParticipatingKey) ?? false;
+  }
+
+  /// Set the not participating status.
+  /// Pass [at] to record the timestamp when the status was first detected.
+  Future<void> setNotParticipating(
+    bool notParticipating, {
+    DateTime? at,
+  }) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_notParticipatingKey, notParticipating);
+    if (notParticipating && at != null) {
+      await prefs.setString(_notParticipatingAtKey, at.toIso8601String());
+    }
+    if (!notParticipating) {
+      await prefs.remove(_notParticipatingAtKey);
     }
   }
 
-  /// Check if the disconnection banner has been dismissed by the user
-  /// The banner reappears on app restart even if dismissed
-  Future<bool> isDisconnectionBannerDismissed() async {
+  /// Get the timestamp when not_participating was first detected locally.
+  /// Returns null if status is not set or no timestamp was recorded.
+  Future<DateTime?> getNotParticipatingAt() async {
     final prefs = await _getPrefs();
-    return prefs.getBool(_disconnectionBannerDismissedKey) ?? false;
-  }
-
-  /// Set the banner dismissed state
-  /// Called when user taps the dismiss button
-  Future<void> setDisconnectionBannerDismissed(bool dismissed) async {
-    final prefs = await _getPrefs();
-    await prefs.setBool(_disconnectionBannerDismissedKey, dismissed);
-  }
-
-  /// Reset banner dismissed state (called on app restart)
-  Future<void> resetDisconnectionBannerDismissed() async {
-    final prefs = await _getPrefs();
-    await prefs.remove(_disconnectionBannerDismissedKey);
+    final raw = prefs.getString(_notParticipatingAtKey);
+    if (raw == null) return null;
+    return DateTime.tryParse(raw);
   }
 
   /// Process a sync/records response to check for disconnection status
   /// Returns true if the patient is disconnected
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
+    final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
     final status = response['mobileLinkingStatus'] as String?;
 
     debugPrint(
-      '[LINKING] Checking disconnection: status=$status, isDisconnected=$isDisconnected',
+      '[LINKING] Checking status: status=$status, isDisconnected=$isDisconnected, '
+      'isNotParticipating=$isNotParticipating',
     );
 
     // Update local disconnection state asynchronously
     setDisconnected(isDisconnected);
+
+    // CUR-1165: Store not_participating state; record detection time on first detection
+    if (isNotParticipating) {
+      getNotParticipatingAt().then((existing) {
+        // Only record the timestamp the first time we detect the status
+        setNotParticipating(true, at: existing ?? DateTime.now());
+      });
+    } else {
+      setNotParticipating(false);
+    }
 
     return isDisconnected;
   }
@@ -329,6 +397,7 @@ class EnrollmentService {
   /// Dispose resources
   void dispose() {
     _httpClient.close();
+    disconnectedNotifier.dispose();
   }
 }
 
@@ -336,6 +405,7 @@ class EnrollmentService {
 enum EnrollmentErrorType {
   invalidCode,
   codeAlreadyUsed,
+  deviceAlreadyEnrolled, // CUR-1055: this device is already linked to a study
   codeExpired,
   authRequired,
   serverError,

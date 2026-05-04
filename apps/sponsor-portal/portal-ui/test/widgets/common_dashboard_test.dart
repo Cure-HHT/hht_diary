@@ -12,6 +12,23 @@ import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/common_dashboard.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 
+// CUR-1118: Stub that always reports isInitialized=false and no current user,
+// so widget tests can assert the spinner guard without racing against the
+// async Firebase auth state emission that sets _isInitialized=true.
+class _UninitializedAuthService extends AuthService {
+  _UninitializedAuthService()
+    : super(
+        firebaseAuth: MockFirebaseAuth(signedIn: false),
+        enableInactivityTimer: false,
+      );
+
+  @override
+  bool get isInitialized => false;
+
+  @override
+  PortalUser? get currentUser => null;
+}
+
 /// Creates a signed-in [AuthService] for the given [role].
 Future<AuthService> _createAuthServiceForRole(
   String role, {
@@ -130,6 +147,38 @@ void main() {
 
       await tester.pump(const Duration(seconds: 30));
     });
+
+    // CUR-1118: Spinner guard prevents flash-redirect to /login while Firebase
+    // is still restoring its session asynchronously from IndexedDB.
+    // Without this guard the dashboard would redirect to /login on every F5.
+    testWidgets(
+      'CUR-1118: shows spinner instead of redirecting while isInitialized=false',
+      (tester) async {
+        final authService = _UninitializedAuthService();
+        addTearDown(authService.dispose);
+
+        await tester.pumpWidget(
+          _wrapWithProvider(authService: authService, role: null),
+        );
+        // One frame — isInitialized is false so the spinner guard must fire.
+        await tester.pump();
+
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsOneWidget,
+          reason:
+              'Spinner must be shown while isInitialized=false to prevent '
+              'flash-redirect on page refresh',
+        );
+        expect(
+          find.text('Login Page'),
+          findsNothing,
+          reason:
+              'Must NOT redirect to /login before Firebase has finished '
+              'restoring the session — the user is on the page via a refresh',
+        );
+      },
+    );
 
     // REQ-d00080-A: session management redirects to login when no authenticated user
     testWidgets('redirects to login when role is null and user is null', (

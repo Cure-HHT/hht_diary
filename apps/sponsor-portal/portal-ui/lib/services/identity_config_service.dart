@@ -40,8 +40,11 @@ class IdentityPlatformConfig {
   static const emulator = IdentityPlatformConfig(
     apiKey: 'demo-api-key',
     appId: '1:000000000000:web:0000000000000000000000',
-    projectId: 'demo-sponsor-portal',
-    authDomain: 'demo-sponsor-portal.firebaseapp.com',
+    // CUR-1263: aligned with Flavor.local.firebaseProjectId in flavors.dart,
+    // the firebase emulator's --project flag, and the seed script's effective
+    // project id in hht_diary_callisto/deployment/local-stack/.
+    projectId: 'demo-local-stack',
+    authDomain: 'demo-local-stack.firebaseapp.com',
     messagingSenderId: '000000000000',
   );
 

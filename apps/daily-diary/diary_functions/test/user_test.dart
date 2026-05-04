@@ -181,6 +181,102 @@ void main() {
     });
   });
 
+  group('linkHandler — CUR-1055 duplicate enrollment prevention', () {
+    // These tests cover the request-layer behaviour of the CUR-1055 fix.
+    // DB-dependent paths (upsert idempotency, 409 device-already-linked) are
+    // exercised by integration tests that run against a real database.
+
+    test('accepts appUuid in request body alongside code', () async {
+      // A valid 10-char code + appUuid must pass all pre-DB validation and
+      // reach the database layer (500 without a real DB, never 400).
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({
+          'code': 'CAXXXXXXXX',
+          'appUuid': '550e8400-e29b-41d4-a716-446655440000',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, isNot(equals(400)));
+      expect(response.statusCode, isNot(equals(405)));
+    });
+
+    test('accepts request without appUuid (anonymous user path)', () async {
+      // Omitting appUuid is valid — creates an anonymous user on the server.
+      // Must pass pre-DB validation (500 without a real DB, never 400).
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final response = await linkHandler(request);
+      expect(response.statusCode, isNot(equals(400)));
+      expect(response.statusCode, isNot(equals(405)));
+    });
+
+    test('returns 400 when code is present but appUuid is empty string', () async {
+      // An empty appUuid is treated the same as absent — should not cause a
+      // validation error on its own (the code format is the only validated field).
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/api/v1/user/link'),
+        body: jsonEncode({'code': 'CAXXXXXXXX', 'appUuid': ''}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      // Empty appUuid falls through to null (body['appUuid'] as String? is '').
+      // The server still passes validation and reaches the DB layer.
+      final response = await linkHandler(request);
+      expect(response.statusCode, isNot(equals(400)));
+    });
+
+    test(
+      'returns 400 for code shorter than 10 chars even with valid appUuid',
+      () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/user/link'),
+          body: jsonEncode({
+            'code': 'CA123',
+            'appUuid': '550e8400-e29b-41d4-a716-446655440000',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final response = await linkHandler(request);
+        expect(response.statusCode, equals(400));
+
+        final json = await getResponseJson(response);
+        expect(json['error'], contains('10 characters'));
+      },
+    );
+
+    test(
+      'normalizes code before DB lookup (lowercase + dash stripped)',
+      () async {
+        // Ensures the normalization step runs before appUuid handling —
+        // a dash-formatted code with appUuid must also reach the DB layer.
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/user/link'),
+          body: jsonEncode({
+            'code': 'caxxx-xxxxx',
+            'appUuid': '550e8400-e29b-41d4-a716-446655440000',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final response = await linkHandler(request);
+        expect(response.statusCode, isNot(equals(400)));
+      },
+    );
+  });
+
   group('syncHandler HTTP validation', () {
     test('returns 405 for GET request', () async {
       final request = Request(

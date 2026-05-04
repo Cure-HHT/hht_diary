@@ -2,7 +2,7 @@
   "questionnaires": [
     {
       "id": "nose_hht",
-      "name": "NOSE HHT",
+      "name": "NOSE HHT Survey",
       "version": "1.0",
       "requirementId": "REQ-p01067",
       "source": "JAMA Otolaryngol Head Neck Surg. 2020;146(11):999-1005",
@@ -106,7 +106,7 @@
     },
     {
       "id": "hht_qol",
-      "name": "Quality of Life Survey",
+      "name": "HHT Quality of Life Survey",
       "version": "1.0",
       "requirementId": "REQ-p01068",
       "source": "Blood Advances. 2022;6(14):4301-4309",

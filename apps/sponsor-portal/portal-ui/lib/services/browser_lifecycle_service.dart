@@ -24,20 +24,26 @@ class BrowserLifecycleService {
   void register(AuthService authService) {
     // REQ-d00080-G, REQ-d00080-H/I/J, REQ-p01044-D: clear storage and sign
     // out when the tab or window is closed.
+    //
+    // CUR-1118: beforeunload fires on BOTH page refresh (F5/Cmd+R) and tab
+    // close. We must not destroy the Firebase Auth session on a refresh or
+    // the user will be redirected to login after every reload.
+    //
+    // Strategy: set a sessionStorage flag before unloading.
+    //   - On page refresh: the flag survives (sessionStorage persists
+    //     across same-tab reloads) → startup detects a refresh, keeps session.
+    //   - On tab close: the browser destroys sessionStorage → startup sees no
+    //     flag, treats it as a fresh load and signs out any stale session.
     _beforeUnloadListener = ((web.Event _) {
-      // Synchronous clearing runs to completion before the page unloads.
-      // REQ-d00083-K: localStorage
-      web.window.localStorage.clear();
-      // REQ-d00083-L: sessionStorage
-      web.window.sessionStorage.clear();
-      // REQ-d00083-M: cookies
-      _clearCookiesSync();
-      // REQ-d00083-N/O: IndexedDB and Cache Storage are async; initiate best-effort.
-      _clearIndexedDBAsync();
-      _clearCacheStorageAsync();
-      // Fire-and-forget sign-out; the page will unload before it completes,
-      // but Firebase persists the sign-out in localStorage which we just cleared.
-      authService.signOut();
+      // Mark the upcoming unload as a potential refresh.
+      // main.dart checks and removes this flag on the next page load.
+      web.window.sessionStorage.setItem('_portalRefreshing', 'true');
+
+      // NOTE: No storage is cleared here. Firebase Auth persists its session
+      // in IndexedDB, and clearing any storage would destroy the session
+      // before the page has a chance to reload.
+      // Session teardown on genuine tab close is handled by AuthService._init()
+      // which detects the missing flag and signs out stale sessions.
     }).toJS;
 
     // REQ-d00080-K: register visibilitychange handler.
@@ -83,37 +89,4 @@ class BrowserLifecycleService {
       _popStateListener = null;
     }
   }
-}
-
-// ── Synchronous helpers (safe to call inside beforeunload) ────────────────────
-
-void _clearCookiesSync() {
-  final cookieStr = web.document.cookie;
-  if (cookieStr.isEmpty) return;
-  for (final cookie in cookieStr.split(';')) {
-    final name = cookie.split('=').first.trim();
-    if (name.isEmpty) continue;
-    web.document.cookie = '$name=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-    web.document.cookie =
-        '$name=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${web.window.location.hostname}';
-  }
-}
-
-// ── Async helpers (best-effort on beforeunload) ───────────────────────────────
-
-void _clearIndexedDBAsync() {
-  web.window.indexedDB.databases().toDart.then((dbs) {
-    for (final db in dbs.toDart) {
-      final name = db.name;
-      if (name.isNotEmpty) web.window.indexedDB.deleteDatabase(name);
-    }
-  }).ignore();
-}
-
-void _clearCacheStorageAsync() {
-  web.window.caches.keys().toDart.then((keys) async {
-    for (final key in keys.toDart) {
-      await web.window.caches.delete(key.toDart).toDart;
-    }
-  }).ignore();
 }

@@ -17,14 +17,21 @@ class CommonDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedRole =
-        role ?? context.watch<AuthService>().currentUser?.activeRole;
+    final authService = context.watch<AuthService>();
+    final resolvedRole = role ?? authService.currentUser?.activeRole;
+
+    // CUR-1118: Wait for Firebase to restore session before redirecting.
+    // On page refresh, role extra is lost and currentUser is null until
+    // Firebase finishes restoring the session from IndexedDB.
+    if (resolvedRole == null && !authService.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     if (resolvedRole == null) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => context.replace('/login'),
-      );
-      return const SizedBox.shrink();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go('/login');
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // REQ-d00080-A: implement client-side session management by wrapping all role dashboards

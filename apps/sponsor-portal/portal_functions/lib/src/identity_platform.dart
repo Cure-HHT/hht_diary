@@ -24,10 +24,18 @@ Map<String, String>? _cachedKeys;
 DateTime? _cacheExpiry;
 
 /// Get the GCP project ID from environment
+///
+/// Only consulted on the production token-verification path
+/// (issuer + audience checks below). When FIREBASE_AUTH_EMULATOR_HOST is
+/// set, [verifyIdToken] takes the emulator branch and never reads this.
+/// The fallback exists as a safety net only — every actual environment
+/// (local-stack, dev/qa/uat/prod Cloud Run) sets GCP_PROJECT_ID
+/// explicitly. CUR-1263 retag: aligned with the canonical local-stack
+/// project id so the dead-code path no longer cites a stale value.
 String get _projectId =>
     (Platform.environment['GCP_PROJECT_ID'] ??
             Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
-            'demo-sponsor-portal')
+            'demo-local-stack')
         .trim();
 
 /// Check if running against Firebase emulator

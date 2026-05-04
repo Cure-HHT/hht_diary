@@ -45,6 +45,10 @@ void main() {
       test('defaultLongDurationThresholdMinutes is 60', () {
         expect(FeatureFlags.defaultLongDurationThresholdMinutes, 60);
       });
+
+      test('CUR-1116: defaultShowShareWithCureHHT is false', () {
+        expect(FeatureFlags.defaultShowShareWithCureHHT, false);
+      });
     });
 
     group('constraints', () {
@@ -112,6 +116,10 @@ void main() {
         expect(service.longDurationThresholdMinutes, 60);
       });
 
+      test('CUR-1116: showShareWithCureHHT defaults to false', () {
+        expect(service.showShareWithCureHHT, false);
+      });
+
       test('currentSponsorId is null by default', () {
         expect(service.currentSponsorId, isNull);
       });
@@ -161,6 +169,14 @@ void main() {
         service.longDurationThresholdMinutes = 120;
         expect(service.longDurationThresholdMinutes, 120);
       });
+
+      test('CUR-1116: showShareWithCureHHT can be set', () {
+        service.showShareWithCureHHT = true;
+        expect(service.showShareWithCureHHT, true);
+
+        service.showShareWithCureHHT = false;
+        expect(service.showShareWithCureHHT, false);
+      });
     });
 
     group('resetToDefaults', () {
@@ -173,6 +189,7 @@ void main() {
           ..enableShortDurationConfirmation = true
           ..enableLongDurationConfirmation = true
           ..longDurationThresholdMinutes = 120
+          ..showShareWithCureHHT = true
           // Reset
           ..resetToDefaults();
 
@@ -194,6 +211,10 @@ void main() {
         expect(
           service.longDurationThresholdMinutes,
           FeatureFlags.defaultLongDurationThresholdMinutes,
+        );
+        expect(
+          service.showShareWithCureHHT,
+          FeatureFlags.defaultShowShareWithCureHHT,
         );
         expect(service.currentSponsorId, isNull);
         expect(service.lastError, isNull);
@@ -246,6 +267,7 @@ void main() {
             'enableShortDurationConfirmation': true,
             'enableLongDurationConfirmation': true,
             'longDurationThresholdMinutes': 90,
+            'showShareWithCureHHT': true,
           },
         });
 
@@ -264,7 +286,29 @@ void main() {
         expect(service.enableShortDurationConfirmation, true);
         expect(service.enableLongDurationConfirmation, true);
         expect(service.longDurationThresholdMinutes, 90);
+        expect(service.showShareWithCureHHT, true);
       });
+
+      test(
+        'CUR-1116: showShareWithCureHHT defaults to false when missing',
+        () async {
+          final responseBody = jsonEncode({
+            'flags': {'useReviewScreen': true},
+          });
+
+          service.httpClient = MockClient((request) async {
+            return http.Response(responseBody, 200);
+          });
+
+          final result = await service.loadFromServer('curehht');
+
+          expect(result, true);
+          expect(
+            service.showShareWithCureHHT,
+            FeatureFlags.defaultShowShareWithCureHHT,
+          );
+        },
+      );
 
       test('uses defaults for missing flags', () async {
         final responseBody = jsonEncode({

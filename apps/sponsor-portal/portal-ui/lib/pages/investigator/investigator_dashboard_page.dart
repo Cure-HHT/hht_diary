@@ -30,6 +30,11 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
     final authService = context.watch<AuthService>();
     final theme = Theme.of(context);
 
+    // CUR-1118: Wait for Firebase to restore session before redirecting.
+    if (!authService.isAuthenticated && !authService.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     if (!authService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go('/login');
@@ -81,7 +86,7 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
                       NavigationRailDestination(
                         icon: Icon(Icons.people_alt_outlined),
                         selectedIcon: Icon(Icons.people_alt),
-                        label: Text('Patients'),
+                        label: Text('Participants'),
                       ),
                       NavigationRailDestination(
                         icon: Icon(Icons.history_outlined),

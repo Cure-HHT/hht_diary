@@ -1,7 +1,7 @@
 ## REQ-p00013: Complete Data Change History
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00004-A, p00004-E
+**Refines**: REQ-p00004-A, REQ-p00004-E
 
 ## Assertions
 
@@ -24,7 +24,7 @@ FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for a
 ## REQ-p00003: Separate Database Per Sponsor
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00001
+**Refines**: REQ-p00001
 
 ## Assertions
 
@@ -59,7 +59,7 @@ This requirement extends the multi-sponsor isolation principle (REQ-p00001) to t
 ## REQ-p00004: Immutable Audit Trail via Event Sourcing
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01085
+**Refines**: REQ-p01085
 
 ## Assertions
 
@@ -102,7 +102,6 @@ FDA 21 CFR Part 11 requires complete audit trails for electronic records in clin
 
 ---
 
-
 ---
 
 ## Overview
@@ -124,14 +123,11 @@ FDA compliant record keeping.
 - Daily nosebleed reports
 - Questionnaire responses
 
-
 ---
 
 ## Data Isolation Between Sponsors
 
-
 ## Event Sourcing Architecture
-
 
 ---
 
@@ -272,3 +268,4 @@ A: Not removed, but can be marked as deleted. The deletion is recorded as an eve
 - **Security**: prd-security.md
 - **Compliance**: prd-clinical-trials.md
 - **Pattern Documentation**: docs/adr/ADR-001-event-sourcing-pattern.md
+

@@ -93,7 +93,7 @@ class _PatientsTabState extends State<PatientsTab> {
       });
     } else {
       setState(() {
-        _error = response.error ?? 'Failed to load patients';
+        _error = response.error ?? 'Failed to load participants';
         _isLoading = false;
       });
     }
@@ -115,7 +115,7 @@ class _PatientsTabState extends State<PatientsTab> {
             Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
-              'Error loading patients',
+              'Error loading participants',
               style: theme.textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
@@ -151,14 +151,14 @@ class _PatientsTabState extends State<PatientsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Patients',
+                      'Participants',
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Patients synced from Medidata RAVE EDC',
+                      'Participants synced from Medidata RAVE EDC',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -171,7 +171,7 @@ class _PatientsTabState extends State<PatientsTab> {
               IconButton.filled(
                 onPressed: _loadPatients,
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh patients',
+                tooltip: 'Refresh participants',
               ),
             ],
           ),
@@ -189,7 +189,7 @@ class _PatientsTabState extends State<PatientsTab> {
                       theme.colorScheme.surfaceContainerHighest,
                     ),
                     columns: const [
-                      DataColumn(label: Text('Patient ID')),
+                      DataColumn(label: Text('Participant ID')),
                       DataColumn(label: Text('Site')),
                       DataColumn(label: Text('Linking Status')),
                       DataColumn(label: Text('Last Synced')),
@@ -254,10 +254,13 @@ class _PatientsTabState extends State<PatientsTab> {
               color: theme.colorScheme.outline,
             ),
             const SizedBox(height: 16),
-            Text('No Patients Available', style: theme.textTheme.headlineSmall),
+            Text(
+              'No Participants Available',
+              style: theme.textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             Text(
-              'Patients will appear here once synced from the EDC system.',
+              'Participants will appear here once synced from the EDC system.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

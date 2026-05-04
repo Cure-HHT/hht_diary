@@ -1,7 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//   REQ-p00011: ALCOA+ Data Integrity Principles
 //   REQ-p01067: NOSE HHT Questionnaire Content
 //   REQ-p01068: HHT Quality of Life Questionnaire Content
 //   REQ-d00113: Deleted Questionnaire Submission Handling
+//   REQ-CAL-p00023: Questionnaire Lifecycle Audit Trail
 //
 // Submit questionnaire responses endpoint for the diary server.
 // The mobile app calls this when a patient completes a questionnaire.
@@ -153,6 +156,31 @@ Future<Response> submitQuestionnaireHandler(
       WHERE id = @instanceId::uuid
       ''',
       parameters: {'instanceId': instanceId},
+    );
+
+    // REQ-p00010, REQ-CAL-p00023: Log to audit trail (FDA 21 CFR Part 11 / ALCOA+)
+    await db.execute(
+      '''
+      INSERT INTO admin_action_log (
+        admin_id, action_type, target_resource, action_details,
+        justification, requires_review
+      )
+      VALUES (
+        @adminId, 'QUESTIONNAIRE_SUBMITTED', @targetResource,
+        @actionDetails::jsonb, @justification, false
+      )
+      ''',
+      parameters: {
+        'adminId': patientId,
+        'targetResource': 'questionnaire:$instanceId',
+        'actionDetails': jsonEncode({
+          'instance_id': instanceId,
+          'patient_id': patientId,
+          'response_count': responses.length,
+          'submitted_at': DateTime.now().toUtc().toIso8601String(),
+        }),
+        'justification': 'Questionnaire submitted by patient',
+      },
     );
 
     logWithTrace(

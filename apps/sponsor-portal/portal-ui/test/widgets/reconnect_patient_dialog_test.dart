@@ -129,7 +129,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reconnect Participant'), findsOneWidget);
       expect(find.textContaining('999-002-320'), findsOneWidget);
       expect(find.text('Reconnect'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -161,7 +161,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reconnect Participant'), findsOneWidget);
       expect(find.text('Reason for reconnection *'), findsOneWidget);
     });
 
@@ -230,7 +230,7 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reconnect Patient'), findsOneWidget);
+      expect(find.text('Reconnect Participant'), findsOneWidget);
       expect(find.text('Reconnect'), findsOneWidget);
     });
 
@@ -242,7 +242,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reconnect Patient'), findsNothing);
+      expect(find.text('Reconnect Participant'), findsNothing);
     });
   });
 }

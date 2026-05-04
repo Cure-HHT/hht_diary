@@ -482,10 +482,13 @@ source "$HOOK_DIR/project-defs.sh"
 printf '%b\n' "${BLUE}Running test suites...${NC}"
 echo ""
 
-# Find projects whose trigger paths have source file changes
+# Find projects whose own source or dependency trigger paths have dart
+# file changes. code_dirs covers own-project ship paths (lib/, bin/,
+# assets/, web/); triggers covers external deps, infra, and platform
+# build inputs. Tests cascade on a dart/test.sh change in either.
 TEST_DIRS=""
 for project_def in "${PROJECT_DEFS[@]}"; do
-    IFS='|' read -r name pubspec triggers <<< "$project_def"
+    IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
     PROJECT_DIR=$(dirname "$pubspec")
     TEST_SCRIPT="$REPO_ROOT/$PROJECT_DIR/tool/test.sh"
@@ -495,10 +498,10 @@ for project_def in "${PROJECT_DEFS[@]}"; do
         continue
     fi
 
-    # Check if any trigger path has source file changes
+    # Check own source or any trigger for dart/test.sh changes
     should_test=false
-    for trigger in $triggers; do
-        relevant=$(echo "$CHANGED_FILES" | grep "^${trigger}" | grep -E '\.(dart)$|tool/test\.sh$' || true)
+    for path in $code_dirs $triggers; do
+        relevant=$(echo "$CHANGED_FILES" | grep "^${path}" | grep -E '\.(dart)$|tool/test\.sh$' || true)
         if [ -n "$relevant" ]; then
             should_test=true
             break

@@ -535,7 +535,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _startDateTime = storedStartTime;
-      _currentStep = RecordingStep.intensity;
+      // CUR-560: If intensity is already set, skip to end time instead of
+      // forcing the user to re-select intensity after modifying start time.
+      _currentStep = _intensity != null
+          ? RecordingStep.endTime
+          : RecordingStep.intensity;
     });
   }
 
@@ -776,10 +780,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
     debugPrint('_startTimeTimezone: $_startTimeTimezone');
     debugPrint('_endTimeTimezone: $_endTimeTimezone');
     final startTzAbbr = _startTimeTimezone != null
-        ? getTimezoneAbbreviation(_startTimeTimezone!)
+        ? getTimezoneAbbreviation(
+            _startTimeTimezone!,
+            at: TimezoneConverter.toDisplayedDateTime(
+              _startDateTime,
+              _startTimeTimezone,
+            ),
+          )
         : null;
     final endTzAbbr = _endTimeTimezone != null
-        ? getTimezoneAbbreviation(_endTimeTimezone!)
+        ? getTimezoneAbbreviation(
+            _endTimeTimezone!,
+            at: TimezoneConverter.toDisplayedDateTime(
+              _endDateTime ?? _startDateTime,
+              _endTimeTimezone,
+            ),
+          )
         : null;
 
     debugPrint('startTzAbbr: $startTzAbbr');

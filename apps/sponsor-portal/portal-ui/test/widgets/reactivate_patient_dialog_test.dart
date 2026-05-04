@@ -118,7 +118,7 @@ void main() {
 
       await _pumpDialog(tester, apiClient);
 
-      expect(find.text('Reactivate Patient'), findsOneWidget);
+      expect(find.text('Reactivate Participant'), findsOneWidget);
       expect(find.textContaining('999-002-320'), findsOneWidget);
       expect(find.text('Reactivate'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -153,7 +153,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still in confirm state
-      expect(find.text('Reactivate Patient'), findsOneWidget);
+      expect(find.text('Reactivate Participant'), findsOneWidget);
       expect(find.text('Reason for reactivation *'), findsOneWidget);
     });
 
@@ -176,7 +176,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Success state
-        expect(find.text('Patient Reactivated'), findsOneWidget);
+        expect(find.text('Participant Reactivated'), findsOneWidget);
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
         expect(find.textContaining('has been reactivated'), findsOneWidget);
         expect(find.text('Disconnected'), findsOneWidget);
@@ -225,7 +225,7 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reactivate Patient'), findsOneWidget);
+      expect(find.text('Reactivate Participant'), findsOneWidget);
       expect(find.text('Reactivate'), findsOneWidget);
     });
 
@@ -237,7 +237,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reactivate Patient'), findsNothing);
+      expect(find.text('Reactivate Participant'), findsNothing);
     });
   });
 }

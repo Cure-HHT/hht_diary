@@ -9,7 +9,7 @@
 #
 # Clinical Diary QA Automation Workflow
 # Single job: ci-tests — Flutter tests, static analysis, SQL linting (all via CI container)
-# Security scanning (Trivy) runs unconditionally in pr-validation.yml
+# Security scanning (Trivy) runs unconditionally in pr-health.yml
 
 name: QA Automation
 
@@ -25,6 +25,14 @@ on:
       - 'tools/dev-env/**'
       - 'database/**'
       - '.github/workflows/qa-automation.yml'
+      # Toolchain triggers — a bump in pinned tool versions, a change to
+      # the image-build workflow, or a change to the start-ci-container
+      # action all affect the runtime image this QA pass consumes, so it
+      # must re-run on PRs that touch any of them. (Docker paths are
+      # already covered by tools/dev-env/**.)
+      - '.github/versions.env'
+      - '.github/workflows/build-ghcr-containers.yml'
+      - '.github/actions/start-ci-container/**'
   workflow_dispatch:
     inputs:
       test_suite:
@@ -298,7 +306,7 @@ jobs:
       # -----------------------------------------------------------------
       - name: Comment PR with test results
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');

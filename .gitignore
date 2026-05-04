@@ -39,6 +39,7 @@ database/init-consolidated.sql
 # Claude Code local settings
 .claude/settings.local.json
 .claude/permissions-registry.json
+.claude/scheduled_tasks.lock
 
 # Logs
 *.log
@@ -296,3 +297,6 @@ docs/plans/
 /apps/common-dart/otel_common/coverage/test/logging_integration_test.dart.vm.json
 /apps/common-dart/otel_common/coverage/test/middleware_integration_test.dart.vm.json
 /apps/common-dart/otel_common/coverage/lcov.info
+
+# superpowers visual-companion runtime artifacts (HTML mockups + local HTTP server state)
+.superpowers/

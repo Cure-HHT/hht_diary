@@ -21,6 +21,8 @@ import 'package:sponsor_portal_ui/widgets/link_patient_dialog.dart';
 MockClient _createMockHttpClient({
   bool hasActiveCode = false,
   bool generateShouldFail = false,
+  String? usedCode,
+  String? usedAt,
 }) {
   return MockClient((request) async {
     final path = request.url.path;
@@ -59,8 +61,11 @@ MockClient _createMockHttpClient({
           headers: {'content-type': 'application/json'},
         );
       }
+      final responseBody = <String, dynamic>{'has_active_code': false};
+      if (usedCode != null) responseBody['used_code'] = usedCode;
+      if (usedAt != null) responseBody['used_at'] = usedAt;
       return http.Response(
-        jsonEncode({'has_active_code': false}),
+        jsonEncode(responseBody),
         200,
         headers: {'content-type': 'application/json'},
       );
@@ -96,6 +101,8 @@ MockClient _createMockHttpClient({
 Future<ApiClient> _createMockApiClient({
   bool hasActiveCode = false,
   bool generateShouldFail = false,
+  String? usedCode,
+  String? usedAt,
 }) async {
   final mockUser = MockUser(
     uid: 'test-uid',
@@ -106,6 +113,8 @@ Future<ApiClient> _createMockApiClient({
   final mockHttpClient = _createMockHttpClient(
     hasActiveCode: hasActiveCode,
     generateShouldFail: generateShouldFail,
+    usedCode: usedCode,
+    usedAt: usedAt,
   );
   final authService = AuthService(
     firebaseAuth: mockFirebaseAuth,
@@ -118,8 +127,9 @@ Future<ApiClient> _createMockApiClient({
 /// Pumps the ShowLinkingCodeDialog inside a MaterialApp scaffold.
 Future<void> _pumpShowLinkingCodeDialog(
   WidgetTester tester,
-  ApiClient apiClient,
-) async {
+  ApiClient apiClient, {
+  bool isReference = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -133,6 +143,7 @@ Future<void> _pumpShowLinkingCodeDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
+                  isReference: isReference,
                 ),
               );
             });
@@ -191,7 +202,7 @@ void main() {
 
       await _pumpLinkPatientDialog(tester, apiClient);
 
-      expect(find.text('Link Patient'), findsOneWidget);
+      expect(find.text('Link Participant'), findsOneWidget);
       expect(find.text('999-002-320'), findsOneWidget);
       expect(find.text('Generate Code'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
@@ -239,7 +250,7 @@ void main() {
       await tester.tap(find.text('Try Again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Link Patient'), findsOneWidget);
+      expect(find.text('Link Participant'), findsOneWidget);
       expect(find.text('Generate Code'), findsOneWidget);
     });
 
@@ -251,7 +262,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Link Patient'), findsNothing);
+      expect(find.text('Link Participant'), findsNothing);
     });
   });
 
@@ -356,5 +367,106 @@ void main() {
 
       expect(find.text('Linking Code'), findsNothing);
     });
+  });
+
+  // CUR-1069: Reference mode — Participant Linking Code for connected/disconnected/not_participating
+  group('ShowLinkingCodeDialog — isReference mode', () {
+    testWidgets(
+      'title shows "Participant Linking Code" when isReference: true',
+      (tester) async {
+        final apiClient = await _createMockApiClient(
+          usedCode: 'CAREF-XXXXX',
+          usedAt: DateTime.now()
+              .subtract(const Duration(days: 5))
+              .toIso8601String(),
+        );
+
+        await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+        // Title appears (may also appear in reference display section)
+        expect(find.text('Participant Linking Code'), findsWidgets);
+        // The live-mode title "Linking Code" should not appear standalone
+        expect(find.text('Linking Code'), findsNothing);
+      },
+    );
+
+    testWidgets('shows used code when response contains used_code', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient(
+        usedCode: 'CAREF-XXXXX',
+        usedAt: '2024-03-15T10:30:00.000Z',
+      );
+
+      await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+      expect(find.text('CAREF-XXXXX'), findsOneWidget);
+    });
+
+    testWidgets('shows "Reference only" label when displaying used code', (
+      tester,
+    ) async {
+      final apiClient = await _createMockApiClient(
+        usedCode: 'CAREF-XXXXX',
+        usedAt: '2024-03-15T10:30:00.000Z',
+      );
+
+      await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+      expect(find.textContaining('Reference only'), findsOneWidget);
+    });
+
+    testWidgets(
+      'does not show Generate button in reference mode with used code',
+      (tester) async {
+        final apiClient = await _createMockApiClient(
+          usedCode: 'CAREF-XXXXX',
+          usedAt: '2024-03-15T10:30:00.000Z',
+        );
+
+        await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+        expect(find.text('Generate New Code'), findsNothing);
+      },
+    );
+
+    testWidgets('shows "No linking code on record" when no used code exists', (
+      tester,
+    ) async {
+      // No usedCode — patient was never linked
+      final apiClient = await _createMockApiClient();
+
+      await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+      expect(find.textContaining('No linking code on record'), findsOneWidget);
+      expect(find.text('Generate New Code'), findsNothing);
+    });
+
+    testWidgets(
+      'active code in reference mode does not show expiry countdown',
+      (tester) async {
+        final apiClient = await _createMockApiClient(hasActiveCode: true);
+
+        await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);
+
+        // Code should be visible
+        expect(find.text('CATEST-12345'), findsOneWidget);
+        // No expiry countdown container
+        expect(find.textContaining('expires'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'non-reference mode still shows "No Active Linking Code" when no code',
+      (tester) async {
+        final apiClient = await _createMockApiClient(hasActiveCode: false);
+
+        // isReference defaults to false
+        await _pumpShowLinkingCodeDialog(tester, apiClient);
+
+        expect(find.text('No Active Linking Code'), findsOneWidget);
+        expect(find.text('Generate New Code'), findsOneWidget);
+      },
+    );
   });
 }

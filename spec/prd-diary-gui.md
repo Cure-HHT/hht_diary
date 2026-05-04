@@ -14,7 +14,8 @@
 
 # REQ-p01075: Top Navigation Bar
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p00043
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00043
 
 ## Rationale
 
@@ -42,7 +43,8 @@ F. Only one menu SHALL be open at a time. Opening one menu SHALL close the other
 
 # REQ-p01076: User Menu
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01075
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01075
 
 ## Rationale
 
@@ -70,7 +72,8 @@ F. When the patient is linked to at least one study, the Join Study Shortcut SHA
 
 # REQ-p01082: Join Study Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01077-D
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01077-D
 
 ## Rationale
 
@@ -94,7 +97,8 @@ D. The Join Study screen SHALL display a back arrow or close button that returns
 
 # REQ-p01077: User Profile Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01076-C
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01076-C
 
 ## Rationale
 
@@ -124,7 +128,8 @@ G. When the patient is not linked to any clinical trial, the "Clinical Trial" se
 
 # REQ-p01083: Account Settings Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01077-D
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01077-D
 
 ## Rationale
 
@@ -148,7 +153,8 @@ D. The Account Settings screen SHALL display a back arrow or close button that r
 
 # REQ-p00076: Participation Status Badge
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01077-F
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01077-F
 
 ## Rationale
 
@@ -176,7 +182,8 @@ F. The badge SHALL update automatically when the patient's participation status 
 
 # REQ-p01078: App Menu
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01075
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01075
 
 ## Rationale
 
@@ -202,7 +209,8 @@ E. The App Version SHALL display the full semver+buildnumber of the application.
 
 # REQ-p01080: Policies Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01078-C
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01078-C
 
 ## Rationale
 
@@ -226,7 +234,8 @@ D. The Policies Screen SHALL display a back arrow or close button that returns t
 
 # REQ-p01081: Help Center Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01076-C
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01076-C
 
 ## Rationale
 
@@ -248,7 +257,8 @@ C. The Help Center Screen SHALL display a back arrow or close button that return
 
 # REQ-p01084: Diary App Licenses Screen
 
-**Level**: PRD | **Status**: Draft | **Refines**: REQ-p01079-A
+**Level**: prd | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p01079-A
 
 ## Rationale
 
@@ -259,6 +269,45 @@ The Diary App must comply with the platform-wide license display requirement by 
 A. The Diary App SHALL have a Licenses Screen accessible from the App Menu.
 
 *End* *Diary App Licenses Screen* | **Hash**: 621882cb
+
+---
+
+## Disconnection Notification
+
+# REQ-p05004: Disconnection Notification
+
+**Level**: prd | **Status**: Draft | **Implements**: -
+
+<!-- PLACEHOLDER REQUIREMENT — TODO(CUR-1164 follow-up):
+     Code in apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart,
+     apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart, and
+     related test files declares Implements: REQ-p05004 (introduced by PR #539
+     for CUR-1164) but the requirement was never authored in spec/. This
+     placeholder exists to keep elspais's spec.broken_references check green
+     so unrelated PRs can merge.
+
+     The CUR-1164 author SHOULD replace the Rationale and Assertions below
+     with the canonical product-level definition of the disconnection
+     notification contract, then promote Status from Draft to Active. The
+     placeholder deliberately does not invent product-level intent; only the
+     minimum prescriptive statement evidenced by the existing implementation
+     appears below. -->
+
+## Rationale
+
+TODO(CUR-1164 follow-up): canonical product-level rationale not yet authored.
+The existing implementation in `apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart`
+reflects as-built behavior only.
+
+## Assertions
+
+A. The mobile app SHALL surface a notification to the patient when the
+   patient enters the disconnected state.
+   <!-- TODO(CUR-1164 follow-up): refine this assertion to the canonical
+        product specification; current text is the minimum SHALL statement
+        evidenced by existing code. -->
+
+*End* *Disconnection Notification* | **Hash**: a5c5984b
 
 ---
 

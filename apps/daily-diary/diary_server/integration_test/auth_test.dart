@@ -35,7 +35,8 @@ void main() {
     // SHA-256 of 'testpassword123'
     const testPasswordHash =
         '5e884898da28047d9166540d34e4b5eb9d06d6b9f7c0c0d3a75a3a75e8e0ab57';
-    const testAppUuid = 'test-app-uuid-12345';
+    final testAppUuid =
+        'test-app-uuid-${DateTime.now().millisecondsSinceEpoch}';
 
     String? authToken;
     String? userId;

@@ -16,6 +16,23 @@ import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/role_picker_page.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 
+// CUR-1118: Stub that always reports isInitialized=false and no current user,
+// so widget tests can assert the spinner guard without racing against the
+// async Firebase auth state emission that sets _isInitialized=true.
+class _UninitializedAuthService extends AuthService {
+  _UninitializedAuthService()
+    : super(
+        firebaseAuth: MockFirebaseAuth(signedIn: false),
+        enableInactivityTimer: false,
+      );
+
+  @override
+  bool get isInitialized => false;
+
+  @override
+  PortalUser? get currentUser => null;
+}
+
 /// Role mappings with descriptions from backend
 final _roleMappingsWithDescriptions = {
   'sponsorId': 'callisto',
@@ -135,6 +152,35 @@ Future<void> _pumpRolePickerPage(
 
 void main() {
   group('RolePickerPage', () {
+    // CUR-1118: Spinner guard prevents flash-redirect to /login while Firebase
+    // is still restoring its session asynchronously from IndexedDB.
+    testWidgets(
+      'CUR-1118: shows spinner instead of redirecting while isInitialized=false',
+      (tester) async {
+        final authService = _UninitializedAuthService();
+        addTearDown(authService.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ChangeNotifierProvider<AuthService>.value(
+              value: authService,
+              child: const RolePickerPage(),
+            ),
+          ),
+        );
+        // One frame — isInitialized is false so the spinner guard must fire.
+        await tester.pump();
+
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsOneWidget,
+          reason:
+              'Spinner must be shown while isInitialized=false to prevent '
+              'flash-redirect on page refresh',
+        );
+      },
+    );
+
     testWidgets('shows welcome message with user name ', (tester) async {
       await _pumpRolePickerPage(tester);
       expect(find.text('Welcome, Multi Role User'), findsOneWidget);

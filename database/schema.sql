@@ -444,7 +444,10 @@ CREATE TABLE admin_action_log (
         'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
         'EMERGENCY_ACCESS', 'BULK_OPERATION',
         'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
-        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT', 'START_TRIAL'
+        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT', 'START_TRIAL',
+        'QUESTIONNAIRE_SENT', 'QUESTIONNAIRE_DELETED',
+        'QUESTIONNAIRE_UNLOCKED', 'QUESTIONNAIRE_FINALIZED',
+        'QUESTIONNAIRE_SUBMITTED'
     )),
     target_resource TEXT,
     action_details JSONB NOT NULL,
@@ -565,7 +568,7 @@ CREATE TABLE app_users (
     username TEXT UNIQUE,
     password_hash TEXT,
     auth_code TEXT NOT NULL UNIQUE,
-    app_uuid TEXT,
+    app_uuid TEXT UNIQUE, -- CUR-1055: one record per device
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     last_active_at TIMESTAMPTZ DEFAULT now(),
@@ -994,6 +997,7 @@ COMMENT ON COLUMN email_audit_log.metadata IS 'Additional context: masked email,
 
 CREATE TYPE questionnaire_type AS ENUM ('nose_hht', 'qol', 'eq');
 CREATE TYPE questionnaire_status AS ENUM ('not_sent', 'sent', 'in_progress', 'ready_to_review', 'finalized');
+CREATE TYPE end_event_type AS ENUM ('end_of_treatment', 'end_of_study');
 
 CREATE TABLE questionnaire_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1011,6 +1015,7 @@ CREATE TABLE questionnaire_instances (
     delete_reason TEXT CHECK (char_length(delete_reason) <= 25),
     deleted_by UUID REFERENCES portal_users(id),
     score INTEGER,
+    end_event end_event_type,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -1020,6 +1025,16 @@ CREATE INDEX idx_qi_patient_type ON questionnaire_instances(patient_id, question
     WHERE deleted_at IS NULL;
 CREATE INDEX idx_qi_status ON questionnaire_instances(status)
     WHERE deleted_at IS NULL;
+-- Intentionally omits CONCURRENTLY: this file is for fresh-DB creation only.
+-- The equivalent migration (007_study_event_uniqueness.sql) uses CONCURRENTLY
+-- for safe production application.
+CREATE UNIQUE INDEX idx_qi_unique_study_event
+    ON questionnaire_instances (patient_id, questionnaire_type, study_event)
+    WHERE deleted_at IS NULL AND study_event IS NOT NULL;
+-- REQ-CAL-p00080-G: at most one terminal-cycle (end_event IS NOT NULL) per patient + type
+CREATE UNIQUE INDEX idx_qi_unique_end_event
+    ON questionnaire_instances (patient_id, questionnaire_type)
+    WHERE end_event IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE questionnaire_instances ENABLE ROW LEVEL SECURITY;
 
@@ -1031,6 +1046,7 @@ COMMENT ON COLUMN questionnaire_instances.study_event IS 'Study event associatio
 COMMENT ON COLUMN questionnaire_instances.version IS 'Questionnaire content version per REQ-CAL-p00047-E';
 COMMENT ON COLUMN questionnaire_instances.delete_reason IS 'Reason for deletion, max 25 chars per REQ-CAL-p00066-B';
 COMMENT ON COLUMN questionnaire_instances.score IS 'Calculated score after finalization per REQ-CAL-p00009';
+COMMENT ON COLUMN questionnaire_instances.end_event IS 'Terminal event type per REQ-CAL-p00080-F: End of Treatment or End of Study. NULL for normal cycles.';
 
 -- =====================================================
 -- QUESTIONNAIRE RESPONSES (REQ-p01067, REQ-p01068)

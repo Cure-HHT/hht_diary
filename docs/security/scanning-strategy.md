@@ -50,7 +50,7 @@ This document describes the comprehensive security scanning strategy for the Dia
   - Scans staged files only
   - Fast (< 1 second for typical commit)
   - Blocks commit if secrets detected
-- **CI/CD**: `.github/workflows/pr-validation.yml`
+- **CI/CD**: `.github/workflows/pr-health.yml`
   - Full repository scan
   - Runs on all pull requests
   - Prevents merge if secrets detected
@@ -464,7 +464,7 @@ A:
 
 - **Requirement**: REQ-p01018 (Security Audit and Compliance)
 - **Workflows**:
-  - `.github/workflows/pr-validation.yml` (gitleaks)
+  - `.github/workflows/pr-health.yml` (gitleaks)
   - `.github/workflows/qa-automation.yml` (Trivy, Flutter)
 - **Configuration**:
   - `.gitleaks.toml`

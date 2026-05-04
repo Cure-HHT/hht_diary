@@ -2,7 +2,6 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
 #   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit message checks)
-#   REQ-o00080: Secret and Vulnerability Scanning (gitleaks)
 #   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
 #   REQ-d00014: Requirement Validation Tooling (elspais)
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability (elspais, traceability matrix)
@@ -51,19 +50,20 @@ ENFORCE_CODE_HEADERS="${ENFORCE_CODE_HEADERS:-off}"
 # Tier 0: Instant checks (< 5 seconds)
 # ============================================================================
 
-# --- 1. PR title must contain [CUR-XXX] ---
+# --- 1. PR title must contain [CUR-XXX] (or [Dependabot] for bot PRs, CUR-1149) ---
 begin_group "PR Title Validation"
 echo "PR #${PR_NUMBER}: ${PR_TITLE}"
 echo ""
 
-if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]'; then
-  echo "PR title contains Linear ticket reference"
+if echo "$PR_TITLE" | grep -qE '\[CUR-[0-9]+\]|\[Dependabot\]'; then
+  echo "PR title contains accepted prefix ([CUR-XXX] or [Dependabot])"
 else
   report_error "PR title missing [CUR-XXX] reference"
   echo ""
   echo "PR TITLE VALIDATION FAILED"
   echo ""
   echo "The PR title must include a Linear ticket reference in the format [CUR-XXX]."
+  echo "Dependabot-authored PRs may use the [Dependabot] prefix instead."
   echo "This is required because squash merge uses the PR title as the commit message."
   echo ""
   echo "Required format:"
@@ -89,8 +89,16 @@ CODE_CHANGED=false
 DB_CHANGED=false
 DOCS_CHANGED=false
 WORKFLOWS_CHANGED=false
+TOOLS_CHANGED=false
+SRC_CHANGED=false
 
 CHANGED_FILES=$(git diff --name-only "${BASE_SHA}".."${HEAD_SHA}" || true)
+
+# Each path category is detected exactly once below; downstream gates
+# (including ELSPAIS_RELEVANT_CHANGED) compose these flags rather than
+# repeating regexes. If you add a new scanning directory in .elspais.toml,
+# add a per-category flag here and OR it into the derivation block at the
+# end of this section.
 
 if echo "$CHANGED_FILES" | grep -qE '^spec/'; then
   SPEC_CHANGED=true
@@ -117,43 +125,76 @@ if echo "$CHANGED_FILES" | grep -qE '^\.github/workflows/'; then
   echo "Workflow files changed"
 fi
 
+if echo "$CHANGED_FILES" | grep -qE '^tools/'; then
+  TOOLS_CHANGED=true
+  echo "Tools files changed"
+fi
+
+if echo "$CHANGED_FILES" | grep -qE '^src/'; then
+  SRC_CHANGED=true
+  echo "Src files changed"
+fi
+
+# Elspais behavior can change without any scanned source file changing:
+# a config edit in .elspais.toml (different scan paths, severity rules,
+# id patterns) or a pinned-version bump in versions.env (different
+# parser, hashing, or coverage logic) reshapes the matrix output.
+# Treat both as elspais-relevant so the gate fires and the matrix
+# re-renders.
+ELSPAIS_CONFIG_CHANGED=false
+if echo "$CHANGED_FILES" | grep -qE '^(\.elspais\.toml|\.github/versions\.env)$'; then
+  ELSPAIS_CONFIG_CHANGED=true
+  echo "Elspais config or pinned version changed"
+fi
+
+# Derive elspais trigger from the per-category flags above. Mirrors
+# [scanning.*].directories in .elspais.toml without restating the regex:
+# spec, apps/packages (CODE), database, docs (or any .md), tools, src.
+# Plus ELSPAIS_CONFIG_CHANGED for config/version-only PRs that still
+# alter elspais output. Such files can introduce or remove REQ-
+# references (in IMPLEMENTS / Verifies headers, prose, or test
+# annotations), so elspais must validate them on every PR — not just
+# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
+# app code with no spec/ change, so elspais was silently skipped and
+# the broken reference landed on main (CUR-1246). DOCS_CHANGED is
+# broader than elspais's strict docs/ scan (it also matches bare .md
+# anywhere); the extra coverage is harmless — at most one extra
+# elspais run on a docs-only PR.
+ELSPAIS_RELEVANT_CHANGED=false
+if [ "$SPEC_CHANGED" = "true" ] || [ "$CODE_CHANGED" = "true" ] || \
+   [ "$DB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || \
+   [ "$TOOLS_CHANGED" = "true" ] || [ "$SRC_CHANGED" = "true" ] || \
+   [ "$ELSPAIS_CONFIG_CHANGED" = "true" ]; then
+  ELSPAIS_RELEVANT_CHANGED=true
+  echo "Files in elspais scan paths changed - requirement validation will run"
+fi
+
 if [ "$SPEC_CHANGED" = "false" ] && [ "$CODE_CHANGED" = "false" ] && \
    [ "$DB_CHANGED" = "false" ] && [ "$DOCS_CHANGED" = "false" ] && \
-   [ "$WORKFLOWS_CHANGED" = "false" ]; then
+   [ "$WORKFLOWS_CHANGED" = "false" ] && [ "$TOOLS_CHANGED" = "false" ] && \
+   [ "$SRC_CHANGED" = "false" ] && [ "$ELSPAIS_CONFIG_CHANGED" = "false" ]; then
   echo "No categorized changes detected"
 fi
 
 # Export for workflow steps that follow the script
 echo "SPEC_CHANGED=${SPEC_CHANGED}" >> "$GITHUB_ENV"
+# Used by the post-validation step to decide whether to (re)post the
+# traceability-matrix PR comment. Gated on the broader elspais trigger
+# rather than SPEC_CHANGED so the matrix re-renders for any change that
+# could shift its contents — code coverage rollups, retired-reference
+# counts, code→REQ link counts, etc. — not just spec/*.md edits.
+echo "ELSPAIS_RELEVANT_CHANGED=${ELSPAIS_RELEVANT_CHANGED}" >> "$GITHUB_ENV"
 
 end_group
 
-# ============================================================================
-# Tier 2: Security (always runs)
-# ============================================================================
-
-# --- 2. Gitleaks - secret scanning ---
-begin_group "Secret Scanning (gitleaks v${GITLEAKS_VERSION})"
-
-gitleaks version
-
-if gitleaks detect --verbose --no-banner --redact --log-level info; then
-  echo "No secrets detected by gitleaks"
-else
-  report_error "Gitleaks detected secrets in the repository"
-  echo ""
-  echo "SECRET SCANNING FAILED"
-  echo ""
-  echo "Remove all secrets from the codebase before merging."
-  echo "Use environment variables or Doppler for secret management."
-  end_group
-  exit 1
-fi
-
-end_group
+# Note: secret scanning (gitleaks) is intentionally NOT run from this script.
+# It runs in the dedicated `Security - Check for Secrets` job in pr-health.yml
+# (org ruleset-required, native runner) and locally via .githooks/pre-push.
+# Running it here would duplicate either the CI job or the pre-push hook with
+# no added coverage. (CUR-1261)
 
 # ============================================================================
-# Tier 2.5: Version bump enforcement (always runs when trigger paths change)
+# Tier 2: Version bump enforcement (always runs when trigger paths change)
 # ============================================================================
 
 # IMPLEMENTS REQUIREMENTS:
@@ -172,15 +213,14 @@ source "$REPO_ROOT/.githooks/version-utils.sh"
 VERSION_FAILED=false
 
 for project_def in "${PROJECT_DEFS[@]}"; do
-  IFS='|' read -r name pubspec triggers <<< "$project_def"
-  own_dir=$(dirname "$pubspec")/
+  IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
   code_changed=false
   any_trigger=false
-  if has_code_changes "$own_dir" "$CHANGED_FILES"; then
+  if has_code_changes "$code_dirs" "$CHANGED_FILES"; then
     code_changed=true
     any_trigger=true
-  elif has_any_trigger "$triggers" "$CHANGED_FILES" "$own_dir"; then
+  elif has_any_trigger "$triggers" "$CHANGED_FILES"; then
     any_trigger=true
   fi
 
@@ -193,8 +233,8 @@ for project_def in "${PROJECT_DEFS[@]}"; do
       continue
     fi
 
-    if ! verify_version_bumped "$pr_ver" "$main_ver" "$code_changed"; then
-      expected=$(compute_new_version "$pr_ver" "$main_ver" "$code_changed")
+    if ! verify_version_bumped_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed"; then
+      expected=$(compute_new_version_for "$version_mode" "$pr_ver" "$main_ver" "$code_changed")
       if [ "$code_changed" = true ]; then
         report_error "${name} version not bumped (code change). main: ${main_ver}, PR: ${pr_ver}, expected at least: ${expected}"
       else
@@ -226,13 +266,35 @@ end_group
 # Tier 3: Conditional checks (only when relevant files changed)
 # ============================================================================
 
-# --- 4. Elspais - requirement validation (only when spec/ files change) ---
+# --- 4. Elspais - requirement validation ---
+# Triggered whenever any file under an elspais scan path changes (see
+# Change Detection above). Catches broken REQ references introduced
+# from code, tests, journeys, or docs — not just spec edits (CUR-1246).
 begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
 
-if [ "$SPEC_CHANGED" = "true" ]; then
+if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   elspais --version
 
-  elspais checks
+  # Capture stdout+stderr so we can both forward it to the log and scan
+  # it for "info"-downgraded findings to surface as GitHub Actions
+  # warning annotations (see lib/elspais-annotations.sh). The `if`-form
+  # deactivates `set -e` for the elspais call so we can run the
+  # annotation pass before re-asserting the exit code.
+  elspais_exit=0
+  if elspais_output=$(elspais checks 2>&1); then
+    elspais_exit=0
+  else
+    elspais_exit=$?
+  fi
+  printf '%s\n' "$elspais_output"
+
+  # shellcheck source=lib/elspais-annotations.sh
+  source "$REPO_ROOT/.github/scripts/lib/elspais-annotations.sh"
+  emit_suppressed_warnings "$elspais_output"
+
+  if [ "$elspais_exit" -ne 0 ]; then
+    exit "$elspais_exit"
+  fi
 
   # Generate traceability matrix for PR comment and artifact upload
   mkdir -p build-reports/combined/traceability
@@ -241,7 +303,7 @@ if [ "$SPEC_CHANGED" = "true" ]; then
 
   echo "Requirement validation passed"
 else
-  echo "Skipped - no spec/ changes [Passed]"
+  echo "Skipped - no changes under elspais scan paths [Passed]"
 fi
 
 end_group
@@ -290,50 +352,51 @@ if [ "$ENFORCE_CODE_HEADERS" = "on" ] && { [ "$CODE_CHANGED" = "true" ] || [ "$D
   MISSING_HEADERS=()
   TOTAL_SCANNED=0
 
+  # Recursive SQL/Dart scans use `find -print0 | while read -d ''` rather
+  # than bash 4's `globstar`. Devs run validate-pr.sh on macOS where the
+  # default /bin/bash is 3.2 and `shopt -s globstar` is unavailable; under
+  # that shell, `database/**/*.sql` silently degrades to depth-2 matching
+  # and deeper files escape header validation without any error. The
+  # process-substitution form keeps the loop body in the same shell so
+  # MISSING_HEADERS+= and TOTAL_SCANNED= propagate.
+
   # Check SQL files in database directory
   if [ -d "database" ]; then
-    shopt -s nullglob globstar
-    for file in database/**/*.sql; do
-      # Skip tests and migrations
+    while IFS= read -r -d '' file; do
       if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
         continue
       fi
-      if [ -f "$file" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|sql")
-        fi
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|sql")
       fi
-    done
-    shopt -u globstar
+    done < <(find database -type f -name '*.sql' -print0 2>/dev/null)
   fi
 
   # Check Dart files in packages directory
   if [ -d "packages" ]; then
-    shopt -s globstar
-    for file in packages/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find packages -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Check Dart files in apps directory
   if [ -d "apps" ]; then
-    shopt -s globstar
-    for file in apps/**/*.dart; do
-      if [ "$(basename "$file")" != "main.dart" ]; then
-        TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-        if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-          MISSING_HEADERS+=("$file|dart")
-        fi
+    while IFS= read -r -d '' file; do
+      if [ "$(basename "$file")" = "main.dart" ]; then
+        continue
       fi
-    done
-    shopt -u globstar
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+        MISSING_HEADERS+=("$file|dart")
+      fi
+    done < <(find apps -type f -name '*.dart' -print0 2>/dev/null)
   fi
 
   # Write report to ci-reports/

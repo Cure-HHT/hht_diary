@@ -160,6 +160,18 @@ if [ -f .github/versions.env ]; then
     done < .github/versions.env
 fi
 
+# =====================================================
+# 0.4. Load Shared Hook Helpers
+# =====================================================
+# version-utils.sh provides is_merge_commit_in_progress, used by both
+# section 2 (dart format/analyze) and section 7 (version bumps) to skip
+# their pass when a merge is in flight — merged-in code was already
+# format-checked and bumped on its source branch's PR.
+
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=./version-utils.sh
+source "$HOOK_DIR/version-utils.sh"
+
 # Check elspais version against minimum required
 if [ -n "$ELSPAIS_VERSION" ]; then
     if command -v elspais &> /dev/null; then
@@ -221,10 +233,26 @@ fi
 # For Dart code changes in apps/ directory:
 #   - Run dart format on changed files
 #   - Run dart analyze and reject commit if it fails
+#
+# Sister gate to section 7's bump-pass guard (CUR-1249): `git diff
+# --cached` during a merge returns every merged-in file, not just files
+# the developer authored. If the local Dart SDK differs from the
+# project pin (.github/versions.env: DART_VERSION), re-running
+# `dart format` here reformats merged-in files using the local SDK's
+# rules, stages the whitespace drift, and trips CI's version-bump
+# verifier on the receiving PR. Skip the pass on merge commits — the
+# merged-in code was already format-checked on its source branch's PR.
+# Conflict-resolution edits go uncovered here; a follow-up non-merge
+# commit re-runs the pass against any authored changes.
 
 DART_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^apps/.*\.dart$' || true)
 
-if [ -n "$DART_FILES_CHANGED" ]; then
+if is_merge_commit_in_progress; then
+    if [ -n "$DART_FILES_CHANGED" ]; then
+        echo "  ⏭️  Skipping dart format/analyze pass (merge in progress; merged-in code was already checked on its source PR)"
+        echo "     If you resolved conflicts or made other authored edits, add a follow-up non-merge commit to re-run format/analyze."
+    fi
+elif [ -n "$DART_FILES_CHANGED" ]; then
     echo "🎯 Checking Dart code quality..."
     echo ""
 
@@ -387,8 +415,7 @@ fi
 # =====================================================
 # 4. Requirement Hash Update (elspais)
 # =====================================================
-# Auto-update stale requirement hashes before commit
-# This ensures hashes are always current
+# Auto-update stale requirement hashes before commit.
 
 SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
 
@@ -459,6 +486,70 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
 fi
 
 # =====================================================
+# 6. Phase Design Spec Requirements Check (Built-in)
+# =====================================================
+#
+# Enforces CLAUDE.md §"Phase Design Spec Requirements":
+#
+#   docs/superpowers/specs/*-design.md
+#       MUST contain a "## Requirements" section header
+#       AND at least one REQ-[pod]NNNNN reference.
+#
+#   docs/superpowers/specs/*-stub.md
+#       MUST contain "Requirements: deferred ..." line
+#       OR at least one REQ-[pod]NNNNN reference.
+#
+# Failure blocks the commit. To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^docs/superpowers/specs/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    SPEC_CHECK_FAILED=0
+    while IFS= read -r spec; do
+        # Belt-and-suspenders: skip if file doesn't exist in working tree
+        # (shouldn't happen with --diff-filter=ACM, but defensive).
+        [ -f "$spec" ] || continue
+
+        case "$spec" in
+            *-stub.md)
+                if ! grep -qE '([Rr]equirements?.{0,60}[Dd]eferred|REQ-[pod][0-9]{5})' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   stub must include a 'Requirements: deferred ...' line OR a REQ-[pod] reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *-design.md)
+                if ! grep -q '^## Requirements' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required '## Requirements' section header."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                if ! grep -qE 'REQ-[pod][0-9]{5}' "$spec"; then
+                    echo "❌ $spec"
+                    echo "   design spec missing required REQ-[pod]NNNNN reference."
+                    echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
+                    SPEC_CHECK_FAILED=1
+                fi
+                ;;
+            *)
+                # Other markdown files in docs/superpowers/specs/ (e.g. README.md,
+                # INDEX.md if introduced later) are not subject to this check.
+                ;;
+        esac
+    done <<< "$SPEC_FILES_CHANGED"
+
+    if [ "$SPEC_CHECK_FAILED" = "1" ]; then
+        echo ""
+        echo "Phase design spec check failed."
+        echo "To bypass (NOT RECOMMENDED): git commit --no-verify"
+        exit 1
+    fi
+fi
+
+# =====================================================
 # 7. Auto-Bump Build Numbers (+N in pubspec.yaml)
 # =====================================================
 #
@@ -480,10 +571,22 @@ fi
 # Skip bumps on main/master (already checked above, but be safe)
 if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
 
-    # Load shared project definitions and version utilities
-    HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    # Load shared project definitions (version-utils.sh sourced above)
     source "$HOOK_DIR/project-defs.sh"
-    source "$HOOK_DIR/version-utils.sh"
+
+    # `git diff --cached` during a merge returns every file being merged
+    # in, not just files the developer authored — so without this gate
+    # the bump pass would re-bump pubspecs for code already shipped (and
+    # bumped) on the source branch's own PR.
+    #
+    # Conflict-resolution edits in a merge commit go unbumped here; CI's
+    # validate-pr.sh re-runs verify_version_bumped_for against the full
+    # branch diff and fails the PR if any code-dir change is missing a
+    # bump, so the dev gets a clear signal to add a follow-up commit.
+    if is_merge_commit_in_progress; then
+        echo "  ⏭️  Skipping version-bump pass (merge in progress; merged-in code was already bumped on its source PR)"
+        echo "     If you resolved conflicts or made other authored edits, add a follow-up non-merge commit to trigger version bumps."
+    else
 
     # Get repo root
     REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -512,7 +615,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
         # runs, so lock files resolve the correct dependency versions.
 
         for project_def in "${PROJECT_DEFS[@]}"; do
-            IFS='|' read -r name pubspec triggers <<< "$project_def"
+            IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
 
             FULL_PUBSPEC="$REPO_ROOT/$pubspec"
 
@@ -521,15 +624,15 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 continue
             fi
 
-            # Determine what changed: code (own source) vs any trigger (infra/dep)
-            own_dir=$(dirname "$pubspec")/
+            # Determine what changed: own source (semver+build) vs external
+            # trigger (build only). Non-source own-dir changes produce neither.
             code_changed=false
             any_trigger=false
 
-            if has_code_changes "$own_dir" "$BUMP_CHANGED_FILES"; then
+            if has_code_changes "$code_dirs" "$BUMP_CHANGED_FILES"; then
                 code_changed=true
                 any_trigger=true
-            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES" "$own_dir"; then
+            elif has_any_trigger "$triggers" "$BUMP_CHANGED_FILES"; then
                 any_trigger=true
             fi
 
@@ -540,11 +643,16 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
                 main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
 
                 # Skip if already properly bumped for this change type
-                if verify_version_bumped "$current" "${main_version:-0}" "$code_changed"; then
+                if verify_version_bumped_for "$version_mode" "$current" "${main_version:-0}" "$code_changed"; then
                     continue
                 fi
 
-                new_version=$(compute_new_version "$current" "${main_version:-$current}" "$code_changed")
+                new_version=$(compute_new_version_for "$version_mode" "$current" "${main_version:-$current}" "$code_changed")
+
+                # Semver-only projects on a trigger-only change get no bump.
+                if [ -z "$new_version" ]; then
+                    continue
+                fi
 
                 # Update pubspec.yaml (portable: works on both BSD and GNU sed)
                 if sed --version >/dev/null 2>&1; then
@@ -602,6 +710,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
             echo ""
         fi
     fi
+    fi  # is_merge_commit_in_progress
 fi
 
 # =====================================================

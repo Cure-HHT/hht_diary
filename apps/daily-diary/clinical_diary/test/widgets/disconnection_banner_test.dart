@@ -2,6 +2,7 @@
 //   REQ-CAL-p00020: Patient Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00065: Reactivate Patient
+//   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
 //
 // Widget tests for DisconnectionBanner
 
@@ -14,18 +15,14 @@ import '../helpers/test_helpers.dart';
 void main() {
   group('DisconnectionBanner', () {
     testWidgets('displays disconnection title', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.text('Disconnected from Study'), findsOneWidget);
     });
 
     testWidgets('displays contact site message', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.text('Please contact your study site.'), findsOneWidget);
@@ -34,10 +31,7 @@ void main() {
     testWidgets('displays site name when provided', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
-            siteName: 'Test Medical Center',
-          ),
+          const DisconnectionBanner(siteName: 'Test Medical Center'),
         ),
       );
       await tester.pumpAndSettle();
@@ -46,45 +40,22 @@ void main() {
     });
 
     testWidgets('has warning icon', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     });
 
-    testWidgets('has dismiss button with close icon', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+    // REQ-p05004: Banner must be persistent and non-dismissible
+    testWidgets('has no dismiss (close) button', (tester) async {
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.close), findsOneWidget);
-    });
-
-    testWidgets('calls onDismiss when dismiss button is tapped', (
-      tester,
-    ) async {
-      var dismissed = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          DisconnectionBanner(onDismiss: () => dismissed = true),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pump();
-
-      expect(dismissed, true);
+      expect(find.byIcon(Icons.close), findsNothing);
     });
 
     testWidgets('has red background color', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // Find the Container with decoration
@@ -102,9 +73,7 @@ void main() {
     });
 
     testWidgets('spans full width of parent', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // The banner should be visible and rendered
@@ -113,31 +82,12 @@ void main() {
 
     testWidgets('renders without site name', (tester) async {
       await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {}, siteName: null)),
+        wrapWithScaffold(const DisconnectionBanner(siteName: null)),
       );
       await tester.pumpAndSettle();
 
       // Should show generic message without site name
       expect(find.text('Please contact your study site.'), findsOneWidget);
-    });
-
-    testWidgets('has Material elevation', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
-      await tester.pumpAndSettle();
-
-      // Find Material widgets that are direct children of DisconnectionBanner
-      final materials = tester.widgetList<Material>(
-        find.descendant(
-          of: find.byType(DisconnectionBanner),
-          matching: find.byType(Material),
-        ),
-      );
-
-      // At least one Material should have elevation of 4
-      final hasElevation = materials.any((m) => m.elevation == 4);
-      expect(hasElevation, true);
     });
 
     // REQ-CAL-p00065: Tests for expandable contact info
@@ -146,8 +96,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
+          const DisconnectionBanner(
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -162,9 +111,7 @@ void main() {
     testWidgets('does not show expand indicator when no contact info', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(DisconnectionBanner(onDismiss: () {})),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // Should not show expand/collapse icons
@@ -175,8 +122,7 @@ void main() {
     testWidgets('expands to show contact details when tapped', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
+          const DisconnectionBanner(
             siteName: 'Test Medical Center',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -200,8 +146,7 @@ void main() {
     testWidgets('shows phone icon in expanded section', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
+          const DisconnectionBanner(
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -220,8 +165,7 @@ void main() {
     testWidgets('collapses when tapped again', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
+          const DisconnectionBanner(
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -243,10 +187,7 @@ void main() {
     testWidgets('shows only site name when no phone number', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
-            siteName: 'Test Medical Center',
-          ),
+          const DisconnectionBanner(siteName: 'Test Medical Center'),
         ),
       );
       await tester.pumpAndSettle();
@@ -263,10 +204,7 @@ void main() {
     testWidgets('shows only phone when no site name', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          DisconnectionBanner(
-            onDismiss: () {},
-            sitePhoneNumber: '+1-555-123-4567',
-          ),
+          const DisconnectionBanner(sitePhoneNumber: '+1-555-123-4567'),
         ),
       );
       await tester.pumpAndSettle();

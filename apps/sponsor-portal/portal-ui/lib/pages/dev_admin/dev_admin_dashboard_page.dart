@@ -32,6 +32,11 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
     final authService = context.watch<AuthService>();
     final theme = Theme.of(context);
 
+    // CUR-1118: Wait for Firebase to restore session before redirecting.
+    if (!authService.isAuthenticated && !authService.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     // Check authentication and Developer Admin role
     if (!authService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,7 +48,7 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
     final user = authService.currentUser!;
     if (!user.hasRole(UserRole.developerAdmin)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/admin');
+        context.go('/common-dashboard', extra: UserRole.administrator);
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
