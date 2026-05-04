@@ -222,7 +222,7 @@ doppler run -- dart test integration_test/
 | `DB_USER`                     | Database user                      | `postgres`                   |
 | `DB_PASSWORD`                 | Database password                  | (required)                   |
 | `DB_SSL`                      | Enable SSL                         | `true` (set `false` locally) |
-| `GCP_PROJECT_ID`              | GCP project for token verification | `demo-sponsor-portal`        |
+| `GCP_PROJECT_ID`              | GCP project for token verification | `demo-local-stack`           |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Firebase emulator host             | (unset = production)         |
 
 ### UI

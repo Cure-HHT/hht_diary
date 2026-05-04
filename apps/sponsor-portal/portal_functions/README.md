@@ -163,7 +163,7 @@ if (!currentUser.role.isAdmin) {
 | `DB_USER`                     | Database user                      | `postgres`              |
 | `DB_PASSWORD`                 | Database password                  | (required)              |
 | `DB_SSL`                      | Enable SSL                         | `true`                  |
-| `GCP_PROJECT_ID`              | GCP project ID                     | `demo-sponsor-portal`   |
+| `GCP_PROJECT_ID`              | GCP project ID                     | `demo-local-stack`      |
 | `PORTAL_IDENTITY_API_KEY`     | Identity Platform Web API Key      | (required)              |
 | `PORTAL_IDENTITY_APP_ID`      | Identity Platform App ID           | (required)              |
 | `PORTAL_IDENTITY_AUTH_DOMAIN` | Identity Platform Auth Domain      | (required)              |
