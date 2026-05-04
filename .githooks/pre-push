@@ -192,12 +192,12 @@ fi
 
 # Surface a notice when defined-terms checks have been relaxed to info-level
 # in .elspais.toml so the validator pass doesn't silently mask real coverage
-# loss. Triggers on any of the four signal severities being "info".
+# loss. Triggers on any of the five signal severities being "info".
 if [ -f "$REPO_ROOT/.elspais.toml" ]; then
     TERMS_INFO_COUNT=$(awk '
         /^\[terms\.severity\]/ { in_section=1; next }
         /^\[/                  { in_section=0 }
-        in_section && /^[ \t]*(undefined|unmarked|unused|canonical_form)[ \t]*=[ \t]*"info"/ { count++ }
+        in_section && /^[ \t]*(undefined|unmarked|unused|canonical_form|collection_empty)[ \t]*=[ \t]*"info"/ { count++ }
         END                    { print count+0 }
     ' "$REPO_ROOT/.elspais.toml")
 

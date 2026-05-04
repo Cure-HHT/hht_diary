@@ -695,11 +695,11 @@ EOF
 
 ```bash
 # Check workflow syntax
-python3 -c "import yaml; yaml.safe_load(open('.github/workflows/pr-validation.yml'))"
+python3 -c "import yaml; yaml.safe_load(open('.github/workflows/pr-health.yml'))"
 
 # Check if workflow exists on main
 git fetch origin main
-git show origin/main:.github/workflows/pr-validation.yml
+git show origin/main:.github/workflows/pr-health.yml
 
 # Check GitHub Actions settings
 # Navigate to: Settings → Actions → General → Allow all actions
@@ -728,10 +728,7 @@ git show origin/main:.github/workflows/pr-validation.yml
 
 ```bash
 # Run validation locally using elspais
-elspais validate
-
-# Or use legacy script
-python3 tools/requirements/validate_requirements.py
+elspais checks
 
 # Check for hidden characters
 cat -A spec/prd-diary-app.md | grep REQ-
@@ -766,10 +763,6 @@ grep -A 5 "REQ-p00001" spec/prd-*.md
 elspais trace --format markdown
 elspais trace --format html
 
-# Or use legacy script
-python3 tools/requirements/generate_traceability.py --format markdown
-python3 tools/requirements/generate_traceability.py --format html
-
 # Check files created
 ls -lh traceability*
 ```
@@ -799,7 +792,7 @@ ls -lh traceability*
 gh api repos/{owner}/{repo}/branches/main/protection
 
 # Verify status check names in workflow match branch protection settings
-grep "^name:" .github/workflows/pr-validation.yml
+grep "^name:" .github/workflows/pr-health.yml
 ```
 
 **Resolution**:
@@ -824,12 +817,8 @@ grep "^name:" .github/workflows/pr-validation.yml
 
 ```bash
 # Time validation locally using elspais
-time elspais validate
+time elspais checks
 time elspais trace --format markdown
-
-# Or use legacy scripts
-time python3 tools/requirements/validate_requirements.py
-time python3 tools/requirements/generate_traceability.py --format markdown
 
 # Check repository size
 du -sh .
@@ -1017,9 +1006,7 @@ This CI/CD system has been validated per:
 
 - **Requirements Format**: `spec/requirements-format.md`
 - **Pre-commit Hook**: `.githooks/README.md`
-- **elspais Tool**: `pip install elspais` (preferred for local validation)
-- **Legacy Validation Tool**: `tools/requirements/validate_requirements.py`
-- **Legacy Traceability Tool**: `tools/requirements/generate_traceability.py`
+- **elspais Tool**: `pip install elspais` (used for local validation and CI)
 - **Migration Headers**: `database/migrations/README.md`
 - **FDA Compliance**: `spec/prd-clinical-trials.md`
 

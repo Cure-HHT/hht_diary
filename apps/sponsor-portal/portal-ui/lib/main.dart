@@ -118,10 +118,15 @@ void main() async {
       runApp(
         const ConfigErrorApp(
           error:
-              'Local-flavor build is missing FIREBASE_AUTH_EMULATOR_HOST. '
-              'Rebuild the portal-final image (in the sponsor repo) with '
-              '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 '
-              'baked in for FLAVOR=local.',
+              'FIREBASE_AUTH_EMULATOR_HOST is not set. The Firebase Auth '
+              'emulator can only be reached when this value is baked into '
+              'the build (it is read via String.fromEnvironment, not '
+              'window-injected).\n\n'
+              'For local-stack: rebuild the portal-final image (in the '
+              'sponsor repo) with '
+              '--dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099.\n\n'
+              'For developer flutter run: re-run with the same '
+              '--dart-define flag.',
         ),
       );
       return;
@@ -290,12 +295,7 @@ class ConfigErrorApp extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // Reload the page to retry
-                    // ignore: avoid_dynamic_calls
-                    // HTML reload equivalent for web
-                    debugPrint('Retry requested - user should refresh page');
-                  },
+                  onPressed: () => web.window.location.reload(),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Page'),
                 ),
