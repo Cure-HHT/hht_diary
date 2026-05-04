@@ -134,7 +134,7 @@ void main() {
 
     test('emulator config has expected placeholder values', () {
       expect(IdentityPlatformConfig.emulator.apiKey, 'demo-api-key');
-      expect(IdentityPlatformConfig.emulator.projectId, 'demo-sponsor-portal');
+      expect(IdentityPlatformConfig.emulator.projectId, 'demo-local-stack');
     });
 
     test('toString includes projectId and authDomain', () {

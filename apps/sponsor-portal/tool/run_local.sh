@@ -279,7 +279,7 @@ clear_firebase_users() {
     log_info "Clearing Firebase Auth emulator accounts..."
 
     local response=$(curl -s -X DELETE \
-        "${FIREBASE_EMULATOR_URL}/emulator/v1/projects/demo-sponsor-portal/accounts")
+        "${FIREBASE_EMULATOR_URL}/emulator/v1/projects/demo-local-stack/accounts")
 
     if echo "$response" | grep -q "error"; then
         log_warn "Could not clear Firebase accounts: $response"
@@ -612,7 +612,7 @@ start_server() {
     else
         # Use Firebase emulator for token verification
         export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
-        export GCP_PROJECT_ID="demo-sponsor-portal"
+        export GCP_PROJECT_ID="demo-local-stack"
         log_info "Server using Firebase Emulator: $FIREBASE_AUTH_EMULATOR_HOST"
     fi
 

@@ -130,7 +130,7 @@ dart run bin/server.dart
 | `DB_USER`                     | Database user                | `postgres`             |
 | `DB_PASSWORD`                 | Database password            | (required)             |
 | `DB_SSL`                      | Enable SSL                   | `true`                 |
-| `GCP_PROJECT_ID`              | GCP project for token verify | `demo-sponsor-portal`  |
+| `GCP_PROJECT_ID`              | GCP project for token verify | `demo-local-stack`     |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Firebase emulator (dev only) | (unset = production)   |
 
 ### Firebase Emulator

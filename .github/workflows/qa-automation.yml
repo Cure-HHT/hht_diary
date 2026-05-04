@@ -9,7 +9,7 @@
 #
 # Clinical Diary QA Automation Workflow
 # Single job: ci-tests — Flutter tests, static analysis, SQL linting (all via CI container)
-# Security scanning (Trivy) runs unconditionally in pr-validation.yml
+# Security scanning (Trivy) runs unconditionally in pr-health.yml
 
 name: QA Automation
 
