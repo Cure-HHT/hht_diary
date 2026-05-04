@@ -84,7 +84,21 @@ class PortalUser {
 /// Query params:
 ///   - role: (optional) Select which role to use for this session
 ///
-/// On first login, links firebase_uid to portal_users record by email match.
+/// Linkage model: `portal_users.firebase_uid` is a *cache* of the verified
+/// firebase identity owning a given pre-authorized email. We re-link the
+/// row to whatever UID Firebase asserts for the email on each login —
+/// fresh row, race recovery, and stale-UID recovery all flow through the
+/// same UPDATE.
+///
+/// SECURITY INVARIANT: This logic trusts that `verifyIdToken` only returns
+/// `verification.isValid == true` for tokens whose email claim has been
+/// verified by the identity provider. If that ever stops being true (e.g.,
+/// switching to an IdP that issues unverified-email tokens, disabling
+/// email-link / OTP enforcement upstream), this UPDATE becomes an account-
+/// takeover vector: any token-bearer claiming a pre-authorized email could
+/// re-link the row to themselves. Anyone changing the token verification
+/// path or the IdP configuration MUST re-confirm this property.
+///
 /// Returns 403 if email is not pre-authorized in portal_users table.
 /// If user has multiple roles and no role is specified, returns all roles
 /// for the client to display a role picker.
@@ -141,13 +155,16 @@ Future<Response> portalMeHandler(Request request) async {
   );
 
   if (result.isEmpty) {
-    // First login - try to link by email
-    logWithTrace('INFO', 'First login, linking by email');
+    // First login OR firebase_uid drifted (concurrent /portal/me race;
+    // emulator restart minted a new UID; manual DB edit). Re-link by
+    // email — see SECURITY INVARIANT in the function docstring above
+    // for why this is safe.
+    logWithTrace('INFO', 'Linking firebase_uid by email');
     result = await db.executeWithContext(
       '''
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE LOWER(email) = LOWER(@email) AND firebase_uid IS NULL
+      WHERE LOWER(email) = LOWER(@email)
       RETURNING id, firebase_uid, email, name, status, mfa_type
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
@@ -155,25 +172,7 @@ Future<Response> portalMeHandler(Request request) async {
     );
 
     if (result.isEmpty) {
-      // Check if email exists but already linked to different uid
-      final existing = await db.executeWithContext(
-        'SELECT firebase_uid FROM portal_users WHERE LOWER(email) = LOWER(@email)',
-        parameters: {'email': email},
-        context: serviceContext,
-      );
-
-      if (existing.isNotEmpty && existing.first[0] != null) {
-        authAttempt(result: 'failure', reason: 'already_linked');
-        logWithTrace(
-          'WARNING',
-          'Auth failed: email already linked to another account',
-        );
-        return _jsonResponse({
-          'error': 'Email already linked to another account',
-        }, 403);
-      }
-
-      // Email not found in portal_users - not pre-authorized
+      // No portal_users row matches this email — caller is not pre-authorized.
       authAttempt(result: 'failure', reason: 'not_authorized');
       logWithTrace('WARNING', 'Auth failed: email not in portal_users');
       return _jsonResponse({
