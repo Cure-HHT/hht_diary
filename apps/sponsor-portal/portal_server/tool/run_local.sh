@@ -67,7 +67,7 @@ fi
 
 # Local development config (not secrets)
 export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_AUTH_EMULATOR_HOST:-localhost:9099}"
-export GCP_PROJECT_ID="${GCP_PROJECT_ID:-demo-sponsor-portal}"
+export GCP_PROJECT_ID="${GCP_PROJECT_ID:-demo-local-stack}"
 export DB_SSL="${DB_SSL:-false}"
 export PORT="${PORT:-8084}"
 # Portal frontend URL for activation email links (fallback when Origin header absent)
