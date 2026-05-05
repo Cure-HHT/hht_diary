@@ -1142,12 +1142,30 @@ void main() {
     );
 
     test(
-      'portalMeHandler rejects token with email_verified: false',
+      'portalMeHandler accepts emulator token with email_verified: false '
+      '(emulator path is trusted-by-locality; gate is production-only)',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {
-        // Without the emailVerified gate in VerificationResult.isValid, an
-        // attacker who can mint an unverified-email token for a pre-authorized
-        // portal email could re-link the row to their own UID.
+        // CUR-1272 added `&& emailVerified` to VerificationResult.isValid so
+        // an attacker minting an unverified-email token for a pre-authorized
+        // portal email could not re-link the row to their own UID. That gate
+        // is correct in production.
+        //
+        // Under the emulator, the gate is pathological: the auth emulator has
+        // no email-sending pipeline, so seed_identity_users.js creates every
+        // legitimate user with email_verified=false. The gate would 401 every
+        // login and every activation. CUR-1280 narrows the gate to the
+        // production verification branch only — the emulator branch in
+        // identity_platform.dart hardcodes emailVerified=true with the same
+        // trusted-by-locality justification used for skipping aud/signature
+        // checks (the developer running the emulator already controls every
+        // identity it can mint).
+        //
+        // This test now verifies the emulator branch's behavior. Production
+        // verification of the same threat model is exercised against real
+        // Firebase tokens elsewhere — it cannot be exercised here because
+        // the emulator cannot mint a verified-email token without a real
+        // email pipeline.
         final token = createMockEmulatorToken(
           'attacker-firebase-uid',
           testAdminEmail,
@@ -1159,15 +1177,15 @@ void main() {
         );
         final response = await portalMeHandler(request);
 
-        expect(response.statusCode, equals(401));
+        expect(response.statusCode, equals(200));
 
-        // The cached UID for the admin row must not have moved.
+        // Re-link did fire — emulator path treats the token as valid.
         final db = Database.instance;
         final linked = await db.execute(
           'SELECT firebase_uid FROM portal_users WHERE id = @id::uuid',
           parameters: {'id': testAdminId},
         );
-        expect(linked.first[0], equals(testAdminFirebaseUid));
+        expect(linked.first[0], equals('attacker-firebase-uid'));
       },
     );
 
