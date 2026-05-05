@@ -1498,4 +1498,108 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // CUR-1280: serialize the authStateChanges listener so back-to-back events
+  // don't race shared state writes. The listener installed in
+  // AuthService._init() does NOT serialize: Stream.listen invokes the next
+  // event's handler as soon as the previous handler hits its first await,
+  // not when its async body completes. Two events arriving close together
+  // (e.g. signIn's own signInWithEmailAndPassword echo, or stale-restore
+  // followed by Firebase's auto-signout reflection) lead to concurrent
+  // invocations writing _currentUser / _isInitialized / _sessionUid and
+  // double-issuing /portal/me requests.
+  //
+  // This group subsumes the layered guards from CUR-982 / CUR-1118 /
+  // CUR-1157 by removing the underlying race instead of working around it.
+  //
+  // IMPLEMENTS REQUIREMENTS:
+  //   REQ-d00080-A: client-side session management with configurable
+  //                 inactivity timeout (the listener is the session
+  //                 management surface)
+  //   REQ-p01044-A: configured-period inactivity termination (audit-log
+  //                 integrity requires consistent session state)
+  //   REQ-p00010:   FDA 21 CFR Part 11 (concurrent writes to session
+  //                 fields can produce impossible intermediate states
+  //                 visible to downstream audit hooks)
+  //   REQ-CAL-p00046: Session Management
+  group('CUR-1280: listener serialization', () {
+    test('signIn() issues exactly one /portal/me request — listener does not '
+        'race a duplicate fetch', () {
+      fakeAsync((fake) {
+        // Bug surface: signInWithEmailAndPassword inside MockFirebaseAuth
+        // (and Firebase in production) fires authStateChanges with the
+        // freshly signed-in user BEFORE _fakeSignIn's Future resolves.
+        // The listener invocation reads _sessionUid (still null because
+        // signIn() hasn't returned from its first await yet) and dispatches
+        // its own _fetchPortalUser. Then signIn() resumes, sets _sessionUid
+        // and dispatches a SECOND _fetchPortalUser. Result: two GETs to
+        // /api/v1/portal/me for a single signIn().
+        //
+        // Pre-fix: portalMeCallCount == 2.
+        // Post-fix (Task 2.4 serializes the listener so it observes
+        // _sessionUid set by signIn(), or signIn()'s own fetch completes
+        // before the listener's handler runs): portalMeCallCount == 1.
+        var portalMeCallCount = 0;
+        final mockUser = MockUser(
+          uid: 'race-uid',
+          email: 'race@test.com',
+          displayName: 'Race User',
+        );
+        final mockAuth = MockFirebaseAuth(mockUser: mockUser);
+
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            portalMeCallCount++;
+            return http.Response(
+              jsonEncode({
+                'id': 'race-id',
+                'email': 'race@test.com',
+                'name': 'Race User',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'status': 'active',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path == '/api/v1/portal/config/session') {
+            return http.Response('{}', 200);
+          }
+          return http.Response('Not found', 404);
+        });
+
+        final authService = AuthService(
+          firebaseAuth: mockAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(minutes: 30),
+          enableInactivityTimer: false,
+        );
+
+        // Drive a single signIn() and let every microtask drain.
+        authService.signIn('race@test.com', 'password');
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason: 'sanity: signIn must succeed in this fixture',
+        );
+        expect(
+          portalMeCallCount,
+          1,
+          reason:
+              'CUR-1280: a single signIn() must trigger exactly one '
+              'GET /api/v1/portal/me. Pre-fix the authStateChanges listener '
+              'fires concurrently with signIn() and dispatches a duplicate '
+              'fetch — observable as portalMeCallCount == 2. Fixing the '
+              'listener to serialize event handling collapses this to one.',
+        );
+      });
+    });
+  });
 }
