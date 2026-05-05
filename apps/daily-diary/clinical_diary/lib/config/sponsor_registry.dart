@@ -92,13 +92,15 @@ class SponsorRegistry {
   }
 
   /// Compile-time override for backend URL.
-  /// When set (via --dart-define=BACKEND_URL=...), all sponsors
-  /// route to this server (local dev: one server serves all sponsors).
+  /// When set (via --dart-define=DIARY_API_BASE=... or BACKEND_URL=...),
+  /// all sponsors route to this server (local dev: one server serves all
+  /// sponsors). DIARY_API_BASE wins; BACKEND_URL kept for back-compat.
+  static const _diaryApiBaseOverride = String.fromEnvironment('DIARY_API_BASE');
   static const _backendUrlOverride = String.fromEnvironment('BACKEND_URL');
 
   /// Get the backend URL for a linking code in the given flavor.
   /// Extracts the prefix and looks up the URL from FlavorConfig.
-  /// Respects BACKEND_URL override for local development.
+  /// Respects DIARY_API_BASE / BACKEND_URL override for local development.
   static String getBackendUrlForCode(String code, Flavor flavor) {
     final prefix = extractPrefix(code);
 
@@ -112,6 +114,9 @@ class SponsorRegistry {
     }
 
     // Local dev: all sponsors share one diary server
+    if (_diaryApiBaseOverride.isNotEmpty) {
+      return _diaryApiBaseOverride;
+    }
     if (_backendUrlOverride.isNotEmpty) {
       return _backendUrlOverride;
     }

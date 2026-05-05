@@ -7,6 +7,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:common_widgets/common_widgets.dart';
@@ -30,6 +31,16 @@ import 'theme/portal_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // CUR-1280: previous builds shipped flutter_service_worker.js. PWA is
+  // now disabled at build time, but a SW already installed in the
+  // user's browser survives. Unregister any leftover SW on boot.
+  // IMPLEMENTS: REQ-p00009 (Sponsor-Specific Web Portals must serve
+  //             the latest deploy; a leftover SW shadows new main.dart.js).
+  // Note: closest direct assertion is REQ-d00077-I but that REQ is
+  //       scoped to the Web Diary (REQ-p01042); no portal-specific
+  //       equivalent exists. Policy applied by analogy.
+  unawaited(_unregisterLeftoverServiceWorkers());
 
   // Remove # from URLs
   setPathUrlStrategy();
@@ -58,27 +69,21 @@ void main() async {
       FlavorConfig.initializeWithConfig(flavor, config, apiBaseUrl: apiBaseUrl);
       debugPrint('Identity Platform config loaded: ${config.projectId}');
     } on IdentityConfigException catch (e) {
+      // CUR-1280: do NOT silently downgrade a deployed-flavor build to the
+      // emulator just because the identity-config endpoint is unreachable.
+      // The previous kDebugMode-only fallback flipped F.appFlavor to
+      // Flavor.local for the rest of the page lifetime, which (a) opened the
+      // trusted-by-locality Auth-emulator code paths in a build that may be
+      // talking to a real backend, and (b) silently masked a config-server
+      // outage. If the developer wants emulator mode, they can rebuild with
+      // --dart-define=APP_FLAVOR=local explicitly.
       debugPrint('Failed to fetch Identity Platform config: $e');
-
-      if (kDebugMode) {
-        // In debug mode, fall back to emulator with warning
-        debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback();
-      } else {
-        // In release mode, show error app
-        runApp(ConfigErrorApp(error: e.message));
-        return;
-      }
+      runApp(ConfigErrorApp(error: e.message));
+      return;
     } catch (e) {
       debugPrint('Unexpected error fetching config: $e');
-
-      if (kDebugMode) {
-        debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback();
-      } else {
-        runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
-        return;
-      }
+      runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
+      return;
     }
   }
 
@@ -94,6 +99,31 @@ void main() async {
     debugPrint('Sponsor branding loaded: ${sponsorBranding.title}');
   } catch (e) {
     debugPrint('Sponsor branding unavailable, using fallback: $e');
+  }
+
+  // CUR-1280: on local-flavor, wipe firebaseLocalStorageDb BEFORE
+  // Firebase.initializeApp.
+  //
+  // Firebase JS SDK auto-restores the user from IndexedDB synchronously
+  // inside initializeApp + first FirebaseAuth.instance access — and that
+  // restore fires `accounts:lookup` against whatever endpoint is bound at
+  // that moment. flutterfire #9528: useAuthEmulator can't bind until AFTER
+  // initializeApp, by which time auto-restore has already fired against
+  // PRODUCTION (https://identitytoolkit.googleapis.com) and failed with
+  // api-key-not-valid. Re-binding later doesn't undo the failed restore.
+  //
+  // We can't move useAuthEmulator earlier (it requires the initialized
+  // app). So we eliminate the restore: with no state in IndexedDB,
+  // initializeApp has nothing to lookup. The first auth network call is
+  // an explicit signIn (where useAuthEmulator has by then bound), so all
+  // subsequent ops route to the emulator cleanly.
+  //
+  // Cost: on local-flavor, page refresh = re-login (no IndexedDB =
+  // no session restore). Acceptable for local dev; the alternative
+  // ("Clear Site Data every time, randomly") is worse. Production
+  // flavors are unaffected — they don't run this path.
+  if (F.useEmulator) {
+    await BrowserStorageService().forceClearFirebaseAuthDb();
   }
 
   // Initialize Firebase with flavor-specific config
@@ -197,9 +227,23 @@ void main() async {
   // Create AuthService here so the browser lifecycle service can hold a
   // direct reference before the widget tree is built.
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
+  // CUR-1280: also inject the auto-recovery DB-wipe so AuthService can
+  // call it without depending on package:web (keeps unit tests on VM).
+  //
+  // CUR-1280 (Copilot review): forceClearFirebaseAuthDb is a no-op-or-better
+  // hammer for the local-emulator restore race (see firebase_emulator_helper.dart
+  // for the flutterfire #9528 background). It MUST NOT fire on deployed
+  // flavors — wiping firebaseLocalStorageDb in production would silently
+  // log out every user on every recoverable refresh hiccup. Inject the
+  // real implementation only on local flavor; deployed flavors get a
+  // null-equivalent no-op so any auto-recovery path becomes signOut-only.
+  final browserStorage = BrowserStorageService();
   final authService = AuthService(
     sponsorId: sponsorBranding.sponsorId,
-    clearStorage: BrowserStorageService().clearStorage,
+    clearStorage: browserStorage.clearStorage,
+    forceClearFirebaseAuthDb: F.useEmulator
+        ? browserStorage.forceClearFirebaseAuthDb
+        : () async {},
     isPageRefresh: isPageRefresh,
   );
 
@@ -215,6 +259,43 @@ void main() async {
       lifecycleService: lifecycleService,
     ),
   );
+}
+
+/// Unregister any service worker registrations left over from a previous
+/// deploy. PWA is disabled at build time
+/// (deployment/docker/portal-final.Dockerfile: --pwa-strategy=none),
+/// but an SW already in the browser persists until explicitly removed.
+///
+/// IMPLEMENTS REQUIREMENTS:
+///   REQ-p00009 (always serve the latest deploy)
+///   REQ-p01044-M (no patient data recoverable from the browser after
+///                 logout — SW caches could otherwise persist)
+///
+/// Note: REQ-d00077-H/I/N states the explicit "SHALL disable SW" /
+/// "SHALL unregister existing SW" policy but is scoped to the Web Diary
+/// (implements REQ-p01042). No portal-specific equivalent exists; we
+/// apply the same policy by analogy to the portal here.
+Future<void> _unregisterLeftoverServiceWorkers() async {
+  if (!kIsWeb) return;
+  final List<web.ServiceWorkerRegistration> regs;
+  try {
+    regs = (await web.window.navigator.serviceWorker.getRegistrations().toDart)
+        .toDart
+        .toList();
+  } catch (_) {
+    // ServiceWorker API unavailable — nothing to do.
+    return;
+  }
+  for (final reg in regs) {
+    try {
+      await reg.unregister().toDart;
+    } catch (e) {
+      // Best-effort: a single registration's failure to unregister
+      // (security error, internal browser error) must not block boot.
+      // Log so it doesn't vanish silently.
+      debugPrint('[main] serviceWorker.unregister failed: $e');
+    }
+  }
 }
 
 class CarinaPortalApp extends StatefulWidget {

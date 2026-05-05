@@ -252,9 +252,65 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     final payload = jsonDecode(payloadBase64) as Map<String, dynamic>;
     print('[AUTH] Emulator: Parsed payload keys: ${payload.keys.toList()}');
 
+    // CUR-1280 (issue 7): emulator tokens are not signed, so we still
+    // validate the expiry claim to keep the server from accepting stale
+    // tokens that the client SDK has already refreshed/expired. Without
+    // this check, the portal-server would green-light credentials the
+    // client considers dead — one of the "client and server disagree
+    // about whether I'm logged in" flakiness symptoms.
+    final exp = payload['exp'];
+    if (exp is num) {
+      final expSec = exp.toInt();
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (expSec < nowSec) {
+        print('[AUTH] Emulator: token expired (exp=$expSec, now=$nowSec)');
+        return VerificationResult(error: 'Token expired');
+      }
+    }
+
+    // CUR-1280: NO audience check on the emulator path.
+    //
+    // The auth emulator only ever issues tokens for its own
+    // --project flag (demo-local-stack in this stack). It cannot
+    // mint tokens for any other project. Meanwhile, the server's
+    // _projectId is sourced from GCP_PROJECT_ID, which Doppler injects
+    // as the production GCP project (e.g. callisto4-dev) even when
+    // the rest of the stack is running against the emulator. Comparing
+    // the emulator's aud against _projectId is a structural false-
+    // positive that rejects every valid emulator token.
+    //
+    // Audience binding in emulator mode is implicit: the only way a
+    // token can reach this verifier is to come from the emulator at
+    // FIREBASE_AUTH_EMULATOR_HOST, and the emulator only signs tokens
+    // for its own project. Production verification (the non-emulator
+    // path above) does enforce audience.
+
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;
     final email = payload['email'] as String?;
-    final emailVerified = payload['email_verified'] as bool? ?? false;
+
+    // CUR-1280: emulator path forces emailVerified=true.
+    //
+    // CUR-1272 added `&& emailVerified` to VerificationResult.isValid to
+    // protect the portal_users.firebase_uid re-link path against
+    // unverified-email account takeover. That gate is correct for
+    // production, but pathological under the emulator:
+    //
+    //   - The emulator has no email-sending pipeline. Seeded users
+    //     (created by deployment/local-stack/db-schema-job/seed_identity_users.js)
+    //     and freshly-registered users alike start with email_verified=false.
+    //   - The activation flow can't bridge it: createUserWithEmailAndPassword
+    //     yields a token with email_verified=false, and there is no path to
+    //     flip it before /portal/activate runs.
+    //   - The takeover threat model is moot locally: the developer running
+    //     the emulator already controls every identity it can mint, so
+    //     there's no privileged-vs-unprivileged distinction to enforce.
+    //
+    // This mirrors the same justification used a few lines above for
+    // skipping the aud check on the emulator path: emulator-mode tokens
+    // are trusted-by-locality, and gates that rely on production-grade
+    // verification machinery would otherwise reject every valid token.
+    // Production verification (the non-emulator path above) is unchanged.
+    const emailVerified = true;
 
     // Extract MFA info from firebase claim (emulator may or may not have this)
     final firebaseClaim = payload['firebase'] as Map<String, dynamic>?;

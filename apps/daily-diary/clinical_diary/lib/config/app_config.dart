@@ -52,8 +52,13 @@ class AppConfig {
   static String get qaApiKey => _qaApiKeyRaw;
 
   /// Compile-time override for API base URL.
-  /// Pass via: --dart-define=BACKEND_URL=http://10.0.2.2:8080
-  /// Used by run_local.sh to point the app at a local diary server.
+  /// Pass via: --dart-define=DIARY_API_BASE=http://10.0.2.2:8081
+  /// Used by `local-stack diary` (sponsor repo) and run_local.sh to
+  /// point the app at a local diary-server. BACKEND_URL is the legacy
+  /// name; honored when DIARY_API_BASE is unset.
+  static const String _diaryApiBaseOverride = String.fromEnvironment(
+    'DIARY_API_BASE',
+  );
   static const String _backendUrlOverride = String.fromEnvironment(
     'BACKEND_URL',
   );
@@ -65,14 +70,15 @@ class AppConfig {
 
   /// API base URL - derived from the current flavor.
   /// Points to the diary-server Cloud Run service.
-  /// Can be overridden at compile time via BACKEND_URL dart-define,
-  /// or at test time via testApiBaseOverride.
+  /// Can be overridden at compile time via DIARY_API_BASE (preferred)
+  /// or BACKEND_URL dart-define, or at test time via testApiBaseOverride.
   static String get apiBase {
-    // Allow test override
     if (testApiBaseOverride != null) {
       return testApiBaseOverride!;
     }
-    // Allow compile-time override for local development
+    if (_diaryApiBaseOverride.isNotEmpty) {
+      return _diaryApiBaseOverride;
+    }
     if (_backendUrlOverride.isNotEmpty) {
       return _backendUrlOverride;
     }
