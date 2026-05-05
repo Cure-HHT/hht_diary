@@ -97,7 +97,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Test Dev Admin', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testDevAdminId,
@@ -121,7 +121,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
       VALUES (@id::uuid, @email, 'Test Pending User', 'pending', @code, @expiry)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testPendingUserId,
@@ -146,7 +146,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
       VALUES (@id::uuid, @email, 'Test Pending Dev Admin', 'pending', @code, @expiry)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testDevAdminPendingId,
@@ -171,7 +171,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status, activation_code)
       VALUES (@id::uuid, @email, 'Test Already Active', @firebaseUid, 'active', @code)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testAlreadyActiveUserId,
@@ -186,7 +186,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, status, activation_code, activation_code_expires_at)
       VALUES (@id::uuid, @email, 'Test Expired User', 'pending', @code, @expiry)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testExpiredUserId,

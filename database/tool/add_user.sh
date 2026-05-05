@@ -160,7 +160,7 @@ for i in $(seq 0 $((user_count - 1))); do
 done
 
 users_sql="INSERT INTO portal_users (id, email, name, status, activated_at) VALUES${users_values}
-ON CONFLICT (email) DO NOTHING;"
+ON CONFLICT (LOWER(email)) DO NOTHING;"
 
 log_info "Executing portal_users INSERT..."
 psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" \

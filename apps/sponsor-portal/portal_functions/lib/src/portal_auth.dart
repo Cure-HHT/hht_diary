@@ -344,12 +344,14 @@ Future<PortalUser?> requirePortalAuth(
   );
 
   if (result.isEmpty && email != null) {
-    // First login for this user - try to link by email
+    // First login OR firebase_uid drifted (race, emulator restart, manual
+    // edit). Re-link unconditionally — the emailVerified gate in
+    // VerificationResult.isValid is what makes this safe.
     result = await db.executeWithContext(
       '''
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE LOWER(email) = LOWER(@email) AND firebase_uid IS NULL
+      WHERE LOWER(email) = LOWER(@email)
       RETURNING id, firebase_uid, email, name, status
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},

@@ -19,7 +19,7 @@ VALUES (
     'totp',      -- Developer Admins use TOTP
     false        -- MFA registration happens on first login
 )
-ON CONFLICT (email) DO UPDATE SET
+ON CONFLICT (LOWER(email)) DO UPDATE SET
     role = EXCLUDED.role,
     status = EXCLUDED.status,
     mfa_type = EXCLUDED.mfa_type;

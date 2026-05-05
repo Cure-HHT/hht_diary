@@ -107,7 +107,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Active Reset Test User', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testActiveUserId,
@@ -133,7 +133,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Inactive Reset Test User', NULL, 'pending')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {'id': testInactiveUserId, 'email': testInactiveEmail},
       context: UserContext.service,
@@ -144,7 +144,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Not Activated Reset Test User', NULL, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testNotActivatedUserId,

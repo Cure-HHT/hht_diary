@@ -72,7 +72,7 @@ void main() {
       VALUES
         (@adminId::uuid, @adminFirebaseUid, @adminEmail, 'Test Admin', 'Administrator', 'active'),
         (@invId::uuid, @invFirebaseUid, @invEmail, 'Test Investigator', 'Investigator', 'active')
-      ON CONFLICT (email) DO UPDATE SET
+      ON CONFLICT (LOWER(email)) DO UPDATE SET
         firebase_uid = EXCLUDED.firebase_uid,
         name = EXCLUDED.name,
         role = EXCLUDED.role,
