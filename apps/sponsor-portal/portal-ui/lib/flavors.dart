@@ -161,7 +161,15 @@ class FlavorConfig {
       // ${--project}-${--env}). All three live in
       // hht_diary_callisto/deployment/local-stack/.
       firebaseProjectId: 'demo-local-stack',
-      firebaseAuthDomain: 'demo-local-stack.firebaseapp.com',
+      // CUR-1280: must NOT be a *.firebaseapp.com domain on local flavor.
+      // The Firebase JS SDK loads a GAPI iframe at the configured
+      // authDomain to broker popup/redirect/MFA flows; that iframe in turn
+      // calls https://www.googleapis.com/identitytoolkit/v3/relyingparty/
+      // getProjectConfig?key=demo-api-key, which 400s with API_KEY_INVALID
+      // and breaks any auth flow that touches the iframe path
+      // (registration / activation / MFA enroll). The SDK skips the
+      // iframe path entirely when authDomain is on a local origin.
+      firebaseAuthDomain: 'localhost',
       firebaseMessagingSenderId: '000000000000',
     );
   }
@@ -199,7 +207,15 @@ class FlavorConfig {
       // ${--project}-${--env}). All three live in
       // hht_diary_callisto/deployment/local-stack/.
       firebaseProjectId: 'demo-local-stack',
-      firebaseAuthDomain: 'demo-local-stack.firebaseapp.com',
+      // CUR-1280: must NOT be a *.firebaseapp.com domain on local flavor.
+      // The Firebase JS SDK loads a GAPI iframe at the configured
+      // authDomain to broker popup/redirect/MFA flows; that iframe in turn
+      // calls https://www.googleapis.com/identitytoolkit/v3/relyingparty/
+      // getProjectConfig?key=demo-api-key, which 400s with API_KEY_INVALID
+      // and breaks any auth flow that touches the iframe path
+      // (registration / activation / MFA enroll). The SDK skips the
+      // iframe path entirely when authDomain is on a local origin.
+      firebaseAuthDomain: 'localhost',
       firebaseMessagingSenderId: '000000000000',
     );
   }
