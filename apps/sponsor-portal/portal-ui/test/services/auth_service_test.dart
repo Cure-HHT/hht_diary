@@ -7,6 +7,7 @@
 //   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
 //   REQ-d00080-A: client-side session management with configurable inactivity timeout
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:fake_async/fake_async.dart';
@@ -1570,6 +1571,181 @@ void main() {
         });
       },
     );
+
+    // CUR-1280 (issue 6): a hung getIdToken (offline / very slow network)
+    // must not stall the listener chain. The gate's `.timeout()` budget
+    // bounds the wait at _restoredTokenRefreshTimeout (5s); past that,
+    // the gate falls back to signOut so the user lands on the login page
+    // rather than seeing a frozen UI.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-A: client-side session management — a hung token refresh
+    //                 must not deadlock the auth state machine.
+    test('fresh tab with hung getIdToken (offline / slow network) times out '
+        'and signs out after the 5s budget', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final hungUser = _HangingMockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: hungUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: false,
+        );
+
+        // Advance past the 5s timeout budget; the gate's .timeout()
+        // must fire and the catch must run signOut + clearStorage.
+        fake.elapse(const Duration(seconds: 6));
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isTrue,
+          reason:
+              'CUR-1280 (issue 6): a hung token refresh must time out at '
+              '5s and trigger signOut, not stall the listener chain.',
+        );
+        expect(
+          authService.isAuthenticated,
+          isFalse,
+          reason:
+              'A hung restored-token refresh must not authenticate — the '
+              'session is unverifiable.',
+        );
+      });
+    });
+
+    // CUR-1280 (issue 6): the user's question that drove the gate fix was
+    // explicitly about multi-tab same-user behavior. The two tests above
+    // cover the gate in isolation. This test exercises the higher-level
+    // scenario: a SECOND AuthService instance constructed against the SAME
+    // MockFirebaseAuth (simulating two browser tabs sharing IndexedDB) does
+    // not tear down the first tab's session.
+    //
+    // KNOWN MOCK LIMITATION: `firebase_auth_mocks` exposes [authStateChanges]
+    // as a plain broadcast stream, which does NOT replay the current user
+    // to a late subscriber. Real Firebase Auth and the production stream
+    // DO replay the current state to new subscribers — that replay is what
+    // makes the multi-tab adoption case work in browsers (a fresh tab gets
+    // an immediate "you are signed in as X" event from IndexedDB-restored
+    // state). With the broadcast-only mock, tab 2 sees no event at all,
+    // so `tab2.isAuthenticated` stays false in the unit test. The gate
+    // tests above (valid forceRefresh => fall through, NOT signOut) lock
+    // in the per-tab adoption contract; integration / browser tests cover
+    // the cross-tab replay path end-to-end.
+    //
+    // What this test DOES lock in: opening a second AuthService against
+    // the same MockFirebaseAuth must NOT tear down the first tab's
+    // session — neither tab's `clearStorage` is called, and tab 1 stays
+    // authenticated.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-L: switching tabs MUST NOT trigger logout — opening a
+    //                 second tab while the first is logged in does not
+    //                 disturb the first tab.
+    //   REQ-p01044-O: synchronize session timeout across multiple tabs
+    //                 for the same user — opening a second tab must not
+    //                 interfere with the first tab's session.
+    test('opening a second fresh tab against the same valid Firebase session '
+        "does not disturb the first tab's session", () {
+      fakeAsync((fake) {
+        // Tab 1: open a tab against a valid Firebase session.
+        final sharedUser = MockUser(
+          uid: 'shared-uid',
+          email: 'shared@test.com',
+          displayName: 'Shared User',
+        );
+        final sharedAuth = MockFirebaseAuth(
+          mockUser: sharedUser,
+          signedIn: true,
+        );
+
+        var tab1ClearStorage = 0;
+        final tab1 = AuthService(
+          firebaseAuth: sharedAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            tab1ClearStorage++;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        expect(
+          tab1.isAuthenticated,
+          isTrue,
+          reason: 'sanity: tab 1 must adopt the valid restored session',
+        );
+        expect(
+          tab1ClearStorage,
+          0,
+          reason: 'sanity: tab 1 must not have torn down its own session',
+        );
+
+        // Tab 2: a fresh AuthService against the SAME MockFirebaseAuth
+        // (same Firebase IndexedDB in production).
+        var tab2ClearStorage = 0;
+        final tab2 = AuthService(
+          firebaseAuth: sharedAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            tab2ClearStorage++;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        // Tab 1 was not disturbed by tab 2 opening.
+        expect(
+          tab1.isAuthenticated,
+          isTrue,
+          reason:
+              'CUR-1280 (issue 6, REQ-p01044-O): opening a second tab '
+              "must not interfere with the first tab's session.",
+        );
+        expect(
+          tab1ClearStorage,
+          0,
+          reason:
+              "CUR-1280 (issue 6, REQ-p01044-O): the first tab's storage "
+              'must not be cleared as a side effect of opening tab 2.',
+        );
+
+        // Tab 2 must NOT have torn down the shared Firebase session.
+        // (We cannot assert tab2.isAuthenticated == true through this
+        // mock — see the KNOWN MOCK LIMITATION note above. But we CAN
+        // assert that tab 2 did not call clearStorage; if it had, it
+        // would have signed tab 1 out as well in production.)
+        expect(
+          tab2ClearStorage,
+          0,
+          reason:
+              'CUR-1280 (issue 6, REQ-d00080-L): tab 2 must not tear '
+              'down the shared Firebase session — clearStorage on tab 2 '
+              'would sign tab 1 out in production.',
+        );
+
+        tab1.dispose();
+        tab2.dispose();
+      });
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -1700,5 +1876,20 @@ class _ForceRefreshFailingMockUser extends MockUser {
         message: 'Mock: refresh token is no longer valid.',
       ),
     );
+  }
+}
+
+/// CUR-1280: a [MockUser] whose [getIdToken] returns a Future that never
+/// completes, simulating an offline / very slow network where Firebase's
+/// token-refresh RPC hangs. Exercises the gate's `.timeout()` code path
+/// (the only path that calls `_restoredTokenRefreshTimeout`).
+// ignore: must_be_immutable
+class _HangingMockUser extends MockUser {
+  _HangingMockUser({super.uid, super.email, super.displayName});
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) {
+    // Never completes — caller must rely on the gate's `.timeout()`.
+    return Completer<String>().future;
   }
 }

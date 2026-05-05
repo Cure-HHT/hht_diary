@@ -317,6 +317,12 @@ class AuthService extends ChangeNotifier {
   /// How long before timeout to show the warning dialog (30 seconds).
   static const Duration _warningLeadTime = Duration(seconds: 30);
 
+  /// CUR-1280: how long to wait for Firebase to confirm the restored
+  /// token is still valid before falling back to signOut.
+  /// Firebase's own RPC timeout is ~10s; 5s gives a margin while not
+  /// stalling the listener chain on offline networks.
+  static const Duration _restoredTokenRefreshTimeout = Duration(seconds: 5);
+
   /// True when the session was ended due to inactivity (not an explicit sign-out).
   bool _timedOut = false;
 
@@ -584,11 +590,12 @@ class AuthService extends ChangeNotifier {
         _sessionUid == null &&
         _clearStorage != _noopStorage) {
       try {
-        await user.getIdToken(true).timeout(const Duration(seconds: 5));
+        await user.getIdToken(true).timeout(_restoredTokenRefreshTimeout);
         // Token still valid — fall through. The branches below
         // (cross-tab collision, skip-predicate, restore-from-refresh)
         // handle adopting the session correctly.
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[AUTH] Fresh-tab token refresh failed, signing out: $e');
         await signOut();
         return;
       }
