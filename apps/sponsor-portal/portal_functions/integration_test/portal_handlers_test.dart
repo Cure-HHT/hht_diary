@@ -525,7 +525,9 @@ void main() {
       'portalMeHandler returns 401 for token missing email',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {
-        // Create token without email claim
+        // Create token without email claim. email_verified is set so the
+        // VerificationResult.isValid gate passes and we exercise the
+        // missing-email branch specifically.
         final header = base64Url.encode(
           utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
         );
@@ -534,6 +536,7 @@ void main() {
             jsonEncode({
               'sub': 'some-uid',
               'user_id': 'some-uid',
+              'email_verified': true,
               'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
               'exp':
                   DateTime.now()
