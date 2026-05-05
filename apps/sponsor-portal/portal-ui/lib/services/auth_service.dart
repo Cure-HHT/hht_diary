@@ -592,6 +592,11 @@ class AuthService extends ChangeNotifier {
         _sessionUid == null &&
         _clearStorage != _noopStorage) {
       try {
+        // CUR-1280: re-bind before forceRefresh — without it the
+        // refresh hits production with the placeholder api-key and
+        // throws, causing every fresh-tab open to signOut even valid
+        // sessions. flutterfire #9528.
+        await ensureAuthEmulatorBound();
         await user.getIdToken(true).timeout(_restoredTokenRefreshTimeout);
         // Token still valid — fall through. The branches below
         // (cross-tab collision, skip-predicate, restore-from-refresh)
@@ -871,6 +876,8 @@ class AuthService extends ChangeNotifier {
     }
 
     try {
+      // CUR-1280: re-bind emulator before getIdToken (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       final idToken = await user.getIdToken();
 
       final response = await _httpClient.post(
@@ -921,6 +928,8 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // CUR-1280: re-bind emulator before getIdToken (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       final idToken = await user.getIdToken();
 
       final response = await _httpClient.post(
@@ -1031,6 +1040,13 @@ class AuthService extends ChangeNotifier {
         return _PortalFetchResult.transientFailure;
       }
 
+      // CUR-1280: re-bind emulator on local-flavor before getIdToken,
+      // which is a Firebase Auth network call. Refresh path enters
+      // _fetchPortalUser without going through signIn first, so the
+      // signIn-side bind isn't enough — every getIdToken call needs
+      // its own re-bind. flutterfire #9528.
+      await ensureAuthEmulatorBound();
+      if (_disposed) return _PortalFetchResult.transientFailure;
       // Get ID token for API authentication
       final idToken = await user.getIdToken();
       if (_disposed) return _PortalFetchResult.transientFailure;
