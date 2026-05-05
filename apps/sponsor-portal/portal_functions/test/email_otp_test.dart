@@ -217,13 +217,16 @@ void main() {
 
   group('Rate limiting response format', () {
     test('429 response should include retry_after field', () {
-      // The expected rate limit response structure
+      // The expected rate limit response structure. The actual retry_after
+      // value is dynamic (computed from the oldest in-window record by
+      // EmailService.getRateLimitStatus); the integration test asserts the
+      // value range. Here we only verify the response shape.
       final rateLimitResponse = {
         'error': 'Too many OTP requests. Please wait before trying again.',
-        'retry_after': 900,
+        'retry_after': 780,
       };
 
-      expect(rateLimitResponse['retry_after'], 900);
+      expect(rateLimitResponse['retry_after'], isA<int>());
       expect(rateLimitResponse['error'], isA<String>());
     });
   });
