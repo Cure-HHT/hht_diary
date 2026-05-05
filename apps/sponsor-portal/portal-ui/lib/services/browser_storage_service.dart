@@ -91,9 +91,13 @@ class BrowserStorageService {
     }
   }
 
-  /// Heuristic match for Firebase Auth's persistence DB names.
-  /// Format observed: `firebaseLocalStorageDb` and
-  /// `firebase-heartbeat-database`. Both are managed by the SDK.
+  /// Heuristic match for DBs owned by the Firebase SDK family.
+  /// We intentionally skip ALL `firebase-*` prefixed DBs (plus the
+  /// camel-cased `firebaseLocalStorageDb` Auth uses) because they are
+  /// managed by the SDK — including any future ones we don't know about
+  /// today (e.g. `firebase-heartbeat-database`, `firebase-installations`,
+  /// or app-defined `firebase-cache`). Manually deleting them races the
+  /// SDK's writes and ends up `blocked` anyway.
   bool _isFirebaseAuthDb(String name) =>
       name == 'firebaseLocalStorageDb' || name.startsWith('firebase-');
 
@@ -107,6 +111,10 @@ class BrowserStorageService {
       if (!completer.isCompleted) completer.complete();
     }).toJS;
     req.onerror = ((web.Event _) {
+      debugPrint(
+        '[BrowserStorageService] deleteDatabase($name) errored — '
+        'continuing best-effort',
+      );
       if (!completer.isCompleted) completer.complete();
     }).toJS;
     req.onblocked = ((web.Event _) {

@@ -136,6 +136,15 @@ void main() {
       );
       stopwatch.stop();
 
+      // 200ms is well below the 800ms per-DB timeout in `_deleteDatabase`,
+      // so the post-fix elapsed (~800ms) clears it with margin. The lower
+      // bound only false-positives if the fixture connection somehow
+      // closed before `clearStorage()` issued its delete — but `fixtureDb`
+      // is held open by `setUp` and `tearDown` is the only close path,
+      // and `tearDown` runs AFTER this body. Under defined test
+      // conditions `deleteDatabase` is therefore guaranteed to be
+      // `blocked` and the 800ms timeout is the only path to resolution,
+      // so this floor cannot be reached without the fix.
       expect(
         stopwatch.elapsedMilliseconds,
         greaterThanOrEqualTo(200),
