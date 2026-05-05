@@ -201,13 +201,20 @@ void main() {
     });
   });
 
-  // CUR-1280 (issue 7): emulator token validation gates
+  // CUR-1280 (issue 7): emulator token expiry gate.
   //
   // The emulator path in identity_platform.dart does not verify
   // signatures (emulator tokens are unsigned), but it MUST still
-  // reject expired tokens and tokens addressed to the wrong audience.
-  // Otherwise the server accepts stale tokens that the client SDK has
-  // already refreshed/expired, producing client/server auth desync.
+  // reject expired tokens. Otherwise the server accepts stale tokens
+  // that the client SDK has already refreshed/expired, producing
+  // client/server auth desync.
+  //
+  // Audience binding is NOT checked in emulator mode — the emulator
+  // only mints tokens for its own --project flag (demo-local-stack),
+  // while server-side _projectId is sourced from Doppler-injected
+  // GCP_PROJECT_ID (e.g. callisto4-dev). Comparing them is a
+  // structural false-positive, not a security check. Production
+  // verification (the non-emulator path) does enforce audience.
   //
   // These tests exercise the real _verifyEmulatorToken branch and
   // therefore require FIREBASE_AUTH_EMULATOR_HOST to be set in the
@@ -219,17 +226,12 @@ void main() {
     /// Build a base64url-encoded JWT-shaped string suitable for the
     /// emulator path. Signature is empty (the emulator path does not
     /// verify signatures). Claims default to a present, valid token;
-    /// override [exp] / [aud] to construct rejection cases.
-    ///
-    /// [aud] is intentionally `Object?` so callers can pass either a
-    /// plain `String` (current emulator format) or a `List<String>`
-    /// (real-Firebase format) — the verifier handles both shapes.
+    /// override [exp] to construct rejection cases.
     String buildEmulatorToken({
       String sub = 'test-user-emu',
       String? email = 'emu@example.com',
       bool emailVerified = true,
       DateTime? exp,
-      Object? aud,
     }) {
       final header = base64Url.encode(
         utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
@@ -244,7 +246,6 @@ void main() {
         'email_verified': emailVerified,
         'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
         'exp': expSec,
-        if (aud != null) 'aud': aud,
       };
       final payload = base64Url.encode(utf8.encode(jsonEncode(claims)));
       return '$header.$payload.';
@@ -261,33 +262,6 @@ void main() {
         expect(result.isValid, isFalse);
         expect(result.error, isNotNull);
         expect(result.error!.toLowerCase(), contains('expired'));
-      },
-    );
-
-    test(
-      'rejects emulator token with wrong audience',
-      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
-      () async {
-        final token = buildEmulatorToken(aud: 'not-our-project');
-        final result = await verifyIdToken(token);
-        expect(result.isValid, isFalse);
-        expect(result.error, isNotNull);
-        expect(result.error!.toLowerCase(), contains('audience'));
-      },
-    );
-
-    test(
-      'rejects emulator token where aud is a List with the wrong project id',
-      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
-      () async {
-        // Real Firebase ID tokens encode `aud` as a JSON array; verify
-        // the emulator path's audience check still fires in that shape
-        // rather than silently passing through.
-        final token = buildEmulatorToken(aud: <String>['not-our-project']);
-        final result = await verifyIdToken(token);
-        expect(result.isValid, isFalse);
-        expect(result.error, isNotNull);
-        expect(result.error!.toLowerCase(), contains('audience'));
       },
     );
   });

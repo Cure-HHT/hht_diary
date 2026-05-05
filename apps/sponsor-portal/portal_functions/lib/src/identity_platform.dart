@@ -249,12 +249,11 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     print('[AUTH] Emulator: Parsed payload keys: ${payload.keys.toList()}');
 
     // CUR-1280 (issue 7): emulator tokens are not signed, so we still
-    // validate the time-bound and audience claims to keep the server
-    // from accepting stale tokens that the client SDK has already
-    // refreshed/expired. Without these checks, the portal-server would
-    // green-light credentials the client considers dead — one of the
-    // "client and server disagree about whether I'm logged in"
-    // flakiness symptoms.
+    // validate the expiry claim to keep the server from accepting stale
+    // tokens that the client SDK has already refreshed/expired. Without
+    // this check, the portal-server would green-light credentials the
+    // client considers dead — one of the "client and server disagree
+    // about whether I'm logged in" flakiness symptoms.
     final exp = payload['exp'];
     if (exp is num) {
       final expSec = exp.toInt();
@@ -265,25 +264,22 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
       }
     }
 
-    // Real Firebase ID tokens encode `aud` as a JSON array
-    // (`["project-id"]`); the auth emulator currently emits it as a plain
-    // String. Handle both forms so the audience check stays effective if
-    // the emulator output ever drifts to the array shape — otherwise the
-    // `is String` guard would silently skip the check and accept ANY aud.
-    final aud = payload['aud'];
-    String? audStr;
-    if (aud is String) {
-      audStr = aud;
-    } else if (aud is List && aud.isNotEmpty) {
-      // Take the first element as the canonical audience for comparison,
-      // mirroring the production path's `claims.audience?.contains(...)`.
-      final first = aud.first;
-      audStr = first is String ? first : null;
-    }
-    if (audStr != null && audStr != _projectId) {
-      print('[AUTH] Emulator: audience mismatch: $audStr != $_projectId');
-      return VerificationResult(error: 'Invalid audience: $audStr');
-    }
+    // CUR-1280: NO audience check on the emulator path.
+    //
+    // The auth emulator only ever issues tokens for its own
+    // --project flag (demo-local-stack in this stack). It cannot
+    // mint tokens for any other project. Meanwhile, the server's
+    // _projectId is sourced from GCP_PROJECT_ID, which Doppler injects
+    // as the production GCP project (e.g. callisto4-dev) even when
+    // the rest of the stack is running against the emulator. Comparing
+    // the emulator's aud against _projectId is a structural false-
+    // positive that rejects every valid emulator token.
+    //
+    // Audience binding in emulator mode is implicit: the only way a
+    // token can reach this verifier is to come from the emulator at
+    // FIREBASE_AUTH_EMULATOR_HOST, and the emulator only signs tokens
+    // for its own project. Production verification (the non-emulator
+    // path above) does enforce audience.
 
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;
     final email = payload['email'] as String?;
