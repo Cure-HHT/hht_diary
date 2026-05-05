@@ -112,15 +112,18 @@ class BrowserStorageService {
     }
   }
 
-  /// Heuristic match for DBs owned by the Firebase SDK family.
-  /// We intentionally skip ALL `firebase-*` prefixed DBs (plus the
-  /// camel-cased `firebaseLocalStorageDb` Auth uses) because they are
-  /// managed by the SDK — including any future ones we don't know about
-  /// today (e.g. `firebase-heartbeat-database`, `firebase-installations`,
-  /// or app-defined `firebase-cache`). Manually deleting them races the
-  /// SDK's writes and ends up `blocked` anyway.
-  bool _isFirebaseAuthDb(String name) =>
-      name == 'firebaseLocalStorageDb' || name.startsWith('firebase-');
+  /// Match the single Firebase Auth persistence DB that `_auth.signOut()`
+  /// already clears for us — `firebaseLocalStorageDb`. We let signOut own
+  /// it; manually deleting it here would race signOut's writes and likely
+  /// trip the `blocked` path.
+  ///
+  /// Other Firebase-managed DBs (`firebase-heartbeat-database`,
+  /// `firebase-installations-database`, etc.) are NOT skipped — `signOut()`
+  /// does not touch them, so REQ-d00083 / REQ-p01044-M (no patient data
+  /// recoverable after logout) requires us to delete them through the
+  /// normal best-effort path. They may block if the SDK still has handles
+  /// open; the timeout/blocked logging in `_deleteDatabase` covers that.
+  bool _isFirebaseAuthDb(String name) => name == 'firebaseLocalStorageDb';
 
   /// Issue a deleteDatabase request and wait for completion or timeout.
   /// Returns when the deletion completes, errors, or the timeout fires.

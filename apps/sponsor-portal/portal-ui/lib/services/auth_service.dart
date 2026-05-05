@@ -530,9 +530,20 @@ class AuthService extends ChangeNotifier {
       // Synchronously chain — assignment happens BEFORE any await, so the
       // next listener invocation observes the new tail. Without this, two
       // events firing back-to-back would interleave their async bodies.
-      _pendingHandler = (_pendingHandler ?? Future.value()).then(
-        (_) => _handleAuthEvent(user),
-      );
+      //
+      // CUR-1280 (Copilot review): swallow errors at the chain tail so a
+      // throwing _handleAuthEvent (e.g. signOut() or storage clearer
+      // failure) does not poison every subsequent event with a permanently
+      // failed Future. _handleAuthEvent already logs its own failures; the
+      // catchError here is purely a chain-continuity guard.
+      _pendingHandler = (_pendingHandler ?? Future.value())
+          .then((_) => _handleAuthEvent(user))
+          .catchError((Object e, StackTrace st) {
+            debugPrint(
+              '[AuthService] handler error swallowed for chain '
+              'continuity: $e\n$st',
+            );
+          });
       await _pendingHandler;
     });
   }

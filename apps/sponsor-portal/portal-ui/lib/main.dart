@@ -229,11 +229,21 @@ void main() async {
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
   // CUR-1280: also inject the auto-recovery DB-wipe so AuthService can
   // call it without depending on package:web (keeps unit tests on VM).
+  //
+  // CUR-1280 (Copilot review): forceClearFirebaseAuthDb is a no-op-or-better
+  // hammer for the local-emulator restore race (see firebase_emulator_helper.dart
+  // for the flutterfire #9528 background). It MUST NOT fire on deployed
+  // flavors — wiping firebaseLocalStorageDb in production would silently
+  // log out every user on every recoverable refresh hiccup. Inject the
+  // real implementation only on local flavor; deployed flavors get a
+  // null-equivalent no-op so any auto-recovery path becomes signOut-only.
   final browserStorage = BrowserStorageService();
   final authService = AuthService(
     sponsorId: sponsorBranding.sponsorId,
     clearStorage: browserStorage.clearStorage,
-    forceClearFirebaseAuthDb: browserStorage.forceClearFirebaseAuthDb,
+    forceClearFirebaseAuthDb: F.useEmulator
+        ? browserStorage.forceClearFirebaseAuthDb
+        : () async {},
     isPageRefresh: isPageRefresh,
   );
 
