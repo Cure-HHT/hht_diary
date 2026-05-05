@@ -248,6 +248,29 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     final payload = jsonDecode(payloadBase64) as Map<String, dynamic>;
     print('[AUTH] Emulator: Parsed payload keys: ${payload.keys.toList()}');
 
+    // CUR-1280 (issue 7): emulator tokens are not signed, so we still
+    // validate the time-bound and audience claims to keep the server
+    // from accepting stale tokens that the client SDK has already
+    // refreshed/expired. Without these checks, the portal-server would
+    // green-light credentials the client considers dead — one of the
+    // "client and server disagree about whether I'm logged in"
+    // flakiness symptoms.
+    final exp = payload['exp'];
+    if (exp is num) {
+      final expSec = exp.toInt();
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (expSec < nowSec) {
+        print('[AUTH] Emulator: token expired (exp=$expSec, now=$nowSec)');
+        return VerificationResult(error: 'Token expired');
+      }
+    }
+
+    final aud = payload['aud'];
+    if (aud is String && aud != _projectId) {
+      print('[AUTH] Emulator: audience mismatch: $aud != $_projectId');
+      return VerificationResult(error: 'Invalid audience: $aud');
+    }
+
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;
     final email = payload['email'] as String?;
     final emailVerified = payload['email_verified'] as bool? ?? false;

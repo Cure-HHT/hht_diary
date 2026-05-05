@@ -1,9 +1,11 @@
 // Tests for Identity Platform token verification
 //
 // IMPLEMENTS REQUIREMENTS:
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance (no stale credentials)
 //   REQ-d00031: Identity Platform Integration
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:test/test.dart';
 
@@ -197,6 +199,78 @@ void main() {
       // We expect it to fail in production mode due to missing kid
       expect(result.isValid, isFalse);
     });
+  });
+
+  // CUR-1280 (issue 7): emulator token validation gates
+  //
+  // The emulator path in identity_platform.dart does not verify
+  // signatures (emulator tokens are unsigned), but it MUST still
+  // reject expired tokens and tokens addressed to the wrong audience.
+  // Otherwise the server accepts stale tokens that the client SDK has
+  // already refreshed/expired, producing client/server auth desync.
+  //
+  // These tests exercise the real _verifyEmulatorToken branch and
+  // therefore require FIREBASE_AUTH_EMULATOR_HOST to be set in the
+  // environment (same skip pattern integration_test/ uses).
+  group('verifyIdToken emulator gates', () {
+    final useEmulator =
+        Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] != null;
+
+    /// Build a base64url-encoded JWT-shaped string suitable for the
+    /// emulator path. Signature is empty (the emulator path does not
+    /// verify signatures). Claims default to a present, valid token;
+    /// override [exp] / [aud] to construct rejection cases.
+    String buildEmulatorToken({
+      String sub = 'test-user-emu',
+      String? email = 'emu@example.com',
+      bool emailVerified = true,
+      DateTime? exp,
+      String? aud,
+    }) {
+      final header = base64Url.encode(
+        utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+      );
+      final expSec =
+          (exp ?? DateTime.now().add(const Duration(hours: 1)))
+              .millisecondsSinceEpoch ~/
+          1000;
+      final claims = <String, dynamic>{
+        'sub': sub,
+        if (email != null) 'email': email,
+        'email_verified': emailVerified,
+        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'exp': expSec,
+        if (aud != null) 'aud': aud,
+      };
+      final payload = base64Url.encode(utf8.encode(jsonEncode(claims)));
+      return '$header.$payload.';
+    }
+
+    test(
+      'rejects expired emulator token',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = buildEmulatorToken(
+          exp: DateTime.now().subtract(const Duration(hours: 1)),
+        );
+        final result = await verifyIdToken(token);
+        expect(result.isValid, isFalse);
+        expect(result.error, isNotNull);
+        expect(result.error!.toLowerCase(), contains('expired'));
+      },
+    );
+
+    test(
+      'rejects emulator token with wrong audience',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = buildEmulatorToken(aud: 'not-our-project');
+        final result = await verifyIdToken(token);
+        expect(result.isValid, isFalse);
+        expect(result.error, isNotNull);
+        expect(result.error!.toLowerCase(), contains('audience'));
+      },
+    );
   });
 
   group('verifyIdToken error cases', () {
