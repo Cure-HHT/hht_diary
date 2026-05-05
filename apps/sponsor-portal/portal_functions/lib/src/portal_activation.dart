@@ -353,7 +353,8 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     );
   } else {
     targetResult = await db.executeWithContext(
-      'SELECT id, email, name, status FROM portal_users WHERE email = @email',
+      'SELECT id, email, name, status FROM portal_users '
+      'WHERE LOWER(email) = LOWER(@email)',
       parameters: {'email': email},
       context: serviceContext,
     );

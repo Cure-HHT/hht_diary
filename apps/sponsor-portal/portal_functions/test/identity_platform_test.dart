@@ -28,6 +28,17 @@ void main() {
       expect(result.isValid, isFalse);
     });
 
+    test('isValid returns false when emailVerified is false', () {
+      // Closes the account-takeover gap that would otherwise surface in
+      // portal_auth's email-keyed re-link path.
+      final result = VerificationResult(
+        uid: 'test-uid',
+        email: 'test@example.com',
+      );
+      expect(result.emailVerified, isFalse);
+      expect(result.isValid, isFalse);
+    });
+
     test('isValid returns false when error is present', () {
       final result = VerificationResult(uid: 'test-uid', error: 'Some error');
       expect(result.isValid, isFalse);

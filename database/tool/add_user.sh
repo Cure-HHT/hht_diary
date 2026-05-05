@@ -160,7 +160,7 @@ for i in $(seq 0 $((user_count - 1))); do
 done
 
 users_sql="INSERT INTO portal_users (id, email, name, status, activated_at) VALUES${users_values}
-ON CONFLICT (email) DO NOTHING;"
+ON CONFLICT (LOWER(email)) DO NOTHING;"
 
 log_info "Executing portal_users INSERT..."
 psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" \
@@ -171,16 +171,18 @@ log_info "portal_users INSERT complete"
 # Step 2: Look up actual user IDs (handles both new and existing rows)
 # -----------------------------------------------------------------------------
 
-# Build a comma-separated list of quoted emails for the IN clause
+# Build a comma-separated list of LOWER('email') for case-insensitive lookup.
+# Storage preserves display case; lookups always normalize to lower.
 email_list=""
 for e in "${emails[@]}"; do
     e_sql="${e//\'/\'\'}"
     [[ -n "${email_list}" ]] && email_list+=","
-    email_list+="'${e_sql}'"
+    email_list+="LOWER('${e_sql}')"
 done
 
 # Query actual ids — these may differ from the deterministic UUIDs if users
-# already existed with different ids
+# already existed with different ids. Hashmap key is the lowercased email so
+# subsequent lookups don't depend on the stored row's casing.
 declare -A id_by_email=()
 
 while IFS='|' read -r uid uemail; do
@@ -188,7 +190,7 @@ while IFS='|' read -r uid uemail; do
     uemail=$(echo "${uemail}" | xargs)
     id_by_email["${uemail}"]="${uid}"
 done < <(psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" \
-    -tAF'|' -c "SELECT id, email FROM portal_users WHERE email IN (${email_list})")
+    -tAF'|' -c "SELECT id, LOWER(email) FROM portal_users WHERE LOWER(email) IN (${email_list})")
 
 # -----------------------------------------------------------------------------
 # Step 3: Build and execute portal_user_roles INSERT
@@ -200,7 +202,7 @@ roles_values=""
 for i in $(seq 0 $((user_count - 1))); do
     e="${emails[$i]}"
     r="${roles[$i]}"
-    uid="${id_by_email[${e}]:-}"
+    uid="${id_by_email[${e,,}]:-}"
 
     if [[ -z "${uid}" ]]; then
         log_warn "No user ID found for ${e} — skipping role assignment"
@@ -243,7 +245,7 @@ errors=0
 for i in $(seq 0 $((user_count - 1))); do
     e="${emails[$i]}"
     n="${names[$i]}"
-    uid="${id_by_email[${e}]:-}"
+    uid="${id_by_email[${e,,}]:-}"
 
     # Try signUp
     signup_payload=$(jq -n \

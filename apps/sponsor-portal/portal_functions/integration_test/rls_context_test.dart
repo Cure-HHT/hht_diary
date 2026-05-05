@@ -72,7 +72,7 @@ void main() {
       VALUES
         (@adminId::uuid, @adminFirebaseUid, @adminEmail, 'Test Admin', 'Administrator', 'active'),
         (@invId::uuid, @invFirebaseUid, @invEmail, 'Test Investigator', 'Investigator', 'active')
-      ON CONFLICT (email) DO UPDATE SET
+      ON CONFLICT (LOWER(email)) DO UPDATE SET
         firebase_uid = EXCLUDED.firebase_uid,
         name = EXCLUDED.name,
         role = EXCLUDED.role,
@@ -635,6 +635,54 @@ void main() {
       expect(policyNames, contains('portal_users_admin_insert'));
       expect(policyNames, contains('portal_users_admin_update'));
       expect(policyNames, contains('portal_users_service_all'));
+    });
+
+    test('portal_pending_email_changes has service_role policy', () async {
+      final result = await Database.instance.execute('''
+        SELECT polname
+        FROM pg_policy
+        WHERE polrelid = 'portal_pending_email_changes'::regclass
+        ORDER BY polname
+      ''');
+
+      final policyNames = result.map((r) => r[0] as String).toList();
+      expect(policyNames, contains('portal_pending_email_changes_service_all'));
+    });
+
+    test('service_role can read portal_pending_email_changes rows', () async {
+      // Functional smoke test for the service_role policy + GRANT pair.
+      // Without the GRANT, executeWithContext throws permission_denied.
+      // Without the policy, the SELECT silently returns 0 rows under
+      // service context, and verifyEmailChangeHandler degrades to a
+      // 400 "Invalid or expired verification link" for every request.
+      // Insert a probe row as superuser, then assert service_role sees it.
+      const probeTokenHash = 'rls-probe-hash-portal-pending-email-changes';
+      final db = Database.instance;
+      await db.execute(
+        '''
+        INSERT INTO portal_pending_email_changes
+          (user_id, new_email, token_hash, requested_by, expires_at)
+        VALUES
+          (@userId::uuid, 'rls-probe-new@example.com', @hash,
+           @userId::uuid, now() + interval '1 hour')
+        ''',
+        parameters: {'userId': testInvestigatorId, 'hash': probeTokenHash},
+      );
+
+      try {
+        final result = await db.executeWithContext(
+          'SELECT count(*) FROM portal_pending_email_changes '
+          'WHERE token_hash = @hash',
+          parameters: {'hash': probeTokenHash},
+          context: UserContext.service,
+        );
+        expect(result.first[0], equals(1));
+      } finally {
+        await db.execute(
+          'DELETE FROM portal_pending_email_changes WHERE token_hash = @hash',
+          parameters: {'hash': probeTokenHash},
+        );
+      }
     });
   });
 }
