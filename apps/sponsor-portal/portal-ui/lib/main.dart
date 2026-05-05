@@ -35,8 +35,11 @@ void main() async {
   // CUR-1280: previous builds shipped flutter_service_worker.js. PWA is
   // now disabled at build time, but a SW already installed in the
   // user's browser survives. Unregister any leftover SW on boot.
-  // IMPLEMENTS: REQ-d00077-I (unregister any existing service worker
-  //             registrations on application initialization).
+  // IMPLEMENTS: REQ-p00009 (Sponsor-Specific Web Portals must serve
+  //             the latest deploy; a leftover SW shadows new main.dart.js).
+  // Note: closest direct assertion is REQ-d00077-I but that REQ is
+  //       scoped to the Web Diary (REQ-p01042); no portal-specific
+  //       equivalent exists. Policy applied by analogy.
   unawaited(_unregisterLeftoverServiceWorkers());
 
   // Remove # from URLs
@@ -231,9 +234,14 @@ void main() async {
 /// but an SW already in the browser persists until explicitly removed.
 ///
 /// IMPLEMENTS REQUIREMENTS:
-///   REQ-d00077-H (disable service workers to prevent offline caching)
-///   REQ-d00077-I (unregister any existing service worker registrations
-///                 on application initialization)
+///   REQ-p00009 (always serve the latest deploy)
+///   REQ-p01044-M (no patient data recoverable from the browser after
+///                 logout — SW caches could otherwise persist)
+///
+/// Note: REQ-d00077-H/I/N states the explicit "SHALL disable SW" /
+/// "SHALL unregister existing SW" policy but is scoped to the Web Diary
+/// (implements REQ-p01042). No portal-specific equivalent exists; we
+/// apply the same policy by analogy to the portal here.
 Future<void> _unregisterLeftoverServiceWorkers() async {
   if (!kIsWeb) return;
   final List<web.ServiceWorkerRegistration> regs;
@@ -249,9 +257,9 @@ Future<void> _unregisterLeftoverServiceWorkers() async {
     try {
       await reg.unregister().toDart;
     } catch (e) {
-      // Per REQ-d00077-I best-effort: a single registration's failure to
-      // unregister (security error, internal browser error) must not block
-      // boot. Log so it doesn't vanish silently.
+      // Best-effort: a single registration's failure to unregister
+      // (security error, internal browser error) must not block boot.
+      // Log so it doesn't vanish silently.
       debugPrint('[main] serviceWorker.unregister failed: $e');
     }
   }
