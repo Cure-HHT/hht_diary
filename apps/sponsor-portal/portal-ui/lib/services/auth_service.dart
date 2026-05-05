@@ -466,70 +466,158 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Initialize auth state listener
-  void _init() {
-    _auth.authStateChanges().listen((User? user) async {
-      // CUR-1118: If this is a fresh tab (not a page refresh) and Firebase
-      // restored a stale session from IndexedDB, sign out now.
-      // We do this HERE (not in main.dart) because Firebase needs time to
-      // restore the session from IndexedDB before we can sign out of it.
-      // The !_isInitialized guard ensures this only fires on the FIRST
-      // authStateChanges event (initial restoration), not on subsequent
-      // events from explicit signIn() calls.
-      // The _clearStorage != _noopStorage guard ensures this only runs in
-      // the browser (where main.dart injects BrowserStorageService), not in
-      // unit tests which use the default no-op.
-      if (user != null &&
-          !_isPageRefresh &&
-          !_isInitialized &&
-          _sessionUid == null &&
-          _clearStorage != _noopStorage) {
-        await signOut();
-        return;
-      }
+  /// CUR-1280: serialized authStateChanges subscription.
+  ///
+  /// `late final` so we can `await _firebaseSub.cancel()` in [dispose] before
+  /// any other state is torn down — preventing a chained handler from firing
+  /// against a half-disposed instance.
+  late final StreamSubscription<User?> _firebaseSub;
 
-      if (user != null && _sessionUid != null && user.uid != _sessionUid) {
-        // CUR-982: A different user signed in from another tab, overwriting
-        // this tab's Firebase auth state via shared localStorage. Sign out
-        // to prevent role-escalation display mismatch (FDA 21 CFR Part 11).
-        debugPrint(
-          '[AUTH] Cross-tab session collision detected: '
-          'expected $_sessionUid, got ${user.uid}. Signing out.',
-        );
-        await signOut();
-      } else if (user != null) {
-        // Same user signed in or session restored — fetch portal user info.
-        // CUR-1118: Track the UID so cross-tab collision detection (CUR-982)
-        // works after a page refresh, not only after an explicit signIn().
-        _sessionUid ??= user.uid;
-        final result = await _fetchPortalUser();
-        // CUR-1157: do NOT unconditionally flip _isInitialized after a
-        // transient API failure on the initial restore — doing so leaves
-        // dashboards in (isAuthenticated=false, isInitialized=true) and
-        // they redirect to /login, which the user perceives as "refresh
-        // logged me out" even though the Firebase session is valid.
-        if (result == _PortalFetchResult.transientFailure && !_isInitialized) {
-          _scheduleInitialFetchRetry();
-          return;
-        }
-        if (!_isInitialized) {
-          _isInitialized = true;
-          notifyListeners();
-        }
-      } else {
-        // User signed out externally (e.g. token expiry, Firebase forced logout).
-        // Cancel both timers and clear the warning flag so UserActivityListener
-        // does not attempt to dismiss a dialog that may no longer exist.
-        _inactivityTimer?.cancel();
-        _inactivityTimer = null;
-        _warningTimer?.cancel();
-        _warningTimer = null;
-        _isWarning = false;
-        _currentUser = null;
+  /// CUR-1280: chained tail of in-flight handler invocations. Each
+  /// `authStateChanges` event appends `_handleAuthEvent(user)` to this Future
+  /// SYNCHRONOUSLY (before any await), guaranteeing handler N completes
+  /// before handler N+1 begins, even though `Stream.listen`'s default
+  /// behavior on a broadcast stream does not pause for async callbacks.
+  Future<void>? _pendingHandler;
+
+  /// CUR-1280: re-entry guard. Hot reload re-runs the constructor against the
+  /// same FirebaseAuth instance, attaching a second listener and producing
+  /// duplicate handler invocations per event. The flag scopes to the
+  /// AuthService instance — a fresh AuthService still re-listens, which is
+  /// the correct behavior under tests and real navigation.
+  bool _didInit = false;
+
+  /// CUR-1280: dispose flag. Cancelling the StreamSubscription does not
+  /// prevent already-queued chain links from running — `_pendingHandler`'s
+  /// `.then(...)` microtask is independent of the subscription. So a chain
+  /// link that was scheduled before dispose may run after dispose and try
+  /// to `notifyListeners()` on a torn-down ChangeNotifier. Bail in that
+  /// case at the top of `_handleAuthEvent`.
+  bool _disposed = false;
+
+  /// Initialize auth state listener.
+  ///
+  /// IMPLEMENTS REQUIREMENTS:
+  ///   REQ-d00080-A: client-side session management — the listener is the
+  ///                 surface where Firebase restores collide with explicit
+  ///                 signIn / signOut and must serialize.
+  ///   REQ-p01044-A: configured-period inactivity termination — concurrent
+  ///                 handler runs corrupt the inactivity-timer state.
+  ///   REQ-p00010:   FDA 21 CFR Part 11 — interleaved writes to
+  ///                 _currentUser / _sessionUid leave audit-visible
+  ///                 intermediate states.
+  ///   REQ-CAL-p00046: Session Management.
+  void _init() {
+    if (_didInit) return;
+    _didInit = true;
+    _firebaseSub = _auth.authStateChanges().listen((User? user) async {
+      // Synchronously chain — assignment happens BEFORE any await, so the
+      // next listener invocation observes the new tail. Without this, two
+      // events firing back-to-back would interleave their async bodies.
+      _pendingHandler = (_pendingHandler ?? Future.value()).then(
+        (_) => _handleAuthEvent(user),
+      );
+      await _pendingHandler;
+    });
+  }
+
+  /// CUR-1280: serialized handler body. See [_init] for the chain mechanics.
+  ///
+  /// IMPLEMENTS REQUIREMENTS:
+  ///   REQ-d00080-A, REQ-p01044-A, REQ-p00010, REQ-CAL-p00046
+  Future<void> _handleAuthEvent(User? user) async {
+    // CUR-1280: a chain link queued before dispose can still fire after.
+    // Bail before mutating any state or calling notifyListeners().
+    if (_disposed) return;
+
+    // CUR-1280 (issue 11): a fresh sign-in session begins when we see the
+    // first event for a non-null user with no _sessionUid yet. Reset the
+    // initial-fetch retry counter so a previous failed-out session does
+    // not lock out the new one.
+    if (user != null && _sessionUid == null) {
+      _initialFetchRetryCount = 0;
+    }
+
+    // CUR-1118: If this is a fresh tab (not a page refresh) and Firebase
+    // restored a stale session from IndexedDB, sign out now.
+    // We do this HERE (not in main.dart) because Firebase needs time to
+    // restore the session from IndexedDB before we can sign out of it.
+    // The !_isInitialized guard ensures this only fires on the FIRST
+    // authStateChanges event (initial restoration), not on subsequent
+    // events from explicit signIn() calls.
+    // The _clearStorage != _noopStorage guard ensures this only runs in
+    // the browser (where main.dart injects BrowserStorageService), not in
+    // unit tests which use the default no-op.
+    if (user != null &&
+        !_isPageRefresh &&
+        !_isInitialized &&
+        _sessionUid == null &&
+        _clearStorage != _noopStorage) {
+      await signOut();
+      return;
+    }
+
+    if (user != null && _sessionUid != null && user.uid != _sessionUid) {
+      // CUR-982: A different user signed in from another tab, overwriting
+      // this tab's Firebase auth state via shared localStorage. Sign out
+      // to prevent role-escalation display mismatch (FDA 21 CFR Part 11).
+      // CUR-1280: under serialization, the read-modify-write on
+      // _sessionUid is now race-free.
+      debugPrint(
+        '[AUTH] Cross-tab session collision detected: '
+        'expected $_sessionUid, got ${user.uid}. Signing out.',
+      );
+      await signOut();
+    } else if (user != null && _sessionUid == user.uid) {
+      // CUR-1280 (issue 10): the caller that set _sessionUid (signIn /
+      // completeMfaSignIn) is responsible for fetching /portal/me. Skip
+      // here to avoid the duplicate GET that the previous unserialized
+      // listener produced. Predicate is `_sessionUid == user.uid` (NOT
+      // `_currentUser != null`) because `_currentUser` is only set after
+      // the caller's awaited fetch resolves — racing on it dropped
+      // legitimate listener fetches when the network was slow.
+      //
+      // Note: the existing _isInitialized flip below is preserved for
+      // the case where signIn() already set _sessionUid + _currentUser
+      // and we want isInitialized to be true after this event drains.
+      if (!_isInitialized) {
         _isInitialized = true;
         notifyListeners();
       }
-    });
+    } else if (user != null) {
+      // Same user signed in or session restored from a path that did not
+      // set _sessionUid first (e.g. browser refresh restoring a Firebase
+      // session). CUR-1118: Track the UID so cross-tab collision
+      // detection (CUR-982) works after a page refresh, not only after
+      // an explicit signIn().
+      _sessionUid = user.uid;
+      final result = await _fetchPortalUser();
+      // CUR-1157: do NOT unconditionally flip _isInitialized after a
+      // transient API failure on the initial restore — doing so leaves
+      // dashboards in (isAuthenticated=false, isInitialized=true) and
+      // they redirect to /login, which the user perceives as "refresh
+      // logged me out" even though the Firebase session is valid.
+      if (result == _PortalFetchResult.transientFailure && !_isInitialized) {
+        _scheduleInitialFetchRetry();
+        return;
+      }
+      if (!_isInitialized) {
+        _isInitialized = true;
+        notifyListeners();
+      }
+    } else {
+      // User signed out externally (e.g. token expiry, Firebase forced logout).
+      // Cancel both timers and clear the warning flag so UserActivityListener
+      // does not attempt to dismiss a dialog that may no longer exist.
+      _inactivityTimer?.cancel();
+      _inactivityTimer = null;
+      _warningTimer?.cancel();
+      _warningTimer = null;
+      _isWarning = false;
+      _currentUser = null;
+      _isInitialized = true;
+      notifyListeners();
+    }
   }
 
   /// Sign in with email and password
@@ -694,6 +782,19 @@ class AuthService extends ChangeNotifier {
 
   @override
   void dispose() {
+    // CUR-1280: mark disposed FIRST so any chain link already queued
+    // after this microtask boundary bails out at the top of
+    // `_handleAuthEvent` instead of mutating state / calling
+    // notifyListeners on a disposed ChangeNotifier.
+    _disposed = true;
+    // Cancel the Firebase subscription so no NEW events are ever
+    // chained. `late final` may not be assigned if the constructor
+    // failed before _init() ran — tolerate that.
+    try {
+      _firebaseSub.cancel();
+    } catch (_) {
+      // _firebaseSub never assigned.
+    }
     _inactivityTimer?.cancel();
     _inactivityTimer = null;
     _warningTimer?.cancel();
