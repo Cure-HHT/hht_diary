@@ -2,8 +2,10 @@
 //   REQ-d00083: Client-Side Storage Clearing
 //   REQ-p01044-J/K/L/M: clear all client-side storage on logout
 
+import 'dart:async';
 import 'dart:js_interop';
 
+import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
 /// Clears all client-side browser storage on web.
@@ -49,18 +51,81 @@ class BrowserStorageService {
     }
   }
 
+  // IMPLEMENTS REQUIREMENTS:
+  //   REQ-d00083-D/I/N: clear IndexedDB databases on logout/timeout/close
+  //   REQ-p01044-M: no patient data recoverable from browser after logout
+  //
+  // CUR-1280: deleteDatabase returns an IDBOpenDBRequest. The actual
+  // delete only happens when all connections to the DB close. Firebase
+  // Auth keeps `firebaseLocalStorageDb` open for the lifetime of the
+  // SDK, so a naive deleteDatabase() blocks indefinitely. The previous
+  // implementation didn't await the request at all, so clearStorage()
+  // returned with the IndexedDB unchanged.
+  //
+  // We now:
+  //  1. await each delete with a per-DB timeout,
+  //  2. surface "blocked" outcomes via debugPrint so callers know the
+  //     delete hasn't actually happened yet,
+  //  3. skip Firebase's own DB and let _auth.signOut() handle it — the
+  //     SDK closes its connection only after signOut completes, so
+  //     mixing manual deletion with Firebase writes is the failure
+  //     mode we want to avoid.
   Future<void> _clearIndexedDB() async {
     try {
       final dbs = await web.window.indexedDB.databases().toDart;
+      final futures = <Future<void>>[];
       for (final db in dbs.toDart) {
         final name = db.name;
-        if (name.isNotEmpty) {
-          web.window.indexedDB.deleteDatabase(name);
+        if (name.isEmpty) continue;
+        if (_isFirebaseAuthDb(name)) {
+          // Let Firebase clear its own DB on signOut. Manually deleting
+          // races the SDK's writes and ends up blocked anyway.
+          continue;
         }
+        futures.add(_deleteDatabase(name));
       }
-    } catch (_) {
-      // IndexedDB may not be available or databases() may not be supported.
+      await Future.wait(futures);
+    } catch (e) {
+      // databases() may not be supported (older Safari). Best-effort.
+      debugPrint('[BrowserStorageService] indexedDB.databases() failed: $e');
     }
+  }
+
+  /// Heuristic match for Firebase Auth's persistence DB names.
+  /// Format observed: `firebaseLocalStorageDb` and
+  /// `firebase-heartbeat-database`. Both are managed by the SDK.
+  bool _isFirebaseAuthDb(String name) =>
+      name == 'firebaseLocalStorageDb' || name.startsWith('firebase-');
+
+  /// Issue a deleteDatabase request and wait for completion or timeout.
+  /// Returns when the deletion completes, errors, or the timeout fires.
+  /// Logs a warning on `blocked` (a connection is still open).
+  Future<void> _deleteDatabase(String name) async {
+    final completer = Completer<void>();
+    final req = web.window.indexedDB.deleteDatabase(name);
+    req.onsuccess = ((web.Event _) {
+      if (!completer.isCompleted) completer.complete();
+    }).toJS;
+    req.onerror = ((web.Event _) {
+      if (!completer.isCompleted) completer.complete();
+    }).toJS;
+    req.onblocked = ((web.Event _) {
+      debugPrint(
+        '[BrowserStorageService] deleteDatabase($name) blocked — '
+        'a connection is still open; deletion will complete when it closes',
+      );
+      // Don't complete here. We rely on the timeout below so the caller
+      // is not stuck if the connection never closes.
+    }).toJS;
+    return completer.future.timeout(
+      const Duration(milliseconds: 800),
+      onTimeout: () {
+        debugPrint(
+          '[BrowserStorageService] deleteDatabase($name) timed out — '
+          'deletion will complete asynchronously when no connection holds the DB',
+        );
+      },
+    );
   }
 
   Future<void> _clearCacheStorage() async {
