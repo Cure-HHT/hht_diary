@@ -287,7 +287,30 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
 
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;
     final email = payload['email'] as String?;
-    final emailVerified = payload['email_verified'] as bool? ?? false;
+
+    // CUR-1280: emulator path forces emailVerified=true.
+    //
+    // CUR-1272 added `&& emailVerified` to VerificationResult.isValid to
+    // protect the portal_users.firebase_uid re-link path against
+    // unverified-email account takeover. That gate is correct for
+    // production, but pathological under the emulator:
+    //
+    //   - The emulator has no email-sending pipeline. Seeded users
+    //     (created by deployment/local-stack/db-schema-job/seed_identity_users.js)
+    //     and freshly-registered users alike start with email_verified=false.
+    //   - The activation flow can't bridge it: createUserWithEmailAndPassword
+    //     yields a token with email_verified=false, and there is no path to
+    //     flip it before /portal/activate runs.
+    //   - The takeover threat model is moot locally: the developer running
+    //     the emulator already controls every identity it can mint, so
+    //     there's no privileged-vs-unprivileged distinction to enforce.
+    //
+    // This mirrors the same justification used a few lines above for
+    // skipping the aud check on the emulator path: emulator-mode tokens
+    // are trusted-by-locality, and gates that rely on production-grade
+    // verification machinery would otherwise reject every valid token.
+    // Production verification (the non-emulator path above) is unchanged.
+    const emailVerified = true;
 
     // Extract MFA info from firebase claim (emulator may or may not have this)
     final firebaseClaim = payload['firebase'] as Map<String, dynamic>?;
