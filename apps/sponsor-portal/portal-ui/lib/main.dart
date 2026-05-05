@@ -107,6 +107,31 @@ void main() async {
     debugPrint('Sponsor branding unavailable, using fallback: $e');
   }
 
+  // CUR-1280: on local-flavor, wipe firebaseLocalStorageDb BEFORE
+  // Firebase.initializeApp.
+  //
+  // Firebase JS SDK auto-restores the user from IndexedDB synchronously
+  // inside initializeApp + first FirebaseAuth.instance access — and that
+  // restore fires `accounts:lookup` against whatever endpoint is bound at
+  // that moment. flutterfire #9528: useAuthEmulator can't bind until AFTER
+  // initializeApp, by which time auto-restore has already fired against
+  // PRODUCTION (https://identitytoolkit.googleapis.com) and failed with
+  // api-key-not-valid. Re-binding later doesn't undo the failed restore.
+  //
+  // We can't move useAuthEmulator earlier (it requires the initialized
+  // app). So we eliminate the restore: with no state in IndexedDB,
+  // initializeApp has nothing to lookup. The first auth network call is
+  // an explicit signIn (where useAuthEmulator has by then bound), so all
+  // subsequent ops route to the emulator cleanly.
+  //
+  // Cost: on local-flavor, page refresh = re-login (no IndexedDB =
+  // no session restore). Acceptable for local dev; the alternative
+  // ("Clear Site Data every time, randomly") is worse. Production
+  // flavors are unaffected — they don't run this path.
+  if (F.useEmulator) {
+    await BrowserStorageService().forceClearFirebaseAuthDb();
+  }
+
   // Initialize Firebase with flavor-specific config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
