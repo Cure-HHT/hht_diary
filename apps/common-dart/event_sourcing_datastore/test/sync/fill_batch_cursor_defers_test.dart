@@ -417,8 +417,11 @@ void main() {
     );
 
     // Verifies: REQ-d00128-K — events with client_timestamp < startDate
-    //   are PERMANENTLY rejected (startDate is immutable per REQ-d00129-C).
-    //   The cursor MAY advance past them.
+    //   are PERMANENTLY rejected for the current invocation; the cursor
+    //   MAY advance past them. Under REQ-d00129-C monotonic-backward
+    //   semantics, a later setStartDate(earlier) re-promotes the gap
+    //   window via runGapReplay (independent of fill_cursor); fillBatch
+    //   does not need to keep these events re-evaluable.
     test(
       'REQ-d00128-K (regression): events below startDate advance cursor',
       () async {
@@ -457,8 +460,9 @@ void main() {
           await backend.readFillCursor('lower'),
           greaterThan(e1.sequenceNumber),
           reason:
-              'cursor advanced past startDate-rejected e1 (immutable lower '
-              'bound; REQ-d00129-C)',
+              'cursor advanced past startDate-rejected e1 (lower bound is '
+              'permanent for fillBatch; REQ-d00129-C backward moves are '
+              'handled by runGapReplay)',
         );
       },
     );

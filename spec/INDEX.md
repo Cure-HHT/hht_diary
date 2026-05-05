@@ -324,9 +324,9 @@
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract                  | dev-event-sourcing-datastore.md | 03bfd328 |
 | REQ-d00126 | SyncPolicy Injectable Value Object                              | dev-event-sourcing-datastore.md | 1e6a25c1 |
 | REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row           | dev-event-sourcing-datastore.md | 71b33da6 |
-| REQ-d00128 | FIFO Batch Shape and Fill Cursor                                | dev-event-sourcing-datastore.md | c6e20833 |
-| REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-datastore.md | aecd9a7f |
-| REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-datastore.md | 254b541a |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                                | dev-event-sourcing-datastore.md | 96c1ad43 |
+| REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-datastore.md | a712b7b0 |
+| REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-datastore.md | 0dd64452 |
 | REQ-d00133 | EntryService.record Contract                                    | dev-event-sourcing-datastore.md | 6d804b0e |
 | REQ-d00134 | bootstrapAppendOnlyDatastore Contract                           | dev-event-sourcing-datastore.md | a4940098 |
 | REQ-d00135 | Initiator Polymorphic Actor Type                                | dev-event-sourcing-datastore.md | 0b5663cc |

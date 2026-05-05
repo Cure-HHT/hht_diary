@@ -57,7 +57,7 @@ void main() {
     // Verifies: REQ-d00116-G — optional destination tags list.
     test('REQ-d00116-G: destinationTags accepts a list of strings', () {
       const def = EntryTypeDefinition(
-        id: 'hht_qol_survey',
+        id: 'qol_survey',
         registeredVersion: 1,
         name: 'HHT Quality of Life',
         widgetId: 'survey_renderer_v1',

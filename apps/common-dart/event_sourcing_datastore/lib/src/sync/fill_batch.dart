@@ -147,8 +147,12 @@ Future<void> fillBatch(
       continue;
     }
     if (e.clientTimestamp.isBefore(schedule.startDate!)) {
-      // Permanent: startDate is immutable per REQ-d00129-C. Cursor may
-      // advance past this event.
+      // Permanent for the current invocation: events outside the
+      // current window are skipped and the cursor advances past them.
+      // Under REQ-d00129-C monotonic-backward startDate semantics, a
+      // setStartDate(earlier) call re-promotes the gap window via
+      // runGapReplay (independent of fill_cursor), so fillBatch does
+      // not need to keep these events re-evaluable.
       lastDecidedSeq = e.sequenceNumber;
       continue;
     }

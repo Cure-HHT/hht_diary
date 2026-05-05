@@ -135,7 +135,13 @@ Future<void> runHistoricalReplay(
       continue;
     }
     if (e.clientTimestamp.isBefore(startDate)) {
-      // Permanent: startDate is immutable per REQ-d00129-C.
+      // Permanent for the current invocation: events with
+      // client_timestamp < startDate are skipped and the cursor
+      // advances past them. Under REQ-d00129-C monotonic-backward
+      // semantics, a later setStartDate(earlier) invocation re-promotes
+      // the gap window via runGapReplay, which walks the event log
+      // independent of fill_cursor and does not require these events
+      // to be re-considered here.
       lastDecidedSeq = e.sequenceNumber;
       continue;
     }
@@ -235,4 +241,117 @@ Future<void> runHistoricalReplay(
     destination.id,
     inWindow.last.sequenceNumber,
   );
+}
+
+/// Walk the entire event log and enqueue events whose `client_timestamp`
+/// falls in the half-open gap `[newStartDate, oldStartDate)` and that
+/// match [destination]'s subscription filter. Used by
+/// `DestinationRegistry.setStartDate` when the call moves an
+/// already-set `startDate` to an earlier value (REQ-d00129-C
+/// monotonic-backward semantics).
+///
+/// Differs from [runHistoricalReplay] in three ways:
+///
+/// - Reads the WHOLE event log via `findAllEventsInTxn` (not from
+///   `fill_cursor + 1`). The cursor was advanced past these events by
+///   prior `fillBatch` / replay invocations under the old startDate; the
+///   gap window we are now widening into sits behind the cursor and
+///   is invisible to the cursor-based walk.
+/// - Filters strictly by `client_timestamp ∈ [newStartDate, oldStartDate)`.
+///   Events with `client_timestamp >= oldStartDate` are already in the
+///   FIFO (or in flight via the live `fillBatch` path) — re-enqueuing
+///   them would duplicate FIFO rows.
+/// - Does NOT advance `fill_cursor`. The cursor governs the live
+///   `fillBatch` walk; gap replay re-promotes events already past the
+///   cursor and SHOULD NOT regress it. Live `fillBatch` continues from
+///   wherever the cursor was (past `oldStartDate`'s replayed events).
+///
+/// Runs inside the [txn] supplied by the caller; does NOT open its own
+/// transaction. This matters for serialization: a concurrent `record()`
+/// serializes behind the transaction that persists the new schedule and
+/// runs gap replay, so it never observes a half-applied gap window.
+///
+/// No `EntryPromoter` is invoked here — gap replay promotes events from
+/// the log into the destination's FIFO, not into a materialized view.
+// Implements: REQ-d00129-C — backward movement of startDate triggers a
+//   gap replay over [newStartDate, oldStartDate) in the same transaction
+//   as the schedule write.
+// Implements: REQ-d00130-D — gap replay walks the event log directly
+//   (independent of fill_cursor) and uses destination.canAddToBatch and
+//   destination.transform so rows are identical in shape to fillBatch's
+//   live output.
+Future<void> runGapReplay(
+  Txn txn,
+  Destination destination,
+  StorageBackend backend, {
+  required DateTime newStartDate,
+  required DateTime oldStartDate,
+  Source? source,
+}) async {
+  if (!newStartDate.isBefore(oldStartDate)) {
+    // Caller is responsible for the comparison; defensively early-exit.
+    return;
+  }
+
+  // Native destinations require a Source so replay can mint a library-
+  // built BatchEnvelopeMetadata in lieu of calling transform.
+  if (destination.serializesNatively && source == null) {
+    throw ArgumentError(
+      'runGapReplay: destination "${destination.id}" declares '
+      'serializesNatively == true but no source was supplied; native '
+      'batches require a Source to stamp the envelope identity '
+      '(REQ-d00152-B+E).',
+    );
+  }
+
+  // Walk the entire event log inside this transaction. The cost is
+  // bounded by event-log size; backward startDate moves are rare, so
+  // a full scan per move is acceptable.
+  final all = await backend.findAllEventsInTxn(txn);
+
+  final inGap = <StoredEvent>[];
+  for (final e in all) {
+    if (!destination.filter.matches(e)) continue;
+    if (e.clientTimestamp.isBefore(newStartDate)) continue;
+    if (!e.clientTimestamp.isBefore(oldStartDate)) continue;
+    inGap.add(e);
+  }
+  if (inGap.isEmpty) return;
+
+  final now = DateTime.now();
+  var i = 0;
+  while (i < inGap.length) {
+    final batch = <StoredEvent>[inGap[i]];
+    i++;
+    while (i < inGap.length && destination.canAddToBatch(batch, inGap[i])) {
+      batch.add(inGap[i]);
+      i++;
+    }
+    if (destination.serializesNatively) {
+      final envelope = BatchEnvelopeMetadata(
+        batchFormatVersion: BatchEnvelope.currentBatchFormatVersion,
+        batchId: _uuidGen.v4(),
+        senderHop: source!.hopId,
+        senderIdentifier: source.identifier,
+        senderSoftwareVersion: source.softwareVersion,
+        sentAt: now,
+      );
+      await backend.enqueueFifoTxn(
+        txn,
+        destination.id,
+        batch,
+        nativeEnvelope: envelope,
+      );
+    } else {
+      final wirePayload = await destination.transform(batch);
+      await backend.enqueueFifoTxn(
+        txn,
+        destination.id,
+        batch,
+        wirePayload: wirePayload,
+      );
+    }
+  }
+  // Deliberately no fill_cursor write: the cursor reflects fillBatch's
+  // view of the live tail, which gap replay does not modify.
 }
