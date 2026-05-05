@@ -38,16 +38,37 @@ class BrowserStorageService {
     // BrowserLifecycleService (REQ-d00080-P, REQ-p01044-N).
   }
 
+  // IMPLEMENTS REQUIREMENTS:
+  //   REQ-d00083-C/H/M: clear all cookies on logout / timeout / browser close
+  //   REQ-p01044-L: clear cookies on logout
+  //
+  // CUR-1280 (issue 8): cookies set with paths other than `/` (e.g.
+  // `/api`, `/api/v1`) won't be cleared by a single `path=/` expiry —
+  // each cookie's expiry must match the path it was set with. We don't
+  // know which paths the server might use, so we sweep the common
+  // roots that the portal could plausibly emit. The /api/v1 form
+  // matches the routes in routes.dart; / catches the rest.
+  //
+  // HttpOnly cookies are NOT visible to document.cookie and cannot be
+  // cleared from the page. As of CUR-1280 the portal_server emits no
+  // Set-Cookie headers (auth is Bearer-token in the Authorization
+  // header), so this gap is theoretical. If a future server feature
+  // sets HttpOnly cookies, add a server-side `/api/v1/portal/auth/
+  // clear-cookies` POST that the client calls during signOut() before
+  // the local cookie sweep.
   void _clearCookies() {
     final cookieStr = web.document.cookie;
     if (cookieStr.isEmpty) return;
+    const expiry = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    const paths = <String>['/', '/api', '/api/v1'];
+    final hostname = web.window.location.hostname;
     for (final cookie in cookieStr.split(';')) {
       final name = cookie.split('=').first.trim();
       if (name.isEmpty) continue;
-      web.document.cookie =
-          '$name=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-      web.document.cookie =
-          '$name=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${web.window.location.hostname}';
+      for (final path in paths) {
+        web.document.cookie = '$name=;$expiry;path=$path';
+        web.document.cookie = '$name=;$expiry;path=$path;domain=$hostname';
+      }
     }
   }
 
