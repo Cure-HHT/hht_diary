@@ -569,18 +569,23 @@ class AuthService extends ChangeNotifier {
       );
       await signOut();
     } else if (user != null && _sessionUid == user.uid) {
-      // CUR-1280 (issue 10): the caller that set _sessionUid (signIn /
-      // completeMfaSignIn) is responsible for fetching /portal/me. Skip
-      // here to avoid the duplicate GET that the previous unserialized
-      // listener produced. Predicate is `_sessionUid == user.uid` (NOT
-      // `_currentUser != null`) because `_currentUser` is only set after
-      // the caller's awaited fetch resolves — racing on it dropped
-      // legitimate listener fetches when the network was slow.
+      // CUR-1280 (issue 10): skip-predicate — Amendment 1.
       //
-      // Note: the existing _isInitialized flip below is preserved for
-      // the case where signIn() already set _sessionUid + _currentUser
-      // and we want isInitialized to be true after this event drains.
-      if (!_isInitialized) {
+      // The caller that set _sessionUid (signIn / completeMfaSignIn) is
+      // responsible for fetching /portal/me. Skip here to avoid the
+      // duplicate GET that the previous unserialized listener produced.
+      // Predicate is `_sessionUid == user.uid` (NOT `_currentUser != null`)
+      // because `_currentUser` is only set after the caller's awaited
+      // fetch resolves — racing on it dropped legitimate listener
+      // fetches when the network was slow.
+      //
+      // Only flip _isInitialized once the caller's fetch has populated
+      // _currentUser. Flipping it earlier with _currentUser still null
+      // makes dashboards observe (isInitialized=true && isAuthenticated=false)
+      // and redirect to /login — undoing the in-flight signIn(). This is
+      // exactly the symptom CUR-1157 added the retry-loop guard to
+      // prevent.
+      if (!_isInitialized && _currentUser != null) {
         _isInitialized = true;
         notifyListeners();
       }
@@ -963,6 +968,12 @@ class AuthService extends ChangeNotifier {
   /// authorization rejection (403) from a transient connectivity / 5xx
   /// failure (CUR-1157).
   Future<_PortalFetchResult> _fetchPortalUser([String? selectedRole]) async {
+    // CUR-1280: bail out before any state write / notifyListeners() if the
+    // service has already been torn down. Callers (signIn, completeMfaSignIn,
+    // switchRole, the retry timer) may invoke us from outside the
+    // _handleAuthEvent serialized chain, so the top-of-_handleAuthEvent
+    // _disposed guard does not cover this path.
+    if (_disposed) return _PortalFetchResult.transientFailure;
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -971,6 +982,7 @@ class AuthService extends ChangeNotifier {
 
       // Get ID token for API authentication
       final idToken = await user.getIdToken();
+      if (_disposed) return _PortalFetchResult.transientFailure;
 
       // Build URL with optional role parameter
       var url = '$_apiBaseUrl/api/v1/portal/me';
@@ -986,6 +998,7 @@ class AuthService extends ChangeNotifier {
           'Content-Type': 'application/json',
         },
       );
+      if (_disposed) return _PortalFetchResult.transientFailure;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -993,11 +1006,13 @@ class AuthService extends ChangeNotifier {
         // Fetch sponsor role mappings if not loaded yet
         if (_sponsorRoleNames.isEmpty) {
           await _fetchSponsorRoleMappings(idToken!);
+          if (_disposed) return _PortalFetchResult.transientFailure;
         }
         _isInitialized = true;
         notifyListeners();
         // REQ-p01044-C: apply sponsor-configurable inactivity timeout
         await _fetchSponsorTimeout();
+        if (_disposed) return _PortalFetchResult.transientFailure;
         return _PortalFetchResult.success;
       } else if (response.statusCode == 403) {
         // User not authorized for portal access
@@ -1036,6 +1051,10 @@ class AuthService extends ChangeNotifier {
   void _scheduleInitialFetchRetry() {
     _initialFetchRetryTimer?.cancel();
     _initialFetchRetryTimer = Timer(_initialFetchRetryDelay, () async {
+      // CUR-1280: dispose() cancels the timer, but a callback already
+      // queued on the event loop may still run. Bail before reading or
+      // mutating any state.
+      if (_disposed) return;
       _initialFetchRetryTimer = null;
       // If the user signed out, the auth state changed, or we already
       // succeeded via another path, drop the retry.
@@ -1075,6 +1094,9 @@ class AuthService extends ChangeNotifier {
       final response = await _httpClient.get(
         Uri.parse('$_apiBaseUrl/api/v1/sponsor/config?sponsorId=$_sponsorId'),
       );
+      // CUR-1280: updateInactivityTimeout below transitively notifies
+      // listeners via resetInactivityTimer; do not touch state if disposed.
+      if (_disposed) return;
 
       if (response.statusCode == 200) {
         _sponsorTimeoutFetched = true;
