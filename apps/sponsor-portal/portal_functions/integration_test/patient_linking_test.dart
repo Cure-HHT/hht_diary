@@ -90,7 +90,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Test Investigator', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testInvestigatorId,
@@ -124,7 +124,7 @@ void main() {
       '''
       INSERT INTO portal_users (id, email, name, firebase_uid, status)
       VALUES (@id::uuid, @email, 'Test Admin', @firebaseUid, 'active')
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (LOWER(email)) DO NOTHING
       ''',
       parameters: {
         'id': testAdminId,

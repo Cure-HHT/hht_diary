@@ -619,6 +619,10 @@ $bodyHtml
     try {
       final db = Database.instance;
 
+      // Rate limits are keyed case-insensitively. Normalizing at the boundary
+      // keeps the existing index on (email, email_type, sent_at) usable.
+      final normalizedEmail = email.toLowerCase();
+
       // Count emails sent in last 15 minutes
       final result = await db.executeWithContext(
         '''
@@ -628,7 +632,7 @@ $bodyHtml
           AND email_type = @email_type
           AND sent_at > NOW() - INTERVAL '15 minutes'
         ''',
-        parameters: {'email': email, 'email_type': emailType},
+        parameters: {'email': normalizedEmail, 'email_type': emailType},
         context: UserContext.service,
       );
 
@@ -656,7 +660,7 @@ $bodyHtml
         VALUES (@email, @email_type, @ip_address::inet)
         ''',
         parameters: {
-          'email': email,
+          'email': email.toLowerCase(),
           'email_type': emailType,
           'ip_address': ipAddress,
         },

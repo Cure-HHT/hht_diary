@@ -23,11 +23,17 @@ on:
         options:
           - dev
           - qa
-          - prod
+          - uat
       track:
         description: "Google Play track"
         required: true
+        type: choice
         default: "internal"
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
       status:
         description: "Release status for Google Play"
         required: true
@@ -155,9 +161,9 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
-          if [ "$FLAVOR" = "prod" ]; then
-            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/prodRelease/app-prod-release.aab" >> "$GITHUB_OUTPUT"
-            echo "name=clinical-diary-prod-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
+          if [ "$FLAVOR" = "uat" ]; then
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/uatRelease/app-uat-release.aab" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-uat-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
           else
             echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
             echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
@@ -175,7 +181,7 @@ jobs:
         env:
           FLAVOR: ${{ steps.inputs.outputs.flavor }}
         run: |
-          if [ "$FLAVOR" = "prod" ]; then
+          if [ "$FLAVOR" = "uat" ]; then
             echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
           else
             echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
@@ -234,13 +240,36 @@ jobs:
             channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
             text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ steps.inputs.outputs.track }} track (${{ steps.inputs.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
-      - name: Notify Slack on failure
+      - name: Resolve Slack user for failure DM
         if: failure()
+        id: slack-user
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+        run: |
+          # Get committer email from the git log
+          EMAIL=$(git log -1 --format='%ae')
+
+          SLACK_USER=""
+          if [ -n "$EMAIL" ]; then
+            SLACK_USER=$(curl -s -H "Authorization: Bearer $SLACK_TOKEN" \
+              "https://slack.com/api/users.lookupByEmail?email=${EMAIL}" | jq -r '.user.id // empty')
+          fi
+
+          if [ -n "$SLACK_USER" ]; then
+            echo "channel=$SLACK_USER" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not resolve Slack user for ${EMAIL:-unknown}, skipping DM"
+          fi
+
+      - name: Notify Slack on failure
+        if: failure() && steps.slack-user.outputs.found == 'true'
         uses: slackapi/slack-github-action@v3.0.3
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            channel: "${{ steps.slack-user.outputs.channel }}"
             text: ":x: *Android Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"

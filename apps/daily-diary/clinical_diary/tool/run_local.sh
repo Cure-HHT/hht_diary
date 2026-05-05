@@ -2,26 +2,40 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00006: Mobile App Build and Release Process
 
-# Run the Clinical Diary app with Local flavor
+# Run the Clinical Diary app with the LOCAL flavor (talks to the
+# diary-server published by deployment/local-stack on the sponsor repo).
+#
+# Web/desktop default to http://localhost:8081 via the FlavorConfig.local
+# entry. Mobile builds need DIARY_API_BASE set to a host-reachable URL
+# (10.0.2.2 for the Android emulator, the host machine's LAN IP for a
+# physical device) since localhost on the device is the device, not the
+# host.
+#
+# Note: flavorizr.yaml has no `local` native flavor (only dev/qa/uat/prod).
+# Mobile invocations therefore use --flavor dev for the native build
+# config but --dart-define=APP_FLAVOR=local for the Dart-side selection.
+#
 # Usage: ./tool/run_local.sh [OPTIONS]
 #
 # Options:
-#   --import-file <path>   Path to JSON export file to auto-import on startup
-#   --device <device>      Device to run on (e.g., chrome, macos, iPhone)
-#   --web                  Shortcut for --device chrome
+#   --import-file <path>    Path to JSON export file to auto-import on startup
+#   --device <device>       Device to run on (e.g., chrome, macos, iPhone)
+#   --web                   Shortcut for --device chrome (default)
+#   --api-base <url>        Override the diary-server URL (sets DIARY_API_BASE)
 #
 # Examples:
-#   ./tool/run_local.sh                                           # Run on default device
-#   ./tool/run_local.sh --web                                     # Run on Chrome
+#   ./tool/run_local.sh                                           # Chrome -> localhost:8081
+#   ./tool/run_local.sh --device macos                            # macOS  -> localhost:8081
+#   ./tool/run_local.sh --device emulator-5554 \
+#       --api-base http://10.0.2.2:8081                           # Android emulator
 #   ./tool/run_local.sh --import-file ./test/data/export.json     # Run with test data
-#   ./tool/run_local.sh --device macos --import-file data.json    # Run on macOS with data
 
 set -e
 
 IMPORT_FILE=""
-DEVICE=""
+DEVICE="chrome"
+API_BASE=""
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --import-file)
@@ -36,34 +50,33 @@ while [[ $# -gt 0 ]]; do
             DEVICE="chrome"
             shift
             ;;
+        --api-base)
+            API_BASE="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: ./tool/run_local.sh [--import-file <path>] [--device <device>] [--web]"
+            echo "Usage: ./tool/run_local.sh [--import-file <path>] [--device <device>] [--web] [--api-base <url>]"
             exit 1
             ;;
     esac
 done
 
-echo "Running Clinical Diary (DEV flavor)..."
+echo "Running Clinical Diary (LOCAL flavor) on device: ${DEVICE}"
 
-# Build the flutter run command
-CMD="flutter run --dart-define=APP_FLAVOR=dev"
+CMD="flutter run -d ${DEVICE} --dart-define=APP_FLAVOR=local"
 
-# Add device if specified
-if [[ -n "$DEVICE" ]]; then
-    CMD="$CMD -d $DEVICE"
-    # Don't use --flavor on web
-    if [[ "$DEVICE" != "chrome" ]]; then
-        CMD="$CMD --flavor dev"
-    fi
-else
-    # Default to using flavor for mobile devices
-    CMD="$CMD --flavor local"
+# flavorizr only knows dev/qa/uat/prod. For non-desktop/web targets we still
+# need a native flavor; dev's bundle id and Firebase config are the closest fit.
+if [[ "$DEVICE" != "chrome" && "$DEVICE" != "macos" && "$DEVICE" != "linux" && "$DEVICE" != "windows" ]]; then
+    CMD="$CMD --flavor dev"
 fi
 
-# Add import file if specified
+if [[ -n "$API_BASE" ]]; then
+    CMD="$CMD --dart-define=DIARY_API_BASE=${API_BASE}"
+fi
+
 if [[ -n "$IMPORT_FILE" ]]; then
-    # Convert to absolute path if relative
     if [[ ! "$IMPORT_FILE" = /* ]]; then
         IMPORT_FILE="$(pwd)/$IMPORT_FILE"
     fi
@@ -74,5 +87,4 @@ fi
 echo "Command: doppler run -- $CMD"
 echo ""
 
-# Run with Doppler for secrets injection
 doppler run -- $CMD

@@ -7,9 +7,11 @@
 //   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
 //   REQ-d00080-A: client-side session management with configurable inactivity timeout
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -1395,15 +1397,88 @@ void main() {
       });
     });
 
+    // CUR-1280 (issue 6, subsumes issue 9): the fresh-tab auto-signout used
+    // to fire UNCONDITIONALLY whenever Firebase restored a session in a fresh
+    // tab. Combined with the broken IndexedDB clear (Task 1.4) this produced
+    // "every fresh tab kicks me out". The new contract: only signOut if the
+    // restored token actually fails forceRefresh. The two tests below pin
+    // the new contract from both sides (valid token => keep, invalid token
+    // => sign out). NOTE: this replaces the previous test by the same name
+    // that asserted unconditional signOut — that contract is no longer
+    // correct after Task 2.5.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-A: client-side session management (the listener gate
+    //                 must distinguish valid from invalid restored sessions)
+    //   REQ-d00080-L: switching tabs MUST NOT trigger logout (a fresh tab
+    //                 of an already-authenticated user is the same session)
+    //   REQ-p01044-D: terminate on close — NOT on fresh-tab open of a
+    //                 still-valid session
+    //   REQ-p01044-O: synchronize session timeout across multiple tabs for
+    //                 the same user
+    test('fresh tab with valid Firebase session preserves session and does NOT '
+        'call clearStorage', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        // Firebase has a still-valid session in IndexedDB (the default
+        // MockUser issues a token that does not throw on getIdToken).
+        // This is a fresh tab (isPageRefresh: false).
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isFalse,
+          reason:
+              'CUR-1280: forceRefresh succeeded => the restored session is '
+              'still valid; clearStorage MUST NOT be called. Calling it '
+              "here is what produced the user's 'every new tab kicks me "
+              "out' UX.",
+        );
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason:
+              'A fresh tab adopting a valid restored session must end up '
+              'authenticated (REQ-d00080-L, REQ-p01044-O).',
+        );
+        expect(
+          authService.isInitialized,
+          isTrue,
+          reason:
+              'Initialization completes once /portal/me resolves with the '
+              'valid restored session.',
+        );
+      });
+    });
+
     test(
-      'fresh tab with stale Firebase session calls clearStorage and signs out',
+      'fresh tab with INVALID restored token calls clearStorage and signs out',
       () {
         fakeAsync((fake) {
           var clearStorageCalled = false;
-          // Firebase still has a session in IndexedDB (signedIn: true),
-          // but this is a fresh tab (isPageRefresh: false).
+          // Subclassed MockUser whose forceRefresh throws — simulates an
+          // expired refresh token, an emulator restart, or any other reason
+          // the cached IndexedDB session can no longer mint a valid token.
+          final invalidUser = _ForceRefreshFailingMockUser(
+            uid: 'test-uid',
+            email: 'test@example.com',
+            displayName: 'Test User',
+          );
           final mockFirebaseAuth = MockFirebaseAuth(
-            mockUser: mockUser,
+            mockUser: invalidUser,
             signedIn: true,
           );
           final authService = AuthService(
@@ -1421,15 +1496,14 @@ void main() {
             clearStorageCalled,
             isTrue,
             reason:
-                'clearStorage must be called when a fresh tab finds a stale '
-                'Firebase session — the user closed the previous tab, so the '
-                'session in IndexedDB is not valid for a new tab',
+                'CUR-1280: forceRefresh threw => the restored token is no '
+                'longer valid; the existing CUR-1118 teardown (clearStorage '
+                '+ signOut) MUST still run.',
           );
           expect(
             authService.isAuthenticated,
             isFalse,
-            reason:
-                'The stale session must not result in an authenticated state',
+            reason: 'An invalid restored session must not authenticate.',
           );
         });
       },
@@ -1497,5 +1571,325 @@ void main() {
         });
       },
     );
+
+    // CUR-1280 (issue 6): a hung getIdToken (offline / very slow network)
+    // must not stall the listener chain. The gate's `.timeout()` budget
+    // bounds the wait at _restoredTokenRefreshTimeout (5s); past that,
+    // the gate falls back to signOut so the user lands on the login page
+    // rather than seeing a frozen UI.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-A: client-side session management — a hung token refresh
+    //                 must not deadlock the auth state machine.
+    test('fresh tab with hung getIdToken (offline / slow network) times out '
+        'and signs out after the 5s budget', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final hungUser = _HangingMockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: hungUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: false,
+        );
+
+        // Advance past the 5s timeout budget; the gate's .timeout()
+        // must fire and the catch must run signOut + clearStorage.
+        fake.elapse(const Duration(seconds: 6));
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isTrue,
+          reason:
+              'CUR-1280 (issue 6): a hung token refresh must time out at '
+              '5s and trigger signOut, not stall the listener chain.',
+        );
+        expect(
+          authService.isAuthenticated,
+          isFalse,
+          reason:
+              'A hung restored-token refresh must not authenticate — the '
+              'session is unverifiable.',
+        );
+      });
+    });
+
+    // CUR-1280 (issue 6): the user's question that drove the gate fix was
+    // explicitly about multi-tab same-user behavior. The two tests above
+    // cover the gate in isolation. This test exercises the higher-level
+    // scenario: a SECOND AuthService instance constructed against the SAME
+    // MockFirebaseAuth (simulating two browser tabs sharing IndexedDB) does
+    // not tear down the first tab's session.
+    //
+    // KNOWN MOCK LIMITATION: `firebase_auth_mocks` exposes [authStateChanges]
+    // as a plain broadcast stream, which does NOT replay the current user
+    // to a late subscriber. Real Firebase Auth and the production stream
+    // DO replay the current state to new subscribers — that replay is what
+    // makes the multi-tab adoption case work in browsers (a fresh tab gets
+    // an immediate "you are signed in as X" event from IndexedDB-restored
+    // state). With the broadcast-only mock, tab 2 sees no event at all,
+    // so `tab2.isAuthenticated` stays false in the unit test. The gate
+    // tests above (valid forceRefresh => fall through, NOT signOut) lock
+    // in the per-tab adoption contract; integration / browser tests cover
+    // the cross-tab replay path end-to-end.
+    //
+    // What this test DOES lock in: opening a second AuthService against
+    // the same MockFirebaseAuth must NOT tear down the first tab's
+    // session — neither tab's `clearStorage` is called, and tab 1 stays
+    // authenticated.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-L: switching tabs MUST NOT trigger logout — opening a
+    //                 second tab while the first is logged in does not
+    //                 disturb the first tab.
+    //   REQ-p01044-O: synchronize session timeout across multiple tabs
+    //                 for the same user — opening a second tab must not
+    //                 interfere with the first tab's session.
+    test('opening a second fresh tab against the same valid Firebase session '
+        "does not disturb the first tab's session", () {
+      fakeAsync((fake) {
+        // Tab 1: open a tab against a valid Firebase session.
+        final sharedUser = MockUser(
+          uid: 'shared-uid',
+          email: 'shared@test.com',
+          displayName: 'Shared User',
+        );
+        final sharedAuth = MockFirebaseAuth(
+          mockUser: sharedUser,
+          signedIn: true,
+        );
+
+        var tab1ClearStorage = 0;
+        final tab1 = AuthService(
+          firebaseAuth: sharedAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            tab1ClearStorage++;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        expect(
+          tab1.isAuthenticated,
+          isTrue,
+          reason: 'sanity: tab 1 must adopt the valid restored session',
+        );
+        expect(
+          tab1ClearStorage,
+          0,
+          reason: 'sanity: tab 1 must not have torn down its own session',
+        );
+
+        // Tab 2: a fresh AuthService against the SAME MockFirebaseAuth
+        // (same Firebase IndexedDB in production).
+        var tab2ClearStorage = 0;
+        final tab2 = AuthService(
+          firebaseAuth: sharedAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            tab2ClearStorage++;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        // Tab 1 was not disturbed by tab 2 opening.
+        expect(
+          tab1.isAuthenticated,
+          isTrue,
+          reason:
+              'CUR-1280 (issue 6, REQ-p01044-O): opening a second tab '
+              "must not interfere with the first tab's session.",
+        );
+        expect(
+          tab1ClearStorage,
+          0,
+          reason:
+              "CUR-1280 (issue 6, REQ-p01044-O): the first tab's storage "
+              'must not be cleared as a side effect of opening tab 2.',
+        );
+
+        // Tab 2 must NOT have torn down the shared Firebase session.
+        // (We cannot assert tab2.isAuthenticated == true through this
+        // mock — see the KNOWN MOCK LIMITATION note above. But we CAN
+        // assert that tab 2 did not call clearStorage; if it had, it
+        // would have signed tab 1 out as well in production.)
+        expect(
+          tab2ClearStorage,
+          0,
+          reason:
+              'CUR-1280 (issue 6, REQ-d00080-L): tab 2 must not tear '
+              'down the shared Firebase session — clearStorage on tab 2 '
+              'would sign tab 1 out in production.',
+        );
+
+        tab1.dispose();
+        tab2.dispose();
+      });
+    });
   });
+
+  // ---------------------------------------------------------------------------
+  // CUR-1280: serialize the authStateChanges listener so back-to-back events
+  // don't race shared state writes. The listener installed in
+  // AuthService._init() does NOT serialize: Stream.listen invokes the next
+  // event's handler as soon as the previous handler hits its first await,
+  // not when its async body completes. Two events arriving close together
+  // (e.g. signIn's own signInWithEmailAndPassword echo, or stale-restore
+  // followed by Firebase's auto-signout reflection) lead to concurrent
+  // invocations writing _currentUser / _isInitialized / _sessionUid and
+  // double-issuing /portal/me requests.
+  //
+  // This group subsumes the layered guards from CUR-982 / CUR-1118 /
+  // CUR-1157 by removing the underlying race instead of working around it.
+  //
+  // IMPLEMENTS REQUIREMENTS:
+  //   REQ-d00080-A: client-side session management with configurable
+  //                 inactivity timeout (the listener is the session
+  //                 management surface)
+  //   REQ-p01044-A: configured-period inactivity termination (audit-log
+  //                 integrity requires consistent session state)
+  //   REQ-p00010:   FDA 21 CFR Part 11 (concurrent writes to session
+  //                 fields can produce impossible intermediate states
+  //                 visible to downstream audit hooks)
+  //   REQ-CAL-p00046: Session Management
+  group('CUR-1280: listener serialization', () {
+    test('signIn() issues exactly one /portal/me request — listener does not '
+        'race a duplicate fetch', () {
+      fakeAsync((fake) {
+        // Bug surface: signInWithEmailAndPassword inside MockFirebaseAuth
+        // (and Firebase in production) fires authStateChanges with the
+        // freshly signed-in user BEFORE _fakeSignIn's Future resolves.
+        // The listener invocation reads _sessionUid (still null because
+        // signIn() hasn't returned from its first await yet) and dispatches
+        // its own _fetchPortalUser. Then signIn() resumes, sets _sessionUid
+        // and dispatches a SECOND _fetchPortalUser. Result: two GETs to
+        // /api/v1/portal/me for a single signIn().
+        //
+        // Pre-fix: portalMeCallCount == 2.
+        // Post-fix (Task 2.4 serializes the listener so it observes
+        // _sessionUid set by signIn(), or signIn()'s own fetch completes
+        // before the listener's handler runs): portalMeCallCount == 1.
+        var portalMeCallCount = 0;
+        final mockUser = MockUser(
+          uid: 'race-uid',
+          email: 'race@test.com',
+          displayName: 'Race User',
+        );
+        final mockAuth = MockFirebaseAuth(mockUser: mockUser);
+
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            portalMeCallCount++;
+            return http.Response(
+              jsonEncode({
+                'id': 'race-id',
+                'email': 'race@test.com',
+                'name': 'Race User',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'status': 'active',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path == '/api/v1/portal/config/session') {
+            return http.Response('{}', 200);
+          }
+          return http.Response('Not found', 404);
+        });
+
+        final authService = AuthService(
+          firebaseAuth: mockAuth,
+          httpClient: mockHttpClient,
+          inactivityTimeout: const Duration(minutes: 30),
+          enableInactivityTimer: false,
+        );
+
+        // Drive a single signIn() and let every microtask drain.
+        authService.signIn('race@test.com', 'password');
+        fake.flushMicrotasks();
+        fake.elapse(const Duration(seconds: 1));
+        fake.flushMicrotasks();
+
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason: 'sanity: signIn must succeed in this fixture',
+        );
+        expect(
+          portalMeCallCount,
+          1,
+          reason:
+              'CUR-1280: a single signIn() must trigger exactly one '
+              'GET /api/v1/portal/me. Pre-fix the authStateChanges listener '
+              'fires concurrently with signIn() and dispatches a duplicate '
+              'fetch — observable as portalMeCallCount == 2. Fixing the '
+              'listener to serialize event handling collapses this to one.',
+        );
+      });
+    });
+  });
+}
+
+/// CUR-1280: a [MockUser] whose [getIdToken] (with or without forceRefresh)
+/// throws, simulating an expired refresh token or an emulator that has been
+/// restarted since the cached IndexedDB session was issued.
+///
+/// `firebase_auth_mocks` does not expose a `mockExceptionFor #getIdToken`
+/// hook (see `mock_user.dart` — `getIdToken` is a concrete implementation
+/// that does not call `maybeThrowException`), so the only way to make
+/// forceRefresh fail is to subclass and override.
+// MockUser inherits from User which is @immutable but has mutable fields;
+// the upstream library suppresses must_be_immutable file-wide. Mirror that
+// here so the subclass doesn't drag the warning into our analyzer output.
+// ignore: must_be_immutable
+class _ForceRefreshFailingMockUser extends MockUser {
+  _ForceRefreshFailingMockUser({super.uid, super.email, super.displayName});
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) {
+    return Future.error(
+      FirebaseAuthException(
+        code: 'user-token-expired',
+        message: 'Mock: refresh token is no longer valid.',
+      ),
+    );
+  }
+}
+
+/// CUR-1280: a [MockUser] whose [getIdToken] returns a Future that never
+/// completes, simulating an offline / very slow network where Firebase's
+/// token-refresh RPC hangs. Exercises the gate's `.timeout()` code path
+/// (the only path that calls `_restoredTokenRefreshTimeout`).
+// ignore: must_be_immutable
+class _HangingMockUser extends MockUser {
+  _HangingMockUser({super.uid, super.email, super.displayName});
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) {
+    // Never completes — caller must rely on the gate's `.timeout()`.
+    return Completer<String>().future;
+  }
 }

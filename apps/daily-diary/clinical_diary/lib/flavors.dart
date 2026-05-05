@@ -94,15 +94,17 @@ class FlavorConfig {
   FlavorConfig._();
 
   /// Local development flavor configuration.
-  /// Uses localhost URLs — BACKEND_URL dart-define overrides these
-  /// with 10.0.2.2 (Android emulator) or localhost (iOS/web).
+  /// Targets the diary-server published by deployment/local-stack
+  /// (sponsor repo) on http://localhost:8081. Override per-build with
+  /// --dart-define=DIARY_API_BASE=... (e.g. http://10.0.2.2:8081 for
+  /// the Android emulator). BACKEND_URL is honored for back-compat.
   static const local = FlavorValues(
     name: 'local',
-    apiBase: 'http://localhost:8080',
+    apiBase: 'http://localhost:8081',
     environment: 'local',
     showDevTools: true,
     showBanner: true,
-    sponsorBackends: {'CA': 'http://localhost:8080'},
+    sponsorBackends: {'CA': 'http://localhost:8081'},
   );
 
   /// Development flavor configuration

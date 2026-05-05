@@ -243,8 +243,15 @@ Future<Response> activateUserHandler(Request request) async {
     print('[ACTIVATION] Non-admin user - will use email OTP on login');
   }
 
-  // Activate the account with MFA tracking
-  await db.executeWithContext(
+  // Activate the account with MFA tracking.
+  //
+  // CUR-1280: the WHERE clause adds `activation_code = @code AND status = 'pending'`
+  // so this UPDATE is the single atomic step that consumes the code. Two
+  // concurrent activations with the same code (browser-tab race, retry
+  // storm) both pass the SELECT/role-lookup phase above, but READ COMMITTED
+  // guarantees only one of them sees a non-empty RETURNING here — the other
+  // gets a stale-state response.
+  final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
     SET firebase_uid = @firebaseUid,
@@ -258,16 +265,25 @@ Future<Response> activateUserHandler(Request request) async {
         activation_code_expires_at = NULL,
         updated_at = now()
     WHERE id = @userId::uuid
+      AND activation_code = @code
+      AND status = 'pending'
+    RETURNING id
     ''',
     parameters: {
       'firebaseUid': firebaseUid,
       'userId': userId,
+      'code': code,
       'mfaEnrolled': requiresTotp && mfaInfo?.isEnrolled == true,
       'mfaMethod': requiresTotp ? (mfaInfo?.method ?? 'totp') : null,
       'mfaType': mfaType,
     },
     context: serviceContext,
   );
+
+  if (updated.isEmpty) {
+    print('[ACTIVATION] Code consumed by concurrent request: $code');
+    return _jsonResponse({'error': 'Activation code is no longer valid'}, 409);
+  }
 
   print('[ACTIVATION] Account activated: $userId, mfa_type: $mfaType');
 
@@ -353,7 +369,8 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     );
   } else {
     targetResult = await db.executeWithContext(
-      'SELECT id, email, name, status FROM portal_users WHERE email = @email',
+      'SELECT id, email, name, status FROM portal_users '
+      'WHERE LOWER(email) = LOWER(@email)',
       parameters: {'email': email},
       context: serviceContext,
     );

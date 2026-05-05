@@ -18,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import '../services/firebase_emulator_helper.dart';
 import '../widgets/error_message.dart';
 
 /// Page for users to activate their accounts using an activation code
@@ -141,6 +142,11 @@ class _ActivationPageState extends State<ActivationPage> {
         return;
       }
 
+      // CUR-1280: ensure local-flavor builds route to the emulator.
+      // No-op for deployed flavors. See firebase_emulator_helper.dart
+      // for the flutterfire #9528 background.
+      await ensureAuthEmulatorBound();
+
       // Create Firebase account
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
@@ -212,6 +218,8 @@ class _ActivationPageState extends State<ActivationPage> {
         return {'error': 'Not authenticated'};
       }
 
+      // CUR-1280: re-bind emulator before getIdToken (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       final idToken = await user.getIdToken();
 
       final response = await http.post(

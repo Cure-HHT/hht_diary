@@ -1,9 +1,11 @@
 // Tests for Identity Platform token verification
 //
 // IMPLEMENTS REQUIREMENTS:
+//   REQ-p00010: FDA 21 CFR Part 11 Compliance (no stale credentials)
 //   REQ-d00031: Identity Platform Integration
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:test/test.dart';
 
@@ -25,6 +27,17 @@ void main() {
 
     test('isValid returns false when uid is null', () {
       final result = VerificationResult(email: 'test@example.com');
+      expect(result.isValid, isFalse);
+    });
+
+    test('isValid returns false when emailVerified is false', () {
+      // Closes the account-takeover gap that would otherwise surface in
+      // portal_auth's email-keyed re-link path.
+      final result = VerificationResult(
+        uid: 'test-uid',
+        email: 'test@example.com',
+      );
+      expect(result.emailVerified, isFalse);
       expect(result.isValid, isFalse);
     });
 
@@ -197,6 +210,71 @@ void main() {
       // We expect it to fail in production mode due to missing kid
       expect(result.isValid, isFalse);
     });
+  });
+
+  // CUR-1280 (issue 7): emulator token expiry gate.
+  //
+  // The emulator path in identity_platform.dart does not verify
+  // signatures (emulator tokens are unsigned), but it MUST still
+  // reject expired tokens. Otherwise the server accepts stale tokens
+  // that the client SDK has already refreshed/expired, producing
+  // client/server auth desync.
+  //
+  // Audience binding is NOT checked in emulator mode — the emulator
+  // only mints tokens for its own --project flag (demo-local-stack),
+  // while server-side _projectId is sourced from Doppler-injected
+  // GCP_PROJECT_ID (e.g. callisto4-dev). Comparing them is a
+  // structural false-positive, not a security check. Production
+  // verification (the non-emulator path) does enforce audience.
+  //
+  // These tests exercise the real _verifyEmulatorToken branch and
+  // therefore require FIREBASE_AUTH_EMULATOR_HOST to be set in the
+  // environment (same skip pattern integration_test/ uses).
+  group('verifyIdToken emulator gates', () {
+    final useEmulator =
+        Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] != null;
+
+    /// Build a base64url-encoded JWT-shaped string suitable for the
+    /// emulator path. Signature is empty (the emulator path does not
+    /// verify signatures). Claims default to a present, valid token;
+    /// override [exp] to construct rejection cases.
+    String buildEmulatorToken({
+      String sub = 'test-user-emu',
+      String? email = 'emu@example.com',
+      bool emailVerified = true,
+      DateTime? exp,
+    }) {
+      final header = base64Url.encode(
+        utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+      );
+      final expSec =
+          (exp ?? DateTime.now().add(const Duration(hours: 1)))
+              .millisecondsSinceEpoch ~/
+          1000;
+      final claims = <String, dynamic>{
+        'sub': sub,
+        if (email != null) 'email': email,
+        'email_verified': emailVerified,
+        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'exp': expSec,
+      };
+      final payload = base64Url.encode(utf8.encode(jsonEncode(claims)));
+      return '$header.$payload.';
+    }
+
+    test(
+      'rejects expired emulator token',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final token = buildEmulatorToken(
+          exp: DateTime.now().subtract(const Duration(hours: 1)),
+        );
+        final result = await verifyIdToken(token);
+        expect(result.isValid, isFalse);
+        expect(result.error, isNotNull);
+        expect(result.error!.toLowerCase(), contains('expired'));
+      },
+    );
   });
 
   group('verifyIdToken error cases', () {
