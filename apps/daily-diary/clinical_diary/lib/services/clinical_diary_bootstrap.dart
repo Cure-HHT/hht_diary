@@ -182,8 +182,19 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   );
 
   // 6. SyncCycle — assigned after EntryService so the forward declaration
-  //    is valid before any trigger fires.
-  syncCycle = SyncCycle(backend: backend, registry: datastore.destinations);
+  //    is valid before any trigger fires. The same Source identity that
+  //    bootstrapAppendOnlyDatastore stamps on appended events flows
+  //    through to fillBatch so any future native destination can mint
+  //    its batch envelope from the same identity.
+  syncCycle = SyncCycle(
+    backend: backend,
+    registry: datastore.destinations,
+    source: Source(
+      hopId: 'mobile-device',
+      identifier: deviceId,
+      softwareVersion: softwareVersion,
+    ),
+  );
 
   // 7. DiaryEntryReader — pure read facade over the materialized view.
   final reader = DiaryEntryReader(backend: backend);
