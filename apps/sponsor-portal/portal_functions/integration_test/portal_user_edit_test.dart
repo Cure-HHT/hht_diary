@@ -988,6 +988,92 @@ void main() {
       );
     },
   );
+
+  group('verifyEmailChangeHandler', () {
+    test(
+      'rejects pending change when target email collides case-insensitively',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Pins the case-insensitive duplicate check at portal_user.dart so
+        // a regression to `WHERE email = @email` would let the verify
+        // succeed and trigger the portal_users_email_lower_key UNIQUE
+        // INDEX failure at UPDATE time.
+        const collisionOwnerId = '99994000-0000-0000-0000-0000000000aa';
+        const collisionOwnerEmail =
+            'EmailCollision-Owner@user-edit-test.example.com';
+        const collisionOwnerFirebaseUid = 'firebase-edit-collision-owner-uid';
+
+        final db = Database.instance;
+        await db.execute(
+          '''
+          INSERT INTO portal_users (id, email, name, role, firebase_uid, status)
+          VALUES (@id::uuid, @email, 'Collision Owner', 'Auditor',
+                  @firebaseUid, 'active')
+          ''',
+          parameters: {
+            'id': collisionOwnerId,
+            'email': collisionOwnerEmail,
+            'firebaseUid': collisionOwnerFirebaseUid,
+          },
+        );
+
+        try {
+          final plaintextToken = generateVerificationToken();
+          final tokenHash = hashVerificationToken(plaintextToken);
+          await db.execute(
+            '''
+            INSERT INTO portal_pending_email_changes
+              (user_id, new_email, token_hash, requested_by, expires_at)
+            VALUES
+              (@userId::uuid, @newEmail, @tokenHash, @userId::uuid,
+               now() + interval '1 hour')
+            ''',
+            parameters: {
+              'userId': testTargetId,
+              // Different case from the row above: collision is case-insensitive.
+              'newEmail': collisionOwnerEmail.toLowerCase(),
+              'tokenHash': tokenHash,
+            },
+          );
+
+          final request = Request(
+            'POST',
+            Uri.parse(
+              'http://localhost/api/v1/portal/email-verification/$plaintextToken',
+            ),
+          );
+          final response = await verifyEmailChangeHandler(
+            request,
+            plaintextToken,
+          );
+
+          expect(response.statusCode, equals(409));
+          final json = await getResponseJson(response);
+          expect(json['error'], contains('already in use'));
+
+          // Target's email must not have moved.
+          final stillTargetEmail = await db.execute(
+            'SELECT email FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': testTargetId},
+          );
+          expect(stillTargetEmail.first[0], equals(testTargetEmail));
+        } finally {
+          await db.execute(
+            'DELETE FROM portal_pending_email_changes WHERE user_id = @id::uuid',
+            parameters: {'id': testTargetId},
+          );
+          await db.execute(
+            'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
+            parameters: {'id': collisionOwnerId},
+          );
+          await db.execute(
+            'DELETE FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': collisionOwnerId},
+          );
+        }
+      },
+    );
+  });
 }
 
 Future<void> _cleanup() async {

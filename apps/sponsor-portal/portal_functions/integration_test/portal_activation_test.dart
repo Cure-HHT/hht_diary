@@ -551,5 +551,29 @@ void main() {
       expect(json['success'], isTrue);
       expect(json['user']['email'], equals(testAlreadyActiveEmail));
     });
+
+    test('can generate code by email regardless of case', () async {
+      // Pins the case-insensitive lookup at portal_activation.dart so a
+      // regression to case-sensitive `WHERE email = @email` would fail here.
+      final token = createMockEmulatorToken(
+        testDevAdminFirebaseUid,
+        testDevAdminEmail,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/admin/generate-code',
+        {'email': testAlreadyActiveEmail.toUpperCase()},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await generateActivationCodeHandler(request);
+
+      expect(response.statusCode, equals(200));
+      final json = await getResponseJson(response);
+      expect(json['success'], isTrue);
+      // DB returns the row's stored case; we just want the match to work.
+      expect(
+        (json['user']['email'] as String).toLowerCase(),
+        equals(testAlreadyActiveEmail.toLowerCase()),
+      );
+    });
   });
 }
