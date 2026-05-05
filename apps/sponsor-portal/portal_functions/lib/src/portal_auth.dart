@@ -84,20 +84,15 @@ class PortalUser {
 /// Query params:
 ///   - role: (optional) Select which role to use for this session
 ///
-/// Linkage model: `portal_users.firebase_uid` is a *cache* of the verified
-/// firebase identity owning a given pre-authorized email. We re-link the
-/// row to whatever UID Firebase asserts for the email on each login —
-/// fresh row, race recovery, and stale-UID recovery all flow through the
-/// same UPDATE.
+/// `portal_users.firebase_uid` is a cache of the verified Firebase identity
+/// owning a pre-authorized email. We re-link the row to whatever UID Firebase
+/// asserts for the email on each login — fresh row, race recovery, and
+/// stale-UID recovery all flow through the same UPDATE.
 ///
-/// SECURITY INVARIANT: This logic trusts that `verifyIdToken` only returns
-/// `verification.isValid == true` for tokens whose email claim has been
-/// verified by the identity provider. If that ever stops being true (e.g.,
-/// switching to an IdP that issues unverified-email tokens, disabling
-/// email-link / OTP enforcement upstream), this UPDATE becomes an account-
-/// takeover vector: any token-bearer claiming a pre-authorized email could
-/// re-link the row to themselves. Anyone changing the token verification
-/// path or the IdP configuration MUST re-confirm this property.
+/// Security depends on `VerificationResult.isValid` requiring `emailVerified`
+/// (enforced in `identity_platform.dart`). Without that gate, an unverified-
+/// email token for a pre-authorized email would re-link the row to the
+/// attacker's UID.
 ///
 /// Returns 403 if email is not pre-authorized in portal_users table.
 /// If user has multiple roles and no role is specified, returns all roles
@@ -156,9 +151,7 @@ Future<Response> portalMeHandler(Request request) async {
 
   if (result.isEmpty) {
     // First login OR firebase_uid drifted (concurrent /portal/me race;
-    // emulator restart minted a new UID; manual DB edit). Re-link by
-    // email — see SECURITY INVARIANT in the function docstring above
-    // for why this is safe.
+    // emulator restart minted a new UID; manual DB edit). Re-link by email.
     logWithTrace('INFO', 'Linking firebase_uid by email');
     result = await db.executeWithContext(
       '''
