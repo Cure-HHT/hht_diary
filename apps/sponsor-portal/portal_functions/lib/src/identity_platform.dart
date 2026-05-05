@@ -101,7 +101,11 @@ class VerificationResult {
     this.mfaInfo,
   });
 
-  bool get isValid => uid != null && error == null;
+  /// A token only counts as valid if the IdP asserted a verified email.
+  /// `portal_auth` re-links `portal_users.firebase_uid` by email on every
+  /// login; without this gate, an unverified-email token for a pre-authorized
+  /// email would be an account-takeover vector.
+  bool get isValid => uid != null && error == null && emailVerified;
 }
 
 /// Verify an Identity Platform ID token

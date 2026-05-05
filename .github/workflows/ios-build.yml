@@ -193,13 +193,36 @@ jobs:
             channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
             text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Deployment:* ${{ steps.inputs.outputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
-      - name: Notify Slack on failure
+      - name: Resolve Slack user for failure DM
         if: failure()
+        id: slack-user
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+        run: |
+          # Get committer email from the git log
+          EMAIL=$(git log -1 --format='%ae')
+
+          SLACK_USER=""
+          if [ -n "$EMAIL" ]; then
+            SLACK_USER=$(curl -s -H "Authorization: Bearer $SLACK_TOKEN" \
+              "https://slack.com/api/users.lookupByEmail?email=${EMAIL}" | jq -r '.user.id // empty')
+          fi
+
+          if [ -n "$SLACK_USER" ]; then
+            echo "channel=$SLACK_USER" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not resolve Slack user for ${EMAIL:-unknown}, skipping DM"
+          fi
+
+      - name: Notify Slack on failure
+        if: failure() && steps.slack-user.outputs.found == 'true'
         uses: slackapi/slack-github-action@v3.0.3
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            channel: "${{ steps.slack-user.outputs.channel }}"
             text: ":x: *iOS Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"

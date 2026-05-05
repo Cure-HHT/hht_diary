@@ -44,7 +44,7 @@ cat users.csv | doppler run -- ./database/tool/add_user.sh
 **What it does:**
 
 1. Reads CSV records from stdin
-2. Inserts into `portal_users` with `ON CONFLICT (email) DO NOTHING`
+2. Inserts into `portal_users` with `ON CONFLICT (LOWER(email)) DO NOTHING`
 3. Looks up actual user IDs (handles pre-existing rows)
 4. Inserts into `portal_user_roles` with `ON CONFLICT (user_id, role) DO NOTHING`
 5. Creates or updates each user in Identity Platform (`accounts:signUp` / `accounts:update`)

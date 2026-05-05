@@ -19,7 +19,7 @@ VALUES (
     'totp',      -- Developer Admins use TOTP
     false        -- MFA registration happens on first login
 )
-ON CONFLICT (email) DO UPDATE SET
+ON CONFLICT (LOWER(email)) DO UPDATE SET
     role = EXCLUDED.role,
     status = EXCLUDED.status,
     mfa_type = EXCLUDED.mfa_type;
@@ -28,8 +28,8 @@ ON CONFLICT (email) DO UPDATE SET
 INSERT INTO portal_user_roles (user_id, role)
 SELECT id, 'Developer Admin'::portal_user_role
 FROM portal_users
-WHERE email = 'mike.bushe@anspar.org'
+WHERE LOWER(email) = LOWER('mike.bushe@anspar.org')
 ON CONFLICT (user_id, role) DO NOTHING;
 
 -- Verify
-SELECT email, name, role, status, mfa_type FROM portal_users WHERE email = 'mike.bushe@anspar.org';
+SELECT email, name, role, status, mfa_type FROM portal_users WHERE LOWER(email) = LOWER('mike.bushe@anspar.org');

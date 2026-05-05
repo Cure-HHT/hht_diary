@@ -611,7 +611,7 @@ CREATE TYPE portal_user_role AS ENUM (
 CREATE TABLE portal_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     firebase_uid TEXT UNIQUE,           -- Identity Platform UID (linked after first login)
-    email TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
     name TEXT NOT NULL,
     -- Note: role column kept for backwards compatibility; use portal_user_roles for multi-role
     role portal_user_role,              -- Primary role (optional, roles now in portal_user_roles)
@@ -637,7 +637,10 @@ CREATE TABLE portal_users (
 );
 
 CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
-CREATE INDEX idx_portal_users_email ON portal_users(email);
+-- Case-insensitive uniqueness + lookup index. Email comparisons in code use
+-- LOWER(email) = LOWER(@email); this index satisfies both the UNIQUE
+-- constraint and the lookup plan in one shot.
+CREATE UNIQUE INDEX portal_users_email_lower_key ON portal_users (LOWER(email));
 CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
 CREATE INDEX idx_portal_users_activation_code ON portal_users(activation_code);
 CREATE INDEX idx_portal_users_role ON portal_users(role);
