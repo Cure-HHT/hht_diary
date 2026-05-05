@@ -35,7 +35,8 @@ void main() async {
   // CUR-1280: previous builds shipped flutter_service_worker.js. PWA is
   // now disabled at build time, but a SW already installed in the
   // user's browser survives. Unregister any leftover SW on boot.
-  // IMPLEMENTS: REQ-p00009 (always serve the latest deploy).
+  // IMPLEMENTS: REQ-d00077-I (unregister any existing service worker
+  //             registrations on application initialization).
   unawaited(_unregisterLeftoverServiceWorkers());
 
   // Remove # from URLs
@@ -224,17 +225,35 @@ void main() async {
   );
 }
 
+/// Unregister any service worker registrations left over from a previous
+/// deploy. PWA is disabled at build time
+/// (deployment/docker/portal-final.Dockerfile: --pwa-strategy=none),
+/// but an SW already in the browser persists until explicitly removed.
+///
+/// IMPLEMENTS REQUIREMENTS:
+///   REQ-d00077-H (disable service workers to prevent offline caching)
+///   REQ-d00077-I (unregister any existing service worker registrations
+///                 on application initialization)
 Future<void> _unregisterLeftoverServiceWorkers() async {
   if (!kIsWeb) return;
+  final List<web.ServiceWorkerRegistration> regs;
   try {
-    final regs = await web.window.navigator.serviceWorker
-        .getRegistrations()
-        .toDart;
-    for (final reg in regs.toDart) {
-      await reg.unregister().toDart;
-    }
+    regs = (await web.window.navigator.serviceWorker.getRegistrations().toDart)
+        .toDart
+        .toList();
   } catch (_) {
     // ServiceWorker API unavailable — nothing to do.
+    return;
+  }
+  for (final reg in regs) {
+    try {
+      await reg.unregister().toDart;
+    } catch (e) {
+      // Per REQ-d00077-I best-effort: a single registration's failure to
+      // unregister (security error, internal browser error) must not block
+      // boot. Log so it doesn't vanish silently.
+      debugPrint('[main] serviceWorker.unregister failed: $e');
+    }
   }
 }
 

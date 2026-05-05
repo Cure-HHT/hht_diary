@@ -20,9 +20,9 @@
 </head>
 <body>
   <!-- IMPLEMENTS REQUIREMENTS:
-       REQ-d00028 (Portal Frontend Framework — single Flutter web bootstrap)
-       REQ-p00009 (Sponsor-Specific Web Portals — bootstrap must not race
-                   sponsor branding overlays)
+       REQ-d00077-N (no service worker registered after init)
+       REQ-p00009 (Sponsor-Specific Web Portals — bootstrap must not
+                   race sponsor branding overlays)
        Modern Flutter web (3.16+) generates flutter_bootstrap.js which
        owns _flutter.loader.load() internally. The previous inline
        loadEntrypoint() block plus serviceWorkerVersion=null was a
