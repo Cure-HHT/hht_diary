@@ -69,27 +69,21 @@ void main() async {
       FlavorConfig.initializeWithConfig(flavor, config, apiBaseUrl: apiBaseUrl);
       debugPrint('Identity Platform config loaded: ${config.projectId}');
     } on IdentityConfigException catch (e) {
+      // CUR-1280: do NOT silently downgrade a deployed-flavor build to the
+      // emulator just because the identity-config endpoint is unreachable.
+      // The previous kDebugMode-only fallback flipped F.appFlavor to
+      // Flavor.local for the rest of the page lifetime, which (a) opened the
+      // trusted-by-locality Auth-emulator code paths in a build that may be
+      // talking to a real backend, and (b) silently masked a config-server
+      // outage. If the developer wants emulator mode, they can rebuild with
+      // --dart-define=APP_FLAVOR=local explicitly.
       debugPrint('Failed to fetch Identity Platform config: $e');
-
-      if (kDebugMode) {
-        // In debug mode, fall back to emulator with warning
-        debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback();
-      } else {
-        // In release mode, show error app
-        runApp(ConfigErrorApp(error: e.message));
-        return;
-      }
+      runApp(ConfigErrorApp(error: e.message));
+      return;
     } catch (e) {
       debugPrint('Unexpected error fetching config: $e');
-
-      if (kDebugMode) {
-        debugPrint('WARNING: Falling back to emulator config for development');
-        FlavorConfig.initializeWithEmulatorFallback();
-      } else {
-        runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
-        return;
-      }
+      runApp(ConfigErrorApp(error: 'Failed to load configuration: $e'));
+      return;
     }
   }
 

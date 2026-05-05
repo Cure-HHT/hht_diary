@@ -187,39 +187,6 @@ class FlavorConfig {
     _values = FlavorValues.fromIdentityConfig(config, apiBaseUrl: apiBaseUrl);
   }
 
-  /// Initialize with emulator fallback (for debug mode failures)
-  ///
-  /// Use this when config fetch fails in debug mode. Shows a warning
-  /// but allows development to continue with emulator.
-  ///
-  /// Forces [F.appFlavor] to [Flavor.local] so that downstream emulator-
-  /// connection logic (gated on `F.useEmulator`) actually runs. Otherwise
-  /// the placeholder `demo-api-key` would be sent to real Firebase and
-  /// surface as a misleading `api-key-not-valid` error.
-  static void initializeWithEmulatorFallback() {
-    F.appFlavor = Flavor.local;
-    _values = const FlavorValues(
-      apiBaseUrl: 'http://localhost:8084',
-      firebaseApiKey: 'demo-api-key',
-      firebaseAppId: '1:000000000000:web:0000000000000000000000',
-      // CUR-1263: must match the firebase emulator's startup --project flag
-      // and the local-stack seed script's effective project id (composed as
-      // ${--project}-${--env}). All three live in
-      // hht_diary_callisto/deployment/local-stack/.
-      firebaseProjectId: 'demo-local-stack',
-      // CUR-1280: must NOT be a *.firebaseapp.com domain on local flavor.
-      // The Firebase JS SDK loads a GAPI iframe at the configured
-      // authDomain to broker popup/redirect/MFA flows; that iframe in turn
-      // calls https://www.googleapis.com/identitytoolkit/v3/relyingparty/
-      // getProjectConfig?key=demo-api-key, which 400s with API_KEY_INVALID
-      // and breaks any auth flow that touches the iframe path
-      // (registration / activation / MFA enroll). The SDK skips the
-      // iframe path entirely when authDomain is on a local origin.
-      firebaseAuthDomain: 'localhost',
-      firebaseMessagingSenderId: '000000000000',
-    );
-  }
-
   /// Validate that required Firebase config is present
   /// Throws if configuration is missing for non-local flavors
   static void validateConfig() {
