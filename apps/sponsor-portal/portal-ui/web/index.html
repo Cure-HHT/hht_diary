@@ -4,7 +4,7 @@
   <!--
   IMPLEMENTS REQUIREMENTS:
     REQ-p00009: Sponsor-Specific Web Portals
-    REQ-d00028: Portal Frontend Framework
+    REQ-d00028: Portal Frontend Framework (deprecated; closest match)
   -->
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
@@ -17,25 +17,17 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
   <title>Clinical Trial Portal</title>
   <link rel="manifest" href="manifest.json">
-  <script>
-    var serviceWorkerVersion = null;
-  </script>
-  <script src="flutter_bootstrap.js" async></script>
 </head>
 <body>
-  <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+  <!-- IMPLEMENTS REQUIREMENTS:
+       REQ-d00028 (Portal Frontend Framework — single Flutter web bootstrap)
+       REQ-p00009 (Sponsor-Specific Web Portals — bootstrap must not race
+                   sponsor branding overlays)
+       Modern Flutter web (3.16+) generates flutter_bootstrap.js which
+       owns _flutter.loader.load() internally. The previous inline
+       loadEntrypoint() block plus serviceWorkerVersion=null was a
+       stale-template carry-over that registered the service worker on
+       a separate code path. -->
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

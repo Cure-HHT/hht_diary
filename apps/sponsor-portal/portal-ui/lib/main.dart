@@ -7,6 +7,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-o00056: Container infrastructure for Cloud Run
 
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:common_widgets/common_widgets.dart';
@@ -30,6 +31,12 @@ import 'theme/portal_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // CUR-1280: previous builds shipped flutter_service_worker.js. PWA is
+  // now disabled at build time, but a SW already installed in the
+  // user's browser survives. Unregister any leftover SW on boot.
+  // IMPLEMENTS: REQ-p00009 (always serve the latest deploy).
+  unawaited(_unregisterLeftoverServiceWorkers());
 
   // Remove # from URLs
   setPathUrlStrategy();
@@ -215,6 +222,20 @@ void main() async {
       lifecycleService: lifecycleService,
     ),
   );
+}
+
+Future<void> _unregisterLeftoverServiceWorkers() async {
+  if (!kIsWeb) return;
+  try {
+    final regs = await web.window.navigator.serviceWorker
+        .getRegistrations()
+        .toDart;
+    for (final reg in regs.toDart) {
+      await reg.unregister().toDart;
+    }
+  } catch (_) {
+    // ServiceWorker API unavailable — nothing to do.
+  }
 }
 
 class CarinaPortalApp extends StatefulWidget {
