@@ -343,9 +343,10 @@ Future<Response> createPortalUserHandler(Request request) async {
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
-  // Check for duplicate email
+  // Check for duplicate email (case-insensitive: portal_users has a UNIQUE
+  // INDEX on LOWER(email), so this also matches what the DB will reject).
   final existing = await db.executeWithContext(
-    'SELECT id FROM portal_users WHERE email = @email',
+    'SELECT id FROM portal_users WHERE LOWER(email) = LOWER(@email)',
     parameters: {'email': email},
     context: serviceContext,
   );
@@ -1089,9 +1090,10 @@ Future<Response> verifyEmailChangeHandler(Request request, String token) async {
     return _jsonResponse({'error': 'Verification link has expired'}, 400);
   }
 
-  // Check new email isn't already taken
+  // Check new email isn't already taken (case-insensitive)
   final emailExists = await db.executeWithContext(
-    'SELECT id FROM portal_users WHERE email = @email AND id != @userId::uuid',
+    'SELECT id FROM portal_users '
+    'WHERE LOWER(email) = LOWER(@email) AND id != @userId::uuid',
     parameters: {'email': newEmail, 'userId': userId},
     context: serviceContext,
   );

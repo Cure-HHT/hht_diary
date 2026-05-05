@@ -682,6 +682,41 @@ void main() {
     );
 
     test(
+      'createPortalUserHandler rejects duplicate email regardless of case',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Without case-insensitive uniqueness on portal_users.email, the
+        // /portal/me re-link path could match two case-variant rows and
+        // trip firebase_uid UNIQUE on subsequent login.
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final unique = DateTime.now().millisecondsSinceEpoch;
+        final mixedCase = 'CaseDup-$unique@portal-test.example.com';
+        final lowered = mixedCase.toLowerCase();
+
+        final firstResponse = await createPortalUserHandler(
+          createPostRequest(
+            '/api/v1/portal/users',
+            {'name': 'Case Dup', 'email': mixedCase, 'role': 'Auditor'},
+            headers: {'authorization': 'Bearer $token'},
+          ),
+        );
+        expect(firstResponse.statusCode, equals(201));
+
+        final secondResponse = await createPortalUserHandler(
+          createPostRequest(
+            '/api/v1/portal/users',
+            {'name': 'Case Dup 2', 'email': lowered, 'role': 'Auditor'},
+            headers: {'authorization': 'Bearer $token'},
+          ),
+        );
+        expect(secondResponse.statusCode, equals(409));
+      },
+    );
+
+    test(
       'createPortalUserHandler requires site for Investigator',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {

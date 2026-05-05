@@ -145,7 +145,7 @@ Future<Response> requestPasswordResetHandler(Request request) async {
       '''
       SELECT id, name, status, firebase_uid
       FROM portal_users
-      WHERE LOWER(email) = @email
+      WHERE LOWER(email) = LOWER(@email)
       ''',
       parameters: {'email': normalizedEmail},
       context: UserContext.service,
