@@ -19,7 +19,7 @@ library;
 // existing browser_storage_test.dart targets the dart VM and exercises the
 // AuthService injection contract.
 //
-// IMPLEMENTS REQUIREMENTS (parent-repo / hht_diary):
+// IMPLEMENTS REQUIREMENTS:
 //   REQ-d00083-D: clear IndexedDB databases on logout
 //   REQ-d00083-I: clear IndexedDB databases on session timeout
 //   REQ-d00083-N: clear IndexedDB databases on browser close
