@@ -831,7 +831,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     DiaryEntry? survey;
     for (final entry in incomplete) {
       if (entry.entryType == 'nose_hht_survey' ||
-          entry.entryType == 'hht_qol_survey') {
+          entry.entryType == 'qol_survey') {
         survey = entry;
         break;
       }

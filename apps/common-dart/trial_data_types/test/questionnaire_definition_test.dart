@@ -25,7 +25,7 @@ void main() {
 
     test('definitions have correct ids', () {
       expect(definitions[0].id, 'nose_hht');
-      expect(definitions[1].id, 'hht_qol');
+      expect(definitions[1].id, 'qol');
     });
   });
 
@@ -116,7 +116,7 @@ void main() {
     late QuestionnaireDefinition qol;
 
     setUp(() {
-      qol = definitions.firstWhere((d) => d.id == 'hht_qol');
+      qol = definitions.firstWhere((d) => d.id == 'qol');
     });
 
     test('has correct metadata', () {
