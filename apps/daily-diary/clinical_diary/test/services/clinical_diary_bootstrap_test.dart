@@ -2,6 +2,8 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/triggers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -82,7 +84,8 @@ _buildRuntime({
       httpClient ??
       MockClient((req) async {
         captured.add(req);
-        // 200 for both POST /events and GET /inbound (returns empty messages).
+        // 200 for inbound poll (returns empty messages) and outbound
+        // legacy-sync / questionnaire-submit calls.
         if (req.url.path.endsWith('inbound')) {
           return http.Response('{"messages":[]}', 200);
         }
@@ -171,9 +174,10 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // Test 3: syncCycle drains the FIFO to the HTTP destination
-  // Verifies: REQ-d00134-A — syncCycle() sends a POST to {baseUrl}/events
-  // after an event has been recorded and the destination is active.
+  // Test 3: syncCycle drains the legacy-sync FIFO to the HTTP destination
+  // Verifies: REQ-d00134-A — syncCycle() sends a POST to {baseUrl}/sync
+  // after a nosebleed event has been recorded and the legacy_sync
+  // destination is active.
   //
   // Architecture note: destinations start dormant (no startDate). Events
   // recorded via EntryService flow into the event log; `fillBatch` promotes
@@ -182,71 +186,147 @@ void main() {
   // acts as fillBatch for events already in the log), populating the FIFO
   // so the subsequent `syncCycle` drain can send them.
   // -----------------------------------------------------------------------
-  test(
-    'runtime.syncCycle() drains the FIFO and POSTs to {baseUrl}/events',
-    () async {
-      final db = await _openDb();
-      final captured = <http.Request>[];
+  test('runtime.syncCycle() drains the legacy_sync FIFO and POSTs to '
+      '{baseUrl}/sync', () async {
+    final db = await _openDb();
+    final captured = <http.Request>[];
 
-      final client = MockClient((req) async {
-        captured.add(req);
-        if (req.url.path.endsWith('inbound')) {
-          return http.Response('{"messages":[]}', 200);
-        }
-        return http.Response('', 200);
-      });
+    final client = MockClient((req) async {
+      captured.add(req);
+      if (req.url.path.endsWith('inbound')) {
+        return http.Response('{"messages":[]}', 200);
+      }
+      return http.Response('', 200);
+    });
 
-      final runtime = await bootstrapClinicalDiary(
-        sembastDatabase: db,
-        authToken: () async => 'test-token',
-        resolveBaseUrl: () async => Uri.parse(_baseUrl),
-        deviceId: _deviceId,
-        softwareVersion: _softwareVersion,
-        userId: _userId,
-        httpClient: client,
-        lifecycleObserverFactory: _silentLifecycleFactory,
-        periodicTimerFactory: _silentTimerFactory,
-        connectivityStreamFactory: _silentConnectivityFactory,
-        fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-        fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-      );
+    final runtime = await bootstrapClinicalDiary(
+      sembastDatabase: db,
+      authToken: () async => 'test-token',
+      resolveBaseUrl: () async => Uri.parse(_baseUrl),
+      deviceId: _deviceId,
+      softwareVersion: _softwareVersion,
+      userId: _userId,
+      httpClient: client,
+      lifecycleObserverFactory: _silentLifecycleFactory,
+      periodicTimerFactory: _silentTimerFactory,
+      connectivityStreamFactory: _silentConnectivityFactory,
+      fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+      fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+    );
 
-      // Record one event BEFORE activating the destination. The event lands
-      // in the event log; at this point the destination is dormant so
-      // nothing is enqueued to its FIFO yet.
-      final now = DateTime.now().toUtc();
-      await runtime.entryService.record(
-        entryType: 'epistaxis_event',
-        aggregateId: 'agg-drain-2',
-        eventType: 'finalized',
-        answers: {'startTime': now.toIso8601String()},
-      );
+    // Record one nosebleed event BEFORE activating the destination. The
+    // event lands in the event log; the destination is still dormant so
+    // nothing is enqueued to its FIFO yet.
+    final now = DateTime.now().toUtc();
+    await runtime.entryService.record(
+      entryType: 'epistaxis_event',
+      aggregateId: 'agg-drain-2',
+      eventType: 'finalized',
+      answers: {'startTime': now.toIso8601String()},
+    );
 
-      // Activate the destination with a past startDate. This triggers
-      // historical replay synchronously, which walks the event log and
-      // enqueues any matching events (including the one above) into the
-      // destination's FIFO, exactly as fillBatch would during live operation.
-      await runtime.destinations.setStartDate(
-        'primary_diary_server',
-        DateTime.now().toUtc().subtract(const Duration(seconds: 1)),
-        initiator: const AutomationInitiator(service: 'test'),
-      );
+    // Activate the destination with a past startDate. Historical replay
+    // walks the event log and enqueues matching events (including the one
+    // above) into the destination's FIFO, exactly as fillBatch would
+    // during live operation.
+    await runtime.destinations.setStartDate(
+      LegacySyncDestination.destinationId,
+      DateTime.now().toUtc().subtract(const Duration(seconds: 1)),
+      initiator: const AutomationInitiator(service: 'test'),
+    );
 
-      // Drain the FIFO: syncCycle runs drain() for each registered
-      // destination. The historical-replay-populated FIFO entry is sent,
-      // producing a POST to {baseUrl}/events.
-      await runtime.syncCycle();
+    // Drain the FIFO: syncCycle runs drain() for each registered
+    // destination. The historical-replay-populated FIFO entry is sent,
+    // producing a POST to {baseUrl}/sync.
+    await runtime.syncCycle();
 
-      final postRequests = captured.where((r) => r.method == 'POST').toList();
-      expect(postRequests, isNotEmpty);
-      expect(
-        postRequests.any((r) => r.url.toString().contains('events')),
-        isTrue,
-      );
+    final postRequests = captured.where((r) => r.method == 'POST').toList();
+    expect(postRequests, isNotEmpty);
+    expect(
+      postRequests.any((r) => r.url.toString().endsWith('/sync')),
+      isTrue,
+      reason: 'a POST to <baseUrl>/sync should fire after FIFO drain',
+    );
 
-      await runtime.dispose();
-    },
-  );
+    await runtime.dispose();
+  });
+
+  // -----------------------------------------------------------------------
+  // Test 3b: syncCycle drains the legacy_questionnaire_submit FIFO to
+  // the questionnaire submit endpoint. Confirms the bootstrap registers
+  // both shim destinations and that survey-finalized events land on the
+  // questionnaire submit URL — not the /sync URL.
+  // -----------------------------------------------------------------------
+  test('runtime.syncCycle() drains a finalized survey to '
+      '{baseUrl}/questionnaires/<id>/submit', () async {
+    final db = await _openDb();
+    final captured = <http.Request>[];
+    final client = MockClient((req) async {
+      captured.add(req);
+      if (req.url.path.endsWith('inbound')) {
+        return http.Response('{"messages":[]}', 200);
+      }
+      return http.Response('', 200);
+    });
+
+    final runtime = await bootstrapClinicalDiary(
+      sembastDatabase: db,
+      authToken: () async => 'test-token',
+      resolveBaseUrl: () async => Uri.parse(_baseUrl),
+      deviceId: _deviceId,
+      softwareVersion: _softwareVersion,
+      userId: _userId,
+      httpClient: client,
+      lifecycleObserverFactory: _silentLifecycleFactory,
+      periodicTimerFactory: _silentTimerFactory,
+      connectivityStreamFactory: _silentConnectivityFactory,
+      fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+      fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+    );
+
+    const instanceId = 'agg-survey-drain-1';
+    await runtime.entryService.record(
+      entryType: 'nose_hht_survey',
+      aggregateId: instanceId,
+      eventType: 'finalized',
+      answers: <String, Object?>{
+        'instance_id': instanceId,
+        'questionnaire_type': 'nose_hht',
+        'version': '1.0.0',
+        'completed_at': '2026-04-27T10:00:00.000Z',
+        'responses': const <Map<String, Object?>>[
+          {
+            'question_id': 'q1',
+            'value': 2,
+            'display_label': 'Sometimes',
+            'normalized_label': '2',
+          },
+        ],
+      },
+    );
+
+    await runtime.destinations.setStartDate(
+      LegacyQuestionnaireSubmitDestination.destinationId,
+      DateTime.now().toUtc().subtract(const Duration(seconds: 1)),
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
+    await runtime.syncCycle();
+
+    final postRequests = captured.where((r) => r.method == 'POST').toList();
+    expect(postRequests, isNotEmpty);
+    expect(
+      postRequests.any(
+        (r) => r.url.toString().endsWith('/questionnaires/$instanceId/submit'),
+      ),
+      isTrue,
+      reason:
+          'a POST to <baseUrl>/questionnaires/<id>/submit should fire '
+          'after the survey-finalized FIFO drain',
+    );
+
+    await runtime.dispose();
+  });
 
   // -----------------------------------------------------------------------
   // CUR-1164: isDisconnected predicate gates the trigger lambda
@@ -294,7 +374,7 @@ void main() {
         answers: {'startTime': now.toIso8601String()},
       );
       await runtime.destinations.setStartDate(
-        'primary_diary_server',
+        LegacySyncDestination.destinationId,
         now.subtract(const Duration(seconds: 1)),
         initiator: const AutomationInitiator(service: 'test'),
       );

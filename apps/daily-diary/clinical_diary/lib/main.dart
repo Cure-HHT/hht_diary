@@ -12,6 +12,8 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -317,17 +319,28 @@ class _AppRootState extends State<AppRoot> {
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
       );
 
-      // Activate the primary destination once at boot. setStartDate is
-      // idempotent — calling it on a destination that is already at the
-      // requested startDate is a no-op.
-      try {
-        await runtime.destinations.setStartDate(
-          'primary_diary_server',
-          DateTime.utc(2020, 1, 1),
-          initiator: const AutomationInitiator(service: 'mobile-bootstrap'),
-        );
-      } catch (e, stack) {
-        debugPrint('[Bootstrap] setStartDate failed: $e\n$stack');
+      // Activate both legacy-shim destinations once at boot. setStartDate
+      // is idempotent — calling it on a destination already at the
+      // requested startDate is a no-op. Each activation runs in its own
+      // try/catch so a failure on one destination does not prevent the
+      // other from coming online.
+      const initiator = AutomationInitiator(service: 'mobile-bootstrap');
+      final activationStartAt = DateTime.utc(2020, 1, 1);
+      for (final destinationId in <String>[
+        LegacySyncDestination.destinationId,
+        LegacyQuestionnaireSubmitDestination.destinationId,
+      ]) {
+        try {
+          await runtime.destinations.setStartDate(
+            destinationId,
+            activationStartAt,
+            initiator: initiator,
+          );
+        } catch (e, stack) {
+          debugPrint(
+            '[Bootstrap] setStartDate($destinationId) failed: $e\n$stack',
+          );
+        }
       }
 
       if (mounted) {

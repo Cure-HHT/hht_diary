@@ -1,10 +1,17 @@
-// Verifies: REQ-d00162 (destination contract); REQ-d00163 (inbound poll);
-//   REQ-d00164 (sync triggers); REQ-d00113-C (questionnaire 409 translation);
-//   REQ-d00113-D (tombstone inbound).
+// Integration scenarios covering the full cutover data path: record an
+// event, drain the legacy-shim destinations, and observe the resulting
+// HTTP traffic + FIFO state.
+//
+// No REQ citations: the shim destinations (legacy_sync,
+// legacy_questionnaire_submit) are transitional translation layers
+// without their own REQs. Canonical REQs for the eventual native
+// destination remain unverified until that native destination lands.
 
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/destinations/portal_inbound_poll.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -58,13 +65,33 @@ const _deviceId = 'integration-device-001';
 const _softwareVersion = 'clinical_diary@0.0.0+integration';
 const _userId = 'integration-user-001';
 
+const _legacySyncId = LegacySyncDestination.destinationId;
+const _legacyQSubmitId = LegacyQuestionnaireSubmitDestination.destinationId;
+
+/// Minimal valid `data` payload for a survey-finalized event — the
+/// shape `LegacyQuestionnaireSubmitDestination.transform` requires.
+Map<String, Object?> _surveyData({String questionnaireType = 'nose_hht'}) =>
+    <String, Object?>{
+      'instance_id': 'agg-survey',
+      'questionnaire_type': questionnaireType,
+      'version': '1.0.0',
+      'completed_at': '2026-04-27T10:00:00.000Z',
+      'responses': const <Map<String, Object?>>[
+        {
+          'question_id': 'q1',
+          'value': 0,
+          'display_label': 'Never',
+          'normalized_label': '0',
+        },
+      ],
+    };
+
 // ---------------------------------------------------------------------------
-// Mutable HTTP handler so individual tests can flip behaviour mid-run
-// (e.g. offline -> online in scenario 8).
+// Mutable HTTP handler so individual tests can flip behaviour mid-run.
 // ---------------------------------------------------------------------------
 
 class _Handler {
-  /// Default: 200 for POST /events, empty `messages` for GET /inbound.
+  /// Default: empty `messages` for GET inbound, 200 for everything else.
   Future<http.Response> Function(http.Request) impl = (req) async {
     if (req.url.path.endsWith('inbound')) {
       return http.Response('{"messages":[]}', 200);
@@ -124,10 +151,9 @@ Future<_Fixture> _build() async {
     fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
   );
 
-  // The destination starts dormant (no startDate). Tests that need to
-  // drain MUST call [_activateAndFill] (or [_fillBatch] for repeat fills)
-  // after recording events: setStartDate triggers historical replay, and
-  // subsequent calls to [_fillBatch] promote any events recorded since.
+  // Destinations start dormant; tests record events first and then call
+  // [_activate] to trigger historical replay (which acts like fillBatch
+  // on existing events) and prime the FIFO for drain.
   return _Fixture(
     runtime: runtime,
     db: db,
@@ -136,15 +162,20 @@ Future<_Fixture> _build() async {
   );
 }
 
-/// One-shot: activate the destination. setStartDate's historical replay
-/// promotes every event already in the log into the FIFO, exactly as
-/// fillBatch would during live operation. (Tests record events FIRST,
-/// then activate, then drain — matching the bootstrap test pattern.)
+/// Activate every shim destination so historical replay promotes events
+/// already in the log into each destination's FIFO.
 Future<void> _activate(_Fixture fx) async {
+  const initiator = AutomationInitiator(service: 'integration-test');
+  final startAt = DateTime.utc(2020, 1, 1);
   await fx.runtime.destinations.setStartDate(
-    'primary_diary_server',
-    DateTime.utc(2020, 1, 1),
-    initiator: const AutomationInitiator(service: 'integration-test'),
+    _legacySyncId,
+    startAt,
+    initiator: initiator,
+  );
+  await fx.runtime.destinations.setStartDate(
+    _legacyQSubmitId,
+    startAt,
+    initiator: initiator,
   );
 }
 
@@ -158,10 +189,10 @@ void main() {
   setUpAll(WidgetsFlutterBinding.ensureInitialized);
 
   // -------------------------------------------------------------------------
-  // Scenario 1: Nosebleed add -> record + drain
+  // Scenario 1: Nosebleed add -> record + drain to /sync.
   // -------------------------------------------------------------------------
   test('scenario 1: record one nosebleed -> 1 event in log, view row '
-      'exists, syncCycle POSTs to /events', () async {
+      'exists, syncCycle POSTs to <baseUrl>/sync', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
@@ -187,29 +218,23 @@ void main() {
     expect(viewRow, hasLength(1));
     expect(viewRow.single.entryId, 'agg-s1');
 
-    // Activate -> historical replay promotes the event into the FIFO,
-    // then drain delivers it.
     await _activate(fx);
     await fx.runtime.syncCycle();
 
     final posts = fx.requests.where((r) => r.method == 'POST').toList();
     expect(posts, isNotEmpty);
-    expect(posts.first.url.toString(), '${_baseUrl}events');
+    expect(posts.first.url.toString(), '${_baseUrl}sync');
 
-    // The FIFO row for this batch should now be in `sent` state.
-    final fifo = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifo = await fx.runtime.backend.listFifoEntries(_legacySyncId);
     expect(fifo, isNotEmpty);
     expect(fifo.last.finalStatus, FinalStatus.sent);
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 2: Nosebleed edit -> 2 events on same aggregate, view shows
-  // latest, sync POSTs both events in FIFO order.
+  // Scenario 2: Nosebleed edit -> 2 events, both drain in FIFO order.
   // -------------------------------------------------------------------------
   test('scenario 2: edit nosebleed -> 2 events on aggregate, view reflects '
-      'latest, both drained', () async {
+      'latest, both drained in FIFO order', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
@@ -250,11 +275,7 @@ void main() {
     final posts = fx.requests.where((r) => r.method == 'POST').toList();
     expect(posts.length, greaterThanOrEqualTo(2));
 
-    // FIFO drain order is sequence_in_queue ascending; both rows must be
-    // sent (REQ-d00162 — destination contract drains in order).
-    final fifo = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifo = await fx.runtime.backend.listFifoEntries(_legacySyncId);
     expect(fifo, hasLength(greaterThanOrEqualTo(2)));
     for (final row in fifo) {
       expect(row.finalStatus, FinalStatus.sent);
@@ -262,7 +283,8 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 3: Nosebleed delete -> tombstone, view marks deleted.
+  // Scenario 3: User-initiated nosebleed delete -> tombstone view, ships
+  // to legacy_sync (server learns about the deletion).
   // -------------------------------------------------------------------------
   test(
     'scenario 3: tombstone after finalized -> view row.isDeleted=true; '
@@ -315,10 +337,11 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // Scenario 4: Questionnaire submit -> finalized event, drained.
+  // Scenario 4: Questionnaire submit -> finalized event drains to
+  // /questionnaires/<id>/submit (not /sync).
   // -------------------------------------------------------------------------
   test('scenario 4: survey finalized -> 1 event, view is_complete=true, '
-      'drained to /events', () async {
+      'drained to <baseUrl>/questionnaires/<id>/submit', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
@@ -330,19 +353,20 @@ void main() {
       isNotNull,
     );
 
+    const instanceId = 'agg-s4';
     await fx.runtime.entryService.record(
       entryType: 'nose_hht_survey',
-      aggregateId: 'agg-s4',
+      aggregateId: instanceId,
       eventType: 'finalized',
-      answers: const <String, Object?>{'q1': 0, 'q2': 1, 'cycle': 'week-3'},
+      answers: _surveyData(),
     );
 
-    final events = await fx.runtime.backend.findEventsForAggregate('agg-s4');
+    final events = await fx.runtime.backend.findEventsForAggregate(instanceId);
     expect(events, hasLength(1));
 
     final viewRow = (await fx.runtime.backend.findEntries(
       entryType: 'nose_hht_survey',
-    )).singleWhere((e) => e.entryId == 'agg-s4');
+    )).singleWhere((e) => e.entryId == instanceId);
     expect(viewRow.isComplete, isTrue);
     expect(viewRow.isDeleted, isFalse);
 
@@ -351,14 +375,28 @@ void main() {
 
     final posts = fx.requests.where((r) => r.method == 'POST').toList();
     expect(posts, isNotEmpty);
-    expect(posts.any((r) => r.url.toString() == '${_baseUrl}events'), isTrue);
+    expect(
+      posts.any(
+        (r) =>
+            r.url.toString() == '${_baseUrl}questionnaires/$instanceId/submit',
+      ),
+      isTrue,
+      reason: 'survey-finalized must POST to the questionnaire submit URL',
+    );
+
+    // No nosebleed events were recorded, so legacy_sync's FIFO should
+    // be empty (or have nothing wedged).
+    expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 5: REQ-d00113-D — tombstone inbound materializes a tombstone.
+  // Scenario 5: Tombstone inbound from portal materializes a tombstone
+  // (and is filtered OUT of the legacy_sync FIFO so the server is not
+  // sent its own deletion back).
   // -------------------------------------------------------------------------
   test('scenario 5: portalInboundPoll receives tombstone for survey -> '
-      'tombstone event recorded, view row is_deleted=true', () async {
+      'tombstone event recorded, view row is_deleted=true, '
+      'and legacy_sync FIFO does not echo the tombstone back', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
@@ -368,10 +406,9 @@ void main() {
       entryType: 'nose_hht_survey',
       aggregateId: 'agg-s5',
       eventType: 'finalized',
-      answers: const <String, Object?>{'q1': 1},
+      answers: _surveyData(),
     );
 
-    // Configure the GET /inbound response to return one tombstone.
     fx.handler.impl = (req) async {
       if (req.method == 'GET' && req.url.path.endsWith('inbound')) {
         return http.Response(
@@ -390,8 +427,6 @@ void main() {
       return http.Response('', 200);
     };
 
-    // Drive inbound directly. (Triggers wire this in production; calling
-    // the function here is a unit-level shortcut at the integration scope.)
     await portalInboundPoll(
       entryService: fx.runtime.entryService,
       eventStore: fx.runtime.eventStore,
@@ -402,6 +437,10 @@ void main() {
     final events = await fx.runtime.backend.findEventsForAggregate('agg-s5');
     expect(events, hasLength(2));
     expect(events.last.eventType, 'tombstone');
+    // The portal-originated tombstone carries change_reason
+    // 'portal-withdrawn' — the predicate on both shim destinations
+    // excludes it, so neither FIFO ever sees it.
+    expect(events.last.metadata['change_reason'], 'portal-withdrawn');
 
     final viewRow = (await fx.runtime.backend.findEntries(
       entryType: 'nose_hht_survey',
@@ -410,15 +449,18 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 6: REQ-d00113-C — 409 questionnaire_deleted drains the FIFO.
+  // Scenario 6: 409 questionnaire_deleted on /questionnaires/<id>/submit
+  // -> SendOk so the FIFO drains; no wedge.
   // -------------------------------------------------------------------------
-  test('scenario 6: 409 {error: questionnaire_deleted} -> FIFO drains '
-      '(SendOk), no wedge', () async {
+  test('scenario 6: 409 {error: questionnaire_deleted} on questionnaire '
+      'submit -> FIFO drains (SendOk), no wedge', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
     fx.handler.impl = (req) async {
-      if (req.method == 'POST' && req.url.path.endsWith('events')) {
+      if (req.method == 'POST' &&
+          req.url.path.contains('/questionnaires/') &&
+          req.url.path.endsWith('/submit')) {
         return http.Response(
           jsonEncode({'error': 'questionnaire_deleted'}),
           409,
@@ -434,30 +476,28 @@ void main() {
       entryType: 'nose_hht_survey',
       aggregateId: 'agg-s6',
       eventType: 'finalized',
-      answers: const <String, Object?>{'q1': 0},
+      answers: _surveyData(),
     );
 
     await _activate(fx);
     await fx.runtime.syncCycle();
 
     expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
-    final fifo = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifo = await fx.runtime.backend.listFifoEntries(_legacyQSubmitId);
     expect(fifo, isNotEmpty);
     expect(fifo.last.finalStatus, FinalStatus.sent);
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 7: 4xx other than 409+questionnaire_deleted -> FIFO wedges.
+  // Scenario 7: 4xx on /sync -> FIFO row wedged.
   // -------------------------------------------------------------------------
-  test('scenario 7: server returns 400 -> SendPermanent, FIFO row wedged, '
-      'anyFifoWedged=true', () async {
+  test('scenario 7: server returns 400 on /sync -> SendPermanent, '
+      'legacy_sync FIFO row wedged, anyFifoWedged=true', () async {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
     fx.handler.impl = (req) async {
-      if (req.method == 'POST' && req.url.path.endsWith('events')) {
+      if (req.method == 'POST' && req.url.path.endsWith('sync')) {
         return http.Response('bad request', 400);
       }
       if (req.url.path.endsWith('inbound')) {
@@ -479,9 +519,7 @@ void main() {
     await fx.runtime.syncCycle();
 
     expect(await fx.runtime.backend.anyFifoWedged(), isTrue);
-    final fifo = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifo = await fx.runtime.backend.listFifoEntries(_legacySyncId);
     expect(fifo, isNotEmpty);
     expect(fifo.last.finalStatus, FinalStatus.wedged);
   });
@@ -494,9 +532,8 @@ void main() {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
-    // Phase 1: simulate offline. POST throws ClientException.
     fx.handler.impl = (req) async {
-      if (req.method == 'POST' && req.url.path.endsWith('events')) {
+      if (req.method == 'POST' && req.url.path.endsWith('sync')) {
         throw http.ClientException('Connection refused');
       }
       if (req.url.path.endsWith('inbound')) {
@@ -519,21 +556,16 @@ void main() {
       answers: <String, Object?>{'startTime': now.toIso8601String()},
     );
 
-    // Activate so historical replay populates the FIFO with both events.
     await _activate(fx);
     await fx.runtime.syncCycle();
 
-    // Both events landed in the log.
     final eventsAfterOffline = await fx.runtime.backend.findAllEvents();
     expect(
       eventsAfterOffline.where((e) => e.aggregateId.startsWith('agg-s8-')),
       hasLength(2),
     );
 
-    // FIFO rows exist but neither is sent (transient -> still drainable).
-    final fifoOffline = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifoOffline = await fx.runtime.backend.listFifoEntries(_legacySyncId);
     expect(fifoOffline, hasLength(greaterThanOrEqualTo(2)));
     for (final row in fifoOffline) {
       expect(row.finalStatus, isNot(FinalStatus.sent));
@@ -541,7 +573,7 @@ void main() {
     }
     expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
 
-    // Phase 2: come back online — POST returns 200.
+    // Phase 2: come back online.
     fx.handler.impl = (req) async {
       if (req.url.path.endsWith('inbound')) {
         return http.Response('{"messages":[]}', 200);
@@ -549,65 +581,62 @@ void main() {
       return http.Response('', 200);
     };
 
-    // The offline attempt scheduled an exponential backoff (initialBackoff
-    // = 60s under SyncPolicy.defaults). Bypass the backoff by calling drain
-    // directly with a clock advanced past the backoff window — this matches
-    // the lib's own time-sensitive drain tests. SyncCycle.call() is the
-    // production trigger; here we exercise the same drain primitive
-    // SyncCycle invokes, with a non-default clock.
-    final destination = fx.runtime.destinations.byId('primary_diary_server')!;
+    // Bypass exponential backoff by feeding drain a clock far in the future.
+    final destination = fx.runtime.destinations.byId(_legacySyncId)!;
     await drain(
       destination,
       backend: fx.runtime.backend,
       clock: () => DateTime.now().toUtc().add(const Duration(hours: 4)),
     );
 
-    final fifoOnline = await fx.runtime.backend.listFifoEntries(
-      'primary_diary_server',
-    );
+    final fifoOnline = await fx.runtime.backend.listFifoEntries(_legacySyncId);
     expect(fifoOnline.length, greaterThanOrEqualTo(2));
-    // Every previously-pending row must now be sent.
     for (final row in fifoOnline) {
       expect(row.finalStatus, FinalStatus.sent);
     }
   });
 
   // -------------------------------------------------------------------------
-  // Scenario 9: Cycle stamping survives across events on same aggregate.
+  // Scenario 9: Cycle stamping survives in the recorded event payload.
   // -------------------------------------------------------------------------
-  test('scenario 9: cycle answer is preserved on the recorded event', () async {
-    final fx = await _build();
-    addTearDown(fx.tearDown);
+  test(
+    'scenario 9: study_event answer is preserved on the recorded event',
+    () async {
+      final fx = await _build();
+      addTearDown(fx.tearDown);
 
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: 'agg-s9',
-      eventType: 'finalized',
-      answers: const <String, Object?>{'q1': 0, 'cycle': 'week-3'},
-    );
+      final answers = <String, Object?>{
+        ..._surveyData(),
+        'study_event': 'week-3',
+      };
+      await fx.runtime.entryService.record(
+        entryType: 'nose_hht_survey',
+        aggregateId: 'agg-s9',
+        eventType: 'finalized',
+        answers: answers,
+      );
 
-    final events = await fx.runtime.backend.findEventsForAggregate('agg-s9');
-    expect(events, hasLength(1));
-    final answers = events.single.data['answers'] as Map<String, Object?>;
-    expect(answers['cycle'], 'week-3');
+      final events = await fx.runtime.backend.findEventsForAggregate('agg-s9');
+      expect(events, hasLength(1));
+      final eventAnswers =
+          events.single.data['answers'] as Map<String, Object?>;
+      expect(eventAnswers['study_event'], 'week-3');
 
-    final viewRow = (await fx.runtime.backend.findEntries(
-      entryType: 'nose_hht_survey',
-    )).singleWhere((e) => e.entryId == 'agg-s9');
-    expect(viewRow.currentAnswers['cycle'], 'week-3');
-  });
+      final viewRow = (await fx.runtime.backend.findEntries(
+        entryType: 'nose_hht_survey',
+      )).singleWhere((e) => e.entryId == 'agg-s9');
+      expect(viewRow.currentAnswers['study_event'], 'week-3');
+    },
+  );
 
   // -------------------------------------------------------------------------
   // Scenario 10: New questionnaire JSON -> loader includes a survey entry
-  // type for it. Confirms loader is data-driven.
+  // type for it. Confirms the loader is data-driven.
   // -------------------------------------------------------------------------
   test(
     'scenario 10: loadClinicalDiaryEntryTypes maps each questionnaire JSON '
     'entry to a "<id>_survey" entry type with widgetId survey_renderer_v1',
     () async {
-      // Inject a fixture JSON containing one new questionnaire alongside an
-      // existing-shaped one. The id-to-entry-type mapping is `${id}_survey`,
-      // so id "extra_survey" yields entry-type id "extra_survey_survey".
       const fixtureJson = '''
     {
       "questionnaires": [
@@ -633,13 +662,10 @@ void main() {
 
       final byId = {for (final t in entryTypes) t.id: t};
 
-      // Three static nosebleed types are always present.
       expect(byId.containsKey('epistaxis_event'), isTrue);
       expect(byId.containsKey('no_epistaxis_event'), isTrue);
       expect(byId.containsKey('unknown_day_event'), isTrue);
 
-      // The survey types come straight from the JSON. The new "extra_survey"
-      // questionnaire flows through with no Dart change.
       expect(byId.containsKey('nose_hht_survey'), isTrue);
       expect(byId.containsKey('extra_survey_survey'), isTrue);
       expect(byId['extra_survey_survey']!.widgetId, 'survey_renderer_v1');
@@ -655,8 +681,6 @@ void main() {
     final fx = await _build();
     addTearDown(fx.tearDown);
 
-    // Use deterministic local-midnight days well in the past so each
-    // entry's effective date lands on a distinct local calendar day.
     DateTime localDay(int offset) {
       final base = DateTime(2024, 1, 10);
       return base.add(Duration(days: offset));
@@ -668,28 +692,24 @@ void main() {
     final dayX3 = localDay(3); // incomplete (checkpoint, never finalized)
     final dayX4 = localDay(4); // notRecorded
 
-    // epistaxis_event uses effectiveDatePath: 'startTime'.
     await fx.runtime.entryService.record(
       entryType: 'epistaxis_event',
       aggregateId: 'agg-s11-x',
       eventType: 'finalized',
       answers: <String, Object?>{'startTime': dayX.toIso8601String()},
     );
-    // no_epistaxis_event uses effectiveDatePath: 'date'.
     await fx.runtime.entryService.record(
       entryType: 'no_epistaxis_event',
       aggregateId: 'agg-s11-x1',
       eventType: 'finalized',
       answers: <String, Object?>{'date': dayX1.toIso8601String()},
     );
-    // unknown_day_event uses effectiveDatePath: 'date'.
     await fx.runtime.entryService.record(
       entryType: 'unknown_day_event',
       aggregateId: 'agg-s11-x2',
       eventType: 'finalized',
       answers: <String, Object?>{'date': dayX2.toIso8601String()},
     );
-    // Checkpoint (incomplete) on dayX3 — epistaxis_event with startTime.
     await fx.runtime.entryService.record(
       entryType: 'epistaxis_event',
       aggregateId: 'agg-s11-x3',

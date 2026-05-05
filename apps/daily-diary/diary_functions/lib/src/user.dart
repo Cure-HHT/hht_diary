@@ -479,6 +479,16 @@ Future<Response> syncHandler(Request request) async {
       parameters: {'userId': userId},
     );
 
+    logWithTrace(
+      'INFO',
+      'Events synced',
+      labels: {
+        'patientId': patientId,
+        'syncedCount': syncedEventIds.length,
+        'totalSubmitted': events.length,
+      },
+    );
+
     return _jsonResponse({
       'success': true,
       'syncedCount': syncedEventIds.length,

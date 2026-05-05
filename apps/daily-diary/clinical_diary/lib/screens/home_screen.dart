@@ -754,22 +754,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           instanceId: aggregateId,
           onSubmit: (submission) async {
             try {
-              await widget.runtime.entryService.record(
+              await _recordSurveySubmission(
                 entryType: entryType,
                 aggregateId: aggregateId,
-                eventType: 'finalized',
-                answers: <String, Object?>{
-                  ...{
-                    for (final r in submission.responses) r.questionId: r.value,
-                  },
-                  'instanceId': submission.instanceId,
-                  'questionnaireType': submission.questionnaireType,
-                  'version': submission.version,
-                  'completedAt': submission.completedAt.toIso8601String(),
-                  // CUR-856 (REQ-CAL-p00080): stamp the cycle label into the
-                  // event log so it round-trips to the portal on ingest.
-                  if (task.studyEvent != null) 'study_event': task.studyEvent,
-                },
+                submission: submission,
+                studyEvent: task.studyEvent,
               );
               return const SubmitResult(success: true);
             } catch (e) {
@@ -803,6 +792,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
     _cachedQuestionnaires = defs;
     return QuestionnaireDefinition.findById(defs, type.value);
+  }
+
+  /// Append the canonical "questionnaire finalized" event to the local
+  /// log. The payload is `submission.toJson()` (snake_case keys: full
+  /// `responses` list, `instance_id`, `questionnaire_type`, `version`,
+  /// `completed_at`) plus an optional `study_event` cycle label
+  /// (REQ-CAL-p00080). The ALCOA+ audit fact must be self-contained:
+  /// the responses array carries `display_label` and `normalized_label`
+  /// per entry so downstream consumers do not need to re-derive them
+  /// from the questionnaire definition at read time.
+  Future<void> _recordSurveySubmission({
+    required String entryType,
+    required String aggregateId,
+    required QuestionnaireSubmission submission,
+    String? studyEvent,
+  }) async {
+    await widget.runtime.entryService.record(
+      entryType: entryType,
+      aggregateId: aggregateId,
+      eventType: 'finalized',
+      answers: <String, Object?>{
+        ...submission.toJson(),
+        'study_event': ?studyEvent,
+      },
+    );
   }
 
   /// Surfaces an incomplete survey via a modal route on resume / mount.
@@ -844,20 +858,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             instanceId: aggregateId,
             onSubmit: (submission) async {
               try {
-                await widget.runtime.entryService.record(
+                await _recordSurveySubmission(
                   entryType: entryType,
                   aggregateId: aggregateId,
-                  eventType: 'finalized',
-                  answers: <String, Object?>{
-                    ...{
-                      for (final r in submission.responses)
-                        r.questionId: r.value,
-                    },
-                    'instanceId': submission.instanceId,
-                    'questionnaireType': submission.questionnaireType,
-                    'version': submission.version,
-                    'completedAt': submission.completedAt.toIso8601String(),
-                  },
+                  submission: submission,
                 );
                 return const SubmitResult(success: true);
               } catch (e) {
