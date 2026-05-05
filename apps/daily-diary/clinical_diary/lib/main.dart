@@ -319,15 +319,17 @@ class _AppRootState extends State<AppRoot> {
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
       );
 
-      // Activate both legacy-shim destinations once. setStartDate is
-      // immutable per REQ-d00129-C: throwing if already assigned. Read
-      // the current schedule first and skip the write when the
-      // destination is already activated, so a process restart is a
-      // no-op rather than a noisy exception. Each activation runs in
-      // its own try/catch so a failure on one destination does not
-      // prevent the other from coming online.
+      // Activate both legacy-shim destinations once at first install.
+      // The startDate is "today" on first install: there are no events
+      // recorded before the app exists, so anchoring the destination
+      // there is the correct watermark. setStartDate is monotonically
+      // non-increasing (REQ-d00129-C) — read the current schedule and
+      // skip the write when the destination is already activated so a
+      // process restart is a no-op. Each activation runs in its own
+      // try/catch so a failure on one destination does not prevent the
+      // other from coming online.
       const initiator = AutomationInitiator(service: 'mobile-bootstrap');
-      final activationStartAt = DateTime.utc(2020, 1, 1);
+      final activationStartAt = DateTime.now().toUtc();
       for (final destinationId in <String>[
         LegacySyncDestination.destinationId,
         LegacyQuestionnaireSubmitDestination.destinationId,
