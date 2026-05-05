@@ -265,10 +265,24 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
       }
     }
 
+    // Real Firebase ID tokens encode `aud` as a JSON array
+    // (`["project-id"]`); the auth emulator currently emits it as a plain
+    // String. Handle both forms so the audience check stays effective if
+    // the emulator output ever drifts to the array shape — otherwise the
+    // `is String` guard would silently skip the check and accept ANY aud.
     final aud = payload['aud'];
-    if (aud is String && aud != _projectId) {
-      print('[AUTH] Emulator: audience mismatch: $aud != $_projectId');
-      return VerificationResult(error: 'Invalid audience: $aud');
+    String? audStr;
+    if (aud is String) {
+      audStr = aud;
+    } else if (aud is List && aud.isNotEmpty) {
+      // Take the first element as the canonical audience for comparison,
+      // mirroring the production path's `claims.audience?.contains(...)`.
+      final first = aud.first;
+      audStr = first is String ? first : null;
+    }
+    if (audStr != null && audStr != _projectId) {
+      print('[AUTH] Emulator: audience mismatch: $audStr != $_projectId');
+      return VerificationResult(error: 'Invalid audience: $audStr');
     }
 
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;

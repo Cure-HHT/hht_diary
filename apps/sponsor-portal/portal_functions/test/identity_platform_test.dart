@@ -220,12 +220,16 @@ void main() {
     /// emulator path. Signature is empty (the emulator path does not
     /// verify signatures). Claims default to a present, valid token;
     /// override [exp] / [aud] to construct rejection cases.
+    ///
+    /// [aud] is intentionally `Object?` so callers can pass either a
+    /// plain `String` (current emulator format) or a `List<String>`
+    /// (real-Firebase format) — the verifier handles both shapes.
     String buildEmulatorToken({
       String sub = 'test-user-emu',
       String? email = 'emu@example.com',
       bool emailVerified = true,
       DateTime? exp,
-      String? aud,
+      Object? aud,
     }) {
       final header = base64Url.encode(
         utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
@@ -265,6 +269,21 @@ void main() {
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {
         final token = buildEmulatorToken(aud: 'not-our-project');
+        final result = await verifyIdToken(token);
+        expect(result.isValid, isFalse);
+        expect(result.error, isNotNull);
+        expect(result.error!.toLowerCase(), contains('audience'));
+      },
+    );
+
+    test(
+      'rejects emulator token where aud is a List with the wrong project id',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        // Real Firebase ID tokens encode `aud` as a JSON array; verify
+        // the emulator path's audience check still fires in that shape
+        // rather than silently passing through.
+        final token = buildEmulatorToken(aud: <String>['not-our-project']);
         final result = await verifyIdToken(token);
         expect(result.isValid, isFalse);
         expect(result.error, isNotNull);
