@@ -17,15 +17,41 @@ import 'package:http/http.dart' as http;
 /// legacy diary server `/api/v1/user/sync` endpoint.
 ///
 /// Each event is sent as its own POST, body shape `{"events": [event]}`,
-/// matching the legacy mobile app's wire contract. Event-type strings
-/// are translated to the legacy names the server's
-/// `_mapEventTypeToOperation` switch recognizes:
+/// matching the legacy mobile app's wire contract.
+///
+/// **Event-type translation** — translated to the legacy strings that
+/// the server's `_mapEventTypeToOperation` switch recognizes:
 ///
 ///   - `finalized`  -> `nosebleedupdated`  (record_audit operation USER_UPDATE)
 ///   - `tombstone`  -> `nosebleeddeleted`  (record_audit operation USER_DELETE)
 ///
 /// Other event types pass through unchanged; the server falls back to
 /// `USER_CREATE` for any unrecognized string.
+///
+/// **Data-payload translation** — the StoredEvent's `data` field
+/// (canonical shape `{answers: {...}, checkpoint_reason: ?}`) is
+/// projected to the legacy `EventRecord` shape that the
+/// `record_audit` `validate_diary_data` trigger requires:
+///
+/// ```json
+/// {
+///   "id": "<aggregate uuid>",
+///   "versioned_type": "epistaxis-v1.0",
+///   "event_data": {
+///     "id": "<aggregate uuid>",
+///     "startTime": "<ISO 8601>",
+///     "lastModified": "<ISO 8601>",
+///     "isNoNosebleedsEvent": true,   // for no_epistaxis_event entry type
+///     "isUnknownNosebleedsEvent": true, // for unknown_day_event entry type
+///     "endTime": "...",              // optional, epistaxis_event only
+///     "intensity": "..."             // optional, epistaxis_event only
+///   }
+/// }
+/// ```
+///
+/// All three nosebleed entry types map to the same `versioned_type`
+/// (`epistaxis-v1.0`); sub-type is encoded via the boolean flags so a
+/// single legacy validator covers them.
 ///
 /// HTTP response classification:
 ///
@@ -109,9 +135,13 @@ class LegacySyncDestination extends Destination {
     );
   }
 
-  /// Map the StoredEvent's `event_type` to the legacy server's expected
-  /// string, leaving every other field untouched. Returns a fresh map
-  /// (does not mutate the input).
+  /// Build the wire representation of [event]:
+  ///
+  /// 1. Translate `event_type` to the legacy operation string.
+  /// 2. Project `data` into the legacy `EventRecord` shape so the
+  ///    server's `validate_diary_data` trigger accepts it.
+  ///
+  /// Returns a fresh map; does not mutate the input.
   static Map<String, dynamic> _translateEvent(StoredEvent event) {
     final map = Map<String, dynamic>.from(event.toJson());
     final eventType = map['event_type'] as String?;
@@ -119,6 +149,7 @@ class LegacySyncDestination extends Destination {
     if (translated != null) {
       map['event_type'] = translated;
     }
+    map['data'] = _legacyDataFor(event);
     return map;
   }
 
@@ -128,6 +159,66 @@ class LegacySyncDestination extends Destination {
     'finalized': 'nosebleedupdated',
     'tombstone': 'nosebleeddeleted',
   };
+
+  /// Project `event.data.answers` into the legacy `EventRecord` shape.
+  /// All three nosebleed entry types share `versioned_type:
+  /// 'epistaxis-v1.0'`; sub-type is encoded via boolean flags. The
+  /// `startTime` / `lastModified` fields are required by
+  /// `validate_epistaxis_data`; we resolve `startTime` from the
+  /// answers' `startTime` (epistaxis_event) or `date` (no_epistaxis /
+  /// unknown_day) field, and fall back to the event's
+  /// `client_timestamp` so a tombstone with empty answers still
+  /// satisfies the validator.
+  static Map<String, dynamic> _legacyDataFor(StoredEvent event) {
+    final rawAnswers = event.data['answers'];
+    final answers = rawAnswers is Map<String, dynamic>
+        ? rawAnswers
+        : const <String, dynamic>{};
+
+    final lastModifiedIso = event.clientTimestamp.toUtc().toIso8601String();
+    final startTime = _resolveStartTime(answers) ?? lastModifiedIso;
+
+    final eventData = <String, Object?>{
+      'id': event.aggregateId,
+      'startTime': startTime,
+      'lastModified': lastModifiedIso,
+    };
+
+    if (event.entryType == 'no_epistaxis_event') {
+      eventData['isNoNosebleedsEvent'] = true;
+    } else if (event.entryType == 'unknown_day_event') {
+      eventData['isUnknownNosebleedsEvent'] = true;
+    } else {
+      // epistaxis_event — pass optional fields through. Skip
+      // 'severity' translation: mobile records `intensity` (vocabulary
+      // 'spotting' / 'pouring' / etc.) which does not match the
+      // legacy validator's enum (`minimal` / `mild` / ...). The legacy
+      // `severity` field is optional, so leaving it unset keeps the
+      // trigger happy; `intensity` rides along as an extra field for
+      // downstream display.
+      for (final key in const ['endTime', 'intensity']) {
+        final value = answers[key];
+        if (value != null) eventData[key] = value;
+      }
+    }
+
+    return <String, dynamic>{
+      'id': event.aggregateId,
+      'versioned_type': 'epistaxis-v1.0',
+      'event_data': eventData,
+    };
+  }
+
+  /// epistaxis_event uses `startTime`; no_epistaxis_event and
+  /// unknown_day_event use `date` (per `_nosebleedTypes` in
+  /// clinical_diary_entry_types.dart's `effectiveDatePath`). Returns
+  /// the ISO-8601 string when the answer field is present, else null.
+  static String? _resolveStartTime(Map<String, dynamic> answers) {
+    final raw = answers['startTime'] ?? answers['date'];
+    if (raw is String) return raw;
+    if (raw is DateTime) return raw.toUtc().toIso8601String();
+    return null;
+  }
 
   // ---------------------------------------------------------------------------
   // HTTP send

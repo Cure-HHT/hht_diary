@@ -15,15 +15,26 @@ const _nosebleedTypeIds = <String>[
 
 StoredEvent _makeEvent({
   String eventId = 'evt-001',
-  String aggregateId = 'agg-001',
+  String aggregateId = '8238a964-4cc6-4e27-8655-9978f31d0975',
   String entryType = 'epistaxis_event',
   String eventType = 'finalized',
+  Map<String, dynamic>? data,
   Map<String, dynamic> metadata = const {'change_reason': 'initial'},
 }) => StoredEvent.synthetic(
   eventId: eventId,
   aggregateId: aggregateId,
   entryType: entryType,
   eventType: eventType,
+  // EntryService.record nests the user-supplied map under data['answers'];
+  // unit tests synthesize events directly so they reproduce that shape.
+  data:
+      data ??
+      <String, dynamic>{
+        'answers': <String, dynamic>{
+          'startTime': '2026-04-27T10:00:00.000Z',
+          'intensity': 'mild',
+        },
+      },
   metadata: metadata,
   initiator: const UserInitiator('user-123'),
   clientTimestamp: DateTime.utc(2026, 4, 27, 10, 0, 0),
@@ -211,6 +222,133 @@ void main() {
         final wireEvent =
             (decoded['events'] as List).single as Map<String, dynamic>;
         expect(wireEvent['event_type'], 'somethingNew');
+      });
+
+      // -----------------------------------------------------------------
+      // Data-payload projection — legacy EventRecord shape.
+      // The server's record_audit validate_diary_data trigger requires
+      // {id, versioned_type, event_data} at the top level of `data`.
+      // -----------------------------------------------------------------
+
+      test('projects data into {id, versioned_type, event_data}', () async {
+        final dest = _destination(
+          client: MockClient((_) async => http.Response('', 200)),
+        );
+        final event = _makeEvent(aggregateId: 'agg-uuid-XYZ');
+        final payload = await dest.transform([event]);
+        final wireEvent =
+            ((jsonDecode(utf8.decode(payload.bytes)) as Map)['events'] as List)
+                    .single
+                as Map<String, dynamic>;
+        final data = wireEvent['data'] as Map<String, dynamic>;
+        expect(data['id'], 'agg-uuid-XYZ');
+        expect(data['versioned_type'], 'epistaxis-v1.0');
+        expect(data['event_data'], isA<Map<String, dynamic>>());
+      });
+
+      test('epistaxis_event: event_data carries id, startTime, lastModified, '
+          'intensity passes through, no sub-type flag set', () async {
+        final dest = _destination(
+          client: MockClient((_) async => http.Response('', 200)),
+        );
+        final event = _makeEvent(
+          entryType: 'epistaxis_event',
+          data: <String, dynamic>{
+            'answers': <String, dynamic>{
+              'startTime': '2026-04-27T09:00:00.000Z',
+              'endTime': '2026-04-27T09:05:00.000Z',
+              'intensity': 'spotting',
+            },
+          },
+        );
+        final payload = await dest.transform([event]);
+        final wireEvent =
+            ((jsonDecode(utf8.decode(payload.bytes)) as Map)['events'] as List)
+                    .single
+                as Map<String, dynamic>;
+        final eventData =
+            (wireEvent['data'] as Map)['event_data'] as Map<String, dynamic>;
+        expect(eventData['id'], '8238a964-4cc6-4e27-8655-9978f31d0975');
+        expect(eventData['startTime'], '2026-04-27T09:00:00.000Z');
+        expect(eventData['lastModified'], '2026-04-27T10:00:00.000Z');
+        expect(eventData['endTime'], '2026-04-27T09:05:00.000Z');
+        expect(eventData['intensity'], 'spotting');
+        expect(eventData.containsKey('isNoNosebleedsEvent'), isFalse);
+        expect(eventData.containsKey('isUnknownNosebleedsEvent'), isFalse);
+      });
+
+      test('no_epistaxis_event: isNoNosebleedsEvent=true; startTime resolves '
+          "from answers['date']; intensity dropped", () async {
+        final dest = _destination(
+          client: MockClient((_) async => http.Response('', 200)),
+        );
+        final event = _makeEvent(
+          entryType: 'no_epistaxis_event',
+          data: <String, dynamic>{
+            'answers': <String, dynamic>{'date': '2026-04-26T00:00:00.000Z'},
+          },
+        );
+        final payload = await dest.transform([event]);
+        final wireEvent =
+            ((jsonDecode(utf8.decode(payload.bytes)) as Map)['events'] as List)
+                    .single
+                as Map<String, dynamic>;
+        final eventData =
+            (wireEvent['data'] as Map)['event_data'] as Map<String, dynamic>;
+        expect(eventData['isNoNosebleedsEvent'], isTrue);
+        expect(eventData['startTime'], '2026-04-26T00:00:00.000Z');
+        expect(eventData['lastModified'], '2026-04-27T10:00:00.000Z');
+        // Special events must NOT carry intensity / endTime — the
+        // validator rejects severity / endTime when the flag is set.
+        expect(eventData.containsKey('intensity'), isFalse);
+        expect(eventData.containsKey('endTime'), isFalse);
+      });
+
+      test(
+        'unknown_day_event: isUnknownNosebleedsEvent=true; startTime resolves '
+        "from answers['date']",
+        () async {
+          final dest = _destination(
+            client: MockClient((_) async => http.Response('', 200)),
+          );
+          final event = _makeEvent(
+            entryType: 'unknown_day_event',
+            data: <String, dynamic>{
+              'answers': <String, dynamic>{'date': '2026-04-25T00:00:00.000Z'},
+            },
+          );
+          final payload = await dest.transform([event]);
+          final wireEvent =
+              ((jsonDecode(utf8.decode(payload.bytes)) as Map)['events']
+                          as List)
+                      .single
+                  as Map<String, dynamic>;
+          final eventData =
+              (wireEvent['data'] as Map)['event_data'] as Map<String, dynamic>;
+          expect(eventData['isUnknownNosebleedsEvent'], isTrue);
+          expect(eventData['startTime'], '2026-04-25T00:00:00.000Z');
+        },
+      );
+
+      test('tombstone with empty answers: startTime falls back to '
+          'client_timestamp so the validator still passes', () async {
+        final dest = _destination(
+          client: MockClient((_) async => http.Response('', 200)),
+        );
+        final event = _makeEvent(
+          entryType: 'epistaxis_event',
+          eventType: 'tombstone',
+          data: const <String, dynamic>{'answers': <String, dynamic>{}},
+        );
+        final payload = await dest.transform([event]);
+        final wireEvent =
+            ((jsonDecode(utf8.decode(payload.bytes)) as Map)['events'] as List)
+                    .single
+                as Map<String, dynamic>;
+        final eventData =
+            (wireEvent['data'] as Map)['event_data'] as Map<String, dynamic>;
+        expect(eventData['startTime'], '2026-04-27T10:00:00.000Z');
+        expect(eventData['lastModified'], '2026-04-27T10:00:00.000Z');
       });
     });
 
