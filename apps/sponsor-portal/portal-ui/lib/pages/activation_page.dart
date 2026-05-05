@@ -218,6 +218,8 @@ class _ActivationPageState extends State<ActivationPage> {
         return {'error': 'Not authenticated'};
       }
 
+      // CUR-1280: re-bind emulator before getIdToken (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       final idToken = await user.getIdToken();
 
       final response = await http.post(

@@ -208,9 +208,13 @@ void main() async {
   // Create AuthService here so the browser lifecycle service can hold a
   // direct reference before the widget tree is built.
   // REQ-d00083-A..E, REQ-p01044-J..M: inject real browser storage clearing.
+  // CUR-1280: also inject the auto-recovery DB-wipe so AuthService can
+  // call it without depending on package:web (keeps unit tests on VM).
+  final browserStorage = BrowserStorageService();
   final authService = AuthService(
     sponsorId: sponsorBranding.sponsorId,
-    clearStorage: BrowserStorageService().clearStorage,
+    clearStorage: browserStorage.clearStorage,
+    forceClearFirebaseAuthDb: browserStorage.forceClearFirebaseAuthDb,
     isPageRefresh: isPageRefresh,
   );
 

@@ -168,4 +168,32 @@ class BrowserStorageService {
       // Cache API may not be available (no service worker registered).
     }
   }
+
+  /// CUR-1280 auto-recovery: force-delete Firebase Auth's IndexedDB so
+  /// the next page load starts with no cached session.
+  ///
+  /// [clearStorage] deliberately *skips* `firebaseLocalStorageDb` so the
+  /// regular signOut path doesn't race against Firebase's own writes.
+  /// But when the local-stack emulator is restarted (`./local-stack
+  /// down/up`), the emulator wipes its user database and assigns NEW
+  /// UIDs to the same seeded emails. The browser's
+  /// `firebaseLocalStorageDb` still holds a refresh-token for a UID
+  /// that no longer exists. Subsequent page loads either:
+  ///   - succeed at restore, then fail server-side with
+  ///     "Email already linked to another account" (HTTP 403),
+  ///   - fail at refresh with "invalid_grant" / "user-not-found",
+  ///   - or simply never resolve, leaving the SPA in a broken state
+  ///     (e.g. the `/login/email-otp` reload-into-white-screen).
+  ///
+  /// Recovery: delete `firebaseLocalStorageDb` outright, alongside the
+  /// usual signOut. The delete is best-effort — if Firebase still holds
+  /// the connection open, the request transitions to `blocked` and we
+  /// time out and let the caller proceed regardless. On the *next* page
+  /// load, no connection is open and the deletion completes for real.
+  ///
+  /// AuthService injects this through a callback (so VM-target unit
+  /// tests don't pull in the web-only `package:web` import chain).
+  Future<void> forceClearFirebaseAuthDb() async {
+    await _deleteDatabase('firebaseLocalStorageDb');
+  }
 }

@@ -80,6 +80,8 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
     }
 
     try {
+      // CUR-1280: re-bind emulator before MFA session (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       // Get MFA session from current user
       final session = await user.multiFactor.getSession();
 
@@ -203,6 +205,8 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
         return;
       }
 
+      // CUR-1280: re-bind emulator before forceRefresh (flutterfire #9528).
+      await ensureAuthEmulatorBound();
       // Get fresh ID token (will now include MFA claims)
       final idToken = await user.getIdToken(true);
 

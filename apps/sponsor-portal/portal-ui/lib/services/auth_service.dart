@@ -264,6 +264,7 @@ class AuthService extends ChangeNotifier {
     Duration inactivityTimeout = const Duration(minutes: 2),
     bool enableInactivityTimer = true,
     Future<void> Function()? clearStorage,
+    Future<void> Function()? forceClearFirebaseAuthDb,
     bool isPageRefresh = false,
   }) : _sponsorId = sponsorId,
        _auth = firebaseAuth ?? FirebaseAuth.instance,
@@ -273,7 +274,11 @@ class AuthService extends ChangeNotifier {
        _isPageRefresh = isPageRefresh,
        // REQ-d00083-A..E, REQ-p01044-J..M: default is a no-op; main.dart injects
        // the real browser implementation on web.
-       _clearStorage = clearStorage ?? _noopStorage {
+       _clearStorage = clearStorage ?? _noopStorage,
+       // CUR-1280 auto-recovery: injected by main.dart on web. Default
+       // no-op for unit tests / non-web platforms — the recovery path
+       // is local-flavor only anyway.
+       _forceClearFirebaseAuthDb = forceClearFirebaseAuthDb ?? _noopStorage {
     _init();
   }
 
@@ -286,6 +291,9 @@ class AuthService extends ChangeNotifier {
   final bool _isPageRefresh;
   // REQ-d00083-A..E, REQ-p01044-J..M: injectable for testing, web impl by default
   final Future<void> Function() _clearStorage;
+  // CUR-1280: injected by main.dart from BrowserStorageService.
+  // Default no-op for unit tests and non-web platforms.
+  final Future<void> Function() _forceClearFirebaseAuthDb;
   final FirebaseAuth _auth;
   final http.Client _httpClient;
   // REQ-p01044-C: mutable so sponsor config can override after login
@@ -602,7 +610,19 @@ class AuthService extends ChangeNotifier {
         // (cross-tab collision, skip-predicate, restore-from-refresh)
         // handle adopting the session correctly.
       } catch (e) {
-        debugPrint('[AUTH] Fresh-tab token refresh failed, signing out: $e');
+        debugPrint(
+          '[AUTH] Fresh-tab token refresh failed; auto-recovering '
+          '(forceClearFirebaseAuthDb + signOut): $e',
+        );
+        // CUR-1280 auto-recovery: the cached refresh token can't be
+        // exchanged for a new ID token. On local-flavor this is the
+        // signature of a stack restart (emulator wiped its user
+        // database, our cached token references a UID that no longer
+        // exists). Wipe firebaseLocalStorageDb so the next page load
+        // starts fresh — otherwise the user is stuck in a loop where
+        // every reload restores the same stale token. No-op outside
+        // local-flavor.
+        await _forceClearFirebaseAuthDb();
         await signOut();
         return;
       }
@@ -655,6 +675,26 @@ class AuthService extends ChangeNotifier {
       // logged me out" even though the Firebase session is valid.
       if (result == _PortalFetchResult.transientFailure && !_isInitialized) {
         _scheduleInitialFetchRetry();
+        return;
+      }
+      // CUR-1280 auto-recovery: a 403 from /portal/me on the
+      // restore-from-refresh path means the server rejected the
+      // restored Firebase session — typically "Email already linked
+      // to another account" because portal_users.firebase_uid points
+      // at a UID from a previous emulator instance that no longer
+      // exists. The previous behavior just flipped _isInitialized
+      // and let the dashboard redirect to /login, but the stale row
+      // in firebaseLocalStorageDb survived and Firebase auto-restored
+      // it again on the next page load — same 403, same /login loop.
+      // Clear the DB and signOut so the next load starts fresh.
+      // No-op outside local-flavor.
+      if (result == _PortalFetchResult.unauthorized) {
+        debugPrint(
+          '[AUTH] Restored session was rejected by /portal/me '
+          '(403); auto-recovering on local-flavor.',
+        );
+        await _forceClearFirebaseAuthDb();
+        await signOut();
         return;
       }
       if (!_isInitialized) {
@@ -1236,9 +1276,18 @@ class AuthService extends ChangeNotifier {
   bool get needsRoleSelection =>
       _currentUser != null && _currentUser!.hasMultipleRoles;
 
-  /// Get fresh ID token for API calls
+  /// Get fresh ID token for API calls.
+  ///
+  /// Used by [ApiClient] for every dashboard backend call, which means
+  /// EVERY portal API request flows through this method. The
+  /// [ensureAuthEmulatorBound] call is critical here on local-flavor:
+  /// without it, the first API call after a page load can hit
+  /// production Firebase, get api-key-not-valid, and the dashboard
+  /// silently fails. flutterfire #9528.
   Future<String?> getIdToken() async {
     try {
+      // CUR-1280: re-bind emulator on local-flavor.
+      await ensureAuthEmulatorBound();
       return await _auth.currentUser?.getIdToken();
     } catch (e) {
       debugPrint('Error getting ID token: $e');
