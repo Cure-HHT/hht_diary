@@ -539,22 +539,59 @@ class AuthService extends ChangeNotifier {
     }
 
     // CUR-1118: If this is a fresh tab (not a page refresh) and Firebase
-    // restored a stale session from IndexedDB, sign out now.
+    // restored a session from IndexedDB, that session may be stale.
     // We do this HERE (not in main.dart) because Firebase needs time to
-    // restore the session from IndexedDB before we can sign out of it.
+    // restore the session from IndexedDB before we can decide.
     // The !_isInitialized guard ensures this only fires on the FIRST
     // authStateChanges event (initial restoration), not on subsequent
     // events from explicit signIn() calls.
     // The _clearStorage != _noopStorage guard ensures this only runs in
     // the browser (where main.dart injects BrowserStorageService), not in
     // unit tests which use the default no-op.
+    //
+    // CUR-1280 (issue 6, subsumes issue 9): the previous implementation
+    // signed out UNCONDITIONALLY. Combined with the IndexedDB blocked-delete
+    // bug (now fixed in Task 1.4), that produced the "every fresh tab kicks
+    // me out" UX. The correct gate is "is the restored token actually
+    // valid?" — forceRefresh roundtrips to Firebase (or the emulator) and
+    // is the authoritative test. A successful refresh => the session is
+    // still the user's and must be preserved (REQ-d00080-L, REQ-p01044-O).
+    // A throw / timeout => the cached session can't be revived, fall back
+    // to the original CUR-1118 teardown.
+    //
+    // This subsumes plan-issue 9 ("forceRefresh on first call after
+    // restore") by performing the refresh exactly when its result is
+    // needed.
+    //
+    // The 5s timeout prevents the serialized-listener chain (Task 2.4)
+    // from stalling indefinitely when the network is offline; if Firebase
+    // can't be reached in 5s, default to signOut (better to log out than
+    // leave the user in limbo).
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-A: client-side session management — gate restored
+    //                 sessions on token validity, not on tab freshness.
+    //   REQ-d00080-L: switching tabs MUST NOT trigger logout — opening
+    //                 a second tab while the first is logged in adopts
+    //                 the same valid session in the new tab.
+    //   REQ-p01044-D: terminate session on tab/window close — NOT on
+    //                 fresh-tab open of an already-authenticated session.
+    //   REQ-p01044-O: synchronize session timeout across multiple tabs
+    //                 for the same user.
     if (user != null &&
         !_isPageRefresh &&
         !_isInitialized &&
         _sessionUid == null &&
         _clearStorage != _noopStorage) {
-      await signOut();
-      return;
+      try {
+        await user.getIdToken(true).timeout(const Duration(seconds: 5));
+        // Token still valid — fall through. The branches below
+        // (cross-tab collision, skip-predicate, restore-from-refresh)
+        // handle adopting the session correctly.
+      } catch (_) {
+        await signOut();
+        return;
+      }
     }
 
     if (user != null && _sessionUid != null && user.uid != _sessionUid) {

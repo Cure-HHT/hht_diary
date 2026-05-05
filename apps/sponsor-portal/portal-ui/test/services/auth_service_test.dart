@@ -10,6 +10,7 @@
 import 'dart:convert';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -1395,15 +1396,88 @@ void main() {
       });
     });
 
+    // CUR-1280 (issue 6, subsumes issue 9): the fresh-tab auto-signout used
+    // to fire UNCONDITIONALLY whenever Firebase restored a session in a fresh
+    // tab. Combined with the broken IndexedDB clear (Task 1.4) this produced
+    // "every fresh tab kicks me out". The new contract: only signOut if the
+    // restored token actually fails forceRefresh. The two tests below pin
+    // the new contract from both sides (valid token => keep, invalid token
+    // => sign out). NOTE: this replaces the previous test by the same name
+    // that asserted unconditional signOut — that contract is no longer
+    // correct after Task 2.5.
+    //
+    // IMPLEMENTS REQUIREMENTS:
+    //   REQ-d00080-A: client-side session management (the listener gate
+    //                 must distinguish valid from invalid restored sessions)
+    //   REQ-d00080-L: switching tabs MUST NOT trigger logout (a fresh tab
+    //                 of an already-authenticated user is the same session)
+    //   REQ-p01044-D: terminate on close — NOT on fresh-tab open of a
+    //                 still-valid session
+    //   REQ-p01044-O: synchronize session timeout across multiple tabs for
+    //                 the same user
+    test('fresh tab with valid Firebase session preserves session and does NOT '
+        'call clearStorage', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        // Firebase has a still-valid session in IndexedDB (the default
+        // MockUser issues a token that does not throw on getIdToken).
+        // This is a fresh tab (isPageRefresh: false).
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: false,
+        );
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isFalse,
+          reason:
+              'CUR-1280: forceRefresh succeeded => the restored session is '
+              'still valid; clearStorage MUST NOT be called. Calling it '
+              "here is what produced the user's 'every new tab kicks me "
+              "out' UX.",
+        );
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason:
+              'A fresh tab adopting a valid restored session must end up '
+              'authenticated (REQ-d00080-L, REQ-p01044-O).',
+        );
+        expect(
+          authService.isInitialized,
+          isTrue,
+          reason:
+              'Initialization completes once /portal/me resolves with the '
+              'valid restored session.',
+        );
+      });
+    });
+
     test(
-      'fresh tab with stale Firebase session calls clearStorage and signs out',
+      'fresh tab with INVALID restored token calls clearStorage and signs out',
       () {
         fakeAsync((fake) {
           var clearStorageCalled = false;
-          // Firebase still has a session in IndexedDB (signedIn: true),
-          // but this is a fresh tab (isPageRefresh: false).
+          // Subclassed MockUser whose forceRefresh throws — simulates an
+          // expired refresh token, an emulator restart, or any other reason
+          // the cached IndexedDB session can no longer mint a valid token.
+          final invalidUser = _ForceRefreshFailingMockUser(
+            uid: 'test-uid',
+            email: 'test@example.com',
+            displayName: 'Test User',
+          );
           final mockFirebaseAuth = MockFirebaseAuth(
-            mockUser: mockUser,
+            mockUser: invalidUser,
             signedIn: true,
           );
           final authService = AuthService(
@@ -1421,15 +1495,14 @@ void main() {
             clearStorageCalled,
             isTrue,
             reason:
-                'clearStorage must be called when a fresh tab finds a stale '
-                'Firebase session — the user closed the previous tab, so the '
-                'session in IndexedDB is not valid for a new tab',
+                'CUR-1280: forceRefresh threw => the restored token is no '
+                'longer valid; the existing CUR-1118 teardown (clearStorage '
+                '+ signOut) MUST still run.',
           );
           expect(
             authService.isAuthenticated,
             isFalse,
-            reason:
-                'The stale session must not result in an authenticated state',
+            reason: 'An invalid restored session must not authenticate.',
           );
         });
       },
@@ -1602,4 +1675,30 @@ void main() {
       });
     });
   });
+}
+
+/// CUR-1280: a [MockUser] whose [getIdToken] (with or without forceRefresh)
+/// throws, simulating an expired refresh token or an emulator that has been
+/// restarted since the cached IndexedDB session was issued.
+///
+/// `firebase_auth_mocks` does not expose a `mockExceptionFor #getIdToken`
+/// hook (see `mock_user.dart` — `getIdToken` is a concrete implementation
+/// that does not call `maybeThrowException`), so the only way to make
+/// forceRefresh fail is to subclass and override.
+// MockUser inherits from User which is @immutable but has mutable fields;
+// the upstream library suppresses must_be_immutable file-wide. Mirror that
+// here so the subclass doesn't drag the warning into our analyzer output.
+// ignore: must_be_immutable
+class _ForceRefreshFailingMockUser extends MockUser {
+  _ForceRefreshFailingMockUser({super.uid, super.email, super.displayName});
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) {
+    return Future.error(
+      FirebaseAuthException(
+        code: 'user-token-expired',
+        message: 'Mock: refresh token is no longer valid.',
+      ),
+    );
+  }
 }
