@@ -19,6 +19,7 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
+import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -253,6 +254,7 @@ class _AppRootState extends State<AppRoot> {
   String? _deviceId;
   MobileNotificationService? _notificationService;
   Object? _bootstrapError;
+  DebugBridge? _debugBridge;
 
   @override
   void initState() {
@@ -354,6 +356,20 @@ class _AppRootState extends State<AppRoot> {
           _runtime = runtime;
           _deviceId = deviceId;
         });
+      }
+
+      // Start the local-only HTTP debug bridge. Loopback-bound and gated
+      // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
+      // is logged and swallowed so a port collision does not block app
+      // bring-up.
+      if (F.appFlavor == Flavor.local && !kIsWeb) {
+        try {
+          final bridge = DebugBridge(runtime: runtime);
+          await bridge.start();
+          _debugBridge = bridge;
+        } catch (e, stack) {
+          debugPrint('[DebugBridge] start failed: $e\n$stack');
+        }
       }
     } catch (e, stack) {
       debugPrint('[Bootstrap] Runtime init failed: $e\n$stack');
@@ -460,6 +476,7 @@ class _AppRootState extends State<AppRoot> {
   void dispose() {
     _notificationService?.dispose();
     _taskService.dispose();
+    unawaited(_debugBridge?.stop());
     _runtime?.dispose();
     super.dispose();
   }

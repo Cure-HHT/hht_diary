@@ -51,6 +51,10 @@ dependencies:
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
   connectivity_plus: ^7.1.1
+  # Debug HTTP bridge — only wired in when F.appFlavor == Flavor.local
+  # AND !kIsWeb (shelf needs dart:io). See lib/services/debug_bridge.dart.
+  shelf: ^1.4.0
+  shelf_router: ^1.1.4
 
 dev_dependencies:
   flutter_test:
