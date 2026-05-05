@@ -801,6 +801,25 @@ CREATE POLICY portal_user_audit_log_admin_select ON portal_user_audit_log
     USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin', 'Auditor'));
 
 -- =====================================================
+-- PORTAL_PENDING_EMAIL_CHANGES POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-CAL-p00030: Edit User Account
+--
+-- The portal server uses service_role for the request/verify email-change
+-- flow: requesting handlers INSERT pending rows, verifyEmailChangeHandler
+-- reads + updates them. RLS is enabled on the table, so service_role needs
+-- an explicit policy or every read returns empty and verification fails
+-- with "Invalid or expired verification link".
+
+CREATE POLICY portal_pending_email_changes_service_all
+    ON portal_pending_email_changes
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
 -- GRANT BASIC PERMISSIONS
 -- =====================================================
 
@@ -833,6 +852,9 @@ GRANT SELECT ON portal_user_audit_log TO authenticated;
 
 -- Grant insert on portal_user_audit_log to service_role (for audit logging)
 GRANT SELECT, INSERT ON portal_user_audit_log TO service_role;
+
+-- Grant CRUD on portal_pending_email_changes to service_role
+GRANT SELECT, INSERT, UPDATE, DELETE ON portal_pending_email_changes TO service_role;
 
 -- Grant select on sponsor_role_mapping to authenticated users
 GRANT SELECT ON sponsor_role_mapping TO authenticated;
