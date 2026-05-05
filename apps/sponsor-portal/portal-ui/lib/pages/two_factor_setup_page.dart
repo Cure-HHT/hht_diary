@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../services/firebase_emulator_helper.dart';
 import '../widgets/error_message.dart';
 
 /// Page for setting up two-factor authentication during account activation
@@ -153,6 +154,9 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage> {
             code,
           );
 
+      // CUR-1280: re-bind emulator on local-flavor (workaround for
+      // flutterfire #9528). No-op in deployed flavors.
+      await ensureAuthEmulatorBound();
       // Enroll the second factor
       await user.multiFactor.enroll(
         assertion,

@@ -17,6 +17,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'firebase_emulator_helper.dart';
+
 /// MFA type for the user
 enum MfaType {
   totp, // Authenticator app (Developer Admin)
@@ -683,6 +685,9 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // CUR-1280: re-bind emulator on local-flavor (workaround for
+      // flutterfire #9528). No-op in deployed flavors.
+      await ensureAuthEmulatorBound();
       // Sign in with Firebase Auth
       await _auth.signInWithEmailAndPassword(email: email, password: password);
 
@@ -789,6 +794,8 @@ class AuthService extends ChangeNotifier {
         totpCode,
       );
 
+      // CUR-1280: re-bind emulator on local-flavor.
+      await ensureAuthEmulatorBound();
       // Resolve the MFA challenge
       await _mfaResolver!.resolveSignIn(assertion);
 
@@ -1295,6 +1302,8 @@ class AuthService extends ChangeNotifier {
   /// associated email address if valid, or null if invalid/expired.
   Future<String?> verifyPasswordResetCode(String code) async {
     try {
+      // CUR-1280: re-bind emulator on local-flavor.
+      await ensureAuthEmulatorBound();
       final email = await _auth.verifyPasswordResetCode(code);
       return email;
     } on FirebaseAuthException catch (e) {
@@ -1322,6 +1331,8 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // CUR-1280: re-bind emulator on local-flavor.
+      await ensureAuthEmulatorBound();
       await _auth.confirmPasswordReset(code: code, newPassword: newPassword);
 
       _isLoading = false;
