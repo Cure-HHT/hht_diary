@@ -32,11 +32,19 @@ import 'package:shelf_router/shelf_router.dart';
 class DebugBridge {
   DebugBridge({
     required this.runtime,
+    this.onTaskSync,
     this.host = '127.0.0.1',
     this.port = 9876,
   });
 
   final ClinicalDiaryRuntime runtime;
+
+  /// Invoked by `POST /debug/task-sync`. Closure should call into the
+  /// app's TaskService.syncTasks(enrollmentService) so the test loop
+  /// can trigger a server-task poll without hot-restarting the binary.
+  /// Optional — when null, the route returns 503 service-unavailable.
+  final Future<void> Function()? onTaskSync;
+
   final String host;
   final int port;
   HttpServer? _server;
@@ -67,6 +75,7 @@ class DebugBridge {
     ..get('/debug/events', _events)
     ..get('/debug/aggregate/<aggId>', _aggregate)
     ..post('/debug/sync', _sync)
+    ..post('/debug/task-sync', _taskSync)
     ..post('/debug/tombstone-and-refill/<destId>/<rowId>', _tombstoneAndRefill);
 
   // ---------------------------------------------------------------------------
@@ -163,6 +172,21 @@ class DebugBridge {
 
   Future<Response> _sync(Request _) async {
     await runtime.syncCycle();
+    return _json(<String, Object?>{'ok': true});
+  }
+
+  Future<Response> _taskSync(Request _) async {
+    final hook = onTaskSync;
+    if (hook == null) {
+      return Response(
+        503,
+        body: jsonEncode(<String, Object?>{
+          'error': 'onTaskSync hook was not wired into DebugBridge',
+        }),
+        headers: const {'content-type': 'application/json'},
+      );
+    }
+    await hook();
     return _json(<String, Object?>{'ok': true});
   }
 

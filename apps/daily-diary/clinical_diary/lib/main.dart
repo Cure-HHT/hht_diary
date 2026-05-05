@@ -364,7 +364,13 @@ class _AppRootState extends State<AppRoot> {
       // bring-up.
       if (F.appFlavor == Flavor.local && !kIsWeb) {
         try {
-          final bridge = DebugBridge(runtime: runtime);
+          final bridge = DebugBridge(
+            runtime: runtime,
+            // Closure over _taskService + _enrollmentService so the
+            // bridge can fire a /tasks poll without holding the
+            // services as fields.
+            onTaskSync: () => _taskService.syncTasks(_enrollmentService),
+          );
           await bridge.start();
           _debugBridge = bridge;
         } catch (e, stack) {
