@@ -1578,7 +1578,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Calendar button
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await showDialog<void>(
+                      // CUR-1292: the dialog can return a *_survey
+                      // DiaryEntry when the patient taps a completed
+                      // questionnaire on the calendar's day-view; in
+                      // that case we close the calendar and route the
+                      // tap through the same handler used on the home
+                      // timeline (editable vs read-only based on
+                      // server status).
+                      final result = await showDialog<DiaryEntry?>(
                         context: context,
                         builder: (context) => CalendarScreen(
                           entryService: widget.runtime.entryService,
@@ -1587,6 +1594,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           preferencesService: widget.preferencesService,
                         ),
                       );
+                      if (result != null &&
+                          result.entryType.endsWith('_survey')) {
+                        await _onQuestionnaireEntryTapped(result);
+                      }
                       unawaited(_loadRecords());
                     },
                     icon: const Icon(Icons.calendar_today),

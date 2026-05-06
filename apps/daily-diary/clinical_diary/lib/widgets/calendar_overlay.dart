@@ -434,7 +434,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
             ),
           ),
           if (hasQuestionnaire)
-            const Positioned(right: 4, bottom: 4, child: QuestionnaireDot()),
+            const Positioned(right: 2, bottom: 2, child: QuestionnaireDot()),
         ],
       ),
     );

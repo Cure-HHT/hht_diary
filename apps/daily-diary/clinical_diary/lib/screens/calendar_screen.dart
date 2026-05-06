@@ -110,13 +110,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// Wraps a calendar cell so that, if the day has at least one finalized
   /// questionnaire submission, a small blue dot is rendered in the
   /// lower-right corner of the cell.
+  ///
+  /// Each day cell is a `Container(margin: 4, borderRadius: 8)` inside
+  /// the Stack, so the colored square is inset 4px from the Stack's
+  /// outer bounds and has rounded corners. The dot is positioned 7px
+  /// from the Stack edge, which puts its corner ~3px inside the colored
+  /// square — past the rounded corner with a 1-2px green gutter showing.
   Widget _withQuestionnaireDot(DateTime normalizedDay, Widget cell) {
     if (!_daysWithCompletedQuestionnaires.contains(normalizedDay)) return cell;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         cell,
-        const Positioned(right: 6, bottom: 6, child: QuestionnaireDot()),
+        const Positioned(right: 7, bottom: 7, child: QuestionnaireDot()),
       ],
     );
   }
@@ -175,14 +181,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
-    // Fetch entries for the selected day (excluding tombstoned + non-nosebleed)
+    // CUR-1292: include completed *_survey entries alongside the
+    // nosebleed-related types. Tombstones still excluded.
     final entries = (await widget.reader.entriesForDate(selectedDay))
         .where(
           (e) =>
               !e.isDeleted &&
               (e.entryType == 'epistaxis_event' ||
                   e.entryType == 'no_epistaxis_event' ||
-                  e.entryType == 'unknown_day_event'),
+                  e.entryType == 'unknown_day_event' ||
+                  e.entryType.endsWith('_survey')),
         )
         .toList();
 
@@ -212,6 +220,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (result == 'add') {
       await _navigateToRecordingScreen(selectedDay);
     } else if (result is DiaryEntry) {
+      // CUR-1292: questionnaire entries route through home_screen's
+      // questionnaire-tap handler (editable / read-only based on
+      // server status). Close this dialog and bubble the entry up.
+      if (result.entryType.endsWith('_survey')) {
+        Navigator.of(context).pop(result);
+        return;
+      }
       await _navigateToRecordingScreen(selectedDay, existingEntry: result);
     }
 
