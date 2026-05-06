@@ -22,6 +22,8 @@ void main() {
     Future<SubmitResult> Function(QuestionnaireSubmission)? onSubmit,
     VoidCallback? onComplete,
     VoidCallback? onDefer,
+    void Function(QuestionnaireSubmission)? onCheckpoint,
+    List<QuestionResponse>? initialResponses,
   }) {
     return MaterialApp(
       home: QuestionnaireFlowScreen(
@@ -30,6 +32,60 @@ void main() {
         onSubmit: onSubmit ?? (_) async => const SubmitResult(success: true),
         onComplete: onComplete ?? () {},
         onDefer: onDefer,
+        onCheckpoint: onCheckpoint,
+        initialResponses: initialResponses,
+      ),
+    );
+  }
+
+  /// Build a QuestionResponse for the QoL "Sometimes" (value=2) option.
+  QuestionResponse qolResponse(String questionId, {int value = 2}) {
+    const labels = {
+      0: 'Never',
+      1: 'Rarely',
+      2: 'Sometimes',
+      3: 'Often',
+      4: 'Always',
+    };
+    return QuestionResponse(
+      questionId: questionId,
+      value: value,
+      displayLabel: labels[value]!,
+      normalizedLabel: value.toString(),
+    );
+  }
+
+  /// Build a launcher that shows the entry-point screen the patient came
+  /// from, so we can assert that pressing Home pops back to it.
+  Widget buildHomeLauncher({
+    void Function(QuestionnaireSubmission)? onCheckpoint,
+    Future<SubmitResult> Function(QuestionnaireSubmission)? onSubmit,
+    void Function()? onComplete,
+    void Function()? onDefer,
+  }) {
+    return MaterialApp(
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => QuestionnaireFlowScreen(
+                    definition: qolDef,
+                    instanceId: 'test-instance-id',
+                    onSubmit:
+                        onSubmit ??
+                        (_) async => const SubmitResult(success: true),
+                    onComplete: onComplete ?? () {},
+                    onDefer: onDefer,
+                    onCheckpoint: onCheckpoint,
+                  ),
+                ),
+              ),
+              child: const Text('open-flow'),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -303,6 +359,144 @@ void main() {
         expect(find.text('Review Your Answers'), findsNothing);
       },
     );
+  });
+
+  group('Resume from initialResponses (CUR-1292)', () {
+    testWidgets(
+      'seeds responses and advances cursor past last answered question',
+      (tester) async {
+        setUpTestScreen(tester);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Two of four answered — flow should land on question 3 with no
+        // readiness gate or preamble in the way.
+        await tester.pumpWidget(
+          buildFlow(
+            initialResponses: [qolResponse('qol_q1'), qolResponse('qol_q2')],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text("I'm ready"), findsNothing);
+        expect(find.text('Continue'), findsNothing);
+        expect(find.text('Question 3 of 4'), findsOneWidget);
+      },
+    );
+
+    testWidgets('jumps to review when every question already has a response', (
+      tester,
+    ) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        buildFlow(
+          initialResponses: [
+            qolResponse('qol_q1'),
+            qolResponse('qol_q2'),
+            qolResponse('qol_q3'),
+            qolResponse('qol_q4'),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Review Your Answers'), findsOneWidget);
+      expect(find.textContaining('Question'), findsNothing);
+    });
+  });
+
+  group('onCheckpoint after each answer (CUR-1292)', () {
+    testWidgets('fires after every answer with the in-memory response state', (
+      tester,
+    ) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final captured = <QuestionnaireSubmission>[];
+      await tester.pumpWidget(buildFlow(onCheckpoint: captured.add));
+
+      await passReadinessAndPreamble(tester, qolDef);
+
+      // Answer question 1 — checkpoint should carry exactly one response.
+      await tester.tap(find.text('Sometimes'));
+      await tester.pumpAndSettle();
+      expect(captured, hasLength(1));
+      expect(captured.last.responses, hasLength(1));
+      expect(captured.last.responses.first.questionId, 'qol_q1');
+      expect(captured.last.responses.first.value, 2);
+      expect(captured.last.instanceId, 'test-instance-id');
+      expect(captured.last.questionnaireType, 'qol');
+
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      // Answer question 2 — checkpoint must reflect both responses.
+      await tester.tap(find.text('Often'));
+      await tester.pumpAndSettle();
+      expect(captured, hasLength(2));
+      expect(captured.last.responses, hasLength(2));
+      expect(captured.last.responses.map((r) => r.questionId).toSet(), {
+        'qol_q1',
+        'qol_q2',
+      });
+      expect(
+        captured.last.responses
+            .firstWhere((r) => r.questionId == 'qol_q2')
+            .value,
+        3,
+      );
+    });
+  });
+
+  group('Home AppBar action (CUR-1292)', () {
+    testWidgets('tapping Home from the question screen pops the route without '
+        'submitting or deferring', (tester) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      var submitted = false;
+      var completed = false;
+      var deferred = false;
+      await tester.pumpWidget(
+        buildHomeLauncher(
+          onSubmit: (_) async {
+            submitted = true;
+            return const SubmitResult(success: true);
+          },
+          onComplete: () => completed = true,
+          onDefer: () => deferred = true,
+        ),
+      );
+
+      await tester.tap(find.text('open-flow'));
+      await tester.pumpAndSettle();
+
+      await passReadinessAndPreamble(tester, qolDef);
+      expect(find.text('Question 1 of 4'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pumpAndSettle();
+
+      // Back on the launcher screen — flow has been popped.
+      expect(find.text('open-flow'), findsOneWidget);
+      expect(find.text('Question 1 of 4'), findsNothing);
+      expect(submitted, isFalse);
+      expect(completed, isFalse);
+      expect(deferred, isFalse);
+    });
   });
 
   testWidgets('handles generic submit error', (tester) async {

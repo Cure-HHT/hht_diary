@@ -765,6 +765,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               return SubmitResult(success: false, error: e.toString());
             }
           },
+          // CUR-1292: persist a checkpoint after every answer so the flow
+          // can resume after the app is killed mid-questionnaire. The
+          // study_event cycle label is stamped on every checkpoint of a
+          // freshly-started survey; subsequent checkpoints (from the
+          // resume modal) rely on the materializer's key-wise merge to
+          // preserve it.
+          onCheckpoint: (partial) {
+            unawaited(
+              widget.runtime.entryService.record(
+                entryType: entryType,
+                aggregateId: aggregateId,
+                eventType: 'checkpoint',
+                answers: <String, Object?>{
+                  ...partial.toJson(),
+                  'study_event': ?task.studyEvent,
+                },
+                checkpointReason: 'in-progress',
+              ),
+            );
+          },
           onComplete: () {
             // REQ-CAL-p00081-E: Remove task after completion
             widget.taskService.removeTask(task.id);
@@ -819,12 +839,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Surfaces an incomplete survey via a modal route on resume / mount.
+  /// Surfaces an in-progress survey via a modal route on resume / mount.
   ///
-  /// Forward-looking: the FCM-prompt handler that creates an in-progress
-  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
-  /// operation `incomplete` will be empty. The modal route is wired up
-  /// regardless so it can light up automatically once checkpoints land.
+  /// CUR-1292: when the patient answers any question of a NOSE HHT or QoL
+  /// survey, [QuestionnaireFlowScreen] persists a `checkpoint` event after
+  /// every answer (see `onCheckpoint` on `_navigateToQuestionnaire`). If
+  /// the app is killed before the patient submits, the next time the home
+  /// screen mounts (or resumes) we re-open the flow and seed it with the
+  /// already-answered responses parsed from the materialized view.
   Future<void> _maybePushIncompleteSurvey() async {
     if (!mounted) return;
     final incomplete = await widget.runtime.reader.incompleteEntries();
@@ -846,6 +868,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final aggregateId = survey.entryId;
     final entryType = survey.entryType;
+    final initialResponses = _parseSurveyResponses(survey.currentAnswers);
 
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -856,6 +879,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: QuestionnaireFlowScreen(
             definition: definition,
             instanceId: aggregateId,
+            initialResponses: initialResponses,
             onSubmit: (submission) async {
               try {
                 await _recordSurveySubmission(
@@ -868,11 +892,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 return SubmitResult(success: false, error: e.toString());
               }
             },
+            onCheckpoint: (partial) {
+              unawaited(
+                widget.runtime.entryService.record(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  eventType: 'checkpoint',
+                  answers: partial.toJson(),
+                  checkpointReason: 'in-progress',
+                ),
+              );
+            },
             onComplete: () => Navigator.of(context).pop(),
           ),
         ),
       ),
     );
+  }
+
+  /// Parse the `responses` list out of a survey's materialized answers map.
+  ///
+  /// The materializer merges every `partial.toJson()` payload into
+  /// `current_answers`, which means the most recent checkpoint's full
+  /// `responses` array (List of question_id/value/display_label/
+  /// normalized_label maps) is the live truth for resume.
+  static List<QuestionResponse> _parseSurveyResponses(
+    Map<String, Object?> answers,
+  ) {
+    final raw = answers['responses'];
+    if (raw is! List) return const <QuestionResponse>[];
+    final result = <QuestionResponse>[];
+    for (final entry in raw) {
+      if (entry is Map) {
+        result.add(QuestionResponse.fromJson(Map<String, dynamic>.from(entry)));
+      }
+    }
+    return result;
   }
 
   Future<void> _handleIncompleteRecordsClick() async {
