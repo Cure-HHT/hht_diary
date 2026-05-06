@@ -60,8 +60,14 @@ class HomeScreen extends StatefulWidget {
     required this.preferencesService,
     this.onFontChanged,
     this.onEnrolled,
+    this.clock = DateTime.now,
     super.key,
   });
+
+  /// Returns the current moment for time-relative writes (yesterday-banner
+  /// handlers). Defaults to [DateTime.now]; tests inject a fixed clock so the
+  /// stored `date` answer is verifiable.
+  final DateTime Function() clock;
 
   /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
   /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
@@ -102,6 +108,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// but not yet submitted, surfaced to [TaskListWidget] so the
   /// matching task card renders an "In progress" pill.
   Set<String> _wipQuestionnaireAggregateIds = const <String>{};
+
+  /// CUR-1294: finalized, non-tombstoned questionnaire entries
+  /// (entryType endsWith `_survey`). Surfaced in the yesterday section
+  /// and used to derive the blue-dot indicator passed into the calendar
+  /// overlay.
+  List<DiaryEntry> _completedQuestionnaireEntries = [];
   bool _isEnrolled = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
@@ -291,11 +303,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           e.entryId,
     };
 
+    // CUR-1294: finalized questionnaire submissions (any *_survey entry
+    // type). The yesterday section surfaces yesterday's submissions;
+    // the calendar overlay uses the union of dates to render a blue-dot
+    // indicator.
+    final questionnaires =
+        allEntries
+            .where(
+              (e) =>
+                  !e.isDeleted &&
+                  e.isComplete &&
+                  e.entryType.endsWith('_survey'),
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
     setState(() {
       _entries = entries;
       _hasYesterdayRecords = hasYesterday;
       _incompleteEntries = incomplete;
       _wipQuestionnaireAggregateIds = wipQIds;
+      _completedQuestionnaireEntries = questionnaires;
       _isLoading = false;
     });
   }
@@ -357,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayNoNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'no_epistaxis_event',
       aggregateId: const Uuid().v7(),
@@ -368,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayHadNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     // CUR-464: Result is now record ID (String) instead of bool
     // CUR-508: Use feature flag to determine which recording screen to show
     final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
@@ -403,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayDontRemember() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'unknown_day_event',
       aggregateId: const Uuid().v7(),
@@ -1053,7 +1081,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = DateTime.now();
+    final today = widget.clock();
     final yesterday = today.subtract(const Duration(days: 1));
 
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
@@ -1082,16 +1110,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Yesterday's real-nosebleed entries (excluding incomplete ones shown above).
-    final yesterdayEntries = _entries.where((e) {
+    // Yesterday's nosebleed-related entries plus any completed
+    // questionnaire submitted yesterday. Incomplete epistaxis entries land
+    // here too (they're not strictly older than yesterday, so they're
+    // excluded from `olderIncompleteEntries`).
+    final yesterdayNosebleed = _entries.where((e) {
       return entryDateStr(e) == yesterdayStr &&
           e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
-
-    // Check if there are ANY entries for yesterday (including special events).
-    final hasAnyYesterdayEntries = _entries.any(
+    });
+    final yesterdayQuestionnaires = _completedQuestionnaireEntries.where(
       (e) => entryDateStr(e) == yesterdayStr,
     );
+    final yesterdayEntries = [...yesterdayNosebleed, ...yesterdayQuestionnaires]
+      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+
+    // Check if there are ANY entries for yesterday (including special events
+    // and completed questionnaires).
+    final hasAnyYesterdayEntries =
+        _entries.any((e) => entryDateStr(e) == yesterdayStr) ||
+        _completedQuestionnaireEntries.any(
+          (e) => entryDateStr(e) == yesterdayStr,
+        );
 
     groups.add(
       _GroupedRecords(
@@ -1502,25 +1541,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Column(
               children: [
-                if (group.label != 'incomplete records')
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          group.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        group.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Text(
                   DateFormat(
@@ -1570,7 +1608,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 builder: (context, highlightColor) => EventListItem(
                   entry: entry,
-                  onTap: () => _navigateToEditRecord(entry),
+                  // Questionnaire submissions are not editable from this
+                  // surface — they are submission-time audit records — so
+                  // suppress the chevron and the recording-screen push.
+                  onTap: entry.entryType.endsWith('_survey')
+                      ? null
+                      : () => _navigateToEditRecord(entry),
                   hasOverlap: _hasOverlap(entry),
                   highlightColor: highlightColor,
                 ),

@@ -122,7 +122,10 @@ void main() {
       tasks.dispose();
     });
 
-    Future<void> pumpScreen(WidgetTester tester) async {
+    Future<void> pumpScreen(
+      WidgetTester tester, {
+      DateTime Function()? clock,
+    }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -141,6 +144,7 @@ void main() {
             onLocaleChanged: (_) {},
             onThemeModeChanged: (_) {},
             onLargerTextChanged: (_) {},
+            clock: clock ?? DateTime.now,
           ),
         ),
       );
@@ -261,6 +265,52 @@ void main() {
             .where((e) => e.eventType == 'finalized')
             .toList();
         expect(finalized, hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'tap "No" on yesterday banner stamps yesterday relative to injected clock',
+      (tester) async {
+        // Pin "now" to 2026-05-05 12:00 local; the handler should write a
+        // date answer one day earlier (2026-05-04).
+        final fixedNow = DateTime(2026, 5, 5, 12);
+        await pumpScreen(tester, clock: () => fixedNow);
+
+        await tester.tap(find.text('No'), warnIfMissed: false);
+        await _settle(tester);
+
+        final events = await findEventsByType(
+          tester,
+          entryType: 'no_epistaxis_event',
+        );
+        final finalized = events.singleWhere((e) => e.eventType == 'finalized');
+        final dateAnswer =
+            (finalized.data['answers'] as Map<String, Object?>?)?['date']
+                as String?;
+        expect(dateAnswer, isNotNull);
+        expect(dateAnswer, startsWith('2026-05-04T'));
+      },
+    );
+
+    testWidgets(
+      'tap "Don\'t remember" stamps yesterday relative to injected clock',
+      (tester) async {
+        final fixedNow = DateTime(2026, 5, 5, 12);
+        await pumpScreen(tester, clock: () => fixedNow);
+
+        await tester.tap(find.text("Don't remember"), warnIfMissed: false);
+        await _settle(tester);
+
+        final events = await findEventsByType(
+          tester,
+          entryType: 'unknown_day_event',
+        );
+        final finalized = events.singleWhere((e) => e.eventType == 'finalized');
+        final dateAnswer =
+            (finalized.data['answers'] as Map<String, Object?>?)?['date']
+                as String?;
+        expect(dateAnswer, isNotNull);
+        expect(dateAnswer, startsWith('2026-05-04T'));
       },
     );
 
