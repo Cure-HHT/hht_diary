@@ -16,6 +16,7 @@
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-CAL-p00081: Patient Task System
+//   REQ-d00169: Pending row cleanup endpoint
 //
 // Route definitions for portal server
 // All portal routes use /api/v1/portal prefix for versioning
@@ -45,6 +46,11 @@ Router createRouter() {
   router.get('/api/v1/portal/users/<userId>', getPortalUserHandler);
   router.post('/api/v1/portal/users', createPortalUserHandler);
   router.patch('/api/v1/portal/users/<userId>', updatePortalUserHandler);
+  // Implements: REQ-d00169 — delete pending (never-activated) portal user
+  router.delete(
+    '/api/v1/portal/users/<userId>',
+    deletePendingPortalUserHandler,
+  );
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
   router.get('/api/v1/portal/patients', getPortalPatientsHandler);
 
@@ -101,7 +107,8 @@ Router createRouter() {
 
   // Activation endpoints
   // GET is unauthenticated (validates code before user has account)
-  // POST requires Firebase token to link identity
+  // POST is unauthenticated: accepts {code, password} in body, sets password and
+  //   issues Identity Platform token directly (no bearer required)
   router.get('/api/v1/portal/activate/<code>', validateActivationCodeHandler);
   router.post('/api/v1/portal/activate', activateUserHandler);
 
