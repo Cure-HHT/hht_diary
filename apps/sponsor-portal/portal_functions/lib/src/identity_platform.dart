@@ -101,12 +101,47 @@ class VerificationResult {
     this.mfaInfo,
   });
 
-  /// A token only counts as valid if the IdP asserted a verified email.
-  /// `portal_auth` re-links `portal_users.firebase_uid` by email on every
-  /// login; without this gate, an unverified-email token for a pre-authorized
-  /// email would be an account-takeover vector.
+  /// Strict gate: token parsed cleanly *and* the IdP asserted a verified
+  /// email.
   ///
+  /// Use only at sites that re-link `portal_users.firebase_uid` purely from
+  /// the token's email claim (i.e. `portal_auth.portalMeHandler`'s "no
+  /// matching firebase_uid → UPDATE WHERE LOWER(email) = …" branch).
+  /// Without `emailVerified`, an attacker who has minted an Identity
+  /// Platform user under a pre-authorized email (without proving ownership)
+  /// would re-link that row to their own UID on every `/portal/me`.
+  ///
+  /// Most call sites should use [isValidIdentity] instead. Demanding
+  /// `emailVerified` on every gate breaks the activation flow in GCP, where
+  /// users come from `createUserWithEmailAndPassword` with
+  /// `email_verified=false` and there is no ergonomic path to flip the bit
+  /// before the next request. The `firebase_uid` binding established by
+  /// activation (or by any previously-completed login) is itself proof of
+  /// identity for subsequent calls.
   bool get isValid => uid != null && error == null && emailVerified;
+
+  /// Identity-only gate: the token is well-formed, signed correctly,
+  /// non-expired, and carries a UID.
+  ///
+  /// Whether to additionally require `emailVerified` is decided by the
+  /// caller, based on what they're about to do with the identity:
+  ///
+  ///   - `portal_auth.portalMeHandler` — `isValidIdentity` first; `email`
+  ///     re-link branch *also* checks [emailVerified].
+  ///   - `portal_activation.activateUserHandler` — `isValidIdentity`;
+  ///     ownership of the email is proven by the activation code, which
+  ///     was delivered to that mailbox.
+  ///   - `portal_activation.generateActivationCodeHandler`,
+  ///     `email_otp` send + verify, `requirePortalAuth` — `isValidIdentity`;
+  ///     the caller is matched against `portal_users.firebase_uid`
+  ///     downstream, so the binding itself is proof.
+  ///
+  /// Splitting the gate this way restores activation in GCP (CUR-1272's
+  /// `&& emailVerified` rejected every freshly-minted activation token in
+  /// production; CUR-1280 patched only the emulator path) without
+  /// reopening the takeover vector — the email-keyed re-link site keeps an
+  /// explicit `emailVerified` check.
+  bool get isValidIdentity => uid != null && error == null;
 }
 
 /// Verify an Identity Platform ID token
