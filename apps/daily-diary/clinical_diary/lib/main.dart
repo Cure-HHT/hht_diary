@@ -483,7 +483,12 @@ class _AppRootState extends State<AppRoot> {
     _notificationService?.dispose();
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
-    _runtime?.dispose();
+    // dispose() override is sync, so we cannot await; wrap in
+    // unawaited so the Sembast close + trigger cancel still runs
+    // and isn't dropped silently. Without this, an in-flight write
+    // to the hash-chained event log can race process exit and be
+    // truncated — material for an FDA audit trail.
+    unawaited(_runtime?.dispose() ?? Future.value());
     super.dispose();
   }
 
