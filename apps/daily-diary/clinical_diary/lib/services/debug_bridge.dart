@@ -35,7 +35,10 @@ class DebugBridge {
     this.onTaskSync,
     this.host = '127.0.0.1',
     this.port = 9876,
-  });
+  }) : assert(
+         host == '127.0.0.1',
+         'DebugBridge must only bind to loopback (127.0.0.1).',
+       );
 
   final ClinicalDiaryRuntime runtime;
 
