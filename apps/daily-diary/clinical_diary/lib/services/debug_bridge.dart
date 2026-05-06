@@ -35,7 +35,22 @@ class DebugBridge {
     this.onTaskSync,
     this.host = '127.0.0.1',
     this.port = 9876,
-  });
+  }) : assert(
+         host == '127.0.0.1',
+         'DebugBridge must only bind to loopback (127.0.0.1).',
+       ) {
+    // Asserts are stripped in release/profile builds, so back the loopback
+    // invariant with a runtime check too. The Flavor.local + !kIsWeb gate
+    // at the call site is the primary guard, this is defense in depth in
+    // case the class is ever reused outside that gate.
+    if (host != '127.0.0.1') {
+      throw ArgumentError.value(
+        host,
+        'host',
+        'DebugBridge must only bind to loopback (127.0.0.1).',
+      );
+    }
+  }
 
   final ClinicalDiaryRuntime runtime;
 
@@ -171,7 +186,11 @@ class DebugBridge {
   }
 
   Future<Response> _sync(Request _) async {
-    await runtime.syncCycle();
+    // CUR-1292: fire the same callback the periodic timer runs —
+    // outbound drain + inbound poll — so testers can pull tombstones
+    // and other inbound messages on demand without waiting for the
+    // periodic tick.
+    await runtime.fullSync();
     return _json(<String, Object?>{'ok': true});
   }
 

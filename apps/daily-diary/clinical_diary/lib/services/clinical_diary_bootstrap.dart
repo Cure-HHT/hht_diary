@@ -25,6 +25,7 @@ class ClinicalDiaryRuntime {
     required this.eventStore,
     required this.reader,
     required this.syncCycle,
+    required this.fullSync,
     required this.triggerHandles,
     required this.destinations,
     required Database database,
@@ -43,6 +44,14 @@ class ClinicalDiaryRuntime {
   final DiaryEntryReader reader;
   final SyncCycle syncCycle;
   final TriggerHandles triggerHandles;
+
+  /// CUR-1292: Run the same sequence as the periodic trigger —
+  /// outbound drain ([SyncCycle]) then [portalInboundPoll]. Used by the
+  /// home-screen "tap title to refresh" affordance and the DebugBridge
+  /// `/debug/sync` endpoint so a tester can pull tombstones / start_trial
+  /// signals on demand without waiting for the next periodic tick.
+  /// Honors the same disconnected-predicate as the trigger callback.
+  final Future<void> Function() fullSync;
 
   /// The destination registry. Exposed so callers can activate destinations
   /// (via [DestinationRegistry.setStartDate]) and inspect their schedules.
@@ -87,6 +96,11 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // EnrollmentService.disconnectedNotifier so the predicate is sync and
   // O(1). Bootstrap stays neutral — no EnrollmentService dependency.
   bool Function()? isDisconnected,
+  // CUR-1292: invoked by [portalInboundPoll] for each survey-aggregate
+  // tombstone the device applies. Caller (main.dart) wires this to
+  // [TaskService.notifyQuestionnaireCancelled] so the patient sees a
+  // passive notification.
+  void Function(String aggregateId, String entryType)? onSurveyTombstoned,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
   // typedefs from triggers.dart) so this production file avoids @visibleForTesting
@@ -201,18 +215,21 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
 
   // 8. Install triggers. Each tick: drain FIFO → inbound poll.
   //    Skip both when the caller's predicate reports disconnected (CUR-1164).
+  Future<void> fullSync() async {
+    if (isDisconnected != null && isDisconnected()) return;
+    await syncCycle();
+    await portalInboundPoll(
+      entryService: entryService,
+      eventStore: datastore.eventStore,
+      client: client,
+      resolveBaseUrl: resolveBaseUrl,
+      authToken: authToken,
+      onSurveyTombstoned: onSurveyTombstoned,
+    );
+  }
+
   final triggerHandles = await installTriggers(
-    onTrigger: () async {
-      if (isDisconnected != null && isDisconnected()) return;
-      await syncCycle();
-      await portalInboundPoll(
-        entryService: entryService,
-        eventStore: datastore.eventStore,
-        client: client,
-        resolveBaseUrl: resolveBaseUrl,
-        authToken: authToken,
-      );
-    },
+    onTrigger: fullSync,
     lifecycleObserverFactory: lifecycleObserverFactory,
     periodicTimerFactory: periodicTimerFactory,
     connectivityStreamFactory: connectivityStreamFactory,
@@ -227,6 +244,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
     eventStore: datastore.eventStore,
     reader: reader,
     syncCycle: syncCycle,
+    fullSync: fullSync,
     triggerHandles: triggerHandles,
     destinations: datastore.destinations,
     database: sembastDatabase,

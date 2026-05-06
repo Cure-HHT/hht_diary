@@ -105,8 +105,18 @@ Future<Response> submitQuestionnaireHandler(
       }, 409);
     }
 
-    // Only allow submission when status is 'sent'
-    if (status != 'sent') {
+    // CUR-1292: accept submissions in 'sent', 'in_progress', or
+    // 'ready_to_review'. The sponsor's contract is that a
+    // patient-completed questionnaire stays editable until the portal
+    // coordinator clicks Finalize. A second submit on a row that's
+    // already 'ready_to_review' replaces the responses (the INSERT
+    // below uses ON CONFLICT ... DO UPDATE) and keeps status the same.
+    // 'finalized' rows reject with 409 — the coordinator has locked
+    // them; 'not_sent' rows shouldn't reach this handler at all
+    // because /tasks doesn't surface them, but rejected here as a
+    // defensive check.
+    const submittableStatuses = {'sent', 'in_progress', 'ready_to_review'};
+    if (!submittableStatuses.contains(status)) {
       return _jsonResponse({
         'error': 'invalid_status',
         'message': 'Questionnaire cannot be submitted in status: $status',

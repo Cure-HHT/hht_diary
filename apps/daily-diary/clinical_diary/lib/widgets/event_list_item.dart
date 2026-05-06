@@ -11,6 +11,7 @@ import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 /// List item widget for displaying a nosebleed-related diary entry.
 ///
@@ -28,6 +29,7 @@ class EventListItem extends StatelessWidget {
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
+    this.isFinalized = false,
   });
 
   /// The materialized diary-entry row to render. Expected `entryType` values:
@@ -41,10 +43,18 @@ class EventListItem extends StatelessWidget {
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
 
+  /// CUR-1292: For questionnaire entries, whether the portal coordinator
+  /// has finalized the submission (server status='finalized'). Finalized
+  /// entries render a "View Only" trailing label and the tap handler
+  /// should route to a read-only view rather than the editable flow.
+  /// Ignored for non-questionnaire entries.
+  final bool isFinalized;
+
   // --- Field accessors over entry.currentAnswers --------------------------
 
   bool get _isNoNosebleedsEvent => entry.entryType == 'no_epistaxis_event';
   bool get _isUnknownEvent => entry.entryType == 'unknown_day_event';
+  bool get _isQuestionnaire => entry.entryType.endsWith('_survey');
   bool get _isIncomplete => !entry.isComplete;
 
   DateTime get _startTime {
@@ -207,7 +217,105 @@ class EventListItem extends StatelessWidget {
       return _buildUnknownCard(context, l10n);
     }
 
+    if (_isQuestionnaire) {
+      return _buildQuestionnaireCard(context, l10n);
+    }
+
     return _buildNosebleedCard(context, l10n, locale);
+  }
+
+  /// Build card for a completed questionnaire submission.
+  ///
+  /// Shows a clipboard icon, the questionnaire's display name (the
+  /// questionnaire-type value mapped to its human name; otherwise the
+  /// `_survey`-stripped entry type), a "Completed at HH:MM" subtitle,
+  /// and — when [isFinalized] — a "View Only" trailing label.
+  Widget _buildQuestionnaireCard(BuildContext context, AppLocalizations l10n) {
+    final answers = entry.currentAnswers;
+    final rawType = answers['questionnaire_type'];
+    final fallback = entry.entryType.replaceAll(RegExp(r'_survey$'), '');
+    final displayType = _displayNameFor(
+      rawType is String && rawType.isNotEmpty ? rawType : fallback,
+    );
+
+    // CUR-1292: subtitle reads "Completed at HH:MM" using the time of
+    // the latest finalized event (entry.updatedAt). DateFormat.jm renders
+    // hours-and-minutes in the device locale's short style ("10:16 PM"
+    // in en-US).
+    final completedAt = entry.updatedAt.toLocal();
+    final timeLabel = DateFormat.jm(
+      Localizations.localeOf(context).toString(),
+    ).format(completedAt);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.blue.shade50,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.assignment_outlined,
+                color: Colors.blue.shade700,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayType,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Completed at $timeLabel',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isFinalized)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    'View Only',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                )
+              else if (onTap != null)
+                Icon(Icons.chevron_right, color: Colors.blue.shade400),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Map a questionnaire_type string to a patient-facing display name
+  /// via [QuestionnaireType] (the single source of truth for these
+  /// labels). Falls back to the input string when the value is unknown.
+  static String _displayNameFor(String questionnaireType) {
+    try {
+      return QuestionnaireType.fromValue(questionnaireType).displayName;
+    } catch (_) {
+      return questionnaireType;
+    }
   }
 
   /// Build card for "No nosebleed events" type

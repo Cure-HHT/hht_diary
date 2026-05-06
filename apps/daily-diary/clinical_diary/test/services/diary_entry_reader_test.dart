@@ -272,26 +272,35 @@ void main() {
     test(
       'hasEntriesForYesterday returns true when an entry exists for yesterday',
       () async {
-        // We cannot inject the clock, so we exercise the false-case only via
-        // pure-today inserts and verify the true-case indirectly by checking
-        // the underlying entriesForDate logic (tested below). This test
-        // documents expected behavior: record an entry today, check yesterday
-        // → false.
-        //
-        // The true-case is covered here by verifying the branching through
-        // the false path; the positive path is validated by the dayStatus
-        // tests which call entriesForDate (the same codepath).
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
+        // Record the entry; its effectiveDate falls back to the
+        // clientTimestamp written by EntryService (real DateTime.now()).
         await _recordEntry(
           fx.service,
           entryType: 'epistaxis_event',
-          aggregateId: 'agg-today',
+          aggregateId: 'agg-today-becomes-yesterday',
         );
 
-        // No entry for yesterday → should return false.
-        final result = await fx.reader.hasEntriesForYesterday();
-        expect(result, isFalse);
+        // Read the recorded entry's effectiveDate back from the backend so
+        // the reader's clock is anchored to the SAME moment the record was
+        // stamped — eliminates the midnight race between two separate
+        // DateTime.now() reads.
+        final stored = await fx.backend.findEntries(
+          entryType: 'epistaxis_event',
+        );
+        expect(stored, hasLength(1));
+        final recordedAt = stored.single.effectiveDate!;
+
+        // Build a reader whose clock is one day after the recorded
+        // moment; from its viewpoint, the entry sits on "yesterday".
+        final futureReader = DiaryEntryReader(
+          backend: fx.backend,
+          clock: () => recordedAt.add(const Duration(days: 1)),
+        );
+
+        final result = await futureReader.hasEntriesForYesterday();
+        expect(result, isTrue);
 
         await fx.backend.close();
       },
@@ -552,6 +561,83 @@ void main() {
 
         final status = await fx.reader.dayStatus(DateTime.now());
         expect(status, DayStatus.incomplete);
+
+        await fx.backend.close();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Test 15: daysWithCompletedQuestionnaires
+    // -------------------------------------------------------------------------
+
+    // Verifies: REQ-p00013-A — finalized questionnaire submissions surface as
+    // calendar-day keys; tombstoned and incomplete submissions do not.
+    test(
+      'daysWithCompletedQuestionnaires returns the local-day for each '
+      'finalized questionnaire and excludes tombstoned/incomplete ones',
+      () async {
+        final fx = await _setupFixture(
+          entryTypeIds: ['nose_hht_survey', 'qol_survey', 'epistaxis_event'],
+        );
+
+        // Finalized nose_hht_survey today.
+        await fx.service.record(
+          entryType: 'nose_hht_survey',
+          aggregateId: 'q-nose-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{'questionnaire_type': 'nose_hht'},
+        );
+
+        // Finalized qol_survey today.
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{'questionnaire_type': 'qol'},
+        );
+
+        // Checkpointed-only nose_hht_survey — should NOT appear.
+        await fx.service.record(
+          entryType: 'nose_hht_survey',
+          aggregateId: 'q-nose-incomplete',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{},
+        );
+
+        // Tombstoned qol_survey — should NOT appear.
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-tombstoned',
+          eventType: 'finalized',
+          answers: const <String, Object?>{},
+        );
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-tombstoned',
+          eventType: 'tombstone',
+          answers: const <String, Object?>{},
+          changeReason: 'test',
+        );
+
+        // Finalized epistaxis_event — should NOT appear (not a survey).
+        await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'ep-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{},
+        );
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final days = await fx.reader.daysWithCompletedQuestionnaires(
+          today.subtract(const Duration(days: 7)),
+          today.add(const Duration(days: 1)),
+        );
+
+        expect(days, contains(today));
+        // Two distinct survey types on the same day still collapse to one
+        // calendar-day key.
+        expect(days, hasLength(1));
 
         await fx.backend.close();
       },

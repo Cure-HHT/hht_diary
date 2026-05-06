@@ -51,6 +51,9 @@ class QuestionnaireFlowScreen extends StatefulWidget {
     required this.onSubmit,
     required this.onComplete,
     this.onDefer,
+    this.onCheckpoint,
+    this.initialResponses,
+    this.isReadOnly = false,
     super.key,
   });
 
@@ -69,6 +72,25 @@ class QuestionnaireFlowScreen extends StatefulWidget {
 
   /// Called when the patient taps "Not now" at readiness gate
   final VoidCallback? onDefer;
+
+  /// Fires after every answer with a partial [QuestionnaireSubmission]
+  /// reflecting the current in-memory response state. Producers persist
+  /// this as a `checkpoint` event so the flow can resume after the app
+  /// is killed mid-questionnaire.
+  final void Function(QuestionnaireSubmission partial)? onCheckpoint;
+
+  /// Prior responses to seed the flow on resume. When non-empty the flow
+  /// skips readiness + preamble, advances the cursor past the last
+  /// answered question, and lands directly on the review screen if every
+  /// question already has a response.
+  final List<QuestionResponse>? initialResponses;
+
+  /// CUR-1292: when true the flow opens directly on the review screen
+  /// in view-only mode — no Submit button, no per-item edit affordances.
+  /// Used to surface the answers of a portal-finalized submission so
+  /// the patient can verify what was sent. Requires [initialResponses]
+  /// to be supplied; otherwise there's nothing to view.
+  final bool isReadOnly;
 
   @override
   State<QuestionnaireFlowScreen> createState() =>
@@ -94,6 +116,40 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _allQuestions = widget.definition.allQuestions;
+
+    final seed = widget.initialResponses;
+    if (seed != null && seed.isNotEmpty) {
+      // Resume path: ignore readiness/preamble — the patient already
+      // committed to taking this questionnaire on a prior session, and
+      // every recorded response is proof of that consent.
+      final knownIds = {for (final q in _allQuestions) q.id};
+      for (final response in seed) {
+        if (knownIds.contains(response.questionId)) {
+          _responses[response.questionId] = response;
+        }
+      }
+      final allAnswered = _allQuestions.every(
+        (q) => _responses.containsKey(q.id),
+      );
+      // Read-only view always lands on the review screen (the
+      // "Submitted Answers" surface). isReadOnly is only valid with a
+      // seed; the flow has nothing else to display in that mode.
+      if (widget.isReadOnly || allAnswered) {
+        _state = _FlowState.review;
+      } else {
+        var lastAnsweredIndex = -1;
+        for (var i = 0; i < _allQuestions.length; i++) {
+          if (_responses.containsKey(_allQuestions[i].id)) {
+            lastAnsweredIndex = i;
+          }
+        }
+        _questionIndex = lastAnsweredIndex + 1;
+        _state = _FlowState.questions;
+      }
+      _sessionStartTime = DateTime.now();
+      return;
+    }
+
     // Skip readiness if no session config or readiness check disabled
     if (widget.definition.sessionConfig?.readinessCheck != true) {
       _state = widget.definition.preamble.isNotEmpty
@@ -183,6 +239,17 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         normalizedLabel: value.toString(),
       );
     });
+    widget.onCheckpoint?.call(_buildPartialSubmission());
+  }
+
+  QuestionnaireSubmission _buildPartialSubmission() {
+    return QuestionnaireSubmission(
+      instanceId: widget.instanceId,
+      questionnaireType: widget.definition.id,
+      version: widget.definition.version,
+      responses: _responses.values.toList(),
+      completedAt: DateTime.now(),
+    );
   }
 
   void _handleNext() {
@@ -263,16 +330,6 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     }
   }
 
-  /// Whether to show the category header for the current question
-  bool get _showCategoryHeader {
-    if (_questionIndex == 0) return true;
-    final currentQ = _allQuestions[_questionIndex];
-    final prevQ = _allQuestions[_questionIndex - 1];
-    final currentCat = widget.definition.categoryForQuestion(currentQ.id);
-    final prevCat = widget.definition.categoryForQuestion(prevQ.id);
-    return currentCat?.id != prevCat?.id;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,6 +337,15 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
           ? AppBar(
               title: Text(widget.definition.name),
               automaticallyImplyLeading: _state == _FlowState.readiness,
+              actions: _state == _FlowState.submitting
+                  ? null
+                  : [
+                      IconButton(
+                        icon: const Icon(Icons.home),
+                        tooltip: 'Home',
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
             )
           : null,
       body: SafeArea(child: _buildContent()),
@@ -306,6 +372,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         onEdit: _handleEditQuestion,
         onSubmit: _handleSubmit,
         isSubmitting: _isSubmitting,
+        isReadOnly: widget.isReadOnly,
       ),
       _FlowState.confirmation => ConfirmationScreen(
         questionnaireName: widget.definition.name,
@@ -326,7 +393,6 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
       onAnswer: _handleAnswer,
       onNext: _handleNext,
       onBack: _questionIndex > 0 ? _handleBack : null,
-      showCategoryHeader: _showCategoryHeader,
     );
   }
 }

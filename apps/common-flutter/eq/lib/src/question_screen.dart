@@ -13,10 +13,12 @@ import 'package:eq/src/widgets/rich_text_question.dart';
 
 /// Displays a single question with its response scale.
 ///
-/// Shows category header when entering a new category,
-/// question text (with rich text for QoL), radio-style response options,
-/// progress bar, and back/next navigation.
-/// "Next" is disabled until the patient selects an answer.
+/// Renders the category stem (when present) above the question text so
+/// the actual prompt is visible on every page within a category. NOSE
+/// HHT puts the prompt on the category — "How difficult is it to
+/// perform the following tasks due to your nosebleeds?" — and per-item
+/// labels in `question.text`; QoL puts the full question in
+/// `question.text` with `category.stem == null`.
 class QuestionScreen extends StatelessWidget {
   const QuestionScreen({
     required this.question,
@@ -27,7 +29,6 @@ class QuestionScreen extends StatelessWidget {
     required this.onAnswer,
     required this.onNext,
     required this.onBack,
-    required this.showCategoryHeader,
     super.key,
   });
 
@@ -55,9 +56,6 @@ class QuestionScreen extends StatelessWidget {
   /// Called when the patient taps "Back" (null on first question)
   final VoidCallback? onBack;
 
-  /// Whether to show the category header (first question in category)
-  final bool showCategoryHeader;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -74,6 +72,23 @@ class QuestionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // CUR-1292: render the category stem above the question on
+                // every page within the category. For NOSE HHT the stem
+                // ("How difficult is it to perform the following tasks due
+                // to your nosebleeds?") is the actual prompt; the
+                // per-question text is the activity label
+                // ("Travel (e.g. by plane)"). Without the stem in view,
+                // the patient sees no question — just an item with
+                // response options.
+                if (category.stem != null && category.stem!.isNotEmpty) ...[
+                  Text(
+                    category.stem!,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (question.hasSegments)
                   RichTextQuestion(
                     segments: question.segments!,

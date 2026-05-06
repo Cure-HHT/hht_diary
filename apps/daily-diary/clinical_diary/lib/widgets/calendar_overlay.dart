@@ -4,6 +4,7 @@
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/widgets/questionnaire_dot.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -29,6 +30,7 @@ class CalendarOverlay extends StatefulWidget {
     this.entries = const [],
     this.incompleteEntries = const [],
     this.missingDays = const [],
+    this.daysWithCompletedQuestionnaires = const <DateTime>{},
   });
 
   final bool isOpen;
@@ -44,6 +46,12 @@ class CalendarOverlay extends StatefulWidget {
 
   /// Days that should be flagged as missing data.
   final List<DateTime> missingDays;
+
+  /// Local-midnight `DateTime`s for days that have at least one finalized,
+  /// non-tombstoned questionnaire submission. Days in this set get a small
+  /// blue dot rendered in the lower-right of the cell, in addition to
+  /// whatever colour the day's [DateStatus] dictates.
+  final Set<DateTime> daysWithCompletedQuestionnaires;
 
   @override
   State<CalendarOverlay> createState() => _CalendarOverlayState();
@@ -348,6 +356,11 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                               label: 'Today',
                               isBorder: true,
                             ),
+                            _buildLegendItem(
+                              color: Colors.transparent,
+                              label: 'Questionnaire',
+                              isQuestionnaireDot: true,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -394,6 +407,11 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
         ? const Color(0xFF9CA3AF) // Muted gray text for disabled dates
         : (color.computeLuminance() > 0.5 ? Colors.black : Colors.white);
 
+    final dayKey = DateTime(day.year, day.month, day.day);
+    final hasQuestionnaire = widget.daysWithCompletedQuestionnaires.contains(
+      dayKey,
+    );
+
     return Container(
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -403,14 +421,21 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
             ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
             : null,
       ),
-      child: Center(
-        child: Text(
-          '${day.day}',
-          style: TextStyle(
-            color: isSelected ? Colors.white : textColor,
-            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Center(
+            child: Text(
+              '${day.day}',
+              style: TextStyle(
+                color: isSelected ? Colors.white : textColor,
+                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
           ),
-        ),
+          if (hasQuestionnaire)
+            const Positioned(right: 2, bottom: 2, child: QuestionnaireDot()),
+        ],
       ),
     );
   }
@@ -419,7 +444,28 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     required Color color,
     required String label,
     bool isBorder = false,
+    bool isQuestionnaireDot = false,
   }) {
+    if (isQuestionnaireDot) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: Center(child: QuestionnaireDot()),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

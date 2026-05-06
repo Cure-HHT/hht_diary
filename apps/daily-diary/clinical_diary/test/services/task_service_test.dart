@@ -353,5 +353,105 @@ void main() {
         expect(service.taskCount, equals(0));
       });
     });
+
+    // CUR-1292 / REQ-CAL-p00079: trial-start activation signal.
+    group('trialStartedAtNotifier', () {
+      test('stays null when /tasks omits trial_started_at', () async {
+        final client = MockClient((_) async {
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+        await service.syncTasks(mockEnrollment);
+        expect(service.trialStartedAtNotifier.value, isNull);
+      });
+
+      test('transitions from null to the parsed timestamp', () async {
+        final client = MockClient((_) async {
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+              'trial_started': true,
+              'trial_started_at': '2026-05-06T10:30:00.000Z',
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+        expect(service.trialStartedAtNotifier.value, isNull);
+        await service.syncTasks(mockEnrollment);
+        expect(
+          service.trialStartedAtNotifier.value,
+          equals(DateTime.utc(2026, 5, 6, 10, 30)),
+        );
+      });
+
+      test('is monotonic: a subsequent sync without trial_started_at does '
+          'NOT clear it (transient-omission protection)', () async {
+        var callCount = 0;
+        final client = MockClient((_) async {
+          callCount++;
+          if (callCount == 1) {
+            return http.Response(
+              jsonEncode({
+                'tasks': <Map<String, dynamic>>[],
+                'isDisconnected': false,
+                'trial_started': true,
+                'trial_started_at': '2026-05-06T10:30:00.000Z',
+              }),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+        await service.syncTasks(mockEnrollment);
+        final firstValue = service.trialStartedAtNotifier.value;
+        expect(firstValue, isNotNull);
+
+        await service.syncTasks(mockEnrollment);
+        expect(service.trialStartedAtNotifier.value, equals(firstValue));
+      });
+
+      test('notifies listeners exactly once per distinct value', () async {
+        final client = MockClient((_) async {
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+              'trial_started': true,
+              'trial_started_at': '2026-05-06T10:30:00.000Z',
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+        var notifyCount = 0;
+        service.trialStartedAtNotifier.addListener(() => notifyCount++);
+
+        await service.syncTasks(mockEnrollment);
+        expect(notifyCount, equals(1));
+
+        // Re-sync with the same timestamp should not re-notify.
+        await service.syncTasks(mockEnrollment);
+        expect(notifyCount, equals(1));
+      });
+    });
   });
 }

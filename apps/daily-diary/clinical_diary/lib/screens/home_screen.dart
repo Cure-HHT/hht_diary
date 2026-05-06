@@ -60,8 +60,14 @@ class HomeScreen extends StatefulWidget {
     required this.preferencesService,
     this.onFontChanged,
     this.onEnrolled,
+    this.clock = DateTime.now,
     super.key,
   });
+
+  /// Returns the current moment for time-relative writes (yesterday-banner
+  /// handlers). Defaults to [DateTime.now]; tests inject a fixed clock so the
+  /// stored `date` answer is verifiable.
+  final DateTime Function() clock;
 
   /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
   /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
@@ -97,6 +103,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Subset of [_entries] that are checkpointed but not finalized.
   List<DiaryEntry> _incompleteEntries = [];
+
+  /// CUR-1292: aggregate ids of questionnaires the patient has started
+  /// but not yet submitted, surfaced to [TaskListWidget] so the
+  /// matching task card renders an "In progress" pill.
+  Set<String> _wipQuestionnaireAggregateIds = const <String>{};
+
+  /// CUR-1294: finalized, non-tombstoned questionnaire entries
+  /// (entryType endsWith `_survey`). Surfaced in the yesterday section
+  /// and used to derive the blue-dot indicator passed into the calendar
+  /// overlay.
+  List<DiaryEntry> _completedQuestionnaireEntries = [];
   bool _isEnrolled = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
@@ -112,6 +129,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
+  /// CUR-1292: Re-entrancy guard so a double-tap on the questionnaire
+  /// task can't push two identical [QuestionnaireFlowScreen] modals.
+  bool _questionnaireRouteActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -126,19 +147,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
-    // Forward-looking: surface incomplete surveys via a modal route. The
-    // FCM-prompt handler that creates the checkpoint is out of scope for this
-    // ticket, but the routing exists so it can land later without screen edits.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybePushIncompleteSurvey();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
-      _maybePushIncompleteSurvey();
     }
   }
 
@@ -277,10 +291,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
         .toList();
 
+    // CUR-1292: aggregate ids of in-progress questionnaire surveys.
+    // Surfaced to the task list so the matching task card shows the
+    // "In progress" pill — patients see at a glance that tapping the
+    // task will resume rather than restart. Derived from `allEntries`
+    // (already loaded above with a 1970..9999 range) instead of a
+    // separate `reader.incompleteEntries()` call to avoid a duplicate
+    // backend query on every refresh.
+    final wipQIds = <String>{
+      for (final e in allEntries)
+        if (!e.isComplete &&
+            !e.isDeleted &&
+            (e.entryType == 'nose_hht_survey' || e.entryType == 'qol_survey'))
+          e.entryId,
+    };
+
+    // CUR-1294: finalized questionnaire submissions (any *_survey entry
+    // type). The yesterday section surfaces yesterday's submissions;
+    // the calendar overlay uses the union of dates to render a blue-dot
+    // indicator.
+    final questionnaires =
+        allEntries
+            .where(
+              (e) =>
+                  !e.isDeleted &&
+                  e.isComplete &&
+                  e.entryType.endsWith('_survey'),
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
     setState(() {
       _entries = entries;
       _hasYesterdayRecords = hasYesterday;
       _incompleteEntries = incomplete;
+      _wipQuestionnaireAggregateIds = wipQIds;
+      _completedQuestionnaireEntries = questionnaires;
       _isLoading = false;
     });
   }
@@ -342,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayNoNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'no_epistaxis_event',
       aggregateId: const Uuid().v7(),
@@ -353,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayHadNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     // CUR-464: Result is now record ID (String) instead of bool
     // CUR-508: Use feature flag to determine which recording screen to show
     final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
@@ -388,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayDontRemember() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'unknown_day_event',
       aggregateId: const Uuid().v7(),
@@ -743,37 +789,92 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
+    if (_questionnaireRouteActive) return;
 
     final aggregateId = task.targetId ?? task.id;
     final entryType = '${qType.value}_survey';
-
-    await Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (context) => QuestionnaireFlowScreen(
-          definition: definition,
-          instanceId: aggregateId,
-          onSubmit: (submission) async {
-            try {
-              await _recordSurveySubmission(
-                entryType: entryType,
-                aggregateId: aggregateId,
-                submission: submission,
-                studyEvent: task.studyEvent,
-              );
-              return const SubmitResult(success: true);
-            } catch (e) {
-              return SubmitResult(success: false, error: e.toString());
-            }
-          },
-          onComplete: () {
-            // REQ-CAL-p00081-E: Remove task after completion
-            widget.taskService.removeTask(task.id);
-            Navigator.of(context).pop();
-          },
-          onDefer: () => Navigator.of(context).pop(),
-        ),
-      ),
+    // CUR-1292: when an in-progress (checkpointed-but-not-finalized) row
+    // already exists for this aggregate, seed the flow with the prior
+    // responses so tap-task and resume-on-launch land the patient in
+    // the same place. Without this, tapping a task with prior state
+    // would open a fresh flow whose first answer would overwrite the
+    // saved responses (the materializer replaces the `responses` key
+    // wholesale on every checkpoint).
+    final initialResponses = await _readInitialResponses(
+      entryType: entryType,
+      aggregateId: aggregateId,
     );
+    if (!mounted) return;
+
+    _questionnaireRouteActive = true;
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: aggregateId,
+            initialResponses: initialResponses,
+            onSubmit: (submission) async {
+              try {
+                await _recordSurveySubmission(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  submission: submission,
+                  studyEvent: task.studyEvent,
+                );
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
+            // CUR-1292: persist a checkpoint after every answer so the flow
+            // can resume after the app is killed mid-questionnaire. The
+            // study_event cycle label is stamped on every checkpoint of a
+            // freshly-started survey; subsequent checkpoints (from the
+            // resume modal) rely on the materializer's key-wise merge to
+            // preserve it.
+            onCheckpoint: (partial) {
+              unawaited(
+                widget.runtime.entryService.record(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  eventType: 'checkpoint',
+                  answers: <String, Object?>{
+                    ...partial.toJson(),
+                    'study_event': ?task.studyEvent,
+                  },
+                  checkpointReason: 'in-progress',
+                ),
+              );
+            },
+            onComplete: () {
+              // CUR-1292: Don't remove the task on patient submit. The
+              // sponsor's contract is that a patient-completed
+              // questionnaire stays editable until the portal
+              // coordinator clicks Finalize. While status is
+              // 'ready_to_review' on the server, /tasks keeps returning
+              // it; once the coordinator finalizes, server status flips
+              // to 'finalized', /tasks drops it, and the next
+              // task-sync removes it from the local list. Tombstones
+              // from portalInboundPoll do the same thing through a
+              // different path. Either way, the diary follows the
+              // server, not the patient's submit.
+              Navigator.of(context).pop();
+            },
+            onDefer: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    } finally {
+      _questionnaireRouteActive = false;
+    }
+    // CUR-1292: refresh the WIP set so the "In progress" pill appears
+    // (or disappears) on the task card based on what landed during the
+    // flow — the patient may have answered some questions and Home'd
+    // out, or they may have fully submitted.
+    if (mounted) {
+      unawaited(_loadRecords());
+    }
   }
 
   /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
@@ -819,60 +920,108 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Surfaces an incomplete survey via a modal route on resume / mount.
-  ///
-  /// Forward-looking: the FCM-prompt handler that creates an in-progress
-  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
-  /// operation `incomplete` will be empty. The modal route is wired up
-  /// regardless so it can light up automatically once checkpoints land.
-  Future<void> _maybePushIncompleteSurvey() async {
-    if (!mounted) return;
-    final incomplete = await widget.runtime.reader.incompleteEntries();
-    DiaryEntry? survey;
-    for (final entry in incomplete) {
-      if (entry.entryType == 'nose_hht_survey' ||
-          entry.entryType == 'qol_survey') {
-        survey = entry;
+  /// CUR-1292: handle a tap on a completed-questionnaire entry rendered
+  /// in the today/yesterday list. If the matching task still exists
+  /// (server status is in {sent, in_progress, ready_to_review}), route
+  /// to the editable flow — the same path as tapping the task at the
+  /// top of the screen. If no matching task exists, the portal has
+  /// finalized the submission; open the flow in view-only mode so the
+  /// patient can verify the answers but cannot edit or re-submit.
+  Future<void> _onQuestionnaireEntryTapped(DiaryEntry entry) async {
+    Task? matchingTask;
+    for (final t in widget.taskService.tasks) {
+      if ((t.targetId ?? t.id) == entry.entryId) {
+        matchingTask = t;
         break;
       }
     }
-    if (survey == null || !mounted) return;
+    if (matchingTask != null) {
+      await _navigateToQuestionnaire(matchingTask);
+      return;
+    }
 
-    final qType = survey.entryType == 'nose_hht_survey'
-        ? QuestionnaireType.noseHht
-        : QuestionnaireType.qol;
+    // Finalized path. Resolve the questionnaire definition from the
+    // entry's currentAnswers; without a definition we have no labels
+    // to render, so we silently bail.
+    if (_questionnaireRouteActive) return;
+    final qTypeStr = entry.currentAnswers['questionnaire_type'];
+    QuestionnaireType? qType;
+    if (qTypeStr is String) {
+      try {
+        qType = QuestionnaireType.fromValue(qTypeStr);
+      } catch (_) {
+        qType = null;
+      }
+    }
+    if (qType == null) return;
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
+    final initialResponses = _parseSurveyResponses(entry.currentAnswers);
+    if (initialResponses.isEmpty || !mounted) return;
 
-    final aggregateId = survey.entryId;
-    final entryType = survey.entryType;
-
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: true,
-        barrierDismissible: false,
-        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
-          canPop: false,
-          child: QuestionnaireFlowScreen(
+    _questionnaireRouteActive = true;
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
             definition: definition,
-            instanceId: aggregateId,
-            onSubmit: (submission) async {
-              try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
-                );
-                return const SubmitResult(success: true);
-              } catch (e) {
-                return SubmitResult(success: false, error: e.toString());
-              }
-            },
+            instanceId: entry.entryId,
+            initialResponses: initialResponses,
+            isReadOnly: true,
+            // onSubmit / onCheckpoint are unreachable in read-only mode
+            // (no Submit button, no answer taps), but the flow's API
+            // requires non-null callbacks. Provide harmless no-ops.
+            onSubmit: (_) async => const SubmitResult(success: true),
             onComplete: () => Navigator.of(context).pop(),
           ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _questionnaireRouteActive = false;
+    }
+  }
+
+  /// Read prior responses for [aggregateId] from the materialized view,
+  /// or `null` when no row exists yet. Used by
+  /// [_navigateToQuestionnaire] to seed the flow on every re-tap.
+  ///
+  /// CUR-1292: seed regardless of `isComplete`. A questionnaire that
+  /// the patient has already submitted (isComplete=true,
+  /// server-side status='ready_to_review') stays editable until the
+  /// portal coordinator clicks Finalize. Tombstoned rows
+  /// (`isDeleted=true`) return null — the patient should never see
+  /// stale post-tombstone state.
+  Future<List<QuestionResponse>?> _readInitialResponses({
+    required String entryType,
+    required String aggregateId,
+  }) async {
+    final rows = await widget.runtime.backend.findEntries(entryType: entryType);
+    for (final row in rows) {
+      if (row.entryId == aggregateId && !row.isDeleted) {
+        return _parseSurveyResponses(row.currentAnswers);
+      }
+    }
+    return null;
+  }
+
+  /// Parse the `responses` list out of a survey's materialized answers map.
+  ///
+  /// The materializer merges every `partial.toJson()` payload into
+  /// `current_answers`, which means the most recent checkpoint's full
+  /// `responses` array (List of question_id/value/display_label/
+  /// normalized_label maps) is the live truth for resume.
+  static List<QuestionResponse> _parseSurveyResponses(
+    Map<String, Object?> answers,
+  ) {
+    final raw = answers['responses'];
+    if (raw is! List) return const <QuestionResponse>[];
+    final result = <QuestionResponse>[];
+    for (final entry in raw) {
+      if (entry is Map) {
+        result.add(QuestionResponse.fromJson(Map<String, dynamic>.from(entry)));
+      }
+    }
+    return result;
   }
 
   Future<void> _handleIncompleteRecordsClick() async {
@@ -1011,14 +1160,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = DateTime.now();
+    final today = widget.clock();
     final yesterday = today.subtract(const Duration(days: 1));
 
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    // Compare in local-calendar terms. Survey rows have no startTime
+    // answer and fall back to effectiveDate / updatedAt, which are
+    // recorded in UTC; without `.toLocal()` a 04:44Z event would format
+    // to its UTC date and never match today's local date during the
+    // evening of the same calendar day.
     String entryDateStr(DiaryEntry e) {
-      return DateFormat('yyyy-MM-dd').format(_readStartTime(e));
+      return DateFormat('yyyy-MM-dd').format(_readStartTime(e).toLocal());
     }
 
     final groups = <_GroupedRecords>[];
@@ -1040,16 +1194,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Yesterday's real-nosebleed entries (excluding incomplete ones shown above).
-    final yesterdayEntries = _entries.where((e) {
+    // Yesterday's nosebleed-related entries plus any completed
+    // questionnaire submitted yesterday. Incomplete epistaxis entries land
+    // here too (they're not strictly older than yesterday, so they're
+    // excluded from `olderIncompleteEntries`).
+    final yesterdayNosebleed = _entries.where((e) {
       return entryDateStr(e) == yesterdayStr &&
           e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
-
-    // Check if there are ANY entries for yesterday (including special events).
-    final hasAnyYesterdayEntries = _entries.any(
+    });
+    final yesterdayQuestionnaires = _completedQuestionnaireEntries.where(
       (e) => entryDateStr(e) == yesterdayStr,
     );
+    final yesterdayEntries = [...yesterdayNosebleed, ...yesterdayQuestionnaires]
+      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+
+    // Check if there are ANY entries for yesterday (including special events
+    // and completed questionnaires).
+    final hasAnyYesterdayEntries =
+        _entries.any((e) => entryDateStr(e) == yesterdayStr) ||
+        _completedQuestionnaireEntries.any(
+          (e) => entryDateStr(e) == yesterdayStr,
+        );
 
     groups.add(
       _GroupedRecords(
@@ -1060,12 +1225,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's real-nosebleed entries (including incomplete - CUR-488).
-    final todayEntries = _entries.where((e) {
+    // Today's real-nosebleed entries (including incomplete - CUR-488),
+    // plus any completed questionnaires submitted today (CUR-1292).
+    final todayNosebleed = _entries.where((e) {
       return entryDateStr(e) == todayStr && e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    });
+    final todayQuestionnaires = _completedQuestionnaireEntries.where(
+      (e) => entryDateStr(e) == todayStr,
+    );
+    final todayEntries = [...todayNosebleed, ...todayQuestionnaires]
+      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
 
-    final hasAnyTodayEntries = _entries.any((e) => entryDateStr(e) == todayStr);
+    final hasAnyTodayEntries =
+        _entries.any((e) => entryDateStr(e) == todayStr) ||
+        _completedQuestionnaireEntries.any((e) => entryDateStr(e) == todayStr);
 
     groups.add(
       _GroupedRecords(
@@ -1109,16 +1282,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
                   ),
-                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
+                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens.
+                  // CUR-1292: tap the title to manually trigger a task-sync. This is
+                  // the dev-mode fallback for environments without FCM (Linux desktop
+                  // local-stack), where the patient otherwise has to wait up to the
+                  // next periodic-trigger tick to discover a freshly-assigned
+                  // questionnaire. Production keeps the same affordance — a manual
+                  // pull is a reasonable patient gesture.
                   Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        AppLocalizations.of(context).appTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        // CUR-1292: syncTasks must finish before
+                        // _loadRecords so any tombstone events
+                        // recorded for cancelled questionnaires have
+                        // landed in the materialized view by the
+                        // time the home screen re-reads it.
+                        // Otherwise the timeline card for a
+                        // just-cancelled questionnaire lingers until
+                        // the next refresh.
+                        await widget.taskService.syncTasks(
+                          widget.enrollmentService,
+                        );
+                        if (!mounted) return;
+                        unawaited(_loadRecords());
+                        unawaited(_refreshWedgeStatus());
+                      },
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppLocalizations.of(context).appTitle,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -1299,8 +1496,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (!_isDisconnected)
                 TaskListWidget(
                   taskService: widget.taskService,
-                  // REQ-CAL-p00081-D: Navigate to relevant screen
-                  onTaskTap: _navigateToQuestionnaire,
+                  // REQ-CAL-p00081-D: Navigate to relevant screen.
+                  // CUR-1292: cancelledQuestionnaire tasks dismiss on
+                  // tap rather than navigating — they're passive
+                  // notifications, not actionable items.
+                  onTaskTap: (task) {
+                    if (task.taskType == TaskType.cancelledQuestionnaire) {
+                      widget.taskService.removeTask(task.id);
+                      return;
+                    }
+                    _navigateToQuestionnaire(task);
+                  },
+                  // CUR-1292: render the "In progress" pill on tasks
+                  // whose aggregate has a checkpointed-but-not-finalized
+                  // row in the materialized view.
+                  wipAggregateIds: _wipQuestionnaireAggregateIds,
+                  // CUR-1292: hide the task entry once the patient has
+                  // submitted (a `finalized` event landed locally) —
+                  // it lives in the today/yesterday timeline from
+                  // there until the portal Finalizes or tombstones.
+                  submittedAggregateIds: <String>{
+                    for (final e in _completedQuestionnaireEntries) e.entryId,
+                  },
                 ),
 
               // Yesterday confirmation banner (yellow)
@@ -1380,7 +1597,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Calendar button
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await showDialog<void>(
+                      // CUR-1292: the dialog can return a *_survey
+                      // DiaryEntry when the patient taps a completed
+                      // questionnaire on the calendar's day-view; in
+                      // that case we close the calendar and route the
+                      // tap through the same handler used on the home
+                      // timeline (editable vs read-only based on
+                      // server status).
+                      final result = await showDialog<DiaryEntry?>(
                         context: context,
                         builder: (context) => CalendarScreen(
                           entryService: widget.runtime.entryService,
@@ -1389,6 +1613,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           preferencesService: widget.preferencesService,
                         ),
                       );
+                      if (result != null &&
+                          result.entryType.endsWith('_survey')) {
+                        await _onQuestionnaireEntryTapped(result);
+                      }
                       unawaited(_loadRecords());
                     },
                     icon: const Icon(Icons.calendar_today),
@@ -1439,25 +1667,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Column(
               children: [
-                if (group.label != 'incomplete records')
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          group.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        group.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Text(
                   DateFormat(
@@ -1507,9 +1734,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 builder: (context, highlightColor) => EventListItem(
                   entry: entry,
-                  onTap: () => _navigateToEditRecord(entry),
+                  onTap: entry.entryType.endsWith('_survey')
+                      ? () => _onQuestionnaireEntryTapped(entry)
+                      : () => _navigateToEditRecord(entry),
                   hasOverlap: _hasOverlap(entry),
                   highlightColor: highlightColor,
+                  // CUR-1292: a questionnaire is "finalized" (locked)
+                  // when its aggregate is no longer surfaced as a task.
+                  // /tasks drops finalized rows server-side, and the
+                  // next syncTasks removes the matching local task —
+                  // so absence in TaskService is the correct test.
+                  isFinalized:
+                      entry.entryType.endsWith('_survey') &&
+                      !widget.taskService.tasks.any(
+                        (t) => (t.targetId ?? t.id) == entry.entryId,
+                      ),
                 ),
               ),
             ),

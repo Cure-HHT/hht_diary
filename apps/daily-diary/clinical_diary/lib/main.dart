@@ -9,6 +9,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:clinical_diary/config/feature_flags.dart';
@@ -40,6 +41,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 import 'package:uuid/uuid.dart';
 
 /// Flavor name from build configuration.
@@ -246,7 +248,57 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
-  final TaskService _taskService = TaskService();
+  late final TaskService _taskService = TaskService(
+    onCancelled: _onSurveyCancelledFromTasksResponse,
+  );
+
+  /// CUR-1292: invoked when `/tasks` response surfaces a cancelled
+  /// questionnaire. Records a local tombstone event so the
+  /// materialized view row flips to `is_deleted=true` (and the
+  /// timeline card disappears) and queues a patient-visible
+  /// "questionnaire cancelled" notification. Both sides are
+  /// idempotent — calling for an already-applied cancellation is a
+  /// no-op via `EntryService.record`'s tombstone-on-tombstone
+  /// detection and `TaskService.notifyQuestionnaireCancelled`'s
+  /// duplicate guard.
+  Future<void> _onSurveyCancelledFromTasksResponse(
+    String aggregateId,
+    String entryType,
+  ) async {
+    final runtime = _runtime;
+    if (runtime != null) {
+      // Awaited so syncTasks doesn't return until the local
+      // materialized view reflects the tombstone — otherwise the
+      // home screen's `_loadRecords` (called right after) reads the
+      // pre-tombstone state and the today/yesterday card lingers
+      // until the next refresh.
+      await runtime.entryService.record(
+        entryType: entryType,
+        aggregateId: aggregateId,
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+        changeReason: 'portal-withdrawn',
+      );
+    }
+    _taskService.notifyQuestionnaireCancelled(
+      aggregateId: aggregateId,
+      displayName: _displayNameForSurveyEntryType(entryType),
+    );
+  }
+
+  /// Resolve the patient-facing display name for a survey entry type
+  /// ('nose_hht_survey', 'qol_survey', …). Strips the `_survey`
+  /// suffix and looks up [QuestionnaireType] — the single source of
+  /// truth for these labels — falling back to the stripped string.
+  static String _displayNameForSurveyEntryType(String entryType) {
+    final base = entryType.replaceAll(RegExp(r'_survey$'), '');
+    try {
+      return QuestionnaireType.fromValue(base).displayName;
+    } catch (_) {
+      return base;
+    }
+  }
+
   ClinicalDiaryRuntime? _runtime;
 
   /// Persistent device install UUID, minted on first launch and reused
@@ -259,6 +311,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
+    _taskService.trialStartedAtNotifier.addListener(_onTrialStartedAtChanged);
     _initializeRuntime();
     _initializeNotifications();
   }
@@ -319,37 +372,27 @@ class _AppRootState extends State<AppRoot> {
         // CUR-1164: Skip outbound sync + inbound poll while disconnected.
         // Closure over the notifier value keeps the check sync.
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
+        // CUR-1292: surface a "questionnaire cancelled" notification
+        // when the coordinator tombstones a survey. The aggregate is
+        // already tombstoned in the event log by portalInboundPoll;
+        // this just adds a passive notification to the task list with
+        // tap-to-dismiss behavior.
+        onSurveyTombstoned: (aggregateId, entryType) {
+          _taskService.notifyQuestionnaireCancelled(
+            aggregateId: aggregateId,
+            displayName: _displayNameForSurveyEntryType(entryType),
+          );
+        },
       );
 
-      // Activate both legacy-shim destinations once at first install.
-      // The startDate is "today" on first install: there are no events
-      // recorded before the app exists, so anchoring the destination
-      // there is the correct watermark. setStartDate is monotonically
-      // non-increasing (REQ-d00129-C) — read the current schedule and
-      // skip the write when the destination is already activated so a
-      // process restart is a no-op. Each activation runs in its own
-      // try/catch so a failure on one destination does not prevent the
-      // other from coming online.
-      const initiator = AutomationInitiator(service: 'mobile-bootstrap');
-      final activationStartAt = DateTime.now().toUtc();
-      for (final destinationId in <String>[
-        LegacySyncDestination.destinationId,
-        LegacyQuestionnaireSubmitDestination.destinationId,
-      ]) {
-        try {
-          final schedule = await runtime.destinations.scheduleOf(destinationId);
-          if (schedule.startDate != null) continue;
-          await runtime.destinations.setStartDate(
-            destinationId,
-            activationStartAt,
-            initiator: initiator,
-          );
-        } catch (e, stack) {
-          debugPrint(
-            '[Bootstrap] activation($destinationId) failed: $e\n$stack',
-          );
-        }
-      }
+      // The legacy-shim destinations stay dormant until the portal
+      // sends a `start_trial` inbound message (handled by
+      // portalInboundPoll's onStartTrial callback wired in the
+      // bootstrap). Their start_date is durable, so on a process
+      // restart of an already-activated patient there is nothing for
+      // bootstrap to do here. Personal-use (unenrolled) and
+      // post-enrollment-pre-Send-EQ patients never have legacy_sync
+      // active, so they never wedge against the trial diary server.
 
       if (mounted) {
         setState(() {
@@ -357,6 +400,16 @@ class _AppRootState extends State<AppRoot> {
           _deviceId = deviceId;
         });
       }
+
+      // CUR-1292: handle the boot-time race where _initializeNotifications
+      // (which kicks off in parallel with _initializeRuntime) calls
+      // _taskService.syncTasks before _runtime is assigned. If the /tasks
+      // response carried trial_started_at, the notifier transitioned
+      // correctly but `_onTrialStartedAtChanged` saw `_runtime == null` and
+      // skipped the activation. Re-run the listener now that _runtime is
+      // available; setStartDate is monotonic so an idempotent re-fire is
+      // harmless when the destinations are already on the right schedule.
+      _onTrialStartedAtChanged();
 
       // Start the local-only HTTP debug bridge. Loopback-bound and gated
       // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
@@ -474,16 +527,92 @@ class _AppRootState extends State<AppRoot> {
     if (token != null) {
       _registerFcmToken(token);
     }
-    // REQ-CAL-p00081: Discover tasks immediately after linking
+    // REQ-CAL-p00081: Discover tasks immediately after linking. The
+    // task sync also surfaces `trial_started_at` if the coordinator
+    // has already clicked "Send EQ"; the trial-start listener picks
+    // it up and activates outbound destinations.
     unawaited(_taskService.syncTasks(_enrollmentService));
+  }
+
+  /// REQ-CAL-p00079: Activate the legacy-shim outbound destinations
+  /// with the portal's "Send EQ" click timestamp as their start_date
+  /// watermark. Events recorded before this point are personal-use
+  /// (no trial server existed yet) and intentionally don't ship;
+  /// events recorded at or after it ship to the trial server.
+  ///
+  /// Driven by [TaskService.trialStartedAtNotifier], which publishes
+  /// the timestamp once the `/tasks` endpoint reports a non-null
+  /// `trial_started_at`. setStartDate is monotonically non-increasing
+  /// (REQ-d00129-C), so re-fires of the same value are no-ops and the
+  /// destinations stay at the canonical click time across restarts.
+  Future<void> _activateShimDestinationsAt(
+    ClinicalDiaryRuntime runtime,
+    DateTime startAt,
+  ) async {
+    const initiator = AutomationInitiator(service: 'mobile-trial-start');
+    for (final destinationId in <String>[
+      LegacySyncDestination.destinationId,
+      LegacyQuestionnaireSubmitDestination.destinationId,
+    ]) {
+      try {
+        final schedule = await runtime.destinations.scheduleOf(destinationId);
+        if (schedule.startDate != null) {
+          debugPrint(
+            '[TrialStart] $destinationId already activated at ${schedule.startDate}, skipping',
+          );
+          continue;
+        }
+        await runtime.destinations.setStartDate(
+          destinationId,
+          startAt,
+          initiator: initiator,
+        );
+        debugPrint('[TrialStart] activated $destinationId at $startAt');
+      } catch (e, stack) {
+        debugPrint(
+          '[TrialStart] activation($destinationId) failed: $e\n$stack',
+        );
+      }
+    }
+  }
+
+  void _onTrialStartedAtChanged() {
+    final at = _taskService.trialStartedAtNotifier.value;
+    final runtime = _runtime;
+    if (at != null && runtime != null) {
+      unawaited(_activateShimDestinationsAt(runtime, at));
+    }
   }
 
   @override
   void dispose() {
+    _taskService.trialStartedAtNotifier.removeListener(
+      _onTrialStartedAtChanged,
+    );
     _notificationService?.dispose();
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
-    _runtime?.dispose();
+    // dispose() override is sync, so this is best-effort fire-and-forget:
+    // unawaited makes the intent explicit (no analyzer warning, no silent
+    // Future drop higher up the chain) and the .catchError surfaces a
+    // failed close instead of an unhandled async error. It does NOT
+    // guarantee the Sembast close completes before process exit — a
+    // graceful shutdown still depends on the platform giving the app
+    // enough time. For FDA audit-log durability we rely on Sembast's
+    // per-write fsync, not on dispose completing.
+    final disposeFuture = _runtime?.dispose();
+    if (disposeFuture != null) {
+      unawaited(
+        disposeFuture.catchError((Object e, StackTrace st) {
+          developer.log(
+            'ClinicalDiaryRuntime.dispose() failed during app shutdown',
+            name: 'main',
+            error: e,
+            stackTrace: st,
+          );
+        }),
+      );
+    }
     super.dispose();
   }
 

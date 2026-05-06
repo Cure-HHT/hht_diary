@@ -175,6 +175,7 @@ class AppLocalizations {
       'confirmedNoEvents': 'Confirmed no events for this day',
       'unknown': 'Unknown',
       'unableToRecallEvents': 'Unable to recall events for this day',
+      'questionnaireSubmitted': 'Submitted',
       'plusOneDay': '(+1 day)',
       'incomplete': 'Incomplete',
       'incompleteMissing': 'Incomplete/Missing',
@@ -595,6 +596,7 @@ class AppLocalizations {
       'confirmedNoEvents': 'Confirmado sin eventos para este dia',
       'unknown': 'Desconocido',
       'unableToRecallEvents': 'No se pueden recordar los eventos de este dia',
+      'questionnaireSubmitted': 'Enviado',
       'plusOneDay': '(+1 dia)',
       'incomplete': 'Incompleto',
       'incompleteMissing': 'Incompleto/Faltante',
@@ -1030,6 +1032,7 @@ class AppLocalizations {
       'unknown': 'Inconnu',
       'unableToRecallEvents':
           'Impossible de se souvenir des evenements de ce jour',
+      'questionnaireSubmitted': 'Envoye',
       'plusOneDay': '(+1 jour)',
       'incomplete': 'Incomplet',
       'incompleteMissing': 'Incomplet/Manquant',
@@ -1466,6 +1469,7 @@ class AppLocalizations {
       'unknown': 'Unbekannt',
       'unableToRecallEvents':
           'Ereignisse fur diesen Tag konnen nicht erinnert werden',
+      'questionnaireSubmitted': 'Eingereicht',
       'plusOneDay': '(+1 Tag)',
       'incomplete': 'Unvollstandig',
       'incompleteMissing': 'Unvollstandig/Fehlend',

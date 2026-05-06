@@ -25,13 +25,55 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// - E: Tasks auto-removed when removal condition met
 /// - F: Task list updates in real-time
 class TaskService extends ChangeNotifier {
-  TaskService({http.Client? httpClient})
+  TaskService({http.Client? httpClient, this.onCancelled})
     : _httpClient = httpClient ?? http.Client();
+
+  /// CUR-1292: invoked once per cancelled questionnaire surfaced in
+  /// the `/tasks` response's `cancelled` array. Receives the
+  /// instance's aggregate id and the entry-type form (e.g.
+  /// `nose_hht_survey`). Caller (main.dart) records a local tombstone
+  /// event so the timeline card disappears, and queues a
+  /// "questionnaire cancelled" notification via
+  /// [notifyQuestionnaireCancelled]. This is the pragmatic shim
+  /// channel until `/api/v1/user/inbound` exists; both paths are
+  /// idempotent so they coexist. Returning a [Future] lets
+  /// [syncTasks] block until the local tombstone has landed, so a
+  /// subsequent `_loadRecords` reads the post-tombstone materialized
+  /// view (otherwise the today/yesterday card lingers until the
+  /// next refresh).
+  final Future<void> Function(String aggregateId, String entryType)?
+  onCancelled;
 
   static const _storageKey = 'patient_tasks';
 
+  /// CUR-1292: SharedPreferences key for the persisted set of
+  /// cancelled-questionnaire aggregate ids the patient has already
+  /// dismissed. The /tasks response keeps returning a 30-day window
+  /// of cancellations regardless of dismissal, so the diary tracks
+  /// dismissal locally and filters before queueing a new
+  /// notification. Set is monotonically grown — there's no GC; the
+  /// 30-day server window keeps it bounded.
+  static const _dismissedCancellationsKey = 'patient_dismissed_cancellations';
+
   final http.Client _httpClient;
   final List<Task> _tasks = [];
+  final Set<String> _dismissedCancellationAggregateIds = <String>{};
+
+  /// REQ-CAL-p00079: When the portal coordinator clicks "Send EQ" the
+  /// patient's `trial_started_at` is stamped server-side. The diary
+  /// `/tasks` response surfaces it; this notifier transitions from
+  /// `null` to that timestamp the first time we observe it. Listeners
+  /// (currently the bootstrap in main.dart) activate the legacy-shim
+  /// destinations with `setStartDate(value)` on transition. Set once
+  /// per session — never reset to null, even if a later sync omits
+  /// the field, so a transient server hiccup can't deactivate sync.
+  final ValueNotifier<DateTime?> trialStartedAtNotifier = ValueNotifier(null);
+
+  @override
+  void dispose() {
+    trialStartedAtNotifier.dispose();
+    super.dispose();
+  }
 
   /// Current list of active tasks, sorted by priority (REQ-CAL-p00081-C)
   List<Task> get tasks => List.unmodifiable(
@@ -63,8 +105,31 @@ class TaskService extends ChangeNotifier {
         debugPrint('[TaskService] Loaded ${_tasks.length} tasks from storage');
         notifyListeners();
       }
+
+      final dismissedJson = prefs.getStringList(_dismissedCancellationsKey);
+      if (dismissedJson != null) {
+        _dismissedCancellationAggregateIds
+          ..clear()
+          ..addAll(dismissedJson);
+        debugPrint(
+          '[TaskService] Loaded ${_dismissedCancellationAggregateIds.length} '
+          'dismissed-cancellation ids from storage',
+        );
+      }
     } catch (e) {
       debugPrint('[TaskService] Failed to load tasks: $e');
+    }
+  }
+
+  Future<void> _saveDismissedCancellations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _dismissedCancellationsKey,
+        _dismissedCancellationAggregateIds.toList(),
+      );
+    } catch (e) {
+      debugPrint('[TaskService] Failed to save dismissed cancellations: $e');
     }
   }
 
@@ -147,11 +212,30 @@ class TaskService extends ChangeNotifier {
   ///
   /// Per REQ-CAL-p00081-E: Tasks auto-removed when removal condition met.
   /// Call this when the patient completes or submits a questionnaire.
+  ///
+  /// CUR-1292: when the task is a `cancelledQuestionnaire` notification
+  /// (patient dismissed it), the aggregate id is recorded in
+  /// [_dismissedCancellationAggregateIds] so subsequent task-syncs do
+  /// not re-create the notification — the server's `cancelled[]`
+  /// window keeps returning the entry for 30 days.
   void removeTask(String taskId) {
+    final removed = _tasks.where((t) => t.id == taskId).toList(growable: false);
     _tasks.removeWhere((t) => t.id == taskId);
     debugPrint('[TaskService] Removed task: $taskId');
+    var dismissedChanged = false;
+    for (final t in removed) {
+      if (t.taskType == TaskType.cancelledQuestionnaire) {
+        final aggregateId = t.targetId ?? t.id;
+        if (_dismissedCancellationAggregateIds.add(aggregateId)) {
+          dismissedChanged = true;
+        }
+      }
+    }
     notifyListeners();
     unawaited(_saveTasks());
+    if (dismissedChanged) {
+      unawaited(_saveDismissedCancellations());
+    }
   }
 
   /// Add a task manually (e.g., for incomplete records or missing days).
@@ -159,6 +243,48 @@ class TaskService extends ChangeNotifier {
     // Avoid duplicates
     if (_tasks.any((t) => t.id == task.id)) return;
     _tasks.add(task);
+    notifyListeners();
+    unawaited(_saveTasks());
+  }
+
+  /// CUR-1292: surface a "questionnaire cancelled" notification when
+  /// the coordinator tombstones a previously-sent questionnaire.
+  /// Wired to `portalInboundPoll`'s tombstone branch through the
+  /// bootstrap so the patient sees a passive notification on the next
+  /// title-tap / sync, with a tap-to-dismiss affordance. Also removes
+  /// the original questionnaire task — that side already happens via
+  /// the regular task-sync (the tombstoned instance falls out of
+  /// /tasks), but doing it here too is idempotent and makes the
+  /// notification appear instantly on the same gesture.
+  void notifyQuestionnaireCancelled({
+    required String aggregateId,
+    required String displayName,
+  }) {
+    // CUR-1292: a dismissed cancellation stays dismissed even if the
+    // server keeps reporting it for the rest of the 30-day window.
+    if (_dismissedCancellationAggregateIds.contains(aggregateId)) return;
+
+    _tasks.removeWhere((t) => (t.targetId ?? t.id) == aggregateId);
+    final notifId = 'cancelled-$aggregateId';
+    if (_tasks.any((t) => t.id == notifId)) {
+      // Already notified; no need to re-add.
+      notifyListeners();
+      unawaited(_saveTasks());
+      return;
+    }
+    _tasks.add(
+      Task(
+        id: notifId,
+        taskType: TaskType.cancelledQuestionnaire,
+        title: displayName,
+        subtitle: 'This questionnaire was cancelled',
+        createdAt: DateTime.now().toUtc(),
+        targetId: aggregateId,
+      ),
+    );
+    debugPrint(
+      '[TaskService] Cancelled-notification queued for $displayName ($aggregateId)',
+    );
     notifyListeners();
     unawaited(_saveTasks());
   }
@@ -201,6 +327,34 @@ class TaskService extends ChangeNotifier {
 
       // Process disconnection status (same pattern as nosebleed_service)
       enrollmentService.processDisconnectionStatus(body);
+
+      // REQ-CAL-p00079: surface the trial-start timestamp from the
+      // patient's row. Once set, never reset — a transient server-side
+      // omission must not deactivate the patient's outbound sync.
+      final trialStartedAtStr = body['trial_started_at'] as String?;
+      if (trialStartedAtStr != null) {
+        final parsed = DateTime.tryParse(trialStartedAtStr);
+        if (parsed != null) {
+          trialStartedAtNotifier.value = parsed.toUtc();
+        }
+      }
+
+      // CUR-1292: process cancelled questionnaires from the response.
+      // Awaiting the handler here is important — it records a local
+      // tombstone event so the timeline card disappears, and the
+      // caller (e.g. the home-screen title-tap) reads the
+      // materialized view immediately after this method returns.
+      final cancelled = body['cancelled'] as List<dynamic>? ?? [];
+      final hook = onCancelled;
+      if (hook != null) {
+        for (final c in cancelled) {
+          if (c is! Map) continue;
+          final aggregateId = c['questionnaire_instance_id'] as String?;
+          final type = c['questionnaire_type'] as String?;
+          if (aggregateId == null || type == null) continue;
+          await hook(aggregateId, '${type}_survey');
+        }
+      }
 
       final serverTasks = body['tasks'] as List<dynamic>? ?? [];
 
