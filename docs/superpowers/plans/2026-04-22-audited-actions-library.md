@@ -2,15 +2,54 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the new `apps/common-dart/audited_actions/` package — a class-based command/intent layer that gatekeeps untrusted ingress (auth + authz + validation), persists every accepted action's events through the events lib, and records every denial as a typed event in the unified log.
+**Goal:** Build the `apps/common-dart/audited_actions/` package — a class-based command/intent layer that gatekeeps untrusted ingress (auth + authz + validation), persists every accepted action's events through the events lib, and records every denial as a typed event in the unified log.
 
-**Architecture:** A `Action<TInput, TResult>` interface is the unit of work. An `ActionDispatcher` runs each call through a 10-stage pipeline (lookup → invocation_id → parse → idempotency → validate → authorize → execute → persist → record idempotency → return). Authorization is pluggable behind `AuthorizationPolicy`; idempotency is pluggable behind `IdempotencyStore`; the events-lib facade is consumed via a thin `EventsApi` interface (concrete adapter wired at app bootstrap). Denials at any pipeline stage emit typed events into the same event store as successes.
+**Architecture:** An `Action<TInput, TResult>` interface is the unit of work. An `ActionDispatcher` runs each call through a 10-stage pipeline (lookup → invocation_id → parse → idempotency → validate → authorize → execute → persist → record idempotency → return). Authorization is pluggable behind `AuthorizationPolicy`; idempotency is pluggable behind `IdempotencyStore`. The events-lib API (`EventStore` from `event_sourcing_datastore`) is consumed directly — no adapter interface in this package. Denials at any pipeline stage emit typed events into the same event store as successes.
 
-**Tech Stack:** Pure Dart (no Flutter). Depends on `append_only_datastore` (post-Sub-project-E shape: `Initiator`, `flowToken`, `EventSecurityContext`, `appendWithSecurity`). Tests via `package:test` + `package:mocktail`. Linting via `package:lints` strict ruleset.
+**Tech Stack:** Pure Dart (no Flutter). Depends on `event_sourcing_datastore` (`Initiator`, `flowToken`, `EventSecurityContext`, `EventStore.appendWithSecurity`, `EventStore.transaction`). Tests via `package:test` + `package:mocktail`. Linting via `package:lints` strict ruleset.
 
-**Ticket:** CUR-1159
+**Ticket:** CUR-1192 (formerly CUR-1159; the library spun out of CUR-1159's Sub-project A after Sub-project E shipped via CUR-1154)
 **Design doc:** `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md` (Sub-project A is §7)
-**Blocked by:** Sub-project E (`TODO4.4.md` in mobile worktree) merged to `main`.
+**Verifies:** REQ-d00166..REQ-d00171 (Action interface, registry, dispatcher pipeline, authorization, idempotency, denial events) per `spec/dev-audited-actions.md`.
+
+---
+
+## Status as of 2026-05-06
+
+The package skeleton, value types, and several leaf primitives were consolidated onto this branch in commit `84574c5b` (with a follow-up cleanup in `7de953e8`). Tasks below are tagged with their current state:
+
+| Task | Status | Notes |
+| --- | --- | --- |
+| 1. Baseline + dependency check + branch creation | OBSOLETE | Already on the right branch; skip. |
+| 2. Package skeleton | DONE in 84574c5b/7de953e8 | Skip. |
+| 3. Spec + claim REQ numbers | DONE in 84574c5b | REQ-d00166..d00171 claimed; `spec/dev-audited-actions.md` committed. Skip. |
+| 4. `Permission` value type | DONE in 84574c5b | `lib/src/permission.dart` + tests. Skip. |
+| 5. `Idempotency` enum + `IdempotencyEntry` | DONE in 84574c5b | `lib/src/idempotency.dart` + tests. Skip. |
+| 6. `ExecutionResult` and `DispatchResult` | PARTIAL | `DispatchResult` done in 84574c5b; **`ExecutionResult` still needs implementing** as part of this task. |
+| 7. `ActionContext`, `Principal`, re-export `SecurityDetails` | TODO | Full task. |
+| 8. `Action` abstract class | TODO | Full task. |
+| 9. `ActionRegistry` | TODO | Full task. |
+| 10. `AuthorizationPolicy` abstract + `DenyAllAuthorizationPolicy` | TODO | Full task. |
+| 11. `RoleMatrixReader` | DONE (interface only) in 84574c5b | `TableBackedAuthorizationPolicy` is now in the `action_permissions` library plan, not here. Skip — see Task 11 body for the trimmed scope note. |
+| 12. `IdempotencyStore` + `InMemoryIdempotencyStore` | DONE in 84574c5b | `lib/src/idempotency_store.dart` + tests. Skip. |
+| 13. `EventsApi` + `EventsTransaction` interfaces + `FakeEventsApi` | DROPPED | `audited_actions` consumes `event_sourcing_datastore.EventStore` directly. See Task 13 body for note. |
+| 14. `denial_events.dart` factories | TODO | Full task. |
+| 15. Dispatcher Stage 1 (lookup) + Stage 2 (invocation_id) | TODO | Full task. |
+| 16. Dispatcher Stage 3 (parse) + Stage 4 (idempotency check) | TODO | Full task. |
+| 17. Dispatcher Stage 5 (validate) | TODO | Full task. |
+| 18. Dispatcher Stage 6 (authorize) | TODO | Full task. |
+| 19. Dispatcher Stage 7 (execute) + Stage 8 (atomic persist) | TODO | Full task. |
+| 20. Dispatcher Stage 9 (record idempotency) | TODO | Full task. |
+| 21. Dispatcher Stage 10 (return success) | TODO | Full task. |
+| 22. `bootstrapAuditedActions` | TODO | Full task. |
+| 23. Permission discovery tool | DONE in 84574c5b | `tool/discover_permissions.dart` + tests. Skip. |
+| 24. Public exports + end-to-end integration test | TODO | Full task. |
+
+Subagent-driven execution: assign one TODO/PARTIAL task per subagent; skip DONE/OBSOLETE/DROPPED tasks entirely. Tasks already done are kept in the document as historical reference for the design they captured, but their `- [ ]` checkbox steps are skipped.
+
+REQ-d numbering: `{NNNNN}` placeholders that appeared in the original draft were replaced by their concrete values (REQ-d00166..REQ-d00171) on 2026-05-06. The placeholder note in Task 3 is now obsolete.
+
+`event_sourcing_datastore` lib name: replaced the original `append_only_datastore` references (which was the lib's pre-CUR-1154 name).
 
 ---
 
@@ -99,7 +138,10 @@ spec/INDEX.md                                       EDIT — register new REQs
 
 ## Plan
 
-### Task 1: Baseline + dependency check + branch creation
+### Task 1: Baseline + dependency check + branch creation (OBSOLETE — already on the right branch; skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** OBSOLETE — already on the right branch; this task's verification is moot. Return immediately.
+
 
 **Files:**
 - (no files modified; verification + branch only)
@@ -116,8 +158,8 @@ Expected: at least one matching commit. If empty, **STOP** — Sub-project E is 
 - [ ] **Verify the events lib's post-E API is callable.** Quick sanity from this worktree:
 
 ```bash
-ls /home/metagamer/cure-hht/hht_diary-worktrees/mobile-event-sourcing-refactor/apps/common-dart/append_only_datastore/lib/src/storage/initiator.dart
-ls /home/metagamer/cure-hht/hht_diary-worktrees/mobile-event-sourcing-refactor/apps/common-dart/append_only_datastore/lib/src/security/event_security_context.dart
+ls /home/metagamer/cure-hht/hht_diary-worktrees/mobile-event-sourcing-refactor/apps/common-dart/event_sourcing_datastore/lib/src/storage/initiator.dart
+ls /home/metagamer/cure-hht/hht_diary-worktrees/mobile-event-sourcing-refactor/apps/common-dart/event_sourcing_datastore/lib/src/security/event_security_context.dart
 ```
 
 Expected: both files exist. If not, see previous step.
@@ -133,7 +175,7 @@ git checkout -b feature/cur-1159-audited-actions-library
 - [ ] **Baseline: confirm tree builds and existing tests pass.** From repo root:
 
 ```bash
-(cd apps/common-dart/append_only_datastore && dart pub get && dart test)
+(cd apps/common-dart/event_sourcing_datastore && dart pub get && dart test)
 ```
 
 Expected: PASS. Records pre-change state.
@@ -142,7 +184,10 @@ Expected: PASS. Records pre-change state.
 
 ---
 
-### Task 2: Package skeleton
+### Task 2: Package skeleton (COMPLETED in 84574c5b — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. The package skeleton already exists on this branch. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/pubspec.yaml`
@@ -166,7 +211,7 @@ mkdir -p apps/common-dart/audited_actions/lib/src apps/common-dart/audited_actio
 #
 # Trusted-boundary command/intent layer that accepts untrusted ingress,
 # runs auth + authz + validation, then persists events through the
-# post-Sub-project-E append_only_datastore.
+# post-Sub-project-E event_sourcing_datastore.
 
 name: audited_actions
 description: "Trusted-boundary action dispatcher: auth + authz + validation + atomic event persistence + denial recording"
@@ -177,8 +222,8 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  append_only_datastore:
-    path: ../append_only_datastore
+  event_sourcing_datastore:
+    path: ../event_sourcing_datastore
   meta: ^1.16.0
   uuid: ^4.5.2
 
@@ -237,7 +282,7 @@ Trusted-boundary command/intent layer for the unified event-sourced architecture
 
 This package is the trusted-boundary gatekeeper between untrusted callers
 (browsers, future mobile-portal API) and the events lib
-(`append_only_datastore`). Every state-change reaching the host from an
+(`event_sourcing_datastore`). Every state-change reaching the host from an
 untrusted source flows through one library-defined pipeline that:
 
 1. Authenticates the caller (via the supplied `Principal`)
@@ -291,7 +336,7 @@ library;
 - [ ] **Add to `.githooks/project-defs.sh`** under "Libraries" section:
 
 ```bash
-    "audited_actions|apps/common-dart/audited_actions/pubspec.yaml|apps/common-dart/audited_actions/ apps/common-dart/append_only_datastore/lib/"
+    "audited_actions|apps/common-dart/audited_actions/pubspec.yaml|apps/common-dart/audited_actions/ apps/common-dart/event_sourcing_datastore/lib/"
 ```
 
 - [ ] **Run `dart pub get`:**
@@ -319,7 +364,10 @@ git commit -m "[CUR-1159] audited_actions: package skeleton (pubspec, lints, REA
 
 ---
 
-### Task 3: Spec — claim REQ numbers and write `dev-audited-actions.md`
+### Task 3: Spec — claim REQ numbers and write `dev-audited-actions.md` (COMPLETED in 84574c5b; REQ-d00166..d00171 claimed — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. REQ-d00166..d00171 are claimed; spec/dev-audited-actions.md is committed. Return immediately.
+
 
 **Files:**
 - Create: `spec/dev-audited-actions.md`
@@ -349,7 +397,7 @@ The `apps/common-dart/audited_actions/` package defines the trusted-boundary gat
 
 Implements the design committed in `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md` (Sub-project A).
 
-## REQ-d{NNNNN}: REQ-ACTION — Action interface contract
+## REQ-d00166: REQ-ACTION — Action interface contract
 
 A: `Action<TInput, TResult>` SHALL be an abstract class with `name: String`, `description: String`, `permissions: Set<Permission>`, `idempotency: Idempotency`, and four methods: `parseInput(Map<String, dynamic>) -> TInput`, `validate(TInput) -> void`, `execute(TInput, ActionContext) -> Future<ExecutionResult<TResult>>`. Authorization is NOT a method on `Action` — it is performed by an injected `AuthorizationPolicy` against `Action.permissions`.
 
@@ -361,7 +409,7 @@ D: `Action.execute` SHALL return `ExecutionResult<TResult> { result: TResult, ev
 
 E: `Action.idempotency` SHALL declare one of `Idempotency.none`, `Idempotency.optional`, `Idempotency.required`. The dispatcher rejects calls that violate the policy (e.g. `required` without a key returns `DispatchResult.parseDenied(MissingIdempotencyKeyError)`).
 
-## REQ-d{NNNNN}: REQ-ACTREG — ActionRegistry and bootstrap
+## REQ-d00167: REQ-ACTREG — ActionRegistry and bootstrap
 
 A: `ActionRegistry.register<TI, TR>(Action<TI, TR> action)` SHALL throw `ArgumentError` if `action.name` collides with an already-registered action.
 
@@ -371,7 +419,7 @@ C: `ActionRegistry.allDeclaredPermissions: Set<Permission> get` SHALL be the uni
 
 D: `bootstrapAuditedActions({events, authorization, idempotency, actions})` SHALL register all supplied actions (rejecting collisions per A) and return a ready `ActionDispatcher`.
 
-## REQ-d{NNNNN}: REQ-DISPATCH — Dispatcher pipeline
+## REQ-d00168: REQ-DISPATCH — Dispatcher pipeline
 
 A: `ActionDispatcher.dispatch(actionName, rawInput, ctx, {idempotencyKey?, flowToken?})` SHALL execute the following pipeline. Each stage that fails SHALL emit a typed denial event into the events lib (per REQ-DENIAL) and SHALL return the corresponding `DispatchResult` variant; subsequent stages SHALL NOT run.
 
@@ -395,7 +443,7 @@ J: Stage 9 (record idempotency): if `action.idempotency != none` and `idempotenc
 
 K: Stage 10 (return): return `DispatchResult.success(result, emittedEventIds)`.
 
-## REQ-d{NNNNN}: REQ-AUTHZ — AuthorizationPolicy
+## REQ-d00169: REQ-AUTHZ — AuthorizationPolicy
 
 A: `AuthorizationPolicy` SHALL be an abstract class with one method: `Future<bool> isPermitted(Principal principal, Permission permission, ActionContext ctx)`.
 
@@ -405,7 +453,7 @@ C: `DenyAllAuthorizationPolicy` SHALL return false from every `isPermitted` call
 
 D: The permission discovery tool SHALL emit a SQL migration with `INSERT ... ON CONFLICT DO NOTHING` rows for every permission in `registry.allDeclaredPermissions` not already present in the `role_permission_matrix_permissions` table. Permissions present in DB but absent from the registry SHALL be emitted as SQL comments only (not auto-deleted).
 
-## REQ-d{NNNNN}: REQ-IDEMPOT — Idempotency contract
+## REQ-d00170: REQ-IDEMPOT — Idempotency contract
 
 A: When `action.idempotency == Idempotency.none`, the dispatcher SHALL ignore any `idempotencyKey` parameter (no lookup, no record).
 
@@ -419,7 +467,7 @@ E: `IdempotencyStore.sweepExpired({DateTime? before})` SHALL delete entries whos
 
 F: Default TTL SHALL be 24 hours; an action MAY override via an `idempotencyTtl: Duration` getter (default returns `Duration(hours: 24)`).
 
-## REQ-d{NNNNN}: REQ-DENIAL — Denial events
+## REQ-d00171: REQ-DENIAL — Denial events
 
 A: Every denial event SHALL be an `EventDraft` with `aggregateType: 'action_attempt'`, `aggregateId: <action_invocation_id>`, `entryType: 'action_denial'`. The `eventType` SHALL be one of: `unknown_action`, `parse_denied`, `validation_denied`, `authorization_denied`, `execution_failed`.
 
@@ -453,7 +501,10 @@ git commit -m "[CUR-1159] spec/dev-audited-actions.md: REQ-ACTION, ACTREG, DISPA
 
 ---
 
-### Task 4: `Permission` value type
+### Task 4: `Permission` value type (COMPLETED in 84574c5b — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. lib/src/permission.dart and tests already exist. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/permission.dart`
@@ -515,7 +566,7 @@ Expected: FAIL — `Target of URI doesn't exist: 'package:audited_actions/src/pe
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-AUTHZ (REQ-d{NNNNN}): Permission value type, used as a key in
+//   REQ-AUTHZ (REQ-d00169): Permission value type, used as a key in
 //   the role-permission matrix and declared on each Action.
 
 /// A named permission, by convention `<aggregate>.<verb>` (e.g.
@@ -580,7 +631,10 @@ git commit -m "[CUR-1159] audited_actions: Permission value type"
 
 ---
 
-### Task 5: `Idempotency` enum + `IdempotencyEntry` value type
+### Task 5: `Idempotency` enum + `IdempotencyEntry` value type (COMPLETED in 84574c5b — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. lib/src/idempotency.dart and tests already exist. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/idempotency.dart`
@@ -655,7 +709,7 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-IDEMPOT (REQ-d{NNNNN}): Idempotency policy enum + cache entry
+//   REQ-IDEMPOT (REQ-d00170): Idempotency policy enum + cache entry
 //   value type used by IdempotencyStore implementations.
 
 /// Per-action declaration of how the dispatcher treats `idempotencyKey`.
@@ -714,7 +768,7 @@ git commit -m "[CUR-1159] audited_actions: Idempotency enum and IdempotencyEntry
 
 ---
 
-### Task 6: `ExecutionResult` and `DispatchResult` (sealed result types)
+### Task 6: `ExecutionResult` and `DispatchResult` (sealed result types) (PARTIAL — `DispatchResult` done in 84574c5b; only `ExecutionResult` still needed for this task)
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/execution_result.dart`
@@ -729,7 +783,7 @@ This task imports `EventDraft` and `SecurityDetails` from the events lib (post-S
 - [ ] **Write failing tests** in `test/execution_result_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart' show EventDraft, SecurityDetails;
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart' show EventDraft, SecurityDetails;
 import 'package:audited_actions/src/execution_result.dart';
 import 'package:test/test.dart';
 
@@ -859,7 +913,7 @@ void main() {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-ACTION-D: ExecutionResult shape returned by Action.execute.
 
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft, SecurityDetails;
 
 /// What an `Action.execute` returns to the dispatcher.
@@ -888,7 +942,7 @@ class ExecutionResult<TResult> {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-DISPATCH (REQ-d{NNNNN}): pipeline outcome variants.
+//   REQ-DISPATCH (REQ-d00168): pipeline outcome variants.
 
 import 'package:audited_actions/src/permission.dart';
 
@@ -996,7 +1050,7 @@ git commit -m "[CUR-1159] audited_actions: ExecutionResult and sealed DispatchRe
 - [ ] **Write failing tests** in `test/action_context_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show Initiator, UserInitiator, AnonymousInitiator, SecurityDetails;
 import 'package:audited_actions/src/action_context.dart';
 import 'package:test/test.dart';
@@ -1077,12 +1131,12 @@ void main() {
 //   the request boundary; carries Principal that becomes Initiator on
 //   emitted events).
 
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show Initiator, UserInitiator, AnonymousInitiator, SecurityDetails;
 
 // Re-export SecurityDetails for convenience: ActionContext callers
 // shouldn't need a second import for the security parameter.
-export 'package:append_only_datastore/append_only_datastore.dart'
+export 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show SecurityDetails;
 
 /// The authenticated (or anonymous) caller of an action.
@@ -1179,7 +1233,7 @@ git commit -m "[CUR-1159] audited_actions: ActionContext, Principal sealed type"
 - [ ] **Write failing tests** in `test/action_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft, SecurityDetails;
 import 'package:audited_actions/src/action.dart';
 import 'package:audited_actions/src/action_context.dart';
@@ -1257,7 +1311,7 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-ACTION (REQ-d{NNNNN}): unit-of-work interface for portal commands.
+//   REQ-ACTION (REQ-d00166): unit-of-work interface for portal commands.
 
 import 'package:audited_actions/src/action_context.dart';
 import 'package:audited_actions/src/execution_result.dart';
@@ -1333,7 +1387,7 @@ git commit -m "[CUR-1159] audited_actions: Action abstract class"
 - [ ] **Write failing tests** in `test/action_registry_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft;
 import 'package:audited_actions/src/action.dart';
 import 'package:audited_actions/src/action_context.dart';
@@ -1403,7 +1457,7 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-ACTREG (REQ-d{NNNNN}): keyed action registry with name-collision
+//   REQ-ACTREG (REQ-d00167): keyed action registry with name-collision
 //   detection and permission discovery.
 
 import 'package:audited_actions/src/action.dart';
@@ -1472,7 +1526,7 @@ git commit -m "[CUR-1159] audited_actions: ActionRegistry"
 - [ ] **Write failing tests** in `test/authorization_policy_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show SecurityDetails;
 import 'package:audited_actions/src/action_context.dart';
 import 'package:audited_actions/src/authorization_policy.dart';
@@ -1526,7 +1580,7 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-AUTHZ (REQ-d{NNNNN}): pluggable authorization with abstract
+//   REQ-AUTHZ (REQ-d00169): pluggable authorization with abstract
 //   base + DenyAllAuthorizationPolicy fallback.
 
 import 'package:audited_actions/src/action_context.dart';
@@ -1589,7 +1643,10 @@ git commit -m "[CUR-1159] audited_actions: AuthorizationPolicy + DenyAll fallbac
 
 ---
 
-### Task 11: `RoleMatrixReader` + `TableBackedAuthorizationPolicy`
+### Task 11: `RoleMatrixReader` interface (COMPLETED in 84574c5b; TableBackedAuthorizationPolicy moved to action_permissions library plan — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b for the RoleMatrixReader interface portion. The TableBackedAuthorizationPolicy implementation that the body below describes has MOVED to the action_permissions library — see docs/superpowers/plans/2026-05-06-action-permissions-library.md Task 9. DO NOT implement TableBackedAuthorizationPolicy in audited_actions. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/role_matrix_reader.dart`
@@ -1618,7 +1675,7 @@ class FakeRoleMatrixReader implements RoleMatrixReader {
 - [ ] **Write failing tests** in `test/table_backed_authorization_policy_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show SecurityDetails;
 import 'package:audited_actions/src/action_context.dart';
 import 'package:audited_actions/src/permission.dart';
@@ -1785,7 +1842,10 @@ git commit -m "[CUR-1159] audited_actions: RoleMatrixReader + TableBackedAuthori
 
 ---
 
-### Task 12: `IdempotencyStore` abstract + `InMemoryIdempotencyStore`
+### Task 12: `IdempotencyStore` abstract + `InMemoryIdempotencyStore` (COMPLETED in 84574c5b — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. lib/src/idempotency_store.dart and tests already exist. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/idempotency_store.dart`
@@ -1896,7 +1956,7 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-IDEMPOT-D,E (REQ-d{NNNNN}): cache-with-TTL contract for action
+//   REQ-IDEMPOT-D+E (REQ-d00170): cache-with-TTL contract for action
 //   replay protection; in-memory impl for tests and early development.
 
 import 'package:audited_actions/src/idempotency.dart';
@@ -1995,7 +2055,10 @@ git commit -m "[CUR-1159] audited_actions: IdempotencyStore + in-memory impl"
 
 ---
 
-### Task 13: `EventsApi` + `EventsTransaction` interfaces + `FakeEventsApi`
+### Task 13: `EventsApi` adapter (DROPPED — audited_actions consumes event_sourcing_datastore.EventStore directly; skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** DROPPED. audited_actions consumes event_sourcing_datastore.EventStore directly; no EventsApi adapter interface is built in this package. The dispatcher's persist stage (Task 19) calls EventStore.transaction and EventStore.appendWithSecurity directly. DO NOT implement events_api.dart, FakeEventsApi, or events_api_test.dart. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/lib/src/events_api.dart`
@@ -2004,17 +2067,17 @@ git commit -m "[CUR-1159] audited_actions: IdempotencyStore + in-memory impl"
 
 **Applicable assertions:** referenced from REQ-DISPATCH-I (atomic persist).
 
-This task defines the contract the dispatcher uses to talk to the events lib. Adapter (the bit that wraps the actual `append_only_datastore` API) is wired at deployment-app bootstrap, not in this package.
+This task defines the contract the dispatcher uses to talk to the events lib. Adapter (the bit that wraps the actual `event_sourcing_datastore` API) is wired at deployment-app bootstrap, not in this package.
 
 - [ ] **Write `lib/src/events_api.dart`:**
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-DISPATCH-I (REQ-d{NNNNN}): atomic persistence contract used by
+//   REQ-DISPATCH-I (REQ-d00168): atomic persistence contract used by
 //   the dispatcher to write success and denial events through the events
-//   lib (append_only_datastore post-Sub-project-E).
+//   lib (event_sourcing_datastore post-Sub-project-E).
 
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft, SecurityDetails, StoredEvent;
 
 /// Thin contract the dispatcher uses to talk to the events lib. The
@@ -2042,7 +2105,7 @@ abstract class EventsTransaction {
 - [ ] **Write `test/fixtures/fake_events_api.dart`:**
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft, Initiator, SecurityDetails, StoredEvent, UserInitiator;
 import 'package:audited_actions/src/events_api.dart';
 import 'package:uuid/uuid.dart';
@@ -2136,7 +2199,7 @@ class _AppendCall {
 - [ ] **Write smoke test** in `test/events_api_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft, UserInitiator;
 import 'package:test/test.dart';
 
@@ -2239,7 +2302,7 @@ git commit -m "[CUR-1159] audited_actions: EventsApi/EventsTransaction interface
 - [ ] **Write failing tests** in `test/denial_events_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft;
 import 'package:audited_actions/src/denial_events.dart';
 import 'package:audited_actions/src/permission.dart';
@@ -2327,9 +2390,9 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-DENIAL (REQ-d{NNNNN}): typed denial event drafts; sanitization.
+//   REQ-DENIAL (REQ-d00171): typed denial event drafts; sanitization.
 
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft;
 import 'package:audited_actions/src/permission.dart';
 
@@ -2476,7 +2539,7 @@ This task introduces the dispatcher class and tests its first two pipeline stage
 - [ ] **Write `test/fixtures/test_actions.dart`** (used across all dispatcher tests):
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft;
 import 'package:audited_actions/src/action.dart';
 import 'package:audited_actions/src/action_context.dart';
@@ -2574,7 +2637,7 @@ class RequiredKeyAction extends HelloAction {
 - [ ] **Write failing tests** in `test/action_dispatcher_test.dart`:
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show SecurityDetails;
 import 'package:audited_actions/src/action_context.dart';
 import 'package:audited_actions/src/action_dispatcher.dart';
@@ -2659,10 +2722,10 @@ void main() {
 
 ```dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-DISPATCH (REQ-d{NNNNN}): pipeline owner; subsequent tasks add
+//   REQ-DISPATCH (REQ-d00168): pipeline owner; subsequent tasks add
 //   stages 3-10.
 
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show EventDraft;
 import 'package:audited_actions/src/action_context.dart';
 import 'package:audited_actions/src/action_registry.dart';
@@ -3615,7 +3678,10 @@ git commit -m "[CUR-1159] audited_actions: bootstrapAuditedActions"
 
 ---
 
-### Task 23: Permission discovery tool
+### Task 23: Permission discovery tool (COMPLETED in 84574c5b — skip)
+
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. tool/discover_permissions.dart and tests already exist. Return immediately.
+
 
 **Files:**
 - Create: `apps/common-dart/audited_actions/tool/discover_permissions.dart`
@@ -3828,7 +3894,7 @@ export 'src/table_backed_authorization_policy.dart';
 - [ ] **Write `test/integration_test.dart`** — exercises the full happy path through the public API only (no internal `src/` imports):
 
 ```dart
-import 'package:append_only_datastore/append_only_datastore.dart'
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show SecurityDetails;
 import 'package:audited_actions/audited_actions.dart';
 import 'package:test/test.dart';
