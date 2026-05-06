@@ -60,8 +60,14 @@ class HomeScreen extends StatefulWidget {
     required this.preferencesService,
     this.onFontChanged,
     this.onEnrolled,
+    this.clock = DateTime.now,
     super.key,
   });
+
+  /// Returns the current moment for time-relative writes (yesterday-banner
+  /// handlers). Defaults to [DateTime.now]; tests inject a fixed clock so the
+  /// stored `date` answer is verifiable.
+  final DateTime Function() clock;
 
   /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
   /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
@@ -342,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayNoNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'no_epistaxis_event',
       aggregateId: const Uuid().v7(),
@@ -353,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayHadNosebleeds() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     // CUR-464: Result is now record ID (String) instead of bool
     // CUR-508: Use feature flag to determine which recording screen to show
     final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
@@ -388,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleYesterdayDontRemember() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = widget.clock().subtract(const Duration(days: 1));
     await widget.runtime.entryService.record(
       entryType: 'unknown_day_event',
       aggregateId: const Uuid().v7(),
@@ -1011,7 +1017,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = DateTime.now();
+    final today = widget.clock();
     final yesterday = today.subtract(const Duration(days: 1));
 
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
