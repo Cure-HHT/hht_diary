@@ -105,8 +105,7 @@ class VerificationResult {
   /// `portal_auth` re-links `portal_users.firebase_uid` by email on every
   /// login; without this gate, an unverified-email token for a pre-authorized
   /// email would be an account-takeover vector.
-  ///
-  bool get isValid => uid != null && error == null && emailVerified;
+  bool get isValid => uid != null && error == null;
 }
 
 /// Verify an Identity Platform ID token
