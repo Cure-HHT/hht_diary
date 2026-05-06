@@ -116,6 +116,10 @@ export 'src/core/di/datastore.dart';
 export 'src/core/errors/datastore_exception.dart';
 export 'src/core/errors/sync_exception.dart';
 
+// EventDraft — input value type for Action.execute return value and
+// appendWithSecurity call (Phase 5, CUR-1192).
+export 'src/event_draft.dart' show EventDraft;
+
 // Destinations — per-destination routing contract (Phase 4, CUR-1154).
 // FakeDestination lives in test/test_support/ and is intentionally NOT
 // exported.
