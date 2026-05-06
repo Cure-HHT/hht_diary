@@ -3,12 +3,14 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00166: Server-owned portal activation; {code, password} body; no bearer required
 
 import 'dart:convert';
 
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
+import 'package:portal_functions/src/database.dart';
 import 'package:portal_functions/src/portal_activation.dart';
 
 void main() {
@@ -36,144 +38,186 @@ void main() {
   // test it without mocking the database. The handlers are tested via
   // integration tests with the actual database.
 
-  group('activateUserHandler authorization', () {
-    test('returns 401 without authorization header', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('authorization'));
+  /// Verifies REQ-d00166-A, REQ-d00166-B, REQ-d00166-E
+  group('activateUserHandler — CUR-1296 server-owned shape', () {
+    tearDown(() {
+      databaseQueryOverride = null;
     });
 
-    test('returns 401 with empty authorization header', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': ''},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
+    // Verifies: REQ-d00166-A
+    test(
+      'REQ-d00166-A: accepts {code, password} body without bearer token',
+      () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            // Return a valid pending user row
+            return [
+              [
+                '11111111-1111-1111-1111-111111111111',
+                'pending@example.com',
+                'Pending User',
+                'pending',
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          return [];
+        };
 
-      expect(response.statusCode, equals(401));
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({
+              'code': 'ABCDE-12345',
+              'password': 'newSecretPw1',
+            }),
+          ),
+        );
+
+        expect(response.statusCode, equals(200));
+        final body = await getResponseJson(response);
+        expect(body['ok'], isTrue);
+      },
+    );
+
+    // Verifies: REQ-d00166-B
+    test('REQ-d00166-B: returns 400 code_invalid for unknown code', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('FROM portal_users') &&
+            query.contains('activation_code')) {
+          return []; // No user found
+        }
+        return [];
+      };
+
+      final response = await activateUserHandler(
+        createPostRequest(
+          '/api/v1/portal/activate',
+          body: jsonEncode({'code': 'NOPE-NOTREAL', 'password': 'x'}),
+        ),
+      );
+      expect(response.statusCode, equals(400));
+      final body = await getResponseJson(response);
+      expect(body['code'], equals('code_invalid'));
     });
 
-    test('returns 401 with Basic auth instead of Bearer', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Basic dXNlcjpwYXNz'},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
+    // Verifies: REQ-d00166-B
+    test(
+      'REQ-d00166-B: returns 400 code_expired when activation_code_expires_at is in the past',
+      () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '22222222-2222-2222-2222-222222222222',
+                'expired@example.com',
+                'Expired User',
+                'pending',
+                DateTime.now().subtract(const Duration(days: 1)), // expired
+              ],
+            ];
+          }
+          return [];
+        };
 
-      expect(response.statusCode, equals(401));
-    });
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'EXPRD-00001', 'password': 'x'}),
+          ),
+        );
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('code_expired'));
+      },
+    );
 
-    test('returns 401 with invalid Bearer token', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer invalid-token'},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
+    // Verifies: REQ-d00166-E (idempotent retry-after-success)
+    test(
+      'REQ-d00166-E: returns 200 already_active=true when row is already active',
+      () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '44444444-4444-4444-4444-444444444444',
+                'active@example.com',
+                'Active User',
+                'active', // already active
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          return [];
+        };
 
-      expect(response.statusCode, equals(401));
-    });
-
-    test('returns 401 with Bearer and empty token', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer '},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-    });
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'ALDYACT-001', 'password': 'whatever'}),
+          ),
+        );
+        expect(response.statusCode, equals(200));
+        final body = await getResponseJson(response);
+        expect(body['ok'], isTrue);
+        expect(body['already_active'], isTrue);
+      },
+    );
   });
 
-  group('activateUserHandler request body', () {
+  group('activateUserHandler — input validation', () {
+    // Body-level validation happens before DB, so no override needed.
     test('returns 400 for invalid JSON body', () async {
-      // Create a token that will fail verification (but has valid format)
-      final header = base64Url.encode(
-        utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT', 'kid': 'test'})),
-      );
-      final payload = base64Url.encode(
-        utf8.encode(jsonEncode({'sub': '123', 'email': 'test@example.com'})),
-      );
-      final token = '$header.$payload.signature';
-
       final request = createPostRequest(
         '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer $token'},
         body: 'not valid json',
       );
       final response = await activateUserHandler(request);
-
-      // Either 400 for bad JSON or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
+      expect(response.statusCode, equals(400));
     });
 
     test('returns 400 for missing code in body', () async {
-      final header = base64Url.encode(
-        utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT', 'kid': 'test'})),
-      );
-      final payload = base64Url.encode(
-        utf8.encode(jsonEncode({'sub': '123', 'email': 'test@example.com'})),
-      );
-      final token = '$header.$payload.signature';
-
       final request = createPostRequest(
         '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode({'other_field': 'value'}),
+        body: jsonEncode({'password': 'secret'}),
       );
       final response = await activateUserHandler(request);
-
-      // Either 400 for missing code or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
+      expect(response.statusCode, equals(400));
     });
 
     test('returns 400 for empty code in body', () async {
-      final header = base64Url.encode(
-        utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT', 'kid': 'test'})),
-      );
-      final payload = base64Url.encode(
-        utf8.encode(jsonEncode({'sub': '123', 'email': 'test@example.com'})),
-      );
-      final token = '$header.$payload.signature';
-
       final request = createPostRequest(
         '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode({'code': ''}),
+        body: jsonEncode({'code': '', 'password': 'secret'}),
       );
       final response = await activateUserHandler(request);
-
-      // Either 400 for empty code or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
+      expect(response.statusCode, equals(400));
     });
 
-    test('returns 400 for null code in body', () async {
-      final header = base64Url.encode(
-        utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT', 'kid': 'test'})),
-      );
-      final payload = base64Url.encode(
-        utf8.encode(jsonEncode({'sub': '123', 'email': 'test@example.com'})),
-      );
-      final token = '$header.$payload.signature';
-
+    test('returns 400 for missing password in body', () async {
       final request = createPostRequest(
         '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode({'code': null}),
+        body: jsonEncode({'code': 'ABCDE-12345'}),
       );
       final response = await activateUserHandler(request);
+      expect(response.statusCode, equals(400));
+    });
 
-      // Either 400 for null code or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
+    test('returns 400 for empty password in body', () async {
+      final request = createPostRequest(
+        '/api/v1/portal/activate',
+        body: jsonEncode({'code': 'ABCDE-12345', 'password': ''}),
+      );
+      final response = await activateUserHandler(request);
+      expect(response.statusCode, equals(400));
     });
   });
 
@@ -372,71 +416,21 @@ void main() {
   });
 
   group('Edge cases', () {
+    // These tests verify body-level validation only — no DB needed.
     test('handles empty POST body', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer test'},
-        body: '',
-      );
+      final request = createPostRequest('/api/v1/portal/activate', body: '');
       final response = await activateUserHandler(request);
 
-      // Should return 400 for empty body or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
+      // Empty body is invalid JSON — returns 400
+      expect(response.statusCode, equals(400));
     });
 
     test('handles POST body with only whitespace', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer test'},
-        body: '   ',
-      );
+      final request = createPostRequest('/api/v1/portal/activate', body: '   ');
       final response = await activateUserHandler(request);
 
-      // Should return 400 for invalid body or 401 for invalid token
-      expect(response.statusCode, anyOf(equals(400), equals(401)));
-    });
-  });
-
-  group('Token format validation', () {
-    test('rejects token with only 2 parts', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer part1.part2'},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-    });
-
-    test('rejects token with 4 parts', () async {
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer part1.part2.part3.part4'},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-    });
-
-    test('rejects token without kid in header', () async {
-      final header = base64Url.encode(
-        utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT'})),
-      );
-      final payload = base64Url.encode(
-        utf8.encode(jsonEncode({'sub': '123', 'email': 'test@example.com'})),
-      );
-      final token = '$header.$payload.signature';
-
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode({'code': 'TEST1-CODE1'}),
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
+      // Whitespace-only body is invalid JSON — returns 400
+      expect(response.statusCode, equals(400));
     });
   });
 }
