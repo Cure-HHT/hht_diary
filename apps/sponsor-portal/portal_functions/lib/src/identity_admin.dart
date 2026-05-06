@@ -35,17 +35,30 @@ class IdentityAdmin {
   static http.Client? overrideClient;
 
   /// Identity Toolkit v1 base URL (project-scoped admin endpoints).
-  static const _base = 'https://identitytoolkit.googleapis.com/v1';
+  /// When FIREBASE_AUTH_EMULATOR_HOST is set the emulator intercepts requests
+  /// at http://{host}/identitytoolkit.googleapis.com/v1 — no OAuth required.
+  static String get _base {
+    final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
+    if (emulatorHost != null && emulatorHost.isNotEmpty) {
+      return 'http://$emulatorHost/identitytoolkit.googleapis.com/v1';
+    }
+    return 'https://identitytoolkit.googleapis.com/v1';
+  }
 
   /// Project id from env. Same source `identity_platform.dart` uses.
   /// Falls back to a test-only sentinel; production must set GCP_PROJECT_ID.
   static String get _projectId =>
       Platform.environment['GCP_PROJECT_ID'] ?? 'demo-test';
 
-  /// Returns an HTTP client carrying a fresh OAuth token for
-  /// `cloud-platform` scope. In tests, [overrideClient] short-circuits.
+  /// Returns an HTTP client. When FIREBASE_AUTH_EMULATOR_HOST is set a plain
+  /// unauthenticated client is used (the emulator requires no OAuth token).
+  /// In tests, [overrideClient] short-circuits both paths.
   static Future<http.Client> _client() async {
     if (overrideClient != null) return overrideClient!;
+    final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
+    if (emulatorHost != null && emulatorHost.isNotEmpty) {
+      return http.Client();
+    }
     return clientViaApplicationDefaultCredentials(
       scopes: const ['https://www.googleapis.com/auth/cloud-platform'],
     );
