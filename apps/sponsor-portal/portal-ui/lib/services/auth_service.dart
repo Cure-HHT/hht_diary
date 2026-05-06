@@ -6,6 +6,7 @@
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
 //   REQ-p01044-C: Sponsors SHALL be able to configure the inactivity timeout
 //   REQ-d00080-A: client-side session management with configurable inactivity timeout
+//   REQ-d00167: Identity Platform binding set only at activation; uid_not_bound 401 is the auth-miss envelope
 //
 // Portal authentication service using Firebase Auth (Identity Platform)
 // Supports both TOTP (for Developer Admin) and Email OTP (for other users)
@@ -17,6 +18,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../flavors.dart';
 import 'firebase_emulator_helper.dart';
 
 /// MFA type for the user
@@ -266,6 +268,8 @@ class AuthService extends ChangeNotifier {
     Future<void> Function()? clearStorage,
     Future<void> Function()? forceClearFirebaseAuthDb,
     bool isPageRefresh = false,
+    // Implements: REQ-d00167-B — flavor controls the uid_not_bound error banner
+    Flavor? flavor,
   }) : _sponsorId = sponsorId,
        _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
@@ -278,12 +282,15 @@ class AuthService extends ChangeNotifier {
        // CUR-1280 auto-recovery: injected by main.dart on web. Default
        // no-op for unit tests / non-web platforms — the recovery path
        // is local-flavor only anyway.
-       _forceClearFirebaseAuthDb = forceClearFirebaseAuthDb ?? _noopStorage {
+       _forceClearFirebaseAuthDb = forceClearFirebaseAuthDb ?? _noopStorage,
+       _flavor = flavor ?? F.appFlavor ?? Flavor.prod {
     _init();
   }
 
   final String _sponsorId;
   final bool _enableInactivityTimer;
+  // Implements: REQ-d00167-B — controls uid_not_bound error message copy
+  final Flavor _flavor;
 
   /// CUR-1118: true when this page load is a same-tab refresh (F5/Cmd+R).
   /// When false (fresh tab / post-close), stale Firebase sessions are cleared
@@ -1132,6 +1139,24 @@ class AuthService extends ChangeNotifier {
         await _fetchSponsorTimeout();
         if (_disposed) return _PortalFetchResult.transientFailure;
         return _PortalFetchResult.success;
+      } else if (response.statusCode == 401) {
+        // Implements: REQ-d00167-B — uid_not_bound 401 envelope: Firebase UID
+        // is not bound to any portal_users row. On Flavor.local this means
+        // the emulator was restarted; surface the rebind hint. Other flavors
+        // get a generic administrator-contact message.
+        final body = jsonDecode(response.body) as Map<String, dynamic>? ?? {};
+        final errCode = body['code'] as String?;
+        if (errCode == 'uid_not_bound') {
+          _error = (_flavor == Flavor.local)
+              ? 'Your portal account isn\'t bound to this Identity Platform '
+                    'user. If you just restarted the emulator, run '
+                    '`./local-stack rebind` and reload.'
+              : 'Account not found — contact your administrator.';
+        } else {
+          _error = body['error'] as String? ?? 'Authentication failed.';
+        }
+        notifyListeners();
+        return _PortalFetchResult.unauthorized;
       } else if (response.statusCode == 403) {
         // User not authorized for portal access
         final data = jsonDecode(response.body) as Map<String, dynamic>;
