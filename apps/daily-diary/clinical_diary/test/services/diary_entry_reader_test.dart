@@ -274,19 +274,29 @@ void main() {
       () async {
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
-        // Record the entry "now". Its effectiveDate falls back to the
-        // clientTimestamp, which is real DateTime.now() — i.e., today.
+        // Record the entry; its effectiveDate falls back to the
+        // clientTimestamp written by EntryService (real DateTime.now()).
         await _recordEntry(
           fx.service,
           entryType: 'epistaxis_event',
           aggregateId: 'agg-today-becomes-yesterday',
         );
 
-        // Build a separate reader whose clock is one day in the future.
-        // From its viewpoint, the entry recorded above sits on "yesterday".
+        // Read the recorded entry's effectiveDate back from the backend so
+        // the reader's clock is anchored to the SAME moment the record was
+        // stamped — eliminates the midnight race between two separate
+        // DateTime.now() reads.
+        final stored = await fx.backend.findEntries(
+          entryType: 'epistaxis_event',
+        );
+        expect(stored, hasLength(1));
+        final recordedAt = stored.single.effectiveDate!;
+
+        // Build a reader whose clock is one day after the recorded
+        // moment; from its viewpoint, the entry sits on "yesterday".
         final futureReader = DiaryEntryReader(
           backend: fx.backend,
-          clock: () => DateTime.now().add(const Duration(days: 1)),
+          clock: () => recordedAt.add(const Duration(days: 1)),
         );
 
         final result = await futureReader.hasEntriesForYesterday();
