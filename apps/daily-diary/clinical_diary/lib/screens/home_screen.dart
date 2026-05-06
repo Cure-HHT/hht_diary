@@ -845,8 +845,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               );
             },
             onComplete: () {
-              // REQ-CAL-p00081-E: Remove task after completion
-              widget.taskService.removeTask(task.id);
+              // CUR-1292: Don't remove the task on patient submit. The
+              // sponsor's contract is that a patient-completed
+              // questionnaire stays editable until the portal
+              // coordinator clicks Finalize. While status is
+              // 'ready_to_review' on the server, /tasks keeps returning
+              // it; once the coordinator finalizes, server status flips
+              // to 'finalized', /tasks drops it, and the next
+              // task-sync removes it from the local list. Tombstones
+              // from portalInboundPoll do the same thing through a
+              // different path. Either way, the diary follows the
+              // server, not the patient's submit.
               Navigator.of(context).pop();
             },
             onDefer: () => Navigator.of(context).pop(),
@@ -909,16 +918,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   /// Read prior responses for [aggregateId] from the materialized view,
-  /// or `null` when no in-progress row exists. Used by
-  /// [_navigateToQuestionnaire] to seed the flow when the patient
-  /// re-taps a task whose questionnaire is partially complete.
+  /// or `null` when no row exists yet. Used by
+  /// [_navigateToQuestionnaire] to seed the flow on every re-tap.
+  ///
+  /// CUR-1292: seed regardless of `isComplete`. A questionnaire that
+  /// the patient has already submitted (isComplete=true,
+  /// server-side status='ready_to_review') stays editable until the
+  /// portal coordinator clicks Finalize. Tombstoned rows
+  /// (`isDeleted=true`) return null — the patient should never see
+  /// stale post-tombstone state.
   Future<List<QuestionResponse>?> _readInitialResponses({
     required String entryType,
     required String aggregateId,
   }) async {
     final rows = await widget.runtime.backend.findEntries(entryType: entryType);
     for (final row in rows) {
-      if (row.entryId == aggregateId && !row.isComplete && !row.isDeleted) {
+      if (row.entryId == aggregateId && !row.isDeleted) {
         return _parseSurveyResponses(row.currentAnswers);
       }
     }
