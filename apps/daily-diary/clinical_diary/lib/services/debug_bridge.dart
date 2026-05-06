@@ -38,7 +38,19 @@ class DebugBridge {
   }) : assert(
          host == '127.0.0.1',
          'DebugBridge must only bind to loopback (127.0.0.1).',
-       );
+       ) {
+    // Asserts are stripped in release/profile builds, so back the loopback
+    // invariant with a runtime check too. The Flavor.local + !kIsWeb gate
+    // at the call site is the primary guard, this is defense in depth in
+    // case the class is ever reused outside that gate.
+    if (host != '127.0.0.1') {
+      throw ArgumentError.value(
+        host,
+        'host',
+        'DebugBridge must only bind to loopback (127.0.0.1).',
+      );
+    }
+  }
 
   final ClinicalDiaryRuntime runtime;
 
