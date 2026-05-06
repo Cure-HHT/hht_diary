@@ -555,6 +555,83 @@ void main() {
         await fx.backend.close();
       },
     );
+
+    // -------------------------------------------------------------------------
+    // Test 15: daysWithCompletedQuestionnaires
+    // -------------------------------------------------------------------------
+
+    // Verifies: REQ-p00013-A — finalized questionnaire submissions surface as
+    // calendar-day keys; tombstoned and incomplete submissions do not.
+    test(
+      'daysWithCompletedQuestionnaires returns the local-day for each '
+      'finalized questionnaire and excludes tombstoned/incomplete ones',
+      () async {
+        final fx = await _setupFixture(
+          entryTypeIds: ['nose_hht_survey', 'qol_survey', 'epistaxis_event'],
+        );
+
+        // Finalized nose_hht_survey today.
+        await fx.service.record(
+          entryType: 'nose_hht_survey',
+          aggregateId: 'q-nose-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{'questionnaire_type': 'nose_hht'},
+        );
+
+        // Finalized qol_survey today.
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{'questionnaire_type': 'qol'},
+        );
+
+        // Checkpointed-only nose_hht_survey — should NOT appear.
+        await fx.service.record(
+          entryType: 'nose_hht_survey',
+          aggregateId: 'q-nose-incomplete',
+          eventType: 'checkpoint',
+          answers: const <String, Object?>{},
+        );
+
+        // Tombstoned qol_survey — should NOT appear.
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-tombstoned',
+          eventType: 'finalized',
+          answers: const <String, Object?>{},
+        );
+        await fx.service.record(
+          entryType: 'qol_survey',
+          aggregateId: 'q-qol-tombstoned',
+          eventType: 'tombstone',
+          answers: const <String, Object?>{},
+          changeReason: 'test',
+        );
+
+        // Finalized epistaxis_event — should NOT appear (not a survey).
+        await fx.service.record(
+          entryType: 'epistaxis_event',
+          aggregateId: 'ep-1',
+          eventType: 'finalized',
+          answers: const <String, Object?>{},
+        );
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final days = await fx.reader.daysWithCompletedQuestionnaires(
+          today.subtract(const Duration(days: 7)),
+          today.add(const Duration(days: 1)),
+        );
+
+        expect(days, contains(today));
+        // Two distinct survey types on the same day still collapse to one
+        // calendar-day key.
+        expect(days, hasLength(1));
+
+        await fx.backend.close();
+      },
+    );
   });
 }
 

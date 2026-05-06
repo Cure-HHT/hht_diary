@@ -229,6 +229,41 @@ class DiaryEntryReader {
     return result;
   }
 
+  // ---------------------------------------------------------------------------
+  // daysWithCompletedQuestionnaires
+  // ---------------------------------------------------------------------------
+
+  /// Returns the set of local-midnight `DateTime` keys (one per day with at
+  /// least one finalized, non-tombstoned questionnaire entry) within the
+  /// inclusive range `[from, to]`.
+  ///
+  /// "Questionnaire entry" is identified by `entryType` ending in `_survey`
+  /// (e.g., `nose_hht_survey`, `qol_survey`). The day key is derived from
+  /// `effectiveDate.toLocal()`. Entries with a null `effectiveDate` are
+  /// ignored.
+  ///
+  /// Used by HomeScreen (yesterday section) and the calendar surfaces (blue
+  /// dot indicator) to flag days where the patient submitted a questionnaire.
+  Future<Set<DateTime>> daysWithCompletedQuestionnaires(
+    DateTime from,
+    DateTime to,
+  ) async {
+    final all = await _backend.findEntries();
+    final localFrom = _localDateOnly(from);
+    final localTo = _localDateOnly(to);
+    final result = <DateTime>{};
+    for (final e in all) {
+      if (e.isDeleted || !e.isComplete) continue;
+      if (!e.entryType.endsWith('_survey')) continue;
+      final eff = e.effectiveDate;
+      if (eff == null) continue;
+      final localDay = _localDateOnly(eff);
+      if (localDay.isBefore(localFrom) || localDay.isAfter(localTo)) continue;
+      result.add(localDay);
+    }
+    return result;
+  }
+
   /// Pure helper: derive a [DayStatus] from a list of entries that have
   /// already been filtered to a single local calendar day.
   static DayStatus _statusForEntries(List<DiaryEntry> dayEntries) {

@@ -45,6 +45,7 @@ class EventListItem extends StatelessWidget {
 
   bool get _isNoNosebleedsEvent => entry.entryType == 'no_epistaxis_event';
   bool get _isUnknownEvent => entry.entryType == 'unknown_day_event';
+  bool get _isQuestionnaire => entry.entryType.endsWith('_survey');
   bool get _isIncomplete => !entry.isComplete;
 
   DateTime get _startTime {
@@ -207,7 +208,72 @@ class EventListItem extends StatelessWidget {
       return _buildUnknownCard(context, l10n);
     }
 
+    if (_isQuestionnaire) {
+      return _buildQuestionnaireCard(context, l10n);
+    }
+
     return _buildNosebleedCard(context, l10n, locale);
+  }
+
+  /// Build card for a completed questionnaire submission.
+  ///
+  /// Shows a blue check-circle, the questionnaire's display name (derived from
+  /// `data.answers['questionnaire_type']` when present, falling back to the
+  /// `_survey`-stripped entry type), and a brief "Submitted" subtitle.
+  Widget _buildQuestionnaireCard(BuildContext context, AppLocalizations l10n) {
+    final answers = entry.currentAnswers;
+    final rawType = answers['questionnaire_type'];
+    final fallback = entry.entryType.replaceAll(RegExp(r'_survey$'), '');
+    final displayType = (rawType is String && rawType.isNotEmpty)
+        ? rawType
+        : fallback;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.blue.shade50,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.assignment_turned_in,
+                color: Colors.blue.shade700,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayType,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.translate('questionnaireSubmitted'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(Icons.chevron_right, color: Colors.blue.shade400),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Build card for "No nosebleed events" type

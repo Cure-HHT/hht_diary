@@ -40,6 +40,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
+  Set<DateTime> _daysWithCompletedQuestionnaires = const <DateTime>{};
   List<DiaryEntry> _allEntries = [];
   bool _useAnimation = true;
 
@@ -78,6 +79,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
 
     final statuses = await widget.reader.dayStatusRange(firstDay, lastDay);
+    final questionnaireDays = await widget.reader
+        .daysWithCompletedQuestionnaires(firstDay, lastDay);
 
     // Also load all entries for overlap checking. Use a wide date range so
     // every relevant entry is covered; the reader filters by local-day.
@@ -90,6 +93,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
+      _daysWithCompletedQuestionnaires = questionnaireDays;
       _allEntries = allEntries
           .where(
             (e) =>
@@ -100,6 +104,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
           )
           .toList();
     });
+  }
+
+  /// Wraps a calendar cell so that, if the day has at least one finalized
+  /// questionnaire submission, a small blue dot is rendered in the
+  /// lower-right corner of the cell.
+  Widget _withQuestionnaireDot(DateTime normalizedDay, Widget cell) {
+    if (!_daysWithCompletedQuestionnaires.contains(normalizedDay)) return cell;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        cell,
+        const Positioned(right: 6, bottom: 6, child: _QuestionnaireDot()),
+      ],
+    );
   }
 
   Color _getColorForStatus(DayStatus status) {
@@ -377,19 +395,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                     final color = _getColorForStatus(status);
 
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: status == DayStatus.notRecorded
-                                ? Colors.black87
-                                : Colors.white,
+                    return _withQuestionnaireDot(
+                      normalizedDay,
+                      Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              color: status == DayStatus.notRecorded
+                                  ? Colors.black87
+                                  : Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -405,16 +426,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                     final color = _getColorForStatus(status);
 
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(color: Colors.grey.shade600),
+                    return _withQuestionnaireDot(
+                      normalizedDay,
+                      Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
                         ),
                       ),
                     );
@@ -429,24 +453,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                     final color = _getColorForStatus(status);
 
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
+                    return _withQuestionnaireDot(
+                      normalizedDay,
+                      Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
                         ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: status == DayStatus.notRecorded
-                                ? Colors.black87
-                                : Colors.white,
-                            fontWeight: FontWeight.bold,
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              color: status == DayStatus.notRecorded
+                                  ? Colors.black87
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -463,26 +490,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final color = _getColorForStatus(status);
                     final isToday = isSameDay(day, todayNormalized);
 
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isToday
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurface,
-                          width: 2,
+                    return _withQuestionnaireDot(
+                      normalizedDay,
+                      Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isToday
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
+                            width: 2,
+                          ),
                         ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: status == DayStatus.notRecorded
-                                ? Colors.black87
-                                : Colors.white,
-                            fontWeight: FontWeight.bold,
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              color: status == DayStatus.notRecorded
+                                  ? Colors.black87
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -531,6 +561,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                       Expanded(child: _buildLegendItemWithBorder('Today')),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _QuestionnaireLegendItem(label: 'Questionnaire'),
+                      ),
+                      Expanded(child: SizedBox.shrink()),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -583,6 +622,48 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             borderRadius: BorderRadius.circular(4),
           ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
+      ],
+    );
+  }
+}
+
+/// Small blue dot rendered in the lower-right of a calendar cell to indicate
+/// the day has at least one finalized questionnaire submission.
+class _QuestionnaireDot extends StatelessWidget {
+  const _QuestionnaireDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2563EB), // Blue-600
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+/// Legend row for the questionnaire-dot indicator.
+class _QuestionnaireLegendItem extends StatelessWidget {
+  const _QuestionnaireLegendItem({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const SizedBox(
+          width: 16,
+          height: 16,
+          child: Center(child: _QuestionnaireDot()),
         ),
         const SizedBox(width: 8),
         Expanded(

@@ -103,6 +103,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Subset of [_entries] that are checkpointed but not finalized.
   List<DiaryEntry> _incompleteEntries = [];
+
+  /// Finalized, non-tombstoned questionnaire entries (entryType endsWith
+  /// `_survey`). Surfaced in the yesterday section and used to derive the
+  /// blue-dot indicator passed into the calendar overlay.
+  List<DiaryEntry> _completedQuestionnaireEntries = [];
   bool _isEnrolled = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
@@ -283,10 +288,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
         .toList();
 
+    // Finalized questionnaire submissions (any *_survey entry type). The
+    // yesterday section surfaces yesterday's submissions; the calendar
+    // overlay uses the union of dates to render a blue-dot indicator.
+    final questionnaires =
+        allEntries
+            .where(
+              (e) =>
+                  !e.isDeleted &&
+                  e.isComplete &&
+                  e.entryType.endsWith('_survey'),
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
     setState(() {
       _entries = entries;
       _hasYesterdayRecords = hasYesterday;
       _incompleteEntries = incomplete;
+      _completedQuestionnaireEntries = questionnaires;
       _isLoading = false;
     });
   }
@@ -1046,16 +1066,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Yesterday's real-nosebleed entries (excluding incomplete ones shown above).
-    final yesterdayEntries = _entries.where((e) {
+    // Yesterday's nosebleed-related entries plus any completed
+    // questionnaire submitted yesterday. Incomplete epistaxis entries land
+    // here too (they're not strictly older than yesterday, so they're
+    // excluded from `olderIncompleteEntries`).
+    final yesterdayNosebleed = _entries.where((e) {
       return entryDateStr(e) == yesterdayStr &&
           e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
-
-    // Check if there are ANY entries for yesterday (including special events).
-    final hasAnyYesterdayEntries = _entries.any(
+    });
+    final yesterdayQuestionnaires = _completedQuestionnaireEntries.where(
       (e) => entryDateStr(e) == yesterdayStr,
     );
+    final yesterdayEntries = [...yesterdayNosebleed, ...yesterdayQuestionnaires]
+      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+
+    // Check if there are ANY entries for yesterday (including special events
+    // and completed questionnaires).
+    final hasAnyYesterdayEntries =
+        _entries.any((e) => entryDateStr(e) == yesterdayStr) ||
+        _completedQuestionnaireEntries.any(
+          (e) => entryDateStr(e) == yesterdayStr,
+        );
 
     groups.add(
       _GroupedRecords(
@@ -1512,7 +1543,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 builder: (context, highlightColor) => EventListItem(
                   entry: entry,
-                  onTap: () => _navigateToEditRecord(entry),
+                  // Questionnaire submissions are not editable from this
+                  // surface — they are submission-time audit records — so
+                  // suppress the chevron and the recording-screen push.
+                  onTap: entry.entryType.endsWith('_survey')
+                      ? null
+                      : () => _navigateToEditRecord(entry),
                   hasOverlap: _hasOverlap(entry),
                   highlightColor: highlightColor,
                 ),
