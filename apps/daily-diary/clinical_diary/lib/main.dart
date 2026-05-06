@@ -9,6 +9,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:clinical_diary/config/feature_flags.dart';
@@ -483,12 +484,27 @@ class _AppRootState extends State<AppRoot> {
     _notificationService?.dispose();
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
-    // dispose() override is sync, so we cannot await; wrap in
-    // unawaited so the Sembast close + trigger cancel still runs
-    // and isn't dropped silently. Without this, an in-flight write
-    // to the hash-chained event log can race process exit and be
-    // truncated — material for an FDA audit trail.
-    unawaited(_runtime?.dispose() ?? Future.value());
+    // dispose() override is sync, so this is best-effort fire-and-forget:
+    // unawaited makes the intent explicit (no analyzer warning, no silent
+    // Future drop higher up the chain) and the .catchError surfaces a
+    // failed close instead of an unhandled async error. It does NOT
+    // guarantee the Sembast close completes before process exit — a
+    // graceful shutdown still depends on the platform giving the app
+    // enough time. For FDA audit-log durability we rely on Sembast's
+    // per-write fsync, not on dispose completing.
+    final disposeFuture = _runtime?.dispose();
+    if (disposeFuture != null) {
+      unawaited(
+        disposeFuture.catchError((Object e, StackTrace st) {
+          developer.log(
+            'ClinicalDiaryRuntime.dispose() failed during app shutdown',
+            name: 'main',
+            error: e,
+            stackTrace: st,
+          );
+        }),
+      );
+    }
     super.dispose();
   }
 
