@@ -272,26 +272,25 @@ void main() {
     test(
       'hasEntriesForYesterday returns true when an entry exists for yesterday',
       () async {
-        // We cannot inject the clock, so we exercise the false-case only via
-        // pure-today inserts and verify the true-case indirectly by checking
-        // the underlying entriesForDate logic (tested below). This test
-        // documents expected behavior: record an entry today, check yesterday
-        // → false.
-        //
-        // The true-case is covered here by verifying the branching through
-        // the false path; the positive path is validated by the dayStatus
-        // tests which call entriesForDate (the same codepath).
         final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
 
+        // Record the entry "now". Its effectiveDate falls back to the
+        // clientTimestamp, which is real DateTime.now() — i.e., today.
         await _recordEntry(
           fx.service,
           entryType: 'epistaxis_event',
-          aggregateId: 'agg-today',
+          aggregateId: 'agg-today-becomes-yesterday',
         );
 
-        // No entry for yesterday → should return false.
-        final result = await fx.reader.hasEntriesForYesterday();
-        expect(result, isFalse);
+        // Build a separate reader whose clock is one day in the future.
+        // From its viewpoint, the entry recorded above sits on "yesterday".
+        final futureReader = DiaryEntryReader(
+          backend: fx.backend,
+          clock: () => DateTime.now().add(const Duration(days: 1)),
+        );
+
+        final result = await futureReader.hasEntriesForYesterday();
+        expect(result, isTrue);
 
         await fx.backend.close();
       },

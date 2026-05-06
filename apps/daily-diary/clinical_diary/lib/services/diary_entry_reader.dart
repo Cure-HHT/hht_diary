@@ -42,9 +42,18 @@ const List<String> _kNosebleedRelatedTypes = [
 // Implements: REQ-p00004-E+L — event-derived materialized view rows are the
 // sole source for this reader; no raw-event access required.
 class DiaryEntryReader {
-  DiaryEntryReader({required SembastBackend backend}) : _backend = backend;
+  DiaryEntryReader({
+    required SembastBackend backend,
+    DateTime Function() clock = DateTime.now,
+  }) : _backend = backend,
+       _clock = clock;
 
   final SembastBackend _backend;
+
+  /// Returns the current moment for time-relative queries (e.g.
+  /// [hasEntriesForYesterday]). Defaults to [DateTime.now]; tests inject a
+  /// fixed or skewed clock to exercise time-boundary branches deterministically.
+  final DateTime Function() _clock;
 
   // ---------------------------------------------------------------------------
   // entriesForDate
@@ -120,7 +129,7 @@ class DiaryEntryReader {
   /// return value is a compliance proxy: "did the patient report anything
   /// yesterday?"
   Future<bool> hasEntriesForYesterday() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterday = _clock().subtract(const Duration(days: 1));
     for (final type in _kNosebleedRelatedTypes) {
       final entries = await entriesForDate(yesterday, entryType: type);
       if (entries.isNotEmpty) return true;
