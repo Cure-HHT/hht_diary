@@ -3,6 +3,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: Create User Dialog Implementation
+//   REQ-d00168: Pre-authorized email uniqueness — case-insensitive 409 pre-flight
 
 import 'dart:convert';
 
@@ -10,6 +11,8 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 // Import the source file directly to access internal functions for testing
+import 'package:portal_functions/src/database.dart';
+import 'package:portal_functions/src/portal_auth.dart';
 import 'package:portal_functions/src/portal_user.dart';
 
 void main() {
@@ -128,6 +131,85 @@ void main() {
       final response = await createPortalUserHandler(request);
 
       expect(response.statusCode, equals(403));
+    });
+
+    /// Verifies REQ-d00168-A, REQ-d00168-B
+    group('REQ-d00168 — case-insensitive duplicate email pre-flight', () {
+      setUp(() {
+        // Bypass Identity Platform token verification for these unit tests.
+        requirePortalAuthOverride = (_) async => PortalUser(
+          id: 'admin-00000000-0000-0000-0000-000000000001',
+          email: 'admin@example.com',
+          name: 'Test Admin',
+          roles: ['Administrator'],
+          activeRole: 'Administrator',
+          status: 'active',
+        );
+      });
+
+      tearDown(() {
+        requirePortalAuthOverride = null;
+        databaseQueryOverride = null;
+      });
+
+      // Verifies: REQ-d00168-A
+      test(
+        'REQ-d00168-A: returns 409 when email already exists (exact match)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                // Duplicate-email pre-flight query — return an existing row.
+                if (query.contains('portal_users') &&
+                    query.contains('LOWER(email)')) {
+                  return [
+                    ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'],
+                  ];
+                }
+                return [];
+              };
+
+          final request = createPostRequest('/api/v1/portal/users', {
+            'name': 'Dup User',
+            'email': 'dup@example.com',
+            'roles': ['Administrator'],
+          });
+          final response = await createPortalUserHandler(request);
+
+          expect(response.statusCode, equals(409));
+          final body = await getResponseJson(response);
+          expect(body['code'], equals('email_already_known'));
+        },
+      );
+
+      // Verifies: REQ-d00168-B
+      test(
+        'REQ-d00168-B: returns 409 for case-insensitive duplicate (mixed-case email)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                // Simulate the DB returning a row for LOWER(email) match on
+                // 'DUP@EXAMPLE.COM' vs existing 'dup@example.com'.
+                if (query.contains('portal_users') &&
+                    query.contains('LOWER(email)')) {
+                  return [
+                    ['bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'],
+                  ];
+                }
+                return [];
+              };
+
+          final request = createPostRequest('/api/v1/portal/users', {
+            'name': 'Dup Upper',
+            'email': 'DUP@EXAMPLE.COM',
+            'roles': ['Administrator'],
+          });
+          final response = await createPortalUserHandler(request);
+
+          expect(response.statusCode, equals(409));
+          final body = await getResponseJson(response);
+          expect(body['code'], equals('email_already_known'));
+        },
+      );
     });
   });
 

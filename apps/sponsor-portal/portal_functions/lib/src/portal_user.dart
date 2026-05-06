@@ -343,15 +343,22 @@ Future<Response> createPortalUserHandler(Request request) async {
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
-  // Check for duplicate email (case-insensitive: portal_users has a UNIQUE
-  // INDEX on LOWER(email), so this also matches what the DB will reject).
+  // Implements: REQ-d00168-A+B — case-insensitive email uniqueness pre-flight.
+  // Reject before INSERT to prevent duplicate portal_users rows when an
+  // operator re-creates an admin with an email that's already known.
+  // Returns 409 with code: email_already_known so the UI can surface a
+  // clear message instead of relying on a database unique-constraint
+  // violation surfacing as a generic 5xx.
   final existing = await db.executeWithContext(
     'SELECT id FROM portal_users WHERE LOWER(email) = LOWER(@email)',
     parameters: {'email': email},
     context: serviceContext,
   );
   if (existing.isNotEmpty) {
-    return _jsonResponse({'error': 'Email already exists'}, 409);
+    return _jsonResponse({
+      'error': 'An account already exists for this email',
+      'code': 'email_already_known',
+    }, 409);
   }
 
   // Create user with pending status
