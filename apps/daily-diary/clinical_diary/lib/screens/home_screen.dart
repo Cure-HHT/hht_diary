@@ -294,11 +294,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // CUR-1292: aggregate ids of in-progress questionnaire surveys.
     // Surfaced to the task list so the matching task card shows the
     // "In progress" pill — patients see at a glance that tapping the
-    // task will resume rather than restart.
-    final wipSurveys = await widget.runtime.reader.incompleteEntries();
+    // task will resume rather than restart. Derived from `allEntries`
+    // (already loaded above with a 1970..9999 range) instead of a
+    // separate `reader.incompleteEntries()` call to avoid a duplicate
+    // backend query on every refresh.
     final wipQIds = <String>{
-      for (final e in wipSurveys)
-        if (!e.isDeleted &&
+      for (final e in allEntries)
+        if (!e.isComplete &&
+            !e.isDeleted &&
             (e.entryType == 'nose_hht_survey' || e.entryType == 'qol_survey'))
           e.entryId,
     };
