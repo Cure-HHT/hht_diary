@@ -15,8 +15,9 @@
 /// The value type is deliberately immutable; `DestinationRegistry`
 /// mutations construct a new `DestinationSchedule` and persist it.
 // Implements: REQ-d00129-A — initial schedule is dormant (startDate = null).
-// Implements: REQ-d00129-C — startDate, once set, is immutable at the
-// value-type level (setStartDate in the registry enforces one-shot write).
+// Implements: REQ-d00129-C — value type is immutable; the registry's
+// setStartDate enforces monotonic-backward semantics (later throws,
+// earlier triggers gap replay) by constructing a new DestinationSchedule.
 // Implements: REQ-d00129-F — isActiveAt / closed/scheduled/applied
 // classification drives SetEndDateResult.
 class DestinationSchedule {

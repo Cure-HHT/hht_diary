@@ -95,7 +95,7 @@ void main() {
         );
         await backend.upsertEntry(
           txn,
-          make(entryId: 'c', entryType: 'hht_qol_survey'),
+          make(entryId: 'c', entryType: 'qol_survey'),
         );
       });
 

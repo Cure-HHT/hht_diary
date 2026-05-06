@@ -2,7 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:flutter/material.dart';
 
 /// Compact intensity selector displayed as a single row of tappable icons

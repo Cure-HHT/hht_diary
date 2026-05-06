@@ -455,11 +455,11 @@ I. `fillBatch(destination)` SHALL return without promoting any events when `back
 
 J. `SubscriptionFilter.includeSystemEvents: bool` (default `false`) SHALL, when `true`, cause `SubscriptionFilter.matches` to return `true` for any event whose `entry_type` is in `kReservedSystemEntryTypeIds`, bypassing the `entryTypes` list. When `false`, system entry types SHALL be rejected by `matches` regardless of `entryTypes` content. `fillBatch` and `historicalReplay` SHALL defer to `SubscriptionFilter.matches` for system-event admission decisions.
 
-K. `fill_cursor` SHALL advance only past events that have been promoted into a FIFO row OR that have been permanently rejected. Permanent rejection is by `SubscriptionFilter.matches` returning `false`, OR by `event.client_timestamp < destination.startDate` (the lower bound is monotonic per REQ-d00129-C `startDate` immutability). Subscription-filter rejection SHALL be evaluated before the upper-bound check so an event the destination is permanently uninterested in does not block cursor advance regardless of its `client_timestamp`. Events rejected because `event.client_timestamp > min(destination.endDate, now())` while otherwise passing the subscription filter are deferred — the upper bound is non-monotonic because `endDate` is mutable per REQ-d00129-F — and `fill_cursor` SHALL NOT advance past them. Both `fillBatch` and `runHistoricalReplay` SHALL honor this distinction; their candidate walks SHALL stop at the first deferred event and any later events SHALL be re-evaluated on a subsequent invocation.
+K. `fill_cursor` SHALL advance only past events that have been promoted into a FIFO row OR that have been permanently rejected. Permanent rejection is by `SubscriptionFilter.matches` returning `false`, OR by `event.client_timestamp < destination.startDate` at the time of the check. Under REQ-d00129-C monotonic-backward semantics, the lower bound governs the current `fillBatch` invocation; events rejected here are not kept re-evaluable through the cursor. A subsequent backward `setStartDate` re-promotes events in the new gap window via `runGapReplay` (REQ-d00130-D), which walks the event log independent of `fill_cursor`. Subscription-filter rejection SHALL be evaluated before the upper-bound check so an event the destination is permanently uninterested in does not block cursor advance regardless of its `client_timestamp`. Events rejected because `event.client_timestamp > min(destination.endDate, now())` while otherwise passing the subscription filter are deferred — the upper bound is non-monotonic because `endDate` is mutable per REQ-d00129-F — and `fill_cursor` SHALL NOT advance past them. Both `fillBatch` and `runHistoricalReplay` SHALL honor this distinction; their candidate walks SHALL stop at the first deferred event and any later events SHALL be re-evaluated on a subsequent invocation.
 
 L. `fillBatch(destination)` SHALL return immediately without scanning the event log and without advancing `fill_cursor` when the destination's window has not yet opened (`destination.startDate > now`) or when the configured window is malformed (`destination.startDate > destination.endDate`). The early return preserves cursor state for when the window opens via wall-clock crossing `startDate` or via `setEndDate` correction. When the window has closed in the past (`destination.endDate < now` with `startDate <= endDate`), `fillBatch` SHALL still scan candidates so any in-window events not yet promoted are processed, and SHALL respect the cursor-advance discipline of REQ-d00128-K.
 
-*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: c6e20833
+*End* *FIFO Batch Shape and Fill Cursor* | **Hash**: 96c1ad43
 
 ---
 
@@ -471,7 +471,7 @@ L. `fillBatch(destination)` SHALL return immediately without scanning the event 
 
 Phase 4 froze the `DestinationRegistry` on first read because a mid-run registration would silently change which events are enqueued to which queues. Phase 4.3 relaxes this to support a lifecycle that is driven by trial and enrollment state: a destination may be added late (e.g., a portal-audit destination brought online partway through a patient's study), may have a `startDate` that places it in dormant or scheduled state until the date is reached, may have a retroactive `startDate` that triggers historical replay over already-queued events, and may be deactivated at a scheduled future time without discarding in-flight work.
 
-Immutability of `startDate` once set is load-bearing. If `startDate` could be moved earlier, the FIFO's contract that every enqueued event matches the destination's time window at enqueue time would weaken to a contract about the *current* window — forcing either a re-scan of already-enqueued rows when the window changed or acceptance of rows the current window would exclude. Both options break the audit trail. Fixing `startDate` at its first assignment avoids this; callers who need a different `startDate` register a different destination.
+`setStartDate` is monotonically non-increasing: callers may move `startDate` to an earlier value at any time but never to a later one. Forward movement is forbidden because already-enqueued FIFO rows whose `client_timestamp` falls in the gap between the old (earlier) and new (later) `startDate` would be retroactively orphaned by the narrower window — they cannot be un-enqueued without breaking the audit trail. Backward movement is sound because it only widens the window: the existing FIFO rows still match, and the gap window `[newStartDate, oldStartDate)` is filled in by a gap replay over the event log that runs in the same transaction as the schedule write. The gap replay walks the event log directly (independent of `fill_cursor`, which is left intact) so that previously-rejected events whose `client_timestamp` was below the prior `startDate` are re-promoted into FIFO rows identical in shape to those `fillBatch` produces during live operation. First-assignment of `startDate` follows the same path: no prior value, no gap, just a historical replay over `[startDate, now]` if `startDate` is in the past.
 
 Mutability of `endDate` is safe because ending a window only stops new enqueues; already-enqueued rows keep their terminal statuses and remain in the FIFO store. `setEndDate` returns a result code so callers can distinguish three outcomes. `closed` fires when the call transitions the destination from "currently active" to "currently closed" — i.e. the new `endDate` is at or before `now()` and the destination was not previously closed. `scheduled` fires when the new `endDate` is in the future (the destination is currently active and will close at a later wall-clock time) or when a previously-closed destination is reopened with a future `endDate`. `applied` fires when the call does not change the destination's current active-vs-closed state relative to `now()` — for example, overwriting an existing past `endDate` with a different past `endDate`, or replacing a future-dated `endDate` with another future-dated `endDate` without crossing the `now()` boundary. The three codes are exclusive; every call returns exactly one.
 
@@ -483,7 +483,7 @@ A. `DestinationRegistry.addDestination(Destination d, {required Initiator initia
 
 B. `Destination.allowHardDelete: bool get` SHALL default to `false` in the abstract class contract; concrete destinations that permit hard deletion SHALL override the getter to `true`.
 
-C. `DestinationRegistry.setStartDate(String id, DateTime startDate, {required Initiator initiator})` SHALL throw `StateError` if the destination already has a non-null `startDate`.
+C. `DestinationRegistry.setStartDate(String id, DateTime when, {required Initiator initiator})` SHALL be monotonically non-increasing: when the destination's current `startDate` is `null`, the call SHALL persist `when` as the new `startDate`; when the current `startDate` is non-null and `when < startDate`, the call SHALL persist `when` and trigger a gap replay over `[when, startDate)` in the same transaction (REQ-d00130-D); when `when == startDate`, the call SHALL be a no-op (no schedule write, no replay, no audit emission); when `when > startDate`, the call SHALL throw `StateError`.
 
 D. If `setStartDate` is called with `startDate <= now()`, the library SHALL trigger historical replay synchronously in the same transaction.
 
@@ -499,7 +499,7 @@ I. `fillBatch(destination)` SHALL filter candidate events by `event.client_times
 
 J. A successful `addDestination` call SHALL emit exactly one `system.destination_registered` event in the same backend transaction as the registration, with `aggregateType: 'system_destination'`, `aggregateId` equal to `source.identifier` (the local EventStore's install UUID per REQ-d00142-D), `eventType: 'finalized'`, `entryTypeVersion` stamped from `EntryTypeDefinition.registered_version` of `system.destination_registered` in the local `EntryTypeRegistry` (per REQ-d00134-G), `initiator` equal to the caller-supplied `initiator`, and `data` carrying `id` (the destination identifier — readers querying for "all audits about destination X" filter by `data.id`), `wire_format`, `allow_hard_delete`, `serializes_natively`, `filter_entry_types[]` (or `null`), `filter_event_types[]` (or `null`), `filter_predicate_description` (or `null`).
 
-K. A successful `setStartDate` call SHALL emit exactly one `system.destination_start_date_set` event in the same transaction with `aggregateId` equal to `source.identifier`, `data: { id, start_date }`, and `initiator` equal to the caller-supplied value.
+K. A successful `setStartDate` call SHALL emit exactly one `system.destination_start_date_set` event in the same transaction with `aggregateId` equal to `source.identifier`, `data: { id, start_date, prior_start_date }` where `prior_start_date` is `null` on first activation and the previous value on a backward move, and `initiator` equal to the caller-supplied value. A no-op call (`when == current.startDate`) SHALL emit no audit event.
 
 L. A successful `setEndDate` (and therefore `deactivateDestination`) call SHALL emit exactly one `system.destination_end_date_set` event in the same transaction with `aggregateId` equal to `source.identifier`, `data: { id, end_date, prior_end_date, result }`, and `initiator` equal to the caller-supplied value.
 
@@ -509,7 +509,7 @@ N. Any of the audit emissions in J, K, L, or M failing within the same transacti
 
 O. `EventStore.ingestBatch` and `EventStore.ingestEvent` SHALL NOT mutate `DestinationRegistry`, `EntryTypeRegistry`, or any FIFO state on the receiver. Bridged system audit events are stored in `event_log` only; they SHALL NOT trigger any registry-mutation side effect on the receiver. The local node's `DestinationRegistry`, `EntryTypeRegistry`, and FIFO mutators are exclusively API-driven, never event-driven.
 
-*End* *Dynamic Destination Lifecycle* | **Hash**: aecd9a7f
+*End* *Dynamic Destination Lifecycle* | **Hash**: a712b7b0
 
 ---
 
@@ -531,7 +531,9 @@ B. Replay SHALL use the destination's own `canAddToBatch` and `transform` to pro
 
 C. A new event appended during replay (same Dart isolate, under sembast transaction serialization) SHALL NOT be double-enqueued: the concurrent `record()` transaction SHALL wait behind the replay transaction, and when it runs, its `fillBatch` SHALL re-evaluate candidates strictly after the `fill_cursor` the replay advanced to.
 
-*End* *Historical Replay on Past startDate* | **Hash**: 254b541a
+D. When `setStartDate` reduces an already-set `startDate` from `oldStartDate` to `newStartDate` (per REQ-d00129-C monotonic-backward semantics), the library SHALL run a gap replay over events with `client_timestamp ∈ [newStartDate, oldStartDate)` in the same transaction as the schedule write. The gap replay SHALL walk the event log independently of `fill_cursor` and SHALL NOT modify the cursor — the cursor reflects `fillBatch`'s view of the live tail past the prior `startDate`, which gap replay does not touch. The gap replay SHALL use the destination's own `canAddToBatch` and `transform` (or, for `serializesNatively == true` destinations, mint a library-built `BatchEnvelopeMetadata`) so resulting FIFO rows are identical in shape to those produced by `fillBatch`.
+
+*End* *Historical Replay on Past startDate* | **Hash**: 0dd64452
 
 ---
 
@@ -1271,3 +1273,80 @@ G. Cross-references: REQ-d00141-D (permission-blind invariant — callbacks are 
 *End* *Lifecycle Hook Surface for Storage-Specific Operations* | **Hash**: 5146a6b9
 
 ---
+
+# REQ-d00162: Primary diary server destination contract
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The destination's `wireFormat` SHALL be `'json-v1'`. Its `transform(batch)` SHALL produce a `WirePayload` whose `contentType` is `'application/json'` and whose `bytes` are the UTF-8 JSON encoding of the single event in the batch.
+
+B. HTTP 2xx responses SHALL classify as `SendOk()`.
+
+C. HTTP 4xx responses (other than the 409 case in REQ-d00113-C) SHALL classify as `SendPermanent`.
+
+D. HTTP 5xx responses SHALL classify as `SendTransient` carrying the status code.
+
+E. Network exceptions and timeouts SHALL classify as `SendTransient`.
+
+*End* *Primary diary server destination contract* | **Hash**: 800c0418
+---
+
+# REQ-d00163: Portal inbound poll for tombstone instructions
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. `portalInboundPoll` SHALL GET the inbound endpoint and parse a JSON body of shape `{"messages": [...]}`.
+
+B. For each message of `type: "tombstone"`, the function SHALL invoke `EntryService.record(entryType: <message.entry_type>, aggregateId: <message.entry_id>, eventType: 'tombstone', answers: {}, changeReason: 'portal-withdrawn')`.
+
+C. Idempotency SHALL rely on `EntryService.record`'s no-op-on-duplicate behavior; a redelivered tombstone is harmless.
+
+D. Network errors, non-200 responses, and unrecognized message types SHALL be skipped without raising; the next sync cycle retries.
+
+*End* *Portal inbound poll for tombstone instructions* | **Hash**: f96d5dbc
+---
+
+# REQ-d00164: Clinical_diary mobile sync triggers
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Assertions
+
+A. The app SHALL invoke `syncCycle()` when `AppLifecycleState` transitions to `resumed`.
+
+B. While the app is in the foreground, a periodic `Timer.periodic` SHALL invoke `syncCycle()` at the configured interval (default 15 minutes).
+
+C. The app SHALL invoke `syncCycle()` when network connectivity transitions from offline to online.
+
+D. The app SHALL invoke `syncCycle()` on `FirebaseMessaging.onMessage` and `FirebaseMessaging.onMessageOpenedApp` deliveries.
+
+E. No background isolate (no WorkManager, no BGTaskScheduler) SHALL be registered. All triggers are foreground-only.
+
+*End* *Clinical_diary mobile sync triggers* | **Hash**: eec937dc
+---
+
+# REQ-d00165: Inbound Tombstone Record Failure Audit
+
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
+
+## Rationale
+
+`portalInboundPoll` (REQ-d00163) translates server-issued tombstone instructions into local tombstone events through `EntryService.record`. When `record` refuses an instruction — for example because the inbound tombstone targets an `entry_type` not registered on this device, or because storage rejected the write — the inbound batch must continue (REQ-d00163-D) yet the resulting per-device data drift (the device acked the instruction at HTTP level but did not apply it) must remain visible to the data team. A `debugPrint` is not visible to anyone with audit responsibility; this requirement records the failure as an immutable event-log row that ships through the standard FIFO drain.
+
+Other `portalInboundPoll` failure modes (network errors, non-200 responses, malformed bodies, unknown message types, missing required fields) deliberately remain silent: those are either transient (retried on the next sync cycle) or server-side contract regressions already observed by the diary server's OTel pipeline, and recording them per device would generate uniform noise across the fleet without adding signal.
+
+## Assertions
+
+A. The clinical_diary entry-type set SHALL include a non-materializing audit entry type with id `inbound_tombstone_record_failed` and `registered_version: 1`. The type's `materialize` flag SHALL be `false` so audit rows do not enter the diary view.
+
+B. When `portalInboundPoll` catches an exception thrown from `EntryService.record(...)` while applying a tombstone message, it SHALL append an `inbound_tombstone_record_failed` event to the local event log carrying `failed_entry_id`, `failed_entry_type`, `instruction_type`, and a stringified `error`. The append SHALL use the install's `Source.identifier` as `aggregate_id`, `aggregateType: 'inbound_poll_audit'`, `eventType: 'finalized'`, and `Initiator: AutomationInitiator(service: 'inbound-poll')`. The poll loop SHALL continue with the next message regardless of whether the audit append succeeded.
+
+C. Failure of the audit append itself SHALL be swallowed: a degraded event store must not turn `portalInboundPoll` into a raise, because that would break REQ-d00163-D's "exceptions swallowed; loop continues" guarantee for the surrounding sync cycle.
+
+D. The audit entry type SHALL be admissible by the default `SubscriptionFilter` so that `PrimaryDiaryServerDestination` (REQ-d00162) ships these audit rows to the diary server through the same FIFO drain as user data. The audit row therefore reaches the data team's pipeline without per-destination configuration.
+
+*End* *Inbound Tombstone Record Failure Audit* | **Hash**: ec15604b

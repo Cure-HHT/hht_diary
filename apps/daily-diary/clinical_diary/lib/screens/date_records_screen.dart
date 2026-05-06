@@ -2,55 +2,73 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Screen showing all events for a specific date with edit capability
+/// Screen showing all events for a specific date with edit capability.
+///
+/// Consumes [DiaryEntry] rows directly from the materialized view; the
+/// `currentAnswers['startTime']` and `currentAnswers['endTime']` answer fields
+/// drive overlap detection.
 class DateRecordsScreen extends StatelessWidget {
   const DateRecordsScreen({
     required this.date,
-    required this.records,
+    required this.entries,
     required this.onAddEvent,
     required this.onEditEvent,
     super.key,
   });
 
   final DateTime date;
-  final List<NosebleedRecord> records;
+  final List<DiaryEntry> entries;
   final VoidCallback onAddEvent;
-  final void Function(NosebleedRecord) onEditEvent;
+  final void Function(DiaryEntry) onEditEvent;
 
   String get _formattedDate => DateFormat('EEEE, MMMM d, y').format(date);
 
   String _eventCountText(AppLocalizations l10n) {
-    return l10n.eventCount(records.length);
+    return l10n.eventCount(entries.length);
   }
 
-  /// Check if a record overlaps with any other record in the list
+  /// Returns the start and end DateTimes from `currentAnswers`, or null if
+  /// the entry's answer payload doesn't carry a parseable time range (e.g.
+  /// no_epistaxis_event / unknown_day_event).
+  ({DateTime? start, DateTime? end}) _timeRange(DiaryEntry entry) {
+    DateTime? parse(Object? raw) =>
+        raw is String ? DateTimeFormatter.parse(raw) : null;
+    return (
+      start: parse(entry.currentAnswers['startTime']),
+      end: parse(entry.currentAnswers['endTime']),
+    );
+  }
+
+  /// Check if an entry overlaps with any other entry in the list.
   /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(NosebleedRecord record) {
-    if (!record.isRealNosebleedEvent || record.endTime == null) {
-      return false;
-    }
+  bool _hasOverlap(DiaryEntry entry) {
+    if (entry.entryType != 'epistaxis_event') return false;
+    final r = _timeRange(entry);
+    if (r.start == null || r.end == null) return false;
 
-    for (final other in records) {
-      // Skip same record
-      if (other.id == record.id) continue;
-
-      // Only check real events with both start and end times
-      if (!other.isRealNosebleedEvent || other.endTime == null) {
-        continue;
-      }
-
-      // Check if events overlap
-      if (record.startTime.isBefore(other.endTime!) &&
-          record.endTime!.isAfter(other.startTime)) {
+    for (final other in entries) {
+      if (other.entryId == entry.entryId) continue;
+      if (other.entryType != 'epistaxis_event') continue;
+      final or = _timeRange(other);
+      if (or.start == null || or.end == null) continue;
+      if (r.start!.isBefore(or.end!) && r.end!.isAfter(or.start!)) {
         return true;
       }
     }
     return false;
+  }
+
+  /// Sort key: epistaxis_event entries use their startTime; other entry types
+  /// fall back to effectiveDate (or updatedAt).
+  DateTime _sortKey(DiaryEntry entry) {
+    final start = _timeRange(entry).start;
+    return start ?? entry.effectiveDate ?? entry.updatedAt;
   }
 
   @override
@@ -70,7 +88,7 @@ class DateRecordsScreen extends StatelessWidget {
               _formattedDate,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (records.isNotEmpty)
+            if (entries.isNotEmpty)
               Text(
                 _eventCountText(l10n),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -99,7 +117,7 @@ class DateRecordsScreen extends StatelessWidget {
 
           // Events list or empty state
           Expanded(
-            child: records.isEmpty
+            child: entries.isEmpty
                 ? _buildEmptyState(context, l10n)
                 : _buildEventsList(context),
           ),
@@ -139,20 +157,20 @@ class DateRecordsScreen extends StatelessWidget {
   }
 
   Widget _buildEventsList(BuildContext context) {
-    // CUR-585: Sort records by startTime ASC (earliest first) to match home page
-    final sortedRecords = List<NosebleedRecord>.from(records)
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    // CUR-585: Sort entries by start time ASC (earliest first) to match home page
+    final sortedEntries = List<DiaryEntry>.from(entries)
+      ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      itemCount: sortedRecords.length,
+      itemCount: sortedEntries.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final record = sortedRecords[index];
+        final entry = sortedEntries[index];
         return EventListItem(
-          record: record,
-          onTap: () => onEditEvent(record),
-          hasOverlap: _hasOverlap(record),
+          entry: entry,
+          onTap: () => onEditEvent(entry),
+          hasOverlap: _hasOverlap(entry),
         );
       },
     );

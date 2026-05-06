@@ -2,6 +2,7 @@ import 'package:event_sourcing_datastore/src/destinations/destination_registry.d
 import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
 import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
+import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
@@ -116,10 +117,10 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00129-C — startDate is immutable once set; a second
-    // setStartDate throws StateError.
-    test('REQ-d00129-C: setStartDate throws StateError when startDate is '
-        'already set', () async {
+    // Verifies: REQ-d00129-C — forward movement is forbidden; a later
+    // setStartDate throws StateError and leaves the prior value intact.
+    test('REQ-d00129-C: setStartDate throws StateError on forward movement '
+        '(later than current)', () async {
       await registry.addDestination(
         FakeDestination(id: 'primary'),
         initiator: _testInit,
@@ -140,6 +141,44 @@ void main() {
       // Value unchanged.
       final schedule = await registry.scheduleOf('primary');
       expect(schedule.startDate, DateTime.utc(2026, 4, 1));
+    });
+
+    // Verifies: REQ-d00129-C — calling with the same startDate is a no-op.
+    test(
+      'REQ-d00129-C: setStartDate is a no-op when when == current',
+      () async {
+        await registry.addDestination(
+          FakeDestination(id: 'primary'),
+          initiator: _testInit,
+        );
+        final start = DateTime.utc(2026, 4, 1);
+        await registry.setStartDate('primary', start, initiator: _testInit);
+        // Second call with the exact same value: must not throw, must not
+        // alter persisted state.
+        await registry.setStartDate('primary', start, initiator: _testInit);
+        final schedule = await registry.scheduleOf('primary');
+        expect(schedule.startDate, start);
+      },
+    );
+
+    // Verifies: REQ-d00129-C — backward movement succeeds and the
+    // schedule reflects the new (earlier) value. Gap replay is exercised
+    // separately via dedicated event-log fixtures; this test focuses on
+    // the schedule write itself.
+    test('REQ-d00129-C: setStartDate accepts backward movement (earlier '
+        'than current)', () async {
+      await registry.addDestination(
+        FakeDestination(id: 'primary'),
+        initiator: _testInit,
+      );
+      final later = DateTime.utc(2026, 4, 1);
+      final earlier = DateTime.utc(2026, 3, 1);
+      await registry.setStartDate('primary', later, initiator: _testInit);
+      await registry.setStartDate('primary', earlier, initiator: _testInit);
+      final schedule = await registry.scheduleOf('primary');
+      expect(schedule.startDate, earlier);
+      final persisted = await backend.readSchedule('primary');
+      expect(persisted?.startDate, earlier);
     });
 
     // Verifies: REQ-d00129-F — setEndDate with a past endDate on a
@@ -327,42 +366,144 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00129-C — startDate immutability survives a process
-    // restart. A fresh registry bound to the same backend must NOT let
-    // setStartDate overwrite a previously-persisted startDate.
-    test('REQ-d00129-C: setStartDate remains one-shot immutable across '
-        'a fresh registry bound to the same backend (cold-restart)', () async {
-      await registry.addDestination(
-        FakeDestination(id: 'x', script: []),
-        initiator: _testInit,
-      );
-      final originalStart = DateTime.utc(2026, 1, 1);
-      await registry.setStartDate('x', originalStart, initiator: _testInit);
-
-      // Simulate a process restart: construct a new registry over the
-      // same backend, re-run bootstrap's addDestination call.
-      final restartedDeps = buildAuditedRegistryDeps(backend);
-      final restarted = DestinationRegistry(
-        backend: backend,
-        eventStore: restartedDeps.eventStore,
-      );
-      await restarted.addDestination(
-        FakeDestination(id: 'x', script: []),
-        initiator: _testInit,
-      );
-
-      // The persisted schedule must be preserved.
-      final restored = await restarted.scheduleOf('x');
-      expect(restored.startDate, originalStart);
-
-      // Re-assignment is still rejected.
-      await expectLater(
-        restarted.setStartDate(
-          'x',
-          DateTime.utc(2027, 1, 1),
+    // Verifies: REQ-d00129-C — monotonic-backward semantics survive a
+    // process restart. A fresh registry bound to the same backend must
+    // recover the persisted startDate AND continue rejecting forward
+    // movement against it.
+    test(
+      'REQ-d00129-C: monotonic-backward semantics survive cold restart',
+      () async {
+        await registry.addDestination(
+          FakeDestination(id: 'x', script: []),
           initiator: _testInit,
-        ),
-        throwsStateError,
+        );
+        final originalStart = DateTime.utc(2026, 1, 1);
+        await registry.setStartDate('x', originalStart, initiator: _testInit);
+
+        // Simulate a process restart: construct a new registry over the
+        // same backend, re-run bootstrap's addDestination call.
+        final restartedDeps = buildAuditedRegistryDeps(backend);
+        final restarted = DestinationRegistry(
+          backend: backend,
+          eventStore: restartedDeps.eventStore,
+        );
+        await restarted.addDestination(
+          FakeDestination(id: 'x', script: []),
+          initiator: _testInit,
+        );
+
+        // The persisted schedule must be preserved.
+        final restored = await restarted.scheduleOf('x');
+        expect(restored.startDate, originalStart);
+
+        // Forward movement is still rejected.
+        await expectLater(
+          restarted.setStartDate(
+            'x',
+            DateTime.utc(2027, 1, 1),
+            initiator: _testInit,
+          ),
+          throwsStateError,
+        );
+      },
+    );
+
+    // Verifies: REQ-d00129-C + REQ-d00130-D — backward setStartDate
+    // triggers a gap replay over [newStartDate, oldStartDate). Events
+    // already enqueued under the prior (later) startDate stay in the
+    // FIFO; events in the gap window are added; events strictly before
+    // the new startDate stay out.
+    test('REQ-d00129-C + REQ-d00130-D: backward setStartDate gap-replays '
+        'events in [newStartDate, oldStartDate)', () async {
+      // Append events with explicit client_timestamps spanning four days.
+      // SembastBackend.appendEventTxn lets us bypass EventStore's "now"
+      // stamping so we can place each event on a chosen day.
+      final dest = FakeDestination(id: 'gap');
+      await registry.addDestination(dest, initiator: _testInit);
+
+      Future<StoredEvent> append({
+        required String eventId,
+        required DateTime clientTimestamp,
+      }) async {
+        return backend.transaction((txn) async {
+          final seq = await backend.nextSequenceNumber(txn);
+          final event = StoredEvent(
+            key: 0,
+            eventId: eventId,
+            aggregateId: 'agg-gap',
+            aggregateType: 'DiaryEntry',
+            entryType: 'epistaxis_event',
+            entryTypeVersion: 1,
+            libFormatVersion: 1,
+            eventType: 'finalized',
+            sequenceNumber: seq,
+            data: const <String, dynamic>{},
+            metadata: const <String, dynamic>{},
+            initiator: const UserInitiator('u'),
+            clientTimestamp: clientTimestamp,
+            eventHash: 'hash-$eventId',
+          );
+          await backend.appendEvent(txn, event);
+          return event;
+        });
+      }
+
+      final eMar30 = await append(
+        eventId: 'e-mar30',
+        clientTimestamp: DateTime.utc(2026, 3, 30),
+      );
+      final eApr5 = await append(
+        eventId: 'e-apr5',
+        clientTimestamp: DateTime.utc(2026, 4, 5),
+      );
+      final eApr12 = await append(
+        eventId: 'e-apr12',
+        clientTimestamp: DateTime.utc(2026, 4, 12),
+      );
+      final eApr20 = await append(
+        eventId: 'e-apr20',
+        clientTimestamp: DateTime.utc(2026, 4, 20),
+      );
+
+      // First activation at Apr 10. Historical replay enqueues events
+      // with client_timestamp >= Apr 10: only Apr 12 and Apr 20.
+      await registry.setStartDate(
+        'gap',
+        DateTime.utc(2026, 4, 10),
+        initiator: _testInit,
+      );
+
+      var fifo = await backend.listFifoEntries('gap');
+      var fifoIds = fifo.expand((r) => r.eventIds).toList();
+      expect(
+        fifoIds,
+        equals([eApr12.eventId, eApr20.eventId]),
+        reason: 'first activation (Apr 10) should enqueue only Apr 12 + 20',
+      );
+
+      // Move startDate earlier to Apr 1. Gap replay covers [Apr 1, Apr 10):
+      // the Apr 5 event lands in FIFO. Mar 30 is still outside the new
+      // window so it is NOT enqueued. The previously-enqueued Apr 12 + 20
+      // rows stay put (gap replay does not touch them; cursor is intact).
+      await registry.setStartDate(
+        'gap',
+        DateTime.utc(2026, 4, 1),
+        initiator: _testInit,
+      );
+
+      fifo = await backend.listFifoEntries('gap');
+      fifoIds = fifo.expand((r) => r.eventIds).toList();
+      expect(
+        fifoIds,
+        unorderedEquals([eApr5.eventId, eApr12.eventId, eApr20.eventId]),
+        reason:
+            'gap replay should add Apr 5; Apr 12 + 20 already present; '
+            'Mar 30 is below the new startDate and stays out',
+      );
+      expect(
+        fifoIds,
+        isNot(contains(eMar30.eventId)),
+        reason: 'event below new startDate must not be in FIFO',
       );
     });
 

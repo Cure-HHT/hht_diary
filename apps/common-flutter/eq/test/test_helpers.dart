@@ -24,5 +24,5 @@ QuestionnaireDefinition noseHhtDefinition() {
 
 /// Get the QoL definition for testing
 QuestionnaireDefinition qolDefinition() {
-  return loadTestDefinitions().firstWhere((d) => d.id == 'hht_qol');
+  return loadTestDefinitions().firstWhere((d) => d.id == 'qol');
 }

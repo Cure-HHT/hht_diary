@@ -1188,3 +1188,4 @@ This module differs by:
 - **Operations Guide**: ops-event-sourcing-deployment.md (to be created)
 - **Compliance**: prd-clinical-trials.md
 
+

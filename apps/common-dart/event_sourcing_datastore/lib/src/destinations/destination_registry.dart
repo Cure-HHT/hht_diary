@@ -12,9 +12,9 @@ import 'package:event_sourcing_datastore/src/sync/historical_replay.dart';
 ///
 /// Under REQ-d00129, the registry supports a dynamic lifecycle: destinations
 /// may be added at any time after bootstrap, their `startDate` may be set
-/// exactly once (immutable once assigned), their `endDate` may be mutated,
-/// and they may be deactivated or hard-deleted per the per-destination
-/// `allowHardDelete` opt-in.
+/// or moved earlier (monotonically non-increasing — forward movement
+/// throws), their `endDate` may be mutated, and they may be deactivated
+/// or hard-deleted per the per-destination `allowHardDelete` opt-in.
 ///
 /// Every runtime mutation of registry-controlled state (add, set start
 /// date, set end date, deactivate, delete, tombstoneAndRefill) emits a
@@ -32,9 +32,11 @@ import 'package:event_sourcing_datastore/src/sync/historical_replay.dart';
 // Implements: REQ-d00129-A+J — addDestination accepts registrations at any
 // time after bootstrap; duplicate id is rejected; emits a registration
 // audit event atomically with the schedule write.
-// Implements: REQ-d00129-C+K — setStartDate is one-shot immutable; emits
-// a start_date audit event atomically with the schedule write (and
-// historical replay, when applicable).
+// Implements: REQ-d00129-C+K — setStartDate is monotonically
+// non-increasing (earlier OK, equal no-op, later throws); emits a
+// start_date audit event atomically with the schedule write and any
+// applicable replay (historical on first activation, gap on backward
+// move).
 // Implements: REQ-d00129-F+G+L — setEndDate returns SetEndDateResult;
 // deactivateDestination is the now() shorthand; both emit an end_date
 // audit event atomically with the schedule write.
@@ -80,9 +82,10 @@ class DestinationRegistry {
   // Implements: REQ-d00129-A — addDestination at any time after
   // bootstrap; duplicate id rejected with ArgumentError.
   // Implements: REQ-d00129-C — addDestination preserves any persisted
-  // schedule across process restart, so setStartDate's one-shot
-  // immutability survives bootstrap re-running addDestination with the
-  // same id. Only seeds a dormant schedule when no schedule is persisted.
+  // schedule across process restart, so setStartDate's monotonic-
+  // backward semantics survive bootstrap re-running addDestination
+  // with the same id. Only seeds a dormant schedule when no schedule
+  // is persisted.
   // Implements: REQ-d00129-J+N — registration audit emitted in the same
   // transaction as the schedule write.
   Future<void> addDestination(
@@ -163,36 +166,47 @@ class DestinationRegistry {
     );
   }
 
-  /// Assign [startDate] to the destination identified by [id]. The
-  /// assignment is one-shot immutable — a subsequent call throws
-  /// `StateError` (REQ-d00129-C).
+  /// Assign or move [when] as the destination's `startDate`
+  /// (REQ-d00129-C). The contract is monotonic-backward — earlier OK,
+  /// equal no-op, later throws:
   ///
-  /// When [startDate] is at or before `DateTime.now()`, the call
-  /// triggers historical replay synchronously in the same transaction
-  /// as the schedule write (REQ-d00129-D). Replay walks the event log
-  /// past `fill_cursor`, builds batches via the destination's own
-  /// `canAddToBatch` and `transform`, and enqueues matching events into
-  /// the destination's FIFO so rows are indistinguishable from those
-  /// `fillBatch` would produce during live operation (REQ-d00130-A+B).
-  /// When [startDate] is in the future, no replay runs — events
-  /// accumulate in `event_log` and are batched by `fillBatch` once the
-  /// wall-clock crosses `startDate` (REQ-d00129-E).
+  /// - `current.startDate == null` (first activation): persists [when]
+  ///   as the new `startDate`. If [when] is at or before `DateTime.now()`
+  ///   the call triggers historical replay synchronously in the same
+  ///   transaction (REQ-d00129-D). If [when] is in the future, no
+  ///   replay runs — events accumulate in `event_log` and are batched by
+  ///   `fillBatch` once the wall-clock crosses [when] (REQ-d00129-E).
+  /// - `when < current.startDate` (move earlier): persists [when] and
+  ///   triggers a gap replay over `[when, current.startDate)` in the
+  ///   same transaction. The gap replay walks the event log
+  ///   independently of `fill_cursor` and enqueues matching events
+  ///   into the destination's FIFO; the cursor is left intact.
+  /// - `when == current.startDate`: no-op. Returns without writing.
+  /// - `when > current.startDate`: throws `StateError`. Forward
+  ///   movement is forbidden because already-shipped FIFO rows would
+  ///   be retroactively orphaned by the narrower window.
   ///
   /// Emits a `system.destination_start_date_set` audit event in the
   /// same transaction as the schedule write (and replay, when
-  /// applicable).
+  /// applicable). The audit `data` carries `prior_start_date` (the
+  /// previous value, or `null` on first activation).
   ///
   /// Throws `ArgumentError` when [id] is not registered.
-  // Implements: REQ-d00129-C — setStartDate throws StateError if already
-  // set; the value is immutable once assigned.
-  // Implements: REQ-d00129-D — past startDate triggers historical replay
-  // synchronously inside the same transaction as the schedule write.
-  // Implements: REQ-d00129-E — future startDate does NOT trigger replay.
+  // Implements: REQ-d00129-C — setStartDate is monotonically
+  // non-increasing.
+  // Implements: REQ-d00129-D — past startDate (first activation)
+  // triggers historical replay synchronously inside the same
+  // transaction as the schedule write.
+  // Implements: REQ-d00129-E — future startDate (first activation)
+  // does NOT trigger replay.
+  // Implements: REQ-d00130-D — backward movement triggers gap replay
+  // over [when, current.startDate) inside the same transaction;
+  // fill_cursor is not regressed.
   // Implements: REQ-d00129-K+N — start_date audit emitted in the same
   // transaction as the schedule write and replay.
   Future<void> setStartDate(
     String id,
-    DateTime startDate, {
+    DateTime when, {
     required Initiator initiator,
   }) async {
     if (!_destinations.containsKey(id)) {
@@ -203,50 +217,82 @@ class DestinationRegistry {
       );
     }
     final current = _schedules[id] ?? const DestinationSchedule();
-    if (current.startDate != null) {
-      throw StateError(
-        'DestinationRegistry.setStartDate($id): startDate is already set '
-        'to ${current.startDate}; startDate is immutable once assigned '
-        '(REQ-d00129-C).',
-      );
-    }
-    final updated = DestinationSchedule(
-      startDate: startDate,
-      endDate: current.endDate,
-    );
-    // The schedule write, replay (when applicable), and audit emission
-    // must all commit together. Running everything in the same
-    // transaction provides the serialization guarantee REQ-d00130-C
-    // relies on: a concurrent record() serializes behind this
-    // transaction and walks candidates strictly past the advanced
-    // fill_cursor.
-    await backend.transaction((txn) async {
-      await backend.writeScheduleTxn(txn, id, updated);
-      if (!startDate.isAfter(DateTime.now())) {
-        // Implements: REQ-d00129-D — past startDate triggers replay in
-        // the same transaction as the schedule write. _destinations[id]
-        // is known non-null because the unknown-id check above
-        // returned early otherwise.
-        // Native destinations (`serializesNatively == true`) require the
-        // local `Source` so replay can mint a library-built
-        // `BatchEnvelopeMetadata` instead of calling `transform`
-        // (REQ-d00152-B replay parity, mirrors `fillBatch`).
-        await runHistoricalReplay(
-          txn,
-          _destinations[id]!,
-          updated,
-          backend,
-          source: _eventStore.source,
+    final priorStartDate = current.startDate;
+
+    if (priorStartDate != null) {
+      if (when.isAtSameMomentAs(priorStartDate)) {
+        // No-op: caller can use this idempotently. Avoid touching the
+        // schedule, replay, or audit log so a redundant boot-time
+        // activation has zero observable effect.
+        return;
+      }
+      if (when.isAfter(priorStartDate)) {
+        throw StateError(
+          'DestinationRegistry.setStartDate($id): forward movement '
+          'forbidden — current startDate is $priorStartDate, requested '
+          '$when. setStartDate is monotonically non-increasing '
+          '(REQ-d00129-C).',
         );
       }
-      // REQ-d00129-E: future startDate takes the else branch; replay is
-      // skipped.
+      // when < priorStartDate: backward move, falls through to the
+      // gap-replay branch below.
+    }
+
+    final updated = DestinationSchedule(
+      startDate: when,
+      endDate: current.endDate,
+    );
+    // The schedule write, replay (historical on first activation OR
+    // gap on backward move), and audit emission all commit together.
+    // Running everything in the same transaction provides the
+    // serialization guarantee REQ-d00130-C relies on: a concurrent
+    // record() serializes behind this transaction and walks candidates
+    // strictly past the advanced fill_cursor (or the unchanged cursor,
+    // for gap replay).
+    await backend.transaction((txn) async {
+      await backend.writeScheduleTxn(txn, id, updated);
+
+      if (priorStartDate == null) {
+        // First activation — historical replay over [when, now] when
+        // [when] is in the past.
+        if (!when.isAfter(DateTime.now())) {
+          await runHistoricalReplay(
+            txn,
+            _destinations[id]!,
+            updated,
+            backend,
+            source: _eventStore.source,
+          );
+        }
+        // REQ-d00129-E: future startDate skips replay.
+      } else {
+        // Backward move — gap replay over [when, priorStartDate).
+        // Skip when [when] is in the future: by REQ-d00129-E logic,
+        // events with client_timestamp < priorStartDate are still
+        // unreachable through the current window, but they will become
+        // eligible only when the wall-clock reaches [when]; we leave
+        // them to a future setStartDate(now-or-past) follow-up. In
+        // practice, callers either move directly to a past date or to
+        // a future date that they later update again.
+        if (!when.isAfter(DateTime.now())) {
+          await runGapReplay(
+            txn,
+            _destinations[id]!,
+            backend,
+            newStartDate: when,
+            oldStartDate: priorStartDate,
+            source: _eventStore.source,
+          );
+        }
+      }
+
       await _emitDestinationAuditInTxn(
         txn,
         entryType: kDestinationStartDateSetEntryType,
         data: <String, Object?>{
           'id': id,
-          'start_date': startDate.toUtc().toIso8601String(),
+          'start_date': when.toUtc().toIso8601String(),
+          'prior_start_date': priorStartDate?.toUtc().toIso8601String(),
         },
         initiator: initiator,
       );

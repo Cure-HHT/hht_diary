@@ -3,43 +3,87 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// List item widget for displaying a nosebleed event
-/// Implements CUR-443: One-line history format with intensity icon
+/// List item widget for displaying a nosebleed-related diary entry.
+///
+/// Reads directly from [DiaryEntry] (the materialized view row) rather than a
+/// legacy intermediate model. The entry's `entryType` selects between the
+/// "no nosebleeds" / "unknown" cards and the regular nosebleed card; for the
+/// regular card the `currentAnswers` map supplies start/end time, intensity,
+/// notes, and IANA timezone names.
+///
+/// Implements CUR-443: One-line history format with intensity icon.
 class EventListItem extends StatelessWidget {
   const EventListItem({
-    required this.record,
+    required this.entry,
     super.key,
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
   });
-  final NosebleedRecord record;
+
+  /// The materialized diary-entry row to render. Expected `entryType` values:
+  /// `epistaxis_event`, `no_epistaxis_event`, or `unknown_day_event`.
+  final DiaryEntry entry;
   final VoidCallback? onTap;
 
-  /// Whether this record overlaps with another record's time range
+  /// Whether this entry overlaps with another entry's time range.
   final bool hasOverlap;
 
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
 
+  // --- Field accessors over entry.currentAnswers --------------------------
+
+  bool get _isNoNosebleedsEvent => entry.entryType == 'no_epistaxis_event';
+  bool get _isUnknownEvent => entry.entryType == 'unknown_day_event';
+  bool get _isIncomplete => !entry.isComplete;
+
+  DateTime get _startTime {
+    final raw = entry.currentAnswers['startTime'];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return entry.effectiveDate ?? entry.updatedAt;
+  }
+
+  DateTime? get _endTime {
+    final raw = entry.currentAnswers['endTime'];
+    if (raw is String) return DateTimeFormatter.parse(raw);
+    return null;
+  }
+
+  NosebleedIntensity? get _intensity {
+    final raw = entry.currentAnswers['intensity'];
+    if (raw is String) return NosebleedIntensity.fromString(raw);
+    return null;
+  }
+
+  String? get _startTimeTimezone {
+    final raw = entry.currentAnswers['startTimeTimezone'];
+    return raw is String ? raw : null;
+  }
+
+  String? get _endTimeTimezone {
+    final raw = entry.currentAnswers['endTimeTimezone'];
+    return raw is String ? raw : null;
+  }
+
   /// Format start time for one-line display (e.g., "9:09 PM")
   /// CUR-597: Times are displayed in the event's timezone, not device timezone.
   /// If the event has a stored timezone, convert the stored time to that timezone.
   String _startTimeFormatted(String locale) {
-    // CUR-597: Convert stored time to event's timezone for display
-    final displayTime = record.startTimeTimezone != null
-        ? TimezoneConverter.toDisplayedDateTime(
-            record.startTime,
-            record.startTimeTimezone,
-          )
-        : record.startTime;
+    final stored = _startTime;
+    final tz = _startTimeTimezone;
+    final displayTime = tz != null
+        ? TimezoneConverter.toDisplayedDateTime(stored, tz)
+        : stored;
     return DateFormat.jm(locale).format(displayTime);
   }
 
@@ -47,38 +91,29 @@ class EventListItem extends StatelessWidget {
   /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
   /// CUR-597: Uses TimezoneService for device timezone to support test overrides.
   String? get _timezoneDisplay {
-    // CUR-597: Use TimezoneService for device timezone (supports test overrides)
     final deviceTimezone =
         TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
     final deviceTzAbbr = normalizeDeviceTimezone(deviceTimezone);
-    final startTz = record.startTimeTimezone;
-    final endTz = record.endTimeTimezone;
+    final startTz = _startTimeTimezone;
+    final endTz = _endTimeTimezone;
 
     // If no timezone info stored, don't show anything
     if (startTz == null && endTz == null) return null;
 
-    // Convert stored (device-adjusted) time to the event's local wall-clock time
-    // before passing as `at`. getTimezoneAbbreviation interprets `at` components
-    // as wall-clock time in the target timezone, so passing the stored (device-local)
-    // time directly would give a wrong DST state near fall-back transitions.
     final startAbbr = startTz != null
         ? getTimezoneAbbreviation(
             startTz,
-            at: TimezoneConverter.toDisplayedDateTime(
-              record.startTime,
-              startTz,
-            ),
+            at: TimezoneConverter.toDisplayedDateTime(_startTime, startTz),
           )
         : null;
-    final endEndTime = record.endTime ?? record.startTime;
+    final endAt = _endTime ?? _startTime;
     final endAbbr = endTz != null
         ? getTimezoneAbbreviation(
             endTz,
-            at: TimezoneConverter.toDisplayedDateTime(endEndTime, endTz),
+            at: TimezoneConverter.toDisplayedDateTime(endAt, endTz),
           )
         : null;
 
-    // Check if timezones differ from device or from each other
     final startDiffersFromDevice =
         startAbbr != null && startAbbr != deviceTzAbbr;
     final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
@@ -89,11 +124,9 @@ class EventListItem extends StatelessWidget {
       return null;
     }
 
-    // Show start TZ, or both if they differ
     if (timezonesDiffer) {
       return '$startAbbr/$endAbbr';
     }
-    // Show whichever differs from device, or start TZ if both stored
     if (startDiffersFromDevice) {
       return startAbbr;
     }
@@ -105,8 +138,9 @@ class EventListItem extends StatelessWidget {
 
   /// Get the intensity icon image path
   String? get _intensityImagePath {
-    if (record.intensity == null) return null;
-    switch (record.intensity!) {
+    final intensity = _intensity;
+    if (intensity == null) return null;
+    switch (intensity) {
       case NosebleedIntensity.spotting:
         return 'assets/images/intensity_spotting.png';
       case NosebleedIntensity.dripping:
@@ -124,33 +158,34 @@ class EventListItem extends StatelessWidget {
 
   /// Check if the event crosses midnight (ends on a different day)
   bool get _isMultiDay {
-    if (record.endTime == null) return false;
+    final end = _endTime;
+    if (end == null) return false;
+    final start = _startTime;
 
-    final startDay = DateTime(
-      record.startTime.year,
-      record.startTime.month,
-      record.startTime.day,
-    );
-    final endDay = DateTime(
-      record.endTime!.year,
-      record.endTime!.month,
-      record.endTime!.day,
-    );
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day);
 
     return endDay.isAfter(startDay);
+  }
+
+  /// Calculate duration in minutes (null when no endTime).
+  int? get _durationMinutes {
+    final end = _endTime;
+    if (end == null) return null;
+    final start = _startTime;
+    if (end.isBefore(start)) return null;
+    return end.difference(start).inMinutes;
   }
 
   /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
   /// Show minimum "1m" if start and end are the same (0 duration)
   /// Returns (text, isIncomplete) tuple for styling
   (String, bool) _getDurationInfo(AppLocalizations l10n) {
-    final minutes = record.durationMinutes;
-    // If no end time set, show "Incomplete" instead of empty or 0m
-    if (record.endTime == null) {
+    final minutes = _durationMinutes;
+    if (_endTime == null) {
       return (l10n.incomplete, true);
     }
     if (minutes == null) return ('', false);
-    // Show minimum 1m if start and end are the same time
     if (minutes == 0) return ('1m', false);
     if (minutes < 60) return ('${minutes}m', false);
     final hours = minutes ~/ 60;
@@ -164,16 +199,14 @@ class EventListItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
 
-    // Handle special event types with custom styling
-    if (record.isNoNosebleedsEvent) {
+    if (_isNoNosebleedsEvent) {
       return _buildNoNosebleedsCard(context, l10n);
     }
 
-    if (record.isUnknownEvent) {
+    if (_isUnknownEvent) {
       return _buildUnknownCard(context, l10n);
     }
 
-    // Regular nosebleed event card
     return _buildNosebleedCard(context, l10n, locale);
   }
 
@@ -283,21 +316,16 @@ class EventListItem extends StatelessWidget {
   ) {
     // Fixed widths for column alignment
     // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
-    // Note: timezone can be shown on second line when different from device
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
     final timeWidth = use24Hour ? 45.0 : 80.0;
-    const iconWidth = 32.0; // 28px icon + 4px gap
-    // CUR-488 Phase 2: Widened to 90px to fit "Incomplete" with large text on iPhone SE
+    const iconWidth = 32.0;
     const durationWidth = 90.0;
 
-    // CUR-488 Phase 2: Get duration info with incomplete flag for styling
     final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
 
-    // CUR-488 Phase 2: Subtle orange tint for incomplete records
     final cardColor =
-        highlightColor ?? (record.isIncomplete ? Colors.orange.shade50 : null);
+        highlightColor ?? (_isIncomplete ? Colors.orange.shade50 : null);
 
-    // CUR-516: Get timezone display if different from device TZ
     final timezoneText = _timezoneDisplay;
     final showTimezone = timezoneText != null;
     final cardHeight = showTimezone ? 52.0 : 40.0;
@@ -305,7 +333,6 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: cardColor,
-      // CUR-488 Phase 2: Increased elevation for more visible shadows
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
@@ -318,8 +345,6 @@ class EventListItem extends StatelessWidget {
             child: Row(
               children: [
                 // Start time - fixed width, right aligned
-                // CUR-488 Phase 2: Darker text for better readability
-                // CUR-516: Show timezone below time when different from device
                 SizedBox(
                   width: timeWidth,
                   child: Column(
@@ -380,8 +405,6 @@ class EventListItem extends StatelessWidget {
                 ),
 
                 // Duration - fixed width with left padding
-                // CUR-488 Phase 2: Orange text for "Incomplete", less muted for durations
-                // Use smaller font for "Incomplete" to fit on small screens (iPhone SE)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: SizedBox(
@@ -402,7 +425,6 @@ class EventListItem extends StatelessWidget {
                 ),
 
                 // Spacer to push status indicators to the right
-                // Use Expanded to take remaining space and prevent overflow
                 Expanded(
                   child: _isMultiDay
                       ? Padding(
@@ -421,7 +443,7 @@ class EventListItem extends StatelessWidget {
                 ),
 
                 // Incomplete indicator (compact)
-                if (record.isIncomplete) ...[
+                if (_isIncomplete) ...[
                   Icon(
                     Icons.edit_outlined,
                     size: 20,

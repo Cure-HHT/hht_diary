@@ -1,7 +1,9 @@
 import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
+import 'package:event_sourcing_datastore/src/storage/source.dart';
 import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/sync/drain.dart';
+import 'package:event_sourcing_datastore/src/sync/fill_batch.dart';
 import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
 
 /// Top-level sync orchestrator.
@@ -13,13 +15,14 @@ import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
 /// Centralizing on one entry point is how the reentrancy guard works:
 /// concurrent triggers race into [call] but only one drives the cycle.
 ///
-/// Phase-4 deliverable is the orchestrator itself; the trigger wiring
-/// lives in `clinical_diary` and is introduced in Phase 5. Phase-4 also
-/// ships `portalInboundPoll` as a no-op stub per the plan — its real body
-/// (§11.1 inbound tombstone polling) is Phase-5 work.
-// Implements: REQ-d00125-A+B+C+E — concurrent per-destination drain,
-// post-drain inbound poll, single-isolate reentrancy guard, no background
-// isolate.
+/// Per-destination work in one cycle is fillBatch → drain. fillBatch
+/// promotes events appended since the last cycle from the event log into
+/// the destination's FIFO; drain ships them. Both run inside
+/// [_fillAndDrainOrSwallow], which catches per-destination failures so
+/// one bad destination cannot starve the others (REQ-d00125-A).
+// Implements: REQ-d00125-A+B+C+E — concurrent per-destination
+// fillBatch+drain, post-drain inbound poll, single-isolate reentrancy
+// guard, no background isolate.
 class SyncCycle {
   // Implements: REQ-d00126-A+B+D — optional SyncPolicy? policy parameter
   // (null falls back to SyncPolicy.defaults inside drain()), or a
@@ -28,11 +31,13 @@ class SyncCycle {
   SyncCycle({
     required StorageBackend backend,
     required DestinationRegistry registry,
+    Source? source,
     ClockFn? clock,
     SyncPolicy? policy,
     SyncPolicy? Function()? policyResolver,
   }) : _backend = backend,
        _registry = registry,
+       _source = source,
        _clock = clock,
        _policy = policy,
        _policyResolver = policyResolver {
@@ -46,6 +51,13 @@ class SyncCycle {
 
   final StorageBackend _backend;
   final DestinationRegistry _registry;
+
+  /// Source identity for fillBatch. Required when any registered
+  /// destination has `serializesNatively == true` (native destinations
+  /// stamp the batch envelope with this identity); optional otherwise.
+  /// fillBatch itself raises ArgumentError if a native destination needs
+  /// it but none was supplied.
+  final Source? _source;
   final ClockFn? _clock;
   final SyncPolicy? _policy;
   final SyncPolicy? Function()? _policyResolver;
@@ -71,12 +83,12 @@ class SyncCycle {
       final cyclePolicy = _policyResolver != null ? _policyResolver() : _policy;
 
       final destinations = _registry.all();
-      // REQ-d00125-A: concurrent per-destination drain. A thrown
-      // exception from one drain does not cancel the others. See
-      // `_drainOrSwallow` for how exceptions are handled on a per-
-      // destination basis (currently swallowed, not re-thrown).
+      // REQ-d00125-A: concurrent per-destination fillBatch + drain.
+      // A thrown exception from one destination's fill or drain does
+      // not cancel the others. See `_fillAndDrainOrSwallow` for the
+      // per-destination exception handling.
       await Future.wait(
-        destinations.map((d) => _drainOrSwallow(d, cyclePolicy)),
+        destinations.map((d) => _fillAndDrainOrSwallow(d, cyclePolicy)),
       );
       // REQ-d00125-B: inbound poll happens AFTER outbound drains complete.
       await portalInboundPoll();
@@ -85,10 +97,30 @@ class SyncCycle {
     }
   }
 
-  Future<void> _drainOrSwallow(
+  Future<void> _fillAndDrainOrSwallow(
     Destination destination,
     SyncPolicy? cyclePolicy,
   ) async {
+    // Step 1: promote events appended since the last cycle into this
+    // destination's FIFO. Without this, drain has nothing to read past
+    // what runHistoricalReplay enqueued at activation time, and every
+    // post-activation event is stranded in the event log.
+    try {
+      final schedule = await _registry.scheduleOf(destination.id);
+      await fillBatch(
+        destination,
+        backend: _backend,
+        schedule: schedule,
+        source: _source,
+        clock: _clock,
+      );
+    } catch (_) {
+      // Swallow per REQ-d00125-A — one destination's fill failure must
+      // not cancel another's drain. The drain step still runs because
+      // any FIFO rows enqueued by a prior cycle are still drainable.
+    }
+    // Step 2: ship whatever sits at the FIFO head. Even if step 1 fell
+    // through with an exception, drain may still have rows from earlier.
     try {
       await drain(
         destination,

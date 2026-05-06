@@ -309,7 +309,7 @@
 | REQ-d00110 | Linking API Error Response Strategy                             | dev-portal-api.md               | 39ae2a18 |
 | REQ-d00111 | Linking API Audit Trail                                         | dev-portal-api.md               | 90a41f24 |
 | REQ-d00112 | Enrollment Token Revocation                                     | dev-portal-api.md               | e8863441 |
-| REQ-d00113 | Deleted Questionnaire Submission Handling                       | dev-questionnaire.md            | 6aaa85fd |
+| REQ-d00113 | Deleted Questionnaire Submission Handling                       | dev-questionnaire.md            | 80d904c9 |
 | REQ-d00114 | Sync Request Device Binding Verification                        | dev-portal-api.md               | b1a11feb |
 | REQ-d00115 | ProvenanceEntry Schema and Append Rules                         | dev-event-sourcing-datastore.md | 194aaffd |
 | REQ-d00116 | EntryTypeDefinition Schema                                      | dev-event-sourcing-datastore.md | f7e650e5 |
@@ -324,9 +324,9 @@
 | REQ-d00125 | sync_cycle() Orchestrator and Trigger Contract                  | dev-event-sourcing-datastore.md | 03bfd328 |
 | REQ-d00126 | SyncPolicy Injectable Value Object                              | dev-event-sourcing-datastore.md | 1e6a25c1 |
 | REQ-d00127 | markFinal and appendAttempt Tolerate Missing FIFO Row           | dev-event-sourcing-datastore.md | 71b33da6 |
-| REQ-d00128 | FIFO Batch Shape and Fill Cursor                                | dev-event-sourcing-datastore.md | c6e20833 |
-| REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-datastore.md | aecd9a7f |
-| REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-datastore.md | 254b541a |
+| REQ-d00128 | FIFO Batch Shape and Fill Cursor                                | dev-event-sourcing-datastore.md | 96c1ad43 |
+| REQ-d00129 | Dynamic Destination Lifecycle                                   | dev-event-sourcing-datastore.md | a712b7b0 |
+| REQ-d00130 | Historical Replay on Past startDate                             | dev-event-sourcing-datastore.md | 0dd64452 |
 | REQ-d00133 | EntryService.record Contract                                    | dev-event-sourcing-datastore.md | 6d804b0e |
 | REQ-d00134 | bootstrapAppendOnlyDatastore Contract                           | dev-event-sourcing-datastore.md | a4940098 |
 | REQ-d00135 | Initiator Polymorphic Actor Type                                | dev-event-sourcing-datastore.md | 0b5663cc |
@@ -356,6 +356,10 @@
 | REQ-d00159 | Library Lifecycle Event Protocol                                | dev-event-sourcing-datastore.md | 709a8186 |
 | REQ-d00160 | Lifecycle Hook Surface for Storage-Specific Operations          | dev-event-sourcing-datastore.md | 5146a6b9 |
 | REQ-d00161 | Break-Glass Workflow Implementation                             | dev-break-glass.md              | 4cc5e2e4 |
+| REQ-d00162 | Primary diary server destination contract                       | dev-event-sourcing-datastore.md | 800c0418 |
+| REQ-d00163 | Portal inbound poll for tombstone instructions                  | dev-event-sourcing-datastore.md | f96d5dbc |
+| REQ-d00164 | Clinical_diary mobile sync triggers                             | dev-event-sourcing-datastore.md | eec937dc |
+| REQ-d00165 | Inbound Tombstone Record Failure Audit                          | dev-event-sourcing-datastore.md | ec15604b |
 | REQ-d80064 | Questionnaire Version Integrity Enforcement                     | dev-questionnaire.md            | dd2e9ea1 |
 
 ## User Journeys
