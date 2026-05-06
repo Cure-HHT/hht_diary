@@ -11,6 +11,7 @@ import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 /// List item widget for displaying a nosebleed-related diary entry.
 ///
@@ -306,18 +307,14 @@ class EventListItem extends StatelessWidget {
     );
   }
 
-  /// Map a questionnaire_type string to a patient-facing display name.
-  /// Falls back to the input string if there's no mapping.
+  /// Map a questionnaire_type string to a patient-facing display name
+  /// via [QuestionnaireType] (the single source of truth for these
+  /// labels). Falls back to the input string when the value is unknown.
   static String _displayNameFor(String questionnaireType) {
-    switch (questionnaireType) {
-      case 'nose_hht':
-        return 'NOSE HHT Survey';
-      case 'qol':
-        return 'Quality of Life Survey';
-      case 'eq':
-        return 'Epistaxis Questionnaire';
-      default:
-        return questionnaireType;
+    try {
+      return QuestionnaireType.fromValue(questionnaireType).displayName;
+    } catch (_) {
+      return questionnaireType;
     }
   }
 

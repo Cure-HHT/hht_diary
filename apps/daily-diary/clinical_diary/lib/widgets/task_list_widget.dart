@@ -151,6 +151,7 @@ class _TaskCard extends StatelessWidget {
   IconData get _taskIcon {
     switch (task.taskType) {
       case TaskType.questionnaire:
+      case TaskType.cancelledQuestionnaire:
         return Icons.assignment;
       case TaskType.incompleteRecord:
         return Icons.warning_amber_rounded;
@@ -164,6 +165,7 @@ class _TaskCard extends StatelessWidget {
   Color _backgroundColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
+      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade50;
       case TaskType.incompleteRecord:
         return Colors.orange.shade50;
@@ -177,6 +179,7 @@ class _TaskCard extends StatelessWidget {
   Color _borderColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
+      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade200;
       case TaskType.incompleteRecord:
         return Colors.orange.shade200;
@@ -190,6 +193,7 @@ class _TaskCard extends StatelessWidget {
   Color _iconColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
+      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade700;
       case TaskType.incompleteRecord:
         return Colors.orange.shade700;
@@ -203,6 +207,7 @@ class _TaskCard extends StatelessWidget {
   Color _textColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
+      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade900;
       case TaskType.incompleteRecord:
         return Colors.orange.shade900;

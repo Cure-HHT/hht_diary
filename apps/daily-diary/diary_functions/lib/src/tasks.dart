@@ -109,6 +109,34 @@ Future<Response> getTasksHandler(Request request) async {
       };
     }).toList();
 
+    // CUR-1292: surface recently-tombstoned questionnaires so the diary
+    // client can mark its local materialized row deleted (timeline card
+    // disappears) and queue a "questionnaire cancelled" notification.
+    // This is the pragmatic shim until /api/v1/user/inbound exists; it
+    // piggybacks on the channel the diary already polls. 30-day window
+    // avoids unbounded growth — the diary's tombstone record is
+    // idempotent so a stale message that's already been applied is a
+    // no-op.
+    final cancelledResult = await db.execute(
+      '''
+      SELECT id, questionnaire_type::text, deleted_at
+      FROM questionnaire_instances
+      WHERE patient_id = @patientId
+        AND deleted_at IS NOT NULL
+        AND deleted_at >= NOW() - INTERVAL '30 days'
+      ORDER BY deleted_at DESC
+      ''',
+      parameters: {'patientId': patientId},
+    );
+
+    final cancelled = cancelledResult.map((r) {
+      return {
+        'questionnaire_instance_id': r[0],
+        'questionnaire_type': r[1],
+        'deleted_at': (r[2] as DateTime?)?.toIso8601String(),
+      };
+    }).toList();
+
     logWithTrace(
       'INFO',
       'Tasks fetched',
@@ -117,6 +145,7 @@ Future<Response> getTasksHandler(Request request) async {
 
     return _jsonResponse({
       'tasks': tasks,
+      'cancelled': cancelled,
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',

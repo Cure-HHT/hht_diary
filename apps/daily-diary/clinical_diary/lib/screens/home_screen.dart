@@ -1289,12 +1289,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        unawaited(
-                          widget.taskService.syncTasks(
-                            widget.enrollmentService,
-                          ),
+                      onTap: () async {
+                        // CUR-1292: syncTasks must finish before
+                        // _loadRecords so any tombstone events
+                        // recorded for cancelled questionnaires have
+                        // landed in the materialized view by the
+                        // time the home screen re-reads it.
+                        // Otherwise the timeline card for a
+                        // just-cancelled questionnaire lingers until
+                        // the next refresh.
+                        await widget.taskService.syncTasks(
+                          widget.enrollmentService,
                         );
+                        if (!mounted) return;
                         unawaited(_loadRecords());
                         unawaited(_refreshWedgeStatus());
                       },
@@ -1486,8 +1493,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (!_isDisconnected)
                 TaskListWidget(
                   taskService: widget.taskService,
-                  // REQ-CAL-p00081-D: Navigate to relevant screen
-                  onTaskTap: _navigateToQuestionnaire,
+                  // REQ-CAL-p00081-D: Navigate to relevant screen.
+                  // CUR-1292: cancelledQuestionnaire tasks dismiss on
+                  // tap rather than navigating — they're passive
+                  // notifications, not actionable items.
+                  onTaskTap: (task) {
+                    if (task.taskType == TaskType.cancelledQuestionnaire) {
+                      widget.taskService.removeTask(task.id);
+                      return;
+                    }
+                    _navigateToQuestionnaire(task);
+                  },
                   // CUR-1292: render the "In progress" pill on tasks
                   // whose aggregate has a checkpointed-but-not-finalized
                   // row in the materialized view.

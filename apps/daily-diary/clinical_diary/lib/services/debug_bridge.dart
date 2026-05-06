@@ -186,7 +186,11 @@ class DebugBridge {
   }
 
   Future<Response> _sync(Request _) async {
-    await runtime.syncCycle();
+    // CUR-1292: fire the same callback the periodic timer runs —
+    // outbound drain + inbound poll — so testers can pull tombstones
+    // and other inbound messages on demand without waiting for the
+    // periodic tick.
+    await runtime.fullSync();
     return _json(<String, Object?>{'ok': true});
   }
 

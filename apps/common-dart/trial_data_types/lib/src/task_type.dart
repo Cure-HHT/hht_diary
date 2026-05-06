@@ -9,6 +9,16 @@ enum TaskType {
   /// Removed when: patient submits OR coordinator deletes.
   questionnaire(1, 'questionnaire', 'Questionnaire to fill out'),
 
+  /// Priority 1.5: Notification that a previously-sent questionnaire
+  /// was cancelled (tombstoned) by the coordinator. Renders like a
+  /// questionnaire task; tapping it dismisses (no navigation).
+  /// CUR-1292.
+  cancelledQuestionnaire(
+    1,
+    'cancelled_questionnaire',
+    'Questionnaire cancelled',
+  ),
+
   /// Priority 2: Patient saved a partial diary entry.
   /// Removed when: patient completes the entry.
   incompleteRecord(2, 'incomplete_record', 'Incomplete record'),

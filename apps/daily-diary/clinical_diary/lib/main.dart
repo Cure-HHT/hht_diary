@@ -41,6 +41,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 import 'package:uuid/uuid.dart';
 
 /// Flavor name from build configuration.
@@ -247,7 +248,57 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
-  final TaskService _taskService = TaskService();
+  late final TaskService _taskService = TaskService(
+    onCancelled: _onSurveyCancelledFromTasksResponse,
+  );
+
+  /// CUR-1292: invoked when `/tasks` response surfaces a cancelled
+  /// questionnaire. Records a local tombstone event so the
+  /// materialized view row flips to `is_deleted=true` (and the
+  /// timeline card disappears) and queues a patient-visible
+  /// "questionnaire cancelled" notification. Both sides are
+  /// idempotent — calling for an already-applied cancellation is a
+  /// no-op via `EntryService.record`'s tombstone-on-tombstone
+  /// detection and `TaskService.notifyQuestionnaireCancelled`'s
+  /// duplicate guard.
+  Future<void> _onSurveyCancelledFromTasksResponse(
+    String aggregateId,
+    String entryType,
+  ) async {
+    final runtime = _runtime;
+    if (runtime != null) {
+      // Awaited so syncTasks doesn't return until the local
+      // materialized view reflects the tombstone — otherwise the
+      // home screen's `_loadRecords` (called right after) reads the
+      // pre-tombstone state and the today/yesterday card lingers
+      // until the next refresh.
+      await runtime.entryService.record(
+        entryType: entryType,
+        aggregateId: aggregateId,
+        eventType: 'tombstone',
+        answers: const <String, Object?>{},
+        changeReason: 'portal-withdrawn',
+      );
+    }
+    _taskService.notifyQuestionnaireCancelled(
+      aggregateId: aggregateId,
+      displayName: _displayNameForSurveyEntryType(entryType),
+    );
+  }
+
+  /// Resolve the patient-facing display name for a survey entry type
+  /// ('nose_hht_survey', 'qol_survey', …). Strips the `_survey`
+  /// suffix and looks up [QuestionnaireType] — the single source of
+  /// truth for these labels — falling back to the stripped string.
+  static String _displayNameForSurveyEntryType(String entryType) {
+    final base = entryType.replaceAll(RegExp(r'_survey$'), '');
+    try {
+      return QuestionnaireType.fromValue(base).displayName;
+    } catch (_) {
+      return base;
+    }
+  }
+
   ClinicalDiaryRuntime? _runtime;
 
   /// Persistent device install UUID, minted on first launch and reused
@@ -321,6 +372,17 @@ class _AppRootState extends State<AppRoot> {
         // CUR-1164: Skip outbound sync + inbound poll while disconnected.
         // Closure over the notifier value keeps the check sync.
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
+        // CUR-1292: surface a "questionnaire cancelled" notification
+        // when the coordinator tombstones a survey. The aggregate is
+        // already tombstoned in the event log by portalInboundPoll;
+        // this just adds a passive notification to the task list with
+        // tap-to-dismiss behavior.
+        onSurveyTombstoned: (aggregateId, entryType) {
+          _taskService.notifyQuestionnaireCancelled(
+            aggregateId: aggregateId,
+            displayName: _displayNameForSurveyEntryType(entryType),
+          );
+        },
       );
 
       // The legacy-shim destinations stay dormant until the portal
