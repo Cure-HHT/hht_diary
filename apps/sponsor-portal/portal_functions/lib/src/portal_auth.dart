@@ -78,23 +78,23 @@ class PortalUser {
   };
 }
 
-/// Get current portal user from Identity Platform token
 /// GET /api/v1/portal/me
 /// Authorization: Bearer <Identity Platform ID token>
-/// Query params:
+/// Optional query parameter:
 ///   - role: (optional) Select which role to use for this session
 ///
-/// `portal_users.firebase_uid` is a cache of the verified Firebase identity
-/// owning a pre-authorized email. We re-link the row to whatever UID Firebase
-/// asserts for the email on each login — fresh row, race recovery, and
-/// stale-UID recovery all flow through the same UPDATE.
+/// `portal_users.firebase_uid` is set ONLY by `activateUserHandler` and
+/// remains stable for the lifetime of the row (CUR-1296). Lookups here
+/// are uid-only — there is no fallback. A miss returns 401 with
+/// `code: uid_not_bound`; recovery is via an explicit admin re-bind
+/// path, not a lazy email-keyed UPDATE.
 ///
-/// Security depends on `VerificationResult.isValid` requiring `emailVerified`
-/// (enforced in `identity_platform.dart`). Without that gate, an unverified-
-/// email token for a pre-authorized email would re-link the row to the
-/// attacker's UID.
+/// Implements: REQ-d00167-A,B,C
 ///
-/// Returns 403 if email is not pre-authorized in portal_users table.
+/// Returns 401 with `code: uid_not_bound` when no portal_users row matches
+/// the token's firebase_uid (account not bound, or binding has drifted).
+/// Returns 403 when the requested role isn't assigned to the user, or when
+/// the user has no roles.
 /// If user has multiple roles and no role is specified, returns all roles
 /// for the client to display a role picker.
 Future<Response> portalMeHandler(Request request) async {
@@ -150,28 +150,24 @@ Future<Response> portalMeHandler(Request request) async {
   );
 
   if (result.isEmpty) {
-    // First login OR firebase_uid drifted (concurrent /portal/me race;
-    // emulator restart minted a new UID; manual DB edit). Re-link by email.
-    logWithTrace('INFO', 'Linking firebase_uid by email');
-    result = await db.executeWithContext(
-      '''
-      UPDATE portal_users
-      SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE LOWER(email) = LOWER(@email)
-      RETURNING id, firebase_uid, email, name, status, mfa_type
-      ''',
-      parameters: {'firebaseUid': firebaseUid, 'email': email},
-      context: serviceContext,
+    // CUR-1296: no email-keyed re-link. firebase_uid is set ONLY by
+    // activateUserHandler. A miss here means the binding has drifted
+    // (out-of-band IdP delete, backup restore, emulator restart in
+    // local-stack) — recovery is via an explicit admin re-bind path,
+    // not lazy backfill. The takeover vector that CUR-1272 patched
+    // (email-pivot to attacker-controlled UID) is closed by structure.
+    //
+    // Implements: REQ-d00167-A,B
+    authAttempt(result: 'failure', reason: 'uid_not_bound');
+    logWithTrace(
+      'WARNING',
+      'Auth failed: portal_users.firebase_uid not bound to $firebaseUid',
+      labels: {'uid': firebaseUid},
     );
-
-    if (result.isEmpty) {
-      // No portal_users row matches this email — caller is not pre-authorized.
-      authAttempt(result: 'failure', reason: 'not_authorized');
-      logWithTrace('WARNING', 'Auth failed: email not in portal_users');
-      return _jsonResponse({
-        'error': 'User not authorized for portal access',
-      }, 403);
-    }
+    return _jsonResponse({
+      'error': 'Account not found',
+      'code': 'uid_not_bound',
+    }, 401);
   }
 
   final row = result.first;

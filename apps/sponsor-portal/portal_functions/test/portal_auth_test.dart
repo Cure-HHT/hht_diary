@@ -3,8 +3,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00031: Identity Platform Integration
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00167: Identity Platform binding is set only at activation; uid-only auth lookup
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:shelf/shelf.dart';
@@ -399,6 +401,36 @@ void main() {
     return jsonDecode(body) as Map<String, dynamic>;
   }
 
+  // Helper: mint an emulator-style unsigned JWT (alg: none).
+  // Only valid when FIREBASE_AUTH_EMULATOR_HOST is set.
+  String makeFakeToken({
+    required String uid,
+    String? email,
+    bool emailVerified = true,
+  }) {
+    final header = base64Url.encode(
+      utf8.encode(jsonEncode({'alg': 'none', 'typ': 'JWT'})),
+    );
+    final payload = base64Url.encode(
+      utf8.encode(
+        jsonEncode({
+          'sub': uid,
+          if (email != null) 'email': email,
+          'email_verified': emailVerified,
+          'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          'exp':
+              DateTime.now()
+                  .add(const Duration(hours: 1))
+                  .millisecondsSinceEpoch ~/
+              1000,
+          'aud': 'demo-test',
+          'iss': 'https://securetoken.google.com/demo-test',
+        }),
+      ),
+    );
+    return '$header.$payload.';
+  }
+
   group('portalMeHandler authorization', () {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest('/api/v1/portal/me');
@@ -483,6 +515,75 @@ void main() {
       final json = await getResponseJson(response);
       expect(json['error'], isNotNull);
     });
+
+    // Verifies: REQ-d00167-B
+    test(
+      'REQ-d00167-B: returns 401 uid_not_bound when no row matches firebase_uid',
+      () async {
+        // This test requires the Identity Platform emulator so that
+        // verifyIdToken accepts an unsigned JWT. Without it the token
+        // fails verification before the DB lookup is attempted and the
+        // 401 reason would be 'invalid_token', not 'uid_not_bound'.
+        // The uid_not_bound code path is also covered by integration tests
+        // (test/integration/) that run with a real emulator + DB.
+        final useEmulator =
+            Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] != null;
+
+        final token = makeFakeToken(
+          uid: 'fresh-uid',
+          email: 'unbound@example.com',
+        );
+
+        final request = createGetRequest(
+          '/api/v1/portal/me',
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await portalMeHandler(request);
+
+        if (useEmulator) {
+          // With emulator: token passes verification, DB lookup finds no
+          // matching firebase_uid row → must return 401 uid_not_bound
+          // (NOT 200 via email re-link, which CUR-1296 removes).
+          expect(response.statusCode, equals(401));
+          final body =
+              jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+          expect(body['code'], equals('uid_not_bound'));
+          expect(body['error'], isNotEmpty);
+        } else {
+          // Without emulator: unsigned token is rejected at verifyIdToken.
+          // 401 is still returned, but for a different reason. That's OK
+          // for the non-emulator unit-test run.
+          expect(response.statusCode, equals(401));
+        }
+      },
+    );
+
+    // Verifies: REQ-d00167-A — handler MUST NOT reference email in any auth-path SQL
+    test(
+      'REQ-d00167-A: handler source code does not contain email-keyed UPDATE/SELECT in auth path',
+      () async {
+        final src = await File('lib/src/portal_auth.dart').readAsString();
+        // Either pattern would indicate the email-relink branch survived
+        // in portalMeHandler. (requirePortalAuth is handled separately.)
+        // We look for the specific patterns that the old re-link branch used.
+        final portalMeSection = src.substring(
+          0,
+          src.indexOf('Future<PortalUser?> requirePortalAuth'),
+        );
+        expect(
+          portalMeSection.contains('LOWER(email)'),
+          isFalse,
+          reason:
+              'email-keyed lookup must not exist in portalMeHandler post-CUR-1296',
+        );
+        expect(
+          portalMeSection.contains('Linking firebase_uid by email'),
+          isFalse,
+          reason:
+              'email re-link comment must not exist in portalMeHandler post-CUR-1296',
+        );
+      },
+    );
   });
 
   group('PortalUser toJson edge cases', () {
