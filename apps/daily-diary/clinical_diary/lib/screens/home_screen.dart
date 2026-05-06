@@ -1151,16 +1151,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
                   ),
-                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
+                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens.
+                  // CUR-1292: tap the title to manually trigger a task-sync. This is
+                  // the dev-mode fallback for environments without FCM (Linux desktop
+                  // local-stack), where the patient otherwise has to wait up to the
+                  // next periodic-trigger tick to discover a freshly-assigned
+                  // questionnaire. Production keeps the same affordance — a manual
+                  // pull is a reasonable patient gesture.
                   Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        AppLocalizations.of(context).appTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        unawaited(
+                          widget.taskService.syncTasks(
+                            widget.enrollmentService,
+                          ),
+                        );
+                        unawaited(_loadRecords());
+                        unawaited(_refreshWedgeStatus());
+                      },
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppLocalizations.of(context).appTitle,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),

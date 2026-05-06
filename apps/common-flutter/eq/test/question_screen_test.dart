@@ -43,7 +43,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: null,
-          showCategoryHeader: true,
         ),
       ),
     );
@@ -68,7 +67,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: () {},
-          showCategoryHeader: false,
         ),
       ),
     );
@@ -76,7 +74,11 @@ void main() {
     expect(find.text('Question 5 of 29'), findsOneWidget);
   });
 
-  testWidgets('shows category header when showCategoryHeader is true', (
+  // CUR-1292: NOSE HHT puts the actual question on the category as
+  // `stem` and per-item activity labels in `question.text`. The stem
+  // must render on every page within the category — without it the
+  // patient sees only the activity label and no prompt.
+  testWidgets('renders the category stem above the question text', (
     tester,
   ) async {
     setUpScreen(tester);
@@ -92,37 +94,70 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: null,
-          showCategoryHeader: true,
         ),
       ),
     );
 
-    expect(find.text('Physical'), findsOneWidget);
+    expect(find.text(physicalCat.stem!), findsOneWidget);
+    expect(
+      find.text('Blood running down the back of your throat'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('hides category header when showCategoryHeader is false', (
+  testWidgets('renders the stem on a non-first question of the same category', (
     tester,
   ) async {
     setUpScreen(tester);
     addTearDown(() => tearDownScreen(tester));
+    // Q3 in the physical category — confirms the stem isn't gated on
+    // "first question of category" (the bug that motivated the fix).
     await tester.pumpWidget(
       wrapWithMaterialApp(
         QuestionScreen(
-          question: firstQuestion,
+          question: physicalCat.questions[2],
           category: physicalCat,
-          currentQuestionNumber: 2,
+          currentQuestionNumber: 3,
           totalQuestions: 29,
           selectedValue: null,
           onAnswer: (_) {},
           onNext: () {},
           onBack: () {},
-          showCategoryHeader: false,
         ),
       ),
     );
 
-    expect(find.text('Physical'), findsNothing);
+    expect(find.text(physicalCat.stem!), findsOneWidget);
   });
+
+  testWidgets(
+    'omits the stem when category.stem is null (QoL — full question is in question.text)',
+    (tester) async {
+      setUpScreen(tester);
+      addTearDown(() => tearDownScreen(tester));
+      final qol = qolDefinition();
+      final qolCat = qol.categories.first;
+      expect(qolCat.stem, isNull);
+
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          QuestionScreen(
+            question: qolCat.questions[0],
+            category: qolCat,
+            currentQuestionNumber: 1,
+            totalQuestions: 4,
+            selectedValue: null,
+            onAnswer: (_) {},
+            onNext: () {},
+            onBack: null,
+          ),
+        ),
+      );
+
+      // No NOSE-style stem header sneaks in for a null-stem category.
+      expect(find.text(physicalCat.stem!), findsNothing);
+    },
+  );
 
   testWidgets('Next button disabled when no answer selected', (tester) async {
     setUpScreen(tester);
@@ -138,7 +173,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: null,
-          showCategoryHeader: false,
         ),
       ),
     );
@@ -163,7 +197,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: null,
-          showCategoryHeader: false,
         ),
       ),
     );
@@ -188,7 +221,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: null,
-          showCategoryHeader: false,
         ),
       ),
     );
@@ -210,7 +242,6 @@ void main() {
           onAnswer: (_) {},
           onNext: () {},
           onBack: () {},
-          showCategoryHeader: false,
         ),
       ),
     );
@@ -233,7 +264,6 @@ void main() {
           onAnswer: (v) => selected = v,
           onNext: () {},
           onBack: null,
-          showCategoryHeader: false,
         ),
       ),
     );

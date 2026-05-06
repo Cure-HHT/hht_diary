@@ -338,6 +338,16 @@ class _AppRootState extends State<AppRoot> {
         });
       }
 
+      // CUR-1292: handle the boot-time race where _initializeNotifications
+      // (which kicks off in parallel with _initializeRuntime) calls
+      // _taskService.syncTasks before _runtime is assigned. If the /tasks
+      // response carried trial_started_at, the notifier transitioned
+      // correctly but `_onTrialStartedAtChanged` saw `_runtime == null` and
+      // skipped the activation. Re-run the listener now that _runtime is
+      // available; setStartDate is monotonic so an idempotent re-fire is
+      // harmless when the destinations are already on the right schedule.
+      _onTrialStartedAtChanged();
+
       // Start the local-only HTTP debug bridge. Loopback-bound and gated
       // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
       // is logged and swallowed so a port collision does not block app
@@ -483,12 +493,18 @@ class _AppRootState extends State<AppRoot> {
     ]) {
       try {
         final schedule = await runtime.destinations.scheduleOf(destinationId);
-        if (schedule.startDate != null) continue;
+        if (schedule.startDate != null) {
+          debugPrint(
+            '[TrialStart] $destinationId already activated at ${schedule.startDate}, skipping',
+          );
+          continue;
+        }
         await runtime.destinations.setStartDate(
           destinationId,
           startAt,
           initiator: initiator,
         );
+        debugPrint('[TrialStart] activated $destinationId at $startAt');
       } catch (e, stack) {
         debugPrint(
           '[TrialStart] activation($destinationId) failed: $e\n$stack',

@@ -319,16 +319,6 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     }
   }
 
-  /// Whether to show the category header for the current question
-  bool get _showCategoryHeader {
-    if (_questionIndex == 0) return true;
-    final currentQ = _allQuestions[_questionIndex];
-    final prevQ = _allQuestions[_questionIndex - 1];
-    final currentCat = widget.definition.categoryForQuestion(currentQ.id);
-    final prevCat = widget.definition.categoryForQuestion(prevQ.id);
-    return currentCat?.id != prevCat?.id;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -391,7 +381,6 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
       onAnswer: _handleAnswer,
       onNext: _handleNext,
       onBack: _questionIndex > 0 ? _handleBack : null,
-      showCategoryHeader: _showCategoryHeader,
     );
   }
 }

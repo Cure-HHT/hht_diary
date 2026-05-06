@@ -39,6 +39,40 @@ class ReviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final allQuestions = definition.allQuestions;
+    // CUR-1292: Group review items by category so the patient can see
+    // each section's prompt (the `stem`) alongside the answers below
+    // it. NOSE HHT puts the actual question on the category — without
+    // the stem, items like "Travel (e.g. by plane) — No difficulty"
+    // are review-screen labels with no question context.
+    final sections = <Widget>[];
+    var flatIndex = 0;
+    for (final category in definition.categories) {
+      if (category.stem != null && category.stem!.isNotEmpty) {
+        sections.add(
+          Padding(
+            padding: EdgeInsets.only(top: sections.isEmpty ? 0 : 16, bottom: 8),
+            child: Text(
+              category.stem!,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      }
+      for (final question in category.questions) {
+        final reviewIndex = flatIndex;
+        sections.add(
+          _ReviewItem(
+            question: question,
+            response: responses[question.id],
+            onTap: () => onEdit(reviewIndex),
+          ),
+        );
+        flatIndex++;
+      }
+    }
+    assert(flatIndex == allQuestions.length);
     return Column(
       children: [
         Padding(
@@ -51,18 +85,9 @@ class ReviewScreen extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: ListView.builder(
+          child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: allQuestions.length,
-            itemBuilder: (context, index) {
-              final question = allQuestions[index];
-              final response = responses[question.id];
-              return _ReviewItem(
-                question: question,
-                response: response,
-                onTap: () => onEdit(index),
-              );
-            },
+            children: sections,
           ),
         ),
         Padding(
