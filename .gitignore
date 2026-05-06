@@ -304,3 +304,5 @@ docs/plans/
 
 # superpowers visual-companion runtime artifacts (HTML mockups + local HTTP server state)
 .superpowers/
+# superpowers brainstorm specs + implementation plans (working artifacts; not tracked)
+docs/superpowers/
