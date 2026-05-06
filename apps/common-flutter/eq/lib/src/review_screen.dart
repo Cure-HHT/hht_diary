@@ -10,6 +10,12 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// Displays a scrollable list of all Q&A pairs.
 /// Items are tappable to jump back and edit.
 /// Per REQ-p01067-E / REQ-p01068-E.
+///
+/// CUR-1292: When [isReadOnly] is true the screen renders the same
+/// list layout but suppresses the Submit button and the per-item edit
+/// affordance. This is the surface a patient sees after the portal
+/// coordinator has finalized the submission — answers are immutable;
+/// the patient just verifies what was submitted.
 class ReviewScreen extends StatelessWidget {
   const ReviewScreen({
     required this.definition,
@@ -17,6 +23,7 @@ class ReviewScreen extends StatelessWidget {
     required this.onEdit,
     required this.onSubmit,
     this.isSubmitting = false,
+    this.isReadOnly = false,
     super.key,
   });
 
@@ -26,14 +33,20 @@ class ReviewScreen extends StatelessWidget {
   /// Map of questionId -> QuestionResponse
   final Map<String, QuestionResponse> responses;
 
-  /// Called when patient taps a question to edit it
+  /// Called when patient taps a question to edit it. Ignored when
+  /// [isReadOnly] is true.
   final ValueChanged<int> onEdit;
 
-  /// Called when patient taps "Submit"
+  /// Called when patient taps "Submit". Ignored when [isReadOnly] is
+  /// true (the Submit button is not rendered).
   final VoidCallback onSubmit;
 
   /// Whether submission is in progress
   final bool isSubmitting;
+
+  /// CUR-1292: render the screen in view-only mode. Removes the Submit
+  /// button and disables per-question edit taps.
+  final bool isReadOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +79,7 @@ class ReviewScreen extends StatelessWidget {
           _ReviewItem(
             question: question,
             response: responses[question.id],
-            onTap: () => onEdit(reviewIndex),
+            onTap: isReadOnly ? null : () => onEdit(reviewIndex),
           ),
         );
         flatIndex++;
@@ -78,7 +91,7 @@ class ReviewScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'Review Your Answers',
+            isReadOnly ? 'Submitted Answers' : 'Review Your Answers',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -90,23 +103,24 @@ class ReviewScreen extends StatelessWidget {
             children: sections,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: isSubmitting ? null : onSubmit,
-              icon: isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
-              label: Text(isSubmitting ? 'Submitting...' : 'Submit'),
+        if (!isReadOnly)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isSubmitting ? null : onSubmit,
+                icon: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send),
+                label: Text(isSubmitting ? 'Submitting...' : 'Submit'),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -121,7 +135,9 @@ class _ReviewItem extends StatelessWidget {
 
   final QuestionDefinition question;
   final QuestionResponse? response;
-  final VoidCallback onTap;
+
+  /// `null` when the screen is in read-only mode.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -164,11 +180,12 @@ class _ReviewItem extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.edit_outlined,
-                size: 18,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              ),
+              if (onTap != null)
+                Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
             ],
           ),
         ),

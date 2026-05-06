@@ -53,6 +53,7 @@ class QuestionnaireFlowScreen extends StatefulWidget {
     this.onDefer,
     this.onCheckpoint,
     this.initialResponses,
+    this.isReadOnly = false,
     super.key,
   });
 
@@ -83,6 +84,13 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// answered question, and lands directly on the review screen if every
   /// question already has a response.
   final List<QuestionResponse>? initialResponses;
+
+  /// CUR-1292: when true the flow opens directly on the review screen
+  /// in view-only mode — no Submit button, no per-item edit affordances.
+  /// Used to surface the answers of a portal-finalized submission so
+  /// the patient can verify what was sent. Requires [initialResponses]
+  /// to be supplied; otherwise there's nothing to view.
+  final bool isReadOnly;
 
   @override
   State<QuestionnaireFlowScreen> createState() =>
@@ -123,7 +131,10 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
       final allAnswered = _allQuestions.every(
         (q) => _responses.containsKey(q.id),
       );
-      if (allAnswered) {
+      // Read-only view always lands on the review screen (the
+      // "Submitted Answers" surface). isReadOnly is only valid with a
+      // seed; the flow has nothing else to display in that mode.
+      if (widget.isReadOnly || allAnswered) {
         _state = _FlowState.review;
       } else {
         var lastAnsweredIndex = -1;
@@ -361,6 +372,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         onEdit: _handleEditQuestion,
         onSubmit: _handleSubmit,
         isSubmitting: _isSubmitting,
+        isReadOnly: widget.isReadOnly,
       ),
       _FlowState.confirmation => ConfirmationScreen(
         questionnaireName: widget.definition.name,

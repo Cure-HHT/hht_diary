@@ -4,6 +4,7 @@
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/widgets/questionnaire_dot.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -433,7 +434,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
             ),
           ),
           if (hasQuestionnaire)
-            const Positioned(right: 2, bottom: 2, child: _QuestionnaireDot()),
+            const Positioned(right: 4, bottom: 4, child: QuestionnaireDot()),
         ],
       ),
     );
@@ -452,7 +453,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
           const SizedBox(
             width: 12,
             height: 12,
-            child: Center(child: _QuestionnaireDot()),
+            child: Center(child: QuestionnaireDot()),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -486,26 +487,6 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Small blue dot rendered in the lower-right of a calendar cell to indicate
-/// the day has at least one finalized questionnaire submission. Hoisted into
-/// its own const widget so the same visual is shared between the cell
-/// builder and the legend.
-class _QuestionnaireDot extends StatelessWidget {
-  const _QuestionnaireDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: const BoxDecoration(
-        color: Color(0xFF2563EB), // Blue-600
-        shape: BoxShape.circle,
-      ),
     );
   }
 }

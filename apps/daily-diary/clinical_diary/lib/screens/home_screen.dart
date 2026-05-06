@@ -917,6 +917,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// CUR-1292: handle a tap on a completed-questionnaire entry rendered
+  /// in the today/yesterday list. If the matching task still exists
+  /// (server status is in {sent, in_progress, ready_to_review}), route
+  /// to the editable flow — the same path as tapping the task at the
+  /// top of the screen. If no matching task exists, the portal has
+  /// finalized the submission; open the flow in view-only mode so the
+  /// patient can verify the answers but cannot edit or re-submit.
+  Future<void> _onQuestionnaireEntryTapped(DiaryEntry entry) async {
+    Task? matchingTask;
+    for (final t in widget.taskService.tasks) {
+      if ((t.targetId ?? t.id) == entry.entryId) {
+        matchingTask = t;
+        break;
+      }
+    }
+    if (matchingTask != null) {
+      await _navigateToQuestionnaire(matchingTask);
+      return;
+    }
+
+    // Finalized path. Resolve the questionnaire definition from the
+    // entry's currentAnswers; without a definition we have no labels
+    // to render, so we silently bail.
+    if (_questionnaireRouteActive) return;
+    final qTypeStr = entry.currentAnswers['questionnaire_type'];
+    QuestionnaireType? qType;
+    if (qTypeStr is String) {
+      try {
+        qType = QuestionnaireType.fromValue(qTypeStr);
+      } catch (_) {
+        qType = null;
+      }
+    }
+    if (qType == null) return;
+    final definition = await _loadQuestionnaireDefinition(qType);
+    if (definition == null || !mounted) return;
+    final initialResponses = _parseSurveyResponses(entry.currentAnswers);
+    if (initialResponses.isEmpty || !mounted) return;
+
+    _questionnaireRouteActive = true;
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: entry.entryId,
+            initialResponses: initialResponses,
+            isReadOnly: true,
+            // onSubmit / onCheckpoint are unreachable in read-only mode
+            // (no Submit button, no answer taps), but the flow's API
+            // requires non-null callbacks. Provide harmless no-ops.
+            onSubmit: (_) async => const SubmitResult(success: true),
+            onComplete: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    } finally {
+      _questionnaireRouteActive = false;
+    }
+  }
+
   /// Read prior responses for [aggregateId] from the materialized view,
   /// or `null` when no row exists yet. Used by
   /// [_navigateToQuestionnaire] to seed the flow on every re-tap.
@@ -1102,8 +1163,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    // Compare in local-calendar terms. Survey rows have no startTime
+    // answer and fall back to effectiveDate / updatedAt, which are
+    // recorded in UTC; without `.toLocal()` a 04:44Z event would format
+    // to its UTC date and never match today's local date during the
+    // evening of the same calendar day.
     String entryDateStr(DiaryEntry e) {
-      return DateFormat('yyyy-MM-dd').format(_readStartTime(e));
+      return DateFormat('yyyy-MM-dd').format(_readStartTime(e).toLocal());
     }
 
     final groups = <_GroupedRecords>[];
@@ -1156,12 +1222,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's real-nosebleed entries (including incomplete - CUR-488).
-    final todayEntries = _entries.where((e) {
+    // Today's real-nosebleed entries (including incomplete - CUR-488),
+    // plus any completed questionnaires submitted today (CUR-1292).
+    final todayNosebleed = _entries.where((e) {
       return entryDateStr(e) == todayStr && e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    });
+    final todayQuestionnaires = _completedQuestionnaireEntries.where(
+      (e) => entryDateStr(e) == todayStr,
+    );
+    final todayEntries = [...todayNosebleed, ...todayQuestionnaires]
+      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
 
-    final hasAnyTodayEntries = _entries.any((e) => entryDateStr(e) == todayStr);
+    final hasAnyTodayEntries =
+        _entries.any((e) => entryDateStr(e) == todayStr) ||
+        _completedQuestionnaireEntries.any((e) => entryDateStr(e) == todayStr);
 
     groups.add(
       _GroupedRecords(
@@ -1418,6 +1492,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // whose aggregate has a checkpointed-but-not-finalized
                   // row in the materialized view.
                   wipAggregateIds: _wipQuestionnaireAggregateIds,
+                  // CUR-1292: hide the task entry once the patient has
+                  // submitted (a `finalized` event landed locally) —
+                  // it lives in the today/yesterday timeline from
+                  // there until the portal Finalizes or tombstones.
+                  submittedAggregateIds: <String>{
+                    for (final e in _completedQuestionnaireEntries) e.entryId,
+                  },
                 ),
 
               // Yesterday confirmation banner (yellow)
@@ -1623,14 +1704,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 builder: (context, highlightColor) => EventListItem(
                   entry: entry,
-                  // Questionnaire submissions are not editable from this
-                  // surface — they are submission-time audit records — so
-                  // suppress the chevron and the recording-screen push.
                   onTap: entry.entryType.endsWith('_survey')
-                      ? null
+                      ? () => _onQuestionnaireEntryTapped(entry)
                       : () => _navigateToEditRecord(entry),
                   hasOverlap: _hasOverlap(entry),
                   highlightColor: highlightColor,
+                  // CUR-1292: a questionnaire is "finalized" (locked)
+                  // when its aggregate is no longer surfaced as a task.
+                  // /tasks drops finalized rows server-side, and the
+                  // next syncTasks removes the matching local task —
+                  // so absence in TaskService is the correct test.
+                  isFinalized:
+                      entry.entryType.endsWith('_survey') &&
+                      !widget.taskService.tasks.any(
+                        (t) => (t.targetId ?? t.id) == entry.entryId,
+                      ),
                 ),
               ),
             ),

@@ -20,6 +20,7 @@ class TaskListWidget extends StatelessWidget {
     required this.taskService,
     this.onTaskTap,
     this.wipAggregateIds = const <String>{},
+    this.submittedAggregateIds = const <String>{},
     super.key,
   });
 
@@ -35,12 +36,27 @@ class TaskListWidget extends StatelessWidget {
   /// it will resume rather than restart.
   final Set<String> wipAggregateIds;
 
+  /// CUR-1292: aggregate ids of questionnaires the patient has already
+  /// submitted (a `finalized` event landed locally). Once submitted the
+  /// questionnaire lives in the timeline (today/yesterday/calendar) as
+  /// an event entry; it should not also appear here as a task. The
+  /// matching task remains in [taskService] so the timeline tap can
+  /// look it up and route into the editable flow until the portal
+  /// coordinator clicks Finalize and the server drops it from /tasks.
+  final Set<String> submittedAggregateIds;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: taskService,
       builder: (context, _) {
-        final tasks = taskService.tasks;
+        final tasks = taskService.tasks
+            .where(
+              (t) =>
+                  t.taskType != TaskType.questionnaire ||
+                  !submittedAggregateIds.contains(t.targetId ?? t.id),
+            )
+            .toList();
         if (tasks.isEmpty) return const SizedBox.shrink();
 
         return Column(

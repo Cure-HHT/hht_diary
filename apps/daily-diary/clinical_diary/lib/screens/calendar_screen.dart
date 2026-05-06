@@ -11,6 +11,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
+import 'package:clinical_diary/widgets/questionnaire_dot.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -115,7 +116,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       clipBehavior: Clip.none,
       children: [
         cell,
-        const Positioned(right: 6, bottom: 6, child: _QuestionnaireDot()),
+        const Positioned(right: 6, bottom: 6, child: QuestionnaireDot()),
       ],
     );
   }
@@ -632,24 +633,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 }
 
-/// Small blue dot rendered in the lower-right of a calendar cell to indicate
-/// the day has at least one finalized questionnaire submission.
-class _QuestionnaireDot extends StatelessWidget {
-  const _QuestionnaireDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: const BoxDecoration(
-        color: Color(0xFF2563EB), // Blue-600
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-}
-
 /// Legend row for the questionnaire-dot indicator.
 class _QuestionnaireLegendItem extends StatelessWidget {
   const _QuestionnaireLegendItem({required this.label});
@@ -663,7 +646,7 @@ class _QuestionnaireLegendItem extends StatelessWidget {
         const SizedBox(
           width: 16,
           height: 16,
-          child: Center(child: _QuestionnaireDot()),
+          child: Center(child: QuestionnaireDot()),
         ),
         const SizedBox(width: 8),
         Expanded(
