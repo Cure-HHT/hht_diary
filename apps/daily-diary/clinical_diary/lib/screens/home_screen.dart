@@ -112,6 +112,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
+  /// CUR-1292: Re-entrancy guard for questionnaire modal routes.
+  ///
+  /// Both [_navigateToQuestionnaire] (task tap) and
+  /// [_maybePushIncompleteSurvey] (resume on mount/foreground) push a
+  /// [QuestionnaireFlowScreen] modal. Without this guard, a focus event
+  /// firing `didChangeAppLifecycleState(resumed)` while a flow is
+  /// already open would stack a second identical modal on top, with the
+  /// underlying flow paused at whatever question the patient was on.
+  /// Tapping Done on the inner flow would reveal the stale outer one.
+  bool _questionnaireRouteActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -743,57 +754,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
+    if (_questionnaireRouteActive) return;
 
     final aggregateId = task.targetId ?? task.id;
     final entryType = '${qType.value}_survey';
 
-    await Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (context) => QuestionnaireFlowScreen(
-          definition: definition,
-          instanceId: aggregateId,
-          onSubmit: (submission) async {
-            try {
-              await _recordSurveySubmission(
-                entryType: entryType,
-                aggregateId: aggregateId,
-                submission: submission,
-                studyEvent: task.studyEvent,
+    _questionnaireRouteActive = true;
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: aggregateId,
+            onSubmit: (submission) async {
+              try {
+                await _recordSurveySubmission(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  submission: submission,
+                  studyEvent: task.studyEvent,
+                );
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
+            // CUR-1292: persist a checkpoint after every answer so the flow
+            // can resume after the app is killed mid-questionnaire. The
+            // study_event cycle label is stamped on every checkpoint of a
+            // freshly-started survey; subsequent checkpoints (from the
+            // resume modal) rely on the materializer's key-wise merge to
+            // preserve it.
+            onCheckpoint: (partial) {
+              unawaited(
+                widget.runtime.entryService.record(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  eventType: 'checkpoint',
+                  answers: <String, Object?>{
+                    ...partial.toJson(),
+                    'study_event': ?task.studyEvent,
+                  },
+                  checkpointReason: 'in-progress',
+                ),
               );
-              return const SubmitResult(success: true);
-            } catch (e) {
-              return SubmitResult(success: false, error: e.toString());
-            }
-          },
-          // CUR-1292: persist a checkpoint after every answer so the flow
-          // can resume after the app is killed mid-questionnaire. The
-          // study_event cycle label is stamped on every checkpoint of a
-          // freshly-started survey; subsequent checkpoints (from the
-          // resume modal) rely on the materializer's key-wise merge to
-          // preserve it.
-          onCheckpoint: (partial) {
-            unawaited(
-              widget.runtime.entryService.record(
-                entryType: entryType,
-                aggregateId: aggregateId,
-                eventType: 'checkpoint',
-                answers: <String, Object?>{
-                  ...partial.toJson(),
-                  'study_event': ?task.studyEvent,
-                },
-                checkpointReason: 'in-progress',
-              ),
-            );
-          },
-          onComplete: () {
-            // REQ-CAL-p00081-E: Remove task after completion
-            widget.taskService.removeTask(task.id);
-            Navigator.of(context).pop();
-          },
-          onDefer: () => Navigator.of(context).pop(),
+            },
+            onComplete: () {
+              // REQ-CAL-p00081-E: Remove task after completion
+              widget.taskService.removeTask(task.id);
+              Navigator.of(context).pop();
+            },
+            onDefer: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _questionnaireRouteActive = false;
+    }
   }
 
   /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
@@ -848,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// screen mounts (or resumes) we re-open the flow and seed it with the
   /// already-answered responses parsed from the materialized view.
   Future<void> _maybePushIncompleteSurvey() async {
-    if (!mounted) return;
+    if (!mounted || _questionnaireRouteActive) return;
     final incomplete = await widget.runtime.reader.incompleteEntries();
     DiaryEntry? survey;
     for (final entry in incomplete) {
@@ -858,7 +875,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         break;
       }
     }
-    if (survey == null || !mounted) return;
+    if (survey == null || !mounted || _questionnaireRouteActive) return;
 
     final qType = survey.entryType == 'nose_hht_survey'
         ? QuestionnaireType.noseHht
@@ -870,44 +887,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final entryType = survey.entryType;
     final initialResponses = _parseSurveyResponses(survey.currentAnswers);
 
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: true,
-        barrierDismissible: false,
-        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
-          canPop: false,
-          child: QuestionnaireFlowScreen(
-            definition: definition,
-            instanceId: aggregateId,
-            initialResponses: initialResponses,
-            onSubmit: (submission) async {
-              try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
+    _questionnaireRouteActive = true;
+    try {
+      await Navigator.of(context).push(
+        PageRouteBuilder<void>(
+          opaque: true,
+          barrierDismissible: false,
+          pageBuilder: (context, animation, secondaryAnimation) => PopScope(
+            canPop: false,
+            child: QuestionnaireFlowScreen(
+              definition: definition,
+              instanceId: aggregateId,
+              initialResponses: initialResponses,
+              onSubmit: (submission) async {
+                try {
+                  await _recordSurveySubmission(
+                    entryType: entryType,
+                    aggregateId: aggregateId,
+                    submission: submission,
+                  );
+                  return const SubmitResult(success: true);
+                } catch (e) {
+                  return SubmitResult(success: false, error: e.toString());
+                }
+              },
+              onCheckpoint: (partial) {
+                unawaited(
+                  widget.runtime.entryService.record(
+                    entryType: entryType,
+                    aggregateId: aggregateId,
+                    eventType: 'checkpoint',
+                    answers: partial.toJson(),
+                    checkpointReason: 'in-progress',
+                  ),
                 );
-                return const SubmitResult(success: true);
-              } catch (e) {
-                return SubmitResult(success: false, error: e.toString());
-              }
-            },
-            onCheckpoint: (partial) {
-              unawaited(
-                widget.runtime.entryService.record(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  eventType: 'checkpoint',
-                  answers: partial.toJson(),
-                  checkpointReason: 'in-progress',
-                ),
-              );
-            },
-            onComplete: () => Navigator.of(context).pop(),
+              },
+              onComplete: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _questionnaireRouteActive = false;
+    }
   }
 
   /// Parse the `responses` list out of a survey's materialized answers map.
