@@ -288,6 +288,13 @@ Future<Response> portalMeHandler(Request request) async {
 /// Uses service context to look up user - subsequent data operations
 /// should create authenticated UserContext from the returned PortalUser.
 ///
+/// `portal_users.firebase_uid` is set ONLY by `activateUserHandler` and
+/// remains stable for the lifetime of the row (CUR-1296). The lookup here
+/// is uid-only — there is no email-keyed fallback. A uid miss returns null;
+/// recovery is via an explicit admin re-bind path, not lazy email-keyed UPDATE.
+///
+/// Implements: REQ-d00167-A,B,C
+///
 /// The active role is determined by:
 /// 1. X-Active-Role header (if present and user has that role)
 /// 2. First allowed role from allowedRoles (if specified)
@@ -321,15 +328,14 @@ Future<PortalUser?> requirePortalAuth(
   }
 
   final firebaseUid = verification.uid!;
-  final email = verification.email;
 
   final db = Database.instance;
 
   // Use service context for user lookup - this is identity verification
   const serviceContext = UserContext.service;
 
-  // First, try to find user by firebase_uid (subsequent logins)
-  var result = await db.executeWithContext(
+  // Uid-only lookup — no email-keyed fallback (CUR-1296 / REQ-d00167-A,B).
+  final result = await db.executeWithContext(
     '''
     SELECT id, firebase_uid, email, name, status
     FROM portal_users
@@ -339,23 +345,11 @@ Future<PortalUser?> requirePortalAuth(
     context: serviceContext,
   );
 
-  if (result.isEmpty && email != null) {
-    // First login OR firebase_uid drifted (race, emulator restart, manual
-    // edit). Re-link unconditionally — the emailVerified gate in
-    // VerificationResult.isValid is what makes this safe.
-    result = await db.executeWithContext(
-      '''
-      UPDATE portal_users
-      SET firebase_uid = @firebaseUid, updated_at = now()
-      WHERE LOWER(email) = LOWER(@email)
-      RETURNING id, firebase_uid, email, name, status
-      ''',
-      parameters: {'firebaseUid': firebaseUid, 'email': email},
-      context: serviceContext,
-    );
-  }
-
   if (result.isEmpty) {
+    // CUR-1296: no email-keyed re-link. firebase_uid is set ONLY by
+    // activateUserHandler. See portalMeHandler for the full rationale.
+    //
+    // Implements: REQ-d00167-A,B
     return null;
   }
 

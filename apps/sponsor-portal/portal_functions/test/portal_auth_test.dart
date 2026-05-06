@@ -558,30 +558,50 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00167-A — handler MUST NOT reference email in any auth-path SQL
+    // Verifies: REQ-d00167-A — neither portalMeHandler nor requirePortalAuth
+    // may reference email in any auth-path SQL after CUR-1296.
     test(
-      'REQ-d00167-A: handler source code does not contain email-keyed UPDATE/SELECT in auth path',
+      'REQ-d00167-A: portal_auth.dart contains no email-keyed UPDATE/SELECT in any auth path',
       () async {
         final src = await File('lib/src/portal_auth.dart').readAsString();
-        // Either pattern would indicate the email-relink branch survived
-        // in portalMeHandler. (requirePortalAuth is handled separately.)
-        // We look for the specific patterns that the old re-link branch used.
-        final portalMeSection = src.substring(
-          0,
-          src.indexOf('Future<PortalUser?> requirePortalAuth'),
+        expect(
+          src.contains('email = @'),
+          isFalse,
+          reason: 'email-keyed re-link must not exist post-CUR-1296',
         );
         expect(
-          portalMeSection.contains('LOWER(email)'),
+          src.contains('LOWER(email)'),
           isFalse,
           reason:
-              'email-keyed lookup must not exist in portalMeHandler post-CUR-1296',
+              'email-keyed lookup must not exist in any auth handler post-CUR-1296',
         );
-        expect(
-          portalMeSection.contains('Linking firebase_uid by email'),
-          isFalse,
-          reason:
-              'email re-link comment must not exist in portalMeHandler post-CUR-1296',
+      },
+    );
+  });
+
+  group('requirePortalAuth', () {
+    // Verifies: REQ-d00167-A,B
+    test(
+      'REQ-d00167-B: requirePortalAuth returns null when firebase_uid is unbound',
+      () async {
+        // Without the emulator, the unsigned JWT is rejected at verifyIdToken
+        // and requirePortalAuth returns null before touching the DB. With the
+        // emulator, the token passes but no portal_users row matches the uid,
+        // so it must return null (not perform an email-keyed re-link).
+        // Either way, null is the required result — no relink path exists.
+        final user = await requirePortalAuth(
+          Request(
+            'GET',
+            Uri.parse('http://localhost/x'),
+            headers: {
+              'authorization':
+                  'Bearer ${makeFakeToken(uid: 'fresh-uid', email: 'unbound2@example.com')}',
+            },
+          ),
+          ['Administrator'],
         );
+
+        expect(user, isNull);
       },
     );
   });
