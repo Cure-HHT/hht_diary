@@ -378,3 +378,4 @@ The Clinical Diary platform enables multiple pharmaceutical sponsors to conduct 
 - **Database Architecture**: prd-database.md
 - **Security Architecture**: prd-security.md
 - **FDA Compliance**: prd-clinical-trials.md
+

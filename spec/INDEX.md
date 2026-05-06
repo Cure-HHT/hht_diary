@@ -360,6 +360,11 @@
 | REQ-d00163 | Portal inbound poll for tombstone instructions                  | dev-event-sourcing-datastore.md | f96d5dbc |
 | REQ-d00164 | Clinical_diary mobile sync triggers                             | dev-event-sourcing-datastore.md | eec937dc |
 | REQ-d00165 | Inbound Tombstone Record Failure Audit                          | dev-event-sourcing-datastore.md | ec15604b |
+| REQ-d00166 | Server-owned portal activation                                  | dev-portal-api.md               | 0e3b6c80 |
+| REQ-d00167 | Identity Platform binding is set only at activation             | dev-portal-api.md               | 7a932bb7 |
+| REQ-d00168 | Pre-authorized email uniqueness                                 | dev-portal-api.md               | 0ce7ff6e |
+| REQ-d00169 | Pending row cleanup endpoint                                    | dev-portal-api.md               | f8d99d20 |
+| REQ-d00170 | Local-stack uid stamping                                        | dev-portal-api.md               | e8bd0d01 |
 | REQ-d80064 | Questionnaire Version Integrity Enforcement                     | dev-questionnaire.md            | dd2e9ea1 |
 
 ## User Journeys
