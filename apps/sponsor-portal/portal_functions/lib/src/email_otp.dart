@@ -38,12 +38,8 @@ Future<Response> sendEmailOtpHandler(Request request) async {
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
-  // CUR-1296: identity-only gate. Email-OTP send is invoked by users
-  // who already have a bound `portal_users.firebase_uid` (the OTP step
-  // sits between sign-in and dashboard); the email claim is only used
-  // for sending the OTP to the matching mailbox, not to re-link a row.
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     print('[EMAIL_OTP] Token verification failed: ${verification.error}');
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
@@ -198,11 +194,8 @@ Future<Response> verifyEmailOtpHandler(Request request) async {
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
-  // CUR-1296: identity-only gate (matches the send handler above);
-  // OTP verify lookups by `firebase_uid` downstream, so the binding is
-  // proof of identity.
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
 

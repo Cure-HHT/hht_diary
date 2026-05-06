@@ -117,15 +117,9 @@ Future<Response> activateUserHandler(Request request) async {
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
-  // CUR-1296: identity-only gate. The activation code (delivered to the
-  // user's mailbox) is itself proof of email ownership; the email-match
-  // check further down ensures the token's email claim matches the row
-  // bound to the code. Demanding `emailVerified` here would reject every
-  // freshly-minted activation token, since `createUserWithEmailAndPassword`
-  // yields `email_verified=false` and there's no path to flip it before
-  // this request lands.
+  // Verify Identity Platform token
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     print('[ACTIVATION] Token verification FAILED: ${verification.error}');
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
@@ -320,13 +314,8 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
-  // CUR-1296: identity-only gate. The Developer Admin role check below
-  // matches `firebase_uid` against `portal_users`, so the binding itself
-  // is proof of identity for this caller; demanding `emailVerified`
-  // would needlessly fail Dev Admins whose IdP record never had its
-  // verified bit flipped (e.g. seeded users in a freshly-reset env).
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
 

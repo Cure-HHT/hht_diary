@@ -83,60 +83,6 @@ void main() {
       expect(result.error, equals('Token expired at 2024-01-01'));
       expect(result.isValid, isFalse);
     });
-
-    // CUR-1296 — relaxed gate used by sites that don't pivot on the
-    // email claim alone (lookup-by-uid, activation-code redemption,
-    // OTP send/verify). The strict `isValid` gate above still applies
-    // only at the email-keyed re-link site in `portal_auth`.
-    group('isValidIdentity', () {
-      test('accepts uid-bearing token with email_verified=false', () {
-        final unverified = VerificationResult(
-          uid: 'test-uid',
-          email: 'test@example.com',
-          // emailVerified defaults to false — what
-          // createUserWithEmailAndPassword yields in production.
-        );
-        expect(unverified.emailVerified, isFalse);
-        expect(
-          unverified.isValid,
-          isFalse,
-          reason: 'strict gate still rejects unverified-email tokens',
-        );
-        expect(
-          unverified.isValidIdentity,
-          isTrue,
-          reason:
-              'freshly-minted activation tokens land here and must be accepted',
-        );
-      });
-
-      test('accepts uid-bearing token with email_verified=true', () {
-        final result = VerificationResult(
-          uid: 'test-uid',
-          email: 'test@example.com',
-          emailVerified: true,
-        );
-        expect(result.isValid, isTrue);
-        expect(result.isValidIdentity, isTrue);
-      });
-
-      test('rejects when uid is null', () {
-        final result = VerificationResult(email: 'test@example.com');
-        expect(result.isValidIdentity, isFalse);
-      });
-
-      test('rejects when error is present, even with uid', () {
-        final result = VerificationResult(
-          uid: 'test-uid',
-          error: 'Token expired',
-        );
-        expect(result.isValidIdentity, isFalse);
-      });
-
-      test('rejects an empty result', () {
-        expect(VerificationResult().isValidIdentity, isFalse);
-      });
-    });
   });
 
   group('extractBearerToken', () {

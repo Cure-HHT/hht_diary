@@ -85,18 +85,14 @@ class PortalUser {
 ///   - role: (optional) Select which role to use for this session
 ///
 /// `portal_users.firebase_uid` is a cache of the verified Firebase identity
-/// owning a pre-authorized email. The bound-uid path trusts the binding
-/// itself (which was established once, under stronger checks); the
-/// email-re-link path is the only one where we still demand the IdP's
-/// `email_verified` claim, because that's the only place an attacker
-/// could pivot a pre-authorized email into a UID they control.
+/// owning a pre-authorized email. We re-link the row to whatever UID Firebase
+/// asserts for the email on each login — fresh row, race recovery, and
+/// stale-UID recovery all flow through the same UPDATE.
 ///
-/// Two-stage gate (since CUR-1296):
-///   1. `verification.isValidIdentity` — token is signed, fresh, has a
-///      UID. Required everywhere.
-///   2. `verification.emailVerified` — required *only* on the
-///      `WHERE LOWER(email) = …` re-link branch below. The lookup-by-uid
-///      branch already trusts the existing binding.
+/// Security depends on `VerificationResult.isValid` requiring `emailVerified`
+/// (enforced in `identity_platform.dart`). Without that gate, an unverified-
+/// email token for a pre-authorized email would re-link the row to the
+/// attacker's UID.
 ///
 /// Returns 403 if email is not pre-authorized in portal_users table.
 /// If user has multiple roles and no role is specified, returns all roles
@@ -115,10 +111,9 @@ Future<Response> portalMeHandler(Request request) async {
   // Check for requested role from query param
   final requestedRole = request.url.queryParameters['role'];
 
-  // Verify Identity Platform token (identity claim only — `emailVerified`
-  // is checked below, and only on the email-keyed re-link branch).
+  // Verify Identity Platform token
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     authAttempt(result: 'failure', reason: 'invalid_token');
     logWithTrace(
       'WARNING',
@@ -157,25 +152,6 @@ Future<Response> portalMeHandler(Request request) async {
   if (result.isEmpty) {
     // First login OR firebase_uid drifted (concurrent /portal/me race;
     // emulator restart minted a new UID; manual DB edit). Re-link by email.
-    //
-    // CUR-1296: this is the *only* branch that pivots a pre-authorized
-    // email into whatever UID the token is asserting. CUR-1272's
-    // `emailVerified` requirement protects exactly this site — without
-    // it, an attacker who has minted an unverified Identity Platform
-    // user under a known portal email could re-link the row to their
-    // own UID. Earlier in the handler we use `isValidIdentity` so that
-    // post-activation tokens (still `email_verified=false` until the
-    // user signs in afresh and the SDK refreshes) can hit the bound-uid
-    // branch above; the strict gate stays here, where it matters.
-    if (!verification.emailVerified) {
-      authAttempt(result: 'failure', reason: 'email_not_verified');
-      logWithTrace(
-        'WARNING',
-        'Auth failed: email not verified, refusing to relink by email',
-        labels: {'email': email},
-      );
-      return _jsonResponse({'error': 'Email not verified'}, 401);
-    }
     logWithTrace('INFO', 'Linking firebase_uid by email');
     result = await db.executeWithContext(
       '''
@@ -343,10 +319,8 @@ Future<PortalUser?> requirePortalAuth(
     return null;
   }
 
-  // CUR-1296: identity-only gate here; the email-relink branch below
-  // adds an explicit `emailVerified` check. Mirrors `portalMeHandler`.
   final verification = await verifyIdToken(token);
-  if (!verification.isValidIdentity) {
+  if (!verification.isValid) {
     return null;
   }
 
@@ -371,13 +345,8 @@ Future<PortalUser?> requirePortalAuth(
 
   if (result.isEmpty && email != null) {
     // First login OR firebase_uid drifted (race, emulator restart, manual
-    // edit). The email-keyed re-link is the only place an attacker
-    // could pivot a pre-authorized email into a UID they control —
-    // gate on `emailVerified` here (CUR-1272 protection retained,
-    // CUR-1296 moved it from the global `isValid` gate to this site).
-    if (!verification.emailVerified) {
-      return null;
-    }
+    // edit). Re-link unconditionally — the emailVerified gate in
+    // VerificationResult.isValid is what makes this safe.
     result = await db.executeWithContext(
       '''
       UPDATE portal_users
