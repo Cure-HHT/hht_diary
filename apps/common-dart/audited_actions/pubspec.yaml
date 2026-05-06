@@ -1,0 +1,26 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-ACTION, REQ-ACTREG, REQ-DISPATCH, REQ-AUTHZ, REQ-IDEMPOT, REQ-DENIAL
+#   (numbers claimed in Task 3)
+#
+# Trusted-boundary command/intent layer that accepts untrusted ingress,
+# runs auth + authz + validation, then persists events through the
+# post-Sub-project-E append_only_datastore.
+
+name: audited_actions
+description: "Trusted-boundary action dispatcher: auth + authz + validation + atomic event persistence + denial recording"
+version: 0.0.2+1
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  append_only_datastore:
+    path: ../append_only_datastore
+  meta: ^1.16.0
+  uuid: ^4.5.2
+
+dev_dependencies:
+  test: ^1.25.15
+  mocktail: ^1.0.4
+  lints: ^5.0.0
