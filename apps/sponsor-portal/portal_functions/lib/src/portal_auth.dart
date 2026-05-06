@@ -113,6 +113,9 @@ Future<Response> portalMeHandler(Request request) async {
 
   // Verify Identity Platform token
   final verification = await verifyIdToken(token);
+  print(
+    '[PORTAL_ME] Token verification result: isValid=${verification.isValid}, uid=${verification.uid}, email=${verification.email}, error=${verification.error}',
+  );
   if (!verification.isValid) {
     authAttempt(result: 'failure', reason: 'invalid_token');
     logWithTrace(
