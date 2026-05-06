@@ -64,6 +64,10 @@ class IdentityAdmin {
     required String displayName,
     required String password,
   }) async {
+    final hook = IdentityAdminTestOverride.lookupOrProvision;
+    if (hook != null) {
+      return hook(email: email, displayName: displayName, password: password);
+    }
     final client = await _client();
     try {
       // Step 1: lookup by email.
@@ -136,4 +140,17 @@ class IdentityAdmin {
       if (overrideClient == null) client.close();
     }
   }
+}
+
+/// Test-only static seam. When [lookupOrProvision] is set,
+/// `IdentityAdmin.lookupOrProvisionByEmail` delegates to the function
+/// instead of making real HTTP calls. Production code never reads this;
+/// production callers always go through `IdentityAdmin`.
+class IdentityAdminTestOverride {
+  static Future<LookupOrProvisionResult> Function({
+    required String email,
+    required String displayName,
+    required String password,
+  })?
+  lookupOrProvision;
 }

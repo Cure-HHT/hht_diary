@@ -11,6 +11,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'package:portal_functions/src/database.dart';
+import 'package:portal_functions/src/identity_admin.dart';
 import 'package:portal_functions/src/portal_activation.dart';
 
 void main() {
@@ -169,6 +170,142 @@ void main() {
         final body = await getResponseJson(response);
         expect(body['ok'], isTrue);
         expect(body['already_active'], isTrue);
+      },
+    );
+
+    // Verifies: REQ-d00166-C, REQ-d00166-D, REQ-d00166-F
+    test(
+      'REQ-d00166-C+D: happy path calls IdentityAdmin once, stamps firebase_uid, flips status',
+      () async {
+        // Track what the handler would have written to DB via the UPDATE.
+        String? capturedUid;
+        String? capturedUserId;
+        bool updateCalled = false;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '77777777-7777-7777-7777-777777777777',
+                'happy@example.com',
+                'Happy',
+                'pending',
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            updateCalled = true;
+            capturedUid = parameters?['uid'] as String?;
+            capturedUserId = parameters?['id'] as String?;
+            return [];
+          }
+          return [];
+        };
+
+        // Inject a mock IdentityAdmin via the test seam.
+        final calls = <Map<String, String>>[];
+        IdentityAdminTestOverride.lookupOrProvision =
+            ({
+              required String email,
+              required String displayName,
+              required String password,
+            }) async {
+              calls.add({
+                'email': email,
+                'displayName': displayName,
+                'password': password,
+              });
+              return const LookupOrProvisionResult(
+                uid: 'TEST_UID_HAPPY',
+                created: true,
+              );
+            };
+        addTearDown(() => IdentityAdminTestOverride.lookupOrProvision = null);
+
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'HAPPY-00001', 'password': 'pw1'}),
+          ),
+        );
+
+        expect(response.statusCode, equals(200));
+        final body = await getResponseJson(response);
+        expect(body['ok'], isTrue);
+
+        // IdentityAdmin called exactly once with correct email.
+        expect(calls.length, equals(1));
+        expect(calls.single['email'], equals('happy@example.com'));
+
+        // DB UPDATE was called with the uid from IdP and the correct user id.
+        expect(updateCalled, isTrue);
+        expect(capturedUid, equals('TEST_UID_HAPPY'));
+        expect(capturedUserId, equals('77777777-7777-7777-7777-777777777777'));
+      },
+    );
+
+    // Verifies: REQ-d00166-F (idp_unavailable; DB unchanged)
+    test(
+      'REQ-d00166-F: 502 idp_unavailable when IdentityAdmin throws; no DB write',
+      () async {
+        bool updateCalled = false;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '88888888-8888-8888-8888-888888888888',
+                'idpdown@example.com',
+                'IdP Down',
+                'pending',
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            updateCalled = true;
+            return [];
+          }
+          return [];
+        };
+
+        IdentityAdminTestOverride.lookupOrProvision =
+            ({
+              required String email,
+              required String displayName,
+              required String password,
+            }) async =>
+                throw IdentityAdminException('upstream sad', statusCode: 503);
+        addTearDown(() => IdentityAdminTestOverride.lookupOrProvision = null);
+
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'IDPDN-00001', 'password': 'pw1'}),
+          ),
+        );
+
+        expect(response.statusCode, equals(502));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('idp_unavailable'));
+
+        // No DB UPDATE was called (IdP-first, DB-second ordering).
+        expect(updateCalled, isFalse);
       },
     );
   });

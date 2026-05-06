@@ -23,6 +23,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'email_service.dart';
 import 'feature_flags.dart';
+import 'identity_admin.dart';
 import 'identity_platform.dart';
 
 /// Validate an activation code (unauthenticated endpoint)
@@ -163,10 +164,7 @@ Future<Response> activateUserHandler(Request request) async {
 
   final row = result.first;
   final userId = row[0] as String;
-  // userEmail and userName will be used in Task 9 (IdP integration).
-  // ignore: unused_local_variable
   final userEmail = row[1] as String;
-  // ignore: unused_local_variable
   final userName = row[2] as String;
   final status = row[3] as String;
   final expiresAt = row[4] as DateTime?;
@@ -208,9 +206,45 @@ Future<Response> activateUserHandler(Request request) async {
     );
   }
 
-  // The IdP integration (create IdP user + DB write) happens in Task 9.
-  // For Task 8, return a placeholder so the validation tests compile and pass.
-  return _jsonResponse({'ok': true}, 200);
+  // Implements: REQ-d00166-C+D+F — single IdP call; IdP-first / DB-second
+  // mutation order; transactional DB stamp. Idempotent on retry.
+  final LookupOrProvisionResult idp;
+  try {
+    idp = await IdentityAdmin.lookupOrProvisionByEmail(
+      email: userEmail,
+      displayName: userName,
+      password: password,
+    );
+  } on IdentityAdminException catch (e) {
+    print('[ACTIVATION] Identity Platform call failed: $e');
+    return _jsonResponse({
+      'error': 'Identity Platform unavailable',
+      'code': 'idp_unavailable',
+    }, 502);
+  }
+
+  // Stamp firebase_uid + flip to active + clear code, in one TX gated by
+  // status='pending'. The WHERE clause makes a retry-after-success a no-op
+  // here (status would already be 'active' and we'd have short-circuited
+  // higher up; this gate is belt-and-suspenders).
+  await db.executeWithContext(
+    '''
+    UPDATE portal_users
+    SET firebase_uid = @uid,
+        status = 'active',
+        activation_code = NULL,
+        updated_at = now()
+    WHERE id = @id::uuid AND status = 'pending'
+    ''',
+    parameters: {'uid': idp.uid, 'id': userId},
+    context: serviceContext,
+  );
+
+  print(
+    '[ACTIVATION] Activated $userEmail (uid=${idp.uid}, created=${idp.created})',
+  );
+
+  return _jsonResponse({'ok': true, 'roles': roles}, 200);
 }
 
 /// Generate activation code for an existing user (Developer Admin only)
