@@ -5,7 +5,7 @@
 **Ticket**: CUR-1192 (audited_actions library) + CUR-1170 context (the demo informs portal cutover requirements)
 **Scope**: Reference / example app at `apps/common-dart/action_permissions/example/`. Library code under `apps/common-dart/audited_actions/` and `apps/common-dart/action_permissions/` is consumed unmodified.
 **Refines**: none
-**Satisfies**: REQ-d00115..d00127 (verifies, does not extend)
+**Satisfies**: REQ-d00166..d00178 (verifies, does not extend)
 **Status**: Draft
 
 ## 1. Purpose
@@ -213,7 +213,7 @@ client                                  server
   |     {success | denied | idempotencyHit}
 ```
 
-The 10-stage pipeline is unchanged from REQ-d00117. Demo wiring contributes only the route handler (`POST /dispatch`), the wire-type marshalling, and the user-directory resolution before pipeline entry.
+The 10-stage pipeline is unchanged from REQ-d00168. Demo wiring contributes only the route handler (`POST /dispatch`), the wire-type marshalling, and the user-directory resolution before pipeline entry.
 
 ### 3.7 Server-state delivery to the client
 
@@ -356,9 +356,9 @@ A `test/test_support/demo_server_harness.dart` helper module provides `DemoServe
 
 **Annotation discipline:**
 
-- Each `Action` subclass header carries `// Implements: REQ-d00115-A+B+C+D+E+F — Action interface contract`.
-- Each demo materializer carries `// Implements: REQ-d00121` against the materializer interface.
-- `bin/server.dart` and `lib/server/demo_routes.dart` carry `// Verifies: REQ-d00116, REQ-d00117 — bootstrap and dispatch entry`.
+- Each `Action` subclass header carries `// Implements: REQ-d00166-A+B+C+D+E+F — Action interface contract`.
+- Each demo materializer carries `// Implements: REQ-d00172` against the materializer interface.
+- `bin/server.dart` and `lib/server/demo_routes.dart` carry `// Verifies: REQ-d00167, REQ-d00168 — bootstrap and dispatch entry`.
 - Every test method carries `// Verifies: REQ-d00XXX-Y` keyed to the assertion(s) it covers.
 
 **CI:** demo unit tests run with the standard `flutter test` step. Demo integration tests run in a dedicated CI job (`run-demo-integration`) with sembast in-memory for isolation.
@@ -381,16 +381,16 @@ The demo introduces no new library functionality and claims no new REQ-d numbers
 
 From `spec/dev-audited-actions.md`:
 
-- **REQ-d00115** (Action Interface Contract) — verified by all 7 demo `Action` subclasses' `parseInput` / `validate` / `execute` signatures and pure-method discipline.
-- **REQ-d00116** (ActionRegistry and Bootstrap) — verified by the server-side `bootstrapDemoServer` call composing all 7 actions and asserting collision-free registration.
-- **REQ-d00117** (Dispatcher Pipeline) — verified end-to-end by every walkthrough integration test, each asserting the resulting `DispatchResult` variant matches the stage at which the request fails or succeeds.
-- **REQ-d00118** (Authorization Policy) — verified by the cross-team and Anon-precondition denial walkthroughs.
-- **REQ-d00119** (Idempotency Contract) — verified by the per-policy walkthrough (none / optional / required), the cross-user same-key walkthrough, and the replay walkthrough.
-- **REQ-d00120** (Denial Events) — verified by integration assertions on every denial path that the resulting denial event has the expected `eventType`, `aggregateType: 'action_attempt'`, sanitized payload, and shared `action_invocation_id`.
+- **REQ-d00166** (Action Interface Contract) — verified by all 7 demo `Action` subclasses' `parseInput` / `validate` / `execute` signatures and pure-method discipline.
+- **REQ-d00167** (ActionRegistry and Bootstrap) — verified by the server-side `bootstrapDemoServer` call composing all 7 actions and asserting collision-free registration.
+- **REQ-d00168** (Dispatcher Pipeline) — verified end-to-end by every walkthrough integration test, each asserting the resulting `DispatchResult` variant matches the stage at which the request fails or succeeds.
+- **REQ-d00169** (Authorization Policy) — verified by the cross-team and Anon-precondition denial walkthroughs.
+- **REQ-d00170** (Idempotency Contract) — verified by the per-policy walkthrough (none / optional / required), the cross-user same-key walkthrough, and the replay walkthrough.
+- **REQ-d00171** (Denial Events) — verified by integration assertions on every denial path that the resulting denial event has the expected `eventType`, `aggregateType: 'action_attempt'`, sanitized payload, and shared `action_invocation_id`.
 
 From `spec/dev-action-permissions.md`:
 
-- **REQ-d00121** through **REQ-d00127** — verified by the bootstrap walkthrough (`FailSafeAuthorizationPolicy` boot path), matrix view materialization, `PermissionSnapshot` delivery, `EventSeedApplier` diff logic, and `MaterializedViewRoleMatrixReader` round-trip behavior.
+- **REQ-d00172** through **REQ-d00178** — verified by the bootstrap walkthrough (`FailSafeAuthorizationPolicy` boot path), matrix view materialization, `PermissionSnapshot` delivery, `EventSeedApplier` diff logic, and `MaterializedViewRoleMatrixReader` round-trip behavior.
 
 From the events lib and `event_sourcing_datastore` (existing on main):
 
@@ -399,17 +399,17 @@ From the events lib and `event_sourcing_datastore` (existing on main):
 
 **Annotation discipline (the implementation plan must enforce on every file it touches):**
 
-- Every `Action` subclass header: `// Implements: REQ-d00115-A+B+C+D+E+F — Action interface contract`.
-- Every demo `Materializer` subclass: `// Implements: REQ-d00121 — materializer-in-transaction contract`.
-- `bin/server.dart` and `lib/server/demo_routes.dart`: `// Verifies: REQ-d00116, REQ-d00117 — bootstrap and dispatch entry`.
+- Every `Action` subclass header: `// Implements: REQ-d00166-A+B+C+D+E+F — Action interface contract`.
+- Every demo `Materializer` subclass: `// Implements: REQ-d00172 — materializer-in-transaction contract`.
+- `bin/server.dart` and `lib/server/demo_routes.dart`: `// Verifies: REQ-d00167, REQ-d00168 — bootstrap and dispatch entry`.
 - Every test method in `example/test/` and `example/integration_test/`: `// Verifies: REQ-d00XXX-Y` for each assertion the test covers.
 
 **No `spec/dev-*.md` updates required.** No `spec/INDEX.md` change. No new REQ-d claims.
 
 ## Related specifications
 
-- `spec/dev-audited-actions.md` — REQ-d00115..REQ-d00120 (Action interface, registry, dispatcher pipeline, authorization, idempotency, denial events).
-- `spec/dev-action-permissions.md` — REQ-d00121..REQ-d00127 (matrix-as-event-log, materializer, seed applier, snapshot, FailSafe policy).
+- `spec/dev-audited-actions.md` — REQ-d00166..REQ-d00171 (Action interface, registry, dispatcher pipeline, authorization, idempotency, denial events).
+- `spec/dev-action-permissions.md` — REQ-d00172..REQ-d00178 (matrix-as-event-log, materializer, seed applier, snapshot, FailSafe policy).
 - `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md` — original consolidated design from CUR-1159.
 - `docs/superpowers/specs/2026-04-23-action-permissions-design.md` — sibling library design (matrix, scope class, snapshot delivery).
 - `docs/superpowers/specs/2026-04-25-phase4.12-reactive-read-layer-design.md` — `watchEvents` / `watchFifo` API shapes that `ReactiveDemoStateProjection` will consume on swap.
