@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:event_sourcing_datastore/src/destinations/destination.dart';
 import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
 import 'package:event_sourcing_datastore/src/storage/source.dart';
@@ -114,10 +116,21 @@ class SyncCycle {
         source: _source,
         clock: _clock,
       );
-    } catch (_) {
+    } catch (e, st) {
       // Swallow per REQ-d00125-A — one destination's fill failure must
       // not cancel another's drain. The drain step still runs because
       // any FIFO rows enqueued by a prior cycle are still drainable.
+      // Unlike drain (which records each attempt into the entry's
+      // attempts[].error_message before throwing), fillBatch has no
+      // per-attempt audit surface — without this log, a destination
+      // whose fill fails on every cycle would silently stop receiving
+      // new FIFO rows.
+      developer.log(
+        'fillBatch failed for destination ${destination.id}',
+        name: 'sync_cycle',
+        error: e,
+        stackTrace: st,
+      );
     }
     // Step 2: ship whatever sits at the FIFO head. Even if step 1 fell
     // through with an exception, drain may still have rows from earlier.
@@ -128,13 +141,21 @@ class SyncCycle {
         clock: _clock,
         policy: cyclePolicy,
       );
-    } catch (_) {
+    } catch (e, st) {
       // Per REQ-d00125-A, one destination's failure does not cancel
       // another's drain. We swallow here so Future.wait does not abort;
       // the drain loop itself has already recorded the attempt via its
       // internal try/catch on `destination.send`, so the exception is
       // not silently lost — it is still surfaced via the entry's
-      // `attempts[].error_message`.
+      // `attempts[].error_message`. The log line below adds an
+      // operator-visible signal for failures that escape that internal
+      // catch (programming bugs in drain itself).
+      developer.log(
+        'drain failed for destination ${destination.id}',
+        name: 'sync_cycle',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
