@@ -3,6 +3,7 @@
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00169: Pending row cleanup endpoint
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
 //   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 //   REQ-CAL-p00030: Edit User Account
@@ -1199,4 +1200,59 @@ Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {
     body: jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
   );
+}
+
+/// DELETE /api/v1/portal/users/:userId
+/// Admin / Developer Admin only. Hard-deletes a `pending` portal_users row
+/// and its dependent rows in `portal_user_roles` and
+/// `portal_user_site_access`. Refuses to touch rows in any other status.
+///
+/// Implements: REQ-d00169-A+B+C — pending-row cleanup endpoint scoped to
+/// status=pending; cascades to dependent tables; 404 for unknown id.
+Future<Response> deletePendingPortalUserHandler(
+  Request request,
+  String userId,
+) async {
+  final user = await requirePortalAuth(request, _adminRoles);
+  if (user == null) {
+    return _jsonResponse({'error': 'Unauthorized', 'code': 'unauth'}, 403);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  final found = await db.executeWithContext(
+    'SELECT status FROM portal_users WHERE id = @id::uuid',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+  if (found.isEmpty) {
+    return _jsonResponse({'error': 'Not found', 'code': 'not_found'}, 404);
+  }
+  final status = found.first[0] as String;
+  if (status != 'pending') {
+    return _jsonResponse({
+      'error': 'Only pending rows can be deleted',
+      'code': 'not_pending',
+    }, 400);
+  }
+
+  await db.executeWithContext(
+    'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+  await db.executeWithContext(
+    'DELETE FROM portal_user_site_access WHERE user_id = @id::uuid',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+  await db.executeWithContext(
+    'DELETE FROM portal_users WHERE id = @id::uuid',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+
+  print('[PORTAL_USER] Deleted pending user $userId by ${user.id}');
+  return _jsonResponse({'ok': true}, 200);
 }

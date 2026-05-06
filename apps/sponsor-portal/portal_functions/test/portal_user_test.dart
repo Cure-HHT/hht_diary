@@ -4,6 +4,7 @@
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-d00168: Pre-authorized email uniqueness — case-insensitive 409 pre-flight
+//   REQ-d00169: Pending row cleanup endpoint
 
 import 'dart:convert';
 
@@ -311,6 +312,114 @@ void main() {
       final json = await getResponseJson(response);
       expect(json.containsKey('error'), isTrue);
       expect(json['error'], isA<String>());
+    });
+  });
+
+  /// Verifies REQ-d00169-A, REQ-d00169-B, REQ-d00169-C
+  group('deletePendingPortalUserHandler — CUR-1296 (REQ-d00169)', () {
+    setUp(() {
+      requirePortalAuthOverride = (_) async => PortalUser(
+        id: 'admin-user-id',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+    });
+
+    tearDown(() {
+      requirePortalAuthOverride = null;
+      databaseQueryOverride = null;
+    });
+
+    // Verifies: REQ-d00169-A
+    // Verifies: REQ-d00169-B
+    test(
+      'REQ-d00169-A+B: deletes a pending row and cascades to dependents',
+      () async {
+        const id = 'aaaaaaaa-1111-1111-1111-111111111111';
+        final captured = <Map<String, Object?>>[];
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          captured.add({'sql': query, 'parameters': parameters});
+          if (query.contains('SELECT status FROM portal_users')) {
+            return [
+              ['pending'],
+            ];
+          }
+          if (query.startsWith('DELETE FROM')) {
+            return [];
+          }
+          throw 'unexpected SQL in test: $query';
+        };
+
+        final response = await deletePendingPortalUserHandler(
+          Request(
+            'DELETE',
+            Uri.parse('http://localhost/api/v1/portal/users/$id'),
+          ),
+          id,
+        );
+
+        expect(response.statusCode, equals(200));
+        final body = await getResponseJson(response);
+        expect(body['ok'], isTrue);
+        // Captured queries: SELECT, then 3 DELETEs (roles, site_access, users)
+        expect(captured.length, equals(4));
+        expect(captured[1]['sql'], contains('portal_user_roles'));
+        expect(captured[2]['sql'], contains('portal_user_site_access'));
+        expect(captured[3]['sql'], contains('portal_users'));
+      },
+    );
+
+    // Verifies: REQ-d00169-B
+    test(
+      'REQ-d00169-B: refuses to delete an active row (returns 400 not_pending)',
+      () async {
+        const id = 'aaaaaaaa-2222-2222-2222-222222222222';
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('SELECT status FROM portal_users')) {
+            return [
+              ['active'],
+            ];
+          }
+          throw 'no DELETE expected when status != pending';
+        };
+
+        final response = await deletePendingPortalUserHandler(
+          Request(
+            'DELETE',
+            Uri.parse('http://localhost/api/v1/portal/users/$id'),
+          ),
+          id,
+        );
+
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('not_pending'));
+      },
+    );
+
+    // Verifies: REQ-d00169-C
+    test('REQ-d00169-C: returns 404 for unknown id', () async {
+      databaseQueryOverride = (query, {parameters, required context}) async {
+        if (query.contains('SELECT status FROM portal_users')) {
+          return [];
+        }
+        throw 'no DELETE expected for missing row';
+      };
+
+      final response = await deletePendingPortalUserHandler(
+        Request(
+          'DELETE',
+          Uri.parse(
+            'http://localhost/api/v1/portal/users/99999999-9999-9999-9999-999999999999',
+          ),
+        ),
+        '99999999-9999-9999-9999-999999999999',
+      );
+
+      expect(response.statusCode, equals(404));
     });
   });
 }
