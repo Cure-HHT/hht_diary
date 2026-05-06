@@ -170,6 +170,32 @@ void main() {
     );
 
     test(
+      'exportAll filename is stamped in local time when clock returns UTC',
+      () async {
+        final fx = await _setupFixture();
+        final utcMoment = DateTime.utc(2025, 4, 27, 14, 9, 5);
+        final exporter = DiaryExportService(
+          backend: fx.backend,
+          deviceId: 'device-test-uuid',
+          packageInfoLoader: () async => _stubPackageInfo(),
+          clock: () => utcMoment,
+        );
+
+        final result = await exporter.exportAll();
+
+        // Filename and exportedAt must agree on the moment in local time so a
+        // UTC-pinned clock cannot mislead forensic audit analysis.
+        final local = utcMoment.toLocal();
+        String two(int v) => v.toString().padLeft(2, '0');
+        final expectedTimestamp =
+            '${local.year}-${two(local.month)}-'
+            '${two(local.day)}-${two(local.hour)}${two(local.minute)}'
+            '${two(local.second)}';
+        expect(result.filename, 'hht-diary-export-$expectedTimestamp.json');
+      },
+    );
+
+    test(
       'exportAll filename pattern matches the legacy regex even when clock is uncontrolled',
       () async {
         final fx = await _setupFixture();

@@ -195,12 +195,15 @@ class DiaryExportService {
   ///
   /// Format: `hht-diary-export-YYYY-MM-DD-HHMMSS.json`. Preserved verbatim
   /// from the legacy data-export service so external tooling that grepped on
-  /// this prefix keeps working.
+  /// this prefix keeps working. Always stamped in local time so the filename
+  /// agrees with `exportedAt` (which `_formatLocalIso` renders with the local
+  /// offset) regardless of whether the injected `_clock` returns local or UTC.
   static String _generateFilename(DateTime now) {
+    final local = now.toLocal();
     String two(int v) => v.toString().padLeft(2, '0');
     final timestamp =
-        '${now.year}-${two(now.month)}-${two(now.day)}'
-        '-${two(now.hour)}${two(now.minute)}${two(now.second)}';
+        '${local.year}-${two(local.month)}-${two(local.day)}'
+        '-${two(local.hour)}${two(local.minute)}${two(local.second)}';
     return 'hht-diary-export-$timestamp.json';
   }
 
