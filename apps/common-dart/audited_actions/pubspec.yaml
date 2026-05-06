@@ -1,10 +1,11 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-ACTION, REQ-ACTREG, REQ-DISPATCH, REQ-AUTHZ, REQ-IDEMPOT, REQ-DENIAL
-#   (numbers claimed in Task 3)
+#   REQ-d00166..REQ-d00171 (Action interface, registry, dispatcher pipeline,
+#   authorization, idempotency, denial events)
 #
 # Trusted-boundary command/intent layer that accepts untrusted ingress,
-# runs auth + authz + validation, then persists events through the
-# post-Sub-project-E append_only_datastore.
+# runs auth + authz + validation, then persists events through
+# event_sourcing_datastore. ActionDispatcher implementation will add the
+# event_sourcing_datastore path dep when wired.
 
 name: audited_actions
 description: "Trusted-boundary action dispatcher: auth + authz + validation + atomic event persistence + denial recording"
@@ -15,8 +16,6 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  append_only_datastore:
-    path: ../append_only_datastore
   meta: ^1.16.0
   uuid: ^4.5.2
 
