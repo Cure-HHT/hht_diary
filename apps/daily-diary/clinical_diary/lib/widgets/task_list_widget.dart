@@ -16,13 +16,24 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// Shows actionable items (questionnaires, incomplete records, etc.)
 /// sorted by priority per REQ-CAL-p00081-C.
 class TaskListWidget extends StatelessWidget {
-  const TaskListWidget({required this.taskService, this.onTaskTap, super.key});
+  const TaskListWidget({
+    required this.taskService,
+    this.onTaskTap,
+    this.wipAggregateIds = const <String>{},
+    super.key,
+  });
 
   final TaskService taskService;
 
   /// Callback when a task is tapped (navigates to relevant screen per
   /// REQ-CAL-p00081-D)
   final ValueChanged<Task>? onTaskTap;
+
+  /// CUR-1292: aggregate ids of questionnaires the patient has started
+  /// but not yet submitted. Used to render an "In progress" pill on
+  /// the matching questionnaire task card so the patient knows tapping
+  /// it will resume rather than restart.
+  final Set<String> wipAggregateIds;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +55,9 @@ class TaskListWidget extends StatelessWidget {
                 child: _TaskCard(
                   task: task,
                   onTap: () => onTaskTap?.call(task),
+                  isInProgress:
+                      task.taskType == TaskType.questionnaire &&
+                      wipAggregateIds.contains(task.targetId ?? task.id),
                 ),
               ),
           ],
@@ -54,10 +68,11 @@ class TaskListWidget extends StatelessWidget {
 }
 
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task, this.onTap});
+  const _TaskCard({required this.task, this.onTap, this.isInProgress = false});
 
   final Task task;
   final VoidCallback? onTap;
+  final bool isInProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -81,13 +96,23 @@ class _TaskCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: TextStyle(
-                      color: _textColor(theme),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            color: _textColor(theme),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      if (isInProgress) ...[
+                        const SizedBox(width: 8),
+                        _InProgressPill(textColor: _textColor(theme)),
+                      ],
+                    ],
                   ),
                   if (task.subtitle != null)
                     Text(
@@ -170,5 +195,34 @@ class _TaskCard extends StatelessWidget {
       case TaskType.missingDays:
         return Colors.grey.shade800;
     }
+  }
+}
+
+/// CUR-1292: small chip rendered next to a questionnaire task title
+/// when the patient has answered at least one question but hasn't yet
+/// submitted. Tapping the task resumes from where they left off rather
+/// than restarting from readiness.
+class _InProgressPill extends StatelessWidget {
+  const _InProgressPill({required this.textColor});
+
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: textColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        'In progress',
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
+    );
   }
 }

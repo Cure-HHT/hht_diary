@@ -33,6 +33,22 @@ class TaskService extends ChangeNotifier {
   final http.Client _httpClient;
   final List<Task> _tasks = [];
 
+  /// REQ-CAL-p00079: When the portal coordinator clicks "Send EQ" the
+  /// patient's `trial_started_at` is stamped server-side. The diary
+  /// `/tasks` response surfaces it; this notifier transitions from
+  /// `null` to that timestamp the first time we observe it. Listeners
+  /// (currently the bootstrap in main.dart) activate the legacy-shim
+  /// destinations with `setStartDate(value)` on transition. Set once
+  /// per session — never reset to null, even if a later sync omits
+  /// the field, so a transient server hiccup can't deactivate sync.
+  final ValueNotifier<DateTime?> trialStartedAtNotifier = ValueNotifier(null);
+
+  @override
+  void dispose() {
+    trialStartedAtNotifier.dispose();
+    super.dispose();
+  }
+
   /// Current list of active tasks, sorted by priority (REQ-CAL-p00081-C)
   List<Task> get tasks => List.unmodifiable(
     _tasks..sort((a, b) => a.priority.compareTo(b.priority)),
@@ -201,6 +217,17 @@ class TaskService extends ChangeNotifier {
 
       // Process disconnection status (same pattern as nosebleed_service)
       enrollmentService.processDisconnectionStatus(body);
+
+      // REQ-CAL-p00079: surface the trial-start timestamp from the
+      // patient's row. Once set, never reset — a transient server-side
+      // omission must not deactivate the patient's outbound sync.
+      final trialStartedAtStr = body['trial_started_at'] as String?;
+      if (trialStartedAtStr != null) {
+        final parsed = DateTime.tryParse(trialStartedAtStr);
+        if (parsed != null) {
+          trialStartedAtNotifier.value = parsed.toUtc();
+        }
+      }
 
       final serverTasks = body['tasks'] as List<dynamic>? ?? [];
 

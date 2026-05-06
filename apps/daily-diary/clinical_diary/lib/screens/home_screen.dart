@@ -97,6 +97,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Subset of [_entries] that are checkpointed but not finalized.
   List<DiaryEntry> _incompleteEntries = [];
+
+  /// CUR-1292: aggregate ids of questionnaires the patient has started
+  /// but not yet submitted, surfaced to [TaskListWidget] so the
+  /// matching task card renders an "In progress" pill.
+  Set<String> _wipQuestionnaireAggregateIds = const <String>{};
   bool _isEnrolled = false;
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
@@ -112,15 +117,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
-  /// CUR-1292: Re-entrancy guard for questionnaire modal routes.
-  ///
-  /// Both [_navigateToQuestionnaire] (task tap) and
-  /// [_maybePushIncompleteSurvey] (resume on mount/foreground) push a
-  /// [QuestionnaireFlowScreen] modal. Without this guard, a focus event
-  /// firing `didChangeAppLifecycleState(resumed)` while a flow is
-  /// already open would stack a second identical modal on top, with the
-  /// underlying flow paused at whatever question the patient was on.
-  /// Tapping Done on the inner flow would reveal the stale outer one.
+  /// CUR-1292: Re-entrancy guard so a double-tap on the questionnaire
+  /// task can't push two identical [QuestionnaireFlowScreen] modals.
   bool _questionnaireRouteActive = false;
 
   @override
@@ -137,19 +135,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
-    // Forward-looking: surface incomplete surveys via a modal route. The
-    // FCM-prompt handler that creates the checkpoint is out of scope for this
-    // ticket, but the routing exists so it can land later without screen edits.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybePushIncompleteSurvey();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
-      _maybePushIncompleteSurvey();
     }
   }
 
@@ -288,10 +279,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
         .toList();
 
+    // CUR-1292: aggregate ids of in-progress questionnaire surveys.
+    // Surfaced to the task list so the matching task card shows the
+    // "In progress" pill — patients see at a glance that tapping the
+    // task will resume rather than restart.
+    final wipSurveys = await widget.runtime.reader.incompleteEntries();
+    final wipQIds = <String>{
+      for (final e in wipSurveys)
+        if (!e.isDeleted &&
+            (e.entryType == 'nose_hht_survey' || e.entryType == 'qol_survey'))
+          e.entryId,
+    };
+
     setState(() {
       _entries = entries;
       _hasYesterdayRecords = hasYesterday;
       _incompleteEntries = incomplete;
+      _wipQuestionnaireAggregateIds = wipQIds;
       _isLoading = false;
     });
   }
@@ -758,6 +762,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final aggregateId = task.targetId ?? task.id;
     final entryType = '${qType.value}_survey';
+    // CUR-1292: when an in-progress (checkpointed-but-not-finalized) row
+    // already exists for this aggregate, seed the flow with the prior
+    // responses so tap-task and resume-on-launch land the patient in
+    // the same place. Without this, tapping a task with prior state
+    // would open a fresh flow whose first answer would overwrite the
+    // saved responses (the materializer replaces the `responses` key
+    // wholesale on every checkpoint).
+    final initialResponses = await _readInitialResponses(
+      entryType: entryType,
+      aggregateId: aggregateId,
+    );
+    if (!mounted) return;
 
     _questionnaireRouteActive = true;
     try {
@@ -766,6 +782,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           builder: (context) => QuestionnaireFlowScreen(
             definition: definition,
             instanceId: aggregateId,
+            initialResponses: initialResponses,
             onSubmit: (submission) async {
               try {
                 await _recordSurveySubmission(
@@ -810,6 +827,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     } finally {
       _questionnaireRouteActive = false;
+    }
+    // CUR-1292: refresh the WIP set so the "In progress" pill appears
+    // (or disappears) on the task card based on what landed during the
+    // flow — the patient may have answered some questions and Home'd
+    // out, or they may have fully submitted.
+    if (mounted) {
+      unawaited(_loadRecords());
     }
   }
 
@@ -856,80 +880,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Surfaces an in-progress survey via a modal route on resume / mount.
-  ///
-  /// CUR-1292: when the patient answers any question of a NOSE HHT or QoL
-  /// survey, [QuestionnaireFlowScreen] persists a `checkpoint` event after
-  /// every answer (see `onCheckpoint` on `_navigateToQuestionnaire`). If
-  /// the app is killed before the patient submits, the next time the home
-  /// screen mounts (or resumes) we re-open the flow and seed it with the
-  /// already-answered responses parsed from the materialized view.
-  Future<void> _maybePushIncompleteSurvey() async {
-    if (!mounted || _questionnaireRouteActive) return;
-    final incomplete = await widget.runtime.reader.incompleteEntries();
-    DiaryEntry? survey;
-    for (final entry in incomplete) {
-      if (entry.entryType == 'nose_hht_survey' ||
-          entry.entryType == 'qol_survey') {
-        survey = entry;
-        break;
+  /// Read prior responses for [aggregateId] from the materialized view,
+  /// or `null` when no in-progress row exists. Used by
+  /// [_navigateToQuestionnaire] to seed the flow when the patient
+  /// re-taps a task whose questionnaire is partially complete.
+  Future<List<QuestionResponse>?> _readInitialResponses({
+    required String entryType,
+    required String aggregateId,
+  }) async {
+    final rows = await widget.runtime.backend.findEntries(entryType: entryType);
+    for (final row in rows) {
+      if (row.entryId == aggregateId && !row.isComplete && !row.isDeleted) {
+        return _parseSurveyResponses(row.currentAnswers);
       }
     }
-    if (survey == null || !mounted || _questionnaireRouteActive) return;
-
-    final qType = survey.entryType == 'nose_hht_survey'
-        ? QuestionnaireType.noseHht
-        : QuestionnaireType.qol;
-    final definition = await _loadQuestionnaireDefinition(qType);
-    if (definition == null || !mounted) return;
-
-    final aggregateId = survey.entryId;
-    final entryType = survey.entryType;
-    final initialResponses = _parseSurveyResponses(survey.currentAnswers);
-
-    _questionnaireRouteActive = true;
-    try {
-      await Navigator.of(context).push(
-        PageRouteBuilder<void>(
-          opaque: true,
-          barrierDismissible: false,
-          pageBuilder: (context, animation, secondaryAnimation) => PopScope(
-            canPop: false,
-            child: QuestionnaireFlowScreen(
-              definition: definition,
-              instanceId: aggregateId,
-              initialResponses: initialResponses,
-              onSubmit: (submission) async {
-                try {
-                  await _recordSurveySubmission(
-                    entryType: entryType,
-                    aggregateId: aggregateId,
-                    submission: submission,
-                  );
-                  return const SubmitResult(success: true);
-                } catch (e) {
-                  return SubmitResult(success: false, error: e.toString());
-                }
-              },
-              onCheckpoint: (partial) {
-                unawaited(
-                  widget.runtime.entryService.record(
-                    entryType: entryType,
-                    aggregateId: aggregateId,
-                    eventType: 'checkpoint',
-                    answers: partial.toJson(),
-                    checkpointReason: 'in-progress',
-                  ),
-                );
-              },
-              onComplete: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ),
-      );
-    } finally {
-      _questionnaireRouteActive = false;
-    }
+    return null;
   }
 
   /// Parse the `responses` list out of a survey's materialized answers map.
@@ -1378,6 +1343,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   taskService: widget.taskService,
                   // REQ-CAL-p00081-D: Navigate to relevant screen
                   onTaskTap: _navigateToQuestionnaire,
+                  // CUR-1292: render the "In progress" pill on tasks
+                  // whose aggregate has a checkpointed-but-not-finalized
+                  // row in the materialized view.
+                  wipAggregateIds: _wipQuestionnaireAggregateIds,
                 ),
 
               // Yesterday confirmation banner (yellow)

@@ -259,6 +259,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
+    _taskService.trialStartedAtNotifier.addListener(_onTrialStartedAtChanged);
     _initializeRuntime();
     _initializeNotifications();
   }
@@ -321,35 +322,14 @@ class _AppRootState extends State<AppRoot> {
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
       );
 
-      // Activate both legacy-shim destinations once at first install.
-      // The startDate is "today" on first install: there are no events
-      // recorded before the app exists, so anchoring the destination
-      // there is the correct watermark. setStartDate is monotonically
-      // non-increasing (REQ-d00129-C) — read the current schedule and
-      // skip the write when the destination is already activated so a
-      // process restart is a no-op. Each activation runs in its own
-      // try/catch so a failure on one destination does not prevent the
-      // other from coming online.
-      const initiator = AutomationInitiator(service: 'mobile-bootstrap');
-      final activationStartAt = DateTime.now().toUtc();
-      for (final destinationId in <String>[
-        LegacySyncDestination.destinationId,
-        LegacyQuestionnaireSubmitDestination.destinationId,
-      ]) {
-        try {
-          final schedule = await runtime.destinations.scheduleOf(destinationId);
-          if (schedule.startDate != null) continue;
-          await runtime.destinations.setStartDate(
-            destinationId,
-            activationStartAt,
-            initiator: initiator,
-          );
-        } catch (e, stack) {
-          debugPrint(
-            '[Bootstrap] activation($destinationId) failed: $e\n$stack',
-          );
-        }
-      }
+      // The legacy-shim destinations stay dormant until the portal
+      // sends a `start_trial` inbound message (handled by
+      // portalInboundPoll's onStartTrial callback wired in the
+      // bootstrap). Their start_date is durable, so on a process
+      // restart of an already-activated patient there is nothing for
+      // bootstrap to do here. Personal-use (unenrolled) and
+      // post-enrollment-pre-Send-EQ patients never have legacy_sync
+      // active, so they never wedge against the trial diary server.
 
       if (mounted) {
         setState(() {
@@ -474,12 +454,62 @@ class _AppRootState extends State<AppRoot> {
     if (token != null) {
       _registerFcmToken(token);
     }
-    // REQ-CAL-p00081: Discover tasks immediately after linking
+    // REQ-CAL-p00081: Discover tasks immediately after linking. The
+    // task sync also surfaces `trial_started_at` if the coordinator
+    // has already clicked "Send EQ"; the trial-start listener picks
+    // it up and activates outbound destinations.
     unawaited(_taskService.syncTasks(_enrollmentService));
+  }
+
+  /// REQ-CAL-p00079: Activate the legacy-shim outbound destinations
+  /// with the portal's "Send EQ" click timestamp as their start_date
+  /// watermark. Events recorded before this point are personal-use
+  /// (no trial server existed yet) and intentionally don't ship;
+  /// events recorded at or after it ship to the trial server.
+  ///
+  /// Driven by [TaskService.trialStartedAtNotifier], which publishes
+  /// the timestamp once the `/tasks` endpoint reports a non-null
+  /// `trial_started_at`. setStartDate is monotonically non-increasing
+  /// (REQ-d00129-C), so re-fires of the same value are no-ops and the
+  /// destinations stay at the canonical click time across restarts.
+  Future<void> _activateShimDestinationsAt(
+    ClinicalDiaryRuntime runtime,
+    DateTime startAt,
+  ) async {
+    const initiator = AutomationInitiator(service: 'mobile-trial-start');
+    for (final destinationId in <String>[
+      LegacySyncDestination.destinationId,
+      LegacyQuestionnaireSubmitDestination.destinationId,
+    ]) {
+      try {
+        final schedule = await runtime.destinations.scheduleOf(destinationId);
+        if (schedule.startDate != null) continue;
+        await runtime.destinations.setStartDate(
+          destinationId,
+          startAt,
+          initiator: initiator,
+        );
+      } catch (e, stack) {
+        debugPrint(
+          '[TrialStart] activation($destinationId) failed: $e\n$stack',
+        );
+      }
+    }
+  }
+
+  void _onTrialStartedAtChanged() {
+    final at = _taskService.trialStartedAtNotifier.value;
+    final runtime = _runtime;
+    if (at != null && runtime != null) {
+      unawaited(_activateShimDestinationsAt(runtime, at));
+    }
   }
 
   @override
   void dispose() {
+    _taskService.trialStartedAtNotifier.removeListener(
+      _onTrialStartedAtChanged,
+    );
     _notificationService?.dispose();
     _taskService.dispose();
     unawaited(_debugBridge?.stop());

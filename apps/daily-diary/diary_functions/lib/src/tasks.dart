@@ -37,9 +37,12 @@ Future<Response> getTasksHandler(Request request) async {
 
     // Look up user and their linked patient via patient_linking_codes
     // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
+    // and trial_started_at so the mobile client can activate its outbound
+    // sync destinations at the exact portal click timestamp (REQ-CAL-p00079).
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text
+      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text,
+             p.trial_started, p.trial_started_at
       FROM app_users u
       LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
@@ -56,6 +59,8 @@ Future<Response> getTasksHandler(Request request) async {
     final row = userResult.first;
     final patientId = row[1] as String?;
     final mobileLinkingStatus = row[2] as String?;
+    final trialStarted = row[3] as bool?;
+    final trialStartedAt = row[4] as DateTime?;
 
     if (patientId == null) {
       return _jsonResponse({
@@ -117,6 +122,14 @@ Future<Response> getTasksHandler(Request request) async {
       'isDisconnected': mobileLinkingStatus == 'disconnected',
       // CUR-1165: REQ-p01065-D
       'isNotParticipating': mobileLinkingStatus == 'not_participating',
+      // REQ-CAL-p00079: trial-start signal. The mobile client uses
+      // trial_started_at to set the legacy_sync / legacy_questionnaire_submit
+      // destinations' start_date watermark, so events recorded before the
+      // portal "Send EQ" click stay local (personal-use) and events
+      // recorded after that click ship to the trial server.
+      'trial_started': trialStarted ?? false,
+      if (trialStartedAt != null)
+        'trial_started_at': trialStartedAt.toUtc().toIso8601String(),
     });
   } catch (e, stackTrace) {
     reportAndRecordError(e, stackTrace: stackTrace);
