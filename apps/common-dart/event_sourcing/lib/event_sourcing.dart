@@ -133,6 +133,7 @@ export 'src/actions/dispatch_result.dart'
 export 'src/actions/execution_result.dart' show ExecutionResult;
 export 'src/actions/idempotency.dart'
     show defaultIdempotencyTtl, Idempotency, IdempotencyEntry;
+export 'src/actions/idempotency_errors.dart' show MissingIdempotencyKeyError;
 export 'src/actions/idempotency_store.dart'
     show IdempotencyStore, InMemoryIdempotencyStore;
 export 'src/actions/permission.dart' show Permission;

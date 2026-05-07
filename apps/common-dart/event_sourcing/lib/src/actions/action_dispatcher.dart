@@ -1,13 +1,16 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00168 (Dispatcher Pipeline): owner of the 10-stage pipeline.
-//   This file currently implements stages 1 (lookup) and 2 (invocation_id).
-//   Stages 3-10 land in subsequent commits per plan-1 Tasks 16-22.
+//   This file currently implements stages 1 (lookup), 2 (invocation_id),
+//   3 (parse), and 4 (idempotency check).
+//   Stages 5-10 land in subsequent commits per plan-1 Tasks 17-22.
 
 import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:event_sourcing/src/actions/action_registry.dart';
 import 'package:event_sourcing/src/actions/authorization_policy.dart';
 import 'package:event_sourcing/src/actions/denial_events.dart';
 import 'package:event_sourcing/src/actions/dispatch_result.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/idempotency_errors.dart';
 import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:event_sourcing/src/event_draft.dart';
 import 'package:event_sourcing/src/event_store.dart';
@@ -39,7 +42,16 @@ class ActionDispatcher {
   ///             [DispatchUnknownAction].
   ///   Stage 2 — generate v4 UUID `action_invocation_id`; stamp it into
   ///             every emitted event's metadata.
-  ///   Stages 3-10 — TODO in plan-1 Tasks 16-22.
+  ///   (Pre-Stage 3) — idempotency-required precondition check
+  ///             (REQ-d00170-B): if action requires a key and none was
+  ///             supplied, emit `parse_denied` and return before
+  ///             parseInput runs.
+  ///   Stage 3 — call `action.parseInput(rawInput)`; on throw, emit
+  ///             `parse_denied` and return [DispatchParseDenied].
+  ///   Stage 4 — idempotency cache lookup for non-none policies with a
+  ///             key; on hit, return [DispatchIdempotencyHit] with no
+  ///             new event emitted.
+  ///   Stages 5-10 — TODO in plan-1 Tasks 17-22.
   Future<DispatchResult<Object?>> dispatch(
     String actionName,
     Map<String, Object?> rawInput,
@@ -67,9 +79,63 @@ class ActionDispatcher {
       return DispatchResult<Object?>.unknownAction(actionName);
     }
 
-    // Stages 3-10 land in subsequent tasks.
+    // Idempotency-required precondition check (REQ-d00170-B).
+    // Must run BEFORE parseInput per spec: missing-required-key is a
+    // parse-stage denial that fires before the action gets to see the raw
+    // input.
+    if (action.idempotency == Idempotency.required && idempotencyKey == null) {
+      final error = MissingIdempotencyKeyError(actionName);
+      final denial = denialParseDenied(
+        invocationId: invocationId,
+        actionName: actionName,
+        error: error,
+        actionInvocationMetadata: invocationMetadata,
+      );
+      await _persistDenial(denial, ctx, flowToken: flowToken);
+      return DispatchResult<Object?>.parseDenied(error);
+    }
+
+    // Stage 3: parse
+    // Implements: REQ-d00168-D
+    final Object? parsedInput;
+    try {
+      parsedInput = action.parseInput(rawInput);
+    } catch (error) {
+      final denial = denialParseDenied(
+        invocationId: invocationId,
+        actionName: actionName,
+        error: error,
+        actionInvocationMetadata: invocationMetadata,
+      );
+      await _persistDenial(denial, ctx, flowToken: flowToken);
+      return DispatchResult<Object?>.parseDenied(error);
+    }
+
+    // Stage 4: idempotency cache lookup
+    // Implements: REQ-d00168-E, REQ-d00170-A,C
+    // Skip entirely for Idempotency.none; also skip if no key was supplied
+    // (covers Idempotency.optional with no key).
+    if (action.idempotency != Idempotency.none && idempotencyKey != null) {
+      final entry = await idempotency.lookup(
+        action.name,
+        ctx.principal.id,
+        idempotencyKey,
+      );
+      if (entry != null) {
+        // Cache hit — short-circuit; no new events emitted.
+        return DispatchResult<Object?>.idempotencyHit(
+          entry.resultJson,
+          entry.emittedEventIds,
+        );
+      }
+      // Cache miss — fall through to Stage 5+.
+    }
+
+    // Stages 5-10 land in subsequent tasks.
+    // ignore: unused_local_variable
+    final _ = parsedInput; // suppress unused warning until Stage 5 lands.
     throw UnimplementedError(
-      'Stages 3-10 of the dispatcher pipeline are added in plan-1 Tasks 16-22.',
+      'Stages 5-10 of the dispatcher pipeline are added in plan-1 Tasks 17-22.',
     );
   }
 
