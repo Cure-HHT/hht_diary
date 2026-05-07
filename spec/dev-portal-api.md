@@ -251,7 +251,7 @@ F. The server SHALL enforce device UUID verification independently of token vali
 
 A. POST /api/v1/portal/activate SHALL accept {code, password} with no bearer authentication.
 
-B. The handler SHALL validate the code (exists, not expired, status='pending', MFA-enrolled-if-required) before any Identity Platform call.
+B. The handler SHALL validate the code (exists, not expired, row status='pending') before any Identity Platform call. Dev-Admin TOTP enrollment-at-activation enforcement is deferred — tracked by the skipped test in integration_test/portal_activation_test.dart and the TODO at portal_activation.dart:202; the gate will activate when portal_users.totp_enrolled_at lands.
 
 C. The handler SHALL call IdentityAdmin.lookupOrProvisionByEmail exactly once per request.
 
@@ -261,7 +261,7 @@ E. On retry after a successful activation, the handler SHALL return {ok: true, a
 
 F. Identity Platform mutations SHALL precede DB mutations; failure of either SHALL leave the system in a state from which retry converges.
 
-*End* *Server-owned portal activation* | **Hash**: 20f83e64
+*End* *Server-owned portal activation* | **Hash**: 889a5b18
 ## REQ-d00167: Identity Platform binding is set only at activation
 
 **Level**: dev | **Status**: Draft | **Implements**: -

@@ -92,6 +92,12 @@ class _ActivationPageState extends State<ActivationPage> {
     _codeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    // Close the internally-created http.Client to avoid socket leaks.
+    // When widget.httpClient is provided (test injection), the test owns
+    // the client's lifecycle.
+    if (widget.httpClient == null) {
+      _httpClient.close();
+    }
     super.dispose();
   }
 

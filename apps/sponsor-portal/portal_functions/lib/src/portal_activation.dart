@@ -175,6 +175,18 @@ Future<Response> activateUserHandler(Request request) async {
     return _jsonResponse({'ok': true, 'already_active': true}, 200);
   }
 
+  // REQ-d00166-B: only 'pending' rows may proceed to the IdP call. Any
+  // other non-active state ('revoked' per schema.sql:625, plus any future
+  // additions to the status enum) is rejected here, before IdentityAdmin
+  // can mutate the IdP password for an unauthorized row.
+  if (status != 'pending') {
+    print('[ACTIVATION] Row not pending (status=$status): $code');
+    return _jsonResponse({
+      'error': 'Account is not pending activation',
+      'code': 'not_pending',
+    }, 400);
+  }
+
   if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
     print('[ACTIVATION] Code expired: $code');
     return _jsonResponse({

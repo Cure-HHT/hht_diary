@@ -1144,7 +1144,17 @@ class AuthService extends ChangeNotifier {
         // is not bound to any portal_users row. On Flavor.local this means
         // the emulator was restarted; surface the rebind hint. Other flavors
         // get a generic administrator-contact message.
-        final body = jsonDecode(response.body) as Map<String, dynamic>? ?? {};
+        //
+        // Reverse proxies / gateways may return non-JSON 401 bodies (HTML
+        // error pages). Guard the decode so a malformed body doesn't fall
+        // through to the generic exception path.
+        Map<String, dynamic> body = const {};
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) body = decoded;
+        } catch (_) {
+          // Non-JSON body — treat as generic 401, no uid_not_bound code.
+        }
         final errCode = body['code'] as String?;
         if (errCode == 'uid_not_bound') {
           _error = (_flavor == Flavor.local)

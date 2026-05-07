@@ -40,6 +40,11 @@ const _adminRoles = ['Administrator', 'Developer Admin'];
 /// Roles that can view all users
 const _viewAllRoles = ['Administrator', 'Developer Admin', 'Auditor'];
 
+/// RFC 4122 UUID pattern (case-insensitive, hyphenated).
+final _uuidRe = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
 /// Get all portal users (Admin/Auditor only)
 /// GET /api/v1/portal/users
 /// Returns users with all their roles from portal_user_roles table
@@ -1216,6 +1221,16 @@ Future<Response> deletePendingPortalUserHandler(
   final user = await requirePortalAuth(request, _adminRoles);
   if (user == null) {
     return _jsonResponse({'error': 'Unauthorized', 'code': 'unauth'}, 403);
+  }
+
+  // Validate UUID format before the @id::uuid cast. Without this, an
+  // invalid id reaches Postgres and surfaces as a generic 500
+  // (InvalidTextRepresentation) rather than a controlled 400.
+  if (!_uuidRe.hasMatch(userId)) {
+    return _jsonResponse({
+      'error': 'Invalid user id',
+      'code': 'invalid_id',
+    }, 400);
   }
 
   final db = Database.instance;
