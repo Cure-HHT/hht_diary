@@ -80,36 +80,18 @@ class ActionDispatcher {
   /// register the `action_denial` entry type at version 1. When the
   /// dispatcher's host-bootstrap helper lands (plan-1 Task 22), this
   /// hardcoding gets reviewed.
-  ///
-  /// **EventStore.eventType vs EventDraft.eventType**: EventStore.append
-  /// requires `eventType` to be one of `finalized | checkpoint | tombstone`
-  /// (the diary-entry lifecycle state). `EventDraft.eventType` carries the
-  /// business-level denial discriminator (e.g. `unknown_action`). The
-  /// dispatcher maps the business type into `data['denial_event_type']` and
-  /// uses `eventType: 'finalized'` so the event is stored atomically through
-  /// the normal append path.
   Future<void> _persistDenial(
     EventDraft draft,
     ActionContext ctx, {
     String? flowToken,
   }) async {
-    // Merge the business denial type into data so it survives in the log
-    // alongside the structured denial payload.
-    final data = <String, Object?>{
-      'denial_event_type': draft.eventType,
-      ...draft.data,
-    };
-
     await events.append(
       entryType: draft.entryType,
       entryTypeVersion: 1,
       aggregateId: draft.aggregateId,
       aggregateType: draft.aggregateType,
-      // EventStore.append validates eventType ∈ {finalized,checkpoint,
-      // tombstone}. All system audit events use 'finalized' (consistent
-      // with clearSecurityContext, applyRetentionPolicy, destination audits).
-      eventType: 'finalized',
-      data: data,
+      eventType: draft.eventType,
+      data: Map<String, Object?>.from(draft.data),
       initiator: ctx.principal.toInitiator(),
       flowToken: draft.flowToken ?? flowToken,
       metadata: draft.metadata == null

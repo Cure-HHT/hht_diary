@@ -98,11 +98,8 @@ void main() {
       () async {
         await dispatcher.dispatch('nope', const <String, Object?>{}, _ctx());
         final allEvents = await eventStore.backend.findAllEvents();
-        // Denial events are stored with eventType='finalized' (the diary-entry
-        // lifecycle state required by EventStore.append). The business denial
-        // discriminator ('unknown_action') is in data['denial_event_type'].
         final denials = allEvents
-            .where((e) => e.data['denial_event_type'] == 'unknown_action')
+            .where((e) => e.eventType == 'unknown_action')
             .toList();
         expect(denials, hasLength(1));
         expect(denials.first.data['requested_name'], 'nope');
@@ -117,7 +114,7 @@ void main() {
         await dispatcher.dispatch('nope', const <String, Object?>{}, _ctx());
         final allEvents = await eventStore.backend.findAllEvents();
         final denial = allEvents.firstWhere(
-          (e) => e.data['denial_event_type'] == 'unknown_action',
+          (e) => e.eventType == 'unknown_action',
         );
         expect(denial.metadata['action_invocation_id'], isNotNull);
         expect(denial.metadata['action_invocation_id'], isA<String>());
@@ -129,7 +126,7 @@ void main() {
       await dispatcher.dispatch('nope', const <String, Object?>{}, _ctx());
       final allEvents = await eventStore.backend.findAllEvents();
       final ids = allEvents
-          .where((e) => e.data['denial_event_type'] == 'unknown_action')
+          .where((e) => e.eventType == 'unknown_action')
           .map((e) => e.metadata['action_invocation_id'] as String)
           .toSet();
       expect(ids, hasLength(2));

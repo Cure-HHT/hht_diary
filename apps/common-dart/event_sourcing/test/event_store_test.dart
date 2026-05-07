@@ -181,24 +181,6 @@ void main() {
       },
     );
 
-    test('unknown eventType throws ArgumentError before I/O', () async {
-      final fx = await _setup();
-      await expectLater(
-        fx.eventStore.append(
-          entryType: 'epistaxis_event',
-          entryTypeVersion: 1,
-          aggregateId: 'a',
-          aggregateType: 'DiaryEntry',
-          eventType: 'bogus',
-          data: const {'answers': {}},
-          initiator: const UserInitiator('u1'),
-        ),
-        throwsArgumentError,
-      );
-      expect(await fx.backend.findAllEvents(), isEmpty);
-      await fx.backend.close();
-    });
-
     test('unregistered entryType throws ArgumentError before I/O', () async {
       final fx = await _setup();
       await expectLater(

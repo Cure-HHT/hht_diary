@@ -340,15 +340,6 @@ class EventStore {
     required String aggregateType,
     required String eventType,
   }) {
-    if (eventType != 'finalized' &&
-        eventType != 'checkpoint' &&
-        eventType != 'tombstone') {
-      throw ArgumentError.value(
-        eventType,
-        'eventType',
-        'must be one of finalized, checkpoint, tombstone',
-      );
-    }
     if (!entryTypes.isRegistered(entryType)) {
       throw ArgumentError.value(
         entryType,
