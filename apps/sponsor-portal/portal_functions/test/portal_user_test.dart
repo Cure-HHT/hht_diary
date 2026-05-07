@@ -364,11 +364,13 @@ void main() {
         expect(response.statusCode, equals(200));
         final body = await getResponseJson(response);
         expect(body['ok'], isTrue);
-        // Captured queries: SELECT, then 3 DELETEs (roles, site_access, users)
-        expect(captured.length, equals(4));
-        expect(captured[1]['sql'], contains('portal_user_roles'));
-        expect(captured[2]['sql'], contains('portal_user_site_access'));
-        expect(captured[3]['sql'], contains('portal_users'));
+        // Captured queries: SELECT status, then a single DELETE on
+        // portal_users. portal_user_roles and portal_user_site_access
+        // are removed via ON DELETE CASCADE FKs (schema.sql:751,778),
+        // so the handler issues exactly one DELETE.
+        expect(captured.length, equals(2));
+        expect(captured[0]['sql'], contains('SELECT status'));
+        expect(captured[1]['sql'], contains('DELETE FROM portal_users'));
       },
     );
 
