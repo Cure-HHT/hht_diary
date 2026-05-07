@@ -74,27 +74,4 @@ void main() {
       expect(exception.toString(), contains('🚨 SECURITY ALERT'));
     });
   });
-
-  group('SyncStatus', () {
-    test('has correct message for each status', () {
-      expect(SyncStatus.idle.message, equals('Ready to sync'));
-      expect(SyncStatus.syncing.message, equals('Syncing...'));
-      expect(SyncStatus.synced.message, equals('All changes synced'));
-      expect(SyncStatus.error.message, equals('Sync failed'));
-    });
-
-    test('isActive returns true only for syncing', () {
-      expect(SyncStatus.idle.isActive, isFalse);
-      expect(SyncStatus.syncing.isActive, isTrue);
-      expect(SyncStatus.synced.isActive, isFalse);
-      expect(SyncStatus.error.isActive, isFalse);
-    });
-
-    test('hasError returns true only for error', () {
-      expect(SyncStatus.idle.hasError, isFalse);
-      expect(SyncStatus.syncing.hasError, isFalse);
-      expect(SyncStatus.synced.hasError, isFalse);
-      expect(SyncStatus.error.hasError, isTrue);
-    });
-  });
 }

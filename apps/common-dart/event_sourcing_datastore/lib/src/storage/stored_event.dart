@@ -1,5 +1,5 @@
 import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:meta/meta.dart' show visibleForTesting;
 import 'package:provenance/provenance.dart';
 
 /// Represents a stored event with all fields populated.

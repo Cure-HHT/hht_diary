@@ -109,16 +109,9 @@ export 'src/bootstrap.dart'
 // Core configuration
 export 'src/core/config/datastore_config.dart';
 
-// Datastore singleton
-export 'src/core/di/datastore.dart';
-
 // Exceptions
 export 'src/core/errors/datastore_exception.dart';
 export 'src/core/errors/sync_exception.dart';
-
-// EventDraft — input value type for Action.execute return value and
-// appendWithSecurity call (Phase 5, CUR-1192).
-export 'src/event_draft.dart' show EventDraft;
 
 // Destinations — per-destination routing contract (Phase 4, CUR-1154).
 // FakeDestination lives in test/test_support/ and is intentionally NOT
@@ -140,14 +133,12 @@ export 'src/destinations/wire_payload.dart' show WirePayload;
 export 'src/entry_service.dart' show DeviceInfo, EntryService, SyncCycleTrigger;
 export 'src/entry_type_definition.dart' show EntryTypeDefinition;
 export 'src/entry_type_registry.dart' show EntryTypeRegistry;
+
+// EventDraft — input value type for Action.execute return value and
+// appendWithSecurity call (Phase 5, CUR-1192).
+export 'src/event_draft.dart' show EventDraft;
 export 'src/event_store.dart'
     show EventStore, EventStoreSyncCycleTrigger, RetentionResult;
-
-// Infrastructure - Database
-export 'src/infrastructure/database/database_provider.dart';
-
-// Infrastructure - Repositories
-export 'src/infrastructure/repositories/event_repository.dart';
 
 // Ingest types — error types, result types, and chain verdict
 // (Phase 4.9, CUR-1154).

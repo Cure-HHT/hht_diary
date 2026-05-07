@@ -14,14 +14,11 @@ dependencies:
   collection: ^1.19.0
   crypto: ^3.0.7
   dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'
-  flutter:
-    sdk: flutter
   json_annotation: ^4.9.0
+  meta: ^1.16.0
   path: ^1.9.1
-  signals: ^6.2.0
   sembast: ^3.7.3
   sembast_web: ^2.3.0
-  path_provider: ^2.1.5
   provenance:
     path: ../provenance
   uuid: ^4.5.2

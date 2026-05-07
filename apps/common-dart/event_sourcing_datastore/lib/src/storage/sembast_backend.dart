@@ -18,7 +18,7 @@ import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
 import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
 import 'package:event_sourcing_datastore/src/storage/txn.dart';
 import 'package:event_sourcing_datastore/src/storage/wedged_fifo_summary.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:meta/meta.dart' show visibleForTesting;
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
 
