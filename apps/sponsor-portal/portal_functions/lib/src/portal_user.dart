@@ -25,6 +25,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:postgres/postgres.dart' show UniqueViolationException;
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -369,26 +370,41 @@ Future<Response> createPortalUserHandler(Request request) async {
 
   // Create user with pending status
   // NOTE: linking_code is NULL for portal users - only patients get linking codes
-  final createResult = await db.executeWithContext(
-    '''
-    INSERT INTO portal_users (
-      email, name, activation_code,
-      activation_code_expires_at, status
-    )
-    VALUES (
-      @email, @name, @activationCode,
-      @activationExpiry, 'pending'
-    )
-    RETURNING id
-    ''',
-    parameters: {
-      'email': email,
-      'name': name,
-      'activationCode': activationCode,
-      'activationExpiry': activationExpiry,
-    },
-    context: serviceContext,
-  );
+  //
+  // Catch UniqueViolationException (SQLSTATE 23505) from the
+  // portal_users_email_lower_key index in case two concurrent
+  // createPortalUserHandler calls both pass the pre-flight SELECT and
+  // race to INSERT. The pre-flight already covers the common case;
+  // this catch ensures the rare race returns the same 409 envelope
+  // instead of a raw 5xx.
+  final List<List<dynamic>> createResult;
+  try {
+    createResult = await db.executeWithContext(
+      '''
+      INSERT INTO portal_users (
+        email, name, activation_code,
+        activation_code_expires_at, status
+      )
+      VALUES (
+        @email, @name, @activationCode,
+        @activationExpiry, 'pending'
+      )
+      RETURNING id
+      ''',
+      parameters: {
+        'email': email,
+        'name': name,
+        'activationCode': activationCode,
+        'activationExpiry': activationExpiry,
+      },
+      context: serviceContext,
+    );
+  } on UniqueViolationException {
+    return _jsonResponse({
+      'error': 'An account already exists for this email',
+      'code': 'email_already_known',
+    }, 409);
+  }
 
   final newUserId = createResult.first[0] as String;
   print(
@@ -1252,16 +1268,30 @@ Future<Response> deletePendingPortalUserHandler(
     }, 400);
   }
 
-  // Atomic single-statement delete: portal_user_roles.user_id and
-  // portal_user_site_access.user_id are FK'd to portal_users.id with
-  // ON DELETE CASCADE (database/schema.sql:751,778), so deleting the
-  // portal_users row removes the dependents in the same statement.
-  // No mid-failure can leave orphans.
-  await db.executeWithContext(
-    'DELETE FROM portal_users WHERE id = @id::uuid',
+  // Atomic single-statement delete with status guard. The pre-check
+  // SELECT above is informational; the WHERE clause here is the only
+  // gate, defending against a row transitioning pending -> active
+  // between the SELECT and the DELETE (e.g., user activates while an
+  // admin runs cleanup). RETURNING id detects the 0-row case.
+  // portal_user_roles.user_id and portal_user_site_access.user_id are
+  // FK'd to portal_users.id with ON DELETE CASCADE
+  // (database/schema.sql:751,778), so the dependents come out in the
+  // same statement.
+  final deleted = await db.executeWithContext(
+    "DELETE FROM portal_users WHERE id = @id::uuid AND status = 'pending' "
+    'RETURNING id',
     parameters: {'id': userId},
     context: serviceContext,
   );
+  if (deleted.isEmpty) {
+    // Row state changed under us (most likely pending -> active via a
+    // concurrent activate). REQ-d00169-B: only pending rows may be
+    // deleted; bail before any destructive side effect lands.
+    return _jsonResponse({
+      'error': 'Row state changed; only pending rows can be deleted',
+      'code': 'not_pending',
+    }, 400);
+  }
 
   print('[PORTAL_USER] Deleted pending user $userId by ${user.id}');
   return _jsonResponse({'ok': true}, 200);

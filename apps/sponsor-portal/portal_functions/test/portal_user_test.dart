@@ -211,6 +211,14 @@ void main() {
           expect(body['code'], equals('email_already_known'));
         },
       );
+
+      // REQ-d00168 race-loss path (concurrent INSERT both pass the
+      // pre-check; one wins, the other hits portal_users_email_lower_key)
+      // is not unit-testable: package:postgres's UniqueViolationException
+      // has a private constructor (postgres-3.5.9/exceptions.dart:232).
+      // The catch block in createPortalUserHandler is exercised by the
+      // integration tests against a real database. Same pattern as
+      // questionnaire.dart's race-catch, which is also integration-only.
     });
   });
 
@@ -348,7 +356,10 @@ void main() {
             ];
           }
           if (query.startsWith('DELETE FROM')) {
-            return [];
+            // RETURNING id — handler treats empty list as 400 not_pending.
+            return [
+              [id],
+            ];
           }
           throw 'unexpected SQL in test: $query';
         };
@@ -371,6 +382,45 @@ void main() {
         expect(captured.length, equals(2));
         expect(captured[0]['sql'], contains('SELECT status'));
         expect(captured[1]['sql'], contains('DELETE FROM portal_users'));
+        // The DELETE is gated by status='pending' to defend against a
+        // race where the row transitions pending -> active between the
+        // pre-check SELECT and this statement.
+        expect(captured[1]['sql'], contains("status = 'pending'"));
+      },
+    );
+
+    // Verifies: REQ-d00169-B race-loss path
+    test(
+      'REQ-d00169-B: 400 not_pending when row goes active between SELECT and DELETE',
+      () async {
+        const id = 'aaaaaaaa-3333-3333-3333-333333333333';
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('SELECT status FROM portal_users')) {
+            // Pre-check sees pending — admin proceeds.
+            return [
+              ['pending'],
+            ];
+          }
+          if (query.startsWith('DELETE FROM')) {
+            // ...but by the time DELETE fires, a concurrent activate
+            // flipped the row to 'active'; WHERE status='pending' matches
+            // 0 rows, RETURNING returns empty.
+            return [];
+          }
+          throw 'unexpected SQL in test: $query';
+        };
+
+        final response = await deletePendingPortalUserHandler(
+          Request(
+            'DELETE',
+            Uri.parse('http://localhost/api/v1/portal/users/$id'),
+          ),
+          id,
+        );
+
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('not_pending'));
       },
     );
 

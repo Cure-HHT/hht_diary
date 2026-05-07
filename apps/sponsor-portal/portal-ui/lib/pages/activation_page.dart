@@ -188,7 +188,19 @@ class _ActivationPageState extends State<ActivationPage> {
       if (!mounted) return;
 
       if (activateRes.statusCode != 200) {
-        final errBody = jsonDecode(activateRes.body) as Map<String, dynamic>?;
+        // Reverse proxies / gateways may return non-JSON error bodies (HTML
+        // 502 pages, plain-text gateway errors). Guard the decode so a
+        // malformed body lands on the generic message rather than throwing
+        // into the catch-all below. Same pattern as AuthService's 401
+        // branch.
+        Map<String, dynamic>? errBody;
+        try {
+          final decoded = jsonDecode(activateRes.body);
+          if (decoded is Map<String, dynamic>) errBody = decoded;
+        } catch (_) {
+          // Non-JSON body — fall through with errBody=null; the default
+          // branch in _mapServerErrorCode renders a generic message.
+        }
         final errCode = errBody?['code'] as String?;
         setState(() {
           _error = _mapServerErrorCode(errCode, errBody?['error'] as String?);
