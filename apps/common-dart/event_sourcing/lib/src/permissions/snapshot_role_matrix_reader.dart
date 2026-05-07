@@ -4,8 +4,6 @@
 //   REQ-d00177-C (principal-scoped — only answers for snapshot.role).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
-import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class SnapshotRoleMatrixReader implements RoleMatrixReader {
   const SnapshotRoleMatrixReader(this._snapshot);

@@ -5,7 +5,6 @@
 //   with the carried errors).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/fail_safe_authorization_policy.dart';
 import 'package:meta/meta.dart';
 
 @immutable

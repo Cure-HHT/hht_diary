@@ -3,8 +3,6 @@
 // + valid declared perms -> PolicyReady; mismatched yaml -> PolicyFailSafe;
 // idempotent re-runs.
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/authorization_policy_bootstrap.dart';
-import 'package:event_sourcing/src/permissions/bootstrap_action_permissions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';

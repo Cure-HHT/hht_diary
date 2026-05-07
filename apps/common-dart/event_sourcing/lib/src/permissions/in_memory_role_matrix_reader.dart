@@ -5,7 +5,6 @@
 //   empty map).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class InMemoryRoleMatrixReader implements RoleMatrixReader {
   const InMemoryRoleMatrixReader(this._grants);

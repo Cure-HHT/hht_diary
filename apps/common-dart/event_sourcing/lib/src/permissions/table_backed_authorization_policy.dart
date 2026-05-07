@@ -5,7 +5,6 @@
 //   REQ-d00176-B (permissionsFor filters by session preconditions).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class TableBackedAuthorizationPolicy implements AuthorizationPolicy {
   const TableBackedAuthorizationPolicy(this._reader);

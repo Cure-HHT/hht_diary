@@ -2,8 +2,6 @@
 // Verifies: REQ-d00176-C (client-side RoleMatrixReader), REQ-d00177-C
 // (snapshot is principal-scoped — answers false for any other role).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
-import 'package:event_sourcing/src/permissions/snapshot_role_matrix_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

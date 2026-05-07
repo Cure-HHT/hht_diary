@@ -2,9 +2,6 @@
 // Verifies: REQ-d00175-F (applier diff logic), REQ-d00175-G (idempotent
 // across restarts), REQ-d00175-H (drift reported, not auto-revoked).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/event_seed_applier.dart';
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
-import 'package:event_sourcing/src/permissions/permission_seed.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';

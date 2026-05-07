@@ -1,7 +1,6 @@
 // test/permissions/permission_snapshot_test.dart
 // Verifies: REQ-d00177-A (PermissionSnapshot value type and JSON).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

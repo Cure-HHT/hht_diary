@@ -6,7 +6,6 @@
 //   REQ-d00175-E (role/permission name containing ':' -> invalid).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_seed.dart';
 import 'package:meta/meta.dart';
 
 @immutable

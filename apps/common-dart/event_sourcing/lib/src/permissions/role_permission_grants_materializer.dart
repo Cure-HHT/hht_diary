@@ -5,7 +5,6 @@
 //   REQ-d00174-E (appliesTo filters by aggregateType).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
 
 class RolePermissionGrantsMaterializer extends Materializer {
   const RolePermissionGrantsMaterializer();

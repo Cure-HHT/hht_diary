@@ -1,7 +1,6 @@
 // test/permissions/in_memory_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (RoleMatrixReader in-memory impl).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

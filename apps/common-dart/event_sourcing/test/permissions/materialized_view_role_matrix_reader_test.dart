@@ -1,8 +1,6 @@
 // test/permissions/materialized_view_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (server-side RoleMatrixReader over StorageBackend).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/materialized_view_role_matrix_reader.dart';
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';

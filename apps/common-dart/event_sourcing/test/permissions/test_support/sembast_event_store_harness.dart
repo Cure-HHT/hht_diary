@@ -6,7 +6,6 @@
 // needs a real EventStore + StorageBackend.
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/role_permission_grants_materializer.dart';
 import 'package:sembast/sembast_memory.dart';
 
 const String kRolePermissionGrantEntryType = 'role_permission_grant';

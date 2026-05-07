@@ -3,8 +3,6 @@
 // transaction; permission_revoked deletes view row; appliesTo filters
 // by aggregateType).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
-import 'package:event_sourcing/src/permissions/role_permission_grants_materializer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';

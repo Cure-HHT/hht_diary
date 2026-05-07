@@ -1,7 +1,6 @@
 // test/permissions/fail_safe_authorization_policy_test.dart
 // Verifies: REQ-d00178-A (fail-safe denies all with bootstrapFailure reason).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/fail_safe_authorization_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

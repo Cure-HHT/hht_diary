@@ -5,8 +5,6 @@
 //   REQ-d00175-H (drift reported, not auto-revoked).
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
-import 'package:event_sourcing/src/permissions/permission_seed.dart';
 import 'package:meta/meta.dart';
 
 @immutable

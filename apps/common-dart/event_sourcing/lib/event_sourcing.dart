@@ -213,6 +213,37 @@ export 'src/materialization/materializer.dart' show Materializer;
 export 'src/materialization/rebuild.dart'
     show rebuildMaterializedView, rebuildView;
 
+// Permissions module — role-permission matrix, materialized via the event
+// log; YAML-seeded; failsafe bootstrap (REQ-d00172..REQ-d00178, CUR-1192).
+export 'src/permissions/authorization_policy_bootstrap.dart'
+    show AuthorizationPolicyBootstrap, PolicyReady, PolicyFailSafe;
+export 'src/permissions/bootstrap_action_permissions.dart'
+    show bootstrapActionPermissions;
+export 'src/permissions/event_seed_applier.dart'
+    show EventSeedApplier, SeedApplyResult;
+export 'src/permissions/fail_safe_authorization_policy.dart'
+    show FailSafeAuthorizationPolicy;
+export 'src/permissions/in_memory_role_matrix_reader.dart'
+    show InMemoryRoleMatrixReader;
+export 'src/permissions/materialized_view_role_matrix_reader.dart'
+    show MaterializedViewRoleMatrixReader;
+export 'src/permissions/permission_granted_payload.dart'
+    show PermissionGrantedPayload;
+export 'src/permissions/permission_revoked_payload.dart'
+    show PermissionRevokedPayload;
+export 'src/permissions/permission_seed.dart' show PermissionSeed;
+export 'src/permissions/permission_snapshot.dart' show PermissionSnapshot;
+export 'src/permissions/role_matrix_reader.dart' show RoleMatrixReader;
+export 'src/permissions/role_permission_grants_materializer.dart'
+    show RolePermissionGrantsMaterializer;
+export 'src/permissions/seed_validator.dart'
+    show SeedInvalid, SeedValid, SeedValidationResult, SeedValidator;
+export 'src/permissions/snapshot_role_matrix_reader.dart'
+    show SnapshotRoleMatrixReader;
+export 'src/permissions/table_backed_authorization_policy.dart'
+    show TableBackedAuthorizationPolicy;
+export 'src/permissions/yaml_seed_loader.dart' show YamlSeedLoader;
+
 // Security module — Phase 4.4 Tasks 11-15: EventSecurityContext value
 // type, SecurityDetails caller input, SecurityRetentionPolicy sweeps,
 // SecurityContextStore read-only surface, sembast concrete impl, reserved

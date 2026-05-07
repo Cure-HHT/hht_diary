@@ -2,8 +2,6 @@
 // Verifies: REQ-d00176-A (isPermitted with scope-precondition first),
 //           REQ-d00176-B (permissionsFor filters by precondition).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
-import 'package:event_sourcing/src/permissions/table_backed_authorization_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

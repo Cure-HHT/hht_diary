@@ -1,8 +1,6 @@
 // test/permissions/seed_validator_test.dart
 // Verifies: REQ-d00175-B+C+D+E (validator rules).
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/permission_seed.dart';
-import 'package:event_sourcing/src/permissions/seed_validator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -4,7 +4,6 @@
 //   StorageBackend's view methods over the role_permission_grants view.
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class MaterializedViewRoleMatrixReader implements RoleMatrixReader {
   const MaterializedViewRoleMatrixReader(this.backend);
