@@ -16,9 +16,17 @@ import 'package:http/http.dart' as http;
 String get emulatorHost =>
     Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '127.0.0.1:9099';
 
-/// GCP project id used when talking to the emulator.
+/// Project id used when talking to the emulator. Precedence matches
+/// production callers: identity_admin.dart:53, identity_platform.dart:35,
+/// and portal_password_reset.dart:67. A developer who sets only
+/// PORTAL_IDENTITY_PROJECT_ID would otherwise have these helpers talk
+/// to the wrong emulator project ('demo-test') while the code under
+/// test talks to the real one — silent test/code divergence.
 String get emulatorProjectId =>
-    Platform.environment['GCP_PROJECT_ID'] ?? 'demo-test';
+    Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
+    Platform.environment['GCP_PROJECT_ID'] ??
+    Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
+    'demo-test';
 
 /// Base URL for the Identity Toolkit v1 emulator admin endpoints.
 String get _adminBase =>
