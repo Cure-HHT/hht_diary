@@ -195,8 +195,10 @@ Future<Response> activateUserHandler(Request request) async {
     }, 400);
   }
 
-  // Role-based MFA gate. Dev Admins must enroll TOTP before activation
-  // can complete. Other roles use email OTP at login time.
+  // Role lookup. Dev-Admin TOTP enrollment-at-activation gate is
+  // deferred (REQ-d00166-B) — see the if(isDeveloperAdmin) block below
+  // and the TODO at the call site. Non-Dev-Admin roles use email OTP
+  // at sign-in time, not here.
   final rolesResult = await db.executeWithContext(
     'SELECT role::text FROM portal_user_roles WHERE user_id = @userId::uuid ORDER BY role',
     parameters: {'userId': userId},
@@ -235,23 +237,43 @@ Future<Response> activateUserHandler(Request request) async {
     }, 502);
   }
 
-  // Stamp firebase_uid + flip to active, in one TX gated by status='pending'.
-  // REQ-d00166-E: keep activation_code in place after success so a retry
-  // with the same code lands on the same row, sees status='active' at the
-  // short-circuit above, and returns 200 already_active=true. The
-  // status='pending' WHERE clause remains the only gate against re-running
-  // the IdP write.
-  await db.executeWithContext(
+  // Stamp firebase_uid + flip to active, gated by status='pending' AND
+  // matching activation_code. The activation_code clause defends against
+  // a code rotation racing this handler (Dev Admin reissues a fresh code
+  // between SELECT and UPDATE — the in-flight request must not activate
+  // the row using a now-stale code). The status='pending' clause defends
+  // against a concurrent activate that already flipped the row.
+  // RETURNING id lets us detect the 0-row case deterministically.
+  // REQ-d00166-E: activation_code is preserved on success so retries with
+  // the same code re-enter the SELECT->status=='active' short-circuit
+  // above and return 200 already_active=true.
+  final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
     SET firebase_uid = @uid,
         status = 'active',
         updated_at = now()
-    WHERE id = @id::uuid AND status = 'pending'
+    WHERE id = @id::uuid AND status = 'pending' AND activation_code = @code
+    RETURNING id
     ''',
-    parameters: {'uid': idp.uid, 'id': userId},
+    parameters: {'uid': idp.uid, 'id': userId, 'code': code},
     context: serviceContext,
   );
+
+  if (updated.isEmpty) {
+    // Row was deleted, status changed, or activation_code was rotated
+    // between the pre-check and this UPDATE. The IdP write already
+    // happened; the DB binding does not reflect this request. The
+    // caller must restart with the current row state.
+    print(
+      '[ACTIVATION] Activation conflict: row state changed under us '
+      '(userId=$userId, code=$code)',
+    );
+    return _jsonResponse({
+      'error': 'Activation state changed; please retry',
+      'code': 'activation_conflict',
+    }, 409);
+  }
 
   print(
     '[ACTIVATION] Activated $userEmail (uid=${idp.uid}, created=${idp.created})',

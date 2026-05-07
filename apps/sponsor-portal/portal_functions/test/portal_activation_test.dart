@@ -216,7 +216,10 @@ void main() {
             updateCalled = true;
             capturedUid = parameters?['uid'] as String?;
             capturedUserId = parameters?['id'] as String?;
-            return [];
+            // RETURNING id — handler treats empty list as a race conflict.
+            return [
+              ['77777777-7777-7777-7777-777777777777'],
+            ];
           }
           return [];
         };
@@ -260,6 +263,68 @@ void main() {
         expect(updateCalled, isTrue);
         expect(capturedUid, equals('TEST_UID_HAPPY'));
         expect(capturedUserId, equals('77777777-7777-7777-7777-777777777777'));
+      },
+    );
+
+    // Verifies: REQ-d00166-D — UPDATE is gated by both status='pending'
+    // AND activation_code, with RETURNING to detect the 0-row case
+    // deterministically. Simulates a concurrent code rotation between the
+    // pre-check SELECT and the UPDATE: SELECT sees pending+code, but by
+    // the time UPDATE fires the activation_code has changed, so the WHERE
+    // matches 0 rows. The IdP write already happened, so the handler
+    // returns 409 activation_conflict rather than a misleading 200.
+    test(
+      'REQ-d00166-D: returns 409 activation_conflict when UPDATE matches 0 rows',
+      () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '77777777-7777-7777-7777-777777777777',
+                'race@example.com',
+                'Race',
+                'pending',
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            // Simulate the race: WHERE clause matched nothing.
+            return [];
+          }
+          return [];
+        };
+
+        IdentityAdminTestOverride.lookupOrProvision =
+            ({
+              required String email,
+              required String displayName,
+              required String password,
+            }) async {
+              return const LookupOrProvisionResult(
+                uid: 'TEST_UID_RACE',
+                created: true,
+              );
+            };
+        addTearDown(() => IdentityAdminTestOverride.lookupOrProvision = null);
+
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'RACE-00001', 'password': 'pw1'}),
+          ),
+        );
+
+        expect(response.statusCode, equals(409));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('activation_conflict'));
       },
     );
 
