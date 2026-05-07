@@ -71,6 +71,17 @@ void main() {
           return [];
         };
 
+        IdentityAdminTestOverride.lookupOrProvision =
+            ({
+              required String email,
+              required String displayName,
+              required String password,
+            }) async => const LookupOrProvisionResult(
+              uid: 'TEST_UID_PENDING',
+              created: true,
+            );
+        addTearDown(() => IdentityAdminTestOverride.lookupOrProvision = null);
+
         final response = await activateUserHandler(
           createPostRequest(
             '/api/v1/portal/activate',
