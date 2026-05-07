@@ -23,14 +23,9 @@ This plan does **NOT** start until the actions module within `event_sourcing` ha
 - `Principal` with at least `role`, `userId`, `activeSite` fields.
 - `AuthorizationPolicy` abstract class with `isPermitted(Principal, Permission) -> Future<AuthorizationDecision>` and `permissionsFor(Principal) -> Future<Set<Permission>>`.
 - `AuthorizationDecision` sealed type: `Allow` or `Deny(Permission, DenyReason)` where `DenyReason` is `notGranted | sessionPreconditionMissing | bootstrapFailure`.
-- `Role` type — a String-based typed wrapper or a typedef. (See **Role-type seam** below.)
-
 If any of these symbols don't exist or have a different shape, return to the actions module plan (`docs/superpowers/plans/2026-04-22-audited-actions-library.md`); do not bend this module to compensate.
 
-**Role-type seam:** the design doc lists `Role` as a typed-String wrapper. Since both modules now live in `event_sourcing`, `Role` is defined once in `event_sourcing/lib/src/actions/role.dart` and shared directly. No re-export dance needed. Resolution:
-- Verify `Role` is defined in `lib/src/actions/role.dart`; the permissions module imports it from there.
-- If `Role` was implemented as `typedef Role = String;` in the actions module, match that here.
-- Verify which choice the prerequisite plan landed on at the start of Task 2 below; adjust this plan's signatures accordingly.
+**Role-type seam:** Role is treated as `String` throughout. No typed wrapper is introduced (per the actions module convention from plan 1).
 
 `event_sourcing` is on `main` and provides `EventStore`, `StorageBackend`, `Materializer`, `Initiator`, `EventDraft`, `Txn`, `findViewRowsInTxn` / `upsertViewRowInTxn` / `deleteViewRowInTxn` view methods. No new APIs needed from it.
 
@@ -64,157 +59,66 @@ All paths relative to `apps/common-dart/event_sourcing/`. Source files live unde
 
 ```text
 event_sourcing/lib/src/permissions/            NEW module within event_sourcing
-  role.dart                                    Role typedef (or import from actions module)
-      permission_granted_payload.dart          PermissionGrantedPayload value type + JSON
-      permission_revoked_payload.dart          PermissionRevokedPayload value type + JSON
-      role_matrix_reader.dart                  abstract RoleMatrixReader interface
-      in_memory_role_matrix_reader.dart        Map-backed reader (test fixture + FailSafe backing)
-      materialized_view_role_matrix_reader.dart  reader over StorageBackend view methods
-      snapshot_role_matrix_reader.dart         client-side reader over PermissionSnapshot
-      table_backed_authorization_policy.dart   AuthorizationPolicy implementation
-      role_permission_grants_materializer.dart Materializer projecting events -> view
-      permission_seed.dart                     PermissionSeed value type
-      yaml_seed_loader.dart                    parses YAML into PermissionSeed
-      seed_validator.dart                      validates seed against declaredPermissions
-      event_seed_applier.dart                  diffs YAML against view, emits granted events
-      permission_snapshot.dart                 PermissionSnapshot value type + JSON
-      fail_safe_authorization_policy.dart      always-deny policy + bootstrap-error carrier
-      authorization_policy_bootstrap.dart      sealed PolicyReady | PolicyFailSafe
-      bootstrap_action_permissions.dart        top-level convenience function
-  test/
-    permission_granted_payload_test.dart
-    permission_revoked_payload_test.dart
-    in_memory_role_matrix_reader_test.dart
-    materialized_view_role_matrix_reader_test.dart
-    snapshot_role_matrix_reader_test.dart
-    table_backed_authorization_policy_test.dart
-    role_permission_grants_materializer_test.dart
-    yaml_seed_loader_test.dart
-    seed_validator_test.dart
-    event_seed_applier_test.dart
-    permission_snapshot_test.dart
-    fail_safe_authorization_policy_test.dart
-    bootstrap_action_permissions_test.dart
-    test_support/
-      sembast_event_store_harness.dart         shared test helper: builds an in-memory EventStore with the materializer registered
+  permission_granted_payload.dart              PermissionGrantedPayload value type + JSON
+  permission_revoked_payload.dart              PermissionRevokedPayload value type + JSON
+  role_matrix_reader.dart                      abstract RoleMatrixReader interface
+  in_memory_role_matrix_reader.dart            Map-backed reader (test fixture + FailSafe backing)
+  materialized_view_role_matrix_reader.dart    reader over StorageBackend view methods
+  snapshot_role_matrix_reader.dart             client-side reader over PermissionSnapshot
+  table_backed_authorization_policy.dart       AuthorizationPolicy implementation
+  role_permission_grants_materializer.dart     Materializer projecting events -> view
+  permission_seed.dart                         PermissionSeed value type
+  yaml_seed_loader.dart                        parses YAML into PermissionSeed
+  seed_validator.dart                          validates seed against declaredPermissions
+  event_seed_applier.dart                      diffs YAML against view, emits granted events
+  permission_snapshot.dart                     PermissionSnapshot value type + JSON
+  fail_safe_authorization_policy.dart          always-deny policy + bootstrap-error carrier
+  authorization_policy_bootstrap.dart          sealed PolicyReady | PolicyFailSafe
+  bootstrap_action_permissions.dart            top-level convenience function
+event_sourcing/test/permissions/
+  permission_granted_payload_test.dart
+  permission_revoked_payload_test.dart
+  in_memory_role_matrix_reader_test.dart
+  materialized_view_role_matrix_reader_test.dart
+  snapshot_role_matrix_reader_test.dart
+  table_backed_authorization_policy_test.dart
+  role_permission_grants_materializer_test.dart
+  yaml_seed_loader_test.dart
+  seed_validator_test.dart
+  event_seed_applier_test.dart
+  permission_snapshot_test.dart
+  fail_safe_authorization_policy_test.dart
+  bootstrap_action_permissions_test.dart
+  test_support/
+    sembast_event_store_harness.dart           shared test helper: builds an in-memory EventStore with the materializer registered
 ```
 
 ---
 
 ## Phase 0 — Package skeleton
 
-### Task 1: Package skeleton + pubspec
+### Task 1: Confirm package state and add YAML dependency if missing
 
-**Files:**
-- Create: `apps/common-dart/event_sourcing/pubspec.yaml`
-- Create: `apps/common-dart/event_sourcing/analysis_options.yaml`
-- Create: `apps/common-dart/event_sourcing/.gitignore`
-- Create: `apps/common-dart/event_sourcing/README.md` (placeholder)
-- Modify: `apps/common-dart/event_sourcing/lib/event_sourcing.dart` (add permissions module exports)
+The `event_sourcing` package skeleton already exists (pubspec.yaml, analysis_options.yaml, .gitignore, README.md, lib/event_sourcing.dart all present). Dart needs no explicit directory creation — the first source file under `lib/src/permissions/` (Task 2) creates the directory implicitly.
 
-- [ ] **Step 1: Write pubspec.yaml**
+Note: incremental exports to `lib/event_sourcing.dart` are added under a new `// Permissions module` block as each Task 2-15 file lands.
 
-```yaml
-# apps/common-dart/event_sourcing/pubspec.yaml
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00172..REQ-d00178 — role-permission matrix mapping layer.
-#
-# Permissions module within the event_sourcing package. All abstract
-# types (AuthorizationPolicy / Permission / Principal / ScopeClass) and
-# the event store + materializer protocol are in the same package.
+- [ ] **Step 1: Verify the existing pubspec.yaml has `yaml: ^3.1.3` (or compatible).** Read `apps/common-dart/event_sourcing/pubspec.yaml`. If `yaml` is absent, add it under `dependencies:`. If present, no edit is needed and this task is a true no-op.
 
-name: event_sourcing
-description: "Unified event-sourcing library: storage, actions, and permissions modules."
-version: 0.1.0+1
-publish_to: none
-
-environment:
-  sdk: ^3.10.7
-
-dependencies:
-  # No separate path deps needed — this is the event_sourcing package itself.
-  # All actions + permissions symbols are within this same package.
-  meta: ^1.16.0
-  yaml: ^3.1.3
-  uuid: ^4.5.2
-
-dev_dependencies:
-  test: ^1.25.15
-  mocktail: ^1.0.4
-  sembast: ^3.7.3
-  lints: ^5.0.0
-```
-
-- [ ] **Step 2: Write analysis_options.yaml**
-
-```yaml
-# apps/common-dart/event_sourcing/analysis_options.yaml
-include: package:lints/recommended.yaml
-
-analyzer:
-  language:
-    strict-casts: true
-    strict-inference: true
-    strict-raw-types: true
-
-linter:
-  rules:
-    - prefer_const_constructors
-    - prefer_final_locals
-    - require_trailing_commas
-```
-
-- [ ] **Step 3: Write .gitignore**
-
-```text
-# apps/common-dart/event_sourcing/.gitignore
-.dart_tool/
-build/
-coverage/
-pubspec.lock
-**/doc/api/
-```
-
-- [ ] **Step 4: Add permissions exports to lib/event_sourcing.dart**
-
-```dart
-// Add to lib/event_sourcing.dart (incrementally as Tasks 2-15 land):
-// export 'src/permissions/role.dart';
-// ... (each file added as it lands)
-```
-
-- [ ] **Step 5: Write placeholder README.md**
-
-```markdown
-# event_sourcing — permissions module
-
-Role-permission matrix within the `event_sourcing` package. See `docs/superpowers/specs/2026-04-23-action-permissions-design.md` for the design.
-
-Full README in Task 17.
-```
-
-- [ ] **Step 6: Run dart pub get**
+- [ ] **Step 2: If pubspec was edited, run dart pub get**
 
 ```bash
 cd apps/common-dart/event_sourcing
 dart pub get
 ```
 
-Expected: `Got dependencies!` (or `Changed N dependencies!`). This is the event_sourcing package itself — pub get should always succeed.
+Expected: `Got dependencies!` (or `Changed N dependencies!`).
 
-- [ ] **Step 7: Run dart analyze**
-
-```bash
-dart analyze
-```
-
-Expected: `No issues found!`.
-
-- [ ] **Step 8: Commit**
+- [ ] **Step 3: If pubspec was edited, commit**
 
 ```bash
-git add apps/common-dart/event_sourcing/
-git commit -m "[CUR-1192] action_permissions: package skeleton + deps"
+git add apps/common-dart/event_sourcing/pubspec.yaml
+git commit -m "[CUR-1192] action_permissions: add yaml dependency for seed loader"
 ```
 
 ---
@@ -224,13 +128,13 @@ git commit -m "[CUR-1192] action_permissions: package skeleton + deps"
 ### Task 2: PermissionGrantedPayload
 
 **Files:**
-- Create: `lib/src/permission_granted_payload.dart`
-- Test: `test/permission_granted_payload_test.dart`
+- Create: `lib/src/permissions/permission_granted_payload.dart`
+- Test: `test/permissions/permission_granted_payload_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/permission_granted_payload_test.dart
+// test/permissions/permission_granted_payload_test.dart
 // Verifies: REQ-d00174-A (event payload shape for permission_granted)
 import 'package:event_sourcing/event_sourcing.dart' show ScopeClass;
 import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
@@ -277,7 +181,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/permission_granted_payload_test.dart
+dart test test/permissions/permission_granted_payload_test.dart
 ```
 
 Expected: FAIL — undefined `PermissionGrantedPayload`.
@@ -285,7 +189,7 @@ Expected: FAIL — undefined `PermissionGrantedPayload`.
 - [ ] **Step 3: Implement permission_granted_payload.dart**
 
 ```dart
-// lib/src/permission_granted_payload.dart
+// lib/src/permissions/permission_granted_payload.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00174-A (event payload shape for permission_granted).
 
@@ -339,7 +243,7 @@ class PermissionGrantedPayload {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/permission_granted_payload_test.dart
+dart test test/permissions/permission_granted_payload_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -347,20 +251,20 @@ Expected: PASS, 3 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/permission_granted_payload.dart test/permission_granted_payload_test.dart
+git add lib/src/permissions/permission_granted_payload.dart test/permissions/permission_granted_payload_test.dart
 git commit -m "[CUR-1192] action_permissions: PermissionGrantedPayload"
 ```
 
 ### Task 3: PermissionRevokedPayload
 
 **Files:**
-- Create: `lib/src/permission_revoked_payload.dart`
-- Test: `test/permission_revoked_payload_test.dart`
+- Create: `lib/src/permissions/permission_revoked_payload.dart`
+- Test: `test/permissions/permission_revoked_payload_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/permission_revoked_payload_test.dart
+// test/permissions/permission_revoked_payload_test.dart
 // Verifies: REQ-d00174-B (event payload shape for permission_revoked)
 import 'package:event_sourcing/src/permissions/permission_revoked_payload.dart';
 import 'package:test/test.dart';
@@ -391,7 +295,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/permission_revoked_payload_test.dart
+dart test test/permissions/permission_revoked_payload_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -399,7 +303,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement permission_revoked_payload.dart**
 
 ```dart
-// lib/src/permission_revoked_payload.dart
+// lib/src/permissions/permission_revoked_payload.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00174-B (event payload shape for permission_revoked).
 
@@ -442,7 +346,7 @@ class PermissionRevokedPayload {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/permission_revoked_payload_test.dart
+dart test test/permissions/permission_revoked_payload_test.dart
 ```
 
 Expected: PASS, 2 tests.
@@ -450,7 +354,7 @@ Expected: PASS, 2 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/permission_revoked_payload.dart test/permission_revoked_payload_test.dart
+git add lib/src/permissions/permission_revoked_payload.dart test/permissions/permission_revoked_payload_test.dart
 git commit -m "[CUR-1192] action_permissions: PermissionRevokedPayload"
 ```
 
@@ -461,12 +365,12 @@ git commit -m "[CUR-1192] action_permissions: PermissionRevokedPayload"
 ### Task 4: RoleMatrixReader interface
 
 **Files:**
-- Create: `lib/src/role_matrix_reader.dart`
+- Create: `lib/src/permissions/role_matrix_reader.dart`
 
 - [ ] **Step 1: Implement interface**
 
 ```dart
-// lib/src/role_matrix_reader.dart
+// lib/src/permissions/role_matrix_reader.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00176-C (RoleMatrixReader is the single seam between policy and
 //   storage substrate).
@@ -495,20 +399,20 @@ Expected: clean.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add lib/src/role_matrix_reader.dart
+git add lib/src/permissions/role_matrix_reader.dart
 git commit -m "[CUR-1192] action_permissions: RoleMatrixReader interface"
 ```
 
 ### Task 5: InMemoryRoleMatrixReader
 
 **Files:**
-- Create: `lib/src/in_memory_role_matrix_reader.dart`
-- Test: `test/in_memory_role_matrix_reader_test.dart`
+- Create: `lib/src/permissions/in_memory_role_matrix_reader.dart`
+- Test: `test/permissions/in_memory_role_matrix_reader_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/in_memory_role_matrix_reader_test.dart
+// test/permissions/in_memory_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (RoleMatrixReader in-memory impl).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
@@ -552,7 +456,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/in_memory_role_matrix_reader_test.dart
+dart test test/permissions/in_memory_role_matrix_reader_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -560,7 +464,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement in_memory_role_matrix_reader.dart**
 
 ```dart
-// lib/src/in_memory_role_matrix_reader.dart
+// lib/src/permissions/in_memory_role_matrix_reader.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00176-C (RoleMatrixReader in-memory impl). Used as test fixture and
 //   as backing for FailSafeAuthorizationPolicy (with empty map).
@@ -593,7 +497,7 @@ class InMemoryRoleMatrixReader implements RoleMatrixReader {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/in_memory_role_matrix_reader_test.dart
+dart test test/permissions/in_memory_role_matrix_reader_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -601,36 +505,69 @@ Expected: PASS, 3 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/in_memory_role_matrix_reader.dart test/in_memory_role_matrix_reader_test.dart
+git add lib/src/permissions/in_memory_role_matrix_reader.dart test/permissions/in_memory_role_matrix_reader_test.dart
 git commit -m "[CUR-1192] action_permissions: InMemoryRoleMatrixReader"
 ```
 
 ### Task 6: MaterializedViewRoleMatrixReader
 
 **Files:**
-- Create: `lib/src/materialized_view_role_matrix_reader.dart`
-- Test: `test/materialized_view_role_matrix_reader_test.dart`
-- Create: `test/test_support/sembast_event_store_harness.dart`
+- Create: `lib/src/permissions/materialized_view_role_matrix_reader.dart`
+- Test: `test/permissions/materialized_view_role_matrix_reader_test.dart`
+- Create: `test/permissions/test_support/sembast_event_store_harness.dart`
 
 - [ ] **Step 1: Write the test harness**
 
 ```dart
-// test/test_support/sembast_event_store_harness.dart
+// test/permissions/test_support/sembast_event_store_harness.dart
 // Builds an in-memory Sembast-backed EventStore with the
-// RolePermissionGrantsMaterializer registered. Shared by every test in
-// Phases 2-9 that needs a real EventStore + StorageBackend.
+// RolePermissionGrantsMaterializer registered, the role_permission_grant
+// entry type registered (materialize: true), and the initial view
+// target version wired. Shared by every test in Phases 2-9 that needs a
+// real EventStore + StorageBackend.
 
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:event_sourcing/src/permissions/role_permission_grants_materializer.dart';
+import 'package:sembast/sembast_memory.dart';
 
+const String kRolePermissionGrantEntryType = 'role_permission_grant';
+const String kRolePermissionGrantsView = 'role_permission_grants';
+
+/// Build a fresh, isolated in-memory `EventStore` wired with the
+/// permissions module's entry type and materializer. Returns the
+/// `EventStore` (not the `AppendOnlyDatastore` facade) for ergonomic
+/// use in tests.
 Future<EventStore> buildInMemoryEventStore() async {
-  final db = await databaseFactoryMemory.openDatabase('test_db');
-  final backend = SembastBackend(database: db);
-  return bootstrapEventSourcingDatastore(
-    backend: backend,
-    materializers: const <Materializer>[RolePermissionGrantsMaterializer()],
+  final db = await newDatabaseFactoryMemory().openDatabase(
+    'permissions-${DateTime.now().microsecondsSinceEpoch}.db',
   );
+  final backend = SembastBackend(database: db);
+  final datastore = await bootstrapAppendOnlyDatastore(
+    backend: backend,
+    source: const Source(
+      hopId: 'test-server',
+      identifier: 'test-instance-1',
+      softwareVersion: 'event_sourcing_test@0.0.0',
+    ),
+    entryTypes: const <EntryTypeDefinition>[
+      EntryTypeDefinition(
+        id: kRolePermissionGrantEntryType,
+        registeredVersion: 1,
+        name: 'Role-permission grant',
+        widgetId: 'role_permission_grant_v1',
+        widgetConfig: <String, Object?>{},
+        materialize: true,
+      ),
+    ],
+    destinations: const <Destination>[],
+    materializers: const <Materializer>[RolePermissionGrantsMaterializer()],
+    initialViewTargetVersions: const <String, Map<String, int>>{
+      kRolePermissionGrantsView: <String, int>{
+        kRolePermissionGrantEntryType: 1,
+      },
+    },
+  );
+  return datastore.eventStore;
 }
 ```
 
@@ -639,7 +576,7 @@ Future<EventStore> buildInMemoryEventStore() async {
 - [ ] **Step 2: Write failing test**
 
 ```dart
-// test/materialized_view_role_matrix_reader_test.dart
+// test/permissions/materialized_view_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (server-side RoleMatrixReader over StorageBackend).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/materialized_view_role_matrix_reader.dart';
@@ -663,15 +600,14 @@ void main() {
         permissionName: 'user.invite',
         scope: ScopeClass.global,
       );
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: payload.toJson(),
-        ),
-        initiator: const Initiator.automation(service: 'test'),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: 'admin:user.invite',
+        eventType: 'permission_granted',
+        data: payload.toJson(),
+        initiator: const AutomationInitiator(service: 'test'),
       );
       final reader = MaterializedViewRoleMatrixReader(eventStore.backend);
       expect(await reader.isGranted('admin', 'user.invite'), isTrue);
@@ -679,32 +615,30 @@ void main() {
 
     test('REQ-d00176-C: isGranted returns false after PermissionRevoked appended', () async {
       // Grant then revoke.
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: const PermissionGrantedPayload(
-            role: 'admin',
-            permissionName: 'user.invite',
-            scope: ScopeClass.global,
-          ).toJson(),
-        ),
-        initiator: const Initiator.automation(service: 'test'),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: 'admin:user.invite',
+        eventType: 'permission_granted',
+        data: const PermissionGrantedPayload(
+          role: 'admin',
+          permissionName: 'user.invite',
+          scope: ScopeClass.global,
+        ).toJson(),
+        initiator: const AutomationInitiator(service: 'test'),
       );
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_revoked',
-          data: const <String, Object?>{
-            'role': 'admin',
-            'permissionName': 'user.invite',
-          },
-        ),
-        initiator: const Initiator.automation(service: 'test'),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: 'admin:user.invite',
+        eventType: 'permission_revoked',
+        data: const <String, Object?>{
+          'role': 'admin',
+          'permissionName': 'user.invite',
+        },
+        initiator: const AutomationInitiator(service: 'test'),
       );
       final reader = MaterializedViewRoleMatrixReader(eventStore.backend);
       expect(await reader.isGranted('admin', 'user.invite'), isFalse);
@@ -712,19 +646,18 @@ void main() {
 
     test('REQ-d00176-C: grantsForRole returns all current grants for role', () async {
       for (final perm in <String>['user.invite', 'user.role.assign']) {
-        await eventStore.appendWithSecurity(
-          EventDraft(
-            aggregateType: 'role_permission_grant',
-            aggregateId: 'admin:$perm',
-            entryType: 'role_permission_grant',
-            eventType: 'permission_granted',
-            data: PermissionGrantedPayload(
-              role: 'admin',
-              permissionName: perm,
-              scope: ScopeClass.global,
-            ).toJson(),
-          ),
-          initiator: const Initiator.automation(service: 'test'),
+        await eventStore.append(
+          entryType: 'role_permission_grant',
+          entryTypeVersion: 1,
+          aggregateType: 'role_permission_grant',
+          aggregateId: 'admin:$perm',
+          eventType: 'permission_granted',
+          data: PermissionGrantedPayload(
+            role: 'admin',
+            permissionName: perm,
+            scope: ScopeClass.global,
+          ).toJson(),
+          initiator: const AutomationInitiator(service: 'test'),
         );
       }
       final reader = MaterializedViewRoleMatrixReader(eventStore.backend);
@@ -740,7 +673,7 @@ void main() {
 For now, only run the in_memory test to keep CI green:
 
 ```bash
-dart test test/in_memory_role_matrix_reader_test.dart
+dart test test/permissions/in_memory_role_matrix_reader_test.dart
 ```
 
 (The `materialized_view_role_matrix_reader_test.dart` will compile-fail until Task 8 lands the materializer. That's fine — implementer sees green incremental progress.)
@@ -748,7 +681,7 @@ dart test test/in_memory_role_matrix_reader_test.dart
 - [ ] **Step 4: Implement materialized_view_role_matrix_reader.dart**
 
 ```dart
-// lib/src/materialized_view_role_matrix_reader.dart
+// lib/src/permissions/materialized_view_role_matrix_reader.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00176-C (server-side RoleMatrixReader). Reads through
 //   StorageBackend's view methods over the role_permission_grants view.
@@ -765,24 +698,24 @@ class MaterializedViewRoleMatrixReader implements RoleMatrixReader {
 
   @override
   Future<bool> isGranted(String role, String permissionName) async {
-    final row = await backend.findEntry(
-      viewName: _viewName,
-      aggregateId: '$role:$permissionName',
+    final rows = await backend.findViewRows(_viewName);
+    return rows.any(
+      (r) => r['role'] == role && r['permissionName'] == permissionName,
     );
-    return row != null;
   }
 
   @override
   Future<Set<Permission>> grantsForRole(String role) async {
-    final rows = await backend.findEntries(viewName: _viewName);
+    final rows = await backend.findViewRows(_viewName);
     return rows
-        .where((r) => r.data['role'] == role)
+        .where((r) => r['role'] == role)
         .map((r) => Permission(
-              r.data['permissionName']! as String,
+              r['permissionName']! as String,
               scope: ScopeClass.values.firstWhere(
-                (s) => s.name == r.data['scope']! as String,
+                (s) => s.name == r['scope']! as String,
                 orElse: () => throw StateError(
-                  'unknown scope ${r.data['scope']} in row ${r.aggregateId}',
+                  "unknown scope '${r['scope']}' for "
+                  "${r['role']}:${r['permissionName']}",
                 ),
               ),
             ))
@@ -796,24 +729,24 @@ class MaterializedViewRoleMatrixReader implements RoleMatrixReader {
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/src/materialized_view_role_matrix_reader.dart \
-        test/materialized_view_role_matrix_reader_test.dart \
-        test/test_support/sembast_event_store_harness.dart
+git add lib/src/permissions/materialized_view_role_matrix_reader.dart \
+        test/permissions/materialized_view_role_matrix_reader_test.dart \
+        test/permissions/test_support/sembast_event_store_harness.dart
 git commit -m "[CUR-1192] action_permissions: MaterializedViewRoleMatrixReader (test pending Task 8)"
 ```
 
 ### Task 7: SnapshotRoleMatrixReader (client-side)
 
 **Files:**
-- Create: `lib/src/snapshot_role_matrix_reader.dart`
-- Test: `test/snapshot_role_matrix_reader_test.dart`
+- Create: `lib/src/permissions/snapshot_role_matrix_reader.dart`
+- Test: `test/permissions/snapshot_role_matrix_reader_test.dart`
 
 (Note: this depends on `PermissionSnapshot` from Task 12. To avoid cross-cutting test failures, this task imports a minimal placeholder, then Task 12 replaces it. Or — alternative path — implement Task 12 first then come back. The plan keeps the matrix-reader trio together for narrative coherence; the implementer can reorder if preferred.)
 
 - [ ] **Step 1: Write failing test using the eventually-available PermissionSnapshot.**
 
 ```dart
-// test/snapshot_role_matrix_reader_test.dart
+// test/permissions/snapshot_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (client-side RoleMatrixReader), REQ-d00177-C
 // (snapshot is principal-scoped — answers false for any other role).
 import 'package:event_sourcing/event_sourcing.dart';
@@ -856,7 +789,7 @@ void main() {
 - [ ] **Step 3: Implement snapshot_role_matrix_reader.dart**
 
 ```dart
-// lib/src/snapshot_role_matrix_reader.dart
+// lib/src/permissions/snapshot_role_matrix_reader.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00176-C (client-side RoleMatrixReader),
 //   REQ-d00177-C (principal-scoped — only answers for snapshot.role).
@@ -887,7 +820,7 @@ class SnapshotRoleMatrixReader implements RoleMatrixReader {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/snapshot_role_matrix_reader.dart test/snapshot_role_matrix_reader_test.dart
+git add lib/src/permissions/snapshot_role_matrix_reader.dart test/permissions/snapshot_role_matrix_reader_test.dart
 git commit -m "[CUR-1192] action_permissions: SnapshotRoleMatrixReader (test pending Task 12)"
 ```
 
@@ -898,13 +831,13 @@ git commit -m "[CUR-1192] action_permissions: SnapshotRoleMatrixReader (test pen
 ### Task 8: RolePermissionGrantsMaterializer
 
 **Files:**
-- Create: `lib/src/role_permission_grants_materializer.dart`
-- Test: `test/role_permission_grants_materializer_test.dart`
+- Create: `lib/src/permissions/role_permission_grants_materializer.dart`
+- Test: `test/permissions/role_permission_grants_materializer_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/role_permission_grants_materializer_test.dart
+// test/permissions/role_permission_grants_materializer_test.dart
 // Verifies: REQ-d00174-C+D (materializer projects events into view in
 // transaction; permission_revoked deletes view row).
 import 'package:event_sourcing/event_sourcing.dart';
@@ -928,61 +861,59 @@ void main() {
         permissionName: 'user.invite',
         scope: ScopeClass.global,
       );
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: payload.toJson(),
-        ),
-        initiator: const Initiator.automation(service: 'test'),
-      );
-      final row = await eventStore.backend.findEntry(
-        viewName: 'role_permission_grants',
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
         aggregateId: 'admin:user.invite',
+        eventType: 'permission_granted',
+        data: payload.toJson(),
+        initiator: const AutomationInitiator(service: 'test'),
       );
-      expect(row, isNotNull);
-      expect(row!.data['role'], 'admin');
-      expect(row.data['permissionName'], 'user.invite');
-      expect(row.data['scope'], 'global');
+      final rows = await eventStore.backend.findViewRows('role_permission_grants');
+      final row = rows.firstWhere(
+        (r) => r['role'] == 'admin' && r['permissionName'] == 'user.invite',
+        orElse: () => <String, dynamic>{},
+      );
+      expect(row, isNotEmpty);
+      expect(row['role'], 'admin');
+      expect(row['permissionName'], 'user.invite');
+      expect(row['scope'], 'global');
     });
 
     test('REQ-d00174-D: permission_revoked deletes view row', () async {
       // Grant.
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: const PermissionGrantedPayload(
-            role: 'admin',
-            permissionName: 'user.invite',
-            scope: ScopeClass.global,
-          ).toJson(),
-        ),
-        initiator: const Initiator.automation(service: 'test'),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: 'admin:user.invite',
+        eventType: 'permission_granted',
+        data: const PermissionGrantedPayload(
+          role: 'admin',
+          permissionName: 'user.invite',
+          scope: ScopeClass.global,
+        ).toJson(),
+        initiator: const AutomationInitiator(service: 'test'),
       );
       // Revoke.
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_revoked',
-          data: const <String, Object?>{
-            'role': 'admin',
-            'permissionName': 'user.invite',
-          },
-        ),
-        initiator: const Initiator.automation(service: 'test'),
-      );
-      final row = await eventStore.backend.findEntry(
-        viewName: 'role_permission_grants',
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
         aggregateId: 'admin:user.invite',
+        eventType: 'permission_revoked',
+        data: const <String, Object?>{
+          'role': 'admin',
+          'permissionName': 'user.invite',
+        },
+        initiator: const AutomationInitiator(service: 'test'),
       );
-      expect(row, isNull);
+      final rows = await eventStore.backend.findViewRows('role_permission_grants');
+      final row = rows.where(
+        (r) => r['role'] == 'admin' && r['permissionName'] == 'user.invite',
+      );
+      expect(row, isEmpty);
     });
 
     test('REQ-d00174-E: appliesTo filters by aggregateType', () async {
@@ -1000,7 +931,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/role_permission_grants_materializer_test.dart
+dart test test/permissions/role_permission_grants_materializer_test.dart
 ```
 
 Expected: FAIL — undefined `RolePermissionGrantsMaterializer`.
@@ -1008,14 +939,14 @@ Expected: FAIL — undefined `RolePermissionGrantsMaterializer`.
 - [ ] **Step 3: Implement role_permission_grants_materializer.dart**
 
 ```dart
-// lib/src/role_permission_grants_materializer.dart
+// lib/src/permissions/role_permission_grants_materializer.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00174-C (permission_granted -> upsert view row),
 //   REQ-d00174-D (permission_revoked -> delete view row),
 //   REQ-d00174-E (appliesTo filters by aggregateType).
 
-import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
 import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
 
 class RolePermissionGrantsMaterializer extends Materializer {
   const RolePermissionGrantsMaterializer();
@@ -1027,16 +958,24 @@ class RolePermissionGrantsMaterializer extends Materializer {
   bool appliesTo(StoredEvent event) =>
       event.aggregateType == 'role_permission_grant';
 
+  // The matrix has no schema-versioning story — the row payload shape is
+  // fixed (role/permissionName/scope) and entryTypeVersion is pinned at 1.
+  // identityPromoter passes event.data through unchanged.
+  @override
+  EntryPromoter get promoter => identityPromoter;
+
   @override
   Future<void> applyInTxn(
     Txn txn,
     StorageBackend backend, {
     required StoredEvent event,
+    required Map<String, Object?> promotedData,
     required EntryTypeDefinition def,
+    required List<StoredEvent> aggregateHistory,
   }) async {
     switch (event.eventType) {
       case 'permission_granted':
-        final p = PermissionGrantedPayload.fromJson(event.data);
+        final p = PermissionGrantedPayload.fromJson(promotedData);
         await backend.upsertViewRowInTxn(
           txn,
           viewName,
@@ -1062,7 +1001,7 @@ class RolePermissionGrantsMaterializer extends Materializer {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/role_permission_grants_materializer_test.dart
+dart test test/permissions/role_permission_grants_materializer_test.dart
 ```
 
 Expected: PASS, 2-3 tests.
@@ -1070,7 +1009,7 @@ Expected: PASS, 2-3 tests.
 - [ ] **Step 5: Run the deferred materialized-view reader test (Task 6).**
 
 ```bash
-dart test test/materialized_view_role_matrix_reader_test.dart
+dart test test/permissions/materialized_view_role_matrix_reader_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -1078,8 +1017,8 @@ Expected: PASS, 3 tests.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/src/role_permission_grants_materializer.dart \
-        test/role_permission_grants_materializer_test.dart
+git add lib/src/permissions/role_permission_grants_materializer.dart \
+        test/permissions/role_permission_grants_materializer_test.dart
 git commit -m "[CUR-1192] action_permissions: RolePermissionGrantsMaterializer + MaterializedViewRoleMatrixReader tests passing"
 ```
 
@@ -1090,13 +1029,13 @@ git commit -m "[CUR-1192] action_permissions: RolePermissionGrantsMaterializer +
 ### Task 9: TableBackedAuthorizationPolicy
 
 **Files:**
-- Create: `lib/src/table_backed_authorization_policy.dart`
-- Test: `test/table_backed_authorization_policy_test.dart`
+- Create: `lib/src/permissions/table_backed_authorization_policy.dart`
+- Test: `test/permissions/table_backed_authorization_policy_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/table_backed_authorization_policy_test.dart
+// test/permissions/table_backed_authorization_policy_test.dart
 // Verifies: REQ-d00176-A+B (isPermitted, permissionsFor algorithms).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
@@ -1169,7 +1108,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/table_backed_authorization_policy_test.dart
+dart test test/permissions/table_backed_authorization_policy_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1177,7 +1116,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement table_backed_authorization_policy.dart**
 
 ```dart
-// lib/src/table_backed_authorization_policy.dart
+// lib/src/permissions/table_backed_authorization_policy.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00176-A (isPermitted with scope-precondition check before matrix
 //   lookup),
@@ -1227,7 +1166,7 @@ class TableBackedAuthorizationPolicy implements AuthorizationPolicy {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/table_backed_authorization_policy_test.dart
+dart test test/permissions/table_backed_authorization_policy_test.dart
 ```
 
 Expected: PASS, 7 tests.
@@ -1235,8 +1174,8 @@ Expected: PASS, 7 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/table_backed_authorization_policy.dart \
-        test/table_backed_authorization_policy_test.dart
+git add lib/src/permissions/table_backed_authorization_policy.dart \
+        test/permissions/table_backed_authorization_policy_test.dart
 git commit -m "[CUR-1192] action_permissions: TableBackedAuthorizationPolicy"
 ```
 
@@ -1247,14 +1186,14 @@ git commit -m "[CUR-1192] action_permissions: TableBackedAuthorizationPolicy"
 ### Task 10: PermissionSeed value type + YamlSeedLoader
 
 **Files:**
-- Create: `lib/src/permission_seed.dart`
-- Create: `lib/src/yaml_seed_loader.dart`
-- Test: `test/yaml_seed_loader_test.dart`
+- Create: `lib/src/permissions/permission_seed.dart`
+- Create: `lib/src/permissions/yaml_seed_loader.dart`
+- Test: `test/permissions/yaml_seed_loader_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/yaml_seed_loader_test.dart
+// test/permissions/yaml_seed_loader_test.dart
 // Verifies: REQ-d00175-A (YAML schema parsing).
 import 'package:event_sourcing/src/permissions/yaml_seed_loader.dart';
 import 'package:test/test.dart';
@@ -1299,7 +1238,7 @@ grants:
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/yaml_seed_loader_test.dart
+dart test test/permissions/yaml_seed_loader_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1307,7 +1246,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement permission_seed.dart**
 
 ```dart
-// lib/src/permission_seed.dart
+// lib/src/permissions/permission_seed.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00175-A (PermissionSeed value type).
 
@@ -1324,7 +1263,7 @@ class PermissionSeed {
 - [ ] **Step 4: Implement yaml_seed_loader.dart**
 
 ```dart
-// lib/src/yaml_seed_loader.dart
+// lib/src/permissions/yaml_seed_loader.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00175-A (YAML schema parsing into PermissionSeed).
 
@@ -1367,7 +1306,7 @@ class YamlSeedLoader {
 - [ ] **Step 5: Run test, expect pass**
 
 ```bash
-dart test test/yaml_seed_loader_test.dart
+dart test test/permissions/yaml_seed_loader_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -1375,21 +1314,21 @@ Expected: PASS, 3 tests.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/src/permission_seed.dart lib/src/yaml_seed_loader.dart \
-        test/yaml_seed_loader_test.dart
+git add lib/src/permissions/permission_seed.dart lib/src/permissions/yaml_seed_loader.dart \
+        test/permissions/yaml_seed_loader_test.dart
 git commit -m "[CUR-1192] action_permissions: PermissionSeed + YamlSeedLoader"
 ```
 
 ### Task 11: SeedValidator
 
 **Files:**
-- Create: `lib/src/seed_validator.dart`
-- Test: `test/seed_validator_test.dart`
+- Create: `lib/src/permissions/seed_validator.dart`
+- Test: `test/permissions/seed_validator_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/seed_validator_test.dart
+// test/permissions/seed_validator_test.dart
 // Verifies: REQ-d00175-B+C+D+E (validator rules).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/permission_seed.dart';
@@ -1473,7 +1412,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/seed_validator_test.dart
+dart test test/permissions/seed_validator_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1481,7 +1420,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement seed_validator.dart**
 
 ```dart
-// lib/src/seed_validator.dart
+// lib/src/permissions/seed_validator.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00175-B (unknown permission name -> invalid),
 //   REQ-d00175-C (grant key absent from roles list -> invalid),
@@ -1560,7 +1499,7 @@ class SeedValidator {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/seed_validator_test.dart
+dart test test/permissions/seed_validator_test.dart
 ```
 
 Expected: PASS, 6 tests.
@@ -1568,7 +1507,7 @@ Expected: PASS, 6 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/seed_validator.dart test/seed_validator_test.dart
+git add lib/src/permissions/seed_validator.dart test/permissions/seed_validator_test.dart
 git commit -m "[CUR-1192] action_permissions: SeedValidator"
 ```
 
@@ -1579,15 +1518,15 @@ git commit -m "[CUR-1192] action_permissions: SeedValidator"
 ### Task 12: PermissionSnapshot
 
 **Files:**
-- Create: `lib/src/permission_snapshot.dart`
-- Test: `test/permission_snapshot_test.dart`
+- Create: `lib/src/permissions/permission_snapshot.dart`
+- Test: `test/permissions/permission_snapshot_test.dart`
 
 (Implemented now to unblock SnapshotRoleMatrixReader tests from Task 7.)
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/permission_snapshot_test.dart
+// test/permissions/permission_snapshot_test.dart
 // Verifies: REQ-d00177-A (PermissionSnapshot value type and JSON).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
@@ -1619,7 +1558,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/permission_snapshot_test.dart
+dart test test/permissions/permission_snapshot_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1627,7 +1566,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement permission_snapshot.dart**
 
 ```dart
-// lib/src/permission_snapshot.dart
+// lib/src/permissions/permission_snapshot.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00177-A (snapshot value type and serialization).
 
@@ -1679,8 +1618,8 @@ class PermissionSnapshot {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/permission_snapshot_test.dart
-dart test test/snapshot_role_matrix_reader_test.dart
+dart test test/permissions/permission_snapshot_test.dart
+dart test test/permissions/snapshot_role_matrix_reader_test.dart
 ```
 
 Expected: both PASS.
@@ -1688,20 +1627,20 @@ Expected: both PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/permission_snapshot.dart test/permission_snapshot_test.dart
+git add lib/src/permissions/permission_snapshot.dart test/permissions/permission_snapshot_test.dart
 git commit -m "[CUR-1192] action_permissions: PermissionSnapshot + SnapshotRoleMatrixReader tests passing"
 ```
 
 ### Task 13: EventSeedApplier
 
 **Files:**
-- Create: `lib/src/event_seed_applier.dart`
-- Test: `test/event_seed_applier_test.dart`
+- Create: `lib/src/permissions/event_seed_applier.dart`
+- Test: `test/permissions/event_seed_applier_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/event_seed_applier_test.dart
+// test/permissions/event_seed_applier_test.dart
 // Verifies: REQ-d00175-F (applier diff logic), REQ-d00175-G (idempotent
 // across restarts), REQ-d00175-H (drift reported, not auto-revoked).
 import 'package:event_sourcing/event_sourcing.dart';
@@ -1728,7 +1667,7 @@ void main() {
     test('REQ-d00175-F: emits PermissionGranted for every pair in seed when view is empty', () async {
       final applier = EventSeedApplier(
         eventStore: eventStore,
-        seedInitiator: const Initiator.automation(service: 'test'),
+        seedInitiator: const AutomationInitiator(service: 'test'),
       );
       final seed = PermissionSeed(
         roles: <String>{'admin', 'investigator'},
@@ -1746,7 +1685,7 @@ void main() {
     test('REQ-d00175-G: re-running with unchanged seed emits zero events (idempotent)', () async {
       final applier = EventSeedApplier(
         eventStore: eventStore,
-        seedInitiator: const Initiator.automation(service: 'test'),
+        seedInitiator: const AutomationInitiator(service: 'test'),
       );
       final seed = PermissionSeed(
         roles: <String>{'admin'},
@@ -1760,24 +1699,23 @@ void main() {
 
     test('REQ-d00175-H: reports drift (grant in view not in seed) without revoking', () async {
       // Manually grant something the seed will not contain.
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: 'admin:user.invite',
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: const PermissionGrantedPayload(
-            role: 'admin',
-            permissionName: 'user.invite',
-            scope: ScopeClass.global,
-          ).toJson(),
-        ),
-        initiator: const Initiator.automation(service: 'pre-existing'),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: 'admin:user.invite',
+        eventType: 'permission_granted',
+        data: const PermissionGrantedPayload(
+          role: 'admin',
+          permissionName: 'user.invite',
+          scope: ScopeClass.global,
+        ).toJson(),
+        initiator: const AutomationInitiator(service: 'pre-existing'),
       );
 
       final applier = EventSeedApplier(
         eventStore: eventStore,
-        seedInitiator: const Initiator.automation(service: 'test'),
+        seedInitiator: const AutomationInitiator(service: 'test'),
       );
       // Seed does not include user.invite for admin.
       final seed = PermissionSeed(
@@ -1789,11 +1727,11 @@ void main() {
       expect(result.grantsInViewNotInSeed, contains('admin:user.invite'));
 
       // The pre-existing grant is still in the view (no revocation emitted).
-      final row = await eventStore.backend.findEntry(
-        viewName: 'role_permission_grants',
-        aggregateId: 'admin:user.invite',
+      final rows = await eventStore.backend.findViewRows('role_permission_grants');
+      final matching = rows.where(
+        (r) => r['role'] == 'admin' && r['permissionName'] == 'user.invite',
       );
-      expect(row, isNotNull);
+      expect(matching, isNotEmpty);
     });
   });
 }
@@ -1802,7 +1740,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/event_seed_applier_test.dart
+dart test test/permissions/event_seed_applier_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1810,7 +1748,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement event_seed_applier.dart**
 
 ```dart
-// lib/src/event_seed_applier.dart
+// lib/src/permissions/event_seed_applier.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00175-F (diff yaml against view, emit missing grants),
 //   REQ-d00175-G (idempotent across restarts),
@@ -1852,9 +1790,13 @@ class EventSeedApplier {
       for (final p in declared) p.name: p,
     };
 
-    // Read current grants in view.
-    final rows = await eventStore.backend.findEntries(viewName: 'role_permission_grants');
-    final inView = <String>{for (final r in rows) r.aggregateId};
+    // Read current grants in view. Reconstruct the '<role>:<permName>'
+    // pair-id (matching the events' aggregateId) from the row payload —
+    // the row itself does not carry the storage key.
+    final rows = await eventStore.backend.findViewRows('role_permission_grants');
+    final inView = <String>{
+      for (final r in rows) '${r['role']}:${r['permissionName']}',
+    };
 
     // Compute pairs implied by seed.
     final inSeed = <String>{};
@@ -1878,18 +1820,17 @@ class EventSeedApplier {
         // Validator should have caught this earlier; defensive.
         throw StateError('permission $permName not in declaredPermissions during apply');
       }
-      await eventStore.appendWithSecurity(
-        EventDraft(
-          aggregateType: 'role_permission_grant',
-          aggregateId: id,
-          entryType: 'role_permission_grant',
-          eventType: 'permission_granted',
-          data: PermissionGrantedPayload(
-            role: role,
-            permissionName: permName,
-            scope: perm.scope,
-          ).toJson(),
-        ),
+      await eventStore.append(
+        entryType: 'role_permission_grant',
+        entryTypeVersion: 1,
+        aggregateType: 'role_permission_grant',
+        aggregateId: id,
+        eventType: 'permission_granted',
+        data: PermissionGrantedPayload(
+          role: role,
+          permissionName: permName,
+          scope: perm.scope,
+        ).toJson(),
         initiator: seedInitiator,
       );
     }
@@ -1906,7 +1847,7 @@ class EventSeedApplier {
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/event_seed_applier_test.dart
+dart test test/permissions/event_seed_applier_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -1914,7 +1855,7 @@ Expected: PASS, 3 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/event_seed_applier.dart test/event_seed_applier_test.dart
+git add lib/src/permissions/event_seed_applier.dart test/permissions/event_seed_applier_test.dart
 git commit -m "[CUR-1192] action_permissions: EventSeedApplier"
 ```
 
@@ -1925,14 +1866,14 @@ git commit -m "[CUR-1192] action_permissions: EventSeedApplier"
 ### Task 14: FailSafeAuthorizationPolicy
 
 **Files:**
-- Create: `lib/src/fail_safe_authorization_policy.dart`
-- Create: `lib/src/authorization_policy_bootstrap.dart`
-- Test: `test/fail_safe_authorization_policy_test.dart`
+- Create: `lib/src/permissions/fail_safe_authorization_policy.dart`
+- Create: `lib/src/permissions/authorization_policy_bootstrap.dart`
+- Test: `test/permissions/fail_safe_authorization_policy_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/fail_safe_authorization_policy_test.dart
+// test/permissions/fail_safe_authorization_policy_test.dart
 // Verifies: REQ-d00178-A (fail-safe denies all).
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing/src/permissions/fail_safe_authorization_policy.dart';
@@ -1963,7 +1904,7 @@ void main() {
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/fail_safe_authorization_policy_test.dart
+dart test test/permissions/fail_safe_authorization_policy_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -1971,7 +1912,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement fail_safe_authorization_policy.dart**
 
 ```dart
-// lib/src/fail_safe_authorization_policy.dart
+// lib/src/permissions/fail_safe_authorization_policy.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00178-A (every query denies with bootstrapFailure reason).
 
@@ -1996,7 +1937,7 @@ class FailSafeAuthorizationPolicy implements AuthorizationPolicy {
 - [ ] **Step 4: Implement authorization_policy_bootstrap.dart**
 
 ```dart
-// lib/src/authorization_policy_bootstrap.dart
+// lib/src/permissions/authorization_policy_bootstrap.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00178-B (sealed PolicyReady | PolicyFailSafe with isReady flag).
 
@@ -2040,7 +1981,7 @@ final class PolicyFailSafe extends AuthorizationPolicyBootstrap {
 - [ ] **Step 5: Run test, expect pass**
 
 ```bash
-dart test test/fail_safe_authorization_policy_test.dart
+dart test test/permissions/fail_safe_authorization_policy_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -2048,22 +1989,22 @@ Expected: PASS, 3 tests.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/src/fail_safe_authorization_policy.dart \
-        lib/src/authorization_policy_bootstrap.dart \
-        test/fail_safe_authorization_policy_test.dart
+git add lib/src/permissions/fail_safe_authorization_policy.dart \
+        lib/src/permissions/authorization_policy_bootstrap.dart \
+        test/permissions/fail_safe_authorization_policy_test.dart
 git commit -m "[CUR-1192] action_permissions: FailSafe policy + bootstrap sealed type"
 ```
 
 ### Task 15: bootstrapActionPermissions top-level function
 
 **Files:**
-- Create: `lib/src/bootstrap_action_permissions.dart`
-- Test: `test/bootstrap_action_permissions_test.dart`
+- Create: `lib/src/permissions/bootstrap_action_permissions.dart`
+- Test: `test/permissions/bootstrap_action_permissions_test.dart`
 
 - [ ] **Step 1: Write failing test**
 
 ```dart
-// test/bootstrap_action_permissions_test.dart
+// test/permissions/bootstrap_action_permissions_test.dart
 // Verifies: REQ-d00178-B (bootstrap sequence). End-to-end: well-formed YAML
 // + valid declared perms -> PolicyReady; mismatched yaml -> PolicyFailSafe.
 import 'package:event_sourcing/event_sourcing.dart';
@@ -2164,7 +2105,7 @@ grants:
 - [ ] **Step 2: Run test, expect fail**
 
 ```bash
-dart test test/bootstrap_action_permissions_test.dart
+dart test test/permissions/bootstrap_action_permissions_test.dart
 ```
 
 Expected: FAIL — undefined.
@@ -2172,7 +2113,7 @@ Expected: FAIL — undefined.
 - [ ] **Step 3: Implement bootstrap_action_permissions.dart**
 
 ```dart
-// lib/src/bootstrap_action_permissions.dart
+// lib/src/permissions/bootstrap_action_permissions.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00178-B (top-level bootstrap sequence: load -> validate -> apply
 //   -> construct policy).
@@ -2196,7 +2137,7 @@ Future<AuthorizationPolicyBootstrap> bootstrapActionPermissions({
   String? yamlPath,
   String? yamlSource,
   Initiator seedInitiator =
-      const Initiator.automation(service: 'event_sourcing_permissions_seed'),
+      const AutomationInitiator(service: 'event_sourcing_permissions_seed'),
 }) async {
   if ((yamlPath == null) == (yamlSource == null)) {
     throw ArgumentError('exactly one of yamlPath or yamlSource must be provided');
@@ -2231,7 +2172,7 @@ Future<AuthorizationPolicyBootstrap> bootstrapActionPermissions({
 - [ ] **Step 4: Run test, expect pass**
 
 ```bash
-dart test test/bootstrap_action_permissions_test.dart
+dart test test/permissions/bootstrap_action_permissions_test.dart
 ```
 
 Expected: PASS, 3 tests.
@@ -2239,8 +2180,8 @@ Expected: PASS, 3 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/src/bootstrap_action_permissions.dart \
-        test/bootstrap_action_permissions_test.dart
+git add lib/src/permissions/bootstrap_action_permissions.dart \
+        test/permissions/bootstrap_action_permissions_test.dart
 git commit -m "[CUR-1192] action_permissions: bootstrapActionPermissions top-level"
 ```
 
@@ -2263,22 +2204,22 @@ git commit -m "[CUR-1192] action_permissions: bootstrapActionPermissions top-lev
 
 library event_sourcing;
 
-export 'src/authorization_policy_bootstrap.dart';
-export 'src/bootstrap_action_permissions.dart';
-export 'src/event_seed_applier.dart' show EventSeedApplier, SeedApplyResult;
-export 'src/fail_safe_authorization_policy.dart';
-export 'src/in_memory_role_matrix_reader.dart';
-export 'src/materialized_view_role_matrix_reader.dart';
-export 'src/permission_granted_payload.dart';
-export 'src/permission_revoked_payload.dart';
-export 'src/permission_seed.dart';
-export 'src/permission_snapshot.dart';
-export 'src/role_matrix_reader.dart';
-export 'src/role_permission_grants_materializer.dart';
-export 'src/seed_validator.dart' show SeedValidator, SeedValidationResult, SeedValid, SeedInvalid;
-export 'src/snapshot_role_matrix_reader.dart';
-export 'src/table_backed_authorization_policy.dart';
-export 'src/yaml_seed_loader.dart';
+export 'src/permissions/authorization_policy_bootstrap.dart';
+export 'src/permissions/bootstrap_action_permissions.dart';
+export 'src/permissions/event_seed_applier.dart' show EventSeedApplier, SeedApplyResult;
+export 'src/permissions/fail_safe_authorization_policy.dart';
+export 'src/permissions/in_memory_role_matrix_reader.dart';
+export 'src/permissions/materialized_view_role_matrix_reader.dart';
+export 'src/permissions/permission_granted_payload.dart';
+export 'src/permissions/permission_revoked_payload.dart';
+export 'src/permissions/permission_seed.dart';
+export 'src/permissions/permission_snapshot.dart';
+export 'src/permissions/role_matrix_reader.dart';
+export 'src/permissions/role_permission_grants_materializer.dart';
+export 'src/permissions/seed_validator.dart' show SeedValidator, SeedValidationResult, SeedValid, SeedInvalid;
+export 'src/permissions/snapshot_role_matrix_reader.dart';
+export 'src/permissions/table_backed_authorization_policy.dart';
+export 'src/permissions/yaml_seed_loader.dart';
 ```
 
 - [ ] **Step 2: Run analyze**
@@ -2334,10 +2275,34 @@ import 'package:event_sourcing/event_sourcing.dart';
 Future<void> main() async {
   // 1. Construct EventStore with the materializer in its list.
   final backend = SembastBackend(database: db);
-  final eventStore = await bootstrapEventSourcingDatastore(
+  final datastore = await bootstrapAppendOnlyDatastore(
     backend: backend,
-    materializers: const <Materializer>[RolePermissionGrantsMaterializer()],
+    source: const Source(
+      hopId: 'portal-server',
+      identifier: 'portal-instance-1',
+      softwareVersion: 'portal@0.1.0',
+    ),
+    entryTypes: const <EntryTypeDefinition>[
+      EntryTypeDefinition(
+        id: 'role_permission_grant',
+        registeredVersion: 1,
+        name: 'Role-permission grant',
+        widgetId: 'role_permission_grant_v1',
+        widgetConfig: <String, Object?>{},
+        materialize: true,
+      ),
+      // ... plus any other host-specific entry types ...
+    ],
+    destinations: const <Destination>[],
+    materializers: const <Materializer>[
+      RolePermissionGrantsMaterializer(),
+      // ... plus any other host-specific materializers ...
+    ],
+    initialViewTargetVersions: const <String, Map<String, int>>{
+      'role_permission_grants': <String, int>{'role_permission_grant': 1},
+    },
   );
+  final eventStore = datastore.eventStore;
 
   // 2. Construct your ActionRegistry.
   final registry = ActionRegistry();
@@ -2416,7 +2381,7 @@ dart test
 dart analyze
 ```
 
-In-memory Sembast harness (`test/test_support/sembast_event_store_harness.dart`) wraps the materializer and event store; reused by every test that needs a real EventStore.
+In-memory Sembast harness (`test/permissions/test_support/sembast_event_store_harness.dart`) wraps the materializer and event store; reused by every test that needs a real EventStore.
 
 ## Related
 
