@@ -107,8 +107,10 @@ Router createRouter() {
 
   // Activation endpoints
   // GET is unauthenticated (validates code before user has account)
-  // POST is unauthenticated: accepts {code, password} in body, sets password and
-  //   issues Identity Platform token directly (no bearer required)
+  // POST is unauthenticated: accepts {code, password} in body, provisions
+  //   the IdP user (lookupOrProvisionByEmail), stamps firebase_uid, flips
+  //   status='active', returns {ok, roles}. The client signs in client-side
+  //   after success — no token is issued by this handler.
   router.get('/api/v1/portal/activate/<code>', validateActivationCodeHandler);
   router.post('/api/v1/portal/activate', activateUserHandler);
 

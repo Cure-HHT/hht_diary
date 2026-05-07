@@ -255,13 +255,13 @@ B. The handler SHALL validate the code (exists, not expired, status='pending', M
 
 C. The handler SHALL call IdentityAdmin.lookupOrProvisionByEmail exactly once per request.
 
-D. On lookupOrProvisionByEmail success, the handler SHALL stamp portal_users.firebase_uid, flip status to 'active', and clear activation_code in a single transaction guarded by WHERE status='pending'.
+D. On lookupOrProvisionByEmail success, the handler SHALL stamp portal_users.firebase_uid and flip status to 'active' in a single transaction guarded by WHERE status='pending'. The activation_code remains in place after success; the status='pending' WHERE clause is the sole gate against re-running the IdP write.
 
-E. On retry after a successful activation, the handler SHALL return {ok: true, already_active: true} without a second Identity Platform call.
+E. On retry after a successful activation, the handler SHALL return {ok: true, already_active: true} without a second Identity Platform call. The retry path locates the row by activation_code and short-circuits when status='active'.
 
 F. Identity Platform mutations SHALL precede DB mutations; failure of either SHALL leave the system in a state from which retry converges.
 
-*End* *Server-owned portal activation* | **Hash**: 0e3b6c80
+*End* *Server-owned portal activation* | **Hash**: 20f83e64
 ## REQ-d00167: Identity Platform binding is set only at activation
 
 **Level**: dev | **Status**: Draft | **Implements**: -

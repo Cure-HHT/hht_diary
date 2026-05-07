@@ -25,6 +25,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:postgres/postgres.dart' show Sql;
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -1237,21 +1238,24 @@ Future<Response> deletePendingPortalUserHandler(
     }, 400);
   }
 
-  await db.executeWithContext(
-    'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
-    parameters: {'id': userId},
-    context: serviceContext,
-  );
-  await db.executeWithContext(
-    'DELETE FROM portal_user_site_access WHERE user_id = @id::uuid',
-    parameters: {'id': userId},
-    context: serviceContext,
-  );
-  await db.executeWithContext(
-    'DELETE FROM portal_users WHERE id = @id::uuid',
-    parameters: {'id': userId},
-    context: serviceContext,
-  );
+  // Atomic delete: all three tables in one TX so a mid-failure can't leave
+  // orphan rows in portal_user_roles or portal_user_site_access.
+  await db.runTransactionWithContext((session) async {
+    await session.execute(
+      Sql.named('DELETE FROM portal_user_roles WHERE user_id = @id::uuid'),
+      parameters: {'id': userId},
+    );
+    await session.execute(
+      Sql.named(
+        'DELETE FROM portal_user_site_access WHERE user_id = @id::uuid',
+      ),
+      parameters: {'id': userId},
+    );
+    await session.execute(
+      Sql.named('DELETE FROM portal_users WHERE id = @id::uuid'),
+      parameters: {'id': userId},
+    );
+  }, context: serviceContext);
 
   print('[PORTAL_USER] Deleted pending user $userId by ${user.id}');
   return _jsonResponse({'ok': true}, 200);

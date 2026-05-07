@@ -5,13 +5,18 @@
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
 //   REQ-d00166: Server-owned portal activation
 //
-// Activation page - new users activate their accounts with activation codes
+// Activation page - new users activate their accounts with activation codes.
 // After password creation:
 // - The server creates/updates the IdP user, sets emailVerified=true, and
 //   stamps portal_users.firebase_uid. The client then signs in with the
-//   chosen password.
-// - Developer Admins: redirects to 2FA (TOTP) setup
-// - All other users: account activates directly (will use email OTP on login)
+//   chosen password and lands on /common-dashboard, which resolves the
+//   role-specific dashboard from AuthService.currentUser.activeRole.
+// - Developer Admin TOTP enrollment-at-activation is deferred
+//   (REQ-d00166-B); tracker test in
+//   integration_test/portal_activation_test.dart, TODO at
+//   portal_activation.dart:202. When portal_users.totp_enrolled_at lands,
+//   this page will redirect Dev Admins to /activate/2fa before signing in.
+// - Non-Dev-Admin users go straight to sign-in; email OTP MFA fires there.
 
 import 'dart:convert';
 
@@ -21,7 +26,6 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
-import '../services/auth_service.dart';
 import '../services/firebase_emulator_helper.dart';
 import '../widgets/error_message.dart';
 
@@ -193,7 +197,11 @@ class _ActivationPageState extends State<ActivationPage> {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
 
       if (!mounted) return;
-      context.go('/common-dashboard', extra: UserRole.administrator);
+      // No `extra` — CommonDashboard resolves the role from
+      // AuthService.currentUser.activeRole. Activated users may be CRA,
+      // Investigator, Study Coordinator, etc.; hard-coding administrator
+      // here would route them to the wrong dashboard.
+      context.go('/common-dashboard');
     } catch (e) {
       debugPrint('Activation error: $e');
       if (mounted) {
