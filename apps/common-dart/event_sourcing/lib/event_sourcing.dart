@@ -105,6 +105,7 @@ export 'package:provenance/provenance.dart' show BatchContext, ProvenanceEntry;
 // consolidation, CUR-1192).
 export 'src/actions/action.dart' show Action;
 export 'src/actions/action_context.dart' show ActionContext;
+export 'src/actions/action_registry.dart' show ActionRegistry;
 export 'src/actions/dispatch_result.dart'
     show
         DispatchAuthorizationDenied,
