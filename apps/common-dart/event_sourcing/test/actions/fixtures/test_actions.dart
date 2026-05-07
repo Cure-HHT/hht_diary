@@ -1,9 +1,14 @@
 import 'package:event_sourcing/event_sourcing.dart' show EventDraft;
 import 'package:event_sourcing/src/actions/action.dart';
 import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/authorization_decision.dart'
+    show Allow, AuthorizationDecision;
+import 'package:event_sourcing/src/actions/authorization_policy.dart'
+    show AuthorizationPolicy;
 import 'package:event_sourcing/src/actions/execution_result.dart';
 import 'package:event_sourcing/src/actions/idempotency.dart';
 import 'package:event_sourcing/src/actions/permission.dart';
+import 'package:event_sourcing/src/actions/principal.dart' show Principal;
 import 'package:event_sourcing/src/actions/scope_class.dart';
 
 /// Always-succeeds, emits one event.
@@ -92,4 +97,32 @@ class RequiredKeyAction extends HelloAction {
 
   @override
   Idempotency get idempotency => Idempotency.required;
+}
+
+/// Action with TWO permissions, for testing first-deny short-circuit.
+class TwoPermissionAction extends HelloAction {
+  @override
+  String get name => 'two_perms';
+
+  @override
+  Set<Permission> get permissions => {
+    const Permission('test.first', scope: ScopeClass.global),
+    const Permission('test.second', scope: ScopeClass.global),
+  };
+}
+
+/// Authorization policy that allows every request. Used in Stage 6 tests
+/// to verify the all-Allow path falls through to Stage 7.
+class AlwaysAllowPolicy extends AuthorizationPolicy {
+  const AlwaysAllowPolicy();
+
+  @override
+  Future<AuthorizationDecision> isPermitted(
+    Principal principal,
+    Permission permission,
+  ) async => const Allow();
+
+  @override
+  Future<Set<Permission>> permissionsFor(Principal principal) async =>
+      const <Permission>{};
 }

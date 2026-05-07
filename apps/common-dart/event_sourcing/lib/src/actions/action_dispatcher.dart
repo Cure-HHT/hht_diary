@@ -1,17 +1,20 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00168 (Dispatcher Pipeline): owner of the 10-stage pipeline.
 //   This file currently implements stages 1 (lookup), 2 (invocation_id),
-//   3 (parse), 4 (idempotency check), and 5 (validate).
-//   Stages 6-10 land in subsequent commits per plan-1 Tasks 18-22.
+//   3 (parse), 4 (idempotency check), 5 (validate), and 6 (authorize).
+//   Stages 7-10 land in subsequent commits per plan-1 Tasks 19-22.
 
 import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/authorization_decision.dart'
+    show Deny;
 import 'package:event_sourcing/src/actions/authorization_policy.dart';
 import 'package:event_sourcing/src/actions/denial_events.dart';
 import 'package:event_sourcing/src/actions/dispatch_result.dart';
 import 'package:event_sourcing/src/actions/idempotency.dart';
 import 'package:event_sourcing/src/actions/idempotency_errors.dart';
 import 'package:event_sourcing/src/actions/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/principal.dart' show UserPrincipal;
 import 'package:event_sourcing/src/event_draft.dart';
 import 'package:event_sourcing/src/event_store.dart';
 import 'package:uuid/uuid.dart';
@@ -53,7 +56,13 @@ class ActionDispatcher {
   ///             new event emitted.
   ///   Stage 5 — call `action.validate(parsedInput)`; on throw, emit
   ///             `validation_denied` and return [DispatchValidationDenied].
-  ///   Stages 6-10 — TODO in plan-1 Tasks 18-22.
+  ///   Stage 6 — for each `action.permissions`, await
+  ///             `authorization.isPermitted`. First [Deny] short-circuits:
+  ///             emit `authorization_denied` (with `permission_denied`,
+  ///             optional `principal_active_role`, and `deny_reason`) and
+  ///             return [DispatchAuthorizationDenied]. All-Allow falls
+  ///             through to Stage 7.
+  ///   Stages 7-10 — TODO in plan-1 Tasks 19-22.
   Future<DispatchResult<Object?>> dispatch(
     String actionName,
     Map<String, Object?> rawInput,
@@ -148,9 +157,34 @@ class ActionDispatcher {
       return DispatchResult<Object?>.validationDenied(err);
     }
 
-    // Stages 6-10 land in subsequent tasks.
+    // Stage 6: authorize
+    // Implements: REQ-d00168-G
+    final principal = ctx.principal;
+    final principalActiveRole = principal is UserPrincipal
+        ? principal.activeRole
+        : null;
+
+    for (final permission in action.permissions) {
+      final decision = await authorization.isPermitted(principal, permission);
+      if (decision is Deny) {
+        final denial = denialAuthorizationDenied(
+          invocationId: invocationId,
+          actionName: action.name,
+          permission: decision.permission,
+          principalActiveRole: principalActiveRole,
+          denyReason: decision.reason,
+          actionInvocationMetadata: Map<String, dynamic>.from(
+            invocationMetadata,
+          ),
+        );
+        await _persistDenial(denial, ctx, flowToken: flowToken);
+        return DispatchResult<Object?>.authorizationDenied(decision.permission);
+      }
+    }
+
+    // Stages 7-10 land in subsequent tasks.
     throw UnimplementedError(
-      'Stages 6-10 of the dispatcher pipeline are added in plan-1 Tasks 18-22.',
+      'Stages 7-10 of the dispatcher pipeline are added in plan-1 Tasks 19-22.',
     );
   }
 

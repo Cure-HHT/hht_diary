@@ -4,6 +4,8 @@
 //   stage. Sanitization (REQ-d00171-C) strips stack traces, file paths,
 //   and likely-input-echoes before the message lands in the audit log.
 
+import 'package:event_sourcing/src/actions/authorization_decision.dart'
+    show DenyReason;
 import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:event_sourcing/src/event_draft.dart';
 
@@ -93,11 +95,18 @@ EventDraft denialValidationDenied({
 );
 
 /// Stage 6 (authorize) failure: a declared permission was denied.
+///
+/// [denyReason] is optional richer audit data serialized as
+/// `data['deny_reason']` (the `DenyReason` enum name). Per REQ-d00171-A,
+/// authorization_denied events SHALL additionally carry `permission_denied`
+/// and (when available) `principal_active_role`; `deny_reason` is an
+/// additional "(when available)" field for richer audit.
 EventDraft denialAuthorizationDenied({
   required String invocationId,
   required String actionName,
   required Permission permission,
   String? principalActiveRole,
+  DenyReason? denyReason,
   Map<String, dynamic>? actionInvocationMetadata,
 }) => EventDraft(
   aggregateId: invocationId,
@@ -110,6 +119,7 @@ EventDraft denialAuthorizationDenied({
     // ignore: use_null_aware_elements — literal string key; ?key: value would warn "key can't be null"
     if (principalActiveRole != null)
       'principal_active_role': principalActiveRole,
+    if (denyReason != null) 'deny_reason': denyReason.name,
   },
   metadata: actionInvocationMetadata,
 );

@@ -1,3 +1,5 @@
+import 'package:event_sourcing/src/actions/authorization_decision.dart'
+    show DenyReason;
 import 'package:event_sourcing/src/actions/denial_events.dart';
 import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:event_sourcing/src/actions/scope_class.dart';
@@ -81,6 +83,31 @@ void main() {
           permission: const Permission('user.delete', scope: ScopeClass.global),
         );
         expect(draft.data.containsKey('principal_active_role'), isFalse);
+      },
+    );
+
+    test(
+      'REQ-d00171-A: authorizationDenied with denyReason serializes enum name',
+      () {
+        final draft = denialAuthorizationDenied(
+          invocationId: 'inv-1',
+          actionName: 'user.delete',
+          permission: const Permission('user.delete', scope: ScopeClass.global),
+          denyReason: DenyReason.sessionPreconditionMissing,
+        );
+        expect(draft.data['deny_reason'], 'sessionPreconditionMissing');
+      },
+    );
+
+    test(
+      'REQ-d00171-A: authorizationDenied without denyReason omits deny_reason field',
+      () {
+        final draft = denialAuthorizationDenied(
+          invocationId: 'inv-1',
+          actionName: 'user.delete',
+          permission: const Permission('user.delete', scope: ScopeClass.global),
+        );
+        expect(draft.data.containsKey('deny_reason'), isFalse);
       },
     );
 

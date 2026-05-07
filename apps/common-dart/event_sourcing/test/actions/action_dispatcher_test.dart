@@ -8,7 +8,14 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 
-import 'fixtures/test_actions.dart';
+import 'fixtures/test_actions.dart'
+    show
+        AlwaysAllowPolicy,
+        BadParseAction,
+        BadValidateAction,
+        HelloAction,
+        RequiredKeyAction,
+        TwoPermissionAction;
 
 ActionContext _ctx() => ActionContext(
   principal: const Principal.user(
@@ -238,22 +245,15 @@ void main() {
     test(
       'REQ-d00170-A: idempotency.none ignores supplied key — no store record created',
       () async {
-        // HelloAction has Idempotency.none. Dispatch with a key; it should
-        // reach Stage 6 (UnimplementedError) — we catch that and then verify
-        // the idempotency store has no entry.
-        Object? caught;
-        try {
-          await dispatcher.dispatch(
-            'hello',
-            const <String, Object?>{'who': 'world'},
-            _ctx(),
-            idempotencyKey: 'should-be-ignored',
-          );
-        } catch (e) {
-          caught = e;
-        }
-        // Stage 6 UnimplementedError is expected.
-        expect(caught, isA<UnimplementedError>());
+        // HelloAction has Idempotency.none. Dispatch with a key; Stage 6
+        // (authorize) now runs and DenyAllAuthorizationPolicy denies it —
+        // the important thing is no idempotency record is created.
+        await dispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
+          idempotencyKey: 'should-be-ignored',
+        );
 
         final entry = await idempotency.lookup(
           'hello',
@@ -296,6 +296,74 @@ void main() {
         expect(
           denials.first.data['error_class'],
           StateError('').runtimeType.toString(),
+        );
+      },
+    );
+  });
+
+  group('Stage 6 — authorize', () {
+    test(
+      'REQ-d00168-G: authz denial returns DispatchAuthorizationDenied',
+      () async {
+        // Default dispatcher uses DenyAllAuthorizationPolicy.forTests().
+        // HelloAction declares permission test.hello which will be denied.
+        final result = await dispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
+        );
+        expect(result, isA<DispatchAuthorizationDenied<Object?>>());
+        final denied = result as DispatchAuthorizationDenied<Object?>;
+        expect(denied.permission.name, 'test.hello');
+      },
+    );
+
+    test(
+      'REQ-d00168-G: authz denial emits authorization_denied event',
+      () async {
+        await dispatcher.dispatch('hello', const <String, Object?>{
+          'who': 'world',
+        }, _ctx());
+        final allEvents = await eventStore.backend.findAllEvents();
+        final denials = allEvents
+            .where((e) => e.eventType == 'authorization_denied')
+            .toList();
+        expect(denials, hasLength(1));
+        expect(denials.first.data['permission_denied'], 'test.hello');
+        // DenyAllAuthorizationPolicy always denies with DenyReason.notGranted.
+        expect(denials.first.data['deny_reason'], 'notGranted');
+      },
+    );
+
+    test(
+      'REQ-d00168-G: first denial short-circuits — only one authorization_denied event emitted',
+      () async {
+        registry.register(TwoPermissionAction());
+        await dispatcher.dispatch('two_perms', const <String, Object?>{
+          'who': 'world',
+        }, _ctx());
+        final allEvents = await eventStore.backend.findAllEvents();
+        final denials = allEvents
+            .where((e) => e.eventType == 'authorization_denied')
+            .toList();
+        expect(denials, hasLength(1));
+      },
+    );
+
+    test(
+      'REQ-d00168-G: all-Allow falls through to Stage 7 UnimplementedError',
+      () async {
+        final allowDispatcher = ActionDispatcher(
+          registry: registry,
+          authorization: const AlwaysAllowPolicy(),
+          events: eventStore,
+          idempotency: idempotency,
+        );
+        expect(
+          () => allowDispatcher.dispatch('hello', const <String, Object?>{
+            'who': 'world',
+          }, _ctx()),
+          throwsA(isA<UnimplementedError>()),
         );
       },
     );
