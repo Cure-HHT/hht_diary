@@ -239,7 +239,7 @@ void main() {
       'REQ-d00170-A: idempotency.none ignores supplied key — no store record created',
       () async {
         // HelloAction has Idempotency.none. Dispatch with a key; it should
-        // reach Stage 5 (UnimplementedError) — we catch that and then verify
+        // reach Stage 6 (UnimplementedError) — we catch that and then verify
         // the idempotency store has no entry.
         Object? caught;
         try {
@@ -252,7 +252,7 @@ void main() {
         } catch (e) {
           caught = e;
         }
-        // Stage 5 UnimplementedError is expected.
+        // Stage 6 UnimplementedError is expected.
         expect(caught, isA<UnimplementedError>());
 
         final entry = await idempotency.lookup(
@@ -261,6 +261,42 @@ void main() {
           'should-be-ignored',
         );
         expect(entry, isNull);
+      },
+    );
+  });
+
+  group('Stage 5 — validate', () {
+    setUp(() {
+      registry.register(BadValidateAction());
+    });
+
+    test(
+      'REQ-d00168-F: validate failure returns DispatchValidationDenied',
+      () async {
+        final result = await dispatcher.dispatch(
+          'bad_validate',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
+        );
+        expect(result, isA<DispatchValidationDenied<Object?>>());
+      },
+    );
+
+    test(
+      'REQ-d00168-F: validate failure emits validation_denied event',
+      () async {
+        await dispatcher.dispatch('bad_validate', const <String, Object?>{
+          'who': 'world',
+        }, _ctx());
+        final allEvents = await eventStore.backend.findAllEvents();
+        final denials = allEvents
+            .where((e) => e.eventType == 'validation_denied')
+            .toList();
+        expect(denials, hasLength(1));
+        expect(
+          denials.first.data['error_class'],
+          StateError('').runtimeType.toString(),
+        );
       },
     );
   });

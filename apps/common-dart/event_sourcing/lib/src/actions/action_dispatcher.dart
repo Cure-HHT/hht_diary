@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00168 (Dispatcher Pipeline): owner of the 10-stage pipeline.
 //   This file currently implements stages 1 (lookup), 2 (invocation_id),
-//   3 (parse), and 4 (idempotency check).
-//   Stages 5-10 land in subsequent commits per plan-1 Tasks 17-22.
+//   3 (parse), 4 (idempotency check), and 5 (validate).
+//   Stages 6-10 land in subsequent commits per plan-1 Tasks 18-22.
 
 import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:event_sourcing/src/actions/action_registry.dart';
@@ -51,7 +51,9 @@ class ActionDispatcher {
   ///   Stage 4 — idempotency cache lookup for non-none policies with a
   ///             key; on hit, return [DispatchIdempotencyHit] with no
   ///             new event emitted.
-  ///   Stages 5-10 — TODO in plan-1 Tasks 17-22.
+  ///   Stage 5 — call `action.validate(parsedInput)`; on throw, emit
+  ///             `validation_denied` and return [DispatchValidationDenied].
+  ///   Stages 6-10 — TODO in plan-1 Tasks 18-22.
   Future<DispatchResult<Object?>> dispatch(
     String actionName,
     Map<String, Object?> rawInput,
@@ -131,11 +133,24 @@ class ActionDispatcher {
       // Cache miss — fall through to Stage 5+.
     }
 
-    // Stages 5-10 land in subsequent tasks.
-    // ignore: unused_local_variable
-    final _ = parsedInput; // suppress unused warning until Stage 5 lands.
+    // Stage 5: validate
+    // Implements: REQ-d00168-F
+    try {
+      action.validate(parsedInput);
+    } on Object catch (err) {
+      final denial = denialValidationDenied(
+        invocationId: invocationId,
+        actionName: action.name,
+        error: err,
+        actionInvocationMetadata: Map<String, dynamic>.from(invocationMetadata),
+      );
+      await _persistDenial(denial, ctx, flowToken: flowToken);
+      return DispatchResult<Object?>.validationDenied(err);
+    }
+
+    // Stages 6-10 land in subsequent tasks.
     throw UnimplementedError(
-      'Stages 5-10 of the dispatcher pipeline are added in plan-1 Tasks 17-22.',
+      'Stages 6-10 of the dispatcher pipeline are added in plan-1 Tasks 18-22.',
     );
   }
 
