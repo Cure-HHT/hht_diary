@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, Object?> _validJson() => <String, Object?>{

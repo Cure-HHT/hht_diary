@@ -6,13 +6,13 @@
 // The system entry types (kSystemEntryTypes) are pre-registered on the
 // returned `EntryTypeRegistry` so every audit append validates cleanly
 // without requiring callers to list them.
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
-import 'package:event_sourcing_datastore/src/event_store.dart';
-import 'package:event_sourcing_datastore/src/security/sembast_security_context_store.dart';
-import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/source.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/entry_type_registry.dart';
+import 'package:event_sourcing/src/event_store.dart';
+import 'package:event_sourcing/src/security/sembast_security_context_store.dart';
+import 'package:event_sourcing/src/security/system_entry_types.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/source.dart';
 
 /// Bundle returned by [buildAuditedRegistryDeps] so each test can grab
 /// just the pieces it needs (e.g., `eventStore` for direct asserts on

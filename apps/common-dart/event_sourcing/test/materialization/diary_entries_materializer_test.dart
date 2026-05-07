@@ -1,10 +1,10 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
-import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
-import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/materialization/diary_entries_materializer.dart';
+import 'package:event_sourcing/src/materialization/entry_promoter.dart';
+import 'package:event_sourcing/src/materialization/materializer.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

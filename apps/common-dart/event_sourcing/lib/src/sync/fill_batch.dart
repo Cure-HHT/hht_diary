@@ -1,12 +1,12 @@
-import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:event_sourcing_datastore/src/storage/source.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/sync/drain.dart';
+import 'package:event_sourcing/src/destinations/batch_envelope_metadata.dart';
+import 'package:event_sourcing/src/destinations/destination.dart';
+import 'package:event_sourcing/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
+import 'package:event_sourcing/src/storage/source.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/sync/drain.dart';
 import 'package:uuid/uuid.dart';
 
 /// Module-private v4 UUID generator used by [fillBatch] to mint each

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show
         Destination,
         DestinationSchedule,

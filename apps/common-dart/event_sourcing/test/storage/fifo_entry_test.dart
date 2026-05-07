@@ -1,7 +1,7 @@
-import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
-import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
-import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
+import 'package:event_sourcing/src/destinations/batch_envelope_metadata.dart';
+import 'package:event_sourcing/src/storage/attempt_result.dart';
+import 'package:event_sourcing/src/storage/fifo_entry.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phase 4.3 Task 6 — FifoEntry batch-per-row shape.

@@ -8,6 +8,7 @@
 //
 // Implements: REQ-d00169-B — TableBackedAuthorizationPolicy depends on
 // this; deployers wire a concrete impl at app bootstrap.
+// ignore: one_member_abstracts
 abstract class RoleMatrixReader {
   Future<Set<String>> permissionsForRole(String role);
 }

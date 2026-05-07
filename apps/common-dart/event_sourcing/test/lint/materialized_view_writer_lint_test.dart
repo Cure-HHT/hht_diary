@@ -25,16 +25,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// legitimate writer of the `diary_entries` materialized view.
 const Set<String> _allowlist = {
   // Abstract method declarations.
-  'apps/common-dart/event_sourcing_datastore/lib/src/storage/storage_backend.dart',
+  'apps/common-dart/event_sourcing/lib/src/storage/storage_backend.dart',
   // Concrete backend implementation.
-  'apps/common-dart/event_sourcing_datastore/lib/src/storage/sembast_backend.dart',
+  'apps/common-dart/event_sourcing/lib/src/storage/sembast_backend.dart',
   // Disaster-recovery rebuild path — folds events through DiaryEntriesMaterializer.foldPure
   // and replaces the view atomically.
-  'apps/common-dart/event_sourcing_datastore/lib/src/materialization/rebuild.dart',
+  'apps/common-dart/event_sourcing/lib/src/materialization/rebuild.dart',
   // Online write path — EntryService.record folds each event through
   // DiaryEntriesMaterializer.foldPure inside the same transaction as the append
   // (REQ-d00133-D, Phase 4.3 Task 16).
-  'apps/common-dart/event_sourcing_datastore/lib/src/entry_service.dart',
+  'apps/common-dart/event_sourcing/lib/src/entry_service.dart',
 };
 
 /// Mutations on the `diary_entries` store. Matched syntactically — any

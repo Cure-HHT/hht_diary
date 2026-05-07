@@ -21,32 +21,34 @@ String emitPermissionsMigrationSql({
   final newPerms = declared.difference(existing).toList()..sort();
   final orphanPerms = existing.difference(declared).toList()..sort();
 
-  final buf = StringBuffer();
-  buf.writeln('-- audited_actions permission discovery migration');
-  buf.writeln(
-    '-- Declared in code: ${declared.length}, '
-    'present in DB: ${existing.length}',
-  );
-  buf.writeln();
+  final buf = StringBuffer()
+    ..writeln('-- actions permission discovery migration')
+    ..writeln(
+      '-- Declared in code: ${declared.length}, '
+      'present in DB: ${existing.length}',
+    )
+    ..writeln();
   if (newPerms.isNotEmpty) {
-    buf.writeln(
-      'INSERT INTO role_permission_matrix_permissions (name, status)',
-    );
-    buf.writeln('VALUES');
+    buf
+      ..writeln('INSERT INTO role_permission_matrix_permissions (name, status)')
+      ..writeln('VALUES');
     for (var i = 0; i < newPerms.length; i++) {
       final p = newPerms[i];
       final terminator = i == newPerms.length - 1 ? '' : ',';
       buf.writeln("  ('$p', 'unassigned')$terminator");
     }
-    buf.writeln('ON CONFLICT (name) DO NOTHING;');
-    buf.writeln();
+    buf
+      ..writeln('ON CONFLICT (name) DO NOTHING;')
+      ..writeln();
   } else {
-    buf.writeln('-- No new permissions to insert.');
-    buf.writeln();
+    buf
+      ..writeln('-- No new permissions to insert.')
+      ..writeln();
   }
   if (orphanPerms.isNotEmpty) {
-    buf.writeln('-- ORPHAN permissions (present in DB, absent from code):');
-    buf.writeln('-- These are NOT auto-deleted; review and remove manually:');
+    buf
+      ..writeln('-- ORPHAN permissions (present in DB, absent from code):')
+      ..writeln('-- These are NOT auto-deleted; review and remove manually:');
     for (final p in orphanPerms) {
       buf.writeln('--   $p');
     }

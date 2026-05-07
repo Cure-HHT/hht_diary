@@ -1,4 +1,4 @@
-# event_sourcing_datastore
+# event_sourcing
 
 FDA 21 CFR Part 11 aligned, offline-first event sourcing for Flutter.
 Storage-backend swappable; ships with a Sembast (file / IndexedDB)
@@ -77,7 +77,7 @@ The smallest possible compile-and-run program: bootstrap, append one
 event, materialize it, read it back from the view.
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:sembast/sembast_memory.dart';
 
 const kNoteEntryType = EntryTypeDefinition(

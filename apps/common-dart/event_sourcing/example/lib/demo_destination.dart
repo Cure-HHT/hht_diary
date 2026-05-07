@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing_datastore_demo/demo_knobs.dart';
 import 'package:flutter/foundation.dart';
 

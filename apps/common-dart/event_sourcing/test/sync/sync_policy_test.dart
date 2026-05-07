@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
+import 'package:event_sourcing/src/sync/sync_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

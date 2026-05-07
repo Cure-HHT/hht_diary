@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/src/storage/storage_exception.dart';
+import 'package:event_sourcing/src/storage/storage_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

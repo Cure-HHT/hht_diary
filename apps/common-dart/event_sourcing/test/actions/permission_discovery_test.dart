@@ -1,4 +1,4 @@
-import 'package:audited_actions/src/permission_discovery.dart';
+import 'package:event_sourcing/src/actions/permission_discovery.dart';
 import 'package:test/test.dart';
 
 void main() {

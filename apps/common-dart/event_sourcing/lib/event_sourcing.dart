@@ -16,7 +16,7 @@
 /// ## Quick Start
 ///
 /// ```dart
-/// import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+/// import 'package:event_sourcing/event_sourcing.dart';
 ///
 /// // Initialize the datastore
 /// await Datastore.initialize(
@@ -99,6 +99,28 @@ library;
 // REQ-d00154-A `StoredEvent.originatorHop` getter have a name for the
 // returned type without depending on the provenance package directly.
 export 'package:provenance/provenance.dart' show BatchContext, ProvenanceEntry;
+
+// Actions module — trusted-boundary command/intent layer (formerly the
+// audited_actions package; merged into event_sourcing via Phase C of the
+// consolidation, CUR-1192).
+export 'src/actions/dispatch_result.dart'
+    show
+        DispatchAuthorizationDenied,
+        DispatchExecutionFailed,
+        DispatchIdempotencyHit,
+        DispatchParseDenied,
+        DispatchResult,
+        DispatchSuccess,
+        DispatchUnknownAction,
+        DispatchValidationDenied;
+export 'src/actions/execution_result.dart' show ExecutionResult;
+export 'src/actions/idempotency.dart'
+    show defaultIdempotencyTtl, Idempotency, IdempotencyEntry;
+export 'src/actions/idempotency_store.dart'
+    show IdempotencyStore, InMemoryIdempotencyStore;
+export 'src/actions/permission.dart' show Permission;
+export 'src/actions/permission_discovery.dart' show emitPermissionsMigrationSql;
+export 'src/actions/role_matrix_reader.dart' show RoleMatrixReader;
 
 // bootstrapAppendOnlyDatastore — single entry point for app main() to wire
 // the storage backend, EntryTypeRegistry, destinations, security context

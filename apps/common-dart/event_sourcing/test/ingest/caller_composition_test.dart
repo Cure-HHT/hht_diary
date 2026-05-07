@@ -3,7 +3,7 @@
 //   REQ-d00145-I: ingest.batch_rejected event with correct fields
 //   REQ-d00145-J: Chain 2 tail advanced only by rejection audit, not by rolled-back ingestBatch
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:uuid/uuid.dart';

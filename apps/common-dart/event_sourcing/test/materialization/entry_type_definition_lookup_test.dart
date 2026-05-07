@@ -1,5 +1,5 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/materialization/entry_type_definition_lookup.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/materialization/entry_type_definition_lookup.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_support/map_entry_type_definition_lookup.dart';

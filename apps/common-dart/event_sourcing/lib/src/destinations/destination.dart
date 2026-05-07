@@ -1,7 +1,7 @@
-import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
-import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
-import 'package:event_sourcing_datastore/src/storage/send_result.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing/src/destinations/wire_payload.dart';
+import 'package:event_sourcing/src/storage/send_result.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 
 /// One synchronization target — the primary diary server, a future
 /// analytics backend, etc. — that owns its own FIFO, transform, and send.

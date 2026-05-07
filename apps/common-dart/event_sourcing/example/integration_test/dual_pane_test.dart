@@ -4,7 +4,7 @@
 
 import 'dart:async';
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:event_sourcing_datastore_demo/app.dart';
 import 'package:event_sourcing_datastore_demo/app_state.dart';
 import 'package:event_sourcing_datastore_demo/demo_destination.dart';

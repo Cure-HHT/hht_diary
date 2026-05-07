@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
 
 /// Process-wide registry mapping `entry_type` ids to `EntryTypeDefinition`.
 ///

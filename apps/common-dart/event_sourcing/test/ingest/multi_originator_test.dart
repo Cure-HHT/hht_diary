@@ -5,7 +5,7 @@
 //   REQ-d00146-A: verifyEventChain passes for every ingested event
 //   REQ-d00146-C: verifyIngestChain walks Chain 2 spanning all originators
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:uuid/uuid.dart';

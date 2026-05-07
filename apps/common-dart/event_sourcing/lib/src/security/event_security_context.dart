@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/src/security/security_retention_policy.dart';
+import 'package:event_sourcing/src/security/security_retention_policy.dart';
 
 /// Sidecar row recording security telemetry for one event. Lives in its
 /// own sembast store (`security_context`) keyed on `eventId`. The

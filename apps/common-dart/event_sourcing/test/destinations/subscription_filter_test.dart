@@ -1,6 +1,6 @@
-import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 StoredEvent _mkEvent({

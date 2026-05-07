@@ -1,11 +1,11 @@
-import 'package:event_sourcing_datastore/src/storage/append_result.dart';
-import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
-import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:event_sourcing_datastore/src/storage/send_result.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/storage/wedged_fifo_summary.dart';
+import 'package:event_sourcing/src/storage/append_result.dart';
+import 'package:event_sourcing/src/storage/attempt_result.dart';
+import 'package:event_sourcing/src/storage/diary_entry.dart';
+import 'package:event_sourcing/src/storage/fifo_entry.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
+import 'package:event_sourcing/src/storage/send_result.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/storage/wedged_fifo_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

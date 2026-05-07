@@ -6,7 +6,7 @@
 // Verifies: REQ-d00154-F — system events are visible to destinations
 // that opt in (e.g. forensic / audit-mirroring destinations) and are
 // not visible to destinations that do not.
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

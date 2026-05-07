@@ -1,8 +1,8 @@
-import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
-import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
+import 'package:event_sourcing/src/security/event_security_context.dart';
+import 'package:event_sourcing/src/security/security_context_store.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
 import 'package:sembast/sembast.dart';
 
 /// Sembast-backed `SecurityContextStore`. Maintains one sembast store

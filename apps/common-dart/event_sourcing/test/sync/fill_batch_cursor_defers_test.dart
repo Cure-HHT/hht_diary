@@ -7,12 +7,12 @@
 //   window has not yet opened (future startDate) or the window is malformed
 //   (startDate > endDate). When endDate is in the past with startDate
 //   <= endDate, fillBatch SHALL still scan and process in-window events.
-import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/sync/fill_batch.dart';
+import 'package:event_sourcing/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/sync/fill_batch.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

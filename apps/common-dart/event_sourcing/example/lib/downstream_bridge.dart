@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// In-memory bridge from one datastore's outgoing `Native` wire payload
 /// to another datastore's [EventStore.ingestBatch]. Demo-only glue used

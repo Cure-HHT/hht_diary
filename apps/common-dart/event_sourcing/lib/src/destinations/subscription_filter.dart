@@ -1,5 +1,5 @@
-import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/security/system_entry_types.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 
 /// Predicate function signature consulted by [SubscriptionFilter] after
 /// the allow-lists have passed.

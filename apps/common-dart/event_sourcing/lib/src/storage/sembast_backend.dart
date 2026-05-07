@@ -2,22 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
-import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
-import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
-import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
-import 'package:event_sourcing_datastore/src/storage/append_result.dart';
-import 'package:event_sourcing_datastore/src/storage/attempt_result.dart';
-import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/fifo_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
-import 'package:event_sourcing_datastore/src/storage/wedged_fifo_summary.dart';
+import 'package:event_sourcing/src/destinations/batch_envelope_metadata.dart';
+import 'package:event_sourcing/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing/src/destinations/wire_payload.dart';
+import 'package:event_sourcing/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing/src/security/event_security_context.dart';
+import 'package:event_sourcing/src/security/security_context_store.dart';
+import 'package:event_sourcing/src/storage/append_result.dart';
+import 'package:event_sourcing/src/storage/attempt_result.dart';
+import 'package:event_sourcing/src/storage/diary_entry.dart';
+import 'package:event_sourcing/src/storage/fifo_entry.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
+import 'package:event_sourcing/src/storage/wedged_fifo_summary.dart';
 import 'package:meta/meta.dart' show visibleForTesting;
 import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
@@ -61,7 +61,7 @@ class SembastBackend extends StorageBackend {
   /// Construct a backend over an already-opened Sembast [Database]. The
   /// caller owns the database's lifecycle; this backend does not open or
   /// close it. Tests can use `SembastBackendInMemory.open()` from
-  /// `package:event_sourcing_datastore/src/storage/sembast_backend_in_memory.dart`
+  /// `package:event_sourcing/src/storage/sembast_backend_in_memory.dart`
   /// to get a self-contained in-memory instance.
   SembastBackend({required Database database}) : _db = database;
 

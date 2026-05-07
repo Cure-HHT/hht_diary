@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 // Implements: REQ-d00126 — SyncPolicy is a value object; demo defaults
 // per design §7.7. Short backoff (1s initial, 10s ceiling, no jitter,

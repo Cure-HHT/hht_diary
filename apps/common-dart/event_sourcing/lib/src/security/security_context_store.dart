@@ -1,7 +1,7 @@
-import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
+import 'package:event_sourcing/src/security/event_security_context.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
 
 /// Read-side contract for the security-context sidecar. Mutations are
 /// package-private via `InternalSecurityContextStore` — only `EventStore`

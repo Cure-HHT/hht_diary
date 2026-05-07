@@ -1,12 +1,12 @@
-import 'package:event_sourcing_datastore/src/destinations/destination.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/event_store.dart';
-import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
-import 'package:event_sourcing_datastore/src/sync/historical_replay.dart';
+import 'package:event_sourcing/src/destinations/destination.dart';
+import 'package:event_sourcing/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing/src/event_store.dart';
+import 'package:event_sourcing/src/security/system_entry_types.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
+import 'package:event_sourcing/src/sync/historical_replay.dart';
 
 /// Process-wide registry of synchronization destinations.
 ///

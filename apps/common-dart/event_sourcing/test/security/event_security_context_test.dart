@@ -1,5 +1,5 @@
-import 'package:event_sourcing_datastore/src/security/event_security_context.dart';
-import 'package:event_sourcing_datastore/src/security/security_retention_policy.dart';
+import 'package:event_sourcing/src/security/event_security_context.dart';
+import 'package:event_sourcing/src/security/security_retention_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

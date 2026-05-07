@@ -3,13 +3,13 @@
 //
 // Usage (CLI shape; the deploying app wires this with its own registry):
 //
-//   dart run audited_actions:discover_permissions \
+//   dart run event_sourcing:discover_permissions \
 //     --output migrations/<n>_permissions_<date>.sql
 //
 // In-process usage (deploying app calls emitPermissionsMigrationSql
 // directly with its populated permission set):
 //
-//   import 'package:audited_actions/src/permission_discovery.dart';
+//   import 'package:event_sourcing/src/actions/permission_discovery.dart';
 //   final sql = emitPermissionsMigrationSql(
 //     declared: myAppPermissions, // Set<String>
 //     existing: await readExistingFromDb(),
@@ -26,6 +26,6 @@ void main(List<String> args) {
     '  - Call emitPermissionsMigrationSql(declared: ..., existing: ...).\n'
     '  - Write the result to your migrations directory.\n'
     '\n'
-    'See lib/src/permission_discovery.dart for the API contract.',
+    'See lib/src/actions/permission_discovery.dart for the API contract.',
   );
 }

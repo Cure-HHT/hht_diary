@@ -1,13 +1,13 @@
-import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_schedule.dart';
-import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
-import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
-import 'package:event_sourcing_datastore/src/storage/final_status.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/source.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/sync/fill_batch.dart';
+import 'package:event_sourcing/src/destinations/destination_registry.dart';
+import 'package:event_sourcing/src/destinations/destination_schedule.dart';
+import 'package:event_sourcing/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing/src/storage/final_status.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/source.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/sync/fill_batch.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

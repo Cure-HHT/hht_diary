@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
+import 'package:event_sourcing/src/destinations/wire_payload.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

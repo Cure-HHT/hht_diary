@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:event_sourcing_datastore/src/destinations/batch_envelope_metadata.dart';
-import 'package:event_sourcing_datastore/src/ingest/batch_envelope.dart';
+import 'package:event_sourcing/src/destinations/batch_envelope_metadata.dart';
+import 'package:event_sourcing/src/ingest/batch_envelope.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

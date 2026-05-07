@@ -1,15 +1,15 @@
-import 'package:event_sourcing_datastore/src/destinations/destination.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/entry_type_registry.dart';
-import 'package:event_sourcing_datastore/src/event_store.dart';
-import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
-import 'package:event_sourcing_datastore/src/security/security_context_store.dart';
-import 'package:event_sourcing_datastore/src/security/sembast_security_context_store.dart';
-import 'package:event_sourcing_datastore/src/security/system_entry_types.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/source.dart';
+import 'package:event_sourcing/src/destinations/destination.dart';
+import 'package:event_sourcing/src/destinations/destination_registry.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/entry_type_registry.dart';
+import 'package:event_sourcing/src/event_store.dart';
+import 'package:event_sourcing/src/materialization/materializer.dart';
+import 'package:event_sourcing/src/security/security_context_store.dart';
+import 'package:event_sourcing/src/security/sembast_security_context_store.dart';
+import 'package:event_sourcing/src/security/system_entry_types.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/source.dart';
 
 /// Facade returned by `bootstrapAppendOnlyDatastore`. Exposes the four
 /// collaborators an app reads through after startup: the write API

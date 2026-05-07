@@ -1,9 +1,9 @@
-import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
-import 'package:event_sourcing_datastore/src/storage/initiator.dart';
-import 'package:event_sourcing_datastore/src/storage/sembast_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/send_result.dart';
-import 'package:event_sourcing_datastore/src/sync/sync_cycle.dart';
-import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
+import 'package:event_sourcing/src/destinations/destination_registry.dart';
+import 'package:event_sourcing/src/storage/initiator.dart';
+import 'package:event_sourcing/src/storage/sembast_backend.dart';
+import 'package:event_sourcing/src/storage/send_result.dart';
+import 'package:event_sourcing/src/sync/sync_cycle.dart';
+import 'package:event_sourcing/src/sync/sync_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

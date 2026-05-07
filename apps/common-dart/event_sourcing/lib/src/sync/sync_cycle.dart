@@ -1,12 +1,12 @@
 import 'dart:developer' as developer;
 
-import 'package:event_sourcing_datastore/src/destinations/destination.dart';
-import 'package:event_sourcing_datastore/src/destinations/destination_registry.dart';
-import 'package:event_sourcing_datastore/src/storage/source.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/sync/drain.dart';
-import 'package:event_sourcing_datastore/src/sync/fill_batch.dart';
-import 'package:event_sourcing_datastore/src/sync/sync_policy.dart';
+import 'package:event_sourcing/src/destinations/destination.dart';
+import 'package:event_sourcing/src/destinations/destination_registry.dart';
+import 'package:event_sourcing/src/storage/source.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/sync/drain.dart';
+import 'package:event_sourcing/src/sync/fill_batch.dart';
+import 'package:event_sourcing/src/sync/sync_policy.dart';
 
 /// Top-level sync orchestrator.
 ///

@@ -1,8 +1,8 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/materialization/entry_promoter.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
 
 /// Pluggable fold contract. One `Materializer` maintains one backend view.
 /// `EventStore.append` runs every materializer whose `appliesTo(event)`

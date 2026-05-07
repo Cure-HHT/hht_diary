@@ -1,5 +1,5 @@
 name: event_sourcing_datastore_demo
-description: "Flutter Linux-desktop sandbox exercising every event_sourcing_datastore library feature (CUR-1154 Phase 4.6)."
+description: "Flutter Linux-desktop sandbox exercising every event_sourcing library feature (CUR-1154 Phase 4.6)."
 publish_to: none
 version: 0.1.0+1
 
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  event_sourcing_datastore:
+  event_sourcing:
     path: ../
   # Direct deps required by the depend_on_referenced_packages lint; the
   # parent package already exposes all three transitively.

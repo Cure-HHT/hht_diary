@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:uuid/uuid.dart';
 
 /// Helper for the "Ingest sample batch" demo button on `top_action_bar.dart`.

@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// Maintains an `rgb_lights` materialized view that toggles three lights
 /// (red, green, blue) on/off in response to button-press events. Each

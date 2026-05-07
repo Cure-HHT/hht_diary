@@ -3,7 +3,7 @@
 //   REQ-d00146-D: non-throwing; returns ChainVerdict
 //   REQ-d00146-E: ArgumentError when fromSequenceNumber > toSequenceNumber
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast.dart' as sembast;
 import 'package:sembast/sembast_memory.dart';

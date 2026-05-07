@@ -7,7 +7,7 @@
 // Convention: per-test `// Verifies: REQ-d00154-C — <prose>` annotations and
 // the assertion ID `REQ-d00154-C` at the start of each test description.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

@@ -4,7 +4,7 @@
 //   REQ-d00145-I: ingest.duplicate_received audit event under ingest-audit aggregate
 //   REQ-d00115-J: batchContext=null for process-local ingestEvent path
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:canonical_json_jcs/canonical_json_jcs.dart';
-import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
+import 'package:event_sourcing/src/ingest/ingest_errors.dart';
 
 /// The library's canonical batch envelope. Phase 4.9 supports exactly one
 /// format version: `"1"` (identifier `"esd/batch@1"`).

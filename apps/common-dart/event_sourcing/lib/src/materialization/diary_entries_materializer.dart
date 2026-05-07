@@ -1,10 +1,10 @@
-import 'package:event_sourcing_datastore/src/entry_type_definition.dart';
-import 'package:event_sourcing_datastore/src/materialization/entry_promoter.dart';
-import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
-import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
-import 'package:event_sourcing_datastore/src/storage/txn.dart';
+import 'package:event_sourcing/src/entry_type_definition.dart';
+import 'package:event_sourcing/src/materialization/entry_promoter.dart';
+import 'package:event_sourcing/src/materialization/materializer.dart';
+import 'package:event_sourcing/src/storage/diary_entry.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/storage/txn.dart';
 
 /// Maintains the `diary_entries` materialized view from events whose
 /// `aggregateType == 'DiaryEntry'`. Pure fold extracted as

@@ -15,7 +15,7 @@
 // surrounding `backend.transaction` rolls back: the prior mutation's
 // side effects (schedule write, FIFO drop, etc.) do not persist.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

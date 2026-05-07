@@ -3,7 +3,7 @@
 // entryTypes allow-list. User entry types continue to use entryTypes.
 // Verifies: REQ-d00154-F — system events flow to destinations that
 // opt in via SubscriptionFilter.includeSystemEvents.
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Build a synthetic [StoredEvent] for [SubscriptionFilter.matches]

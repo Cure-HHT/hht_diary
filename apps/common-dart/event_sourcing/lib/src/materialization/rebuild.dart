@@ -1,9 +1,9 @@
-import 'package:event_sourcing_datastore/src/materialization/diary_entries_materializer.dart';
-import 'package:event_sourcing_datastore/src/materialization/entry_type_definition_lookup.dart';
-import 'package:event_sourcing_datastore/src/materialization/materializer.dart';
-import 'package:event_sourcing_datastore/src/storage/diary_entry.dart';
-import 'package:event_sourcing_datastore/src/storage/storage_backend.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/materialization/diary_entries_materializer.dart';
+import 'package:event_sourcing/src/materialization/entry_type_definition_lookup.dart';
+import 'package:event_sourcing/src/materialization/materializer.dart';
+import 'package:event_sourcing/src/storage/diary_entry.dart';
+import 'package:event_sourcing/src/storage/storage_backend.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 
 /// Chunk size for the streaming read of the event log during a rebuild.
 ///

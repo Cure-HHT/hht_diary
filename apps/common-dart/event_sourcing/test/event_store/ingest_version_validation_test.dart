@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:uuid/uuid.dart';
@@ -10,7 +10,7 @@ const _uuid = Uuid();
 /// Build an `esd/batch@1` envelope manually with a one-event payload, with
 /// caller-controlled `entry_type_version` / `lib_format_version` on the
 /// embedded event. Mirrors the shape produced by
-/// `apps/common-dart/event_sourcing_datastore/example/lib/synthetic_ingest.dart`'s
+/// `apps/common-dart/event_sourcing/example/lib/synthetic_ingest.dart`'s
 /// `SyntheticBatchBuilder.buildSingleEventBatch`, but lives here so the
 /// ingest-validation tests stay self-contained.
 Uint8List _envelope({

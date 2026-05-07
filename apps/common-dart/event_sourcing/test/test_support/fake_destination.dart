@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:event_sourcing_datastore/src/destinations/destination.dart';
-import 'package:event_sourcing_datastore/src/destinations/subscription_filter.dart';
-import 'package:event_sourcing_datastore/src/destinations/wire_payload.dart';
-import 'package:event_sourcing_datastore/src/storage/send_result.dart';
-import 'package:event_sourcing_datastore/src/storage/stored_event.dart';
+import 'package:event_sourcing/src/destinations/destination.dart';
+import 'package:event_sourcing/src/destinations/subscription_filter.dart';
+import 'package:event_sourcing/src/destinations/wire_payload.dart';
+import 'package:event_sourcing/src/storage/send_result.dart';
+import 'package:event_sourcing/src/storage/stored_event.dart';
 
 /// Scripted Destination used by drain- and sync-cycle tests.
 ///

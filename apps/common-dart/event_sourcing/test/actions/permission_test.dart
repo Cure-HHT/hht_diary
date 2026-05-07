@@ -1,4 +1,4 @@
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 void main() {

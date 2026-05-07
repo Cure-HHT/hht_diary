@@ -2,7 +2,7 @@
 //   REQ-d00170-D,E (REQ-IDEMPOT): cache-with-TTL contract for action
 //   replay protection; in-memory impl for tests and early development.
 
-import 'package:audited_actions/src/idempotency.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
 
 /// Pluggable cache for action dispatch outcomes, keyed by
 /// `(actionName, principalId, key)`. Lookup hits short-circuit a

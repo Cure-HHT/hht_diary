@@ -6,7 +6,7 @@
 //   REQ-d00115-H: previous_ingest_hash null on first-ever ingest
 //   REQ-d00115-I: ingest_sequence_number monotonically increasing
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

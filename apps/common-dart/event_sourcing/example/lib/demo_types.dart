@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 // Implements: REQ-d00116 — EntryTypeDefinition value type from
 // event_sourcing_datastore; demo instances registered via

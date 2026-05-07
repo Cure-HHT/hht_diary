@@ -5,7 +5,7 @@
 // Task 4 / REQ-d00154-D), where multiple system entry types share the
 // install-scoped `source.identifier` aggregate and must dedupe per stream.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

@@ -2,7 +2,7 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00004: Local-First Data Entry Implementation
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

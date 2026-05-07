@@ -2,7 +2,7 @@
 //   REQ-d00145-D: identity-mismatch throws IngestIdentityMismatch;
 //                  transaction rolls back — no side effects.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
 

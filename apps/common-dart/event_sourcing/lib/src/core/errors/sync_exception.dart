@@ -1,4 +1,4 @@
-import 'package:event_sourcing_datastore/src/core/errors/datastore_exception.dart';
+import 'package:event_sourcing/src/core/errors/datastore_exception.dart';
 
 /// Exception thrown when synchronization operations fail.
 class SyncException extends DatastoreException {

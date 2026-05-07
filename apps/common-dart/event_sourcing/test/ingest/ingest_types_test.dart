@@ -1,6 +1,6 @@
-import 'package:event_sourcing_datastore/src/ingest/chain_verdict.dart';
-import 'package:event_sourcing_datastore/src/ingest/ingest_errors.dart';
-import 'package:event_sourcing_datastore/src/ingest/ingest_result.dart';
+import 'package:event_sourcing/src/ingest/chain_verdict.dart';
+import 'package:event_sourcing/src/ingest/ingest_errors.dart';
+import 'package:event_sourcing/src/ingest/ingest_result.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

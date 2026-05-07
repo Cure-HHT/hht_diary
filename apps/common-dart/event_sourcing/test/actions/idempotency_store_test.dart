@@ -1,4 +1,4 @@
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:test/test.dart';
 
 void main() {
