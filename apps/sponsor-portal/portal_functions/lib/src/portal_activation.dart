@@ -231,6 +231,22 @@ Future<Response> activateUserHandler(Request request) async {
     );
   } on IdentityAdminException catch (e) {
     print('[ACTIVATION] Identity Platform call failed: $e');
+    // 4xx from Identity Toolkit = caller-correctable (weak password,
+    // invalid request body). Surface a 400 with a stable code so the
+    // UI can render a useful message (ActivationPage._mapServerErrorCode
+    // already maps password_too_weak). 5xx / no statusCode = upstream
+    // availability; keep 502 idp_unavailable so the caller knows a
+    // retry might succeed.
+    final sc = e.statusCode;
+    if (sc != null && sc >= 400 && sc < 500) {
+      final code = e.message.contains('WEAK_PASSWORD')
+          ? 'password_too_weak'
+          : 'idp_request_invalid';
+      return _jsonResponse({
+        'error': 'Identity Platform rejected the request',
+        'code': code,
+      }, 400);
+    }
     return _jsonResponse({
       'error': 'Identity Platform unavailable',
       'code': 'idp_unavailable',

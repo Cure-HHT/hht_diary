@@ -391,6 +391,69 @@ void main() {
         expect(updateCalled, isFalse);
       },
     );
+
+    // Verifies: REQ-d00166-F variant — 4xx from Identity Toolkit is a
+    // caller-correctable error, not an upstream availability problem.
+    // The handler must surface it as 400 with a stable code so the UI
+    // can render the right message instead of a generic "IdP down".
+    test(
+      'REQ-d00166-F: 400 password_too_weak when IdP returns 400 WEAK_PASSWORD',
+      () async {
+        bool updateCalled = false;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM portal_users') &&
+              query.contains('activation_code')) {
+            return [
+              [
+                '99999999-9999-9999-9999-999999999999',
+                'weakpw@example.com',
+                'Weak Pw',
+                'pending',
+                DateTime.now().add(const Duration(days: 14)),
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              ['Administrator'],
+            ];
+          }
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            updateCalled = true;
+            return [];
+          }
+          return [];
+        };
+
+        IdentityAdminTestOverride.lookupOrProvision =
+            ({
+              required String email,
+              required String displayName,
+              required String password,
+            }) async => throw IdentityAdminException(
+              'signUp failed: {"error": {"code": 400, "message": '
+              '"WEAK_PASSWORD : Password should be at least 6 characters"}}',
+              statusCode: 400,
+            );
+        addTearDown(() => IdentityAdminTestOverride.lookupOrProvision = null);
+
+        final response = await activateUserHandler(
+          createPostRequest(
+            '/api/v1/portal/activate',
+            body: jsonEncode({'code': 'WEAK0-00001', 'password': '12'}),
+          ),
+        );
+
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('password_too_weak'));
+
+        // No DB UPDATE was called (IdP-first, DB-second ordering).
+        expect(updateCalled, isFalse);
+      },
+    );
   });
 
   group('activateUserHandler — input validation', () {
