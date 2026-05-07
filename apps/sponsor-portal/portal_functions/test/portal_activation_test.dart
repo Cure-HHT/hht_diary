@@ -68,6 +68,13 @@ void main() {
               ['Administrator'],
             ];
           }
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('firebase_uid')) {
+            // RETURNING id — handler treats empty list as 409 conflict.
+            return [
+              ['11111111-1111-1111-1111-111111111111'],
+            ];
+          }
           return [];
         };
 
