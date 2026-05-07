@@ -24,6 +24,14 @@ String get emulatorProjectId =>
 String get _adminBase =>
     'http://$emulatorHost/identitytoolkit.googleapis.com/v1';
 
+/// Headers for project-scoped admin endpoints. The emulator requires an
+/// Authorization header but accepts any bearer value; `owner` is the
+/// conventional placeholder.
+const Map<String, String> _adminHeaders = {
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer owner',
+};
+
 // ---------------------------------------------------------------------------
 // Public helpers
 // ---------------------------------------------------------------------------
@@ -34,7 +42,7 @@ String get _adminBase =>
 Future<Map<String, dynamic>?> emulatorLookupByEmail(String email) async {
   final res = await http.post(
     Uri.parse('$_adminBase/projects/$emulatorProjectId/accounts:lookup'),
-    headers: {'Content-Type': 'application/json'},
+    headers: _adminHeaders,
     body: jsonEncode({
       'email': [email],
     }),
@@ -50,8 +58,7 @@ Future<Map<String, dynamic>?> emulatorLookupByEmail(String email) async {
   return users.first as Map<String, dynamic>;
 }
 
-/// Create a user in the emulator via `accounts:signUp` (admin path, no API
-/// key needed against the emulator when the admin endpoint is used).
+/// Create a user in the emulator via `accounts:signUp` (admin path).
 /// Returns the created user's `localId` (firebase uid).
 Future<String> emulatorCreateUser(
   String email,
@@ -60,7 +67,7 @@ Future<String> emulatorCreateUser(
 }) async {
   final res = await http.post(
     Uri.parse('$_adminBase/projects/$emulatorProjectId/accounts'),
-    headers: {'Content-Type': 'application/json'},
+    headers: _adminHeaders,
     body: jsonEncode({
       'email': email,
       'password': password,
