@@ -171,8 +171,10 @@ void main() {
     });
 
     test(
-      'GET /api/v1/portal/me with unknown firebase_uid returns 403',
+      'GET /api/v1/portal/me with unbound uid returns 401 uid_not_bound',
       () async {
+        // REQ-d00167-A: auth gate is uid-only. A token whose uid has no
+        // matching portal_users row is rejected with 401 + uid_not_bound.
         final token = createEmulatorToken(
           uid: 'unknown-firebase-uid',
           email: 'unknown@example.com',
@@ -183,8 +185,9 @@ void main() {
           headers: {'Authorization': 'Bearer $token'},
         );
 
-        // Returns 403 because user is not in portal_users
-        expect(response.statusCode, equals(403));
+        expect(response.statusCode, equals(401));
+        final body = jsonDecode(response.body);
+        expect(body['code'], equals('uid_not_bound'));
       },
     );
   });
@@ -230,15 +233,26 @@ void main() {
       },
     );
 
-    test('POST /api/v1/portal/activate without token returns 401', () async {
-      final response = await client.post(
-        Uri.parse('${server.baseUrl}/api/v1/portal/activate'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': 'XXXXX-XXXXX'}),
-      );
+    test(
+      'POST /api/v1/portal/activate with unknown code returns 400 code_invalid',
+      () async {
+        // REQ-d00166-A,B: /portal/activate is bearer-free under server-owned
+        // activation. The handler accepts {code, password} from any caller
+        // and rejects unknown codes with 400 code_invalid.
+        final response = await client.post(
+          Uri.parse('${server.baseUrl}/api/v1/portal/activate'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'code': 'XXXXX-XXXXX',
+            'password': 'irrelevant-pw-12345',
+          }),
+        );
 
-      expect(response.statusCode, equals(401));
-    });
+        expect(response.statusCode, equals(400));
+        final body = jsonDecode(response.body);
+        expect(body['code'], equals('code_invalid'));
+      },
+    );
   });
 
   group('CORS Headers', () {
