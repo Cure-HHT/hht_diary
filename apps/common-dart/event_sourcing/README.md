@@ -16,6 +16,7 @@ implementation that runs on iOS, Android, macOS, Windows, Linux, and Web.
 8. [Migrations](#8-migrations)
 9. [Hash Chains and Verification](#9-hash-chains-and-verification)
 10. [Failure Modes](#10-failure-modes)
+11. [Permissions Module](#11-permissions-module)
 
 ---
 
@@ -642,3 +643,38 @@ forensic replay.
 Idempotent re-ingest of an already-stored event with a matching arrival
 hash returns `IngestOutcome.duplicate` (NOT thrown) and emits one
 `ingest.duplicate_received` audit event.
+
+---
+
+## 11. Permissions Module
+
+Role-permission matrix at `lib/src/permissions/`, persisted as a
+materialized view in this package's event store. Sibling to the actions
+module at `lib/src/actions/`; both share `Permission`, `ScopeClass`,
+`Principal`, `AuthorizationPolicy`, and `AuthorizationDecision`.
+
+**What it does:**
+
+- `TableBackedAuthorizationPolicy` answers the dispatcher's `isPermitted`
+  query against a `RoleMatrixReader`. Three reader impls:
+  `MaterializedViewRoleMatrixReader` (server-side, queries the
+  `role_permission_grants` view), `SnapshotRoleMatrixReader` (client-side,
+  wraps a `PermissionSnapshot` received at session start), and
+  `InMemoryRoleMatrixReader` (test fixtures + FailSafe backing).
+- The matrix lives in the event log: `permission_granted` and
+  `permission_revoked` events drive a `RolePermissionGrantsMaterializer`
+  that maintains the view in the same transaction as the appending event.
+- `bootstrapActionPermissions(eventStore: ..., declaredPermissions: ...,
+  yamlPath: ...)` is the host-facing entry point. It loads a YAML seed,
+  validates against `registry.allDeclaredPermissions`, idempotently emits
+  missing grants, and returns `PolicyReady(policy)` or
+  `PolicyFailSafe(errors)`. Hosts wire `isReady` into a readiness probe.
+- The scope precondition (`global` / `site` / `self`) is checked BEFORE
+  the matrix lookup so a principal missing session context receives
+  `Deny(sessionPreconditionMissing)` — the actionable answer — rather
+  than a misleading `Deny(notGranted)`.
+
+**Authoritative documentation:**
+
+- Design: `docs/superpowers/specs/2026-04-23-action-permissions-design.md`
+- REQ assertions: `spec/dev-event-sourcing.md` (REQ-d00172..REQ-d00178)
