@@ -1,8 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169 (REQ-AUTHZ): Permission value type, used as a key in
-//   the role-permission matrix and declared on each Action.
-//   REQ-d00172-A: Permission carries the ScopeClass that constrains which
-//   principals may exercise it based on session context.
+//   REQ-d00172-A+B: Permission carries the ScopeClass that constrains which
+//   principals may exercise it based on session context; every Action's
+//   declared permissions state their scope explicitly.
 
 import 'package:event_sourcing/src/actions/scope_class.dart';
 
@@ -11,8 +10,6 @@ import 'package:event_sourcing/src/actions/scope_class.dart';
 /// declare what the action requires; used by `AuthorizationPolicy` to
 /// decide whether a principal may execute it.
 class Permission {
-  // Implements: REQ-d00169-D — Permission is the discovery tool's unit;
-  // each registered permission becomes one row in the SQL migration.
   const Permission(this.name, {required this.scope})
     : assert(name != '', 'name must not be empty');
 

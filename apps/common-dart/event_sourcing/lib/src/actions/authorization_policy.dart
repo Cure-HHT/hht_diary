@@ -1,19 +1,16 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169 (AuthorizationPolicy): pluggable authorization interface
-//   that the dispatcher's authorize stage queries once per declared
-//   permission on the action.
+//   REQ-d00173-A+E: AuthorizationPolicy exposes exactly two methods —
+//   isPermitted (per-dispatch authorization) and permissionsFor
+//   (session-start snapshot generation).
 
 import 'package:event_sourcing/src/actions/authorization_decision.dart';
 import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:event_sourcing/src/actions/principal.dart';
 
 /// Pluggable authorization decision-maker. Concrete impls live in the
-/// `action_permissions` library (TableBackedAuthorizationPolicy over a
-/// RoleMatrixReader; FailSafeAuthorizationPolicy for the boot-failure
-/// case).
-//
-// Implements: REQ-d00169-A — interface shape with isPermitted +
-//             permissionsFor.
+/// permissions module within `event_sourcing`
+/// (`TableBackedAuthorizationPolicy` over a `RoleMatrixReader`;
+/// `FailSafeAuthorizationPolicy` for the boot-failure case).
 abstract class AuthorizationPolicy {
   const AuthorizationPolicy();
 

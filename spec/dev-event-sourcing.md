@@ -114,31 +114,7 @@ K. Stage 10 (return): the dispatcher SHALL return `DispatchResult.success(result
 
 ---
 
-## Section 4: Authorization Policy
-
-# REQ-d00169: Authorization Policy
-
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p00005, REQ-p00014
-
-## Rationale
-
-Authorization is pluggable behind an abstract policy so that deployments can choose between table-backed matrix lookups (production) and deny-all defaults (safe bootstrap). A discovery tool converts declared permissions into a SQL migration so the role-permission matrix grows monotonically and auditably.
-
-## Assertions
-
-A. `AuthorizationPolicy` SHALL be an abstract class with one method: `Future<bool> isPermitted(Principal principal, Permission permission, ActionContext ctx)`.
-
-B. `TableBackedAuthorizationPolicy(RoleMatrixReader matrix)` SHALL read `principal.activeRole`, query `matrix.permissionsForRole(role)`, and SHALL return whether `permission.name` is present in the result. If `principal` is anonymous, it SHALL return `false` unconditionally.
-
-C. `DenyAllAuthorizationPolicy` SHALL return `false` from every `isPermitted` call. The default constructor SHALL log a warning on every call (production-mode signal); a `DenyAllAuthorizationPolicy.forTests()` constructor SHALL suppress the warning.
-
-D. The permission discovery tool SHALL emit a SQL migration with `INSERT ... ON CONFLICT DO NOTHING` rows for every permission in `registry.allDeclaredPermissions` not already present in the `role_permission_matrix_permissions` table. Permissions present in the database but absent from the registry SHALL be emitted as SQL comments only and SHALL NOT be auto-deleted.
-
-*End* *Authorization Policy* | **Hash**: 3daddba7
-
----
-
-## Section 5: Idempotency Contract
+## Section 4: Idempotency Contract
 
 # REQ-d00170: Idempotency Contract
 
@@ -166,7 +142,7 @@ F. The default TTL SHALL be 24 hours; an action MAY override via an `idempotency
 
 ---
 
-## Section 6: Denial Events
+## Section 5: Denial Events
 
 # REQ-d00171: Denial Events
 
@@ -192,12 +168,12 @@ E. Every denial event SHALL share the same `action_invocation_id` as the dispatc
 
 ---
 
-## Section 7: Permission Scope Class
+## Section 6: Permission Scope Class
 
 # REQ-d00172: REQ-PERM-SCOPE — Permission scope class enumeration
 
 **Level**: dev | **Status**: Draft | **Implements**: -
-**Refines**: REQ-d00168, REQ-d00169
+**Refines**: REQ-d00168
 
 ## Assertions
 
@@ -215,7 +191,7 @@ A closed scope enumeration is the shared vocabulary between the actions module (
 
 ---
 
-## Section 8: Authorization Policy Interface Shape
+## Section 7: Authorization Policy Interface Shape
 
 # REQ-d00173: REQ-PERM-POLICY — AuthorizationPolicy interface shape
 
@@ -242,7 +218,7 @@ Two methods cover the two hot questions: per-dispatch authorization and session-
 
 ---
 
-## Section 9: Event-Sourced Matrix and Materialized View
+## Section 8: Event-Sourced Matrix and Materialized View
 
 # REQ-d00174: REQ-PERM-MATRIX — Event-sourced matrix and materialized view
 
@@ -273,7 +249,7 @@ Event-sourcing the matrix unifies its persistence with the rest of the platform'
 
 ---
 
-## Section 10: YAML Seed, Validation, and Event-Emitting Applier
+## Section 9: YAML Seed, Validation, and Event-Emitting Applier
 
 # REQ-d00175: REQ-PERM-SEED — YAML seed, validation, and event-emitting applier
 
@@ -309,7 +285,7 @@ Boot-time strict validation catches typos before they can silently fail open. Co
 
 ---
 
-## Section 11: Evaluation Algorithm
+## Section 10: Evaluation Algorithm
 
 # REQ-d00176: REQ-PERM-EVAL — Evaluation algorithm
 
@@ -338,7 +314,7 @@ Precondition-first ordering gives the accurate reason for denial in the audit tr
 
 ---
 
-## Section 12: Client-Side Snapshot
+## Section 11: Client-Side Snapshot
 
 # REQ-d00177: REQ-PERM-SNAPSHOT — Client-side snapshot
 
@@ -366,7 +342,7 @@ Local evaluation without round-trips is required for widget-enablement in the po
 
 ---
 
-## Section 13: Fail-Safe Bootstrap
+## Section 12: Fail-Safe Bootstrap
 
 # REQ-d00178: REQ-PERM-FAILSAFE — Fail-safe bootstrap
 

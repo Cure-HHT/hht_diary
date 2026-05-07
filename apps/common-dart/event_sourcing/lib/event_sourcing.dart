@@ -139,10 +139,8 @@ export 'src/actions/idempotency_errors.dart' show MissingIdempotencyKeyError;
 export 'src/actions/idempotency_store.dart'
     show IdempotencyStore, InMemoryIdempotencyStore;
 export 'src/actions/permission.dart' show Permission;
-export 'src/actions/permission_discovery.dart' show emitPermissionsMigrationSql;
 export 'src/actions/principal.dart'
     show Principal, UserPrincipal, AnonymousPrincipal;
-export 'src/actions/role_matrix_reader.dart' show RoleMatrixReader;
 export 'src/actions/scope_class.dart' show ScopeClass;
 
 // bootstrapAppendOnlyDatastore — single entry point for app main() to wire

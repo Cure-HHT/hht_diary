@@ -363,7 +363,6 @@
 | REQ-d00166 | Action Interface Contract                                         | dev-event-sourcing.md           | ae3f6e96 |
 | REQ-d00167 | ActionRegistry and Bootstrap                                      | dev-event-sourcing.md           | 0f53c3bd |
 | REQ-d00168 | Dispatcher Pipeline                                               | dev-event-sourcing.md           | 6b65ebee |
-| REQ-d00169 | Authorization Policy                                              | dev-event-sourcing.md           | 3daddba7 |
 | REQ-d00170 | Idempotency Contract                                              | dev-event-sourcing.md           | afd86f83 |
 | REQ-d00171 | Denial Events                                                     | dev-event-sourcing.md           | 31533023 |
 | REQ-d00172 | REQ-PERM-SCOPE — Permission scope class enumeration               | dev-event-sourcing.md           | 57b8525d |

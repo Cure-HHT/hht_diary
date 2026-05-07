@@ -5,7 +5,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('AuthorizationDecision', () {
-    test('REQ-d00169-A: Allow is a const singleton-style variant', () {
+    // Verifies: REQ-d00173-B
+    test('REQ-d00173-B: Allow is a const singleton-style variant', () {
       const a1 = Allow();
       const a2 = Allow();
       expect(a1, isA<Allow>());
@@ -16,7 +17,8 @@ void main() {
       );
     });
 
-    test('REQ-d00169-A: Deny carries permission + reason', () {
+    // Verifies: REQ-d00173-C
+    test('REQ-d00173-C: Deny carries permission + reason', () {
       const d = Deny(
         permission: Permission('user.invite', scope: ScopeClass.global),
         reason: DenyReason.notGranted,
@@ -25,7 +27,8 @@ void main() {
       expect(d.reason, DenyReason.notGranted);
     });
 
-    test('REQ-d00169-A: sealed switch is exhaustive across both variants', () {
+    // Verifies: REQ-d00173-B
+    test('REQ-d00173-B: sealed switch is exhaustive across both variants', () {
       const AuthorizationDecision d = Allow();
       final desc = switch (d) {
         Allow() => 'allow',
@@ -34,7 +37,8 @@ void main() {
       expect(desc, 'allow');
     });
 
-    test('REQ-d00169-A: DenyReason has three values', () {
+    // Verifies: REQ-d00173-D
+    test('REQ-d00173-D: DenyReason has three values', () {
       expect(DenyReason.values, hasLength(3));
       expect(DenyReason.values.toSet(), {
         DenyReason.notGranted,
