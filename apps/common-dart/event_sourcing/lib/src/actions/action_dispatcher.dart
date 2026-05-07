@@ -1,9 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00168 (Dispatcher Pipeline): owner of the 10-stage pipeline.
-//   This file currently implements stages 1 (lookup), 2 (invocation_id),
-//   3 (parse), 4 (idempotency check), 5 (validate), 6 (authorize),
-//   7 (execute), and 8 (atomic multi-event persist).
-//   Stages 9-10 land in subsequent commits per plan-1 Tasks 20-21.
+//   This file implements all 10 stages:
+//     1 (lookup), 2 (invocation_id), 3 (parse), 4 (idempotency check),
+//     5 (validate), 6 (authorize), 7 (execute), 8 (atomic multi-event persist),
+//     9 (record idempotency — REQ-d00168-J, REQ-d00170-D),
+//     10 (return success — REQ-d00168-K).
 
 import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:event_sourcing/src/actions/action_registry.dart';
@@ -73,7 +74,12 @@ class ActionDispatcher {
   ///             On any append throw, the transaction rolls back and the
   ///             dispatcher emits `execution_failed`, returning
   ///             [DispatchExecutionFailed].
-  ///   Stages 9-10 — TODO in plan-1 Tasks 20-21.
+  ///   Stage 9  — if `action.idempotency != none` AND a key was supplied,
+  ///             record an `IdempotencyEntry` via `idempotency.record`.
+  ///             Entry carries `actionName`, `principalId`, `key`,
+  ///             JSON-serialized result, `emittedEventIds`, and
+  ///             `expiresAt = ctx.requestStartedAt + action.idempotencyTtl`.
+  ///   Stage 10 — return `DispatchResult.success(result, emittedEventIds)`.
   Future<DispatchResult<Object?>> dispatch(
     String actionName,
     Map<String, Object?> rawInput,
@@ -259,10 +265,47 @@ class ActionDispatcher {
       return DispatchResult<Object?>.executionFailed(err);
     }
 
-    // Stages 9-10 land in subsequent tasks.
-    throw UnimplementedError(
-      'Stages 9-10 of the dispatcher pipeline are added in plan-1 Tasks 20-21.',
+    // Stage 9: record idempotency
+    // Implements: REQ-d00168-J, REQ-d00170-D
+    if (action.idempotency != Idempotency.none && idempotencyKey != null) {
+      final resultJson = _resultToJson(executionResult.result);
+      await idempotency.record(
+        actionName: action.name,
+        principalId: ctx.principal.id,
+        key: idempotencyKey,
+        resultJson: resultJson,
+        emittedEventIds: emittedEventIds,
+        expiresAt: ctx.requestStartedAt.add(action.idempotencyTtl),
+      );
+    }
+
+    // Stage 10: return success
+    // Implements: REQ-d00168-K
+    return DispatchResult<Object?>.success(
+      executionResult.result,
+      emittedEventIds,
     );
+  }
+
+  /// Converts an action result to a JSON-serializable map for idempotency
+  /// recording. Handles null, `Map<String, Object?>`, objects with `.toJson()`,
+  /// and falls back to `{'value': result.toString()}`.
+  Map<String, Object?> _resultToJson(Object? result) {
+    if (result == null) return const <String, Object?>{};
+    if (result is Map<String, Object?>) return result;
+    // Try duck-typing .toJson() before falling back to toString.
+    // Catching Object and checking type avoids the lint against catching Error
+    // subclasses directly while still handling the missing-method case.
+    try {
+      // ignore: avoid_dynamic_calls
+      final json = (result as dynamic).toJson() as Map<String, Object?>;
+      return json;
+    } on Object catch (e) {
+      if (e is NoSuchMethodError) {
+        return <String, Object?>{'value': result.toString()};
+      }
+      rethrow;
+    }
   }
 
   /// Persists a denial event through [events]. Single event, atomic by

@@ -90,6 +90,15 @@ class BadExecuteAction extends HelloAction {
   }
 }
 
+/// Idempotency.optional action — key is accepted but not required.
+class OptionalKeyAction extends HelloAction {
+  @override
+  String get name => 'optional_key';
+
+  @override
+  Idempotency get idempotency => Idempotency.optional;
+}
+
 /// Idempotency.required action.
 class RequiredKeyAction extends HelloAction {
   @override

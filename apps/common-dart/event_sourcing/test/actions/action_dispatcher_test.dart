@@ -16,6 +16,7 @@ import 'fixtures/test_actions.dart'
         BadValidateAction,
         HelloAction,
         MultiEventAction,
+        OptionalKeyAction,
         RequiredKeyAction,
         TwoPermissionAction;
 
@@ -377,7 +378,7 @@ void main() {
     );
 
     test(
-      'REQ-d00168-G: all-Allow falls through past Stage 8 to Stage 9-10 UnimplementedError',
+      'REQ-d00168-G: all-Allow falls through all stages and returns DispatchSuccess',
       () async {
         final allowDispatcher = ActionDispatcher(
           registry: registry,
@@ -385,12 +386,12 @@ void main() {
           events: eventStore,
           idempotency: idempotency,
         );
-        expect(
-          () => allowDispatcher.dispatch('hello', const <String, Object?>{
-            'who': 'world',
-          }, _ctx()),
-          throwsA(isA<UnimplementedError>()),
+        final result = await allowDispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
         );
+        expect(result, isA<DispatchSuccess<Object?>>());
       },
     );
   });
@@ -431,16 +432,15 @@ void main() {
     );
 
     test(
-      'REQ-d00168-H: execute success persists events before Stage 9 UnimplementedError',
+      'REQ-d00168-H: execute success persists events and returns DispatchSuccess',
       () async {
-        // Stage 8 persists the event; Stage 9-10 then throws UnimplementedError.
-        // Verify the event was persisted despite the subsequent throw.
-        await expectLater(
-          allowDispatcher.dispatch('hello', const <String, Object?>{
-            'who': 'world',
-          }, _ctx()),
-          throwsA(isA<UnimplementedError>()),
+        // Stage 8 persists the event; Stage 9-10 complete and return success.
+        final result = await allowDispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
         );
+        expect(result, isA<DispatchSuccess<Object?>>());
 
         final allEvents = await eventStore.backend.findAllEvents();
         final greetings = allEvents
@@ -463,13 +463,12 @@ void main() {
     test(
       'REQ-d00168-I: each emitted event has action_invocation_id and action_name in metadata',
       () async {
-        // Stage 9-10 will throw; verify persisted events after the throw.
-        await expectLater(
-          allowDispatcher.dispatch('hello', const <String, Object?>{
-            'who': 'stamp-test',
-          }, _ctx()),
-          throwsA(isA<UnimplementedError>()),
+        final result = await allowDispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'stamp-test'},
+          _ctx(),
         );
+        expect(result, isA<DispatchSuccess<Object?>>());
 
         final allEvents = await eventStore.backend.findAllEvents();
         final greetings = allEvents
@@ -494,13 +493,12 @@ void main() {
     test(
       'REQ-d00168-I: multi-event execute persists all atomically with same action_invocation_id',
       () async {
-        // Stage 9-10 will throw; verify persisted events after the throw.
-        await expectLater(
-          allowDispatcher.dispatch('multi_event', const <String, Object?>{
-            'who': 'world',
-          }, _ctx()),
-          throwsA(isA<UnimplementedError>()),
+        final result = await allowDispatcher.dispatch(
+          'multi_event',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
         );
+        expect(result, isA<DispatchSuccess<Object?>>());
 
         final allEvents = await eventStore.backend.findAllEvents();
         final greetings = allEvents
@@ -525,5 +523,101 @@ void main() {
     //   This requires a seam in StorageBackend to inject mid-transaction failures.
     //   Without such a seam the rollback semantic is verified only by code inspection
     //   and the Sembast transaction contract. Track as follow-up.
+  });
+
+  group('Stages 9+10 — record idempotency + return success', () {
+    late ActionDispatcher allowDispatcher;
+
+    setUp(() {
+      registry
+        ..register(OptionalKeyAction())
+        ..register(RequiredKeyAction())
+        ..register(MultiEventAction());
+      allowDispatcher = makeAllowDispatcher(registry, eventStore, idempotency);
+    });
+
+    test(
+      'REQ-d00168-K: success path returns DispatchSuccess with result and emittedEventIds',
+      () async {
+        final result = await allowDispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
+        );
+        expect(result, isA<DispatchSuccess<Object?>>());
+        final success = result as DispatchSuccess<Object?>;
+        expect(success.result, equals('Hello, world'));
+        // HelloAction emits exactly one event.
+        expect(success.emittedEventIds, hasLength(1));
+      },
+    );
+
+    test(
+      'REQ-d00170-D: Idempotency.optional + key records entry; lookup returns entry with matching emittedEventIds',
+      () async {
+        final ctx = _ctx();
+        final result = await allowDispatcher.dispatch(
+          'optional_key',
+          const <String, Object?>{'who': 'optional-world'},
+          ctx,
+          idempotencyKey: 'k1',
+        );
+        expect(result, isA<DispatchSuccess<Object?>>());
+        final success = result as DispatchSuccess<Object?>;
+
+        // Pass now = requestStartedAt so the entry is not expired at lookup time.
+        final entry = await idempotency.lookup(
+          'optional_key',
+          'u-1',
+          'k1',
+          now: ctx.requestStartedAt,
+        );
+        expect(entry, isNotNull);
+        expect(entry!.emittedEventIds, equals(success.emittedEventIds));
+      },
+    );
+
+    test(
+      'REQ-d00170-D: Idempotency.required + key records entry; lookup returns entry with matching emittedEventIds',
+      () async {
+        final ctx = _ctx();
+        final result = await allowDispatcher.dispatch(
+          'requires_key',
+          const <String, Object?>{'who': 'required-world'},
+          ctx,
+          idempotencyKey: 'k2',
+        );
+        expect(result, isA<DispatchSuccess<Object?>>());
+        final success = result as DispatchSuccess<Object?>;
+
+        // Pass now = requestStartedAt so the entry is not expired at lookup time.
+        final entry = await idempotency.lookup(
+          'requires_key',
+          'u-1',
+          'k2',
+          now: ctx.requestStartedAt,
+        );
+        expect(entry, isNotNull);
+        expect(entry!.emittedEventIds, equals(success.emittedEventIds));
+      },
+    );
+
+    test(
+      'REQ-d00168-J: Idempotency.none + key supplied → no idempotency entry recorded',
+      () async {
+        final result = await allowDispatcher.dispatch(
+          'hello',
+          const <String, Object?>{'who': 'no-record'},
+          _ctx(),
+          idempotencyKey: 'ignored-key',
+        );
+        expect(result, isA<DispatchSuccess<Object?>>());
+
+        // HelloAction has Idempotency.none; key must be silently ignored —
+        // no entry written to the store.
+        final entry = await idempotency.lookup('hello', 'u-1', 'ignored-key');
+        expect(entry, isNull);
+      },
+    );
   });
 }
