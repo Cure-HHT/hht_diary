@@ -73,7 +73,7 @@ File location in your repository: `.github/workflows/add-tester.yml`
 Go to GitHub, then **Actions**, then **Add tester to beta group**, then **Run workflow**. A form appears with the following input fields:
 
 | Input field | Description | Example |
-|---|---|---|
+| --- | --- | --- |
 | email | Tester email address | qa@client.com |
 | first_name | Tester first name | John |
 | last_name | Tester last name | Smith |
@@ -135,7 +135,7 @@ The tester is linked to the group. Apple sends an email invite to the tester aut
 The `group_name` input is the key that controls everything. The same workflow handles both first-time group setup and all subsequent additions. There is no separate manual step to create a group.
 
 | Scenario | What happens | Result |
-|---|---|---|
+| --- | --- | --- |
 | Group exists, tester is new | The group is found by name lookup. A tester record is created and linked to the group. | Tester receives an invite. |
 | Group does not exist, tester is new | The group is created via the API using the provided name. A tester record is created and linked to the group. | Group and tester are created. Tester receives an invite. |
 | Group exists, tester already in group | The group is found. Tester record creation returns a conflict, which the API handles gracefully, so no duplicate is created. | No action needed. Tester already has access. |
@@ -192,7 +192,7 @@ Because all builds are stored as GitHub Actions artifacts for 90 days, any past 
 ## Notification secrets
 
 | Secret name | Used by | Where to get it |
-|---|---|---|
+| --- | --- | --- |
 | SLACK_WEBHOOK_URL | Both workflows | Create an Incoming Webhook in your Slack workspace under Apps, then Incoming Webhooks. Copy the webhook URL. |
 
 ---

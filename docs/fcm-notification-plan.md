@@ -275,4 +275,3 @@ Client (FCM denied)
 | `PollingService` | `Timer.periodic` fallback, started or stopped by `SyncManager` |
 | FCM handlers | `onMessage`, `onBackgroundMessage`, token lifecycle |
 | `lastSyncTimestamp` | Persisted locally, used as `since` param |
-|  |  |
