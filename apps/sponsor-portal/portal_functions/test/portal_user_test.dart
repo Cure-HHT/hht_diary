@@ -253,6 +253,115 @@ void main() {
 
       expect(response.statusCode, equals(403));
     });
+
+    /// State-machine guard: only active<->revoked transitions and noops
+    /// are legitimate via this handler. Pending users must go through
+    /// activateUserHandler (binds firebase_uid) or
+    /// deletePendingPortalUserHandler (cancels invite). PATCHing
+    /// pending->active here would skip activation and leave firebase_uid
+    /// NULL, breaking sign-in permanently.
+    group('updatePortalUserHandler — state-machine guard', () {
+      const targetId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+      const adminId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+      setUp(() {
+        requirePortalAuthOverride = (_) async => PortalUser(
+          id: adminId,
+          email: 'admin@example.com',
+          name: 'Test Admin',
+          roles: ['Administrator'],
+          activeRole: 'Administrator',
+          status: 'active',
+        );
+      });
+
+      tearDown(() {
+        requirePortalAuthOverride = null;
+        databaseQueryOverride = null;
+      });
+
+      Future<Response> patchStatus({
+        required String fromStatus,
+        required String toStatus,
+      }) async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains(
+            'SELECT id, name, email, status FROM portal_users',
+          )) {
+            return [
+              [targetId, 'Target', 'target@example.com', fromStatus],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            // Handler does `array_agg(...) as roles` and casts the first
+            // column to List<String>. Mock a one-row, one-column result
+            // whose value is the roles array itself.
+            return [
+              [
+                <String>['Investigator'],
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_site_access')) {
+            // Same array_agg shape — empty list of site_ids.
+            return [
+              [<String>[]],
+            ];
+          }
+          // Audit-log INSERTs and other writes — return empty.
+          return [];
+        };
+        return updatePortalUserHandler(
+          createPatchRequest(
+            '/api/v1/portal/users/$targetId',
+            {'status': toStatus},
+            headers: {'authorization': 'Bearer test'},
+          ),
+          targetId,
+        );
+      }
+
+      test(
+        'rejects pending -> active (would leave firebase_uid NULL)',
+        () async {
+          final response = await patchStatus(
+            fromStatus: 'pending',
+            toStatus: 'active',
+          );
+          expect(response.statusCode, equals(400));
+          final body = await getResponseJson(response);
+          expect(body['code'], equals('invalid_transition'));
+        },
+      );
+
+      test('rejects pending -> revoked (use deletePending instead)', () async {
+        final response = await patchStatus(
+          fromStatus: 'pending',
+          toStatus: 'revoked',
+        );
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('invalid_transition'));
+      });
+
+      test('rejects active -> pending (would lock the user out)', () async {
+        final response = await patchStatus(
+          fromStatus: 'active',
+          toStatus: 'pending',
+        );
+        expect(response.statusCode, equals(400));
+        final body = await getResponseJson(response);
+        expect(body['code'], equals('invalid_transition'));
+      });
+
+      test('allows active -> revoked (deactivation)', () async {
+        final response = await patchStatus(
+          fromStatus: 'active',
+          toStatus: 'revoked',
+        );
+        expect(response.statusCode, isNot(equals(400)));
+      });
+    });
   });
 
   group('getPortalSitesHandler', () {

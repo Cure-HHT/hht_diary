@@ -308,6 +308,23 @@ Future<Response> portalMeHandler(Request request) async {
 ///     role: user.activeRole,
 ///   );
 ///   // Use context for subsequent queries
+///
+/// uid_not_bound surfacing — INTENTIONAL ASYMMETRY:
+///   This function returns null on six different failure conditions
+///   (missing token, invalid token, no portal_users row matching uid,
+///   account revoked, account pending, role disallowed). Callers
+///   uniformly map null -> 403 generic. Only [portalMeHandler] (which
+///   does its own uid lookup, not via this helper) emits the structured
+///   401 {code: uid_not_bound} envelope that the SPA's Flavor.local
+///   rebind banner keys on.
+///
+///   This is by design: /portal/me is the canonical session-status
+///   endpoint and the SPA fetches it at app load (before any other
+///   protected endpoint), so the rebind hint always reaches the user.
+///   If a future flow needs uid_not_bound differentiation outside
+///   /portal/me, refactor this function to return a Response on
+///   failure (record/sealed type), and update all 18 call sites — do
+///   not silently change the contract.
 Future<PortalUser?> requirePortalAuth(
   Request request, [
   List<String>? allowedRoles,

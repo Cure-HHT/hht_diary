@@ -28,12 +28,16 @@ DateTime? _cacheExpiry;
 /// Only consulted on the production token-verification path
 /// (issuer + audience checks below). When FIREBASE_AUTH_EMULATOR_HOST is
 /// set, [verifyIdToken] takes the emulator branch and never reads this.
-/// The fallback exists as a safety net only — every actual environment
-/// (local-stack, dev/qa/uat/prod Cloud Run) sets GCP_PROJECT_ID
-/// explicitly. CUR-1263 retag: aligned with the canonical local-stack
-/// project id so the dead-code path no longer cites a stale value.
+///
+/// Precedence matches identity_admin.dart:53 and portal_password_reset.dart:67
+/// — PORTAL_IDENTITY_PROJECT_ID first, then GCP_PROJECT_ID, then
+/// GOOGLE_CLOUD_PROJECT, then a local-stack sentinel. A mismatch here
+/// (e.g., this file resolving to project A while activation writes to
+/// project B) would silently break sign-in: tokens minted by one IdP
+/// would fail audience check against the other.
 String get _projectId =>
-    (Platform.environment['GCP_PROJECT_ID'] ??
+    (Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
+            Platform.environment['GCP_PROJECT_ID'] ??
             Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
             'demo-local-stack')
         .trim();

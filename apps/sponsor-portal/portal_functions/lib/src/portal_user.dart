@@ -612,6 +612,33 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       return _jsonResponse({'error': 'Invalid status'}, 400);
     }
 
+    // State-machine guard. Legitimate transitions via this handler:
+    //   active -> revoked       (deactivation)
+    //   revoked -> active       (special-cased below: actually flips to
+    //                            'pending' + new code via the re-invite
+    //                            path; this matches REQ-CAL-p00032/p00062)
+    //   noop (X -> X)           (idempotent; no-op)
+    //
+    // Forbidden via this handler:
+    //   pending -> active       Would skip activation; firebase_uid stays
+    //                           NULL; user permanently uid_not_bound.
+    //   pending -> revoked      Use deletePendingPortalUserHandler instead.
+    //   active -> pending       Locks out the user with no code; if intent
+    //                           is "re-issue code", use generate-code.
+    //   revoked -> pending      Use the re-invite path (active->revoked
+    //                           handled below) or generate-code.
+    final isNoop = status == currentStatus;
+    final isActiveToRevoked = currentStatus == 'active' && status == 'revoked';
+    final isRevokedToActive = currentStatus == 'revoked' && status == 'active';
+    if (!isNoop && !isActiveToRevoked && !isRevokedToActive) {
+      return _jsonResponse({
+        'error':
+            'Status transition $currentStatus -> $status is not allowed via '
+            'this handler',
+        'code': 'invalid_transition',
+      }, 400);
+    }
+
     // Capture optional reason for status change (REQ-CAL-p00066)
     final reason = body['reason'] as String?;
 
