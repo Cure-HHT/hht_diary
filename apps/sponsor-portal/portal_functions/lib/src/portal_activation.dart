@@ -223,16 +223,17 @@ Future<Response> activateUserHandler(Request request) async {
     }, 502);
   }
 
-  // Stamp firebase_uid + flip to active + clear code, in one TX gated by
-  // status='pending'. The WHERE clause makes a retry-after-success a no-op
-  // here (status would already be 'active' and we'd have short-circuited
-  // higher up; this gate is belt-and-suspenders).
+  // Stamp firebase_uid + flip to active, in one TX gated by status='pending'.
+  // REQ-d00166-E: keep activation_code in place after success so a retry
+  // with the same code lands on the same row, sees status='active' at the
+  // short-circuit above, and returns 200 already_active=true. The
+  // status='pending' WHERE clause remains the only gate against re-running
+  // the IdP write.
   await db.executeWithContext(
     '''
     UPDATE portal_users
     SET firebase_uid = @uid,
         status = 'active',
-        activation_code = NULL,
         updated_at = now()
     WHERE id = @id::uuid AND status = 'pending'
     ''',
