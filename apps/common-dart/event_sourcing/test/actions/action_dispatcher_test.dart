@@ -11,9 +11,11 @@ import 'package:sembast/sembast_memory.dart';
 import 'fixtures/test_actions.dart'
     show
         AlwaysAllowPolicy,
+        BadExecuteAction,
         BadParseAction,
         BadValidateAction,
         HelloAction,
+        MultiEventAction,
         RequiredKeyAction,
         TwoPermissionAction;
 
@@ -40,18 +42,30 @@ Future<EventStore> _bootstrapEventStore() async {
     registry.register(defn);
   }
 
-  // Register the action_denial entry type that denial events require.
-  // materialize: false — denials are audit records, not diary entries.
-  registry.register(
-    const EntryTypeDefinition(
-      id: 'action_denial',
-      registeredVersion: 1,
-      name: 'Action denial',
-      widgetId: 'action_denial_v1',
-      widgetConfig: <String, Object?>{},
-      materialize: false,
-    ),
-  );
+  // Register test-specific entry types. materialize: false — these are
+  // audit records and test fixtures, not diary entries.
+  registry
+    ..register(
+      const EntryTypeDefinition(
+        id: 'action_denial',
+        registeredVersion: 1,
+        name: 'Action denial',
+        widgetId: 'action_denial_v1',
+        widgetConfig: <String, Object?>{},
+        materialize: false,
+      ),
+    )
+    // greeting is emitted by HelloAction and MultiEventAction.
+    ..register(
+      const EntryTypeDefinition(
+        id: 'greeting',
+        registeredVersion: 1,
+        name: 'Greeting',
+        widgetId: 'greeting_v1',
+        widgetConfig: <String, Object?>{},
+        materialize: false,
+      ),
+    );
 
   final securityContexts = SembastSecurityContextStore(backend: backend);
 
@@ -301,6 +315,18 @@ void main() {
     );
   });
 
+  // Helper: dispatcher that always allows authorization.
+  ActionDispatcher makeAllowDispatcher(
+    ActionRegistry reg,
+    EventStore es,
+    InMemoryIdempotencyStore idm,
+  ) => ActionDispatcher(
+    registry: reg,
+    authorization: const AlwaysAllowPolicy(),
+    events: es,
+    idempotency: idm,
+  );
+
   group('Stage 6 — authorize', () {
     test(
       'REQ-d00168-G: authz denial returns DispatchAuthorizationDenied',
@@ -351,7 +377,7 @@ void main() {
     );
 
     test(
-      'REQ-d00168-G: all-Allow falls through to Stage 7 UnimplementedError',
+      'REQ-d00168-G: all-Allow falls through past Stage 8 to Stage 9-10 UnimplementedError',
       () async {
         final allowDispatcher = ActionDispatcher(
           registry: registry,
@@ -367,5 +393,137 @@ void main() {
         );
       },
     );
+  });
+
+  group('Stage 7 — execute', () {
+    late ActionDispatcher allowDispatcher;
+
+    setUp(() {
+      registry.register(BadExecuteAction());
+      allowDispatcher = makeAllowDispatcher(registry, eventStore, idempotency);
+    });
+
+    test(
+      'REQ-d00168-H: execute throw returns DispatchExecutionFailed',
+      () async {
+        final result = await allowDispatcher.dispatch(
+          'bad_execute',
+          const <String, Object?>{'who': 'world'},
+          _ctx(),
+        );
+        expect(result, isA<DispatchExecutionFailed<Object?>>());
+      },
+    );
+
+    test(
+      'REQ-d00168-H: execute throw emits execution_failed denial event',
+      () async {
+        await allowDispatcher.dispatch('bad_execute', const <String, Object?>{
+          'who': 'world',
+        }, _ctx());
+        final allEvents = await eventStore.backend.findAllEvents();
+        final denials = allEvents
+            .where((e) => e.eventType == 'execution_failed')
+            .toList();
+        expect(denials, hasLength(1));
+        expect(denials.first.data['action_name'], 'bad_execute');
+      },
+    );
+
+    test(
+      'REQ-d00168-H: execute success persists events before Stage 9 UnimplementedError',
+      () async {
+        // Stage 8 persists the event; Stage 9-10 then throws UnimplementedError.
+        // Verify the event was persisted despite the subsequent throw.
+        await expectLater(
+          allowDispatcher.dispatch('hello', const <String, Object?>{
+            'who': 'world',
+          }, _ctx()),
+          throwsA(isA<UnimplementedError>()),
+        );
+
+        final allEvents = await eventStore.backend.findAllEvents();
+        final greetings = allEvents
+            .where((e) => e.eventType == 'hello.said')
+            .toList();
+        expect(greetings, hasLength(1));
+        expect(greetings.first.data['who'], 'world');
+      },
+    );
+  });
+
+  group('Stage 8 — atomic persist', () {
+    late ActionDispatcher allowDispatcher;
+
+    setUp(() {
+      registry.register(MultiEventAction());
+      allowDispatcher = makeAllowDispatcher(registry, eventStore, idempotency);
+    });
+
+    test(
+      'REQ-d00168-I: each emitted event has action_invocation_id and action_name in metadata',
+      () async {
+        // Stage 9-10 will throw; verify persisted events after the throw.
+        await expectLater(
+          allowDispatcher.dispatch('hello', const <String, Object?>{
+            'who': 'stamp-test',
+          }, _ctx()),
+          throwsA(isA<UnimplementedError>()),
+        );
+
+        final allEvents = await eventStore.backend.findAllEvents();
+        final greetings = allEvents
+            .where((e) => e.eventType == 'hello.said')
+            .toList();
+        expect(greetings, hasLength(1));
+
+        final meta = greetings.first.metadata;
+        expect(meta['action_invocation_id'], isA<String>());
+        expect(
+          meta['action_invocation_id'] as String,
+          matches(
+            RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+            ),
+          ),
+        );
+        expect(meta['action_name'], 'hello');
+      },
+    );
+
+    test(
+      'REQ-d00168-I: multi-event execute persists all atomically with same action_invocation_id',
+      () async {
+        // Stage 9-10 will throw; verify persisted events after the throw.
+        await expectLater(
+          allowDispatcher.dispatch('multi_event', const <String, Object?>{
+            'who': 'world',
+          }, _ctx()),
+          throwsA(isA<UnimplementedError>()),
+        );
+
+        final allEvents = await eventStore.backend.findAllEvents();
+        final greetings = allEvents
+            .where((e) => e.eventType == 'hello.said')
+            .toList();
+        expect(greetings, hasLength(3));
+
+        // All three events must carry the same action_invocation_id.
+        final invIds = greetings
+            .map((e) => e.metadata['action_invocation_id'] as String)
+            .toSet();
+        expect(invIds, hasLength(1));
+
+        // All three must have action_name stamped.
+        for (final e in greetings) {
+          expect(e.metadata['action_name'], 'multi_event');
+        }
+      },
+    );
+
+    // TODO(CUR-1192): Add fault-injection test for Stage 8 rollback-on-persist-failure.
+    //   This requires a seam in StorageBackend to inject mid-transaction failures.
+    //   Without such a seam the rollback semantic is verified only by code inspection
+    //   and the Sembast transaction contract. Track as follow-up.
   });
 }

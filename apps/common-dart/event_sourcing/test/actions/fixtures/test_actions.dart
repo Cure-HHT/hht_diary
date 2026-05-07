@@ -111,6 +111,45 @@ class TwoPermissionAction extends HelloAction {
   };
 }
 
+/// Emits 3 events on execute. Used in Stage 8 atomic-persist tests.
+class MultiEventAction extends HelloAction {
+  @override
+  String get name => 'multi_event';
+
+  @override
+  Future<ExecutionResult<String>> execute(
+    Map<String, Object?> input,
+    ActionContext ctx,
+  ) async {
+    return const ExecutionResult<String>(
+      result: 'multi',
+      events: <EventDraft>[
+        EventDraft(
+          aggregateId: 'multi-agg',
+          aggregateType: 'greeting',
+          entryType: 'greeting',
+          eventType: 'hello.said',
+          data: <String, dynamic>{'who': 'alpha'},
+        ),
+        EventDraft(
+          aggregateId: 'multi-agg',
+          aggregateType: 'greeting',
+          entryType: 'greeting',
+          eventType: 'hello.said',
+          data: <String, dynamic>{'who': 'beta'},
+        ),
+        EventDraft(
+          aggregateId: 'multi-agg',
+          aggregateType: 'greeting',
+          entryType: 'greeting',
+          eventType: 'hello.said',
+          data: <String, dynamic>{'who': 'gamma'},
+        ),
+      ],
+    );
+  }
+}
+
 /// Authorization policy that allows every request. Used in Stage 6 tests
 /// to verify the all-Allow path falls through to Stage 7.
 class AlwaysAllowPolicy extends AuthorizationPolicy {

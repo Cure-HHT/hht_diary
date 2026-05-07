@@ -1,8 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00168 (Dispatcher Pipeline): owner of the 10-stage pipeline.
 //   This file currently implements stages 1 (lookup), 2 (invocation_id),
-//   3 (parse), 4 (idempotency check), 5 (validate), and 6 (authorize).
-//   Stages 7-10 land in subsequent commits per plan-1 Tasks 19-22.
+//   3 (parse), 4 (idempotency check), 5 (validate), 6 (authorize),
+//   7 (execute), and 8 (atomic multi-event persist).
+//   Stages 9-10 land in subsequent commits per plan-1 Tasks 20-21.
 
 import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:event_sourcing/src/actions/action_registry.dart';
@@ -11,6 +12,7 @@ import 'package:event_sourcing/src/actions/authorization_decision.dart'
 import 'package:event_sourcing/src/actions/authorization_policy.dart';
 import 'package:event_sourcing/src/actions/denial_events.dart';
 import 'package:event_sourcing/src/actions/dispatch_result.dart';
+import 'package:event_sourcing/src/actions/execution_result.dart';
 import 'package:event_sourcing/src/actions/idempotency.dart';
 import 'package:event_sourcing/src/actions/idempotency_errors.dart';
 import 'package:event_sourcing/src/actions/idempotency_store.dart';
@@ -62,7 +64,16 @@ class ActionDispatcher {
   ///             optional `principal_active_role`, and `deny_reason`) and
   ///             return [DispatchAuthorizationDenied]. All-Allow falls
   ///             through to Stage 7.
-  ///   Stages 7-10 — TODO in plan-1 Tasks 19-22.
+  ///   Stage 7 — call `action.execute(parsedInput, ctx)`. On throw, emit
+  ///             `execution_failed` and return [DispatchExecutionFailed].
+  ///   Stage 8 — atomically persist all events from `result.events` in a
+  ///             single `backend.transaction`. Each event is stamped with
+  ///             `initiator`, `action_invocation_id`, `action_name`, and
+  ///             `flowToken` (draft's, falling back to dispatch parameter).
+  ///             On any append throw, the transaction rolls back and the
+  ///             dispatcher emits `execution_failed`, returning
+  ///             [DispatchExecutionFailed].
+  ///   Stages 9-10 — TODO in plan-1 Tasks 20-21.
   Future<DispatchResult<Object?>> dispatch(
     String actionName,
     Map<String, Object?> rawInput,
@@ -182,9 +193,75 @@ class ActionDispatcher {
       }
     }
 
-    // Stages 7-10 land in subsequent tasks.
+    // Stage 7: execute
+    // Implements: REQ-d00168-H
+    //
+    // The registry stores Action<Object?, Object?> so action.execute
+    // already returns ExecutionResult<Object?> — no cast needed.
+    late ExecutionResult<Object?> executionResult;
+    try {
+      executionResult = await action.execute(parsedInput, ctx);
+    } on Object catch (err) {
+      final denial = denialExecutionFailed(
+        invocationId: invocationId,
+        actionName: action.name,
+        error: err,
+        actionInvocationMetadata: Map<String, dynamic>.from(invocationMetadata),
+      );
+      await _persistDenial(denial, ctx, flowToken: flowToken);
+      return DispatchResult<Object?>.executionFailed(err);
+    }
+
+    // Stage 8: atomic persist of all events in one transaction.
+    // Implements: REQ-d00168-I
+    final emittedEventIds = <String>[];
+    final initiator = ctx.principal.toInitiator();
+    final security = executionResult.securityDetailsOverride ?? ctx.security;
+    try {
+      await events.backend.transaction<void>((txn) async {
+        for (final draft in executionResult.events) {
+          final mergedMetadata = <String, Object?>{
+            ...?draft.metadata,
+            'action_invocation_id': invocationId,
+            'action_name': action.name,
+          };
+          final stored = await events.appendInTxn(
+            txn,
+            entryType: draft.entryType,
+            entryTypeVersion: 1,
+            aggregateId: draft.aggregateId,
+            aggregateType: draft.aggregateType,
+            eventType: draft.eventType,
+            data: Map<String, Object?>.from(draft.data),
+            initiator: initiator,
+            flowToken: draft.flowToken ?? flowToken,
+            metadata: mergedMetadata,
+            security: security,
+            checkpointReason: null,
+            changeReason: null,
+            dedupeByContent: false,
+          );
+          if (stored != null) {
+            emittedEventIds.add(stored.eventId);
+          }
+        }
+      });
+    } on Object catch (err) {
+      // Transaction rolled back by Sembast; emit a separate execution_failed
+      // denial event AFTER the rollback so it is durably persisted.
+      final denial = denialExecutionFailed(
+        invocationId: invocationId,
+        actionName: action.name,
+        error: err,
+        actionInvocationMetadata: Map<String, dynamic>.from(invocationMetadata),
+      );
+      await _persistDenial(denial, ctx, flowToken: flowToken);
+      return DispatchResult<Object?>.executionFailed(err);
+    }
+
+    // Stages 9-10 land in subsequent tasks.
     throw UnimplementedError(
-      'Stages 7-10 of the dispatcher pipeline are added in plan-1 Tasks 19-22.',
+      'Stages 9-10 of the dispatcher pipeline are added in plan-1 Tasks 20-21.',
     );
   }
 
