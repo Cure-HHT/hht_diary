@@ -178,3 +178,252 @@ class DispatchResponseIdempotencyHit extends DispatchResponse {
     'priorResult': priorResult,
   };
 }
+
+// SessionStart -------------------------------------------------------------
+
+@immutable
+class SessionStartRequest {
+  const SessionStartRequest({this.userId});
+
+  factory SessionStartRequest.fromJson(Map<String, Object?> json) {
+    return SessionStartRequest(userId: json['userId'] as String?);
+  }
+
+  final String? userId;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    if (userId != null) 'userId': userId,
+  };
+}
+
+@immutable
+class SessionStartResponse {
+  const SessionStartResponse({
+    required this.principalRole,
+    required this.principalUserId,
+    required this.principalActiveSite,
+    required this.snapshotPermissions,
+  });
+
+  factory SessionStartResponse.fromJson(Map<String, Object?> json) {
+    return SessionStartResponse(
+      principalRole: json['principalRole']! as String,
+      principalUserId: json['principalUserId'] as String?,
+      principalActiveSite: json['principalActiveSite'] as String?,
+      snapshotPermissions: List<String>.from(
+        json['snapshotPermissions']! as List<Object?>,
+      ),
+    );
+  }
+
+  final String principalRole;
+  final String? principalUserId;
+  final String? principalActiveSite;
+  final List<String> snapshotPermissions;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'principalRole': principalRole,
+    'principalUserId': principalUserId,
+    'principalActiveSite': principalActiveSite,
+    'snapshotPermissions': snapshotPermissions,
+  };
+}
+
+// InspectSnapshot ----------------------------------------------------------
+
+@immutable
+class StoredEventSummary {
+  const StoredEventSummary({
+    required this.eventId,
+    required this.eventType,
+    required this.aggregateType,
+    required this.aggregateId,
+    required this.actionInvocationId,
+    required this.initiatorUserId,
+    required this.initiatorRole,
+  });
+
+  factory StoredEventSummary.fromJson(Map<String, Object?> json) {
+    return StoredEventSummary(
+      eventId: json['eventId']! as String,
+      eventType: json['eventType']! as String,
+      aggregateType: json['aggregateType']! as String,
+      aggregateId: json['aggregateId']! as String,
+      actionInvocationId: json['actionInvocationId']! as String,
+      initiatorUserId: json['initiatorUserId'] as String?,
+      initiatorRole: json['initiatorRole']! as String,
+    );
+  }
+
+  final String eventId;
+  final String eventType;
+  final String aggregateType;
+  final String aggregateId;
+  final String actionInvocationId;
+  final String? initiatorUserId;
+  final String initiatorRole;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'eventId': eventId,
+    'eventType': eventType,
+    'aggregateType': aggregateType,
+    'aggregateId': aggregateId,
+    'actionInvocationId': actionInvocationId,
+    'initiatorUserId': initiatorUserId,
+    'initiatorRole': initiatorRole,
+  };
+}
+
+@immutable
+class MatrixGrant {
+  const MatrixGrant({required this.role, required this.permission});
+
+  factory MatrixGrant.fromJson(Map<String, Object?> json) {
+    return MatrixGrant(
+      role: json['role']! as String,
+      permission: json['permission']! as String,
+    );
+  }
+
+  final String role;
+  final String permission;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'role': role,
+    'permission': permission,
+  };
+}
+
+@immutable
+class UserDirectoryEntry {
+  const UserDirectoryEntry({
+    required this.userId,
+    required this.role,
+    required this.activeSite,
+  });
+
+  factory UserDirectoryEntry.fromJson(Map<String, Object?> json) {
+    return UserDirectoryEntry(
+      userId: json['userId']! as String,
+      role: json['role']! as String,
+      activeSite: json['activeSite'] as String?,
+    );
+  }
+
+  final String userId;
+  final String role;
+  final String? activeSite;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'userId': userId,
+    'role': role,
+    'activeSite': activeSite,
+  };
+}
+
+@immutable
+class IdempotencyEntrySummary {
+  const IdempotencyEntrySummary({
+    required this.actionName,
+    required this.principalUserId,
+    required this.idempotencyKey,
+    required this.expiresAt,
+  });
+
+  factory IdempotencyEntrySummary.fromJson(Map<String, Object?> json) {
+    return IdempotencyEntrySummary(
+      actionName: json['actionName']! as String,
+      principalUserId: json['principalUserId'] as String?,
+      idempotencyKey: json['idempotencyKey']! as String,
+      expiresAt: DateTime.parse(json['expiresAt']! as String),
+    );
+  }
+
+  final String actionName;
+  final String? principalUserId;
+  final String idempotencyKey;
+  final DateTime expiresAt;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'actionName': actionName,
+    'principalUserId': principalUserId,
+    'idempotencyKey': idempotencyKey,
+    'expiresAt': expiresAt.toIso8601String(),
+  };
+}
+
+@immutable
+class DispatchTrace {
+  const DispatchTrace({
+    required this.actionInvocationId,
+    required this.actionName,
+    required this.stages,
+  });
+
+  factory DispatchTrace.fromJson(Map<String, Object?> json) {
+    return DispatchTrace(
+      actionInvocationId: json['actionInvocationId']! as String,
+      actionName: json['actionName']! as String,
+      stages: List<String>.from(json['stages']! as List<Object?>),
+    );
+  }
+
+  final String actionInvocationId;
+  final String actionName;
+  final List<String> stages;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'actionInvocationId': actionInvocationId,
+    'actionName': actionName,
+    'stages': stages,
+  };
+}
+
+@immutable
+class InspectSnapshot {
+  const InspectSnapshot({
+    required this.events,
+    required this.matrixGrants,
+    required this.directory,
+    required this.idempotency,
+    required this.lastDispatchTrace,
+  });
+
+  factory InspectSnapshot.fromJson(Map<String, Object?> json) {
+    return InspectSnapshot(
+      events: (json['events']! as List<Object?>)
+          .map((e) => StoredEventSummary.fromJson(e! as Map<String, Object?>))
+          .toList(),
+      matrixGrants: (json['matrixGrants']! as List<Object?>)
+          .map((e) => MatrixGrant.fromJson(e! as Map<String, Object?>))
+          .toList(),
+      directory: (json['directory']! as List<Object?>)
+          .map((e) => UserDirectoryEntry.fromJson(e! as Map<String, Object?>))
+          .toList(),
+      idempotency: (json['idempotency']! as List<Object?>)
+          .map(
+            (e) => IdempotencyEntrySummary.fromJson(e! as Map<String, Object?>),
+          )
+          .toList(),
+      lastDispatchTrace: json['lastDispatchTrace'] == null
+          ? null
+          : DispatchTrace.fromJson(
+              json['lastDispatchTrace']! as Map<String, Object?>,
+            ),
+    );
+  }
+
+  final List<StoredEventSummary> events;
+  final List<MatrixGrant> matrixGrants;
+  final List<UserDirectoryEntry> directory;
+  final List<IdempotencyEntrySummary> idempotency;
+  final DispatchTrace? lastDispatchTrace;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'events': events.map((e) => e.toJson()).toList(),
+    'matrixGrants': matrixGrants.map((g) => g.toJson()).toList(),
+    'directory': directory.map((d) => d.toJson()).toList(),
+    'idempotency': idempotency.map((i) => i.toJson()).toList(),
+    'lastDispatchTrace': lastDispatchTrace?.toJson(),
+  };
+}

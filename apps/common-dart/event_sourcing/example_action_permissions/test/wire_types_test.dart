@@ -74,4 +74,97 @@ void main() {
       expect(parsed, isA<DispatchResponseIdempotencyHit>());
     });
   });
+
+  group('SessionStartRequest/Response', () {
+    test('REQ-d00177: SessionStartRequest round-trip with userId', () {
+      const req = SessionStartRequest(userId: 'green-user-1');
+      final parsed = SessionStartRequest.fromJson(req.toJson());
+      expect(parsed.userId, 'green-user-1');
+    });
+
+    test(
+      'REQ-d00177: SessionStartRequest round-trip without userId (Anon)',
+      () {
+        const req = SessionStartRequest();
+        final parsed = SessionStartRequest.fromJson(req.toJson());
+        expect(parsed.userId, isNull);
+      },
+    );
+
+    test(
+      'REQ-d00177: SessionStartResponse round-trip with snapshot fields',
+      () {
+        const resp = SessionStartResponse(
+          principalRole: 'GreenTeam',
+          principalUserId: 'green-user-1',
+          principalActiveSite: 'site-A',
+          snapshotPermissions: <String>['notes.write.green', 'help.request'],
+        );
+        final parsed = SessionStartResponse.fromJson(resp.toJson());
+        expect(parsed.principalRole, 'GreenTeam');
+        expect(parsed.principalUserId, 'green-user-1');
+        expect(parsed.principalActiveSite, 'site-A');
+        expect(parsed.snapshotPermissions, hasLength(2));
+      },
+    );
+  });
+
+  group('InspectSnapshot', () {
+    test('round-trips through JSON', () {
+      final snap = InspectSnapshot(
+        events: const <StoredEventSummary>[
+          StoredEventSummary(
+            eventId: 'evt-1',
+            eventType: 'help_request',
+            aggregateType: 'help_ticket',
+            aggregateId: 'agg-1',
+            actionInvocationId: 'inv-1',
+            initiatorUserId: null,
+            initiatorRole: 'Anon',
+          ),
+        ],
+        matrixGrants: const <MatrixGrant>[
+          MatrixGrant(role: 'Admin', permission: 'audit.read.all'),
+        ],
+        directory: const <UserDirectoryEntry>[
+          UserDirectoryEntry(
+            userId: 'admin-user',
+            role: 'Admin',
+            activeSite: null,
+          ),
+        ],
+        idempotency: <IdempotencyEntrySummary>[
+          IdempotencyEntrySummary(
+            actionName: 'PressRedAlarmAction',
+            principalUserId: 'admin-user',
+            idempotencyKey: 'k-1',
+            expiresAt: DateTime.utc(2026, 5, 8),
+          ),
+        ],
+        lastDispatchTrace: const DispatchTrace(
+          actionInvocationId: 'inv-1',
+          actionName: 'RequestHelpAction',
+          stages: <String>['lookup OK', 'parse OK', 'authorize OK'],
+        ),
+      );
+      final parsed = InspectSnapshot.fromJson(snap.toJson());
+      expect(parsed.events, hasLength(1));
+      expect(parsed.matrixGrants, hasLength(1));
+      expect(parsed.directory, hasLength(1));
+      expect(parsed.idempotency, hasLength(1));
+      expect(parsed.lastDispatchTrace?.actionName, 'RequestHelpAction');
+    });
+
+    test('handles null lastDispatchTrace', () {
+      const snap = InspectSnapshot(
+        events: <StoredEventSummary>[],
+        matrixGrants: <MatrixGrant>[],
+        directory: <UserDirectoryEntry>[],
+        idempotency: <IdempotencyEntrySummary>[],
+        lastDispatchTrace: null,
+      );
+      final parsed = InspectSnapshot.fromJson(snap.toJson());
+      expect(parsed.lastDispatchTrace, isNull);
+    });
+  });
 }
