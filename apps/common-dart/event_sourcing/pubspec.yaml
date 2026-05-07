@@ -22,6 +22,7 @@ dependencies:
   provenance:
     path: ../provenance
   uuid: ^4.5.2
+  yaml: ^3.1.3
 
 dev_dependencies:
   flutter_test:
