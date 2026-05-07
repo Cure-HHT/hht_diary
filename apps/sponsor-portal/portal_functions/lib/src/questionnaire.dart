@@ -902,6 +902,7 @@ Future<Response> deleteQuestionnaireHandler(
     context: serviceContext,
   );
 
+  String? fcmMessageId;
   if (fcmTokenResult.isNotEmpty) {
     final fcmToken = fcmTokenResult.first[0] as String;
     final notificationResult = await NotificationService.instance
@@ -910,6 +911,7 @@ Future<Response> deleteQuestionnaireHandler(
           questionnaireInstanceId: instanceId,
           patientId: patientId,
         );
+    fcmMessageId = notificationResult.messageId;
 
     if (!notificationResult.success) {
       logWithTrace(
@@ -948,6 +950,7 @@ Future<Response> deleteQuestionnaireHandler(
         'deleted_at': now.toIso8601String(),
         'deleted_by_email': user.email,
         'deleted_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Questionnaire deleted: ${reason.trim()}',
       'ipAddress': clientIp,
@@ -1076,6 +1079,7 @@ Future<Response> unlockQuestionnaireHandler(
     context: serviceContext,
   );
 
+  String? fcmMessageId;
   if (fcmTokenResult.isNotEmpty) {
     final fcmToken = fcmTokenResult.first[0] as String;
     final notificationResult = await NotificationService.instance
@@ -1084,6 +1088,7 @@ Future<Response> unlockQuestionnaireHandler(
           questionnaireInstanceId: instanceId,
           patientId: patientId,
         );
+    fcmMessageId = notificationResult.messageId;
 
     if (!notificationResult.success) {
       logWithTrace(
@@ -1122,6 +1127,7 @@ Future<Response> unlockQuestionnaireHandler(
         'unlocked_at': now.toIso8601String(),
         'unlocked_by_email': user.email,
         'unlocked_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Questionnaire unlocked for patient re-edit',
       'ipAddress': clientIp,
@@ -1274,6 +1280,40 @@ Future<Response> finalizeQuestionnaireHandler(
     context: serviceContext,
   );
 
+  // Notify the patient device that the questionnaire is locked.
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  String? fcmMessageId;
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendQuestionnaireFinalizedNotification(
+          fcmToken: fcmToken,
+          questionnaireInstanceId: instanceId,
+          patientId: patientId,
+        );
+    fcmMessageId = notificationResult.messageId;
+    if (!notificationResult.success) {
+      logWithTrace(
+        'WARNING',
+        'FCM send failed for questionnaire_finalized',
+        labels: {
+          'instance_id': instanceId,
+          'error': notificationResult.error ?? 'unknown',
+        },
+      );
+    }
+  }
+
   // REQ-CAL-p00023-U: Log to audit trail
   await db.executeWithContext(
     '''
@@ -1301,6 +1341,7 @@ Future<Response> finalizeQuestionnaireHandler(
         'finalized_at': now.toIso8601String(),
         'finalized_by_email': user.email,
         'finalized_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': endEvent != null
           ? 'Questionnaire finalized as ${StudyEvent.endEventDisplayLabel(endEvent)}'

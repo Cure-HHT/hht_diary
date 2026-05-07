@@ -263,6 +263,63 @@ class NotificationService {
     );
   }
 
+  /// Send a questionnaire-finalized notification to a patient's device.
+  ///
+  /// Per REQ-CAL-p00023: When a questionnaire is finalized by an analyst,
+  /// the patient app should mark the local copy as locked so it can no
+  /// longer be edited.
+  Future<NotificationResult> sendQuestionnaireFinalizedNotification({
+    required String fcmToken,
+    required String questionnaireInstanceId,
+    required String patientId,
+  }) async {
+    return _sendFcmMessage(
+      fcmToken: fcmToken,
+      data: {
+        'type': 'questionnaire_finalized',
+        'questionnaire_instance_id': questionnaireInstanceId,
+        'action': 'lock_task',
+      },
+      notificationTitle: 'Questionnaire Finalized',
+      notificationBody: 'Your questionnaire has been finalized.',
+      messageType: 'questionnaire_finalized',
+      patientId: patientId,
+    );
+  }
+
+  /// Send a patient-status-change notification (disconnect, reconnect,
+  /// mark_not_participating, reactivate, start_trial).
+  ///
+  /// Per REQ-CAL-p00077 and REQ-CAL-p00073, status transitions notify the
+  /// patient app so it can update local state. The `action` is included in
+  /// the data payload for client-side sub-routing; `type` is fixed to
+  /// 'patient_status_update' to match the notification_type enum.
+  ///
+  /// Title/body are passed in by the caller and rendered by the OS — no
+  /// PHI must appear in either field.
+  Future<NotificationResult> sendPatientStatusNotification({
+    required String fcmToken,
+    required String patientId,
+    required String action,
+    required String title,
+    required String body,
+    Map<String, String>? extraData,
+  }) async {
+    final data = <String, String>{
+      'type': 'patient_status_update',
+      'action': action,
+      if (extraData != null) ...extraData,
+    };
+    return _sendFcmMessage(
+      fcmToken: fcmToken,
+      data: data,
+      notificationTitle: title,
+      notificationBody: body,
+      messageType: 'patient_status_update',
+      patientId: patientId,
+    );
+  }
+
   /// Internal method to send an FCM message via HTTP v1 API.
   Future<NotificationResult> _sendFcmMessage({
     required String fcmToken,
@@ -327,11 +384,13 @@ class NotificationService {
         },
       };
 
-      final response = await _httpClient!.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': message}),
-      );
+      final response = await _httpClient!
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'message': message}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body) as Map<String, dynamic>;

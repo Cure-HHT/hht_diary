@@ -7,7 +7,7 @@
 
 name: diary_functions
 description: Clinical Daily Diary Server Side Functions
-version: 0.1.14+26
+version: 0.1.15+27
 publish_to: none
 
 environment:

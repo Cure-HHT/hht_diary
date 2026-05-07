@@ -242,6 +242,47 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
       ? 'Patient reconnected to mobile app: $reconnectReason'
       : 'Patient linking code generated for mobile app linking';
 
+  // On reconnect, notify the device that a new linking code is available.
+  // Only fires when isReconnection — initial GENERATE_LINKING_CODE is for
+  // patients who don't yet have the app installed.
+  String? fcmMessageId;
+  if (isReconnection) {
+    final fcmTokenResult = await db.executeWithContext(
+      '''
+      SELECT fcm_token FROM patient_fcm_tokens
+      WHERE patient_id = @patientId AND is_active = true
+      ORDER BY updated_at DESC
+      LIMIT 1
+      ''',
+      parameters: {'patientId': patientId},
+      context: serviceContext,
+    );
+
+    if (fcmTokenResult.isNotEmpty) {
+      final fcmToken = fcmTokenResult.first[0] as String;
+      final notificationResult = await NotificationService.instance
+          .sendPatientStatusNotification(
+            fcmToken: fcmToken,
+            patientId: patientId,
+            action: 'reconnect',
+            title: 'Reconnect to Study',
+            body:
+                'Your study coordinator has issued a new linking code. Open the app to reconnect.',
+            extraData: {'new_status': 'linking_in_progress'},
+          );
+      fcmMessageId = notificationResult.messageId;
+      if (!notificationResult.success) {
+        print(
+          '[PATIENT_LINKING] FCM send failed for reconnect: ${notificationResult.error}',
+        );
+      }
+    } else {
+      print(
+        '[PATIENT_LINKING] No active FCM token for $patientId; skipping reconnect push',
+      );
+    }
+  }
+
   // Log to admin_action_log for audit trail (CUR-690)
   await db.executeWithContext(
     '''
@@ -267,6 +308,7 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
         'generated_by_name': user.name,
         'previous_status': currentStatus,
         if (isReconnection) 'reconnect_reason': reconnectReason,
+        if (isReconnection) 'fcm_message_id': fcmMessageId,
       }),
       'justification': justification,
       'ipAddress': clientIp,
@@ -607,6 +649,44 @@ Future<Response> disconnectPatientHandler(Request request) async {
     context: serviceContext,
   );
 
+  // Notify the patient device that the account has been disconnected.
+  // fcm_message_id is captured into the audit row below for traceability.
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  String? fcmMessageId;
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendPatientStatusNotification(
+          fcmToken: fcmToken,
+          patientId: patientId,
+          action: 'disconnect',
+          title: 'Account Disconnected',
+          body:
+              'Your study account has been disconnected. Please contact your study coordinator.',
+          extraData: {'new_status': 'disconnected'},
+        );
+    fcmMessageId = notificationResult.messageId;
+    if (!notificationResult.success) {
+      print(
+        '[PATIENT_LINKING] FCM send failed for disconnect: ${notificationResult.error}',
+      );
+    }
+  } else {
+    print(
+      '[PATIENT_LINKING] No active FCM token for $patientId; skipping disconnect push',
+    );
+  }
+
   // Log to admin_action_log for audit trail
   await db.executeWithContext(
     '''
@@ -632,6 +712,7 @@ Future<Response> disconnectPatientHandler(Request request) async {
         'codes_revoked': codesRevoked,
         'disconnected_by_email': user.email,
         'disconnected_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Patient disconnected from mobile app: $reason',
       'ipAddress': clientIp,
@@ -801,6 +882,43 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
     context: serviceContext,
   );
 
+  // Notify the patient device that participation has ended.
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  String? fcmMessageId;
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendPatientStatusNotification(
+          fcmToken: fcmToken,
+          patientId: patientId,
+          action: 'mark_not_participating',
+          title: 'Study Participation Ended',
+          body:
+              'Your study participation has ended. Please contact your study coordinator if you have questions.',
+          extraData: {'new_status': 'not_participating'},
+        );
+    fcmMessageId = notificationResult.messageId;
+    if (!notificationResult.success) {
+      print(
+        '[PATIENT_LINKING] FCM send failed for not-participating: ${notificationResult.error}',
+      );
+    }
+  } else {
+    print(
+      '[PATIENT_LINKING] No active FCM token for $patientId; skipping not-participating push',
+    );
+  }
+
   // Log to admin_action_log for audit trail
   await db.executeWithContext(
     '''
@@ -826,6 +944,7 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
         'notes': notes,
         'marked_by_email': user.email,
         'marked_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Patient marked as not participating: $reason',
       'ipAddress': clientIp,
@@ -971,6 +1090,43 @@ Future<Response> reactivatePatientHandler(Request request) async {
     context: serviceContext,
   );
 
+  // Notify the patient device that their account is reactivated.
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  String? fcmMessageId;
+  if (fcmTokenResult.isNotEmpty) {
+    final fcmToken = fcmTokenResult.first[0] as String;
+    final notificationResult = await NotificationService.instance
+        .sendPatientStatusNotification(
+          fcmToken: fcmToken,
+          patientId: patientId,
+          action: 'reactivate',
+          title: 'Account Reactivated',
+          body:
+              'Your study account has been reactivated. Please contact your study coordinator to reconnect.',
+          extraData: {'new_status': 'disconnected'},
+        );
+    fcmMessageId = notificationResult.messageId;
+    if (!notificationResult.success) {
+      print(
+        '[PATIENT_LINKING] FCM send failed for reactivate: ${notificationResult.error}',
+      );
+    }
+  } else {
+    print(
+      '[PATIENT_LINKING] No active FCM token for $patientId; skipping reactivate push',
+    );
+  }
+
   // Log to admin_action_log for audit trail
   await db.executeWithContext(
     '''
@@ -995,6 +1151,7 @@ Future<Response> reactivatePatientHandler(Request request) async {
         'reason': reason,
         'reactivated_by_email': user.email,
         'reactivated_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
       }),
       'justification': 'Patient reactivated: $reason',
       'ipAddress': clientIp,
@@ -1142,7 +1299,11 @@ Future<Response> startTrialHandler(Request request) async {
     context: serviceContext,
   );
 
-  // Send FCM notification to patient's device to inform trial has started
+  // Send FCM notification to patient's device to inform trial has started.
+  // Use the patient_status_update channel (not questionnaire) so the mobile
+  // app can sub-route on action='start_trial'. No patient identifier is
+  // included in the FCM payload — the device already knows which patient
+  // it belongs to.
   String? fcmMessageId;
   final fcmTokenResult = await db.executeWithContext(
     '''
@@ -1158,16 +1319,20 @@ Future<Response> startTrialHandler(Request request) async {
   if (fcmTokenResult.isNotEmpty) {
     final fcmToken = fcmTokenResult.first[0] as String;
     final notificationResult = await NotificationService.instance
-        .sendQuestionnaireNotification(
+        .sendPatientStatusNotification(
           fcmToken: fcmToken,
-          questionnaireType: 'trial_started',
-          questionnaireInstanceId: 'trial-$patientId',
           patientId: patientId,
+          action: 'start_trial',
+          title: 'Trial Started',
+          body: 'Your study has started. Open the app to begin.',
+          extraData: {'trial_started_at': now.toIso8601String()},
         );
     fcmMessageId = notificationResult.messageId;
 
     if (!notificationResult.success) {
-      print('[PATIENT_LINKING] FCM send failed: ${notificationResult.error}');
+      print(
+        '[PATIENT_LINKING] FCM send failed for start_trial: ${notificationResult.error}',
+      );
     }
   } else {
     print(
