@@ -110,6 +110,8 @@ export 'src/actions/action_registry.dart' show ActionRegistry;
 export 'src/actions/authorization_decision.dart'
     show AuthorizationDecision, Allow, Deny, DenyReason;
 export 'src/actions/authorization_policy.dart' show AuthorizationPolicy;
+export 'src/actions/bootstrap_audited_actions.dart'
+    show bootstrapAuditedActions;
 export 'src/actions/denial_events.dart'
     show
         denialUnknownAction,

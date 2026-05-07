@@ -6,7 +6,6 @@
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sembast/sembast_memory.dart';
 
 import 'fixtures/test_actions.dart'
     show
@@ -19,6 +18,7 @@ import 'fixtures/test_actions.dart'
         OptionalKeyAction,
         RequiredKeyAction,
         TwoPermissionAction;
+import 'test_support/event_store_helper.dart' show bootstrapTestEventStore;
 
 ActionContext _ctx() => ActionContext(
   principal: const Principal.user(
@@ -30,59 +30,6 @@ ActionContext _ctx() => ActionContext(
   requestStartedAt: DateTime.parse('2026-04-22T12:00:00Z'),
 );
 
-Future<EventStore> _bootstrapEventStore() async {
-  final db = await newDatabaseFactoryMemory().openDatabase(
-    'dispatcher-${DateTime.now().microsecondsSinceEpoch}.db',
-  );
-  final backend = SembastBackend(database: db);
-  final registry = EntryTypeRegistry();
-
-  // Register every reserved system entry type (security-context lifecycle,
-  // destination-mutation audits, retention sweep, registry-initialized audit).
-  for (final defn in kSystemEntryTypes) {
-    registry.register(defn);
-  }
-
-  // Register test-specific entry types. materialize: false — these are
-  // audit records and test fixtures, not diary entries.
-  registry
-    ..register(
-      const EntryTypeDefinition(
-        id: 'action_denial',
-        registeredVersion: 1,
-        name: 'Action denial',
-        widgetId: 'action_denial_v1',
-        widgetConfig: <String, Object?>{},
-        materialize: false,
-      ),
-    )
-    // greeting is emitted by HelloAction and MultiEventAction.
-    ..register(
-      const EntryTypeDefinition(
-        id: 'greeting',
-        registeredVersion: 1,
-        name: 'Greeting',
-        widgetId: 'greeting_v1',
-        widgetConfig: <String, Object?>{},
-        materialize: false,
-      ),
-    );
-
-  final securityContexts = SembastSecurityContextStore(backend: backend);
-
-  return EventStore(
-    backend: backend,
-    entryTypes: registry,
-    source: const Source(
-      hopId: 'test-server',
-      identifier: 'test-instance-1',
-      softwareVersion: 'event_sourcing_test@0.0.0',
-    ),
-    securityContexts: securityContexts,
-    materializers: const [],
-  );
-}
-
 void main() {
   late ActionRegistry registry;
   late EventStore eventStore;
@@ -91,7 +38,7 @@ void main() {
 
   setUp(() async {
     registry = ActionRegistry()..register(HelloAction());
-    eventStore = await _bootstrapEventStore();
+    eventStore = await bootstrapTestEventStore();
     idempotency = InMemoryIdempotencyStore();
     dispatcher = ActionDispatcher(
       registry: registry,
