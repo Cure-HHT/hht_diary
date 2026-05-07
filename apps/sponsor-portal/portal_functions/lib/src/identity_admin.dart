@@ -36,7 +36,7 @@ class IdentityAdmin {
 
   /// Identity Toolkit v1 base URL (project-scoped admin endpoints).
   /// When FIREBASE_AUTH_EMULATOR_HOST is set the emulator intercepts requests
-  /// at http://{host}/identitytoolkit.googleapis.com/v1 — no OAuth required.
+  /// at http://{host}/identitytoolkit.googleapis.com/v1.
   static String get _base {
     final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
     if (emulatorHost != null && emulatorHost.isNotEmpty) {
@@ -51,7 +51,9 @@ class IdentityAdmin {
       Platform.environment['GCP_PROJECT_ID'] ?? 'demo-test';
 
   /// Returns an HTTP client. When FIREBASE_AUTH_EMULATOR_HOST is set a plain
-  /// unauthenticated client is used (the emulator requires no OAuth token).
+  /// client is used and the per-request `Authorization: Bearer owner` header
+  /// is supplied via [_emulatorHeaders]. Otherwise an ADC-authenticated
+  /// client is returned, which adds OAuth bearer tokens automatically.
   /// In tests, [overrideClient] short-circuits both paths.
   static Future<http.Client> _client() async {
     if (overrideClient != null) return overrideClient!;
@@ -62,6 +64,19 @@ class IdentityAdmin {
     return clientViaApplicationDefaultCredentials(
       scopes: const ['https://www.googleapis.com/auth/cloud-platform'],
     );
+  }
+
+  /// Headers to add when talking to the emulator. The emulator's project-
+  /// scoped admin endpoints (`/projects/{project}/accounts*`) require an
+  /// Authorization header but accept any bearer value; `owner` is the
+  /// conventional placeholder. Returns an empty map in production, where
+  /// the ADC-authenticated client supplies the real OAuth token itself.
+  static Map<String, String> _emulatorHeaders() {
+    final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
+    if (emulatorHost != null && emulatorHost.isNotEmpty) {
+      return const {'Authorization': 'Bearer owner'};
+    }
+    return const {};
   }
 
   /// Look up an Identity Platform user by email. If absent, create one with
@@ -82,11 +97,12 @@ class IdentityAdmin {
       return hook(email: email, displayName: displayName, password: password);
     }
     final client = await _client();
+    final headers = {'Content-Type': 'application/json', ..._emulatorHeaders()};
     try {
       // Step 1: lookup by email.
       final lookupRes = await client.post(
         Uri.parse('$_base/projects/$_projectId/accounts:lookup'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({
           'email': [email],
         }),
@@ -107,7 +123,7 @@ class IdentityAdmin {
         // needed. See REQ-d00166-A,B,C.
         final signUpRes = await client.post(
           Uri.parse('$_base/projects/$_projectId/accounts'),
-          headers: {'Content-Type': 'application/json'},
+          headers: headers,
           body: jsonEncode({
             'email': email,
             'password': password,
@@ -134,7 +150,7 @@ class IdentityAdmin {
           (users[0] as Map<String, dynamic>)['localId'] as String;
       final updateRes = await client.post(
         Uri.parse('$_base/projects/$_projectId/accounts:update'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({
           'localId': existingUid,
           'password': password,
