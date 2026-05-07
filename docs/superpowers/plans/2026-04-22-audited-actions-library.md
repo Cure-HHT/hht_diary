@@ -2,15 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the `apps/common-dart/audited_actions/` package — a class-based command/intent layer that gatekeeps untrusted ingress (auth + authz + validation), persists every accepted action's events through the events lib, and records every denial as a typed event in the unified log.
+**Goal:** Build the `apps/common-dart/event_sourcing/` package — a class-based command/intent layer that gatekeeps untrusted ingress (auth + authz + validation), persists every accepted action's events through the events lib, and records every denial as a typed event in the unified log.
 
-**Architecture:** An `Action<TInput, TResult>` interface is the unit of work. An `ActionDispatcher` runs each call through a 10-stage pipeline (lookup → invocation_id → parse → idempotency → validate → authorize → execute → persist → record idempotency → return). Authorization is pluggable behind `AuthorizationPolicy`; idempotency is pluggable behind `IdempotencyStore`. The events-lib API (`EventStore` from `event_sourcing_datastore`) is consumed directly — no adapter interface in this package. Denials at any pipeline stage emit typed events into the same event store as successes.
+**Architecture:** An `Action<TInput, TResult>` interface is the unit of work. An `ActionDispatcher` runs each call through a 10-stage pipeline (lookup → invocation_id → parse → idempotency → validate → authorize → execute → persist → record idempotency → return). Authorization is pluggable behind `AuthorizationPolicy`; idempotency is pluggable behind `IdempotencyStore`. The events-lib API (`EventStore` from `event_sourcing`) is consumed directly — no adapter interface in this package. Denials at any pipeline stage emit typed events into the same event store as successes.
 
-**Tech Stack:** Pure Dart (no Flutter). Depends on `event_sourcing_datastore` (`Initiator`, `flowToken`, `EventSecurityContext`, `EventStore.appendWithSecurity`, `EventStore.transaction`). Tests via `package:test` + `package:mocktail`. Linting via `package:lints` strict ruleset.
+**Tech Stack:** Pure Dart (no Flutter). Depends on `event_sourcing` (`Initiator`, `flowToken`, `EventSecurityContext`, `EventStore.appendWithSecurity`, `EventStore.transaction`). Tests via `package:test` + `package:mocktail`. Linting via `package:lints` strict ruleset.
 
 **Ticket:** CUR-1192 (formerly CUR-1159; the library spun out of CUR-1159's Sub-project A after Sub-project E shipped via CUR-1154)
 **Design doc:** `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md` (Sub-project A is §7)
-**Verifies:** REQ-d00166..REQ-d00171 (Action interface, registry, dispatcher pipeline, authorization, idempotency, denial events) per `spec/dev-audited-actions.md`.
+**Verifies:** REQ-d00166..REQ-d00171 (Action interface, registry, dispatcher pipeline, authorization, idempotency, denial events) per `spec/dev-event-sourcing.md`.
 
 ---
 
@@ -22,7 +22,7 @@ The package skeleton, value types, and several leaf primitives were consolidated
 | --- | --- | --- |
 | 1. Baseline + dependency check + branch creation | OBSOLETE | Already on the right branch; skip. |
 | 2. Package skeleton | DONE in 84574c5b/7de953e8 | Skip. |
-| 3. Spec + claim REQ numbers | DONE in 84574c5b | REQ-d00166..d00171 claimed; `spec/dev-audited-actions.md` committed. Skip. |
+| 3. Spec + claim REQ numbers | DONE in 84574c5b | REQ-d00166..d00171 claimed; `spec/dev-event-sourcing.md` committed. Skip. |
 | 4. `Permission` value type | DONE in 84574c5b | `lib/src/permission.dart` + tests. Skip. |
 | 5. `Idempotency` enum + `IdempotencyEntry` | DONE in 84574c5b | `lib/src/idempotency.dart` + tests. Skip. |
 | 6. `ExecutionResult` and `DispatchResult` | PARTIAL | `DispatchResult` done in 84574c5b; **`ExecutionResult` still needs implementing** as part of this task. |
@@ -49,7 +49,7 @@ Subagent-driven execution: assign one TODO/PARTIAL task per subagent; skip DONE/
 
 REQ-d numbering: `{NNNNN}` placeholders that appeared in the original draft were replaced by their concrete values (REQ-d00166..REQ-d00171) on 2026-05-06. The placeholder note in Task 3 is now obsolete.
 
-`event_sourcing_datastore` lib name: replaced the original `append_only_datastore` references (which was the lib's pre-CUR-1154 name).
+`event_sourcing` lib name: replaced the original `append_only_datastore` and `event_sourcing_datastore` references (pre-CUR-1192 consolidation names).
 
 ---
 
@@ -66,7 +66,7 @@ REQ citation format:
 
 Use `dart test` (NOT `flutter test`) for this package — pure Dart. Use `dart analyze` for lints.
 
-After every commit, run `dart test` and `dart analyze` from `apps/common-dart/audited_actions/` to confirm green.
+After every commit, run `dart test` and `dart analyze` from `apps/common-dart/event_sourcing/` to confirm green.
 
 ---
 
@@ -75,63 +75,65 @@ After every commit, run `dart test` and `dart analyze` from `apps/common-dart/au
 Files this plan creates or modifies. Each has one clear responsibility.
 
 ```text
-apps/common-dart/audited_actions/                    NEW package
+apps/common-dart/event_sourcing/                    consolidated package (already exists)
   pubspec.yaml                                      package metadata, deps
   analysis_options.yaml                             strict lint config
   README.md                                         what this package is, how to use
   lib/
-    audited_actions.dart                             public exports
+    event_sourcing.dart                              public exports (re-exports actions module)
     src/
-      permission.dart                               Permission value type
-      idempotency.dart                              Idempotency enum + IdempotencyEntry
-      execution_result.dart                         ExecutionResult<TR>
-      dispatch_result.dart                          sealed DispatchResult<TR> + variants
-      action_context.dart                           ActionContext, Principal,
-                                                     re-export of SecurityDetails
-      action.dart                                   Action<TI,TR> abstract
-      action_registry.dart                          ActionRegistry
-      authorization_policy.dart                     AuthorizationPolicy abstract,
-                                                     DenyAllAuthorizationPolicy
-      role_matrix_reader.dart                       RoleMatrixReader interface
-      table_backed_authorization_policy.dart        TableBackedAuthorizationPolicy
-      idempotency_store.dart                        IdempotencyStore abstract,
-                                                     InMemoryIdempotencyStore
-      events_api.dart                               EventsApi + EventsTransaction
-                                                     (interfaces consumed by dispatcher)
-      denial_events.dart                            EventDraft factory functions
-                                                     for each denial type
-      action_dispatcher.dart                        ActionDispatcher pipeline
-      bootstrap.dart                                bootstrapAuditedActions()
+      actions/                                      actions module (this plan's scope)
+        permission.dart                               Permission value type
+        idempotency.dart                              Idempotency enum + IdempotencyEntry
+        execution_result.dart                         ExecutionResult<TR>
+        dispatch_result.dart                          sealed DispatchResult<TR> + variants
+        action_context.dart                           ActionContext, Principal,
+                                                       re-export of SecurityDetails
+        action.dart                                   Action<TI,TR> abstract
+        action_registry.dart                          ActionRegistry
+        authorization_policy.dart                     AuthorizationPolicy abstract,
+                                                       DenyAllAuthorizationPolicy
+        role_matrix_reader.dart                       RoleMatrixReader interface
+        table_backed_authorization_policy.dart        TableBackedAuthorizationPolicy
+        idempotency_store.dart                        IdempotencyStore abstract,
+                                                       InMemoryIdempotencyStore
+        events_api.dart                               EventsApi + EventsTransaction
+                                                       (interfaces consumed by dispatcher)
+        denial_events.dart                            EventDraft factory functions
+                                                       for each denial type
+        action_dispatcher.dart                        ActionDispatcher pipeline
+        bootstrap.dart                                bootstrapAuditedActions()
   test/
-    fixtures/
-      fake_events_api.dart                          in-memory test double
-      fake_authorization_policy.dart                allow/deny controllable
-      fake_role_matrix_reader.dart
-      test_actions.dart                             concrete Action subclasses
-                                                     for dispatcher tests
-    permission_test.dart
-    idempotency_test.dart
-    execution_result_test.dart
-    dispatch_result_test.dart
-    action_context_test.dart
-    action_test.dart
-    action_registry_test.dart
-    authorization_policy_test.dart
-    table_backed_authorization_policy_test.dart
-    idempotency_store_test.dart
-    events_api_test.dart
-    denial_events_test.dart
-    action_dispatcher_test.dart                     all 10 pipeline stages
-    bootstrap_test.dart
-    permission_discovery_test.dart
+    actions/                                        tests for the actions module
+      fixtures/
+        fake_events_api.dart                          in-memory test double
+        fake_authorization_policy.dart                allow/deny controllable
+        fake_role_matrix_reader.dart
+        test_actions.dart                             concrete Action subclasses
+                                                       for dispatcher tests
+      permission_test.dart
+      idempotency_test.dart
+      execution_result_test.dart
+      dispatch_result_test.dart
+      action_context_test.dart
+      action_test.dart
+      action_registry_test.dart
+      authorization_policy_test.dart
+      table_backed_authorization_policy_test.dart
+      idempotency_store_test.dart
+      events_api_test.dart
+      denial_events_test.dart
+      action_dispatcher_test.dart                     all 10 pipeline stages
+      bootstrap_test.dart
+      permission_discovery_test.dart
   tool/
     discover_permissions.dart                       CLI; emits SQL migration
 
-spec/dev-audited-actions.md                          NEW — REQ topics for this lib
+spec/dev-event-sourcing.md                          NEW — REQ topics for this lib
 spec/INDEX.md                                       EDIT — register new REQs
 
-.githooks/project-defs.sh                           EDIT — add audited_actions
-                                                     trigger paths
+.githooks/project-defs.sh                           EDIT — add event_sourcing actions
+                                                     trigger paths (if not already present)
 ```
 
 ---
@@ -190,16 +192,16 @@ Expected: PASS. Records pre-change state.
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/pubspec.yaml`
-- Create: `apps/common-dart/audited_actions/analysis_options.yaml`
-- Create: `apps/common-dart/audited_actions/README.md`
-- Create: `apps/common-dart/audited_actions/lib/audited_actions.dart` (placeholder)
+- Create: `apps/common-dart/event_sourcing/pubspec.yaml`
+- Create: `apps/common-dart/event_sourcing/analysis_options.yaml`
+- Create: `apps/common-dart/event_sourcing/README.md`
+- Create: `apps/common-dart/event_sourcing/lib/event_sourcing.dart` (placeholder)
 - Modify: `.githooks/project-defs.sh`
 
 - [ ] **Create the directory:**
 
 ```bash
-mkdir -p apps/common-dart/audited_actions/lib/src apps/common-dart/audited_actions/test/fixtures apps/common-dart/audited_actions/tool
+mkdir -p apps/common-dart/event_sourcing/lib/src apps/common-dart/event_sourcing/test/fixtures apps/common-dart/event_sourcing/tool
 ```
 
 - [ ] **Write `pubspec.yaml`:**
@@ -211,10 +213,12 @@ mkdir -p apps/common-dart/audited_actions/lib/src apps/common-dart/audited_actio
 #
 # Trusted-boundary command/intent layer that accepts untrusted ingress,
 # runs auth + authz + validation, then persists events through the
-# post-Sub-project-E event_sourcing_datastore.
+# post-Sub-project-E event_sourcing package (consolidated from event_sourcing_datastore).
+# NOTE: Task 2 is OBSOLETE — the event_sourcing package already exists. This pubspec
+# is retained as historical reference only.
 
-name: audited_actions
-description: "Trusted-boundary action dispatcher: auth + authz + validation + atomic event persistence + denial recording"
+name: event_sourcing
+description: "Unified event-sourcing library: storage + actions + permissions modules"
 version: 0.0.1
 publish_to: none
 
@@ -222,8 +226,6 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  event_sourcing_datastore:
-    path: ../event_sourcing_datastore
   meta: ^1.16.0
   uuid: ^4.5.2
 
@@ -276,13 +278,12 @@ linter:
 - [ ] **Write `README.md`:**
 
 ```markdown
-# audited_actions
+# event_sourcing (actions module)
 
 Trusted-boundary command/intent layer for the unified event-sourced architecture.
 
 This package is the trusted-boundary gatekeeper between untrusted callers
-(browsers, future mobile-portal API) and the events lib
-(`event_sourcing_datastore`). Every state-change reaching the host from an
+(browsers, future mobile-portal API) and the event store. Every state-change reaching the host from an
 untrusted source flows through one library-defined pipeline that:
 
 1. Authenticates the caller (via the supplied `Principal`)
@@ -298,7 +299,7 @@ See `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md`
 ## Quick start
 
 ```dart
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 final dispatcher = bootstrapAuditedActions(
   events: myEventsApi,
@@ -324,7 +325,7 @@ final result = await dispatcher.dispatch(
 - OpenTelemetry stamping — future enhancement.
 ```
 
-- [ ] **Write `lib/audited_actions.dart` placeholder** (will grow as files added):
+- [ ] **Write `lib/event_sourcing.dart` placeholder** (will grow as files added):
 
 ```dart
 /// Trusted-boundary command/intent layer. See README.md.
@@ -336,13 +337,13 @@ library;
 - [ ] **Add to `.githooks/project-defs.sh`** under "Libraries" section:
 
 ```bash
-    "audited_actions|apps/common-dart/audited_actions/pubspec.yaml|apps/common-dart/audited_actions/ apps/common-dart/event_sourcing_datastore/lib/"
+    "event_sourcing|apps/common-dart/event_sourcing/pubspec.yaml|apps/common-dart/event_sourcing/lib/"
 ```
 
 - [ ] **Run `dart pub get`:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart pub get)
+(cd apps/common-dart/event_sourcing && dart pub get)
 ```
 
 Expected: PASS. Resolves dependencies; creates `pubspec.lock`.
@@ -350,7 +351,7 @@ Expected: PASS. Resolves dependencies; creates `pubspec.lock`.
 - [ ] **Run `dart analyze`:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart analyze)
+(cd apps/common-dart/event_sourcing && dart analyze)
 ```
 
 Expected: PASS (no source files yet beyond the placeholder).
@@ -358,7 +359,7 @@ Expected: PASS (no source files yet beyond the placeholder).
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/ .githooks/project-defs.sh
+git add apps/common-dart/event_sourcing/ .githooks/project-defs.sh
 git commit -m "[CUR-1159] audited_actions: package skeleton (pubspec, lints, README)"
 ```
 
@@ -366,11 +367,11 @@ git commit -m "[CUR-1159] audited_actions: package skeleton (pubspec, lints, REA
 
 ### Task 3: Spec — claim REQ numbers and write `dev-audited-actions.md` (COMPLETED in 84574c5b; REQ-d00166..d00171 claimed — skip)
 
-> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. REQ-d00166..d00171 are claimed; spec/dev-audited-actions.md is committed. Return immediately.
+> **STOP — DO NOT EXECUTE THIS TASK.** COMPLETED in 84574c5b. REQ-d00166..d00171 are claimed; spec/dev-event-sourcing.md is committed. Return immediately.
 
 
 **Files:**
-- Create: `spec/dev-audited-actions.md`
+- Create: `spec/dev-event-sourcing.md`
 - Modify: `spec/INDEX.md`
 
 **Note on REQ-d numbers:** The project uses a `discover_requirements` tool to claim consecutive numbers. Run it via the tool the project provides (likely `tools/requirements/discover_requirements.py` or a similar script — check `spec/README.md` and `tools/requirements/`). Claim **six** consecutive REQ-d numbers. Record them in this task's working notes; below, references use placeholder `REQ-d{NNNNN}-X` patterns that the implementer fills in.
@@ -386,14 +387,14 @@ git commit -m "[CUR-1159] audited_actions: package skeleton (pubspec, lints, REA
 
   Record each claimed number against its topic name in a temp note for use in subsequent tasks.
 
-- [ ] **Write `spec/dev-audited-actions.md`** (new file). Use the existing `spec/dev-event-sourcing-mobile.md` (in main, post-Sub-project-E) as a structural template. Body:
+- [ ] **Write `spec/dev-event-sourcing.md`** (new file). Use the existing `spec/dev-event-sourcing-mobile.md` (in main, post-Sub-project-E) as a structural template. Body:
 
 ```markdown
 # Audited Actions Library Requirements
 
 ## Description
 
-The `apps/common-dart/audited_actions/` package defines the trusted-boundary gatekeeper for audited user actions. Every state-change reaching the host from an untrusted caller flows through its `ActionDispatcher`, which authenticates, authorizes, validates, executes, and records the outcome. Successful actions emit one or more typed events through the events lib (`appendWithSecurity`); denied attempts at any pipeline stage emit typed denial events into the same log.
+The `apps/common-dart/event_sourcing/` package defines the trusted-boundary gatekeeper for audited user actions. Every state-change reaching the host from an untrusted caller flows through its `ActionDispatcher`, which authenticates, authorizes, validates, executes, and records the outcome. Successful actions emit one or more typed events through the events lib (`appendWithSecurity`); denied attempts at any pipeline stage emit typed denial events into the same log.
 
 Implements the design committed in `docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md` (Sub-project A).
 
@@ -487,7 +488,7 @@ E: Denial events SHALL share the same `action_invocation_id` as the dispatch att
 ```bash
 ls tools/requirements/
 # run whatever the validator script is, e.g.:
-# python tools/requirements/validate.py spec/dev-audited-actions.md
+# python tools/requirements/validate.py spec/dev-event-sourcing.md
 ```
 
 Expected: PASS.
@@ -495,8 +496,8 @@ Expected: PASS.
 - [ ] **Commit:**
 
 ```bash
-git add spec/dev-audited-actions.md spec/INDEX.md
-git commit -m "[CUR-1159] spec/dev-audited-actions.md: REQ-ACTION, ACTREG, DISPATCH, AUTHZ, IDEMPOT, DENIAL"
+git add spec/dev-event-sourcing.md spec/INDEX.md
+git commit -m "[CUR-1159] spec/dev-event-sourcing.md: REQ-ACTION, ACTREG, DISPATCH, AUTHZ, IDEMPOT, DENIAL"
 ```
 
 ---
@@ -507,15 +508,15 @@ git commit -m "[CUR-1159] spec/dev-audited-actions.md: REQ-ACTION, ACTREG, DISPA
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/permission.dart`
-- Create: `apps/common-dart/audited_actions/test/permission_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/permission.dart`
+- Create: `apps/common-dart/event_sourcing/test/permission_test.dart`
 
 **Applicable assertions:** REQ-AUTHZ-D (referenced from this file via convention).
 
 - [ ] **Write failing tests** in `test/permission_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -557,10 +558,10 @@ void main() {
 - [ ] **Run tests; confirm failure:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart test test/permission_test.dart)
+(cd apps/common-dart/event_sourcing && dart test test/actions/permission_test.dart)
 ```
 
-Expected: FAIL — `Target of URI doesn't exist: 'package:audited_actions/src/permission.dart'`.
+Expected: FAIL — `Target of URI doesn't exist: 'package:event_sourcing/src/actions/permission.dart'`.
 
 - [ ] **Write `lib/src/permission.dart`:**
 
@@ -616,7 +617,7 @@ class Permission {
 - [ ] **Run tests; confirm pass:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart test test/permission_test.dart && dart analyze)
+(cd apps/common-dart/event_sourcing && dart test test/actions/permission_test.dart && dart analyze)
 ```
 
 Expected: all PASS, no analyzer warnings.
@@ -624,8 +625,8 @@ Expected: all PASS, no analyzer warnings.
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/permission.dart \
-        apps/common-dart/audited_actions/test/permission_test.dart
+git add apps/common-dart/event_sourcing/lib/src/permission.dart \
+        apps/common-dart/event_sourcing/test/permission_test.dart
 git commit -m "[CUR-1159] audited_actions: Permission value type"
 ```
 
@@ -637,15 +638,15 @@ git commit -m "[CUR-1159] audited_actions: Permission value type"
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/idempotency.dart`
-- Create: `apps/common-dart/audited_actions/test/idempotency_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/idempotency.dart`
+- Create: `apps/common-dart/event_sourcing/test/idempotency_test.dart`
 
 **Applicable assertions:** REQ-IDEMPOT-A, B, C, F.
 
 - [ ] **Write failing tests** in `test/idempotency_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/idempotency.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -755,14 +756,14 @@ const Duration defaultIdempotencyTtl = Duration(hours: 24);
 - [ ] **Run tests + analyze; confirm pass:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart test test/idempotency_test.dart && dart analyze)
+(cd apps/common-dart/event_sourcing && dart test test/actions/idempotency_test.dart && dart analyze)
 ```
 
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/idempotency.dart \
-        apps/common-dart/audited_actions/test/idempotency_test.dart
+git add apps/common-dart/event_sourcing/lib/src/idempotency.dart \
+        apps/common-dart/event_sourcing/test/idempotency_test.dart
 git commit -m "[CUR-1159] audited_actions: Idempotency enum and IdempotencyEntry"
 ```
 
@@ -771,10 +772,10 @@ git commit -m "[CUR-1159] audited_actions: Idempotency enum and IdempotencyEntry
 ### Task 6: `ExecutionResult` and `DispatchResult` (sealed result types) (PARTIAL — `DispatchResult` done in 84574c5b; only `ExecutionResult` still needed for this task)
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/execution_result.dart`
-- Create: `apps/common-dart/audited_actions/lib/src/dispatch_result.dart`
-- Create: `apps/common-dart/audited_actions/test/execution_result_test.dart`
-- Create: `apps/common-dart/audited_actions/test/dispatch_result_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/execution_result.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/dispatch_result.dart`
+- Create: `apps/common-dart/event_sourcing/test/execution_result_test.dart`
+- Create: `apps/common-dart/event_sourcing/test/dispatch_result_test.dart`
 
 **Applicable assertions:** REQ-ACTION-D (ExecutionResult shape), REQ-DISPATCH-B,D,E,F,G,H,K (DispatchResult variants).
 
@@ -783,8 +784,8 @@ This task imports `EventDraft` and `SecurityDetails` from the events lib (post-S
 - [ ] **Write failing tests** in `test/execution_result_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart' show EventDraft, SecurityDetails;
-import 'package:audited_actions/src/execution_result.dart';
+import 'package:event_sourcing/event_sourcing.dart' show EventDraft, SecurityDetails;
+import 'package:event_sourcing/src/actions/execution_result.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -828,8 +829,8 @@ void main() {
 - [ ] **Write failing tests** in `test/dispatch_result_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/dispatch_result.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/dispatch_result.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -913,7 +914,7 @@ void main() {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-ACTION-D: ExecutionResult shape returned by Action.execute.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft, SecurityDetails;
 
 /// What an `Action.execute` returns to the dispatcher.
@@ -944,7 +945,7 @@ class ExecutionResult<TResult> {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-DISPATCH (REQ-d00168): pipeline outcome variants.
 
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// Sealed outcome of `ActionDispatcher.dispatch(...)`. Each pipeline
 /// stage's success or failure maps to a variant.
@@ -1030,10 +1031,10 @@ class DispatchIdempotencyHit<TResult> extends DispatchResult<TResult> {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/execution_result.dart \
-        apps/common-dart/audited_actions/lib/src/dispatch_result.dart \
-        apps/common-dart/audited_actions/test/execution_result_test.dart \
-        apps/common-dart/audited_actions/test/dispatch_result_test.dart
+git add apps/common-dart/event_sourcing/lib/src/execution_result.dart \
+        apps/common-dart/event_sourcing/lib/src/dispatch_result.dart \
+        apps/common-dart/event_sourcing/test/execution_result_test.dart \
+        apps/common-dart/event_sourcing/test/dispatch_result_test.dart
 git commit -m "[CUR-1159] audited_actions: ExecutionResult and sealed DispatchResult"
 ```
 
@@ -1042,17 +1043,17 @@ git commit -m "[CUR-1159] audited_actions: ExecutionResult and sealed DispatchRe
 ### Task 7: `ActionContext`, `Principal`, re-export `SecurityDetails`
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/action_context.dart`
-- Create: `apps/common-dart/audited_actions/test/action_context_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/action_context.dart`
+- Create: `apps/common-dart/event_sourcing/test/action_context_test.dart`
 
 **Applicable assertions:** referenced from REQ-ACTION (validate/execute receive an ActionContext) and REQ-DISPATCH (dispatcher constructs Principal/Initiator).
 
 - [ ] **Write failing tests** in `test/action_context_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show Initiator, UserInitiator, AnonymousInitiator, SecurityDetails;
-import 'package:audited_actions/src/action_context.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1131,12 +1132,12 @@ void main() {
 //   the request boundary; carries Principal that becomes Initiator on
 //   emitted events).
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show Initiator, UserInitiator, AnonymousInitiator, SecurityDetails;
 
 // Re-export SecurityDetails for convenience: ActionContext callers
 // shouldn't need a second import for the security parameter.
-export 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+export 'package:event_sourcing/event_sourcing.dart'
     show SecurityDetails;
 
 /// The authenticated (or anonymous) caller of an action.
@@ -1215,8 +1216,8 @@ class ActionContext {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/action_context.dart \
-        apps/common-dart/audited_actions/test/action_context_test.dart
+git add apps/common-dart/event_sourcing/lib/src/action_context.dart \
+        apps/common-dart/event_sourcing/test/action_context_test.dart
 git commit -m "[CUR-1159] audited_actions: ActionContext, Principal sealed type"
 ```
 
@@ -1225,21 +1226,21 @@ git commit -m "[CUR-1159] audited_actions: ActionContext, Principal sealed type"
 ### Task 8: `Action` abstract class
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/action.dart`
-- Create: `apps/common-dart/audited_actions/test/action_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/action.dart`
+- Create: `apps/common-dart/event_sourcing/test/action_test.dart`
 
 **Applicable assertions:** REQ-ACTION-A, B, C, D, E.
 
 - [ ] **Write failing tests** in `test/action_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft, SecurityDetails;
-import 'package:audited_actions/src/action.dart';
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/execution_result.dart';
-import 'package:audited_actions/src/idempotency.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/execution_result.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 class _NoOpAction extends Action<Map<String, dynamic>, String> {
@@ -1313,10 +1314,10 @@ void main() {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-ACTION (REQ-d00166): unit-of-work interface for portal commands.
 
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/execution_result.dart';
-import 'package:audited_actions/src/idempotency.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/execution_result.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// A portal command. Concrete subclasses define one action.
 ///
@@ -1369,8 +1370,8 @@ abstract class Action<TInput, TResult> {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/action.dart \
-        apps/common-dart/audited_actions/test/action_test.dart
+git add apps/common-dart/event_sourcing/lib/src/action.dart \
+        apps/common-dart/event_sourcing/test/action_test.dart
 git commit -m "[CUR-1159] audited_actions: Action abstract class"
 ```
 
@@ -1379,22 +1380,22 @@ git commit -m "[CUR-1159] audited_actions: Action abstract class"
 ### Task 9: `ActionRegistry`
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/action_registry.dart`
-- Create: `apps/common-dart/audited_actions/test/action_registry_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/action_registry.dart`
+- Create: `apps/common-dart/event_sourcing/test/action_registry_test.dart`
 
 **Applicable assertions:** REQ-ACTREG-A, B, C.
 
 - [ ] **Write failing tests** in `test/action_registry_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft;
-import 'package:audited_actions/src/action.dart';
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/action_registry.dart';
-import 'package:audited_actions/src/execution_result.dart';
-import 'package:audited_actions/src/idempotency.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/execution_result.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 class _A extends Action<Map<String, dynamic>, void> {
@@ -1460,8 +1461,8 @@ void main() {
 //   REQ-ACTREG (REQ-d00167): keyed action registry with name-collision
 //   detection and permission discovery.
 
-import 'package:audited_actions/src/action.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// Central registry of all `Action` instances known to a deployment.
 //
@@ -1508,8 +1509,8 @@ class ActionRegistry {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/action_registry.dart \
-        apps/common-dart/audited_actions/test/action_registry_test.dart
+git add apps/common-dart/event_sourcing/lib/src/action_registry.dart \
+        apps/common-dart/event_sourcing/test/action_registry_test.dart
 git commit -m "[CUR-1159] audited_actions: ActionRegistry"
 ```
 
@@ -1518,19 +1519,19 @@ git commit -m "[CUR-1159] audited_actions: ActionRegistry"
 ### Task 10: `AuthorizationPolicy` abstract + `DenyAllAuthorizationPolicy`
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/authorization_policy.dart`
-- Create: `apps/common-dart/audited_actions/test/authorization_policy_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/authorization_policy.dart`
+- Create: `apps/common-dart/event_sourcing/test/authorization_policy_test.dart`
 
 **Applicable assertions:** REQ-AUTHZ-A, C.
 
 - [ ] **Write failing tests** in `test/authorization_policy_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show SecurityDetails;
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1583,8 +1584,8 @@ void main() {
 //   REQ-AUTHZ (REQ-d00169): pluggable authorization with abstract
 //   base + DenyAllAuthorizationPolicy fallback.
 
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// Pluggable authorization decision-maker. Concrete impls read from a
 /// role-permission matrix or any other source. Called by the dispatcher
@@ -1636,8 +1637,8 @@ class DenyAllAuthorizationPolicy extends AuthorizationPolicy {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/authorization_policy.dart \
-        apps/common-dart/audited_actions/test/authorization_policy_test.dart
+git add apps/common-dart/event_sourcing/lib/src/authorization_policy.dart \
+        apps/common-dart/event_sourcing/test/authorization_policy_test.dart
 git commit -m "[CUR-1159] audited_actions: AuthorizationPolicy + DenyAll fallback"
 ```
 
@@ -1649,17 +1650,17 @@ git commit -m "[CUR-1159] audited_actions: AuthorizationPolicy + DenyAll fallbac
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/role_matrix_reader.dart`
-- Create: `apps/common-dart/audited_actions/lib/src/table_backed_authorization_policy.dart`
-- Create: `apps/common-dart/audited_actions/test/fixtures/fake_role_matrix_reader.dart`
-- Create: `apps/common-dart/audited_actions/test/table_backed_authorization_policy_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/role_matrix_reader.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/table_backed_authorization_policy.dart`
+- Create: `apps/common-dart/event_sourcing/test/fixtures/fake_role_matrix_reader.dart`
+- Create: `apps/common-dart/event_sourcing/test/table_backed_authorization_policy_test.dart`
 
 **Applicable assertions:** REQ-AUTHZ-B.
 
 - [ ] **Write `test/fixtures/fake_role_matrix_reader.dart`:**
 
 ```dart
-import 'package:audited_actions/src/role_matrix_reader.dart';
+import 'package:event_sourcing/src/actions/role_matrix_reader.dart';
 
 class FakeRoleMatrixReader implements RoleMatrixReader {
   FakeRoleMatrixReader(this._matrix);
@@ -1675,11 +1676,11 @@ class FakeRoleMatrixReader implements RoleMatrixReader {
 - [ ] **Write failing tests** in `test/table_backed_authorization_policy_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show SecurityDetails;
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/permission.dart';
-import 'package:audited_actions/src/table_backed_authorization_policy.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
+import 'package:event_sourcing/src/actions/table_backed_authorization_policy.dart';
 import 'package:test/test.dart';
 
 import 'fixtures/fake_role_matrix_reader.dart';
@@ -1797,10 +1798,10 @@ abstract class RoleMatrixReader {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-AUTHZ-B: matrix-backed authorization policy.
 
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/permission.dart';
-import 'package:audited_actions/src/role_matrix_reader.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
+import 'package:event_sourcing/src/actions/role_matrix_reader.dart';
 
 /// Authorization policy backed by a `RoleMatrixReader`. Decision:
 ///   - Anonymous principal: always false.
@@ -1833,10 +1834,10 @@ class TableBackedAuthorizationPolicy extends AuthorizationPolicy {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/role_matrix_reader.dart \
-        apps/common-dart/audited_actions/lib/src/table_backed_authorization_policy.dart \
-        apps/common-dart/audited_actions/test/fixtures/fake_role_matrix_reader.dart \
-        apps/common-dart/audited_actions/test/table_backed_authorization_policy_test.dart
+git add apps/common-dart/event_sourcing/lib/src/role_matrix_reader.dart \
+        apps/common-dart/event_sourcing/lib/src/table_backed_authorization_policy.dart \
+        apps/common-dart/event_sourcing/test/fixtures/fake_role_matrix_reader.dart \
+        apps/common-dart/event_sourcing/test/table_backed_authorization_policy_test.dart
 git commit -m "[CUR-1159] audited_actions: RoleMatrixReader + TableBackedAuthorizationPolicy"
 ```
 
@@ -1848,16 +1849,16 @@ git commit -m "[CUR-1159] audited_actions: RoleMatrixReader + TableBackedAuthori
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/idempotency_store.dart`
-- Create: `apps/common-dart/audited_actions/test/idempotency_store_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/idempotency_store.dart`
+- Create: `apps/common-dart/event_sourcing/test/idempotency_store_test.dart`
 
 **Applicable assertions:** REQ-IDEMPOT-D, E.
 
 - [ ] **Write failing tests** in `test/idempotency_store_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/idempotency.dart';
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1959,7 +1960,7 @@ void main() {
 //   REQ-IDEMPOT-D+E (REQ-d00170): cache-with-TTL contract for action
 //   replay protection; in-memory impl for tests and early development.
 
-import 'package:audited_actions/src/idempotency.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
 
 /// Pluggable cache for action dispatch outcomes, keyed by
 /// `(actionName, principalId, key)`. Lookup hits short-circuit a
@@ -2048,8 +2049,8 @@ class InMemoryIdempotencyStore implements IdempotencyStore {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/idempotency_store.dart \
-        apps/common-dart/audited_actions/test/idempotency_store_test.dart
+git add apps/common-dart/event_sourcing/lib/src/idempotency_store.dart \
+        apps/common-dart/event_sourcing/test/idempotency_store_test.dart
 git commit -m "[CUR-1159] audited_actions: IdempotencyStore + in-memory impl"
 ```
 
@@ -2061,13 +2062,13 @@ git commit -m "[CUR-1159] audited_actions: IdempotencyStore + in-memory impl"
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/events_api.dart`
-- Create: `apps/common-dart/audited_actions/test/fixtures/fake_events_api.dart`
-- Create: `apps/common-dart/audited_actions/test/events_api_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/events_api.dart`
+- Create: `apps/common-dart/event_sourcing/test/fixtures/fake_events_api.dart`
+- Create: `apps/common-dart/event_sourcing/test/events_api_test.dart`
 
 **Applicable assertions:** referenced from REQ-DISPATCH-I (atomic persist).
 
-This task defines the contract the dispatcher uses to talk to the events lib. Adapter (the bit that wraps the actual `event_sourcing_datastore` API) is wired at deployment-app bootstrap, not in this package.
+This task defines the contract the dispatcher uses to talk to the events lib. Adapter (the bit that wraps the actual `event_sourcing` API) is wired at deployment-app bootstrap, not in this package.
 
 - [ ] **Write `lib/src/events_api.dart`:**
 
@@ -2075,9 +2076,9 @@ This task defines the contract the dispatcher uses to talk to the events lib. Ad
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-DISPATCH-I (REQ-d00168): atomic persistence contract used by
 //   the dispatcher to write success and denial events through the events
-//   lib (event_sourcing_datastore post-Sub-project-E).
+//   lib (event_sourcing post-consolidation).
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft, SecurityDetails, StoredEvent;
 
 /// Thin contract the dispatcher uses to talk to the events lib. The
@@ -2105,9 +2106,9 @@ abstract class EventsTransaction {
 - [ ] **Write `test/fixtures/fake_events_api.dart`:**
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft, Initiator, SecurityDetails, StoredEvent, UserInitiator;
-import 'package:audited_actions/src/events_api.dart';
+import 'package:event_sourcing/src/actions/events_api.dart';
 import 'package:uuid/uuid.dart';
 
 /// In-memory test double for the events lib. Records every successful
@@ -2199,7 +2200,7 @@ class _AppendCall {
 - [ ] **Write smoke test** in `test/events_api_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft, UserInitiator;
 import 'package:test/test.dart';
 
@@ -2283,9 +2284,9 @@ void main() {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/events_api.dart \
-        apps/common-dart/audited_actions/test/fixtures/fake_events_api.dart \
-        apps/common-dart/audited_actions/test/events_api_test.dart
+git add apps/common-dart/event_sourcing/lib/src/events_api.dart \
+        apps/common-dart/event_sourcing/test/fixtures/fake_events_api.dart \
+        apps/common-dart/event_sourcing/test/events_api_test.dart
 git commit -m "[CUR-1159] audited_actions: EventsApi/EventsTransaction interfaces + fake"
 ```
 
@@ -2294,18 +2295,18 @@ git commit -m "[CUR-1159] audited_actions: EventsApi/EventsTransaction interface
 ### Task 14: `denial_events.dart` factories
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/denial_events.dart`
-- Create: `apps/common-dart/audited_actions/test/denial_events_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/denial_events.dart`
+- Create: `apps/common-dart/event_sourcing/test/denial_events_test.dart`
 
 **Applicable assertions:** REQ-DENIAL-A, B, C.
 
 - [ ] **Write failing tests** in `test/denial_events_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft;
-import 'package:audited_actions/src/denial_events.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/denial_events.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -2392,9 +2393,9 @@ void main() {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-DENIAL (REQ-d00171): typed denial event drafts; sanitization.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft;
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 const String _aggregateType = 'action_attempt';
 const String _entryType = 'action_denial';
@@ -2518,8 +2519,8 @@ EventDraft denialExecutionFailed({
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/denial_events.dart \
-        apps/common-dart/audited_actions/test/denial_events_test.dart
+git add apps/common-dart/event_sourcing/lib/src/denial_events.dart \
+        apps/common-dart/event_sourcing/test/denial_events_test.dart
 git commit -m "[CUR-1159] audited_actions: denial event factories + sanitization"
 ```
 
@@ -2528,9 +2529,9 @@ git commit -m "[CUR-1159] audited_actions: denial event factories + sanitization
 ### Task 15: `ActionDispatcher` skeleton + Stage 1 (lookup) + Stage 2 (invocation_id)
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Create: `apps/common-dart/audited_actions/test/fixtures/test_actions.dart`
-- Create: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Create: `apps/common-dart/event_sourcing/test/fixtures/test_actions.dart`
+- Create: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-A, B, C.
 
@@ -2539,13 +2540,13 @@ This task introduces the dispatcher class and tests its first two pipeline stage
 - [ ] **Write `test/fixtures/test_actions.dart`** (used across all dispatcher tests):
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft;
-import 'package:audited_actions/src/action.dart';
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/execution_result.dart';
-import 'package:audited_actions/src/idempotency.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/execution_result.dart';
+import 'package:event_sourcing/src/actions/idempotency.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// Always-succeeds, emits one event.
 class HelloAction extends Action<Map<String, dynamic>, String> {
@@ -2637,14 +2638,14 @@ class RequiredKeyAction extends HelloAction {
 - [ ] **Write failing tests** in `test/action_dispatcher_test.dart`:
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show SecurityDetails;
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/action_dispatcher.dart';
-import 'package:audited_actions/src/action_registry.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/dispatch_result.dart';
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/action_dispatcher.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/dispatch_result.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:test/test.dart';
 
 import 'fixtures/fake_events_api.dart';
@@ -2725,15 +2726,15 @@ void main() {
 //   REQ-DISPATCH (REQ-d00168): pipeline owner; subsequent tasks add
 //   stages 3-10.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show EventDraft;
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/action_registry.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/denial_events.dart';
-import 'package:audited_actions/src/dispatch_result.dart';
-import 'package:audited_actions/src/events_api.dart';
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/denial_events.dart';
+import 'package:event_sourcing/src/actions/dispatch_result.dart';
+import 'package:event_sourcing/src/actions/events_api.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:uuid/uuid.dart';
 
 /// Runs every untrusted-ingress action through the standard pipeline.
@@ -2813,9 +2814,9 @@ class ActionDispatcher {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/action_dispatcher.dart \
-        apps/common-dart/audited_actions/test/fixtures/test_actions.dart \
-        apps/common-dart/audited_actions/test/action_dispatcher_test.dart
+git add apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart \
+        apps/common-dart/event_sourcing/test/fixtures/test_actions.dart \
+        apps/common-dart/event_sourcing/test/action_dispatcher_test.dart
 git commit -m "[CUR-1159] audited_actions: ActionDispatcher skeleton + Stage 1 (lookup) + Stage 2 (invocation_id)"
 ```
 
@@ -2824,8 +2825,8 @@ git commit -m "[CUR-1159] audited_actions: ActionDispatcher skeleton + Stage 1 (
 ### Task 16: Dispatcher Stage 3 (parse) + Stage 4 (idempotency check)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-D, E. REQ-IDEMPOT-A, B, C.
 
@@ -2981,7 +2982,7 @@ git commit -m "[CUR-1159] audited_actions: ActionDispatcher skeleton + Stage 1 (
   }
 ```
 
-Add the missing import at top: `import 'package:audited_actions/src/idempotency.dart';`.
+Add the missing import at top: `import 'package:event_sourcing/src/actions/idempotency.dart';`.
 
 - [ ] **Run tests + analyze; confirm passes for Stages 1-4.**
 
@@ -2996,8 +2997,8 @@ git commit -am "[CUR-1159] audited_actions: dispatcher Stage 3 (parse) + Stage 4
 ### Task 17: Dispatcher Stage 5 (validate)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-F.
 
@@ -3062,18 +3063,18 @@ git commit -am "[CUR-1159] audited_actions: dispatcher Stage 5 (validate)"
 ### Task 18: Dispatcher Stage 6 (authorize)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
-- Modify: `apps/common-dart/audited_actions/test/fixtures/fake_authorization_policy.dart` (NEW)
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/test/fixtures/fake_authorization_policy.dart` (NEW)
 
 **Applicable assertions:** REQ-DISPATCH-G.
 
 - [ ] **Write `test/fixtures/fake_authorization_policy.dart`:**
 
 ```dart
-import 'package:audited_actions/src/action_context.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/permission.dart';
+import 'package:event_sourcing/src/actions/action_context.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/permission.dart';
 
 /// Test fake whose answer can be configured per-call.
 class FakeAuthorizationPolicy extends AuthorizationPolicy {
@@ -3176,9 +3177,9 @@ Add the import: `import 'fixtures/fake_authorization_policy.dart';`
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/test/fixtures/fake_authorization_policy.dart \
-        apps/common-dart/audited_actions/lib/src/action_dispatcher.dart \
-        apps/common-dart/audited_actions/test/action_dispatcher_test.dart
+git add apps/common-dart/event_sourcing/test/fixtures/fake_authorization_policy.dart \
+        apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart \
+        apps/common-dart/event_sourcing/test/action_dispatcher_test.dart
 git commit -m "[CUR-1159] audited_actions: dispatcher Stage 6 (authorize)"
 ```
 
@@ -3187,8 +3188,8 @@ git commit -m "[CUR-1159] audited_actions: dispatcher Stage 6 (authorize)"
 ### Task 19: Dispatcher Stage 7 (execute) + Stage 8 (atomic persist)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-H, I.
 
@@ -3352,7 +3353,7 @@ git commit -m "[CUR-1159] audited_actions: dispatcher Stage 6 (authorize)"
     throw UnimplementedError('Stages 9-10 added in Tasks 20-21.');
 ```
 
-Imports needed at top of file: `import 'package:audited_actions/src/execution_result.dart';`
+Imports needed at top of file: `import 'package:event_sourcing/src/actions/execution_result.dart';`
 
 - [ ] **Run tests + analyze; confirm pass.**
 
@@ -3367,8 +3368,8 @@ git commit -am "[CUR-1159] audited_actions: dispatcher Stage 7 (execute) + Stage
 ### Task 20: Dispatcher Stage 9 (record idempotency)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-J. REQ-IDEMPOT-D.
 
@@ -3491,8 +3492,8 @@ git commit -am "[CUR-1159] audited_actions: dispatcher Stage 9 (record idempoten
 ### Task 21: Dispatcher Stage 10 (return success)
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/src/action_dispatcher.dart`
-- Modify: `apps/common-dart/audited_actions/test/action_dispatcher_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/src/action_dispatcher.dart`
+- Modify: `apps/common-dart/event_sourcing/test/action_dispatcher_test.dart`
 
 **Applicable assertions:** REQ-DISPATCH-K.
 
@@ -3567,18 +3568,18 @@ git commit -am "[CUR-1159] audited_actions: dispatcher Stage 10 (return success)
 ### Task 22: `bootstrapAuditedActions`
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/lib/src/bootstrap.dart`
-- Create: `apps/common-dart/audited_actions/test/bootstrap_test.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/bootstrap.dart`
+- Create: `apps/common-dart/event_sourcing/test/bootstrap_test.dart`
 
 **Applicable assertions:** REQ-ACTREG-D.
 
 - [ ] **Write failing tests** in `test/bootstrap_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/action_dispatcher.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/bootstrap.dart';
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/action_dispatcher.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/bootstrap.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 import 'package:test/test.dart';
 
 import 'fixtures/fake_events_api.dart';
@@ -3632,12 +3633,12 @@ void main() {
 //   REQ-ACTREG-D: single entry point for app initialization of the
 //   actions library.
 
-import 'package:audited_actions/src/action.dart';
-import 'package:audited_actions/src/action_dispatcher.dart';
-import 'package:audited_actions/src/action_registry.dart';
-import 'package:audited_actions/src/authorization_policy.dart';
-import 'package:audited_actions/src/events_api.dart';
-import 'package:audited_actions/src/idempotency_store.dart';
+import 'package:event_sourcing/src/actions/action.dart';
+import 'package:event_sourcing/src/actions/action_dispatcher.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/authorization_policy.dart';
+import 'package:event_sourcing/src/actions/events_api.dart';
+import 'package:event_sourcing/src/actions/idempotency_store.dart';
 
 /// Wire up an `ActionDispatcher` for a deploying app. Call this once
 /// from `main()` (or equivalent server bootstrap) and reuse the returned
@@ -3671,8 +3672,8 @@ ActionDispatcher bootstrapAuditedActions({
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/bootstrap.dart \
-        apps/common-dart/audited_actions/test/bootstrap_test.dart
+git add apps/common-dart/event_sourcing/lib/src/bootstrap.dart \
+        apps/common-dart/event_sourcing/test/bootstrap_test.dart
 git commit -m "[CUR-1159] audited_actions: bootstrapAuditedActions"
 ```
 
@@ -3684,17 +3685,17 @@ git commit -m "[CUR-1159] audited_actions: bootstrapAuditedActions"
 
 
 **Files:**
-- Create: `apps/common-dart/audited_actions/tool/discover_permissions.dart`
-- Create: `apps/common-dart/audited_actions/lib/src/permission_discovery.dart`
-- Create: `apps/common-dart/audited_actions/test/permission_discovery_test.dart`
+- Create: `apps/common-dart/event_sourcing/tool/discover_permissions.dart`
+- Create: `apps/common-dart/event_sourcing/lib/src/permission_discovery.dart`
+- Create: `apps/common-dart/event_sourcing/test/permission_discovery_test.dart`
 
 **Applicable assertions:** REQ-AUTHZ-D.
 
 - [ ] **Write failing tests** in `test/permission_discovery_test.dart`:
 
 ```dart
-import 'package:audited_actions/src/action_registry.dart';
-import 'package:audited_actions/src/permission_discovery.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
+import 'package:event_sourcing/src/actions/permission_discovery.dart';
 import 'package:test/test.dart';
 
 import 'fixtures/test_actions.dart';
@@ -3758,7 +3759,7 @@ void main() {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-AUTHZ-D: SQL migration emitter for newly-declared permissions.
 
-import 'package:audited_actions/src/action_registry.dart';
+import 'package:event_sourcing/src/actions/action_registry.dart';
 
 /// Emit a SQL migration that seeds the `role_permission_matrix_permissions`
 /// table with permissions from the registry that are not already present.
@@ -3774,7 +3775,7 @@ String emitPermissionsMigrationSql({
   final orphanPerms = existing.difference(declared).toList()..sort();
 
   final buf = StringBuffer();
-  buf.writeln('-- audited_actions permission discovery migration');
+  buf.writeln('-- event_sourcing actions permission discovery migration');
   buf.writeln('-- Declared in code: ${declared.length}, '
       'present in DB: ${existing.length}');
   buf.writeln();
@@ -3812,13 +3813,13 @@ String emitPermissionsMigrationSql({
 //
 // Usage (CLI shape; the deploying app provides the registry adapter):
 //
-//   dart run audited_actions:discover_permissions \
+//   dart run event_sourcing:discover_permissions \
 //     --output migrations/<n>_permissions_<date>.sql
 //
 // In-process usage (deploying app calls emitPermissionsMigrationSql
 // directly with its populated registry):
 //
-//   import 'package:audited_actions/audited_actions.dart';
+//   import 'package:event_sourcing/event_sourcing.dart';
 //   final sql = emitPermissionsMigrationSql(
 //     registry: myAppRegistry,
 //     existing: await readExistingFromDb(),
@@ -3826,7 +3827,7 @@ String emitPermissionsMigrationSql({
 
 import 'dart:io';
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// Smoke entry point. Without an injected registry, prints usage.
 /// Deploying apps wrap this with their own registry-loading code.
@@ -3847,9 +3848,9 @@ void main(List<String> args) {
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/src/permission_discovery.dart \
-        apps/common-dart/audited_actions/tool/discover_permissions.dart \
-        apps/common-dart/audited_actions/test/permission_discovery_test.dart
+git add apps/common-dart/event_sourcing/lib/src/permission_discovery.dart \
+        apps/common-dart/event_sourcing/tool/discover_permissions.dart \
+        apps/common-dart/event_sourcing/test/permission_discovery_test.dart
 git commit -m "[CUR-1159] audited_actions: permission discovery emitter + CLI entry"
 ```
 
@@ -3858,10 +3859,10 @@ git commit -m "[CUR-1159] audited_actions: permission discovery emitter + CLI en
 ### Task 24: Public exports + end-to-end integration test
 
 **Files:**
-- Modify: `apps/common-dart/audited_actions/lib/audited_actions.dart`
-- Create: `apps/common-dart/audited_actions/test/integration_test.dart`
+- Modify: `apps/common-dart/event_sourcing/lib/event_sourcing.dart`
+- Create: `apps/common-dart/event_sourcing/test/integration_test.dart`
 
-- [ ] **Update `lib/audited_actions.dart`** with all public exports:
+- [ ] **Update `lib/event_sourcing.dart`** with all public exports:
 
 ```dart
 /// Trusted-boundary command/intent layer. See README.md.
@@ -3894,9 +3895,9 @@ export 'src/table_backed_authorization_policy.dart';
 - [ ] **Write `test/integration_test.dart`** — exercises the full happy path through the public API only (no internal `src/` imports):
 
 ```dart
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
+import 'package:event_sourcing/event_sourcing.dart'
     show SecurityDetails;
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:test/test.dart';
 
 import 'fixtures/fake_events_api.dart';
@@ -3990,7 +3991,7 @@ void main() {
 - [ ] **Run all tests + analyze; confirm pass:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart test && dart analyze)
+(cd apps/common-dart/event_sourcing && dart test && dart analyze)
 ```
 
 Expected: all green.
@@ -3998,8 +3999,8 @@ Expected: all green.
 - [ ] **Commit:**
 
 ```bash
-git add apps/common-dart/audited_actions/lib/audited_actions.dart \
-        apps/common-dart/audited_actions/test/integration_test.dart
+git add apps/common-dart/event_sourcing/lib/event_sourcing.dart \
+        apps/common-dart/event_sourcing/test/integration_test.dart
 git commit -m "[CUR-1159] audited_actions: public exports + end-to-end integration test"
 ```
 
@@ -4010,7 +4011,7 @@ git commit -m "[CUR-1159] audited_actions: public exports + end-to-end integrati
 - [ ] **Full test suite green:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart test)
+(cd apps/common-dart/event_sourcing && dart test)
 ```
 
 Expected: every test passes; no skipped tests.
@@ -4018,12 +4019,12 @@ Expected: every test passes; no skipped tests.
 - [ ] **Lints clean:**
 
 ```bash
-(cd apps/common-dart/audited_actions && dart analyze)
+(cd apps/common-dart/event_sourcing && dart analyze)
 ```
 
 Expected: 0 issues.
 
-- [ ] **REQ assertions all referenced.** Spot-check that every `REQ-XXX-Y` from `spec/dev-audited-actions.md` appears in at least one `// Implements:` or `// Verifies:` comment in code.
+- [ ] **REQ assertions all referenced.** Spot-check that every `REQ-XXX-Y` from `spec/dev-event-sourcing.md` appears in at least one `// Implements:` or `// Verifies:` comment in code.
 
 - [ ] **Push branch + open PR:**
 
@@ -4037,7 +4038,7 @@ gh pr create \
 Implements Sub-project A of CUR-1159 (design at
 docs/superpowers/specs/2026-04-22-events-and-actions-libs-design.md).
 
-New package apps/common-dart/audited_actions/: trusted-boundary
+New package apps/common-dart/event_sourcing/: trusted-boundary
 gatekeeper for audited user actions. Class-based Action interface,
 10-stage dispatcher pipeline (lookup, invocation_id, parse,
 idempotency-check, validate, authorize, execute, atomic persist,
@@ -4051,9 +4052,9 @@ unified event log (via post-Sub-project-E events lib), in the same
 shape as success events. Anonymous principals always denied.
 
 ## Test plan
-- [ ] CI: dart test passes for audited_actions
-- [ ] CI: dart analyze passes for audited_actions
-- [ ] CI: requirements validator passes for spec/dev-audited-actions.md
+- [ ] CI: dart test passes for event_sourcing actions module
+- [ ] CI: dart analyze passes for event_sourcing
+- [ ] CI: requirements validator passes for spec/dev-event-sourcing.md
 - [ ] Manual: review dispatcher pipeline against design §7.4
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

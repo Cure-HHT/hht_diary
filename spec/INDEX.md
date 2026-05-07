@@ -360,19 +360,19 @@
 | REQ-d00163 | Portal inbound poll for tombstone instructions                    | dev-event-sourcing-datastore.md | f96d5dbc |
 | REQ-d00164 | Clinical_diary mobile sync triggers                               | dev-event-sourcing-datastore.md | eec937dc |
 | REQ-d00165 | Inbound Tombstone Record Failure Audit                            | dev-event-sourcing-datastore.md | ec15604b |
-| REQ-d00166 | Action Interface Contract                                         | dev-audited-actions.md          | ae3f6e96 |
-| REQ-d00167 | ActionRegistry and Bootstrap                                      | dev-audited-actions.md          | 0f53c3bd |
-| REQ-d00168 | Dispatcher Pipeline                                               | dev-audited-actions.md          | 6b65ebee |
-| REQ-d00169 | Authorization Policy                                              | dev-audited-actions.md          | 3daddba7 |
-| REQ-d00170 | Idempotency Contract                                              | dev-audited-actions.md          | afd86f83 |
-| REQ-d00171 | Denial Events                                                     | dev-audited-actions.md          | 31533023 |
-| REQ-d00172 | REQ-PERM-SCOPE — Permission scope class enumeration               | dev-action-permissions.md       | 57b8525d |
-| REQ-d00173 | REQ-PERM-POLICY — AuthorizationPolicy interface shape             | dev-action-permissions.md       | a3f79647 |
-| REQ-d00174 | REQ-PERM-MATRIX — Event-sourced matrix and materialized view      | dev-action-permissions.md       | b3974cac |
-| REQ-d00175 | REQ-PERM-SEED — YAML seed, validation, and event-emitting applier | dev-action-permissions.md       | 5dec8543 |
-| REQ-d00176 | REQ-PERM-EVAL — Evaluation algorithm                              | dev-action-permissions.md       | acdfb5d5 |
-| REQ-d00177 | REQ-PERM-SNAPSHOT — Client-side snapshot                          | dev-action-permissions.md       | b8256380 |
-| REQ-d00178 | REQ-PERM-FAILSAFE — Fail-safe bootstrap                           | dev-action-permissions.md       | 075f8212 |
+| REQ-d00166 | Action Interface Contract                                         | dev-event-sourcing.md           | ae3f6e96 |
+| REQ-d00167 | ActionRegistry and Bootstrap                                      | dev-event-sourcing.md           | 0f53c3bd |
+| REQ-d00168 | Dispatcher Pipeline                                               | dev-event-sourcing.md           | 6b65ebee |
+| REQ-d00169 | Authorization Policy                                              | dev-event-sourcing.md           | 3daddba7 |
+| REQ-d00170 | Idempotency Contract                                              | dev-event-sourcing.md           | afd86f83 |
+| REQ-d00171 | Denial Events                                                     | dev-event-sourcing.md           | 31533023 |
+| REQ-d00172 | REQ-PERM-SCOPE — Permission scope class enumeration               | dev-event-sourcing.md           | 57b8525d |
+| REQ-d00173 | REQ-PERM-POLICY — AuthorizationPolicy interface shape             | dev-event-sourcing.md           | a3f79647 |
+| REQ-d00174 | REQ-PERM-MATRIX — Event-sourced matrix and materialized view      | dev-event-sourcing.md           | 9e1051ed |
+| REQ-d00175 | REQ-PERM-SEED — YAML seed, validation, and event-emitting applier | dev-event-sourcing.md           | 5dec8543 |
+| REQ-d00176 | REQ-PERM-EVAL — Evaluation algorithm                              | dev-event-sourcing.md           | acdfb5d5 |
+| REQ-d00177 | REQ-PERM-SNAPSHOT — Client-side snapshot                          | dev-event-sourcing.md           | 01f857d7 |
+| REQ-d00178 | REQ-PERM-FAILSAFE — Fail-safe bootstrap                           | dev-event-sourcing.md           | 075f8212 |
 | REQ-d80064 | Questionnaire Version Integrity Enforcement                       | dev-questionnaire.md            | dd2e9ea1 |
 
 ## User Journeys

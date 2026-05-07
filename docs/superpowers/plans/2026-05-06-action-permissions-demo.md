@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Linux-desktop two-process reference app at `apps/common-dart/action_permissions/example/` that exercises every public surface of the `audited_actions` and `action_permissions` libraries end-to-end. Validates the dispatcher pipeline, all denial types, every idempotency policy, scope-class enforcement, and the matrix-as-event-log pattern under realistic client-server conditions.
+**Goal:** Build a Linux-desktop two-process reference app at `apps/common-dart/event_sourcing/example_action_permissions/` that exercises every public surface of the `event_sourcing` library's actions and permissions modules end-to-end. Validates the dispatcher pipeline, all denial types, every idempotency policy, scope-class enforcement, and the matrix-as-event-log pattern under realistic client-server conditions.
 
 **Architecture:** Dart `shelf` HTTP server (`bin/server.dart`) hosts the dispatcher, event store, matrix, and user directory. A Flutter Linux-desktop client connects over `localhost:8080` and renders two panes — a client view (userId selector, hacker-mode toggle, gated action buttons) and a server-inspector view (event log, matrix, idempotency store, dispatch trace). Identity is asserted in-band on each request as a bare `userId`; the server resolves to a `Principal` via a YAML-seeded directory. No auth handshake. State delivery is HTTP polling at 1 Hz behind a swappable `DemoStateProjection` interface.
 
-**Tech Stack:** Dart 3.10+, Flutter desktop (Linux), `shelf` for HTTP, `package:http` for client, `sembast` for storage, `package:yaml` for seeds, `package:test` + integration tests. Depends on the `audited_actions`, `action_permissions`, and `event_sourcing_datastore` libraries.
+**Tech Stack:** Dart 3.10+, Flutter desktop (Linux), `shelf` for HTTP, `package:http` for client, `sembast` for storage, `package:yaml` for seeds, `package:test` + integration tests. Depends on the `event_sourcing` library (which includes the actions module, permissions module, and event store).
 
 **Ticket:** CUR-1192 (demo informs CUR-1170 portal cutover scope)
 **Design doc:** `docs/superpowers/specs/2026-05-06-action-permissions-demo-design.md`
@@ -18,7 +18,7 @@
 
 This plan does **NOT** start until the following library work is complete and merged to this branch:
 
-1. **`audited_actions` library** at `apps/common-dart/audited_actions/` — beyond the value-type scaffolding consolidated in `84574c5b`, the following must ship per `docs/superpowers/plans/2026-04-22-audited-actions-library.md`:
+1. **`event_sourcing` actions module** at `apps/common-dart/event_sourcing/lib/src/actions/` — beyond the value-type scaffolding consolidated in `84574c5b`, the following must ship per `docs/superpowers/plans/2026-04-22-audited-actions-library.md`:
    - `Action<TInput, TResult>` abstract interface (REQ-d00166).
    - `ActionRegistry` with collision detection (REQ-d00167).
    - `ActionDispatcher` 10-stage pipeline (REQ-d00168).
@@ -26,9 +26,9 @@ This plan does **NOT** start until the following library work is complete and me
    - Denial-event payload sanitization helpers (REQ-d00171).
    - `Principal`, `ActionContext`, `ScopeClass`, `EventDraft` value types.
    - `bootstrapAuditedActions(...)` composition function.
-   - `dart test` green for every assertion in `spec/dev-audited-actions.md`.
+   - `dart test` green for every assertion in `spec/dev-event-sourcing.md` (REQ-d00166..d00171).
 
-2. **`action_permissions` library** at `apps/common-dart/action_permissions/` — does not yet exist as code; only the design (`docs/superpowers/specs/2026-04-23-action-permissions-design.md`) and spec (`spec/dev-action-permissions.md`) are on this branch. A separate plan (`docs/superpowers/plans/<DATE>-action-permissions-library.md`) must produce:
+2. **`event_sourcing` permissions module** at `apps/common-dart/event_sourcing/lib/src/permissions/` — does not yet exist as code; only the design (`docs/superpowers/specs/2026-04-23-action-permissions-design.md`) and spec (`spec/dev-event-sourcing.md`) are on this branch. The plan `docs/superpowers/plans/2026-05-06-action-permissions-library.md` must produce:
    - `TableBackedAuthorizationPolicy` over a `RoleMatrixReader` (REQ-d00173).
    - `MaterializedViewRoleMatrixReader` over `StorageBackend` view methods.
    - `RolePermissionGrantsMaterializer` (REQ-d00174).
@@ -37,11 +37,11 @@ This plan does **NOT** start until the following library work is complete and me
    - `PermissionSnapshot` + `SnapshotRoleMatrixReader` (REQ-d00177).
    - `FailSafeAuthorizationPolicy` + `AuthorizationPolicyBootstrap` (REQ-d00178).
    - `bootstrapActionPermissions(...)` composition function.
-   - `dart test` green for every assertion in `spec/dev-action-permissions.md`.
+   - `dart test` green for every assertion in `spec/dev-event-sourcing.md`.
 
-3. **`event_sourcing_datastore` library** on `main` — already shipped via CUR-1154; required transitively for `EventStore`, `StorageBackend`, `Materializer`, the `events.transaction` block, and (when Phase 4.12 ships) `watchEvents` / `watchFifo`.
+3. **`event_sourcing` library** on `main` — already shipped via CUR-1154 and consolidated in CUR-1192; provides `EventStore`, `StorageBackend`, `Materializer`, the `events.transaction` block, and (when Phase 4.12 ships) `watchEvents` / `watchFifo`.
 
-If a Step 1 or Step 2 task in this plan fails because a library symbol is missing, that's a sign the prerequisite work was skipped. Do not work around — return to the library plan.
+If a Step 1 or Step 2 task in this plan fails because a module symbol is missing, that's a sign the prerequisite work was skipped. Do not work around — return to the relevant module plan.
 
 ---
 
@@ -56,7 +56,7 @@ REQ citation format:
 - Per-function: `// Implements: REQ-d00XXX-Y — <prose>` where applicable.
 - Per-test: `// Verifies: REQ-d00XXX-Y — <prose>` AND the assertion ID starts the test description: `test('REQ-d00XXX-Y: description', () { ... })`.
 
-Run from `apps/common-dart/action_permissions/example/`:
+Run from `apps/common-dart/event_sourcing/example_action_permissions/`:
 - `flutter pub get` after each pubspec change.
 - `flutter test test/...` for unit tests (Flutter is required because the example links Flutter widgets).
 - `flutter test integration_test/...` for end-to-end tests against a spawned server.
@@ -68,7 +68,7 @@ After every commit, run `flutter test` and `dart analyze` to confirm green.
 
 ## File Structure
 
-All paths relative to `apps/common-dart/action_permissions/example/`.
+All paths relative to `apps/common-dart/event_sourcing/example_action_permissions/`.
 
 ```text
 example/
@@ -146,17 +146,17 @@ example/
 ### Task 1: Package skeleton + pubspec
 
 **Files:**
-- Create: `apps/common-dart/action_permissions/example/pubspec.yaml`
-- Create: `apps/common-dart/action_permissions/example/analysis_options.yaml`
-- Create: `apps/common-dart/action_permissions/example/.gitignore`
-- Create: `apps/common-dart/action_permissions/example/README.md` (placeholder; Task 38 fills in)
+- Create: `apps/common-dart/event_sourcing/example_action_permissions/pubspec.yaml`
+- Create: `apps/common-dart/event_sourcing/example_action_permissions/analysis_options.yaml`
+- Create: `apps/common-dart/event_sourcing/example_action_permissions/.gitignore`
+- Create: `apps/common-dart/event_sourcing/example_action_permissions/README.md` (placeholder; Task 38 fills in)
 
 - [ ] **Step 1: Write pubspec.yaml**
 
 ```yaml
-# apps/common-dart/action_permissions/example/pubspec.yaml
+# apps/common-dart/event_sourcing/example_action_permissions/pubspec.yaml
 name: action_permissions_demo
-description: "Linux-desktop reference app exercising audited_actions + action_permissions libraries end-to-end. Verifies REQ-d00166..REQ-d00178."
+description: "Linux-desktop reference app exercising the event_sourcing library actions + permissions modules end-to-end. Verifies REQ-d00166..REQ-d00178."
 version: 0.1.0+1
 publish_to: none
 
@@ -167,12 +167,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  audited_actions:
-    path: ../../audited_actions
-  action_permissions:
-    path: ..
-  event_sourcing_datastore:
-    path: ../../event_sourcing_datastore
+  event_sourcing:
+    path: ../..
+  # Note: audited_actions and action_permissions are now modules within event_sourcing;
+  # event_sourcing_datastore was consolidated into event_sourcing in CUR-1192.
   shelf: ^1.4.1
   shelf_router: ^1.1.4
   http: ^1.2.0
@@ -195,7 +193,7 @@ dev_dependencies:
 - [ ] **Step 2: Write analysis_options.yaml**
 
 ```yaml
-# apps/common-dart/action_permissions/example/analysis_options.yaml
+# apps/common-dart/event_sourcing/example_action_permissions/analysis_options.yaml
 include: package:lints/recommended.yaml
 
 analyzer:
@@ -214,7 +212,7 @@ linter:
 - [ ] **Step 3: Write .gitignore**
 
 ```text
-# apps/common-dart/action_permissions/example/.gitignore
+# apps/common-dart/event_sourcing/example_action_permissions/.gitignore
 .dart_tool/
 .flutter-plugins-dependencies
 build/
@@ -232,17 +230,17 @@ tool/.demo-server.log
 ```markdown
 # action_permissions_demo
 
-Linux-desktop reference app for `audited_actions` + `action_permissions`. Full README written in Task 38; this is a placeholder for early commits.
+Linux-desktop reference app for `event_sourcing` actions + permissions modules. Full README written in Task 38; this is a placeholder for early commits.
 ```
 
 - [ ] **Step 5: Run flutter pub get**
 
 ```bash
-cd apps/common-dart/action_permissions/example
+cd apps/common-dart/event_sourcing/example
 flutter pub get
 ```
 
-Expected: `Got dependencies!` (or `Changed N dependencies!`). If `audited_actions` or `action_permissions` path resolution fails, the prerequisite library work is incomplete — stop and address that.
+Expected: `Got dependencies!` (or `Changed N dependencies!`). If `event_sourcing` path resolution fails, the prerequisite library work is incomplete — stop and address that.
 
 - [ ] **Step 6: Run dart analyze**
 
@@ -255,7 +253,7 @@ Expected: `No issues found!` (no Dart files yet, but pubspec resolution should b
 - [ ] **Step 7: Commit**
 
 ```bash
-git add apps/common-dart/action_permissions/example/
+git add apps/common-dart/event_sourcing/example_action_permissions/
 git commit -m "[CUR-1192] demo: package skeleton + deps"
 ```
 
@@ -933,7 +931,7 @@ Expected: FAIL — undefined `UserDirectory`.
 // or null userId.
 
 import 'package:action_permissions_demo/shared/wire_types.dart';
-import 'package:audited_actions/audited_actions.dart' show Principal;
+import 'package:event_sourcing/event_sourcing.dart' show Principal;
 
 class UserDirectory {
   final Map<String, _Entry> _entries = <String, _Entry>{};
@@ -1057,10 +1055,10 @@ Expected: FAIL — undefined `UserDirectoryMaterializer`.
 //   REQ-d00174 (Materializer-in-transaction pattern) — applies user_provisioned
 //   events to the in-memory UserDirectory; runs inside the events.transaction
 //   block as part of EventStore commit (when wired through Materializer
-//   protocol from event_sourcing_datastore).
+//   protocol from event_sourcing).
 //
 // applyDirect() is the bare projection used by tests and the seed applier.
-// The Materializer protocol wrapper (subclassing event_sourcing_datastore's
+// The Materializer protocol wrapper (subclassing event_sourcing's
 // Materializer) is added in Task 14 when bootstrap.dart wires it up.
 
 import 'package:action_permissions_demo/server/user_directory.dart';
@@ -1205,7 +1203,7 @@ Expected: FAIL — undefined `UserDirectorySeedApplier`.
 // lib/server/user_directory_seed_applier.dart
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00175 (YAML seed + event-emitting applier) — directory-side analogue
-//   of action_permissions's EventSeedApplier. Diffs YAML against the current
+//   of the permissions module's EventSeedApplier. Diffs YAML against the current
 //   directory view and emits user_provisioned event payloads for missing
 //   entries; the materializer also runs against the same payload to update
 //   the in-memory directory.
@@ -1280,7 +1278,7 @@ git commit -m "[CUR-1192] demo: UserDirectorySeedApplier + users.yaml seed"
 // Verifies: REQ-d00166 (Action interface), REQ-d00170 (idempotency none)
 import 'package:flutter_test/flutter_test.dart';
 import 'package:action_permissions_demo/server/actions/request_help_action.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 void main() {
   group('RequestHelpAction', () {
@@ -1337,7 +1335,7 @@ Expected: FAIL — undefined `RequestHelpAction`.
 //   REQ-d00166-A+B+C+D+E+F — Action interface contract.
 //   REQ-d00170 (Idempotency Contract) — idempotency.none policy.
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class HelpInput {
   const HelpInput({required this.message});
@@ -1427,7 +1425,7 @@ git commit -m "[CUR-1192] demo: RequestHelpAction (global, anyone)"
 // test/actions/edit_green_note_action_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:action_permissions_demo/server/actions/edit_green_note_action.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 void main() {
   group('EditGreenNoteAction', () {
@@ -1483,7 +1481,7 @@ Expected: FAIL — undefined `EditGreenNoteAction`.
 //   REQ-d00170 — Idempotency.optional policy.
 //   REQ-d00172 — site-scoped permission (ScopeClass.site).
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class EditGreenNoteInput {
   const EditGreenNoteInput({required this.noteId, required this.title, required this.body});
@@ -1581,7 +1579,7 @@ git commit -m "[CUR-1192] demo: EditGreenNoteAction (site, GreenTeam)"
 // test/actions/edit_blue_note_action_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:action_permissions_demo/server/actions/edit_blue_note_action.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 void main() {
   group('EditBlueNoteAction', () {
@@ -1637,7 +1635,7 @@ Expected: FAIL — undefined `EditBlueNoteAction`.
 //   REQ-d00170 — Idempotency.optional policy.
 //   REQ-d00172 — site-scoped permission (ScopeClass.site).
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class EditBlueNoteInput {
   const EditBlueNoteInput({required this.noteId, required this.title, required this.body});
@@ -1735,7 +1733,7 @@ git commit -m "[CUR-1192] demo: EditBlueNoteAction (site, BlueTeam)"
 // test/actions/press_green_button_action_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:action_permissions_demo/server/actions/press_green_button_action.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 void main() {
   group('PressGreenButtonAction', () {
@@ -1787,7 +1785,7 @@ Expected: FAIL — undefined `PressGreenButtonAction`.
 //   REQ-d00170 — Idempotency.none policy.
 //   REQ-d00172 — site-scoped permission.
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class PressGreenInput {
   const PressGreenInput();
@@ -1867,7 +1865,7 @@ git commit -m "[CUR-1192] demo: PressGreenButtonAction (site, GreenTeam)"
 // test/actions/press_blue_button_action_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:action_permissions_demo/server/actions/press_blue_button_action.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 void main() {
   group('PressBlueButtonAction', () {
@@ -1915,7 +1913,7 @@ Expected: FAIL — undefined `PressBlueButtonAction`.
 //   REQ-d00170 — Idempotency.none policy.
 //   REQ-d00172 — site-scoped permission.
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class PressBlueInput {
   const PressBlueInput();
@@ -2002,7 +2000,7 @@ git commit -m "[CUR-1192] demo: PressBlueButtonAction (site, BlueTeam)"
 //   REQ-d00170-B — Idempotency.required: dispatcher returns
 //   parseDenied(MissingIdempotencyKeyError) when caller omits the key.
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class RedAlarmInput {
   const RedAlarmInput({required this.reason});
@@ -2086,7 +2084,7 @@ class PressRedAlarmAction extends Action<RedAlarmInput, RedAlarmResult> {
 // directory view (passed in ctx.read or via injected directory accessor).
 
 import 'package:action_permissions_demo/server/user_directory.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class ProvisionUserInput {
   const ProvisionUserInput({
@@ -2196,7 +2194,7 @@ import 'package:action_permissions_demo/server/actions/press_red_alarm_action.da
 import 'package:action_permissions_demo/server/actions/provision_user_action.dart';
 import 'package:action_permissions_demo/server/actions/request_help_action.dart';
 import 'package:action_permissions_demo/server/user_directory.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 ActionRegistry buildDemoActionRegistry({required UserDirectory directory}) {
   final registry = ActionRegistry();
@@ -2280,13 +2278,13 @@ permissions:
 
 import 'dart:io';
 
-import 'package:action_permissions/action_permissions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:action_permissions_demo/server/action_catalog.dart';
 import 'package:action_permissions_demo/server/user_directory.dart';
 import 'package:action_permissions_demo/server/user_directory_materializer.dart';
 import 'package:action_permissions_demo/server/user_directory_seed_applier.dart';
-import 'package:audited_actions/audited_actions.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:path/path.dart' as p;
 import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
@@ -2331,7 +2329,7 @@ Future<DemoServerComponents> bootstrapDemoServer({
     ],
   );
 
-  // Run permission seed applier (action_permissions library).
+  // Run permission seed applier (event_sourcing permissions module).
   final policyBootstrap = await bootstrapActionPermissions(
     eventStore: eventStore,
     yamlSource: permissionsYaml,
@@ -2377,7 +2375,7 @@ Future<DemoServerComponents> bootstrapDemoServer({
 }
 
 /// Adapter so UserDirectoryMaterializer (demo-side) can be passed through the
-/// Materializer protocol expected by event_sourcing_datastore. Filters by
+/// Materializer protocol expected by event_sourcing. Filters by
 /// aggregateType and forwards user_provisioned events.
 class DirectoryMaterializerAdapter extends Materializer {
   DirectoryMaterializerAdapter(this._directoryMaterializer);
@@ -2459,8 +2457,8 @@ class PollingDemoStateProjection implements DemoStateProjection {
 ```dart
 // lib/server/inspect_snapshot.dart
 import 'package:action_permissions_demo/shared/wire_types.dart';
-import 'package:audited_actions/audited_actions.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 Future<List<StoredEventSummary>> collectEventSummaries(
   EventStore store, {
@@ -2531,11 +2529,11 @@ Expected: clean.
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:action_permissions/action_permissions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:action_permissions_demo/server/bootstrap.dart';
 import 'package:action_permissions_demo/server/demo_state_projection.dart';
 import 'package:action_permissions_demo/shared/wire_types.dart';
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
@@ -3696,7 +3694,7 @@ fi
 
 ```bash
 cd ../../..
-markdownlint apps/common-dart/action_permissions/example/README.md
+markdownlint apps/common-dart/event_sourcing/example_action_permissions/README.md
 ```
 
 (or whatever the project's md lint command is — pre-commit hook will catch.)
@@ -3712,7 +3710,7 @@ markdownlint apps/common-dart/action_permissions/example/README.md
 - [ ] **Step 1: Run full test suite from example dir**
 
 ```bash
-cd apps/common-dart/action_permissions/example
+cd apps/common-dart/event_sourcing/example
 flutter pub get
 dart analyze
 flutter test

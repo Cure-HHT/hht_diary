@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the new `apps/common-dart/action_permissions/` Dart library — the role-permission matrix mapping layer that sits between `audited_actions` (which declares permissions on each Action) and `event_sourcing_datastore` (which persists the matrix as a materialized view fed by `permission_granted` and `permission_revoked` events).
+**Goal:** Build the permissions module at `apps/common-dart/event_sourcing/lib/src/permissions/` — the role-permission matrix mapping layer inside the consolidated `event_sourcing` package. This module sits between the actions module (which declares permissions on each Action) and the event store (which persists the matrix as a materialized view fed by `permission_granted` and `permission_revoked` events).
 
 **Architecture:** A `TableBackedAuthorizationPolicy` answers `isPermitted` and `permissionsFor` queries by delegating to a `RoleMatrixReader`. Three reader implementations: `MaterializedViewRoleMatrixReader` (server-side, queries the `role_permission_grants` view via `StorageBackend`), `InMemoryRoleMatrixReader` (test fixtures + FailSafe backing), `SnapshotRoleMatrixReader` (client-side, wraps a `PermissionSnapshot`). The matrix lives in the unified event log: `permission_granted` and `permission_revoked` events drive a `RolePermissionGrantsMaterializer` that runs in the same transaction as the events. A YAML seed (`config/action_permissions/base.yaml`) is the deployment's authoritative grant list, applied via `EventSeedApplier` on every boot — idempotent across restarts. Bootstrap returns `PolicyReady` on success or `PolicyFailSafe` on validation failure (the latter denies every query and feeds a readiness probe).
 
-**Tech Stack:** Pure Dart (no Flutter — this is a server-side library too). Depends on `audited_actions` (for `Permission`, `ScopeClass`, `Principal`, `AuthorizationPolicy`, `AuthorizationDecision`) and `event_sourcing_datastore` (for `EventStore`, `StorageBackend`, `Materializer`, `Initiator`). Tests via `package:test` against an in-memory Sembast backend.
+**Tech Stack:** Pure Dart (no Flutter — this is a server-side module too). All symbols (`Permission`, `ScopeClass`, `Principal`, `AuthorizationPolicy`, `AuthorizationDecision`, `EventStore`, `StorageBackend`, `Materializer`, `Initiator`) live in the `event_sourcing` package. Tests via `package:test` against an in-memory Sembast backend.
 
 **Ticket:** CUR-1192
 **Design doc:** `docs/superpowers/specs/2026-04-23-action-permissions-design.md`
@@ -16,7 +16,7 @@
 
 ## Hard Prerequisites
 
-This plan does **NOT** start until the `audited_actions` library has the following symbols implemented and tested per `docs/superpowers/plans/2026-04-22-audited-actions-library.md`:
+This plan does **NOT** start until the actions module within `event_sourcing` has the following symbols implemented and tested per `docs/superpowers/plans/2026-04-22-audited-actions-library.md`:
 
 - `ScopeClass` enum with values `global`, `site`, `self` (REQ-d00172).
 - `Permission` value type with `name: String` and `scope: ScopeClass`, equality on `name` only.
@@ -25,14 +25,14 @@ This plan does **NOT** start until the `audited_actions` library has the followi
 - `AuthorizationDecision` sealed type: `Allow` or `Deny(Permission, DenyReason)` where `DenyReason` is `notGranted | sessionPreconditionMissing | bootstrapFailure`.
 - `Role` type — a String-based typed wrapper or a typedef. (See **Role-type seam** below.)
 
-If any of these symbols don't exist or have a different shape, return to the audited_actions library plan; do not bend this library to compensate.
+If any of these symbols don't exist or have a different shape, return to the actions module plan (`docs/superpowers/plans/2026-04-22-audited-actions-library.md`); do not bend this module to compensate.
 
-**Role-type seam:** the design doc lists `Role` as an `action_permissions` export ("typed String wrapper"), but `Principal.role` lives in `audited_actions` and references `Role` by name. The two libraries must agree on the type. Resolution:
-- **Preferred:** `audited_actions` defines `Role` as a typed-String wrapper class in `audited_actions/lib/src/role.dart`; `action_permissions` re-exports it from its own public API.
-- If audited_actions chose `String` instead, `action_permissions` matches: `typedef Role = String;`.
+**Role-type seam:** the design doc lists `Role` as a typed-String wrapper. Since both modules now live in `event_sourcing`, `Role` is defined once in `event_sourcing/lib/src/actions/role.dart` and shared directly. No re-export dance needed. Resolution:
+- Verify `Role` is defined in `lib/src/actions/role.dart`; the permissions module imports it from there.
+- If `Role` was implemented as `typedef Role = String;` in the actions module, match that here.
 - Verify which choice the prerequisite plan landed on at the start of Task 2 below; adjust this plan's signatures accordingly.
 
-`event_sourcing_datastore` is on `main` and provides `EventStore`, `StorageBackend`, `Materializer`, `Initiator`, `EventDraft`, `Txn`, `findViewRowsInTxn` / `upsertViewRowInTxn` / `deleteViewRowInTxn` view methods. No new APIs needed from it.
+`event_sourcing` is on `main` and provides `EventStore`, `StorageBackend`, `Materializer`, `Initiator`, `EventDraft`, `Txn`, `findViewRowsInTxn` / `upsertViewRowInTxn` / `deleteViewRowInTxn` view methods. No new APIs needed from it.
 
 ---
 
@@ -49,28 +49,22 @@ REQ citation format:
 - Per-class header: `// Implements: REQ-d00XXX-Y+Z — <prose>`.
 - Per-test method: `// Verifies: REQ-d00XXX-Y` AND the assertion ID starts the test description: `test('REQ-d00XXX-Y: description', () { ... })`.
 
-Run from `apps/common-dart/action_permissions/`:
-- `dart pub get` after each pubspec change.
-- `dart test` for unit tests.
+Run from `apps/common-dart/event_sourcing/`:
+- `dart pub get` if pubspec.yaml changes (rarely needed — the package already exists).
+- `dart test test/permissions/` for permissions module unit tests.
 - `dart analyze` for lints.
 
-After every commit, run `dart test` and `dart analyze` from `apps/common-dart/action_permissions/` to confirm green.
+After every commit, run `dart test test/permissions/` and `dart analyze` from `apps/common-dart/event_sourcing/` to confirm green.
 
 ---
 
 ## File Structure
 
-All paths relative to `apps/common-dart/action_permissions/`.
+All paths relative to `apps/common-dart/event_sourcing/`. Source files live under `lib/src/permissions/`; tests under `test/permissions/`.
 
 ```text
-action_permissions/                            NEW package
-  pubspec.yaml                                 package metadata + deps on audited_actions, event_sourcing_datastore
-  analysis_options.yaml                        strict lint config
-  README.md                                    what this package is, how to bootstrap
-  lib/
-    action_permissions.dart                    public exports
-    src/
-      role.dart                                Role typedef or re-export from audited_actions
+event_sourcing/lib/src/permissions/            NEW module within event_sourcing
+  role.dart                                    Role typedef (or import from actions module)
       permission_granted_payload.dart          PermissionGrantedPayload value type + JSON
       permission_revoked_payload.dart          PermissionRevokedPayload value type + JSON
       role_matrix_reader.dart                  abstract RoleMatrixReader interface
@@ -112,25 +106,25 @@ action_permissions/                            NEW package
 ### Task 1: Package skeleton + pubspec
 
 **Files:**
-- Create: `apps/common-dart/action_permissions/pubspec.yaml`
-- Create: `apps/common-dart/action_permissions/analysis_options.yaml`
-- Create: `apps/common-dart/action_permissions/.gitignore`
-- Create: `apps/common-dart/action_permissions/README.md` (placeholder)
-- Create: `apps/common-dart/action_permissions/lib/action_permissions.dart` (empty exports list initially)
+- Create: `apps/common-dart/event_sourcing/pubspec.yaml`
+- Create: `apps/common-dart/event_sourcing/analysis_options.yaml`
+- Create: `apps/common-dart/event_sourcing/.gitignore`
+- Create: `apps/common-dart/event_sourcing/README.md` (placeholder)
+- Modify: `apps/common-dart/event_sourcing/lib/event_sourcing.dart` (add permissions module exports)
 
 - [ ] **Step 1: Write pubspec.yaml**
 
 ```yaml
-# apps/common-dart/action_permissions/pubspec.yaml
+# apps/common-dart/event_sourcing/pubspec.yaml
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00172..REQ-d00178 — role-permission matrix mapping layer.
 #
-# Sibling library to audited_actions; depends on it for the abstract
-# AuthorizationPolicy / Permission / Principal / ScopeClass surface, and
-# on event_sourcing_datastore for the event store + materializer protocol.
+# Permissions module within the event_sourcing package. All abstract
+# types (AuthorizationPolicy / Permission / Principal / ScopeClass) and
+# the event store + materializer protocol are in the same package.
 
-name: action_permissions
-description: "Role-permission matrix mapping for audited_actions, persisted as a materialized view in event_sourcing_datastore."
+name: event_sourcing
+description: "Unified event-sourcing library: storage, actions, and permissions modules."
 version: 0.1.0+1
 publish_to: none
 
@@ -138,10 +132,8 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  audited_actions:
-    path: ../audited_actions
-  event_sourcing_datastore:
-    path: ../event_sourcing_datastore
+  # No separate path deps needed — this is the event_sourcing package itself.
+  # All actions + permissions symbols are within this same package.
   meta: ^1.16.0
   yaml: ^3.1.3
   uuid: ^4.5.2
@@ -156,7 +148,7 @@ dev_dependencies:
 - [ ] **Step 2: Write analysis_options.yaml**
 
 ```yaml
-# apps/common-dart/action_permissions/analysis_options.yaml
+# apps/common-dart/event_sourcing/analysis_options.yaml
 include: package:lints/recommended.yaml
 
 analyzer:
@@ -175,7 +167,7 @@ linter:
 - [ ] **Step 3: Write .gitignore**
 
 ```text
-# apps/common-dart/action_permissions/.gitignore
+# apps/common-dart/event_sourcing/.gitignore
 .dart_tool/
 build/
 coverage/
@@ -183,22 +175,20 @@ pubspec.lock
 **/doc/api/
 ```
 
-- [ ] **Step 4: Write placeholder lib/action_permissions.dart**
+- [ ] **Step 4: Add permissions exports to lib/event_sourcing.dart**
 
 ```dart
-// lib/action_permissions.dart
-// Public exports. Filled in incrementally as Tasks 2-15 land. Final form
-// in Task 16.
-
-library action_permissions;
+// Add to lib/event_sourcing.dart (incrementally as Tasks 2-15 land):
+// export 'src/permissions/role.dart';
+// ... (each file added as it lands)
 ```
 
 - [ ] **Step 5: Write placeholder README.md**
 
 ```markdown
-# action_permissions
+# event_sourcing — permissions module
 
-Role-permission matrix for `audited_actions`, persisted as a materialized view in `event_sourcing_datastore`. See `docs/superpowers/specs/2026-04-23-action-permissions-design.md` for the design.
+Role-permission matrix within the `event_sourcing` package. See `docs/superpowers/specs/2026-04-23-action-permissions-design.md` for the design.
 
 Full README in Task 17.
 ```
@@ -206,11 +196,11 @@ Full README in Task 17.
 - [ ] **Step 6: Run dart pub get**
 
 ```bash
-cd apps/common-dart/action_permissions
+cd apps/common-dart/event_sourcing
 dart pub get
 ```
 
-Expected: `Got dependencies!` (or `Changed N dependencies!`). If `audited_actions` resolution fails, the prerequisite library work is incomplete — stop.
+Expected: `Got dependencies!` (or `Changed N dependencies!`). This is the event_sourcing package itself — pub get should always succeed.
 
 - [ ] **Step 7: Run dart analyze**
 
@@ -223,7 +213,7 @@ Expected: `No issues found!`.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add apps/common-dart/action_permissions/
+git add apps/common-dart/event_sourcing/
 git commit -m "[CUR-1192] action_permissions: package skeleton + deps"
 ```
 
@@ -242,8 +232,8 @@ git commit -m "[CUR-1192] action_permissions: package skeleton + deps"
 ```dart
 // test/permission_granted_payload_test.dart
 // Verifies: REQ-d00174-A (event payload shape for permission_granted)
-import 'package:audited_actions/audited_actions.dart' show ScopeClass;
-import 'package:action_permissions/src/permission_granted_payload.dart';
+import 'package:event_sourcing/event_sourcing.dart' show ScopeClass;
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -299,7 +289,7 @@ Expected: FAIL — undefined `PermissionGrantedPayload`.
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00174-A (event payload shape for permission_granted).
 
-import 'package:audited_actions/audited_actions.dart' show ScopeClass;
+import 'package:event_sourcing/event_sourcing.dart' show ScopeClass;
 import 'package:meta/meta.dart';
 
 @immutable
@@ -372,7 +362,7 @@ git commit -m "[CUR-1192] action_permissions: PermissionGrantedPayload"
 ```dart
 // test/permission_revoked_payload_test.dart
 // Verifies: REQ-d00174-B (event payload shape for permission_revoked)
-import 'package:action_permissions/src/permission_revoked_payload.dart';
+import 'package:event_sourcing/src/permissions/permission_revoked_payload.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -486,7 +476,7 @@ git commit -m "[CUR-1192] action_permissions: PermissionRevokedPayload"
 //   - MaterializedViewRoleMatrixReader (server-side over StorageBackend)
 //   - SnapshotRoleMatrixReader (client-side over PermissionSnapshot)
 
-import 'package:audited_actions/audited_actions.dart' show Permission;
+import 'package:event_sourcing/event_sourcing.dart' show Permission;
 
 abstract class RoleMatrixReader {
   Future<bool> isGranted(String role, String permissionName);
@@ -520,8 +510,8 @@ git commit -m "[CUR-1192] action_permissions: RoleMatrixReader interface"
 ```dart
 // test/in_memory_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (RoleMatrixReader in-memory impl).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/in_memory_role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -575,8 +565,8 @@ Expected: FAIL — undefined.
 //   REQ-d00176-C (RoleMatrixReader in-memory impl). Used as test fixture and
 //   as backing for FailSafeAuthorizationPolicy (with empty map).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class InMemoryRoleMatrixReader implements RoleMatrixReader {
   const InMemoryRoleMatrixReader(this._grants);
@@ -630,9 +620,9 @@ git commit -m "[CUR-1192] action_permissions: InMemoryRoleMatrixReader"
 // RolePermissionGrantsMaterializer registered. Shared by every test in
 // Phases 2-9 that needs a real EventStore + StorageBackend.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:sembast/sembast_memory.dart';
-import 'package:action_permissions/src/role_permission_grants_materializer.dart';
+import 'package:event_sourcing/src/permissions/role_permission_grants_materializer.dart';
 
 Future<EventStore> buildInMemoryEventStore() async {
   final db = await databaseFactoryMemory.openDatabase('test_db');
@@ -651,10 +641,10 @@ Future<EventStore> buildInMemoryEventStore() async {
 ```dart
 // test/materialized_view_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (server-side RoleMatrixReader over StorageBackend).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/materialized_view_role_matrix_reader.dart';
-import 'package:action_permissions/src/permission_granted_payload.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/materialized_view_role_matrix_reader.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:test/test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';
@@ -763,9 +753,9 @@ dart test test/in_memory_role_matrix_reader_test.dart
 //   REQ-d00176-C (server-side RoleMatrixReader). Reads through
 //   StorageBackend's view methods over the role_permission_grants view.
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/role_matrix_reader.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class MaterializedViewRoleMatrixReader implements RoleMatrixReader {
   const MaterializedViewRoleMatrixReader(this.backend);
@@ -826,9 +816,9 @@ git commit -m "[CUR-1192] action_permissions: MaterializedViewRoleMatrixReader (
 // test/snapshot_role_matrix_reader_test.dart
 // Verifies: REQ-d00176-C (client-side RoleMatrixReader), REQ-d00177-C
 // (snapshot is principal-scoped — answers false for any other role).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_snapshot.dart';
-import 'package:action_permissions/src/snapshot_role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
+import 'package:event_sourcing/src/permissions/snapshot_role_matrix_reader.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -871,9 +861,9 @@ void main() {
 //   REQ-d00176-C (client-side RoleMatrixReader),
 //   REQ-d00177-C (principal-scoped — only answers for snapshot.role).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_snapshot.dart';
-import 'package:action_permissions/src/role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
+import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class SnapshotRoleMatrixReader implements RoleMatrixReader {
   const SnapshotRoleMatrixReader(this._snapshot);
@@ -917,9 +907,9 @@ git commit -m "[CUR-1192] action_permissions: SnapshotRoleMatrixReader (test pen
 // test/role_permission_grants_materializer_test.dart
 // Verifies: REQ-d00174-C+D (materializer projects events into view in
 // transaction; permission_revoked deletes view row).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_granted_payload.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:test/test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';
@@ -999,9 +989,9 @@ void main() {
       const m = RolePermissionGrantsMaterializer();
       // appliesTo true for our aggregate type
       // (assert via the lib's StoredEvent factory — placeholder per
-      // event_sourcing_datastore's actual factory signature).
+      // event_sourcing's actual factory signature).
       // Note: simulate StoredEvent construction; concrete shape depends on
-      // event_sourcing_datastore's StoredEvent constructor — adjust if needed.
+      // event_sourcing's StoredEvent constructor — adjust if needed.
     });
   });
 }
@@ -1024,8 +1014,8 @@ Expected: FAIL — undefined `RolePermissionGrantsMaterializer`.
 //   REQ-d00174-D (permission_revoked -> delete view row),
 //   REQ-d00174-E (appliesTo filters by aggregateType).
 
-import 'package:action_permissions/src/permission_granted_payload.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class RolePermissionGrantsMaterializer extends Materializer {
   const RolePermissionGrantsMaterializer();
@@ -1108,9 +1098,9 @@ git commit -m "[CUR-1192] action_permissions: RolePermissionGrantsMaterializer +
 ```dart
 // test/table_backed_authorization_policy_test.dart
 // Verifies: REQ-d00176-A+B (isPermitted, permissionsFor algorithms).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/in_memory_role_matrix_reader.dart';
-import 'package:action_permissions/src/table_backed_authorization_policy.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/in_memory_role_matrix_reader.dart';
+import 'package:event_sourcing/src/permissions/table_backed_authorization_policy.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1193,8 +1183,8 @@ Expected: FAIL — undefined.
 //   lookup),
 //   REQ-d00176-B (permissionsFor filters by session preconditions).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/role_matrix_reader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/role_matrix_reader.dart';
 
 class TableBackedAuthorizationPolicy implements AuthorizationPolicy {
   const TableBackedAuthorizationPolicy(this._reader);
@@ -1266,7 +1256,7 @@ git commit -m "[CUR-1192] action_permissions: TableBackedAuthorizationPolicy"
 ```dart
 // test/yaml_seed_loader_test.dart
 // Verifies: REQ-d00175-A (YAML schema parsing).
-import 'package:action_permissions/src/yaml_seed_loader.dart';
+import 'package:event_sourcing/src/permissions/yaml_seed_loader.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1340,7 +1330,7 @@ class PermissionSeed {
 
 import 'dart:io';
 
-import 'package:action_permissions/src/permission_seed.dart';
+import 'package:event_sourcing/src/permissions/permission_seed.dart';
 import 'package:yaml/yaml.dart';
 
 class YamlSeedLoader {
@@ -1401,9 +1391,9 @@ git commit -m "[CUR-1192] action_permissions: PermissionSeed + YamlSeedLoader"
 ```dart
 // test/seed_validator_test.dart
 // Verifies: REQ-d00175-B+C+D+E (validator rules).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_seed.dart';
-import 'package:action_permissions/src/seed_validator.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_seed.dart';
+import 'package:event_sourcing/src/permissions/seed_validator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1498,8 +1488,8 @@ Expected: FAIL — undefined.
 //   REQ-d00175-D (role missing from grants -> invalid),
 //   REQ-d00175-E (role/permission name containing ':' -> invalid).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_seed.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_seed.dart';
 import 'package:meta/meta.dart';
 
 @immutable
@@ -1599,8 +1589,8 @@ git commit -m "[CUR-1192] action_permissions: SeedValidator"
 ```dart
 // test/permission_snapshot_test.dart
 // Verifies: REQ-d00177-A (PermissionSnapshot value type and JSON).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_snapshot.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_snapshot.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1641,7 +1631,7 @@ Expected: FAIL — undefined.
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00177-A (snapshot value type and serialization).
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:meta/meta.dart';
 
 @immutable
@@ -1714,11 +1704,11 @@ git commit -m "[CUR-1192] action_permissions: PermissionSnapshot + SnapshotRoleM
 // test/event_seed_applier_test.dart
 // Verifies: REQ-d00175-F (applier diff logic), REQ-d00175-G (idempotent
 // across restarts), REQ-d00175-H (drift reported, not auto-revoked).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/event_seed_applier.dart';
-import 'package:action_permissions/src/permission_granted_payload.dart';
-import 'package:action_permissions/src/permission_seed.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/event_seed_applier.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
+import 'package:event_sourcing/src/permissions/permission_seed.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:test/test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';
@@ -1826,10 +1816,10 @@ Expected: FAIL — undefined.
 //   REQ-d00175-G (idempotent across restarts),
 //   REQ-d00175-H (drift reported, not auto-revoked).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/permission_granted_payload.dart';
-import 'package:action_permissions/src/permission_seed.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/permission_granted_payload.dart';
+import 'package:event_sourcing/src/permissions/permission_seed.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:meta/meta.dart';
 
 @immutable
@@ -1944,8 +1934,8 @@ git commit -m "[CUR-1192] action_permissions: EventSeedApplier"
 ```dart
 // test/fail_safe_authorization_policy_test.dart
 // Verifies: REQ-d00178-A (fail-safe denies all).
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/fail_safe_authorization_policy.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/fail_safe_authorization_policy.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1985,7 +1975,7 @@ Expected: FAIL — undefined.
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00178-A (every query denies with bootstrapFailure reason).
 
-import 'package:audited_actions/audited_actions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 class FailSafeAuthorizationPolicy implements AuthorizationPolicy {
   const FailSafeAuthorizationPolicy(this.bootstrapErrors);
@@ -2010,8 +2000,8 @@ class FailSafeAuthorizationPolicy implements AuthorizationPolicy {
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00178-B (sealed PolicyReady | PolicyFailSafe with isReady flag).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/fail_safe_authorization_policy.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/fail_safe_authorization_policy.dart';
 import 'package:meta/meta.dart';
 
 @immutable
@@ -2076,10 +2066,10 @@ git commit -m "[CUR-1192] action_permissions: FailSafe policy + bootstrap sealed
 // test/bootstrap_action_permissions_test.dart
 // Verifies: REQ-d00178-B (bootstrap sequence). End-to-end: well-formed YAML
 // + valid declared perms -> PolicyReady; mismatched yaml -> PolicyFailSafe.
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/authorization_policy_bootstrap.dart';
-import 'package:action_permissions/src/bootstrap_action_permissions.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/authorization_policy_bootstrap.dart';
+import 'package:event_sourcing/src/permissions/bootstrap_action_permissions.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:test/test.dart';
 
 import 'test_support/sembast_event_store_harness.dart';
@@ -2187,14 +2177,14 @@ Expected: FAIL — undefined.
 //   REQ-d00178-B (top-level bootstrap sequence: load -> validate -> apply
 //   -> construct policy).
 
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/src/authorization_policy_bootstrap.dart';
-import 'package:action_permissions/src/event_seed_applier.dart';
-import 'package:action_permissions/src/materialized_view_role_matrix_reader.dart';
-import 'package:action_permissions/src/seed_validator.dart';
-import 'package:action_permissions/src/table_backed_authorization_policy.dart';
-import 'package:action_permissions/src/yaml_seed_loader.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/src/permissions/authorization_policy_bootstrap.dart';
+import 'package:event_sourcing/src/permissions/event_seed_applier.dart';
+import 'package:event_sourcing/src/permissions/materialized_view_role_matrix_reader.dart';
+import 'package:event_sourcing/src/permissions/seed_validator.dart';
+import 'package:event_sourcing/src/permissions/table_backed_authorization_policy.dart';
+import 'package:event_sourcing/src/permissions/yaml_seed_loader.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// Bootstraps the role-permission matrix from a YAML seed.
 ///
@@ -2206,7 +2196,7 @@ Future<AuthorizationPolicyBootstrap> bootstrapActionPermissions({
   String? yamlPath,
   String? yamlSource,
   Initiator seedInitiator =
-      const Initiator.automation(service: 'action_permissions_seed'),
+      const Initiator.automation(service: 'event_sourcing_permissions_seed'),
 }) async {
   if ((yamlPath == null) == (yamlSource == null)) {
     throw ArgumentError('exactly one of yamlPath or yamlSource must be provided');
@@ -2258,19 +2248,20 @@ git commit -m "[CUR-1192] action_permissions: bootstrapActionPermissions top-lev
 
 ## Phase 8 — Public exports + README
 
-### Task 16: lib/action_permissions.dart public exports
+### Task 16: lib/event_sourcing.dart — add permissions public exports
 
 **Files:**
-- Modify: `lib/action_permissions.dart`
+- Modify: `lib/event_sourcing.dart`
 
 - [ ] **Step 1: Replace placeholder with full export list**
 
 ```dart
-// lib/action_permissions.dart
+// lib/event_sourcing.dart
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00172..REQ-d00178 (full library API surface).
+//   REQ-d00172..REQ-d00178 (permissions module API surface).
+// Add these exports alongside the existing actions module exports:
 
-library action_permissions;
+library event_sourcing;
 
 export 'src/authorization_policy_bootstrap.dart';
 export 'src/bootstrap_action_permissions.dart';
@@ -2309,7 +2300,7 @@ Expected: all green.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add lib/action_permissions.dart
+git add lib/event_sourcing.dart
 git commit -m "[CUR-1192] action_permissions: public exports"
 ```
 
@@ -2321,9 +2312,9 @@ git commit -m "[CUR-1192] action_permissions: public exports"
 - [ ] **Step 1: Write README**
 
 ````markdown
-# action_permissions
+# event_sourcing — permissions module
 
-Role-permission matrix for `audited_actions`, persisted as a materialized view in `event_sourcing_datastore`. Sibling library to `audited_actions`; depends on it for `Permission`, `ScopeClass`, `Principal`, `AuthorizationPolicy`, `AuthorizationDecision`.
+Role-permission matrix module within the `event_sourcing` package, persisted as a materialized view in the event store. Part of the same package as the actions module; all types (`Permission`, `ScopeClass`, `Principal`, `AuthorizationPolicy`, `AuthorizationDecision`) are shared within `event_sourcing`.
 
 ## What this library does
 
@@ -2336,9 +2327,9 @@ Role-permission matrix for `audited_actions`, persisted as a materialized view i
 ## Quick start (server)
 
 ```dart
-import 'package:audited_actions/audited_actions.dart';
-import 'package:action_permissions/action_permissions.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 Future<void> main() async {
   // 1. Construct EventStore with the materializer in its list.
@@ -2362,11 +2353,11 @@ Future<void> main() async {
 
   if (!boot.isReady) {
     // Wire boot.policy into a readiness probe — bind it but mark unhealthy.
-    print('action_permissions failed to bootstrap: ${boot.errors}');
+    print('event_sourcing permissions failed to bootstrap: ${boot.errors}');
   }
 
-  // 4. Hand the policy to audited_actions.
-  final dispatcher = bootstrapAuditedActions(
+  // 4. Hand the policy to the actions dispatcher.
+  final dispatcher = bootstrapAuditedActions(  // from the actions module
     events: eventStore,
     authorization: boot.policy,
     idempotency: idempotencyStore,
@@ -2419,7 +2410,7 @@ Grants present in the materialized view but absent from the YAML are reported in
 ## Tests
 
 ```bash
-cd apps/common-dart/action_permissions
+cd apps/common-dart/event_sourcing
 dart pub get
 dart test
 dart analyze
@@ -2430,9 +2421,8 @@ In-memory Sembast harness (`test/test_support/sembast_event_store_harness.dart`)
 ## Related
 
 - Design doc: `docs/superpowers/specs/2026-04-23-action-permissions-design.md`
-- REQ assertions: `spec/dev-action-permissions.md` (REQ-d00172..REQ-d00178)
-- Sibling library: `apps/common-dart/audited_actions/`
-- Storage substrate: `apps/common-dart/event_sourcing_datastore/`
+- REQ assertions: `spec/dev-event-sourcing.md` (REQ-d00172..REQ-d00178)
+- All in the same package: `apps/common-dart/event_sourcing/` (actions module at `lib/src/actions/`, permissions module at `lib/src/permissions/`)
 ````
 
 - [ ] **Step 2: Lint markdown.** (pre-commit catches this.)
@@ -2453,7 +2443,7 @@ git commit -m "[CUR-1192] action_permissions: full README"
 - [ ] **Step 1: Run full library suite**
 
 ```bash
-cd apps/common-dart/action_permissions
+cd apps/common-dart/event_sourcing
 dart pub get
 dart analyze
 dart test
@@ -2482,4 +2472,4 @@ Expected: all green; `dart test` should report 30+ passing tests across 13 test 
 - Phase 8: exports + README (2 tasks)
 - Phase 9: final pass (1 task)
 
-Each task: 5 to 8 steps, TDD-disciplined, 30 minutes to 2 hours of work. Estimated total: 25-40 hours assuming the audited_actions prerequisites are clean. The library has no UI surface and no integration tests against external processes — it's library code with unit tests against an in-memory Sembast event store.
+Each task: 5 to 8 steps, TDD-disciplined, 30 minutes to 2 hours of work. Estimated total: 25-40 hours assuming the actions module prerequisites are clean. The module has no UI surface and no integration tests against external processes — it's module code with unit tests against an in-memory Sembast event store.
