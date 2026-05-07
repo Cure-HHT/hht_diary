@@ -13,6 +13,38 @@
 //   server-side once portal_users.totp_enrolled_at column is available;
 //   see TODO(REQ-d00166-B) below)
 // - All other roles: uses email OTP on every login (no TOTP enrollment)
+//
+// REVIEW NOTES (decisions consciously accepted; do not re-flag without
+// evidence the underlying assumption changed). Pointers in-line at the
+// relevant code sites reference these by letter.
+//
+// (a) Concurrent-activate race with different passwords. Two POSTs with
+//     the same code can both pass the SELECT, both call IdentityAdmin
+//     (last write wins on the IdP password), one DB UPDATE wins. Not
+//     exploitable under the current MFA model: non-Dev-Admin sign-in
+//     requires an email OTP delivered to the user's registered email,
+//     so an attacker who wins the race cannot also receive the OTP.
+//     An attacker with email access does not need the race (they can
+//     request a fresh code). REVISIT when Dev-Admin TOTP enrollment-at-
+//     activation lands — a racing attacker could enroll their own TOTP
+//     secret and sign-in would no longer require email OTP.
+//
+// (b) Activation code and email appear in print()s (e.g. "[ACTIVATION]
+//     Validating code: <code>", "[ACTIVATION] Activated <email>..."). In
+//     deployed environments Cloud Logging IAM restricts read access to
+//     project members; the activation code is a single-use token whoever
+//     holds the email already knows. Local-stack logs are stdout for
+//     the developer running them. NOT acceptable: bulk dumps of every
+//     pending user's row — the debug-table-dump that did this was
+//     removed in 6050ff5a.
+//
+// (c) The IdentityAdmin 4xx mapping uses `e.message.contains('WEAK_PASSWORD')`
+//     to distinguish password_too_weak from idp_request_invalid. Brittle
+//     against Identity Toolkit error-string reformatting. WEAK_PASSWORD
+//     has been the stable wire-level marker for years; the typed-
+//     subexception refactor is worth it when IdentityAdmin grows more
+//     sub-conditions, but until then the message-match has the same
+//     blast radius as a typed enum would (one site, one mapping).
 
 import 'dart:convert';
 import 'dart:io';
@@ -35,6 +67,7 @@ Future<Response> validateActivationCodeHandler(
   Request request,
   String code,
 ) async {
+  // See review note (b) at top of file: $code in logs is acceptable.
   print('[ACTIVATION] Validating code: $code');
 
   final db = Database.instance;
@@ -220,6 +253,9 @@ Future<Response> activateUserHandler(Request request) async {
     // already maps password_too_weak). 5xx / no statusCode = upstream
     // availability; keep 502 idp_unavailable so the caller knows a
     // retry might succeed.
+    //
+    // See review note (c) at top of file: the WEAK_PASSWORD message
+    // match is brittle but consciously accepted.
     final sc = e.statusCode;
     if (sc != null && sc >= 400 && sc < 500) {
       final code = e.message.contains('WEAK_PASSWORD')
@@ -246,6 +282,11 @@ Future<Response> activateUserHandler(Request request) async {
   // REQ-d00166-E: activation_code is preserved on success so retries with
   // the same code re-enter the SELECT->status=='active' short-circuit
   // above and return 200 already_active=true.
+  //
+  // See review note (a) at top of file: the residual concurrent-POST
+  // race with *different* passwords is consciously accepted under the
+  // current email-OTP MFA model. Revisit when Dev-Admin TOTP-at-activation
+  // lands.
   final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
