@@ -103,6 +103,7 @@ export 'package:provenance/provenance.dart' show BatchContext, ProvenanceEntry;
 // Actions module — trusted-boundary command/intent layer (formerly the
 // audited_actions package; merged into event_sourcing via Phase C of the
 // consolidation, CUR-1192).
+export 'src/actions/action_context.dart' show ActionContext;
 export 'src/actions/dispatch_result.dart'
     show
         DispatchAuthorizationDenied,
@@ -120,7 +121,10 @@ export 'src/actions/idempotency_store.dart'
     show IdempotencyStore, InMemoryIdempotencyStore;
 export 'src/actions/permission.dart' show Permission;
 export 'src/actions/permission_discovery.dart' show emitPermissionsMigrationSql;
+export 'src/actions/principal.dart'
+    show Principal, UserPrincipal, AnonymousPrincipal;
 export 'src/actions/role_matrix_reader.dart' show RoleMatrixReader;
+export 'src/actions/scope_class.dart' show ScopeClass;
 
 // bootstrapAppendOnlyDatastore — single entry point for app main() to wire
 // the storage backend, EntryTypeRegistry, destinations, security context

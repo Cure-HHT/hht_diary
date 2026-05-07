@@ -1,5 +1,6 @@
 import 'package:event_sourcing/src/actions/dispatch_result.dart';
 import 'package:event_sourcing/src/actions/permission.dart';
+import 'package:event_sourcing/src/actions/scope_class.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -34,7 +35,7 @@ void main() {
     });
 
     test('REQ-d00168-G: authorizationDenied carries the failed permission', () {
-      const p = Permission('user.invite');
+      const p = Permission('user.invite', scope: ScopeClass.global);
       const r = DispatchResult<int>.authorizationDenied(p);
       expect(r, isA<DispatchAuthorizationDenied<int>>());
       r as DispatchAuthorizationDenied<int>;
