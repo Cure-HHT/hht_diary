@@ -524,13 +524,17 @@ void main() {
     });
 
     test('can generate code by email', () async {
+      // Target a non-active user (pending+expired): regenerate-code is
+      // refused for active users (409 already_active) by design — see
+      // the dedicated 409 test above. The intent here is the
+      // by-email-vs-by-user_id lookup branch.
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'email': testAlreadyActiveEmail},
+        {'email': testExpiredUserEmail},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -538,19 +542,21 @@ void main() {
       expect(response.statusCode, equals(200));
       final json = await getResponseJson(response);
       expect(json['success'], isTrue);
-      expect(json['user']['email'], equals(testAlreadyActiveEmail));
+      expect(json['user']['email'], equals(testExpiredUserEmail));
     });
 
     test('can generate code by email regardless of case', () async {
       // Pins the case-insensitive lookup at portal_activation.dart so a
       // regression to case-sensitive `WHERE email = @email` would fail here.
+      // Target a non-active user (pending+expired) for the same reason
+      // as the previous test.
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'email': testAlreadyActiveEmail.toUpperCase()},
+        {'email': testExpiredUserEmail.toUpperCase()},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -561,7 +567,7 @@ void main() {
       // DB returns the row's stored case; we just want the match to work.
       expect(
         (json['user']['email'] as String).toLowerCase(),
-        equals(testAlreadyActiveEmail.toLowerCase()),
+        equals(testExpiredUserEmail.toLowerCase()),
       );
     });
   });
