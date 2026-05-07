@@ -38,24 +38,7 @@ Future<Response> validateActivationCodeHandler(
   print('[ACTIVATION] Validating code: $code');
 
   final db = Database.instance;
-
-  // Debug: Check what codes exist in the database
   const serviceContext = UserContext.service;
-  final debugResult = await db.executeWithContext('''
-    SELECT id, email, activation_code, status
-    FROM portal_users
-    WHERE activation_code IS NOT NULL
-    ''', context: serviceContext);
-  print(
-    '[ACTIVATION] DEBUG: Found ${debugResult.length} users with activation codes:',
-  );
-  for (final row in debugResult) {
-    print(
-      '[ACTIVATION] DEBUG:   id=${row[0]}, email=${row[1]}, code=${row[2]}, status=${row[3]}',
-    );
-  }
-
-  print('[ACTIVATION] Querying with service context for code: $code');
   final result = await db.executeWithContext(
     '''
     SELECT id, email, name, status, activation_code_expires_at
@@ -381,19 +364,36 @@ Future<Response> generateActivationCodeHandler(Request request) async {
   final targetUserId = targetResult.first[0] as String;
   final targetEmail = targetResult.first[1] as String;
   final targetName = targetResult.first[2] as String;
+  final targetStatus = targetResult.first[3] as String;
+
+  // Reject regenerate-code for active users. The UPDATE below resets
+  // status to 'pending' (intentional for the revoked-user re-invite
+  // path), but applying it to an active user silently locks them out
+  // — requirePortalAuth gates on status='active'. Refuse here before
+  // any destructive write lands.
+  if (targetStatus == 'active') {
+    return _jsonResponse({
+      'error': 'Cannot regenerate activation code for an active user',
+      'code': 'already_active',
+    }, 409);
+  }
 
   // Generate new activation code
   final activationCode = _generateCode();
   final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
-  await db.executeWithContext(
+  // WHERE clause is belt-and-suspenders: the explicit status check
+  // above is the gate; this guard prevents a race where the row
+  // transitions pending->active between SELECT and UPDATE.
+  final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
     SET activation_code = @code,
         activation_code_expires_at = @expiry,
         status = 'pending',
         updated_at = now()
-    WHERE id = @userId::uuid
+    WHERE id = @userId::uuid AND status != 'active'
+    RETURNING id
     ''',
     parameters: {
       'userId': targetUserId,
@@ -402,6 +402,13 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     },
     context: serviceContext,
   );
+  if (updated.isEmpty) {
+    // Row went active under us between SELECT and UPDATE.
+    return _jsonResponse({
+      'error': 'User became active during code regeneration',
+      'code': 'already_active',
+    }, 409);
+  }
 
   print('[ACTIVATION] Generated code for: $targetEmail');
 

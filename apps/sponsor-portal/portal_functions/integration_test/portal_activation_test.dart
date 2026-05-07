@@ -460,13 +460,16 @@ void main() {
     });
 
     test('Developer Admin can generate activation code', () async {
+      // Use the expired-code pending fixture: pending user whose code
+      // has expired is a real re-issue case. Active users are rejected
+      // by the active-user guard (covered by the 409 test below).
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'user_id': testAlreadyActiveUserId},
+        {'user_id': testExpiredUserId},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -480,6 +483,27 @@ void main() {
         matches(RegExp(r'^[A-Z0-9]{5}-[A-Z0-9]{5}$')),
       );
       expect(json['expires_at'], isNotNull);
+    });
+
+    test('returns 409 already_active when target is already active', () async {
+      // Regenerating an activation code for an active user would
+      // silently flip status back to 'pending' and lock the user
+      // out (requirePortalAuth gates on status='active'). The
+      // handler must refuse before the destructive UPDATE.
+      final token = createMockEmulatorToken(
+        testDevAdminFirebaseUid,
+        testDevAdminEmail,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/admin/generate-code',
+        {'user_id': testAlreadyActiveUserId},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await generateActivationCodeHandler(request);
+
+      expect(response.statusCode, equals(409));
+      final json = await getResponseJson(response);
+      expect(json['code'], equals('already_active'));
     });
 
     test('returns 404 for non-existent user', () async {
