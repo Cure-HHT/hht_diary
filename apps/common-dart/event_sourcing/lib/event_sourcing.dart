@@ -109,6 +109,14 @@ export 'src/actions/action_registry.dart' show ActionRegistry;
 export 'src/actions/authorization_decision.dart'
     show AuthorizationDecision, Allow, Deny, DenyReason;
 export 'src/actions/authorization_policy.dart' show AuthorizationPolicy;
+export 'src/actions/denial_events.dart'
+    show
+        denialUnknownAction,
+        denialParseDenied,
+        denialValidationDenied,
+        denialAuthorizationDenied,
+        denialExecutionFailed,
+        sanitizeErrorMessage;
 export 'src/actions/deny_all_authorization_policy.dart'
     show DenyAllAuthorizationPolicy;
 export 'src/actions/dispatch_result.dart'
