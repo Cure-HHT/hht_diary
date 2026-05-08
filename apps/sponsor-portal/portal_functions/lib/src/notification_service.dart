@@ -365,24 +365,42 @@ class NotificationService {
       // Build the message payload
       final message = <String, dynamic>{'token': fcmToken, 'data': data};
 
-      // Add optional notification (for system tray display)
-      if (notificationTitle != null) {
+      // CUR-1311: APNS payload is split by user-visibility intent.
+      // Apple treats "alert" and "silent data" as mutually exclusive:
+      //   * priority 10 + alert (title/body) — shown on lock screen, no
+      //     content-available. Setting content-available=1 alongside
+      //     priority 10 has unspecified behavior and can cause iOS to
+      //     throttle / drop the payload.
+      //   * priority 5 + content-available=1 — silent background push,
+      //     wakes the app to process the data payload (e.g.
+      //     questionnaire_deleted) without showing UI.
+      // The split is driven by [notificationTitle] presence: callers
+      // that want an alert pass a title; callers that want a silent
+      // refresh omit it.
+      final isUserVisible = notificationTitle != null;
+
+      if (isUserVisible) {
         message['notification'] = {
           'title': notificationTitle,
           'body': notificationBody ?? '',
         };
       }
 
-      // Android-specific: high priority for immediate delivery
+      // Android: 'high' for both — Android does not have the
+      // alert/silent distinction at the priority level; data messages
+      // wake the app regardless.
       message['android'] = {'priority': 'high'};
 
-      // iOS-specific: content-available for background processing
-      message['apns'] = {
-        'headers': {'apns-priority': '10'},
-        'payload': {
-          'aps': {'content-available': 1},
-        },
-      };
+      message['apns'] = isUserVisible
+          ? {
+              'headers': {'apns-priority': '10'},
+            }
+          : {
+              'headers': {'apns-priority': '5'},
+              'payload': {
+                'aps': {'content-available': 1},
+              },
+            };
 
       final response = await _httpClient!
           .post(
