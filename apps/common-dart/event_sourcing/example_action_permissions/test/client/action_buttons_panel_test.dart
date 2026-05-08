@@ -18,7 +18,7 @@ DemoHttpClient _fakeClient(http.Response Function(http.Request req) handler) {
 
 void main() {
   group('ActionButtonsPanel', () {
-    testWidgets('all 6 buttons disabled when cache empty and hacker off', (
+    testWidgets('all 7 buttons disabled when cache empty and hacker off', (
       tester,
     ) async {
       final cache = PermissionSnapshotCache();
@@ -44,7 +44,7 @@ void main() {
       }
     });
 
-    testWidgets('GreenTeam cache enables 4 of 6 buttons', (tester) async {
+    testWidgets('GreenTeam cache enables 4 of 7 buttons', (tester) async {
       final cache = PermissionSnapshotCache()
         ..update(
           userId: 'green-user-1',
@@ -77,6 +77,10 @@ void main() {
           .where((b) => b.onPressed != null)
           .length;
       expect(enabledCount, 4);
+      expect(
+        tester.widgetList<ElevatedButton>(find.byType(ElevatedButton)).length,
+        7,
+      );
     });
 
     testWidgets('hacker mode enables every button', (tester) async {
@@ -151,6 +155,80 @@ void main() {
       final body = jsonDecode(lastRequest.body) as Map<String, Object?>;
       expect(body['actionName'], 'PressGreenButtonAction');
       expect(body['userId'], 'green-user-1');
+    });
+
+    testWidgets(
+      'Provision User button is present and gated by users.provision',
+      (tester) async {
+        // Admin cache holds users.provision -> button enabled.
+        final adminCache = PermissionSnapshotCache()
+          ..update(
+            userId: 'admin-user',
+            principalRole: 'Admin',
+            principalUserId: 'admin-user',
+            principalActiveSite: null,
+            permissions: <String>{'users.provision'},
+          );
+        final mode = HackerMode();
+        final client = _fakeClient((req) => http.Response('{}', 200));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ActionButtonsPanel(
+                cache: adminCache,
+                hackerMode: mode,
+                http: client,
+                onDispatched: (_) {},
+              ),
+            ),
+          ),
+        );
+        expect(find.text('Provision User'), findsOneWidget);
+        final btn = tester.widget<ElevatedButton>(
+          find.ancestor(
+            of: find.text('Provision User'),
+            matching: find.byType(ElevatedButton),
+          ),
+        );
+        expect(btn.onPressed, isNotNull);
+      },
+    );
+
+    testWidgets('GreenTeam cache disables Provision User', (tester) async {
+      final cache = PermissionSnapshotCache()
+        ..update(
+          userId: 'green-user-1',
+          principalRole: 'GreenTeam',
+          principalUserId: 'green-user-1',
+          principalActiveSite: 'green-workspace',
+          permissions: <String>{
+            'help.ask',
+            'notes.write.green',
+            'buttons.press.green',
+            'buttons.press.red',
+          },
+        );
+      final mode = HackerMode();
+      final client = _fakeClient((req) => http.Response('{}', 200));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActionButtonsPanel(
+              cache: cache,
+              hackerMode: mode,
+              http: client,
+              onDispatched: (_) {},
+            ),
+          ),
+        ),
+      );
+      final btn = tester.widget<ElevatedButton>(
+        find.ancestor(
+          of: find.text('Provision User'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+      expect(btn.onPressed, isNull);
     });
   });
 }

@@ -1,6 +1,6 @@
 // lib/client/action_buttons_panel.dart
 //
-// Six buttons mapping 1:1 to the demo's happy-path actions. Each button
+// Seven buttons mapping 1:1 to the demo's happy-path actions. Each button
 // is enabled iff the snapshot grants the action's permission OR hacker
 // mode is on. Hacker-only "malformed-request" affordances land in Task 27.
 
@@ -65,6 +65,7 @@ class ActionButtonsPanel extends StatelessWidget {
               'buttons.press.red',
               _pressRedAlarm,
             ),
+            _btn(context, 'Provision User', 'users.provision', _provisionUser),
           ],
         );
       },
@@ -155,6 +156,26 @@ class ActionButtonsPanel extends StatelessWidget {
     );
   }
 
+  Future<void> _provisionUser(BuildContext context) async {
+    final input = await showDialog<_ProvisionInput>(
+      context: context,
+      builder: (ctx) => const _ProvisionUserDialog(),
+    );
+    if (input == null) return;
+    await _send(
+      DispatchRequest(
+        actionName: 'ProvisionUserAction',
+        rawInput: <String, Object?>{
+          'userId': input.userId,
+          'role': input.role,
+          'activeSite': input.activeSite,
+        },
+        idempotencyKey: const Uuid().v4(),
+        userId: cache.userId,
+      ),
+    );
+  }
+
   Future<void> _send(DispatchRequest req) async {
     try {
       final resp = await http.dispatch(req);
@@ -200,5 +221,94 @@ class ActionButtonsPanel extends StatelessWidget {
     );
     controller.dispose();
     return result;
+  }
+}
+
+class _ProvisionInput {
+  const _ProvisionInput({
+    required this.userId,
+    required this.role,
+    required this.activeSite,
+  });
+  final String userId;
+  final String role;
+  final String? activeSite;
+}
+
+class _ProvisionUserDialog extends StatefulWidget {
+  const _ProvisionUserDialog();
+
+  @override
+  State<_ProvisionUserDialog> createState() => _ProvisionUserDialogState();
+}
+
+class _ProvisionUserDialogState extends State<_ProvisionUserDialog> {
+  final TextEditingController _userIdCtl = TextEditingController();
+  final TextEditingController _siteCtl = TextEditingController();
+  String _role = 'GreenTeam';
+
+  @override
+  void dispose() {
+    _userIdCtl.dispose();
+    _siteCtl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Provision user'),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(
+              controller: _userIdCtl,
+              decoration: const InputDecoration(labelText: 'userId'),
+              autofocus: true,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _role,
+              decoration: const InputDecoration(labelText: 'role'),
+              items: const <DropdownMenuItem<String>>[
+                DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+                DropdownMenuItem(value: 'GreenTeam', child: Text('GreenTeam')),
+                DropdownMenuItem(value: 'BlueTeam', child: Text('BlueTeam')),
+              ],
+              onChanged: (v) => setState(() => _role = v ?? 'GreenTeam'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _siteCtl,
+              decoration: const InputDecoration(
+                labelText: 'activeSite (blank = none)',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop<void>(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final site = _siteCtl.text.trim();
+            Navigator.pop<_ProvisionInput>(
+              context,
+              _ProvisionInput(
+                userId: _userIdCtl.text.trim(),
+                role: _role,
+                activeSite: site.isEmpty ? null : site,
+              ),
+            );
+          },
+          child: const Text('Provision'),
+        ),
+      ],
+    );
   }
 }
