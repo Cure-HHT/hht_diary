@@ -230,5 +230,58 @@ void main() {
       );
       expect(btn.onPressed, isNull);
     });
+
+    testWidgets('hacker mode reveals 3 malformed-dispatch buttons', (
+      tester,
+    ) async {
+      final cache = PermissionSnapshotCache();
+      final mode = HackerMode()..set(true);
+      final client = _fakeClient((req) => http.Response('{}', 200));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActionButtonsPanel(
+              cache: cache,
+              hackerMode: mode,
+              http: client,
+              onDispatched: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Hacker mode: malformed dispatches'), findsOneWidget);
+      expect(find.text('Fire Unknown Action'), findsOneWidget);
+      expect(find.text('Fire Corrupt EditGreenNote'), findsOneWidget);
+      expect(find.text('Fire Empty-Title EditGreenNote'), findsOneWidget);
+      // Total: 7 happy-path + 3 malformed = 10 ElevatedButtons.
+      expect(
+        tester.widgetList<ElevatedButton>(find.byType(ElevatedButton)).length,
+        10,
+      );
+    });
+
+    testWidgets('hacker section hidden when mode off', (tester) async {
+      final cache = PermissionSnapshotCache();
+      final mode = HackerMode();
+      final client = _fakeClient((req) => http.Response('{}', 200));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActionButtonsPanel(
+              cache: cache,
+              hackerMode: mode,
+              http: client,
+              onDispatched: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Hacker mode: malformed dispatches'), findsNothing);
+      expect(find.text('Fire Unknown Action'), findsNothing);
+      expect(
+        tester.widgetList<ElevatedButton>(find.byType(ElevatedButton)).length,
+        7,
+      );
+    });
   });
 }

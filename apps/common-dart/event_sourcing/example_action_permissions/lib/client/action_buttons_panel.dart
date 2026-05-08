@@ -2,7 +2,9 @@
 //
 // Seven buttons mapping 1:1 to the demo's happy-path actions. Each button
 // is enabled iff the snapshot grants the action's permission OR hacker
-// mode is on. Hacker-only "malformed-request" affordances land in Task 27.
+// mode is on. When hacker mode is on, an additional "malformed dispatches"
+// section appears with three buttons that intentionally fire bad requests
+// to exercise the unknown_action / parse_denied / validation_denied paths.
 
 import 'package:action_permissions_demo/client/hacker_mode_toggle.dart';
 import 'package:action_permissions_demo/client/http_client.dart';
@@ -45,30 +47,112 @@ class ActionButtonsPanel extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge(<Listenable>[cache, hackerMode]),
       builder: (context, _) {
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _btn(context, 'Ask for Help', 'help.ask', _requestHelp),
-            _btn(
-              context,
-              'Edit Green Note',
-              'notes.write.green',
-              _editGreenNote,
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                _btn(context, 'Ask for Help', 'help.ask', _requestHelp),
+                _btn(
+                  context,
+                  'Edit Green Note',
+                  'notes.write.green',
+                  _editGreenNote,
+                ),
+                _btn(
+                  context,
+                  'Edit Blue Note',
+                  'notes.write.blue',
+                  _editBlueNote,
+                ),
+                _btn(
+                  context,
+                  'Press Green',
+                  'buttons.press.green',
+                  _pressGreen,
+                ),
+                _btn(context, 'Press Blue', 'buttons.press.blue', _pressBlue),
+                _btn(
+                  context,
+                  'Press Red Alarm',
+                  'buttons.press.red',
+                  _pressRedAlarm,
+                ),
+                _btn(
+                  context,
+                  'Provision User',
+                  'users.provision',
+                  _provisionUser,
+                ),
+              ],
             ),
-            _btn(context, 'Edit Blue Note', 'notes.write.blue', _editBlueNote),
-            _btn(context, 'Press Green', 'buttons.press.green', _pressGreen),
-            _btn(context, 'Press Blue', 'buttons.press.blue', _pressBlue),
-            _btn(
-              context,
-              'Press Red Alarm',
-              'buttons.press.red',
-              _pressRedAlarm,
-            ),
-            _btn(context, 'Provision User', 'users.provision', _provisionUser),
+            if (hackerMode.enabled) ...<Widget>[
+              const SizedBox(height: 12),
+              const Text(
+                'Hacker mode: malformed dispatches',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  ElevatedButton(
+                    onPressed: _fireUnknownAction,
+                    child: const Text('Fire Unknown Action'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _fireCorruptEditGreen,
+                    child: const Text('Fire Corrupt EditGreenNote'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _fireEmptyTitleEditGreen,
+                    child: const Text('Fire Empty-Title EditGreenNote'),
+                  ),
+                ],
+              ),
+            ],
           ],
         );
       },
+    );
+  }
+
+  Future<void> _fireUnknownAction() async {
+    await _send(
+      DispatchRequest(
+        actionName: 'NoSuchAction',
+        rawInput: const <String, Object?>{},
+        userId: cache.userId,
+      ),
+    );
+  }
+
+  Future<void> _fireCorruptEditGreen() async {
+    await _send(
+      DispatchRequest(
+        actionName: 'EditGreenNoteAction',
+        rawInput: const <String, Object?>{'wrong_field': 1},
+        idempotencyKey: const Uuid().v4(),
+        userId: cache.userId,
+      ),
+    );
+  }
+
+  Future<void> _fireEmptyTitleEditGreen() async {
+    await _send(
+      DispatchRequest(
+        actionName: 'EditGreenNoteAction',
+        rawInput: <String, Object?>{
+          'noteId': const Uuid().v4(),
+          'title': '',
+          'body': 'b',
+        },
+        idempotencyKey: const Uuid().v4(),
+        userId: cache.userId,
+      ),
     );
   }
 
