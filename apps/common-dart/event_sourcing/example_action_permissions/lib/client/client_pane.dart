@@ -4,6 +4,7 @@
 // selector, and (in later tasks) the action button panel and request
 // history. For Task 21 it just exercises session/start.
 
+import 'package:action_permissions_demo/client/action_buttons_panel.dart';
 import 'package:action_permissions_demo/client/hacker_mode_toggle.dart';
 import 'package:action_permissions_demo/client/http_client.dart';
 import 'package:action_permissions_demo/client/permission_snapshot_cache.dart';
@@ -26,6 +27,7 @@ class _ClientPaneState extends State<ClientPane> {
   late final bool _ownsHttp;
   final PermissionSnapshotCache _cache = PermissionSnapshotCache();
   final HackerMode _hackerMode = HackerMode();
+  final List<DispatchHistoryEntry> _history = <DispatchHistoryEntry>[];
 
   /// The userIds the demo's user-directory seed knows about. Hard-coded
   /// to match `tool/users.yaml`. The server is the source of truth — if
@@ -63,6 +65,12 @@ class _ClientPaneState extends State<ClientPane> {
     super.dispose();
   }
 
+  void _appendHistory(DispatchHistoryEntry entry) {
+    setState(() {
+      _history.add(entry);
+    });
+  }
+
   Future<void> _refreshSession(String? userId) async {
     try {
       final resp = await _http.sessionStart(userId: userId);
@@ -94,7 +102,7 @@ class _ClientPaneState extends State<ClientPane> {
     return ListenableBuilder(
       listenable: _cache,
       builder: (context, _) {
-        return Padding(
+        return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,6 +134,15 @@ class _ClientPaneState extends State<ClientPane> {
                     padding: const EdgeInsets.only(left: 8, top: 2),
                     child: Text('• $p'),
                   ),
+              const Divider(),
+              const Text('Actions:'),
+              const SizedBox(height: 8),
+              ActionButtonsPanel(
+                cache: _cache,
+                hackerMode: _hackerMode,
+                http: _http,
+                onDispatched: _appendHistory,
+              ),
             ],
           ),
         );
