@@ -8,25 +8,24 @@
 // Activation page - new users activate their accounts with activation codes.
 // After password creation:
 // - The server creates/updates the IdP user, sets emailVerified=true, and
-//   stamps portal_users.firebase_uid. The client then signs in with the
-//   chosen password and lands on /common-dashboard, which resolves the
-//   role-specific dashboard from AuthService.currentUser.activeRole.
+//   stamps portal_users.firebase_uid. CUR-1312: the page then surfaces a
+//   success modal and routes the user to /login. Sign-in (with the
+//   role-appropriate MFA challenge) happens through the standard
+//   /login -> AuthService.signIn() path.
 // - Developer Admin TOTP enrollment-at-activation is deferred
 //   (REQ-d00166-B); tracker test in
 //   integration_test/portal_activation_test.dart, TODO at
 //   portal_activation.dart:202. When portal_users.totp_enrolled_at lands,
-//   this page will redirect Dev Admins to /activate/2fa before signing in.
-// - Non-Dev-Admin users go straight to sign-in; email OTP MFA fires there.
+//   this page will redirect Dev Admins to /activate/2fa before showing the
+//   activation success modal.
 
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 
-import '../services/firebase_emulator_helper.dart';
 import '../widgets/error_message.dart';
 
 /// Page for users to activate their accounts using an activation code
@@ -36,15 +35,7 @@ class ActivationPage extends StatefulWidget {
   /// Optional HTTP client override — injected in tests; defaults to http.Client()
   final http.Client? httpClient;
 
-  /// Optional FirebaseAuth override — injected in tests; defaults to FirebaseAuth.instance
-  final FirebaseAuth? firebaseAuth;
-
-  const ActivationPage({
-    super.key,
-    this.code,
-    this.httpClient,
-    this.firebaseAuth,
-  });
+  const ActivationPage({super.key, this.code, this.httpClient});
 
   @override
   State<ActivationPage> createState() => _ActivationPageState();
@@ -65,8 +56,6 @@ class _ActivationPageState extends State<ActivationPage> {
 
   // Resolved lazily so tests can inject alternatives without Platform dependency.
   late final http.Client _httpClient = widget.httpClient ?? http.Client();
-
-  late final FirebaseAuth _auth = widget.firebaseAuth ?? FirebaseAuth.instance;
 
   String get _apiBaseUrl {
     const envUrl = String.fromEnvironment('PORTAL_API_URL');
@@ -150,8 +139,11 @@ class _ActivationPageState extends State<ActivationPage> {
     }
   }
 
-  // Implements: REQ-d00166-A — POST {code, password} to server; server creates
-  // the IdP user; client signs in with that password on 2xx.
+  // Implements: REQ-d00166-A — POST {code, password} to server; on 2xx the
+  // server has created the IdP user and stamped firebase_uid. The page then
+  // surfaces a success modal and routes the user to /login (CUR-1312); the
+  // user signs in via the standard /login flow, which runs the role-
+  // appropriate MFA challenge (REQ-p00002).
   Future<void> _activateAccount() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -164,17 +156,6 @@ class _ActivationPageState extends State<ActivationPage> {
     final password = _passwordController.text;
 
     try {
-      // Get the actual email from the code-validation endpoint so we can
-      // sign in after the server-side activation succeeds.
-      final email = await _getEmailFromCode(code);
-      if (email == null) {
-        setState(() {
-          _error = 'Failed to retrieve email. Please contact support.';
-          _isActivating = false;
-        });
-        return;
-      }
-
       // CUR-1296: single server-side POST. Server creates/updates the IdP
       // user, sets emailVerified=true, and stamps portal_users.firebase_uid.
       //
@@ -209,17 +190,23 @@ class _ActivationPageState extends State<ActivationPage> {
         return;
       }
 
-      // Sign in with the password the user just typed.
-      // CUR-1280: ensure local-flavor builds route to the emulator.
-      await ensureAuthEmulatorBound();
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-
+      // CUR-1312: do NOT auto-sign-in. The previous implementation called
+      // FirebaseAuth.signInWithEmailAndPassword() directly, bypassing
+      // AuthService.signIn(). That left _sessionUid null when the auth
+      // listener fired, which made the listener treat the just-issued
+      // session as a stale Firebase-restored one and run the fresh-tab
+      // restore branch (auth_service.dart:615-647) — force-refreshing the
+      // brand-new token and signing the user out on the 5s timeout. The
+      // user landed silently on /login with no idea what happened, even
+      // though the server-side activation had succeeded.
+      //
+      // Stop the activate-button spinner before showing the modal so the
+      // page settles for tests / accessibility tools and the button is
+      // visibly idle behind the modal.
+      setState(() => _isActivating = false);
+      await _showActivatedDialog();
       if (!mounted) return;
-      // No `extra` — CommonDashboard resolves the role from
-      // AuthService.currentUser.activeRole. Activated users may be CRA,
-      // Investigator, Study Coordinator, etc.; hard-coding administrator
-      // here would route them to the wrong dashboard.
-      context.go('/common-dashboard');
+      context.go('/login');
     } catch (e) {
       debugPrint('Activation error: $e');
       if (mounted) {
@@ -231,24 +218,34 @@ class _ActivationPageState extends State<ActivationPage> {
     }
   }
 
-  Future<String?> _getEmailFromCode(String code) async {
-    try {
-      // Call validation endpoint to get the email for this activation code
-      final response = await _httpClient.get(
-        Uri.parse('$_apiBaseUrl/api/v1/portal/activate/$code'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        // Backend returns the full email (not masked) since activation code
-        // provides security. Accept {email: '...'} (CUR-1296) and legacy shape.
-        return data['email'] as String?;
-      }
-    } catch (e) {
-      debugPrint('Get email error: $e');
-    }
-    return null;
+  /// Modal shown after successful server-side activation, before the user
+  /// goes to /login. barrierDismissible: false so the user must explicitly
+  /// click through — the success message is the only feedback they get
+  /// before the page changes.
+  Future<void> _showActivatedDialog() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return AlertDialog(
+          icon: Icon(
+            Icons.check_circle,
+            color: theme.colorScheme.primary,
+            size: 48,
+          ),
+          title: const Text('Account activated'),
+          content: const Text('Please sign in to continue.'),
+          actions: [
+            FilledButton(
+              key: const Key('activatedDialogSignInButton'),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Sign in'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// CUR-1296: map server-side error codes to user-facing messages.

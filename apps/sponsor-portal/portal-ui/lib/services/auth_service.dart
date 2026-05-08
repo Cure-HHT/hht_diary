@@ -340,6 +340,17 @@ class AuthService extends ChangeNotifier {
   /// stalling the listener chain on offline networks.
   static const Duration _restoredTokenRefreshTimeout = Duration(seconds: 5);
 
+  /// CUR-1312: a sign-in event whose [User.metadata.lastSignInTime] is
+  /// within this window of `now` is treated as a fresh sign-in (not a
+  /// Firebase IndexedDB restore) and is exempt from the restore-validity
+  /// check below. Firebase issues `lastSignInTime` server-side at the
+  /// moment of sign-in, so a session restored from IndexedDB carries
+  /// whatever timestamp the original sign-in had — anything older than
+  /// this window is, by construction, NOT a fresh sign-in. 30s is
+  /// conservative against client/server clock skew (Firebase backends are
+  /// NTP-synced; the residual is single-digit seconds at most).
+  static const Duration _freshSignInWindow = Duration(seconds: 30);
+
   /// True when the session was ended due to inactivity (not an explicit sign-out).
   bool _timedOut = false;
 
@@ -612,10 +623,28 @@ class AuthService extends ChangeNotifier {
     //                 fresh-tab open of an already-authenticated session.
     //   REQ-p01044-O: synchronize session timeout across multiple tabs
     //                 for the same user.
+    // CUR-1312: a brand-new sign-in (whether routed through
+    // AuthService.signIn() or some caller that bypasses it) cannot be
+    // a stale restored session by definition. Firebase mints
+    // lastSignInTime server-side at the moment of sign-in; a recent
+    // value means the user just authenticated, not that an old session
+    // was rehydrated from IndexedDB. Force-refreshing a token issued
+    // seconds ago against the network races the in-flight sign-in's
+    // own getIdToken and produced the silent-signOut bug when the
+    // activation page used to call _auth.signInWithEmailAndPassword
+    // directly (CUR-1312). Treating it as fresh means we skip the
+    // restore-validity branch entirely and fall through to the normal
+    // post-sign-in handling below — _sessionUid gets set there.
+    final lastSignIn = user?.metadata.lastSignInTime;
+    final isFreshSignIn =
+        lastSignIn != null &&
+        DateTime.now().difference(lastSignIn) < _freshSignInWindow;
+
     if (user != null &&
         !_isPageRefresh &&
         !_isInitialized &&
         _sessionUid == null &&
+        !isFreshSignIn &&
         _clearStorage != _noopStorage) {
       try {
         // CUR-1280: re-bind before forceRefresh — without it the

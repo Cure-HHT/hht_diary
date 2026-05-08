@@ -5,8 +5,6 @@
 
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -14,63 +12,30 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/pages/activation_page.dart';
 
-/// A [MockFirebaseAuth] subclass that records which auth methods were called.
+/// Pumps an [ActivationPage] with the given code and mock HTTP client.
 ///
-/// Used in place of Mockito verify() — the project does not depend on mockito.
-class TrackingFirebaseAuth extends MockFirebaseAuth {
-  final List<Map<String, String>> signInCalls = [];
-  final List<Map<String, String>> createUserCalls = [];
-
-  TrackingFirebaseAuth({super.mockUser});
-
-  @override
-  Future<UserCredential> signInWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) {
-    signInCalls.add({'email': email, 'password': password});
-    return super.signInWithEmailAndPassword(email: email, password: password);
-  }
-
-  @override
-  Future<UserCredential> createUserWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) {
-    createUserCalls.add({'email': email, 'password': password});
-    return super.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-  }
-}
-
-/// Pumps an [ActivationPage] with the given code and mock dependencies.
-///
-/// Uses a GoRouter with a minimal route so the dashboard redirect doesn't
-/// throw a missing-route error.
+/// Uses a GoRouter with stub `/login` and `/common-dashboard` routes so
+/// post-activation navigation doesn't throw a missing-route error.
 Widget makeActivationPage({
   required String code,
   required http.Client httpClient,
-  required TrackingFirebaseAuth firebaseAuth,
 }) {
   final router = GoRouter(
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => ActivationPage(
-          code: code,
-          httpClient: httpClient,
-          firebaseAuth: firebaseAuth,
-        ),
-      ),
-      GoRoute(
-        path: '/common-dashboard',
-        builder: (context, state) => const Scaffold(body: Text('dashboard')),
+        builder: (context, state) =>
+            ActivationPage(code: code, httpClient: httpClient),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const Scaffold(body: Text('login')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('login-page-stub')),
+      ),
+      GoRoute(
+        path: '/common-dashboard',
+        builder: (context, state) =>
+            const Scaffold(body: Text('dashboard-stub')),
       ),
     ],
   );
@@ -79,108 +44,93 @@ Widget makeActivationPage({
 }
 
 void main() {
-  // Verifies REQ-d00166-A, REQ-d00166-B
+  // CUR-1312: activation page no longer auto-signs-in. Server-side
+  // activation succeeds → success modal → /login. The user signs in via
+  // the standard /login flow (which goes through AuthService.signIn() and
+  // therefore does NOT trip the auth_service.dart fresh-tab restore branch
+  // that was silently signing newly-activated users out).
   group('CUR-1296 server-owned activation', () {
     // Verifies: REQ-d00166-A
-    testWidgets(
-      'REQ-d00166-A: happy path — POSTs {code, password} to server, signs in, routes to dashboard',
-      (tester) async {
-        final apiCalls = <Map<String, Object?>>[];
-        final mockClient = MockClient((req) async {
-          apiCalls.add({
-            'method': req.method,
-            'path': req.url.path,
-            'body': req.body.isEmpty ? null : jsonDecode(req.body),
-          });
-          // GET /api/v1/portal/activate/HAPPY-CODE1 — code validation
-          if (req.method == 'GET' &&
-              req.url.path.endsWith('/api/v1/portal/activate/HAPPY-CODE1')) {
-            return http.Response(
-              jsonEncode({'email': 'happy@example.com'}),
-              200,
-              headers: {'content-type': 'application/json'},
-            );
-          }
-          // POST /api/v1/portal/activate — server-side activation
-          if (req.method == 'POST' &&
-              req.url.path == '/api/v1/portal/activate') {
-            return http.Response(
-              jsonEncode({
-                'ok': true,
-                'roles': ['Administrator'],
-              }),
-              200,
-              headers: {'content-type': 'application/json'},
-            );
-          }
-          return http.Response('unexpected ${req.url.path}', 500);
+    testWidgets('REQ-d00166-A + CUR-1312: happy path — POSTs {code, password}, '
+        'shows success modal, routes to /login on dismiss', (tester) async {
+      final apiCalls = <Map<String, Object?>>[];
+      final mockClient = MockClient((req) async {
+        apiCalls.add({
+          'method': req.method,
+          'path': req.url.path,
+          'body': req.body.isEmpty ? null : jsonDecode(req.body),
         });
+        // GET /api/v1/portal/activate/HAPPY-CODE1 — code validation
+        if (req.method == 'GET' &&
+            req.url.path.endsWith('/api/v1/portal/activate/HAPPY-CODE1')) {
+          return http.Response(
+            jsonEncode({'email': 'happy@example.com'}),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        // POST /api/v1/portal/activate — server-side activation
+        if (req.method == 'POST' && req.url.path == '/api/v1/portal/activate') {
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'roles': ['Administrator'],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('unexpected ${req.url.path}', 500);
+      });
 
-        final mockAuth = TrackingFirebaseAuth(
-          mockUser: MockUser(uid: 'test-uid', email: 'happy@example.com'),
-        );
+      await tester.pumpWidget(
+        makeActivationPage(code: 'HAPPY-CODE1', httpClient: mockClient),
+      );
 
-        await tester.pumpWidget(
-          makeActivationPage(
-            code: 'HAPPY-CODE1',
-            httpClient: mockClient,
-            firebaseAuth: mockAuth,
-          ),
-        );
+      // Let the auto-validate complete (post-frame callback + http response)
+      await tester.pumpAndSettle();
 
-        // Let the auto-validate complete (post-frame callback + http response)
-        await tester.pumpAndSettle();
+      // Password form should now be visible after successful code validation
+      await tester.enterText(
+        find.byKey(const Key('passwordField')),
+        'pw123456',
+      );
+      await tester.enterText(
+        find.byKey(const Key('confirmPasswordField')),
+        'pw123456',
+      );
+      await tester.ensureVisible(find.byKey(const Key('activateButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('activateButton')));
+      await tester.pumpAndSettle();
 
-        // Password form should now be visible after successful code validation
-        await tester.enterText(
-          find.byKey(const Key('passwordField')),
-          'pw123456',
-        );
-        await tester.enterText(
-          find.byKey(const Key('confirmPasswordField')),
-          'pw123456',
-        );
-        await tester.ensureVisible(find.byKey(const Key('activateButton')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key('activateButton')));
-        await tester.pumpAndSettle();
+      // Server-side activate POST happened with the right body shape.
+      final activatePosts = apiCalls
+          .where(
+            (c) =>
+                c['path'] == '/api/v1/portal/activate' && c['method'] == 'POST',
+          )
+          .toList();
+      expect(activatePosts, hasLength(1));
+      final body = activatePosts.first['body'] as Map<String, dynamic>;
+      expect(body['code'], equals('HAPPY-CODE1'));
+      expect(body['password'], equals('pw123456'));
 
-        // Server-side activate POST happened with the right body shape.
-        // (The GET also runs twice — once for _validateCode and once for
-        // _getEmailFromCode — both are expected.)
-        final activatePosts = apiCalls
-            .where(
-              (c) =>
-                  c['path'] == '/api/v1/portal/activate' &&
-                  c['method'] == 'POST',
-            )
-            .toList();
-        expect(activatePosts, hasLength(1));
-        final body = activatePosts.first['body'] as Map<String, dynamic>;
-        expect(body['code'], equals('HAPPY-CODE1'));
-        expect(body['password'], equals('pw123456'));
+      // CUR-1312: success modal visible.
+      expect(find.text('Account activated'), findsOneWidget);
+      expect(find.text('Please sign in to continue.'), findsOneWidget);
 
-        // Client signed in with the same password.
-        expect(mockAuth.signInCalls, hasLength(1));
-        expect(
-          mockAuth.signInCalls.first['email'],
-          equals('happy@example.com'),
-        );
-        expect(mockAuth.signInCalls.first['password'], equals('pw123456'));
+      // Tapping the modal's Sign in button dismisses and routes to /login.
+      await tester.tap(find.byKey(const Key('activatedDialogSignInButton')));
+      await tester.pumpAndSettle();
 
-        // Client did NOT try to create the IdP user — the server does that now.
-        expect(
-          mockAuth.createUserCalls,
-          isEmpty,
-          reason:
-              'createUserWithEmailAndPassword must NOT be called (CUR-1296)',
-        );
-      },
-    );
+      expect(find.text('login-page-stub'), findsOneWidget);
+      expect(find.text('dashboard-stub'), findsNothing);
+    });
 
     // Verifies: REQ-d00166-B
     testWidgets(
-      'REQ-d00166-B: code_invalid surfaces the right copy, no Firebase calls',
+      'REQ-d00166-B: code_invalid surfaces the right copy, no modal, no nav',
       (tester) async {
         final mockClient = MockClient((req) async {
           if (req.method == 'GET' &&
@@ -206,16 +156,8 @@ void main() {
           return http.Response('unexpected', 500);
         });
 
-        final mockAuth = TrackingFirebaseAuth(
-          mockUser: MockUser(uid: 'uid', email: 'x@example.com'),
-        );
-
         await tester.pumpWidget(
-          makeActivationPage(
-            code: 'BADBA-DCODE',
-            httpClient: mockClient,
-            firebaseAuth: mockAuth,
-          ),
+          makeActivationPage(code: 'BADBA-DCODE', httpClient: mockClient),
         );
         await tester.pumpAndSettle();
 
@@ -239,18 +181,10 @@ void main() {
           findsWidgets,
         );
 
-        // No Firebase calls should have been made
-        expect(
-          mockAuth.signInCalls,
-          isEmpty,
-          reason: 'signInWithEmailAndPassword must NOT be called on error',
-        );
-        expect(
-          mockAuth.createUserCalls,
-          isEmpty,
-          reason:
-              'createUserWithEmailAndPassword must NOT be called (CUR-1296)',
-        );
+        // No success modal, no navigation to login or dashboard.
+        expect(find.text('Account activated'), findsNothing);
+        expect(find.text('login-page-stub'), findsNothing);
+        expect(find.text('dashboard-stub'), findsNothing);
       },
     );
   });
