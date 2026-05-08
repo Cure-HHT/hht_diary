@@ -161,13 +161,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
-          if [ "$FLAVOR" = "uat" ]; then
-            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/uatRelease/app-uat-release.aab" >> "$GITHUB_OUTPUT"
-            echo "name=clinical-diary-uat-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
-            echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
-          fi
+          echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
+          echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -181,11 +176,7 @@ jobs:
         env:
           FLAVOR: ${{ steps.inputs.outputs.flavor }}
         run: |
-          if [ "$FLAVOR" = "uat" ]; then
-            echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
-          fi
+          echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
