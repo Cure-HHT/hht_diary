@@ -1,3 +1,13 @@
+# =============================================================
+# !!! RELAXED SONARQUBE CHECKS !!!
+# =============================================================
+# Project Cure-HHT_hht_diary is currently using the quality gate
+#   "Relaxed - hht_diary (CUR-1310)"
+# instead of the strict default. new_coverage and
+# new_duplicated_lines_density gates are effectively disabled.
+# See sonar-project.properties at repo root for full rationale +
+# the curl recipe to restore the strict gate. Tracked in CUR-1310.
+# =============================================================
 name: SonarQube
 on:
   push:
