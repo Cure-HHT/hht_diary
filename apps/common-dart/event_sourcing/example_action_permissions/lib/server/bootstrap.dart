@@ -8,6 +8,7 @@
 //   every dispatch denies.
 
 import 'package:action_permissions_demo/server/action_catalog.dart';
+import 'package:action_permissions_demo/server/demo_idempotency_store.dart';
 import 'package:action_permissions_demo/server/user_directory.dart';
 import 'package:action_permissions_demo/server/user_directory_materializer.dart';
 import 'package:action_permissions_demo/server/user_directory_seed_applier.dart';
@@ -32,7 +33,7 @@ class DemoServerComponents {
   final EventStore eventStore;
   final UserDirectory directory;
   final AuthorizationPolicy policy;
-  final IdempotencyStore idempotencyStore;
+  final DemoIdempotencyStore idempotencyStore;
 
   /// Empty when the YAML seed validated cleanly. Non-empty when the
   /// policy is the FailSafe variant — every dispatch will deny with
@@ -132,7 +133,7 @@ Future<DemoServerComponents> bootstrapDemoServer({
   }
 
   // 5. Idempotency cache + dispatcher.
-  final idempotencyStore = InMemoryIdempotencyStore();
+  final idempotencyStore = DemoIdempotencyStore();
   final dispatcher = bootstrapAuditedActions(
     events: eventStore,
     authorization: policyBootstrap.policy,
