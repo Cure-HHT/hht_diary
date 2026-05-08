@@ -17,6 +17,12 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN. The scan-action only needs to read the
+# source tree (actions/checkout) and post results to sonarcloud.io via
+# SONAR_TOKEN; no write access to the GitHub repo is required.
+permissions:
+  contents: read
+
 jobs:
   sonarqube:
     name: SonarQube
