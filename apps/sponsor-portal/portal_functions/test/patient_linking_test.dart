@@ -14,6 +14,7 @@
 
 import 'dart:convert';
 
+import 'package:comms/comms.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:shelf/shelf.dart';
@@ -1730,6 +1731,196 @@ void main() {
             expect(response.statusCode, 400);
             final body = await _json(response);
             expect(body['error'], contains('reason'));
+          },
+        );
+      });
+
+      // CUR-1311 (Phase 1B.2): envelope-pattern feature flag tests.
+      // The flag-OFF behaviour is exercised by every other test in this
+      // group; here we verify the flag-ON path actually writes a row to
+      // `notifications` and surfaces the envelope id in the audit row.
+      group('envelope flag (FCM_USE_ENVELOPE_DISCONNECT)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        Future<void> _initEnvelopeOn() async {
+          NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+            projectId: 'test-project',
+            enabled: true,
+            consoleMode: true,
+            useEnvelopeDisconnect: true,
+          );
+          await NotificationService.instance.initialize(
+            NotificationConfig.fromEnvironmentOverride!,
+          );
+        }
+
+        test('flag ON: inserts pending notification, dispatches FCM, '
+            'surfaces notification_id in audit row', () async {
+          final capturedQueries = <String>[];
+          final auditDetails = <Map<String, dynamic>>[];
+          databaseQueryOverride = (query, {parameters, required context}) async {
+            capturedQueries.add(query);
+            if (query.contains('FROM patients') &&
+                query.contains('patient_id')) {
+              return [_patientRow(status: 'connected')];
+            }
+            if (query.contains('UPDATE patient_linking_codes')) {
+              return [];
+            }
+            if (query.contains('UPDATE patients')) {
+              return [];
+            }
+            if (query.contains('FROM patient_fcm_tokens')) {
+              return [
+                ['fake-fcm-token-1234567890'],
+              ];
+            }
+            if (query.contains('INSERT INTO notifications')) {
+              return [];
+            }
+            if (query.contains('UPDATE notifications')) {
+              return [];
+            }
+            if (query.contains('SELECT notification_id') &&
+                query.contains('FROM notifications')) {
+              // findById after send — return a sent envelope row so
+              // the handler captures the message_id for the audit.
+              final now = DateTime.utc(2026, 5, 8, 10, 30);
+              return [
+                <dynamic>[
+                  parameters!['id'],
+                  parameters['patientId'],
+                  'patient_status_update',
+                  'Account Disconnected',
+                  'Your study account has been disconnected. Please contact your study coordinator.',
+                  true,
+                  '{"action":"disconnect","new_status":"disconnected"}',
+                  'sent',
+                  'projects/test-project/messages/0:abc',
+                  null,
+                  now,
+                  now,
+                  null,
+                ],
+              ];
+            }
+            if (query.contains('INSERT INTO admin_action_log')) {
+              final details =
+                  jsonDecode(parameters!['actionDetails'] as String)
+                      as Map<String, dynamic>;
+              auditDetails.add(details);
+              return [];
+            }
+            return [];
+          };
+
+          await _initEnvelopeOn();
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/disconnect',
+            body: jsonEncode({
+              'patientId': _testPatientId,
+              'reason': 'Device Issues',
+            }),
+          );
+
+          final response = await disconnectPatientHandler(request);
+
+          expect(response.statusCode, 200);
+
+          // Envelope path was taken — INSERT INTO notifications fired.
+          expect(
+            capturedQueries.any((q) => q.contains('INSERT INTO notifications')),
+            isTrue,
+            reason: 'OutboxWriter must persist the envelope before dispatch',
+          );
+
+          // markSent fired (status pending → sent after FcmChannel
+          // returned success in console mode).
+          expect(
+            capturedQueries.any(
+              (q) =>
+                  q.contains('UPDATE notifications') &&
+                  q.contains("SET status = 'sent'"),
+            ),
+            isTrue,
+          );
+
+          // The audit row carries both fcm_message_id and the new
+          // notification_id (envelope id). P1B.3 will retire the
+          // duplicate audit; for now both coexist.
+          expect(auditDetails, hasLength(1));
+          expect(
+            auditDetails.single['fcm_message_id'],
+            equals('projects/test-project/messages/0:abc'),
+          );
+          expect(
+            auditDetails.single['notification_id'],
+            isA<String>(),
+            reason: 'envelope id must be surfaced for cross-table traceability',
+          );
+        });
+
+        test(
+          'flag ON with PHI in title: catches the leak, no insert',
+          () async {
+            final capturedQueries = <String>[];
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  capturedQueries.add(query);
+                  if (query.contains('FROM patients') &&
+                      query.contains('patient_id')) {
+                    return [_patientRow(status: 'connected')];
+                  }
+                  if (query.contains('FROM patient_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-1234567890'],
+                    ];
+                  }
+                  return [];
+                };
+
+            // Inject a SubjectKey-shaped pattern into the common-name list
+            // so the legitimate disconnect title trips the guard. Keeps
+            // the production title text intact while exercising the path.
+            PayloadGuard.commonNamePatterns = <RegExp>[
+              RegExp(r'\bAccount Disconnected\b'),
+            ];
+            addTearDown(() {
+              PayloadGuard.commonNamePatterns = <RegExp>[];
+            });
+
+            await _initEnvelopeOn();
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/disconnect',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Device Issues',
+              }),
+            );
+
+            final response = await disconnectPatientHandler(request);
+
+            // The action itself succeeds — the patient row was updated;
+            // the push is the side-effect that got blocked. The handler
+            // logs the failure but doesn't surface it as a 5xx.
+            expect(response.statusCode, 200);
+            // Critically: no INSERT INTO notifications. Guard rejects
+            // before the row reaches the repository.
+            expect(
+              capturedQueries.any(
+                (q) => q.contains('INSERT INTO notifications'),
+              ),
+              isFalse,
+              reason:
+                  'PayloadGuard fires before insertPending — no pending row',
+            );
           },
         );
       });

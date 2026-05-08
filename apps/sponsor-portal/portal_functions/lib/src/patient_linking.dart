@@ -22,8 +22,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:comms/comms.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
+import 'package:uuid/uuid.dart';
 
 import 'database.dart';
 import 'notification_service.dart';
@@ -663,23 +665,77 @@ Future<Response> disconnectPatientHandler(Request request) async {
   );
 
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
     final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendPatientStatusNotification(
-          fcmToken: fcmToken,
-          patientId: patientId,
-          action: 'disconnect',
-          title: 'Account Disconnected',
-          body:
-              'Your study account has been disconnected. Please contact your study coordinator.',
-          extraData: {'new_status': 'disconnected'},
-        );
-    fcmMessageId = notificationResult.messageId;
-    if (!notificationResult.success) {
-      print(
-        '[PATIENT_LINKING] FCM send failed for disconnect: ${notificationResult.error}',
+    final config = NotificationConfig.fromEnvironment();
+    final outboxWriter = NotificationService.outboxWriter;
+
+    if (config.useEnvelopeDisconnect && outboxWriter != null) {
+      // CUR-1311 (Phase 1B.2): envelope path. Persist a row in
+      // `notifications` BEFORE FCM dispatch — the row is the durable
+      // record (status pending → sent | failed) and the audit trail.
+      // fcm_message_id stays in the legacy admin_action_log row for
+      // continuity until P1B.3 retires that redundant audit.
+      final envelope = Envelope(
+        notificationId: const Uuid().v4(),
+        patientId: patientId,
+        type: NotificationType.patientStatusUpdate,
+        title: 'Account Disconnected',
+        body:
+            'Your study account has been disconnected. Please contact your study coordinator.',
+        userVisible: true,
+        payload: const <String, dynamic>{
+          'action': 'disconnect',
+          'new_status': 'disconnected',
+        },
+        status: EnvelopeStatus.pending,
+        createdAt: DateTime.now().toUtc(),
       );
+      try {
+        notificationEnvelopeId = await outboxWriter.send(
+          envelope,
+          fcmToken: fcmToken,
+        );
+        // Look up the FCM message_id the OutboxWriter recorded in the row
+        // — handlers still surface it in the admin_action_log entry below
+        // for traceability (P1B.3 will drop the duplicate audit row).
+        final stored = await outboxWriter.repo.findById(
+          notificationEnvelopeId,
+          patientId: patientId,
+        );
+        fcmMessageId = stored?.messageId;
+        if (stored?.status == EnvelopeStatus.failed) {
+          print(
+            '[PATIENT_LINKING] Envelope dispatch failed for disconnect: ${stored?.error}',
+          );
+        }
+      } on PhiLeakException catch (e) {
+        // PayloadGuard rejected the envelope — log and continue without
+        // the push. The action itself succeeds; the patient won't get
+        // a real-time alert but the next polling cycle would reconcile.
+        print('[PATIENT_LINKING] PHI guard rejected disconnect envelope: $e');
+      }
+    } else {
+      // Legacy direct-FCM path. Identical to S2 wiring — kept until
+      // every handler has migrated to the envelope path (P1B.3) and
+      // the flag has been on in production for two weeks (P1B.6).
+      final notificationResult = await NotificationService.instance
+          .sendPatientStatusNotification(
+            fcmToken: fcmToken,
+            patientId: patientId,
+            action: 'disconnect',
+            title: 'Account Disconnected',
+            body:
+                'Your study account has been disconnected. Please contact your study coordinator.',
+            extraData: {'new_status': 'disconnected'},
+          );
+      fcmMessageId = notificationResult.messageId;
+      if (!notificationResult.success) {
+        print(
+          '[PATIENT_LINKING] FCM send failed for disconnect: ${notificationResult.error}',
+        );
+      }
     }
   } else {
     print(
@@ -713,6 +769,8 @@ Future<Response> disconnectPatientHandler(Request request) async {
         'disconnected_by_email': user.email,
         'disconnected_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Patient disconnected from mobile app: $reason',
       'ipAddress': clientIp,

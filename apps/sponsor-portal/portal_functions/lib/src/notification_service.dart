@@ -22,9 +22,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:comms/comms.dart';
+import 'package:meta/meta.dart';
 import 'package:otel_common/otel_common.dart';
 
 import 'database.dart';
+import 'notifications/pg_notification_repository.dart';
 import 'portal_metrics.dart';
 
 /// FCM notification service configuration from environment
@@ -33,14 +35,26 @@ class NotificationConfig {
     required this.projectId,
     required this.enabled,
     this.consoleMode = false,
+    this.useEnvelopeDisconnect = false,
   });
+
+  /// Test-only override that short-circuits [fromEnvironment]. Lets a
+  /// test exercise the per-handler envelope flag without reaching
+  /// `Platform.environment` (read-only at runtime). Production code
+  /// MUST leave this null.
+  @visibleForTesting
+  static NotificationConfig? fromEnvironmentOverride;
 
   /// Create config from environment variables
   factory NotificationConfig.fromEnvironment() {
+    final override = fromEnvironmentOverride;
+    if (override != null) return override;
     return NotificationConfig(
       projectId: Platform.environment['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
       enabled: Platform.environment['FCM_ENABLED'] != 'false',
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',
+      useEnvelopeDisconnect:
+          Platform.environment['FCM_USE_ENVELOPE_DISCONNECT'] == 'true',
     );
   }
 
@@ -53,6 +67,14 @@ class NotificationConfig {
   /// Console mode — logs messages instead of sending. Useful for local
   /// development without GCP credentials.
   final bool consoleMode;
+
+  /// CUR-1311 (Phase 1B.2): when true, `disconnectPatientHandler` routes
+  /// the disconnect notification through `OutboxWriter` (writes a row to
+  /// `notifications` before dispatching FCM). When false, behaviour is
+  /// identical to S2 — direct FCM send via `sendPatientStatusNotification`.
+  /// Per-handler flag so we can validate the envelope path one handler
+  /// at a time before flipping the rest in P1B.3.
+  final bool useEnvelopeDisconnect;
 
   /// Check if notification service is properly configured.
   bool get isConfigured => enabled && projectId.isNotEmpty;
@@ -80,11 +102,19 @@ class NotificationService {
   static NotificationService? _instance;
   static NotificationConfig? _config;
   static FcmChannel? _fcmChannel;
+  static OutboxWriter? _outboxWriter;
 
   static NotificationService get instance {
     _instance ??= NotificationService._();
     return _instance!;
   }
+
+  /// CUR-1311 (Phase 1B.2): writer used by handlers when their per-handler
+  /// envelope flag is on. Null until [initialize] runs (or when service
+  /// is unconfigured). Handlers MUST null-check before calling — a missing
+  /// writer should fall back to the legacy direct-FCM path so a misconfigured
+  /// rollout never silently drops a notification.
+  static OutboxWriter? get outboxWriter => _outboxWriter;
 
   /// Reset the service for testing purposes.
   /// @visibleForTesting
@@ -93,6 +123,7 @@ class NotificationService {
     _instance = null;
     _config = null;
     _fcmChannel = null;
+    _outboxWriter = null;
   }
 
   /// Initialize the notification service with configuration.
@@ -114,12 +145,14 @@ class NotificationService {
     if (config.consoleMode) {
       logWithTrace('INFO', 'FCM console mode enabled');
       _fcmChannel = FcmChannel(projectId: config.projectId, consoleMode: true);
+      _outboxWriter = _buildOutboxWriter(_fcmChannel!);
       return;
     }
 
     try {
       logWithTrace('INFO', 'FCM using Workload Identity Federation (ADC)');
       _fcmChannel = FcmChannel(projectId: config.projectId);
+      _outboxWriter = _buildOutboxWriter(_fcmChannel!);
       logWithTrace('INFO', 'FCM notification service initialized successfully');
     } catch (e) {
       reportAndRecordError(e, stackTrace: StackTrace.current);
@@ -129,6 +162,49 @@ class NotificationService {
         labels: {'error': e.toString()},
       );
       _fcmChannel = null;
+      _outboxWriter = null;
+    }
+  }
+
+  /// CUR-1311 (Phase 1B.2): builds the OutboxWriter that handlers use
+  /// when their envelope flag is on. The `onUnregistered` callback
+  /// deactivates the `patient_fcm_tokens` row so subsequent sends to
+  /// the same patient do not re-target a dead token.
+  static OutboxWriter _buildOutboxWriter(FcmChannel channel) {
+    return OutboxWriter(
+      repo: PgNotificationRepository(),
+      channel: channel,
+      onUnregistered: _deactivateFcmToken,
+    );
+  }
+
+  /// CUR-1311 (Phase 1B.2): mark the matching `patient_fcm_tokens` row
+  /// inactive when FCM returns UNREGISTERED. Idempotent — a duplicate
+  /// dead-token signal is a no-op (already inactive).
+  static Future<void> _deactivateFcmToken(String token) async {
+    try {
+      await Database.instance.executeWithContext(
+        '''
+        UPDATE patient_fcm_tokens
+        SET is_active = false, updated_at = now()
+        WHERE fcm_token = @token AND is_active = true
+        ''',
+        parameters: {'token': token},
+        context: UserContext.service,
+      );
+      logWithTrace(
+        'INFO',
+        'Deactivated UNREGISTERED FCM token',
+        labels: {'token_prefix': token.substring(0, 20)},
+      );
+    } catch (e) {
+      // Don't let cleanup failure swallow the dispatch outcome — the
+      // envelope row already records the UNREGISTERED terminal.
+      logWithTrace(
+        'ERROR',
+        'Failed to deactivate UNREGISTERED FCM token',
+        labels: {'error': e.toString()},
+      );
     }
   }
 
