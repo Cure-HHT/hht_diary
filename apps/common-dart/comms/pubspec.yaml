@@ -1,0 +1,30 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00167: FCM Dispatch via cure-hht-admin Project
+#   REQ-d00168: PHI-Safe FCM Payload
+#   REQ-d00169: Mobile Notifications Polling
+#   REQ-d00170: Notification Behaviour
+#
+# Pure-Dart shared communication library for the CureHHT diary platform.
+# Holds the transport contract (Channel, DispatchResult), FCM channel impl
+# (added in Phase 1A.2), the notifications domain protocol (Envelope,
+# Repository interface, OutboxWriter — added in Phase 1A.3), and the
+# PayloadGuard PHI checker that all senders must run before dispatch.
+#
+# This package is consumed by sponsor-side servers (portal_functions,
+# diary_functions) and the mobile diary app (envelope client only).
+# It MUST NOT depend on the Flutter SDK.
+
+name: comms
+description: Shared communication primitives (channels, compliance, notifications) for CureHHT diary platform
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  meta: ^1.16.0
+
+dev_dependencies:
+  test: ^1.25.15
+  lints: ^5.0.0
