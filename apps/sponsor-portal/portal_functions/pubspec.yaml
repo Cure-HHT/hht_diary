@@ -36,6 +36,13 @@ dependencies:
   otel_common:
     path: ../../common-dart/otel_common
 
+  # Shared communication primitives (channels, FCM transport, PHI guard,
+  # notifications domain protocol). Phase 1A.4 wires the FCM transport
+  # through this package; the notifications/ domain code lights up in
+  # Phase 1B when the envelope+poll path replaces direct dispatch.
+  comms:
+    path: ../../common-dart/comms
+
   # Shared server-side utilities
   shared_functions:
     path: ../../common-dart/shared_functions
