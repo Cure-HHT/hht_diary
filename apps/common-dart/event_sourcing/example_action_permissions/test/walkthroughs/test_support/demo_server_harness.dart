@@ -1,8 +1,15 @@
-// integration_test/test_support/demo_server_harness.dart
+// test/walkthroughs/test_support/demo_server_harness.dart
 //
 // Spawns bin/server.dart as a subprocess on a fresh ephemeral port,
 // waits for /healthz, and exposes typed wire-shape helpers. Used by the
-// walkthrough_*_test.dart integration tests.
+// walkthrough_*_test.dart walkthrough tests.
+//
+// The walkthroughs live under test/ (not integration_test/) so plain
+// `flutter test` runs them as standalone Dart VM tests — i.e. without
+// activating the Flutter desktop binding. That keeps Platform.executable
+// pointing at the bundled `dart` VM, which is what we need to spawn
+// `dart run bin/server.dart` as a subprocess. See _resolveDartExecutable
+// below for the defensive fallback.
 
 import 'dart:async';
 import 'dart:convert';
@@ -40,8 +47,9 @@ class DemoServerHarness {
     final root = packageRoot ?? _findPackageRoot();
     final port = await _pickFreePort();
 
+    final dartExe = _resolveDartExecutable();
     final process = await Process.start(
-      Platform.executable, // the Dart VM running this test process.
+      dartExe,
       <String>[
         'run',
         'bin/server.dart',
@@ -200,5 +208,19 @@ class DemoServerHarness {
       'root (looked at ${Directory.current.path} and 7 parents). Pass '
       'packageRoot: explicitly to start().',
     );
+  }
+
+  static String _resolveDartExecutable() {
+    // Under `flutter test`, Platform.executable is the dart VM bundled
+    // with the Flutter SDK — that works directly. Under `flutter test
+    // integration_test/...` it would be the Flutter desktop runner, which
+    // does NOT accept `dart run` args; in that case we fall back to `dart`
+    // on PATH (assumes `flutter` SDK's dart-sdk/bin is in PATH).
+    final exe = Platform.executable;
+    final lower = exe.toLowerCase();
+    if (lower.endsWith('dart') || lower.endsWith('dart.exe')) {
+      return exe;
+    }
+    return 'dart';
   }
 }
