@@ -89,7 +89,6 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 ├── apps/
 │   ├── clinical-diary/          (Flutter patient app)
 │   └── common-dart/                (shared Dart code between clients or between client and server)
-│   │   ├── append-only-datastore/  (core auditable datastore API and SDK)
 |   │   └── trial_data_types/    (Raw data classes - Nosebleed Record, etc.)
 │   └── portal/                  (Flutter sponsor app)
 │
