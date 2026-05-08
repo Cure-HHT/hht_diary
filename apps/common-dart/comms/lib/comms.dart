@@ -9,5 +9,8 @@
 // here — internals under `lib/src/` are not part of the API contract.
 
 export 'src/channel.dart';
+export 'src/channels/fcm/adc_client.dart';
+export 'src/channels/fcm/fcm_channel.dart';
+export 'src/channels/fcm/fcm_message.dart';
 export 'src/compliance/payload_guard.dart';
 export 'src/dispatch_result.dart';
