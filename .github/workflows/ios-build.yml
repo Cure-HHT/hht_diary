@@ -23,7 +23,7 @@ on:
         options:
           - dev
           - qa
-          - prod
+          - uat
       deployment:
         description: "Deployment target"
         required: true
