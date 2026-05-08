@@ -12,7 +12,6 @@ echo "=============================================="
 
 PROJECTS=(
     "common-dart/trial_data_types"
-    "common-dart/append_only_datastore"
     "daily-diary/diary_functions"
     "daily-diary/diary_server"
     "daily-diary/clinical_diary"

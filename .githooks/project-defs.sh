@@ -43,13 +43,12 @@
 
 PROJECT_DEFS=(
     # Deployable apps
-    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/lib/ apps/daily-diary/clinical_diary/assets/|apps/daily-diary/clinical_diary/android/ apps/daily-diary/clinical_diary/ios/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-dart/append_only_datastore/lib/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/|standard"
+    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/lib/ apps/daily-diary/clinical_diary/assets/|apps/daily-diary/clinical_diary/android/ apps/daily-diary/clinical_diary/ios/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/|standard"
     "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/lib/ apps/sponsor-portal/portal-ui/assets/ apps/sponsor-portal/portal-ui/web/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/common_widgets/lib/ tools/build/|semver-only"
     "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/lib/ apps/daily-diary/diary_server/bin/|apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/daily-diary/diary-server-container/ tools/build/|standard"
     "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/lib/ apps/sponsor-portal/portal_server/bin/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/edc/rave-integration/lib/ tools/build/|standard"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/||standard"
-    "append_only_datastore|apps/common-dart/append_only_datastore/pubspec.yaml|apps/common-dart/append_only_datastore/lib/||standard"
     "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
     "portal_functions|apps/sponsor-portal/portal_functions/pubspec.yaml|apps/sponsor-portal/portal_functions/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
     "eq|apps/common-flutter/eq/pubspec.yaml|apps/common-flutter/eq/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"

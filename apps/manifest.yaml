@@ -62,35 +62,6 @@ apps:
       services: []
       analysis_options: true
 
-  - name: append_only_datastore
-    path: apps/common-dart/append_only_datastore
-    sdk_type: flutter
-    dart_sdk: "^3.10.7"
-    flutter_sdk: ">=3.38.7"
-    version: 0.0.1
-
-    depends_on: []
-
-    ci:
-      trigger_paths:
-        - apps/common-dart/append_only_datastore/**
-      format: true
-      analyze:
-        tool: flutter              # flutter analyze --fatal-infos
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: flutter             # flutter test
-        test_script: tool/test.sh
-        concurrency: 10
-      coverage:
-        enabled: true
-        threshold: 75              # from tool/test.sh MIN_COVERAGE
-        codecov_flag: append-only-datastore
-      services: []
-      analysis_options: true
-
   # =========================================================================
   # EDC Integration
   # =========================================================================
@@ -130,8 +101,7 @@ apps:
     dart_sdk: "^3.10.7"
     version: 0.8.11
 
-    depends_on:
-      - append_only_datastore      # path: ../../common-dart/append_only_datastore
+    depends_on: []
 
     platforms:
       - android
@@ -146,7 +116,6 @@ apps:
     ci:
       trigger_paths:
         - apps/daily-diary/clinical_diary/**
-        - apps/common-dart/append_only_datastore/**   # rebuild when dep changes
       format: true
       analyze:
         tool: flutter
@@ -404,11 +373,10 @@ apps:
 # Dependency graph (for topological build order)
 # ---------------------------------------------------------------------------
 # Leaf packages (no local deps) — can build in parallel:
-#   trial_data_types, append_only_datastore, rave_integration, portal-ui
+#   trial_data_types, rave_integration, portal-ui
 #
 # Layer 1 (depends on leaves):
 #   diary_functions   -> trial_data_types
-#   clinical_diary    -> append_only_datastore
 #   portal_functions  -> rave_integration
 #
 # Layer 2 (depends on layer 1):

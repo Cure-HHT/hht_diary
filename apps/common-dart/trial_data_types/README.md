@@ -229,12 +229,6 @@ vim event_base.dart       # Implement
 ./tool/test.sh            # Confirm GREEN
 ```
 
-## 📖 Documentation
-
-See parent project documentation:
-- [../../append_only_datastore/ARCHITECTURE.md](../../append_only_datastore/ARCHITECTURE.md)
-- [../../append_only_datastore/PLAN.md](../../append_only_datastore/PLAN.md)
-
 ## 🤝 Contributing
 
 This is FDA-regulated medical software. All contributions must:
