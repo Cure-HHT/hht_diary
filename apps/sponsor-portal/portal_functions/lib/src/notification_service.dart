@@ -36,6 +36,8 @@ class NotificationConfig {
     required this.enabled,
     this.consoleMode = false,
     this.useEnvelopeDisconnect = false,
+    this.useEnvelopeNotParticipating = false,
+    this.useEnvelopeReactivate = false,
   });
 
   /// Test-only override that short-circuits [fromEnvironment]. Lets a
@@ -55,6 +57,10 @@ class NotificationConfig {
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',
       useEnvelopeDisconnect:
           Platform.environment['FCM_USE_ENVELOPE_DISCONNECT'] == 'true',
+      useEnvelopeNotParticipating:
+          Platform.environment['FCM_USE_ENVELOPE_NOT_PARTICIPATING'] == 'true',
+      useEnvelopeReactivate:
+          Platform.environment['FCM_USE_ENVELOPE_REACTIVATE'] == 'true',
     );
   }
 
@@ -75,6 +81,14 @@ class NotificationConfig {
   /// Per-handler flag so we can validate the envelope path one handler
   /// at a time before flipping the rest in P1B.3.
   final bool useEnvelopeDisconnect;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
+  /// `markPatientNotParticipatingHandler`.
+  final bool useEnvelopeNotParticipating;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
+  /// `reactivatePatientHandler`.
+  final bool useEnvelopeReactivate;
 
   /// Check if notification service is properly configured.
   bool get isConfigured => enabled && projectId.isNotEmpty;

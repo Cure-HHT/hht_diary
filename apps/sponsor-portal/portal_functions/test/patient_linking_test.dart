@@ -2075,6 +2075,96 @@ void main() {
 
         expect(response.statusCode, 400);
       });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for mark_not_participating.
+      group('envelope flag (FCM_USE_ENVELOPE_NOT_PARTICIPATING)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification + surfaces notification_id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              captured.add(query);
+              if (query.contains('FROM patients') &&
+                  query.contains('patient_id')) {
+                return [_patientRow(status: 'disconnected')];
+              }
+              if (query.contains('FROM patient_fcm_tokens')) {
+                return [
+                  ['fake-fcm-token-1234567890'],
+                ];
+              }
+              if (query.contains('SELECT notification_id') &&
+                  query.contains('FROM notifications')) {
+                final now = DateTime.utc(2026, 5, 8, 10, 30);
+                return [
+                  <dynamic>[
+                    parameters!['id'],
+                    parameters['patientId'],
+                    'patient_status_update',
+                    'Study Participation Ended',
+                    'Your study participation has ended.',
+                    true,
+                    '{"action":"mark_not_participating","new_status":"not_participating"}',
+                    'sent',
+                    'projects/test/messages/0:np',
+                    null,
+                    now,
+                    now,
+                    null,
+                  ],
+                ];
+              }
+              if (query.contains('INSERT INTO admin_action_log')) {
+                auditDetails =
+                    jsonDecode(parameters!['actionDetails'] as String)
+                        as Map<String, dynamic>;
+                return [];
+              }
+              return [];
+            };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeNotParticipating: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/not-participating',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Subject Withdrawal',
+              }),
+            );
+
+            final response = await markPatientNotParticipatingHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:np'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+      });
     });
 
     // ================================================================
@@ -2210,6 +2300,97 @@ void main() {
         final response = await reactivatePatientHandler(request);
 
         expect(response.statusCode, 400);
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for reactivate.
+      group('envelope flag (FCM_USE_ENVELOPE_REACTIVATE)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification + surfaces notification_id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM patients') &&
+                      query.contains('patient_id')) {
+                    return [_patientRow(status: 'not_participating')];
+                  }
+                  if (query.contains('FROM patient_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-1234567890'],
+                    ];
+                  }
+                  if (query.contains('SELECT notification_id') &&
+                      query.contains('FROM notifications')) {
+                    final now = DateTime.utc(2026, 5, 8, 10, 30);
+                    return [
+                      <dynamic>[
+                        parameters!['id'],
+                        parameters['patientId'],
+                        'patient_status_update',
+                        'Account Reactivated',
+                        'Your study account has been reactivated.',
+                        true,
+                        '{"action":"reactivate","new_status":"disconnected"}',
+                        'sent',
+                        'projects/test/messages/0:rx',
+                        null,
+                        now,
+                        now,
+                        null,
+                      ],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO admin_action_log')) {
+                    auditDetails =
+                        jsonDecode(parameters!['actionDetails'] as String)
+                            as Map<String, dynamic>;
+                    return [];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReactivate: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/reactivate',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reason': 'Patient Request',
+              }),
+            );
+
+            final response = await reactivatePatientHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:rx'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
       });
     });
 

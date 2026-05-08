@@ -43,6 +43,104 @@ const _linkingCodeChars = 'ABCDEFGHJKLMNPQRTUVWXY346789';
 String get sponsorLinkingPrefix =>
     Platform.environment['SPONSOR_LINKING_PREFIX'] ?? 'XX';
 
+/// CUR-1311 (Phase 1B.2/3): outcome of a patient-status push dispatch.
+/// Carries both ids so the action's audit row can record cross-table
+/// traceability — `fcm_message_id` for legacy compatibility,
+/// `notification_id` for the new envelope row when the flag is on.
+typedef _StatusPushResult = ({String? fcmMessageId, String? notificationId});
+
+/// CUR-1311 (Phase 1B.2/3): unified send path for the
+/// `patient_status_update` family of notifications. Branches on the
+/// per-handler envelope flag — flag-OFF preserves S2 behaviour;
+/// flag-ON persists a row in `notifications` before FCM dispatch and
+/// returns the envelope id so the caller can surface it in
+/// `admin_action_log`.
+///
+/// Caller responsibilities:
+///   * Resolve [fcmToken] from `patient_fcm_tokens` (this helper does
+///     not look it up — letting the caller short-circuit when the
+///     patient has no active token).
+///   * Pick the per-handler [useEnvelope] flag (e.g.
+///     `NotificationConfig.fromEnvironment().useEnvelopeDisconnect`).
+///   * Pass [logPrefix] used for both the legacy log line and the
+///     envelope-path log line — keeps grep-friendly continuity.
+///
+/// Returns null fields when there is no token (caller should not call
+/// this in that case) — defensive default if the helper is invoked.
+Future<_StatusPushResult> _dispatchPatientStatusPush({
+  required String fcmToken,
+  required String patientId,
+  required String action,
+  required String title,
+  required String body,
+  required String newStatus,
+  required bool useEnvelope,
+  required String logPrefix,
+}) async {
+  if (useEnvelope) {
+    final outboxWriter = NotificationService.outboxWriter;
+    if (outboxWriter != null) {
+      final envelope = Envelope(
+        notificationId: const Uuid().v4(),
+        patientId: patientId,
+        type: NotificationType.patientStatusUpdate,
+        title: title,
+        body: body,
+        userVisible: true,
+        payload: <String, dynamic>{'action': action, 'new_status': newStatus},
+        status: EnvelopeStatus.pending,
+        createdAt: DateTime.now().toUtc(),
+      );
+      try {
+        final notificationId = await outboxWriter.send(
+          envelope,
+          fcmToken: fcmToken,
+        );
+        // Look up the persisted message_id for the legacy audit field
+        // — the row already has it after OutboxWriter.markSent / markFailed.
+        final stored = await outboxWriter.repo.findById(
+          notificationId,
+          patientId: patientId,
+        );
+        if (stored?.status == EnvelopeStatus.failed) {
+          print(
+            '[$logPrefix] Envelope dispatch failed for $action: ${stored?.error}',
+          );
+        }
+        return (
+          fcmMessageId: stored?.messageId,
+          notificationId: notificationId,
+        );
+      } on PhiLeakException catch (e) {
+        // Action succeeds without a push; polling reconciles on the
+        // next cycle. Log so ops can investigate the leak source.
+        print('[$logPrefix] PHI guard rejected $action envelope: $e');
+        return (fcmMessageId: null, notificationId: null);
+      }
+    }
+    // Writer not initialised — fall through to the legacy path so a
+    // misconfigured rollout never silently drops the notification.
+    print(
+      '[$logPrefix] OutboxWriter not initialised; falling back to legacy FCM for $action',
+    );
+  }
+
+  // Legacy direct-FCM path (S2 behaviour).
+  final result = await NotificationService.instance
+      .sendPatientStatusNotification(
+        fcmToken: fcmToken,
+        patientId: patientId,
+        action: action,
+        title: title,
+        body: body,
+        extraData: {'new_status': newStatus},
+      );
+  if (!result.success) {
+    print('[$logPrefix] FCM send failed for $action: ${result.error}');
+  }
+  return (fcmMessageId: result.messageId, notificationId: null);
+}
+
 /// Generate a patient linking code
 /// POST /api/v1/portal/patients/:patientId/link-code
 /// Authorization: Bearer <Identity Platform ID token>
@@ -667,76 +765,19 @@ Future<Response> disconnectPatientHandler(Request request) async {
   String? fcmMessageId;
   String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final config = NotificationConfig.fromEnvironment();
-    final outboxWriter = NotificationService.outboxWriter;
-
-    if (config.useEnvelopeDisconnect && outboxWriter != null) {
-      // CUR-1311 (Phase 1B.2): envelope path. Persist a row in
-      // `notifications` BEFORE FCM dispatch — the row is the durable
-      // record (status pending → sent | failed) and the audit trail.
-      // fcm_message_id stays in the legacy admin_action_log row for
-      // continuity until P1B.3 retires that redundant audit.
-      final envelope = Envelope(
-        notificationId: const Uuid().v4(),
-        patientId: patientId,
-        type: NotificationType.patientStatusUpdate,
-        title: 'Account Disconnected',
-        body:
-            'Your study account has been disconnected. Please contact your study coordinator.',
-        userVisible: true,
-        payload: const <String, dynamic>{
-          'action': 'disconnect',
-          'new_status': 'disconnected',
-        },
-        status: EnvelopeStatus.pending,
-        createdAt: DateTime.now().toUtc(),
-      );
-      try {
-        notificationEnvelopeId = await outboxWriter.send(
-          envelope,
-          fcmToken: fcmToken,
-        );
-        // Look up the FCM message_id the OutboxWriter recorded in the row
-        // — handlers still surface it in the admin_action_log entry below
-        // for traceability (P1B.3 will drop the duplicate audit row).
-        final stored = await outboxWriter.repo.findById(
-          notificationEnvelopeId,
-          patientId: patientId,
-        );
-        fcmMessageId = stored?.messageId;
-        if (stored?.status == EnvelopeStatus.failed) {
-          print(
-            '[PATIENT_LINKING] Envelope dispatch failed for disconnect: ${stored?.error}',
-          );
-        }
-      } on PhiLeakException catch (e) {
-        // PayloadGuard rejected the envelope — log and continue without
-        // the push. The action itself succeeds; the patient won't get
-        // a real-time alert but the next polling cycle would reconcile.
-        print('[PATIENT_LINKING] PHI guard rejected disconnect envelope: $e');
-      }
-    } else {
-      // Legacy direct-FCM path. Identical to S2 wiring — kept until
-      // every handler has migrated to the envelope path (P1B.3) and
-      // the flag has been on in production for two weeks (P1B.6).
-      final notificationResult = await NotificationService.instance
-          .sendPatientStatusNotification(
-            fcmToken: fcmToken,
-            patientId: patientId,
-            action: 'disconnect',
-            title: 'Account Disconnected',
-            body:
-                'Your study account has been disconnected. Please contact your study coordinator.',
-            extraData: {'new_status': 'disconnected'},
-          );
-      fcmMessageId = notificationResult.messageId;
-      if (!notificationResult.success) {
-        print(
-          '[PATIENT_LINKING] FCM send failed for disconnect: ${notificationResult.error}',
-        );
-      }
-    }
+    final pushResult = await _dispatchPatientStatusPush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      action: 'disconnect',
+      title: 'Account Disconnected',
+      body:
+          'Your study account has been disconnected. Please contact your study coordinator.',
+      newStatus: 'disconnected',
+      useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeDisconnect,
+      logPrefix: 'PATIENT_LINKING',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
       '[PATIENT_LINKING] No active FCM token for $patientId; skipping disconnect push',
@@ -953,24 +994,22 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
   );
 
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendPatientStatusNotification(
-          fcmToken: fcmToken,
-          patientId: patientId,
-          action: 'mark_not_participating',
-          title: 'Study Participation Ended',
-          body:
-              'Your study participation has ended. Please contact your study coordinator if you have questions.',
-          extraData: {'new_status': 'not_participating'},
-        );
-    fcmMessageId = notificationResult.messageId;
-    if (!notificationResult.success) {
-      print(
-        '[PATIENT_LINKING] FCM send failed for not-participating: ${notificationResult.error}',
-      );
-    }
+    final pushResult = await _dispatchPatientStatusPush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      action: 'mark_not_participating',
+      title: 'Study Participation Ended',
+      body:
+          'Your study participation has ended. Please contact your study coordinator if you have questions.',
+      newStatus: 'not_participating',
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeNotParticipating,
+      logPrefix: 'PATIENT_LINKING',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
       '[PATIENT_LINKING] No active FCM token for $patientId; skipping not-participating push',
@@ -1003,6 +1042,8 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
         'marked_by_email': user.email,
         'marked_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Patient marked as not participating: $reason',
       'ipAddress': clientIp,
@@ -1161,24 +1202,21 @@ Future<Response> reactivatePatientHandler(Request request) async {
   );
 
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendPatientStatusNotification(
-          fcmToken: fcmToken,
-          patientId: patientId,
-          action: 'reactivate',
-          title: 'Account Reactivated',
-          body:
-              'Your study account has been reactivated. Please contact your study coordinator to reconnect.',
-          extraData: {'new_status': 'disconnected'},
-        );
-    fcmMessageId = notificationResult.messageId;
-    if (!notificationResult.success) {
-      print(
-        '[PATIENT_LINKING] FCM send failed for reactivate: ${notificationResult.error}',
-      );
-    }
+    final pushResult = await _dispatchPatientStatusPush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      action: 'reactivate',
+      title: 'Account Reactivated',
+      body:
+          'Your study account has been reactivated. Please contact your study coordinator to reconnect.',
+      newStatus: 'disconnected',
+      useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeReactivate,
+      logPrefix: 'PATIENT_LINKING',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
       '[PATIENT_LINKING] No active FCM token for $patientId; skipping reactivate push',
@@ -1210,6 +1248,8 @@ Future<Response> reactivatePatientHandler(Request request) async {
         'reactivated_by_email': user.email,
         'reactivated_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Patient reactivated: $reason',
       'ipAddress': clientIp,
