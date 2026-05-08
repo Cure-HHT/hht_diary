@@ -1263,6 +1263,90 @@ void main() {
 
       expect(response.statusCode, 404);
     });
+
+    // CUR-1311 (Phase 1B.3): envelope flag for questionnaire_unlocked.
+    group('envelope flag (FCM_USE_ENVELOPE_QUESTIONNAIRE_UNLOCKED)', () {
+      tearDown(() {
+        NotificationConfig.fromEnvironmentOverride = null;
+        NotificationService.resetForTesting();
+      });
+
+      test('flag ON: inserts notification + surfaces id in audit', () async {
+        final captured = <String>[];
+        Map<String, dynamic>? auditDetails;
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          captured.add(query);
+          if (query.contains('FROM questionnaire_instances')) {
+            return [_instanceRow(status: 'ready_to_review')];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-1234567890'],
+            ];
+          }
+          if (query.contains('SELECT notification_id') &&
+              query.contains('FROM notifications')) {
+            final now = DateTime.utc(2026, 5, 8, 10, 30);
+            return [
+              <dynamic>[
+                parameters!['id'],
+                parameters['patientId'],
+                'questionnaire_update',
+                'Questionnaire Unlocked',
+                'A questionnaire has been unlocked for editing.',
+                true,
+                '{"action":"unlock_task","questionnaire_instance_id":"$_testInstanceId"}',
+                'sent',
+                'projects/test/messages/0:un',
+                null,
+                now,
+                now,
+                null,
+              ],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            auditDetails =
+                jsonDecode(parameters!['actionDetails'] as String)
+                    as Map<String, dynamic>;
+            return [];
+          }
+          return [];
+        };
+
+        NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+          useEnvelopeQuestionnaireUnlocked: true,
+        );
+        await NotificationService.instance.initialize(
+          NotificationConfig.fromEnvironmentOverride!,
+        );
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/questionnaire-instances/$_testInstanceId/unlock',
+        );
+
+        final response = await unlockQuestionnaireHandler(
+          request,
+          _testInstanceId,
+        );
+
+        expect(response.statusCode, 200);
+        expect(
+          captured.any((q) => q.contains('INSERT INTO notifications')),
+          isTrue,
+        );
+        expect(auditDetails, isNotNull);
+        expect(
+          auditDetails!['fcm_message_id'],
+          equals('projects/test/messages/0:un'),
+        );
+        expect(auditDetails!['notification_id'], isA<String>());
+      });
+    });
   });
 
   // ====================================================================
@@ -1404,6 +1488,91 @@ void main() {
       expect(auditQuery, isNotEmpty);
       // Action type is hardcoded in SQL, not a named parameter
       expect(auditQuery.first.query, contains('QUESTIONNAIRE_FINALIZED'));
+    });
+
+    // CUR-1311 (Phase 1B.3): envelope flag for questionnaire_finalized.
+    group('envelope flag (FCM_USE_ENVELOPE_QUESTIONNAIRE_FINALIZED)', () {
+      tearDown(() {
+        NotificationConfig.fromEnvironmentOverride = null;
+        NotificationService.resetForTesting();
+      });
+
+      test('flag ON: inserts notification + surfaces id in audit', () async {
+        final captured = <String>[];
+        Map<String, dynamic>? auditDetails;
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          captured.add(query);
+          if (query.contains('FROM questionnaire_instances')) {
+            return [_instanceRow(status: 'ready_to_review')];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-1234567890'],
+            ];
+          }
+          if (query.contains('SELECT notification_id') &&
+              query.contains('FROM notifications')) {
+            final now = DateTime.utc(2026, 5, 8, 10, 30);
+            return [
+              <dynamic>[
+                parameters!['id'],
+                parameters['patientId'],
+                'questionnaire_update',
+                'Questionnaire Finalized',
+                'Your questionnaire has been finalized.',
+                true,
+                '{"action":"lock_task","questionnaire_instance_id":"$_testInstanceId"}',
+                'sent',
+                'projects/test/messages/0:fn',
+                null,
+                now,
+                now,
+                null,
+              ],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            auditDetails =
+                jsonDecode(parameters!['actionDetails'] as String)
+                    as Map<String, dynamic>;
+            return [];
+          }
+          return [];
+        };
+
+        NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+          useEnvelopeQuestionnaireFinalized: true,
+        );
+        await NotificationService.instance.initialize(
+          NotificationConfig.fromEnvironmentOverride!,
+        );
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/questionnaire-instances/$_testInstanceId/finalize',
+          body: jsonEncode({'score': 5}),
+        );
+
+        final response = await finalizeQuestionnaireHandler(
+          request,
+          _testInstanceId,
+        );
+
+        expect(response.statusCode, 200);
+        expect(
+          captured.any((q) => q.contains('INSERT INTO notifications')),
+          isTrue,
+        );
+        expect(auditDetails, isNotNull);
+        expect(
+          auditDetails!['fcm_message_id'],
+          equals('projects/test/messages/0:fn'),
+        );
+        expect(auditDetails!['notification_id'], isA<String>());
+      });
     });
   });
 

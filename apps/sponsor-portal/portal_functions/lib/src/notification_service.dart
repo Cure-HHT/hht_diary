@@ -40,6 +40,10 @@ class NotificationConfig {
     this.useEnvelopeReactivate = false,
     this.useEnvelopeReconnect = false,
     this.useEnvelopeStartTrial = false,
+    this.useEnvelopeQuestionnaireSent = false,
+    this.useEnvelopeQuestionnaireDeleted = false,
+    this.useEnvelopeQuestionnaireUnlocked = false,
+    this.useEnvelopeQuestionnaireFinalized = false,
   });
 
   /// Test-only override that short-circuits [fromEnvironment]. Lets a
@@ -67,6 +71,17 @@ class NotificationConfig {
           Platform.environment['FCM_USE_ENVELOPE_RECONNECT'] == 'true',
       useEnvelopeStartTrial:
           Platform.environment['FCM_USE_ENVELOPE_START_TRIAL'] == 'true',
+      useEnvelopeQuestionnaireSent:
+          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_SENT'] == 'true',
+      useEnvelopeQuestionnaireDeleted:
+          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_DELETED'] ==
+          'true',
+      useEnvelopeQuestionnaireUnlocked:
+          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_UNLOCKED'] ==
+          'true',
+      useEnvelopeQuestionnaireFinalized:
+          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_FINALIZED'] ==
+          'true',
     );
   }
 
@@ -104,6 +119,22 @@ class NotificationConfig {
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
   /// `startTrialHandler`.
   final bool useEnvelopeStartTrial;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
+  /// `sendQuestionnaireHandler` (alert push).
+  final bool useEnvelopeQuestionnaireSent;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
+  /// `deleteQuestionnaireHandler` (silent push — userVisible=false).
+  final bool useEnvelopeQuestionnaireDeleted;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
+  /// `unlockQuestionnaireHandler` (alert push).
+  final bool useEnvelopeQuestionnaireUnlocked;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
+  /// `finalizeQuestionnaireHandler` (alert push).
+  final bool useEnvelopeQuestionnaireFinalized;
 
   /// Check if notification service is properly configured.
   bool get isConfigured => enabled && projectId.isNotEmpty;
