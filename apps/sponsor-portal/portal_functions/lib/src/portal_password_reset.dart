@@ -36,11 +36,14 @@ Future<String> _getIdentityPlatformAccessToken() async {
         'https://www.googleapis.com/auth/firebase',
       ],
     );
-
-    final credentials = client.credentials;
-    final accessToken = credentials.accessToken.data;
-    client.close();
-    return accessToken;
+    try {
+      final credentials = client.credentials;
+      return credentials.accessToken.data;
+    } finally {
+      // Close even if accessToken access throws — without this the
+      // ADC client leaks a pooled HTTP connection on every failure.
+      client.close();
+    }
   } catch (e) {
     print('[PASSWORD_RESET] WIF failed, trying gcloud auth: $e');
   }
@@ -62,11 +65,20 @@ Future<String> _getIdentityPlatformAccessToken() async {
   throw Exception('Failed to obtain access token via WIF or gcloud');
 }
 
-/// Get GCP project ID from environment
+/// Get GCP project id. Precedence matches identity_admin.dart:53,
+/// identity_platform.dart:35, and identity_config.dart:36 —
+/// PORTAL_IDENTITY_PROJECT_ID first, then GCP_PROJECT_ID, then
+/// GOOGLE_CLOUD_PROJECT, then a sponsor-neutral sentinel. The
+/// previous default 'callisto4-dev' baked a sponsor-specific live
+/// project name into source — kept the right answer for one sponsor
+/// but biased misconfigured deployments toward the wrong project for
+/// every other sponsor. Production must set at least one of the
+/// first three env vars.
 String get _gcpProjectId {
   return Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
       Platform.environment['GCP_PROJECT_ID'] ??
-      'callisto4-dev';
+      Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
+      'demo-test';
 }
 
 /// Request password reset email

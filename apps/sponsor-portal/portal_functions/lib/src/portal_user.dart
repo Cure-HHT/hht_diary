@@ -99,10 +99,10 @@ Future<Response> getPortalUsersHandler(Request request) async {
   final users = result.map((r) {
     // Parse roles - string_agg returns comma-separated text (not text[])
     // which the postgres v3 package reliably decodes as a Dart String.
+    // (No per-row debug print here: in a sponsor with N portal users, a
+    // print() per row is a bulk dump, which REVIEW NOTE (b) in
+    // portal_activation.dart calls out as not acceptable.)
     final rolesData = r[7];
-    print(
-      '[PORTAL_USER] rolesData type=${rolesData.runtimeType}, value=$rolesData',
-    );
     List<String> roles = [];
     if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
       roles = rolesData.split(',');
@@ -195,9 +195,6 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
 
   // Parse roles - string_agg returns comma-separated text
   final rolesData = r[6];
-  print(
-    '[PORTAL_USER] single user rolesData type=${rolesData.runtimeType}, value=$rolesData',
-  );
   List<String> roles = [];
   if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
     roles = rolesData.split(',');
@@ -407,22 +404,7 @@ Future<Response> createPortalUserHandler(Request request) async {
   }
 
   final newUserId = createResult.first[0] as String;
-  print(
-    '[PORTAL_USER] INSERT complete: userId=$newUserId, activation_code=$activationCode',
-  );
-
-  // Verify the code was stored correctly
-  final verifyResult = await db.executeWithContext(
-    'SELECT activation_code FROM portal_users WHERE id = @id::uuid',
-    parameters: {'id': newUserId},
-    context: serviceContext,
-  );
-  final storedCode = verifyResult.isNotEmpty
-      ? verifyResult.first[0]
-      : 'NOT_FOUND';
-  print(
-    '[PORTAL_USER] VERIFY: stored_code=$storedCode, matches=${storedCode == activationCode}',
-  );
+  print('[PORTAL_USER] INSERT complete: userId=$newUserId');
 
   // Create role assignments in portal_user_roles
   for (final role in roles) {
@@ -856,19 +838,36 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     }
   }
 
-  // Handle regenerating activation code
+  // Handle regenerating activation code.
+  //
+  // Mirrors generateActivationCodeHandler's active-user guard: silently
+  // resetting status='pending' on an active user locks them out
+  // (requirePortalAuth gates on status='active'). The status='pending'
+  // UPDATE here is intended for the pending->pending re-issue case; it
+  // also fires for revoked->pending (re-invite). Active users must
+  // never be flipped via this path.
   if (body['regenerate_activation'] == true) {
+    if (currentStatus == 'active') {
+      return _jsonResponse({
+        'error': 'Cannot regenerate activation code for an active user',
+        'code': 'already_active',
+      }, 409);
+    }
     final activationCode = _generateCode();
     final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
-    await db.executeWithContext(
+    // Belt-and-suspenders WHERE: the explicit guard above is the gate;
+    // this clause prevents a race where the row goes active between
+    // the pre-check and this UPDATE.
+    final updated = await db.executeWithContext(
       '''
       UPDATE portal_users
       SET activation_code = @code,
           activation_code_expires_at = @expiry,
           status = 'pending',
           updated_at = now()
-      WHERE id = @userId::uuid
+      WHERE id = @userId::uuid AND status != 'active'
+      RETURNING id
       ''',
       parameters: {
         'userId': userId,
@@ -877,6 +876,12 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       },
       context: serviceContext,
     );
+    if (updated.isEmpty) {
+      return _jsonResponse({
+        'error': 'User became active during code regeneration',
+        'code': 'already_active',
+      }, 409);
+    }
 
     return _jsonResponse({'success': true, 'activation_code': activationCode});
   }

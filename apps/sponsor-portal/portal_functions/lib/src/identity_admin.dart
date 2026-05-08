@@ -45,14 +45,18 @@ class IdentityAdmin {
     return 'https://identitytoolkit.googleapis.com/v1';
   }
 
-  /// Project id from env. Precedence matches portal_password_reset.dart:67
-  /// and identity_config.dart:36 — PORTAL_IDENTITY_PROJECT_ID first, then
-  /// GCP_PROJECT_ID, then a test-only sentinel. Production must set at
-  /// least one of the two; mismatched precedence here would silently call
-  /// the wrong Identity Platform project.
+  /// Project id from env. Precedence matches identity_platform.dart:35,
+  /// portal_password_reset.dart:67, and identity_config.dart:36 —
+  /// PORTAL_IDENTITY_PROJECT_ID first, then GCP_PROJECT_ID, then
+  /// GOOGLE_CLOUD_PROJECT, then a test-only sentinel. Production must
+  /// set at least one of the first three; a mismatch in the fallback
+  /// chain (e.g., this file resolving to project A while token
+  /// verification audience-checks project B) would silently break
+  /// sign-in.
   static String get _projectId =>
       Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
       Platform.environment['GCP_PROJECT_ID'] ??
+      Platform.environment['GOOGLE_CLOUD_PROJECT'] ??
       'demo-test';
 
   /// Returns an HTTP client. When FIREBASE_AUTH_EMULATOR_HOST is set a plain

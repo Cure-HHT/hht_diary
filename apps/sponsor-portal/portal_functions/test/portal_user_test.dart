@@ -361,6 +361,51 @@ void main() {
         );
         expect(response.statusCode, isNot(equals(400)));
       });
+
+      // The regenerate_activation body flag is a separate code path inside
+      // updatePortalUserHandler that doesn't go through the body['status']
+      // guard above. It would silently flip an active user to 'pending'
+      // (locking them out of /portal/me) without an explicit guard, so it
+      // mirrors generateActivationCodeHandler's active-user 409 reject.
+      test(
+        'rejects regenerate_activation on an active user (409 already_active)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains(
+                  'SELECT id, name, email, status FROM portal_users',
+                )) {
+                  return [
+                    [targetId, 'Target', 'target@example.com', 'active'],
+                  ];
+                }
+                if (query.contains('FROM portal_user_roles')) {
+                  return [
+                    [
+                      <String>['Investigator'],
+                    ],
+                  ];
+                }
+                if (query.contains('FROM portal_user_site_access')) {
+                  return [
+                    [<String>[]],
+                  ];
+                }
+                return [];
+              };
+          final response = await updatePortalUserHandler(
+            createPatchRequest(
+              '/api/v1/portal/users/$targetId',
+              {'regenerate_activation': true},
+              headers: {'authorization': 'Bearer test'},
+            ),
+            targetId,
+          );
+          expect(response.statusCode, equals(409));
+          final body = await getResponseJson(response);
+          expect(body['code'], equals('already_active'));
+        },
+      );
     });
   });
 
