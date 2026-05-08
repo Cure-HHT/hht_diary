@@ -1,0 +1,51 @@
+name: SonarQube
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      # SonarQube reads source directly; no artifact-producing build is
+      # required. Resolving pub dependencies in the most-touched Dart
+      # packages lets the scanner see cross-package imports and gives a
+      # better signal on unused symbols / dead code. Add packages here as
+      # they grow material in coverage.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Resolve dependencies
+        run: |
+          set -e
+          for pkg in \
+              apps/sponsor-portal/portal_functions \
+              apps/sponsor-portal/portal_server \
+              apps/sponsor-portal/portal-ui \
+              apps/daily-diary/clinical_diary \
+              apps/daily-diary/diary_functions \
+              apps/daily-diary/diary_server \
+              apps/common-dart/append_only_datastore \
+              apps/common-dart/trial_data_types
+          do
+            echo "::group::flutter pub get ($pkg)"
+            (cd "$pkg" && flutter pub get) \
+              || (cd "$pkg" && dart pub get)
+            echo "::endgroup::"
+          done
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
