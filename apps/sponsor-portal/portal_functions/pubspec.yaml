@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.28+47
+version: 0.1.29+48
 publish_to: none
 
 environment:
@@ -51,3 +51,9 @@ dependencies:
 dev_dependencies:
   test: ^1.25.15
   mocktail: ^1.0.4
+  # Imported directly by ~6 test files (notification_service_test,
+  # portal_auth_test, patient_linking_test, integration_test/*).
+  # Available transitively via otel_common but a direct declaration
+  # is required by sonar:dart:S7087 and protects against an upstream
+  # version bump silently breaking the test imports.
+  dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'

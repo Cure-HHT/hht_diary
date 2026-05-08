@@ -17,12 +17,10 @@ void main() {
       final result = VerificationResult(
         uid: 'test-uid',
         email: 'test@example.com',
-        emailVerified: true,
       );
       expect(result.isValid, isTrue);
       expect(result.uid, equals('test-uid'));
       expect(result.email, equals('test@example.com'));
-      expect(result.emailVerified, isTrue);
     });
 
     test('isValid returns false when uid is null', () {
@@ -30,16 +28,23 @@ void main() {
       expect(result.isValid, isFalse);
     });
 
-    test('isValid returns false when emailVerified is false', () {
-      // Closes the account-takeover gap that would otherwise surface in
-      // portal_auth's email-keyed re-link path.
-      final result = VerificationResult(
-        uid: 'test-uid',
-        email: 'test@example.com',
-      );
-      expect(result.emailVerified, isFalse);
-      expect(result.isValid, isFalse);
-    });
+    // Verifies: REQ-d00167-C — isValid = uid + no error (no emailVerified gate)
+    test(
+      'REQ-d00167-C: isValid is true when uid is set and no error, regardless of emailVerified',
+      () {
+        final unverified = VerificationResult(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          // emailVerified defaults to false
+        );
+        expect(unverified.emailVerified, isFalse);
+        expect(
+          unverified.isValid,
+          isTrue,
+          reason: 'isValid no longer requires emailVerified post-CUR-1296',
+        );
+      },
+    );
 
     test('isValid returns false when error is present', () {
       final result = VerificationResult(uid: 'test-uid', error: 'Some error');
@@ -604,7 +609,6 @@ void main() {
       final result = VerificationResult(
         uid: 'test-uid',
         email: 'test@example.com',
-        emailVerified: true,
         mfaInfo: mfaInfo,
       );
       expect(result.isValid, isTrue);

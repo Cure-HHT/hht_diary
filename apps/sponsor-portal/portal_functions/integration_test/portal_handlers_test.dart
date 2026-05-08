@@ -501,10 +501,14 @@ void main() {
     );
 
     test(
-      'portalMeHandler returns 403 for unauthorized email',
+      'portalMeHandler returns 401 uid_not_bound for unbound uid',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {
-        // Token with email that doesn't exist in portal_users
+        // CUR-1296: auth gate is uid-only. A token whose uid has no
+        // matching portal_users row is rejected with 401 + code
+        // uid_not_bound (not 403 — there is no email-pivot path that
+        // could promote an unbound uid to "merely unauthorized").
+        // Implements: REQ-d00167-A
         final token = createMockEmulatorToken(
           'unknown-uid',
           'unknown@example.com',
@@ -515,9 +519,9 @@ void main() {
         );
         final response = await portalMeHandler(request);
 
-        expect(response.statusCode, equals(403));
+        expect(response.statusCode, equals(401));
         final json = await getResponseJson(response);
-        expect(json['error'], contains('not authorized'));
+        expect(json['code'], equals('uid_not_bound'));
       },
     );
 
@@ -1099,75 +1103,27 @@ void main() {
       },
     );
 
-    test(
-      'portalMeHandler re-links firebase_uid when token UID differs from cached UID',
-      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
-      () async {
-        // CUR-1272 stale-UID recovery. Surfaces in three real situations:
-        // emulator restart mints a fresh UID for the same email, manual DB
-        // edits in dev, and the SPA's auth-state-listener / route-guard
-        // race (one request wins the link UPDATE; the other used to 403).
-        // The row is now treated as a cache and re-linked to the asserted UID.
-        const driftedFirebaseUid = 'firebase-admin-uid-after-emulator-restart';
-        final token = createMockEmulatorToken(
-          driftedFirebaseUid,
-          testAdminEmail,
-        );
-        final request = createGetRequest(
-          '/api/v1/portal/me',
-          headers: {'authorization': 'Bearer $token'},
-        );
-
-        try {
-          final response = await portalMeHandler(request);
-          expect(response.statusCode, equals(200));
-
-          // The DB row now points at the new UID.
-          final db = Database.instance;
-          final linked = await db.execute(
-            'SELECT firebase_uid FROM portal_users WHERE id = @id::uuid',
-            parameters: {'id': testAdminId},
-          );
-          expect(linked.first[0], equals(driftedFirebaseUid));
-        } finally {
-          // Restore the original UID so subsequent tests in this group
-          // continue to find the admin by `testAdminFirebaseUid`.
-          final db = Database.instance;
-          await db.execute(
-            'UPDATE portal_users SET firebase_uid = @uid WHERE id = @id::uuid',
-            parameters: {'uid': testAdminFirebaseUid, 'id': testAdminId},
-          );
-        }
-      },
-    );
+    // CUR-1296: the email-keyed firebase_uid re-link path was removed.
+    // Stale-UID recovery is no longer lazy backfill; admins use the explicit
+    // re-bind tooling (./local-stack rebind locally; admin endpoint in cloud).
+    // The "re-links when token UID differs" and "race / concurrent /portal/me"
+    // tests that exercised the relink mechanism are removed with the path.
 
     test(
-      'portalMeHandler accepts emulator token with email_verified: false '
-      '(emulator path is trusted-by-locality; gate is production-only)',
+      'portalMeHandler accepts emulator token with email_verified: false',
       skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
       () async {
-        // CUR-1272 added `&& emailVerified` to VerificationResult.isValid so
-        // an attacker minting an unverified-email token for a pre-authorized
-        // portal email could not re-link the row to their own UID. That gate
-        // is correct in production.
+        // REQ-d00167-C: VerificationResult.isValid no longer requires
+        // emailVerified. The takeover vector that earlier gated on it was
+        // closed structurally by the uid-only auth path (no email pivot
+        // means an attacker holding an unverified-email token for a
+        // pre-authorized email cannot re-link a portal_users row to their
+        // own UID — the row's stamped uid is never overwritten by /portal/me).
         //
-        // Under the emulator, the gate is pathological: the auth emulator has
-        // no email-sending pipeline, so seed_identity_users.js creates every
-        // legitimate user with email_verified=false. The gate would 401 every
-        // login and every activation. CUR-1280 narrows the gate to the
-        // production verification branch only — the emulator branch in
-        // identity_platform.dart hardcodes emailVerified=true with the same
-        // trusted-by-locality justification used for skipping aud/signature
-        // checks (the developer running the emulator already controls every
-        // identity it can mint).
-        //
-        // This test now verifies the emulator branch's behavior. Production
-        // verification of the same threat model is exercised against real
-        // Firebase tokens elsewhere — it cannot be exercised here because
-        // the emulator cannot mint a verified-email token without a real
-        // email pipeline.
+        // This test exercises the emulator branch (production token
+        // verification is exercised against real Firebase tokens elsewhere).
         final token = createMockEmulatorToken(
-          'attacker-firebase-uid',
+          testAdminFirebaseUid,
           testAdminEmail,
           emailVerified: false,
         );
@@ -1179,133 +1135,13 @@ void main() {
 
         expect(response.statusCode, equals(200));
 
-        // Re-link did fire — emulator path treats the token as valid.
+        // Bound row's uid is unchanged — uid-only auth never mutates it.
         final db = Database.instance;
-        final linked = await db.execute(
+        final stamped = await db.execute(
           'SELECT firebase_uid FROM portal_users WHERE id = @id::uuid',
           parameters: {'id': testAdminId},
         );
-        expect(linked.first[0], equals('attacker-firebase-uid'));
-      },
-    );
-
-    test(
-      'portalMeHandler returns 200 for both halves of a concurrent /portal/me race',
-      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
-      () async {
-        // Reproduces the original bug: the SPA's auth-state listener and
-        // route guard both fire /portal/me at once. One UPDATE used to win
-        // (firebase_uid IS NULL clause), the other fell through and 403d.
-        // Now both share the same email-keyed UPDATE and both return 200.
-        final db = Database.instance;
-        await db.execute(
-          'UPDATE portal_users SET firebase_uid = NULL WHERE id = @id::uuid',
-          parameters: {'id': testAdminId},
-        );
-
-        try {
-          final token = createMockEmulatorToken(
-            testAdminFirebaseUid,
-            testAdminEmail,
-          );
-          Request mkRequest() => createGetRequest(
-            '/api/v1/portal/me',
-            headers: {'authorization': 'Bearer $token'},
-          );
-          final responses = await Future.wait([
-            portalMeHandler(mkRequest()),
-            portalMeHandler(mkRequest()),
-          ]);
-
-          expect(
-            responses.map((r) => r.statusCode).toList(),
-            equals([200, 200]),
-          );
-        } finally {
-          await db.execute(
-            'UPDATE portal_users SET firebase_uid = @uid WHERE id = @id::uuid',
-            parameters: {'uid': testAdminFirebaseUid, 'id': testAdminId},
-          );
-        }
-      },
-    );
-
-    // CUR-1021: Admin creates user with mixed-case email. Firebase normalizes
-    // email to lowercase. First-login email-link lookup was case-sensitive
-    // against a case-preserving varchar column, so the user got 403.
-    // Fix: WHERE LOWER(email) = LOWER(@email) in portal_auth.dart.
-    test(
-      'portalMeHandler links firebase_uid when Firebase email case differs from DB',
-      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
-      () async {
-        // Seed a pending user with MIXED-case email and no firebase_uid.
-        const mixedCaseEmail = 'MixedCase.User@portal-test.example.com';
-        const pendingUserId = '99990000-0000-0000-0000-00000000c021';
-        const pendingFirebaseUid = 'firebase-cur1021-uid';
-
-        final db = Database.instance;
-        await db.execute(
-          '''
-          INSERT INTO portal_users (id, email, name, role, firebase_uid, status)
-          VALUES (@id::uuid, @email, 'CUR-1021 Case Test', 'Administrator',
-                  NULL, 'active')
-          ''',
-          parameters: {'id': pendingUserId, 'email': mixedCaseEmail},
-        );
-
-        try {
-          // Firebase sends the email lowercased.
-          final token = createMockEmulatorToken(
-            pendingFirebaseUid,
-            mixedCaseEmail.toLowerCase(),
-          );
-          final request = createGetRequest(
-            '/api/v1/portal/me',
-            headers: {'authorization': 'Bearer $token'},
-          );
-          final response = await portalMeHandler(request);
-
-          expect(
-            response.statusCode,
-            equals(200),
-            reason:
-                'Case-insensitive email match should find the user and link '
-                'firebase_uid on first login',
-          );
-          final json = await getResponseJson(response);
-          // DB retains the original mixed case — we just want the match to work.
-          expect(
-            (json['email'] as String).toLowerCase(),
-            equals(mixedCaseEmail.toLowerCase()),
-          );
-
-          // Confirm the link actually happened in the DB.
-          final linked = await db.execute(
-            'SELECT firebase_uid FROM portal_users WHERE id = @id::uuid',
-            parameters: {'id': pendingUserId},
-          );
-          expect(linked.first[0], equals(pendingFirebaseUid));
-        } finally {
-          // Clean up so the test is idempotent.
-          await db.execute(
-            'ALTER TABLE portal_user_audit_log DISABLE RULE portal_user_audit_log_no_delete',
-          );
-          await db.execute(
-            'DELETE FROM portal_user_audit_log WHERE user_id = @id::uuid OR changed_by = @id::uuid',
-            parameters: {'id': pendingUserId},
-          );
-          await db.execute(
-            'ALTER TABLE portal_user_audit_log ENABLE RULE portal_user_audit_log_no_delete',
-          );
-          await db.execute(
-            'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
-            parameters: {'id': pendingUserId},
-          );
-          await db.execute(
-            'DELETE FROM portal_users WHERE id = @id::uuid',
-            parameters: {'id': pendingUserId},
-          );
-        }
+        expect(stamped.first[0], equals(testAdminFirebaseUid));
       },
     );
   });

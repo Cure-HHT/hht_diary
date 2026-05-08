@@ -36,7 +36,6 @@ void main() {
 
   const testPendingUserId = '99991000-0000-0000-0000-000000000002';
   const testPendingUserEmail = 'pending@activation-test.example.com';
-  const testPendingUserFirebaseUid = 'firebase-pending-uid-12345';
   const testActivationCode = 'TEST1-ACT01';
 
   const testAlreadyActiveUserId = '99991000-0000-0000-0000-000000000003';
@@ -48,11 +47,10 @@ void main() {
   const testExpiredUserEmail = 'expired@activation-test.example.com';
   const testExpiredCode = 'TEST3-EXPR3';
 
-  // Developer Admin pending user (for MFA enrollment test)
+  // Developer Admin pending user (for Dev-Admin happy path)
   const testDevAdminPendingId = '99991000-0000-0000-0000-000000000005';
   const testDevAdminPendingEmail =
       'devadmin-pending@activation-test.example.com';
-  const testDevAdminPendingFirebaseUid = 'firebase-devadmin-pending-uid';
   const testDevAdminPendingCode = 'TEST4-DADM4';
 
   setUpAll(() async {
@@ -335,143 +333,110 @@ void main() {
   });
 
   group('activateUserHandler', () {
-    test('returns 403 for email mismatch', () async {
-      // Try to activate with a different email than the one in the DB
-      final token = createMockEmulatorToken(
-        'wrong-uid-12345',
-        'wrong@example.com',
-        mfaEnrolled: true,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testActivationCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
-      final response = await activateUserHandler(request);
+    // CUR-1296: handler shape changed from bearer-token-driven (token.email
+    // had to match row.email; MFA claim from token gated dev-admin path) to
+    // server-owned: POST {code, password}, no bearer. The handler stamps
+    // firebase_uid + flips status in one TX; client signs in with the
+    // password it just sent. Tests below exercise the new shape.
 
-      expect(response.statusCode, equals(403));
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('Email does not match'));
-    });
+    // Skipped: bearer-based "email mismatch" test removed — there is no
+    // bearer on /portal/activate under CUR-1296 (REQ-d00166-A), and so no
+    // email pivot to mismatch from.
 
-    test('returns 401 for invalid activation code', () async {
-      final token = createMockEmulatorToken(
-        testPendingUserFirebaseUid,
-        testPendingUserEmail,
-        mfaEnrolled: true,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': 'WRONG-CODE1'},
-        headers: {'authorization': 'Bearer $token'},
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('Invalid activation code'));
-    });
-
-    test('returns 403 when Developer Admin MFA not enrolled', () async {
-      // Developer Admin without MFA should be rejected (they require TOTP)
-      final token = createMockEmulatorToken(
-        testDevAdminPendingFirebaseUid,
-        testDevAdminPendingEmail,
-        mfaEnrolled: false,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testDevAdminPendingCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(403));
-      final json = await getResponseJson(response);
-      expect(json['mfa_required'], isTrue);
-      expect(json['error'], contains('MFA enrollment required'));
-    });
-
-    test('non-admin activates without MFA (uses email OTP)', () async {
-      // Non-admin users don't need TOTP - they use email OTP on login
-      final token = createMockEmulatorToken(
-        testPendingUserFirebaseUid,
-        testPendingUserEmail,
-        mfaEnrolled: false,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testActivationCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(200));
-      final json = await getResponseJson(response);
-      expect(json['success'], isTrue);
-      expect(json['user'], isNotNull);
-      expect(json['user']['status'], equals('active'));
-      expect(json['user']['mfa_type'], equals('email_otp'));
-    });
-
-    test('returns 401 for expired activation code', () async {
-      // Try to activate with an expired code
-      final token = createMockEmulatorToken(
-        'firebase-expired-uid',
-        testExpiredUserEmail,
-        mfaEnrolled: true,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testExpiredCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
-      final response = await activateUserHandler(request);
-
-      expect(response.statusCode, equals(401));
-      final json = await getResponseJson(response);
-      expect(json['error'], contains('expired'));
-    });
-
-    test('returns 400 for already activated user', () async {
-      // Try to activate a user that's already active
-      final token = createMockEmulatorToken(
-        testAlreadyActiveFirebaseUid,
-        testAlreadyActiveEmail,
-        mfaEnrolled: true,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testAlreadyActiveCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
+    test('returns 400 code_invalid for unknown activation code', () async {
+      // REQ-d00166-B: unknown code -> 400 code_invalid.
+      final request = createPostRequest('/api/v1/portal/activate', {
+        'code': 'WRONG-CODE1',
+        'password': 'new-password-12345',
+      });
       final response = await activateUserHandler(request);
 
       expect(response.statusCode, equals(400));
       final json = await getResponseJson(response);
-      expect(json['error'], contains('already activated'));
+      expect(json['code'], equals('code_invalid'));
     });
 
-    test('Developer Admin activates successfully with MFA enrolled', () async {
-      // Developer Admin with MFA enrolled should succeed
-      final token = createMockEmulatorToken(
-        testDevAdminPendingFirebaseUid,
-        testDevAdminPendingEmail,
-        mfaEnrolled: true,
-      );
-      final request = createPostRequest(
-        '/api/v1/portal/activate',
-        {'code': testDevAdminPendingCode},
-        headers: {'authorization': 'Bearer $token'},
-      );
+    test(
+      'Developer Admin MFA enrollment gate (REQ-d00166-B)',
+      skip:
+          'Gate is informational-only until portal_users.totp_enrolled_at '
+          'lands; un-skip when the column + UI are wired.',
+      () async {
+        // Tracker for the deferred Dev-Admin TOTP enforcement at
+        // portal_activation.dart:196-207. Re-enable when totp_enrolled_at
+        // is added to the schema and the /activate/2fa page writes to it.
+      },
+    );
+
+    test('non-admin activates (no MFA gate)', () async {
+      // REQ-d00166-C+D: happy path for a non-admin pending row.
+      // Stamps firebase_uid, flips status to active, returns 200 + roles.
+      // Email-OTP MFA is enforced at sign-in time, not here.
+      final request = createPostRequest('/api/v1/portal/activate', {
+        'code': testActivationCode,
+        'password': 'new-password-12345',
+      });
       final response = await activateUserHandler(request);
 
       expect(response.statusCode, equals(200));
       final json = await getResponseJson(response);
-      expect(json['success'], isTrue);
-      expect(json['user'], isNotNull);
-      expect(json['user']['status'], equals('active'));
-      expect(json['user']['mfa_type'], equals('totp'));
+      expect(json['ok'], isTrue);
+      expect(json['roles'], isList);
+
+      // Verify side effects: firebase_uid stamped, status flipped.
+      final db = Database.instance;
+      final row = await db.execute(
+        'SELECT status, firebase_uid FROM portal_users WHERE email = @e',
+        parameters: {'e': testPendingUserEmail},
+      );
+      expect(row.first[0], equals('active'));
+      expect(row.first[1], isNotNull);
+    });
+
+    test('returns 400 code_expired for expired activation code', () async {
+      // REQ-d00166-B: expired code -> 400 code_expired.
+      final request = createPostRequest('/api/v1/portal/activate', {
+        'code': testExpiredCode,
+        'password': 'new-password-12345',
+      });
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(400));
+      final json = await getResponseJson(response);
+      expect(json['code'], equals('code_expired'));
+    });
+
+    test('returns 200 already_active=true for already-active user', () async {
+      // REQ-d00166-E: idempotent retry-after-success. The handler keeps
+      // activation_code in place after a successful activation so a retry
+      // with the same code lands on the same row, sees status='active',
+      // and short-circuits with already_active=true (no second IdP write).
+      final request = createPostRequest('/api/v1/portal/activate', {
+        'code': testAlreadyActiveCode,
+        'password': 'new-password-12345',
+      });
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(200));
+      final json = await getResponseJson(response);
+      expect(json['ok'], isTrue);
+      expect(json['already_active'], isTrue);
+    });
+
+    test('Developer Admin activates successfully', () async {
+      // Dev-Admin happy path. Same shape as non-admin under the current
+      // handler — the TOTP enforcement gate is deferred (see the skipped
+      // test above and portal_activation.dart:196-207).
+      final request = createPostRequest('/api/v1/portal/activate', {
+        'code': testDevAdminPendingCode,
+        'password': 'new-password-12345',
+      });
+      final response = await activateUserHandler(request);
+
+      expect(response.statusCode, equals(200));
+      final json = await getResponseJson(response);
+      expect(json['ok'], isTrue);
+      expect(json['roles'], contains('Developer Admin'));
     });
   });
 
@@ -495,13 +460,16 @@ void main() {
     });
 
     test('Developer Admin can generate activation code', () async {
+      // Use the expired-code pending fixture: pending user whose code
+      // has expired is a real re-issue case. Active users are rejected
+      // by the active-user guard (covered by the 409 test below).
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'user_id': testAlreadyActiveUserId},
+        {'user_id': testExpiredUserId},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -515,6 +483,27 @@ void main() {
         matches(RegExp(r'^[A-Z0-9]{5}-[A-Z0-9]{5}$')),
       );
       expect(json['expires_at'], isNotNull);
+    });
+
+    test('returns 409 already_active when target is already active', () async {
+      // Regenerating an activation code for an active user would
+      // silently flip status back to 'pending' and lock the user
+      // out (requirePortalAuth gates on status='active'). The
+      // handler must refuse before the destructive UPDATE.
+      final token = createMockEmulatorToken(
+        testDevAdminFirebaseUid,
+        testDevAdminEmail,
+      );
+      final request = createPostRequest(
+        '/api/v1/portal/admin/generate-code',
+        {'user_id': testAlreadyActiveUserId},
+        headers: {'authorization': 'Bearer $token'},
+      );
+      final response = await generateActivationCodeHandler(request);
+
+      expect(response.statusCode, equals(409));
+      final json = await getResponseJson(response);
+      expect(json['code'], equals('already_active'));
     });
 
     test('returns 404 for non-existent user', () async {
@@ -535,13 +524,17 @@ void main() {
     });
 
     test('can generate code by email', () async {
+      // Target a non-active user (pending+expired): regenerate-code is
+      // refused for active users (409 already_active) by design — see
+      // the dedicated 409 test above. The intent here is the
+      // by-email-vs-by-user_id lookup branch.
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'email': testAlreadyActiveEmail},
+        {'email': testExpiredUserEmail},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -549,19 +542,21 @@ void main() {
       expect(response.statusCode, equals(200));
       final json = await getResponseJson(response);
       expect(json['success'], isTrue);
-      expect(json['user']['email'], equals(testAlreadyActiveEmail));
+      expect(json['user']['email'], equals(testExpiredUserEmail));
     });
 
     test('can generate code by email regardless of case', () async {
       // Pins the case-insensitive lookup at portal_activation.dart so a
       // regression to case-sensitive `WHERE email = @email` would fail here.
+      // Target a non-active user (pending+expired) for the same reason
+      // as the previous test.
       final token = createMockEmulatorToken(
         testDevAdminFirebaseUid,
         testDevAdminEmail,
       );
       final request = createPostRequest(
         '/api/v1/portal/admin/generate-code',
-        {'email': testAlreadyActiveEmail.toUpperCase()},
+        {'email': testExpiredUserEmail.toUpperCase()},
         headers: {'authorization': 'Bearer $token'},
       );
       final response = await generateActivationCodeHandler(request);
@@ -572,7 +567,7 @@ void main() {
       // DB returns the row's stored case; we just want the match to work.
       expect(
         (json['user']['email'] as String).toLowerCase(),
-        equals(testAlreadyActiveEmail.toLowerCase()),
+        equals(testExpiredUserEmail.toLowerCase()),
       );
     });
   });

@@ -23,7 +23,8 @@ This specification defines the Portal Linking API endpoint that mobile apps call
 
 # REQ-d00109: Portal Linking Code Validation Endpoint
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70007
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -73,7 +74,8 @@ Q. The system SHALL maintain token validity until explicitly revoked through por
 
 # REQ-d00110: Linking API Error Response Strategy
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70007 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70007
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -109,7 +111,8 @@ J. The system SHALL NOT include stack traces, internal error codes, or debugging
 
 # REQ-d00111: Linking API Audit Trail
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p00010 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00010
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -149,7 +152,8 @@ L. The system SHALL log the `request_id` as a UUID v7 for correlation with other
 
 # REQ-d00112: Enrollment Token Revocation
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p70010 | **Refines**: REQ-d00078
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p70010
+**Refines**: REQ-d00078
 
 ## Rationale
 
@@ -189,7 +193,7 @@ L. The system SHALL NOT delete historical data when revoking tokens; revocation 
 
 # REQ-d00114: Sync Request Device Binding Verification
 
-**Level**: Dev | **Status**: Draft | **Implements**: REQ-p01030
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01030
 
 ## Rationale
 
@@ -237,3 +241,78 @@ F. The server SHALL enforce device UUID verification independently of token vali
 **Document Classification**: Internal Use - Development Specification
 **Review Frequency**: Quarterly or when modifying Portal Linking API
 **Owner**: Development Team
+
+## REQ-d00166: Server-owned portal activation
+
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00009
+
+## Assertions
+
+A. POST /api/v1/portal/activate SHALL accept {code, password} with no bearer authentication.
+
+B. The handler SHALL validate the code (exists, not expired, row status='pending') before any Identity Platform call. Dev-Admin TOTP enrollment-at-activation enforcement is deferred — tracked by the skipped test in integration_test/portal_activation_test.dart and the TODO at portal_activation.dart:202; the gate will activate when portal_users.totp_enrolled_at lands.
+
+C. The handler SHALL call IdentityAdmin.lookupOrProvisionByEmail exactly once per request.
+
+D. On lookupOrProvisionByEmail success, the handler SHALL stamp portal_users.firebase_uid and flip status to 'active' in a single SQL UPDATE statement guarded by WHERE id=@id AND status='pending' AND activation_code=@code, RETURNING id. The activation_code remains in place after success. The status='pending' clause is the gate against re-running the IdP write on an already-activated row; the activation_code clause defends against a code rotation racing the handler (Dev Admin reissues a fresh code via generateActivationCodeHandler between the pre-check SELECT and this UPDATE — the in-flight request must not activate the row using a now-stale code). An empty RETURNING result SHALL be reported as 409 activation_conflict.
+
+E. On retry after a successful activation, the handler SHALL return {ok: true, already_active: true} without a second Identity Platform call. The retry path locates the row by activation_code and short-circuits when status='active'.
+
+F. Identity Platform mutations SHALL precede DB mutations; failure of either SHALL leave the system in a state from which retry converges.
+
+*End* *Server-owned portal activation* | **Hash**: 73193945
+## REQ-d00167: Identity Platform binding is set only at activation
+
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00009
+
+## Assertions
+
+A. portalMeHandler and requirePortalAuth SHALL SELECT portal_users keyed only on firebase_uid. The handlers MUST NOT reference email in any auth-path SQL.
+
+B. When no row matches, the handler SHALL return 401 with code: uid_not_bound.
+
+C. VerificationResult.isValid SHALL be uid != null && error == null. No emailVerified requirement.
+
+*End* *Identity Platform binding is set only at activation* | **Hash**: 7a932bb7
+## REQ-d00168: Pre-authorized email uniqueness
+
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00009
+
+## Assertions
+
+A. createPortalUserHandler SHALL perform a case-insensitive SELECT id FROM portal_users WHERE LOWER(email) = LOWER(@email) before INSERT.
+
+B. On hit, the handler SHALL return 409 with code: email_already_known. No row SHALL be created. No Identity Platform traffic SHALL occur.
+
+*End* *Pre-authorized email uniqueness* | **Hash**: 0ce7ff6e
+## REQ-d00169: Pending row cleanup endpoint
+
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00009
+
+## Assertions
+
+A. DELETE /api/v1/portal/users/:id SHALL be reachable to Administrator + Developer Admin roles.
+
+B. The endpoint SHALL delete only rows with status='pending'. It SHALL return 400 with code: not_pending for any other status.
+
+C. Deletion SHALL cascade through portal_user_roles and portal_user_site_access.
+
+*End* *Pending row cleanup endpoint* | **Hash**: f8d99d20
+## REQ-d00170: Local-stack uid stamping
+
+**Level**: dev | **Status**: Draft | **Implements**: -
+**Refines**: REQ-p00009
+
+## Assertions
+
+A. seed_identity_users.js SHALL emit [{email, uid}, ...] to stdout after seeding completes.
+
+B. db-schema-job/entrypoint.sh SHALL consume the emitted map and run UPDATE portal_users SET firebase_uid = $uid WHERE LOWER(email) = LOWER($email) for each entry.
+
+C. ./local-stack rebind SHALL re-run the seed + stamp steps without re-applying schema or sponsor seeds.
+
+*End* *Local-stack uid stamping* | **Hash**: e8bd0d01

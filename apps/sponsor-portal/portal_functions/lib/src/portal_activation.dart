@@ -3,13 +3,48 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-p00010: FDA 21 CFR Part 11 Compliance
+//   REQ-d00166: Server-owned portal activation; {code, password} body; no bearer required
 //
 // Portal activation handlers - validate and process activation codes
 // for new user account setup
 //
 // Conditional MFA behavior:
-// - Developer Admin: requires TOTP (authenticator app) enrollment
+// - Developer Admin: requires TOTP (authenticator app) enrollment (tracked
+//   server-side once portal_users.totp_enrolled_at column is available;
+//   see TODO(REQ-d00166-B) below)
 // - All other roles: uses email OTP on every login (no TOTP enrollment)
+//
+// REVIEW NOTES (decisions consciously accepted; do not re-flag without
+// evidence the underlying assumption changed). Pointers in-line at the
+// relevant code sites reference these by letter.
+//
+// (a) Concurrent-activate race with different passwords. Two POSTs with
+//     the same code can both pass the SELECT, both call IdentityAdmin
+//     (last write wins on the IdP password), one DB UPDATE wins. Not
+//     exploitable under the current MFA model: non-Dev-Admin sign-in
+//     requires an email OTP delivered to the user's registered email,
+//     so an attacker who wins the race cannot also receive the OTP.
+//     An attacker with email access does not need the race (they can
+//     request a fresh code). REVISIT when Dev-Admin TOTP enrollment-at-
+//     activation lands — a racing attacker could enroll their own TOTP
+//     secret and sign-in would no longer require email OTP.
+//
+// (b) Activation code and email appear in print()s (e.g. "[ACTIVATION]
+//     Validating code: <code>", "[ACTIVATION] Activated <email>..."). In
+//     deployed environments Cloud Logging IAM restricts read access to
+//     project members; the activation code is a single-use token whoever
+//     holds the email already knows. Local-stack logs are stdout for
+//     the developer running them. NOT acceptable: bulk dumps of every
+//     pending user's row — the debug-table-dump that did this was
+//     removed in 6050ff5a.
+//
+// (c) The IdentityAdmin 4xx mapping uses `e.message.contains('WEAK_PASSWORD')`
+//     to distinguish password_too_weak from idp_request_invalid. Brittle
+//     against Identity Toolkit error-string reformatting. WEAK_PASSWORD
+//     has been the stable wire-level marker for years; the typed-
+//     subexception refactor is worth it when IdentityAdmin grows more
+//     sub-conditions, but until then the message-match has the same
+//     blast radius as a typed enum would (one site, one mapping).
 
 import 'dart:convert';
 import 'dart:io';
@@ -20,6 +55,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'email_service.dart';
 import 'feature_flags.dart';
+import 'identity_admin.dart';
 import 'identity_platform.dart';
 
 /// Validate an activation code (unauthenticated endpoint)
@@ -31,27 +67,11 @@ Future<Response> validateActivationCodeHandler(
   Request request,
   String code,
 ) async {
+  // See review note (b) at top of file: $code in logs is acceptable.
   print('[ACTIVATION] Validating code: $code');
 
   final db = Database.instance;
-
-  // Debug: Check what codes exist in the database
   const serviceContext = UserContext.service;
-  final debugResult = await db.executeWithContext('''
-    SELECT id, email, activation_code, status
-    FROM portal_users
-    WHERE activation_code IS NOT NULL
-    ''', context: serviceContext);
-  print(
-    '[ACTIVATION] DEBUG: Found ${debugResult.length} users with activation codes:',
-  );
-  for (final row in debugResult) {
-    print(
-      '[ACTIVATION] DEBUG:   id=${row[0]}, email=${row[1]}, code=${row[2]}, status=${row[3]}',
-    );
-  }
-
-  print('[ACTIVATION] Querying with service context for code: $code');
   final result = await db.executeWithContext(
     '''
     SELECT id, email, name, status, activation_code_expires_at
@@ -100,52 +120,46 @@ Future<Response> validateActivationCodeHandler(
   });
 }
 
-/// Activate user account with code and GCP Idenity Provider token
-/// POST /api/v1/portal/activate
-/// Authorization: Bearer <GCP Idenity Provider ID token>
-/// Body: { code: "XXXXX-XXXXX" }
+/// Activate user account with activation code and chosen password.
 ///
-/// Links firebase_uid to account, sets status to 'active'.
-/// Returns user info with roles for redirect.
+/// POST /api/v1/portal/activate
+/// Body: { code: "XXXXX-XXXXX", password: "<new password>" }
+///
+/// No bearer token required. The activation code is the authenticating
+/// credential. The server creates the Identity Platform account (Task 9)
+/// and links firebase_uid in one transaction.
+///
+/// Implements: REQ-d00166-A,B,E — server-owned activation; validation
+/// runs before any IdP call; idempotent retry-after-success.
 Future<Response> activateUserHandler(Request request) async {
   print('[ACTIVATION] Activation request received');
 
-  // Extract bearer token
-  final token = extractBearerToken(request.headers['authorization']);
-  if (token == null) {
-    print('[ACTIVATION] No authorization header found');
-    return _jsonResponse({'error': 'Missing authorization header'}, 401);
-  }
-
-  // Verify Identity Platform token
-  final verification = await verifyIdToken(token);
-  if (!verification.isValid) {
-    print('[ACTIVATION] Token verification FAILED: ${verification.error}');
-    return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
-  }
-
-  final firebaseUid = verification.uid!;
-  final firebaseEmail = verification.email;
-
-  print('[ACTIVATION] Token verified: uid=$firebaseUid, email=$firebaseEmail');
-
-  // Parse request body
   final body = await _parseJson(request);
   if (body == null) {
-    return _jsonResponse({'error': 'Invalid JSON body'}, 400);
+    return _jsonResponse({
+      'error': 'Invalid JSON body',
+      'code': 'invalid_body',
+    }, 400);
   }
 
   final code = body['code'] as String?;
+  final password = body['password'] as String?;
   if (code == null || code.isEmpty) {
-    return _jsonResponse({'error': 'Activation code is required'}, 400);
+    return _jsonResponse({
+      'error': 'Activation code is required',
+      'code': 'code_required',
+    }, 400);
+  }
+  if (password == null || password.isEmpty) {
+    return _jsonResponse({
+      'error': 'Password is required',
+      'code': 'password_required',
+    }, 400);
   }
 
   final db = Database.instance;
-
-  // Use service context for activation - linking identity before user context exists
   const serviceContext = UserContext.service;
 
-  // Find user by activation code
   final result = await db.executeWithContext(
     '''
     SELECT id, email, name, status, activation_code_expires_at
@@ -158,7 +172,10 @@ Future<Response> activateUserHandler(Request request) async {
 
   if (result.isEmpty) {
     print('[ACTIVATION] Code not found: $code');
-    return _jsonResponse({'error': 'Invalid activation code'}, 401);
+    return _jsonResponse({
+      'error': 'Invalid activation code',
+      'code': 'code_invalid',
+    }, 400);
   }
 
   final row = result.first;
@@ -168,136 +185,141 @@ Future<Response> activateUserHandler(Request request) async {
   final status = row[3] as String;
   final expiresAt = row[4] as DateTime?;
 
-  // Check if already activated
+  // REQ-d00166-E: idempotent retry-after-success.
   if (status == 'active') {
-    print('[ACTIVATION] Account already activated');
-    return _jsonResponse({'error': 'Account already activated'}, 400);
+    print('[ACTIVATION] Account already activated (idempotent)');
+    return _jsonResponse({'ok': true, 'already_active': true}, 200);
   }
 
-  // Check expiration
-  if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
-    print('[ACTIVATION] Code expired');
-    return _jsonResponse({'error': 'Activation code has expired'}, 401);
-  }
-
-  // Verify email matches (case-insensitive)
-  if (firebaseEmail?.toLowerCase() != userEmail.toLowerCase()) {
-    print(
-      '[ACTIVATION] Email mismatch: Firebase=$firebaseEmail, DB=$userEmail',
-    );
+  // REQ-d00166-B: only 'pending' rows may proceed to the IdP call. Any
+  // other non-active state ('revoked' per schema.sql:625, plus any future
+  // additions to the status enum) is rejected here, before IdentityAdmin
+  // can mutate the IdP password for an unauthorized row.
+  if (status != 'pending') {
+    print('[ACTIVATION] Row not pending (status=$status): $code');
     return _jsonResponse({
-      'error': 'Email does not match activation code',
-    }, 403);
+      'error': 'Account is not pending activation',
+      'code': 'not_pending',
+    }, 400);
   }
 
-  // Fetch user's roles to determine MFA requirements
+  if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
+    print('[ACTIVATION] Code expired: $code');
+    return _jsonResponse({
+      'error': 'Activation code has expired',
+      'code': 'code_expired',
+    }, 400);
+  }
+
+  // Role lookup. Dev-Admin TOTP enrollment-at-activation gate is
+  // deferred (REQ-d00166-B) — see the if(isDeveloperAdmin) block below
+  // and the TODO at the call site. Non-Dev-Admin roles use email OTP
+  // at sign-in time, not here.
   final rolesResult = await db.executeWithContext(
-    '''
-    SELECT role::text
-    FROM portal_user_roles
-    WHERE user_id = @userId::uuid
-    ORDER BY role
-    ''',
+    'SELECT role::text FROM portal_user_roles WHERE user_id = @userId::uuid ORDER BY role',
     parameters: {'userId': userId},
     context: serviceContext,
   );
-
   final roles = rolesResult.map((r) => r[0] as String).toList();
   final isDeveloperAdmin = roles.contains('Developer Admin');
 
-  // Determine MFA type based on role and feature flags
-  final mfaType = getMfaTypeForRole(
-    isDeveloperAdmin ? 'Developer Admin' : roles.firstOrNull ?? '',
-  );
-  final requiresTotp = requiresTotpEnrollment(
-    isDeveloperAdmin ? 'Developer Admin' : roles.firstOrNull ?? '',
-  );
-
-  print(
-    '[ACTIVATION] User roles: $roles, MFA type: $mfaType, requires TOTP: $requiresTotp',
-  );
-
-  // Check MFA enrollment status (FDA 21 CFR Part 11 compliance)
-  // Only Developer Admins require TOTP enrollment; others use email OTP
-  final mfaInfo = verification.mfaInfo;
-
-  if (requiresTotp) {
-    // Developer Admin must have TOTP enrolled
-    if (mfaInfo == null || !mfaInfo.isEnrolled) {
-      print(
-        '[ACTIVATION] Developer Admin MFA not enrolled - activation blocked',
-      );
-      return _jsonResponse({
-        'error': 'MFA enrollment required',
-        'mfa_required': true,
-        'mfa_type': 'totp',
-        'message':
-            'Please complete authenticator app setup before activating your account',
-      }, 403);
-    }
+  if (isDeveloperAdmin) {
+    // CUR-1296: with bearer-token-based MFA claims gone (REQ-d00166-A),
+    // Dev-Admin enrollment must be tracked server-side. The MFA setup
+    // page at /activate/2fa writes to portal_users.totp_enrolled_at on
+    // successful enrollment. Until that column lands and the UI is
+    // wired, the gate is informational only.
+    // TODO(REQ-d00166-B): wire Dev-Admin TOTP enrollment check once
+    //   portal_users.totp_enrolled_at column is added to the schema.
     print(
-      '[ACTIVATION] Developer Admin MFA verified: method=${mfaInfo.method}',
+      '[ACTIVATION] Dev Admin activation: TOTP enforcement deferred (no totp_enrolled_at column yet)',
     );
-  } else {
-    // Non-admin users use email OTP - no TOTP enrollment required
-    print('[ACTIVATION] Non-admin user - will use email OTP on login');
   }
 
-  // Activate the account with MFA tracking.
+  // Implements: REQ-d00166-C+D+F — single IdP call; IdP-first / DB-second
+  // mutation order; transactional DB stamp. Idempotent on retry.
+  final LookupOrProvisionResult idp;
+  try {
+    idp = await IdentityAdmin.lookupOrProvisionByEmail(
+      email: userEmail,
+      displayName: userName,
+      password: password,
+    );
+  } on IdentityAdminException catch (e) {
+    print('[ACTIVATION] Identity Platform call failed: $e');
+    // 4xx from Identity Toolkit = caller-correctable (weak password,
+    // invalid request body). Surface a 400 with a stable code so the
+    // UI can render a useful message (ActivationPage._mapServerErrorCode
+    // already maps password_too_weak). 5xx / no statusCode = upstream
+    // availability; keep 502 idp_unavailable so the caller knows a
+    // retry might succeed.
+    //
+    // See review note (c) at top of file: the WEAK_PASSWORD message
+    // match is brittle but consciously accepted.
+    final sc = e.statusCode;
+    if (sc != null && sc >= 400 && sc < 500) {
+      final code = e.message.contains('WEAK_PASSWORD')
+          ? 'password_too_weak'
+          : 'idp_request_invalid';
+      return _jsonResponse({
+        'error': 'Identity Platform rejected the request',
+        'code': code,
+      }, 400);
+    }
+    return _jsonResponse({
+      'error': 'Identity Platform unavailable',
+      'code': 'idp_unavailable',
+    }, 502);
+  }
+
+  // Stamp firebase_uid + flip to active, gated by status='pending' AND
+  // matching activation_code. The activation_code clause defends against
+  // a code rotation racing this handler (Dev Admin reissues a fresh code
+  // between SELECT and UPDATE — the in-flight request must not activate
+  // the row using a now-stale code). The status='pending' clause defends
+  // against a concurrent activate that already flipped the row.
+  // RETURNING id lets us detect the 0-row case deterministically.
+  // REQ-d00166-E: activation_code is preserved on success so retries with
+  // the same code re-enter the SELECT->status=='active' short-circuit
+  // above and return 200 already_active=true.
   //
-  // CUR-1280: the WHERE clause adds `activation_code = @code AND status = 'pending'`
-  // so this UPDATE is the single atomic step that consumes the code. Two
-  // concurrent activations with the same code (browser-tab race, retry
-  // storm) both pass the SELECT/role-lookup phase above, but READ COMMITTED
-  // guarantees only one of them sees a non-empty RETURNING here — the other
-  // gets a stale-state response.
+  // See review note (a) at top of file: the residual concurrent-POST
+  // race with *different* passwords is consciously accepted under the
+  // current email-OTP MFA model. Revisit when Dev-Admin TOTP-at-activation
+  // lands.
   final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
-    SET firebase_uid = @firebaseUid,
+    SET firebase_uid = @uid,
         status = 'active',
-        activated_at = now(),
-        mfa_enrolled = @mfaEnrolled,
-        mfa_enrolled_at = CASE WHEN @mfaEnrolled THEN now() ELSE NULL END,
-        mfa_method = @mfaMethod,
-        mfa_type = @mfaType,
-        activation_code = NULL,
-        activation_code_expires_at = NULL,
         updated_at = now()
-    WHERE id = @userId::uuid
-      AND activation_code = @code
-      AND status = 'pending'
+    WHERE id = @id::uuid AND status = 'pending' AND activation_code = @code
     RETURNING id
     ''',
-    parameters: {
-      'firebaseUid': firebaseUid,
-      'userId': userId,
-      'code': code,
-      'mfaEnrolled': requiresTotp && mfaInfo?.isEnrolled == true,
-      'mfaMethod': requiresTotp ? (mfaInfo?.method ?? 'totp') : null,
-      'mfaType': mfaType,
-    },
+    parameters: {'uid': idp.uid, 'id': userId, 'code': code},
     context: serviceContext,
   );
 
   if (updated.isEmpty) {
-    print('[ACTIVATION] Code consumed by concurrent request: $code');
-    return _jsonResponse({'error': 'Activation code is no longer valid'}, 409);
+    // Row was deleted, status changed, or activation_code was rotated
+    // between the pre-check and this UPDATE. The IdP write already
+    // happened; the DB binding does not reflect this request. The
+    // caller must restart with the current row state.
+    print(
+      '[ACTIVATION] Activation conflict: row state changed under us '
+      '(userId=$userId, code=$code)',
+    );
+    return _jsonResponse({
+      'error': 'Activation state changed; please retry',
+      'code': 'activation_conflict',
+    }, 409);
   }
 
-  print('[ACTIVATION] Account activated: $userId, mfa_type: $mfaType');
+  print(
+    '[ACTIVATION] Activated $userEmail (uid=${idp.uid}, created=${idp.created})',
+  );
 
-  return _jsonResponse({
-    'success': true,
-    'user': {
-      'id': userId,
-      'email': userEmail,
-      'name': userName,
-      'roles': roles,
-      'mfa_type': mfaType,
-      'status': 'active',
-    },
-  });
+  return _jsonResponse({'ok': true, 'roles': roles}, 200);
 }
 
 /// Generate activation code for an existing user (Developer Admin only)
@@ -383,19 +405,36 @@ Future<Response> generateActivationCodeHandler(Request request) async {
   final targetUserId = targetResult.first[0] as String;
   final targetEmail = targetResult.first[1] as String;
   final targetName = targetResult.first[2] as String;
+  final targetStatus = targetResult.first[3] as String;
+
+  // Reject regenerate-code for active users. The UPDATE below resets
+  // status to 'pending' (intentional for the revoked-user re-invite
+  // path), but applying it to an active user silently locks them out
+  // — requirePortalAuth gates on status='active'. Refuse here before
+  // any destructive write lands.
+  if (targetStatus == 'active') {
+    return _jsonResponse({
+      'error': 'Cannot regenerate activation code for an active user',
+      'code': 'already_active',
+    }, 409);
+  }
 
   // Generate new activation code
   final activationCode = _generateCode();
   final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
-  await db.executeWithContext(
+  // WHERE clause is belt-and-suspenders: the explicit status check
+  // above is the gate; this guard prevents a race where the row
+  // transitions pending->active between SELECT and UPDATE.
+  final updated = await db.executeWithContext(
     '''
     UPDATE portal_users
     SET activation_code = @code,
         activation_code_expires_at = @expiry,
         status = 'pending',
         updated_at = now()
-    WHERE id = @userId::uuid
+    WHERE id = @userId::uuid AND status != 'active'
+    RETURNING id
     ''',
     parameters: {
       'userId': targetUserId,
@@ -404,6 +443,13 @@ Future<Response> generateActivationCodeHandler(Request request) async {
     },
     context: serviceContext,
   );
+  if (updated.isEmpty) {
+    // Row went active under us between SELECT and UPDATE.
+    return _jsonResponse({
+      'error': 'User became active during code regeneration',
+      'code': 'already_active',
+    }, 409);
+  }
 
   print('[ACTIVATION] Generated code for: $targetEmail');
 

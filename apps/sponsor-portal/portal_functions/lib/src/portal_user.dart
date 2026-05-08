@@ -3,6 +3,7 @@
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-d00169: Pending row cleanup endpoint
 //   REQ-CAL-p00010: Schema-Driven Data Validation (EDC site sync)
 //   REQ-CAL-p00029: Create User Account (Study Coordinator, CRA roles)
 //   REQ-CAL-p00030: Edit User Account
@@ -24,6 +25,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:postgres/postgres.dart' show UniqueViolationException;
 import 'package:shelf/shelf.dart';
 
 import 'database.dart';
@@ -38,6 +40,11 @@ const _adminRoles = ['Administrator', 'Developer Admin'];
 
 /// Roles that can view all users
 const _viewAllRoles = ['Administrator', 'Developer Admin', 'Auditor'];
+
+/// RFC 4122 UUID pattern (case-insensitive, hyphenated).
+final _uuidRe = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
 
 /// Get all portal users (Admin/Auditor only)
 /// GET /api/v1/portal/users
@@ -92,10 +99,10 @@ Future<Response> getPortalUsersHandler(Request request) async {
   final users = result.map((r) {
     // Parse roles - string_agg returns comma-separated text (not text[])
     // which the postgres v3 package reliably decodes as a Dart String.
+    // (No per-row debug print here: in a sponsor with N portal users, a
+    // print() per row is a bulk dump, which REVIEW NOTE (b) in
+    // portal_activation.dart calls out as not acceptable.)
     final rolesData = r[7];
-    print(
-      '[PORTAL_USER] rolesData type=${rolesData.runtimeType}, value=$rolesData',
-    );
     List<String> roles = [];
     if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
       roles = rolesData.split(',');
@@ -188,9 +195,6 @@ Future<Response> getPortalUserHandler(Request request, String userId) async {
 
   // Parse roles - string_agg returns comma-separated text
   final rolesData = r[6];
-  print(
-    '[PORTAL_USER] single user rolesData type=${rolesData.runtimeType}, value=$rolesData',
-  );
   List<String> roles = [];
   if (rolesData != null && rolesData is String && rolesData.isNotEmpty) {
     roles = rolesData.split(',');
@@ -343,57 +347,64 @@ Future<Response> createPortalUserHandler(Request request) async {
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
-  // Check for duplicate email (case-insensitive: portal_users has a UNIQUE
-  // INDEX on LOWER(email), so this also matches what the DB will reject).
+  // Implements: REQ-d00168-A+B — case-insensitive email uniqueness pre-flight.
+  // Reject before INSERT to prevent duplicate portal_users rows when an
+  // operator re-creates an admin with an email that's already known.
+  // Returns 409 with code: email_already_known so the UI can surface a
+  // clear message instead of relying on a database unique-constraint
+  // violation surfacing as a generic 5xx.
   final existing = await db.executeWithContext(
     'SELECT id FROM portal_users WHERE LOWER(email) = LOWER(@email)',
     parameters: {'email': email},
     context: serviceContext,
   );
   if (existing.isNotEmpty) {
-    return _jsonResponse({'error': 'Email already exists'}, 409);
+    return _jsonResponse({
+      'error': 'An account already exists for this email',
+      'code': 'email_already_known',
+    }, 409);
   }
 
   // Create user with pending status
   // NOTE: linking_code is NULL for portal users - only patients get linking codes
-  final createResult = await db.executeWithContext(
-    '''
-    INSERT INTO portal_users (
-      email, name, activation_code,
-      activation_code_expires_at, status
-    )
-    VALUES (
-      @email, @name, @activationCode,
-      @activationExpiry, 'pending'
-    )
-    RETURNING id
-    ''',
-    parameters: {
-      'email': email,
-      'name': name,
-      'activationCode': activationCode,
-      'activationExpiry': activationExpiry,
-    },
-    context: serviceContext,
-  );
+  //
+  // Catch UniqueViolationException (SQLSTATE 23505) from the
+  // portal_users_email_lower_key index in case two concurrent
+  // createPortalUserHandler calls both pass the pre-flight SELECT and
+  // race to INSERT. The pre-flight already covers the common case;
+  // this catch ensures the rare race returns the same 409 envelope
+  // instead of a raw 5xx.
+  final List<List<dynamic>> createResult;
+  try {
+    createResult = await db.executeWithContext(
+      '''
+      INSERT INTO portal_users (
+        email, name, activation_code,
+        activation_code_expires_at, status
+      )
+      VALUES (
+        @email, @name, @activationCode,
+        @activationExpiry, 'pending'
+      )
+      RETURNING id
+      ''',
+      parameters: {
+        'email': email,
+        'name': name,
+        'activationCode': activationCode,
+        'activationExpiry': activationExpiry,
+      },
+      context: serviceContext,
+    );
+  } on UniqueViolationException {
+    return _jsonResponse({
+      'error': 'An account already exists for this email',
+      'code': 'email_already_known',
+    }, 409);
+  }
 
   final newUserId = createResult.first[0] as String;
-  print(
-    '[PORTAL_USER] INSERT complete: userId=$newUserId, activation_code=$activationCode',
-  );
-
-  // Verify the code was stored correctly
-  final verifyResult = await db.executeWithContext(
-    'SELECT activation_code FROM portal_users WHERE id = @id::uuid',
-    parameters: {'id': newUserId},
-    context: serviceContext,
-  );
-  final storedCode = verifyResult.isNotEmpty
-      ? verifyResult.first[0]
-      : 'NOT_FOUND';
-  print(
-    '[PORTAL_USER] VERIFY: stored_code=$storedCode, matches=${storedCode == activationCode}',
-  );
+  print('[PORTAL_USER] INSERT complete: userId=$newUserId');
 
   // Create role assignments in portal_user_roles
   for (final role in roles) {
@@ -581,6 +592,33 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   if (status != null) {
     if (status != 'revoked' && status != 'active' && status != 'pending') {
       return _jsonResponse({'error': 'Invalid status'}, 400);
+    }
+
+    // State-machine guard. Legitimate transitions via this handler:
+    //   active -> revoked       (deactivation)
+    //   revoked -> active       (special-cased below: actually flips to
+    //                            'pending' + new code via the re-invite
+    //                            path; this matches REQ-CAL-p00032/p00062)
+    //   noop (X -> X)           (idempotent; no-op)
+    //
+    // Forbidden via this handler:
+    //   pending -> active       Would skip activation; firebase_uid stays
+    //                           NULL; user permanently uid_not_bound.
+    //   pending -> revoked      Use deletePendingPortalUserHandler instead.
+    //   active -> pending       Locks out the user with no code; if intent
+    //                           is "re-issue code", use generate-code.
+    //   revoked -> pending      Use the re-invite path (active->revoked
+    //                           handled below) or generate-code.
+    final isNoop = status == currentStatus;
+    final isActiveToRevoked = currentStatus == 'active' && status == 'revoked';
+    final isRevokedToActive = currentStatus == 'revoked' && status == 'active';
+    if (!isNoop && !isActiveToRevoked && !isRevokedToActive) {
+      return _jsonResponse({
+        'error':
+            'Status transition $currentStatus -> $status is not allowed via '
+            'this handler',
+        'code': 'invalid_transition',
+      }, 400);
     }
 
     // Capture optional reason for status change (REQ-CAL-p00066)
@@ -800,19 +838,36 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     }
   }
 
-  // Handle regenerating activation code
+  // Handle regenerating activation code.
+  //
+  // Mirrors generateActivationCodeHandler's active-user guard: silently
+  // resetting status='pending' on an active user locks them out
+  // (requirePortalAuth gates on status='active'). The status='pending'
+  // UPDATE here is intended for the pending->pending re-issue case; it
+  // also fires for revoked->pending (re-invite). Active users must
+  // never be flipped via this path.
   if (body['regenerate_activation'] == true) {
+    if (currentStatus == 'active') {
+      return _jsonResponse({
+        'error': 'Cannot regenerate activation code for an active user',
+        'code': 'already_active',
+      }, 409);
+    }
     final activationCode = _generateCode();
     final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
-    await db.executeWithContext(
+    // Belt-and-suspenders WHERE: the explicit guard above is the gate;
+    // this clause prevents a race where the row goes active between
+    // the pre-check and this UPDATE.
+    final updated = await db.executeWithContext(
       '''
       UPDATE portal_users
       SET activation_code = @code,
           activation_code_expires_at = @expiry,
           status = 'pending',
           updated_at = now()
-      WHERE id = @userId::uuid
+      WHERE id = @userId::uuid AND status != 'active'
+      RETURNING id
       ''',
       parameters: {
         'userId': userId,
@@ -821,6 +876,12 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       },
       context: serviceContext,
     );
+    if (updated.isEmpty) {
+      return _jsonResponse({
+        'error': 'User became active during code regeneration',
+        'code': 'already_active',
+      }, 409);
+    }
 
     return _jsonResponse({'success': true, 'activation_code': activationCode});
   }
@@ -1192,4 +1253,78 @@ Response _jsonResponse(Map<String, dynamic> data, [int statusCode = 200]) {
     body: jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
   );
+}
+
+/// DELETE /api/v1/portal/users/:userId
+/// Admin / Developer Admin only. Hard-deletes a `pending` portal_users row
+/// and its dependent rows in `portal_user_roles` and
+/// `portal_user_site_access`. Refuses to touch rows in any other status.
+///
+/// Implements: REQ-d00169-A+B+C — pending-row cleanup endpoint scoped to
+/// status=pending; cascades to dependent tables; 404 for unknown id.
+Future<Response> deletePendingPortalUserHandler(
+  Request request,
+  String userId,
+) async {
+  final user = await requirePortalAuth(request, _adminRoles);
+  if (user == null) {
+    return _jsonResponse({'error': 'Unauthorized', 'code': 'unauth'}, 403);
+  }
+
+  // Validate UUID format before the @id::uuid cast. Without this, an
+  // invalid id reaches Postgres and surfaces as a generic 500
+  // (InvalidTextRepresentation) rather than a controlled 400.
+  if (!_uuidRe.hasMatch(userId)) {
+    return _jsonResponse({
+      'error': 'Invalid user id',
+      'code': 'invalid_id',
+    }, 400);
+  }
+
+  final db = Database.instance;
+  const serviceContext = UserContext.service;
+
+  final found = await db.executeWithContext(
+    'SELECT status FROM portal_users WHERE id = @id::uuid',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+  if (found.isEmpty) {
+    return _jsonResponse({'error': 'Not found', 'code': 'not_found'}, 404);
+  }
+  final status = found.first[0] as String;
+  if (status != 'pending') {
+    return _jsonResponse({
+      'error': 'Only pending rows can be deleted',
+      'code': 'not_pending',
+    }, 400);
+  }
+
+  // Atomic single-statement delete with status guard. The pre-check
+  // SELECT above is informational; the WHERE clause here is the only
+  // gate, defending against a row transitioning pending -> active
+  // between the SELECT and the DELETE (e.g., user activates while an
+  // admin runs cleanup). RETURNING id detects the 0-row case.
+  // portal_user_roles.user_id and portal_user_site_access.user_id are
+  // FK'd to portal_users.id with ON DELETE CASCADE
+  // (database/schema.sql:751,778), so the dependents come out in the
+  // same statement.
+  final deleted = await db.executeWithContext(
+    "DELETE FROM portal_users WHERE id = @id::uuid AND status = 'pending' "
+    'RETURNING id',
+    parameters: {'id': userId},
+    context: serviceContext,
+  );
+  if (deleted.isEmpty) {
+    // Row state changed under us (most likely pending -> active via a
+    // concurrent activate). REQ-d00169-B: only pending rows may be
+    // deleted; bail before any destructive side effect lands.
+    return _jsonResponse({
+      'error': 'Row state changed; only pending rows can be deleted',
+      'code': 'not_pending',
+    }, 400);
+  }
+
+  print('[PORTAL_USER] Deleted pending user $userId by ${user.id}');
+  return _jsonResponse({'ok': true}, 200);
 }

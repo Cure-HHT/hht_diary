@@ -248,12 +248,28 @@ async function seedUsers() {
     errors: 0,
   };
 
+  // CUR-1296 (REQ-d00170-A): emit email->uid map for the schema-job to
+  // consume. The schema-job in deployment/local-stack/db-schema-job/
+  // captures stdout and parses out this block, then runs
+  // UPDATE portal_users SET firebase_uid = $uid WHERE LOWER(email) = LOWER($email)
+  // for each entry, replacing the old "clear firebase_uid then rely on
+  // first-login email re-link" pattern (no longer in portal_auth post
+  // CUR-1296 / REQ-d00167).
+  const emailUidMap = [];
+
   for (let i = 0; i < args.users.length; i++) {
     const email = args.users[i];
     const displayName = args.userNames[i];
     const result = await createOrUpdateUser(email, displayName, args.password);
     results[result.status === 'error' ? 'errors' : result.status]++;
+    if (result.uid) emailUidMap.push({ email: email, uid: result.uid });
   }
+
+  // Emission markers — the consumer pattern-matches between BEGIN and END
+  // to extract just this JSON, ignoring the rest of the seed log noise.
+  console.log('---SEED_IDENTITY_USERS_MAP_BEGIN---');
+  console.log(JSON.stringify(emailUidMap));
+  console.log('---SEED_IDENTITY_USERS_MAP_END---');
 
   console.log('\n========================================');
   console.log('  Summary');
