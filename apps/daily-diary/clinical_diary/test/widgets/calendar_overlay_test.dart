@@ -4,7 +4,7 @@
 
 import 'package:clinical_diary/widgets/calendar_overlay.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:table_calendar/table_calendar.dart';

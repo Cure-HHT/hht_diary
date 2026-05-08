@@ -4,7 +4,7 @@
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

@@ -11,7 +11,7 @@ import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:clinical_diary/services/diary_entry_reader.dart';
 import 'package:clinical_diary/services/triggers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart'; // includes visibleForTesting
 import 'package:http/http.dart' as http;

@@ -7,7 +7,7 @@
 
 import 'dart:convert';
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/services.dart';
 
 /// Path to the questionnaire definitions asset (bundled by trial_data_types).

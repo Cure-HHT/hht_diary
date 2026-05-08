@@ -29,8 +29,7 @@ import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
-    show AutomationInitiator;
+import 'package:event_sourcing/event_sourcing.dart' show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

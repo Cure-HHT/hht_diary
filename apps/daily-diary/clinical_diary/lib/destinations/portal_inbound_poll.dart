@@ -12,7 +12,7 @@ import 'dart:convert';
 
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart'
     show kInboundTombstoneRecordFailedEntryType;
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:http/http.dart' as http;
 
 /// Initiator stamped on the inbound-poll audit event. Constant so the

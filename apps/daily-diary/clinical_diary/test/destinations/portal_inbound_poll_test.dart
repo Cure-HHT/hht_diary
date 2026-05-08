@@ -4,7 +4,7 @@ import 'dart:convert';
 
 import 'package:clinical_diary/destinations/portal_inbound_poll.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';

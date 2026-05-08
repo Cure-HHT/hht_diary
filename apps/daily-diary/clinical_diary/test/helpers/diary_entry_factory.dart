@@ -7,7 +7,7 @@
 
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// Build a finalized `epistaxis_event` [DiaryEntry] for use in widget tests.
 DiaryEntry buildEpistaxisEntry({

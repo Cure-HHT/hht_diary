@@ -29,7 +29,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:http/http.dart' as http;
 
 /// Outbound [Destination] that ships finalized survey events to the

@@ -38,7 +38,7 @@ import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:eq/eq.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;

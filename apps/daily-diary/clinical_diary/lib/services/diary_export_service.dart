@@ -4,7 +4,7 @@
 // Implements: REQ-d00004 — full local audit trail can be exported as JSON
 // for support, debugging, and recovery.
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Result of a successful [DiaryExportService.exportAll] call.

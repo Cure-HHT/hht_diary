@@ -1,7 +1,7 @@
 // Implements: REQ-p00013-A+B+E (full history view);
 //   REQ-p00004-E+L (event-derived view).
 
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 
 /// Derived status for a calendar day, based on nosebleed-reporting compliance.
 ///

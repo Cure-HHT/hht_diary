@@ -8,7 +8,7 @@ import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:trial_data_types/trial_data_types.dart';

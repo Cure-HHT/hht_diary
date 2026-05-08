@@ -1,7 +1,7 @@
 // Verifies: REQ-d00115, REQ-d00116, REQ-d00128
 
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Minimal valid questionnaires.json payload used for the data-driven seam test.

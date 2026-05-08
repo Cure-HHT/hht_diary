@@ -11,7 +11,7 @@ import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
