@@ -250,6 +250,7 @@ class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   late final TaskService _taskService = TaskService(
     onCancelled: _onSurveyCancelledFromTasksResponse,
+    enrollmentService: _enrollmentService,
   );
 
   /// CUR-1292: invoked when `/tasks` response surfaces a cancelled

@@ -42,6 +42,13 @@ class EnrollmentService {
   /// appears immediately when a background sync detects disconnection,
   /// without requiring a page navigation or app restart.
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
+
+  /// CUR-1311: Real-time notifier for not-participating state.
+  /// Mirrors [disconnectedNotifier] so a `mark_not_participating` /
+  /// `reactivate` FCM that triggers `syncTasks` propagates immediately
+  /// to listeners (feature-flag reset, profile screen) without waiting
+  /// for the patient to navigate.
+  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -343,10 +350,13 @@ class EnrollmentService {
 
   /// Set the not participating status.
   /// Pass [at] to record the timestamp when the status was first detected.
+  /// Updates [notParticipatingNotifier] synchronously so listeners react
+  /// without waiting for the SharedPreferences write to flush.
   Future<void> setNotParticipating(
     bool notParticipating, {
     DateTime? at,
   }) async {
+    notParticipatingNotifier.value = notParticipating;
     final prefs = await _getPrefs();
     await prefs.setBool(_notParticipatingKey, notParticipating);
     if (notParticipating && at != null) {
@@ -398,6 +408,7 @@ class EnrollmentService {
   void dispose() {
     _httpClient.close();
     disconnectedNotifier.dispose();
+    notParticipatingNotifier.dispose();
   }
 }
 

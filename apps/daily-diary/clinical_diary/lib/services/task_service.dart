@@ -25,8 +25,20 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// - E: Tasks auto-removed when removal condition met
 /// - F: Task list updates in real-time
 class TaskService extends ChangeNotifier {
-  TaskService({http.Client? httpClient, this.onCancelled})
-    : _httpClient = httpClient ?? http.Client();
+  TaskService({
+    http.Client? httpClient,
+    this.onCancelled,
+    EnrollmentService? enrollmentService,
+  }) : _httpClient = httpClient ?? http.Client(),
+       _enrollmentService = enrollmentService;
+
+  /// CUR-1311: held for FCM-driven sync. When an `patient_status_update`,
+  /// `questionnaire_unlocked`, or `questionnaire_finalized` push arrives,
+  /// [handleFcmMessage] uses this service to call [syncTasks] — FCM is
+  /// treated as a wake-up signal rather than a payload to trust.
+  /// Optional so existing tests (`TaskService(httpClient: client)`) keep
+  /// working without an enrollment service.
+  final EnrollmentService? _enrollmentService;
 
   /// CUR-1292: invoked once per cancelled questionnaire surfaced in
   /// the `/tasks` response's `cancelled` array. Receives the
@@ -145,9 +157,31 @@ class TaskService extends ChangeNotifier {
         _handleQuestionnaireSent(data);
       case 'questionnaire_deleted':
         _handleQuestionnaireDeleted(data);
+      case 'questionnaire_unlocked':
+      case 'questionnaire_finalized':
+      case 'patient_status_update':
+        // CUR-1311: FCM is just a wake-up. Re-pull /tasks so the task
+        // list, disconnection state, not-participating state, and
+        // trial-started timestamp all reflect the server's truth. The
+        // notifiers fired inside processDisconnectionStatus then drive
+        // the home-screen UI without per-action sub-routing here.
+        _triggerSync();
       default:
         debugPrint('[TaskService] Unknown message type: $type');
     }
+  }
+
+  /// CUR-1311: kick a server pull when an FCM signal arrives. No-op when
+  /// the service was constructed without an [EnrollmentService] (tests).
+  void _triggerSync() {
+    final enrollment = _enrollmentService;
+    if (enrollment == null) {
+      debugPrint(
+        '[TaskService] Sync requested but no EnrollmentService configured',
+      );
+      return;
+    }
+    unawaited(syncTasks(enrollment));
   }
 
   /// Handle a questionnaire_sent FCM message.

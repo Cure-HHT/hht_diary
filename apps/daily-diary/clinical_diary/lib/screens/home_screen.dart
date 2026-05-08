@@ -147,6 +147,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
+    // CUR-1311: React when a `mark_not_participating` / `reactivate` FCM
+    // (or any background sync) flips not-participating state, so feature
+    // flags reset without the patient having to navigate to profile.
+    widget.enrollmentService.notParticipatingNotifier.addListener(
+      _onNotParticipatingChanged,
+    );
   }
 
   @override
@@ -180,6 +186,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
+    );
+    widget.enrollmentService.notParticipatingNotifier.removeListener(
+      _onNotParticipatingChanged,
     );
     _scrollController.dispose();
     super.dispose();
@@ -240,6 +249,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // recorded while the gate was closed ship without waiting up to 15
       // minutes for the next periodic tick.
       unawaited(widget.runtime.syncCycle());
+    }
+  }
+
+  /// CUR-1311: Mirror of [_onDisconnectionChanged] for the
+  /// not-participating notifier. When the patient flips into
+  /// not-participating, sponsor-specific feature flags must reset to
+  /// neutral defaults (REQ-p01065-D). On reactivation we leave flags
+  /// alone — they re-hydrate from sponsor config on next launch.
+  void _onNotParticipatingChanged() {
+    if (!mounted) return;
+    if (widget.enrollmentService.notParticipatingNotifier.value) {
+      FeatureFlagService.instance.resetToDefaults();
     }
   }
 
