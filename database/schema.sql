@@ -1127,6 +1127,59 @@ COMMENT ON COLUMN patient_fcm_tokens.app_version IS 'App version at time of toke
 COMMENT ON COLUMN patient_fcm_tokens.is_active IS 'False when token is invalidated (e.g., patient disconnected)';
 
 -- =====================================================
+-- NOTIFICATIONS — outbox / envelope pattern (Phase 1B)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00167: FCM Dispatch via cure-hht-admin Project
+--   REQ-d00168: PHI-Safe FCM Payload
+--   REQ-d00169: Mobile Notifications Polling
+--
+-- Each row is the durable record of a push notification — written by
+-- the server before FCM dispatch, polled by mobile via
+-- /api/v1/notifications. Combines outbox + audit + delivery-confirmation
+-- in one table. RLS policies in rls_policies.sql.
+
+CREATE TYPE notification_type AS ENUM (
+    'questionnaire_update',
+    'patient_status_update',
+    'reminder'
+);
+
+CREATE TABLE notifications (
+    notification_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id        TEXT NOT NULL
+                      REFERENCES patients(patient_id) ON DELETE CASCADE,
+    notification_type notification_type NOT NULL,
+    title             TEXT NOT NULL,
+    body              TEXT,
+    user_visible      BOOLEAN NOT NULL DEFAULT true,
+    payload           JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status            TEXT NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending', 'sent', 'delivered', 'failed')),
+    message_id        TEXT,
+    last_error        TEXT,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sent_at           TIMESTAMPTZ,
+    delivered_at      TIMESTAMPTZ
+);
+
+CREATE INDEX notifications_patient_pending_idx
+    ON notifications (patient_id, created_at DESC)
+    WHERE delivered_at IS NULL;
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE notifications IS 'Outbox / envelope record for push notifications. Written before FCM dispatch (REQ-d00168), polled by mobile via /api/v1/notifications (REQ-d00169).';
+COMMENT ON COLUMN notifications.patient_id IS 'FK to patients (RAVE SubjectKey). RLS scope key.';
+COMMENT ON COLUMN notifications.notification_type IS '3-value enum. Sub-action lives in payload->>"action".';
+COMMENT ON COLUMN notifications.user_visible IS 'True for alerts (priority 10 + lock-screen). False for silent data pushes (priority 5 + content-available).';
+COMMENT ON COLUMN notifications.payload IS 'Opaque IDs + categorical sub-action only — never PHI. Enforced by PayloadGuard before insert.';
+COMMENT ON COLUMN notifications.status IS 'State machine: pending → sent → delivered, with failed as terminal.';
+COMMENT ON COLUMN notifications.message_id IS 'FCM resource name from a successful dispatch.';
+COMMENT ON COLUMN notifications.last_error IS 'Failure reason when status=failed. Literal "UNREGISTERED" triggers patient_fcm_tokens deactivation.';
+COMMENT ON COLUMN notifications.delivered_at IS 'Stamped idempotently when the mobile fetches the envelope.';
+
+-- =====================================================
 -- HELPER FUNCTIONS
 -- =====================================================
 
