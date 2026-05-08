@@ -4,6 +4,7 @@
 // selector, and (in later tasks) the action button panel and request
 // history. For Task 21 it just exercises session/start.
 
+import 'package:action_permissions_demo/client/hacker_mode_toggle.dart';
 import 'package:action_permissions_demo/client/http_client.dart';
 import 'package:action_permissions_demo/client/permission_snapshot_cache.dart';
 import 'package:action_permissions_demo/client/userid_selector.dart';
@@ -24,6 +25,7 @@ class _ClientPaneState extends State<ClientPane> {
   late final DemoHttpClient _http;
   late final bool _ownsHttp;
   final PermissionSnapshotCache _cache = PermissionSnapshotCache();
+  final HackerMode _hackerMode = HackerMode();
 
   /// The userIds the demo's user-directory seed knows about. Hard-coded
   /// to match `tool/users.yaml`. The server is the source of truth — if
@@ -57,6 +59,7 @@ class _ClientPaneState extends State<ClientPane> {
       _http.close();
     }
     _cache.dispose();
+    _hackerMode.dispose();
     super.dispose();
   }
 
@@ -105,6 +108,8 @@ class _ClientPaneState extends State<ClientPane> {
               Text('Role: ${_cache.principalRole}'),
               Text('userId: ${_cache.principalUserId ?? '(none)'}'),
               Text('activeSite: ${_cache.principalActiveSite ?? '(none)'}'),
+              const SizedBox(height: 8),
+              HackerModeToggle(mode: _hackerMode),
               const Divider(),
               const Text('Permissions:'),
               if (_cache.permissions.isEmpty)
