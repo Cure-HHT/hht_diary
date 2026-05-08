@@ -26,6 +26,8 @@ dependencies:
   meta: ^1.16.0
   http: ^1.2.0
   googleapis_auth: ^2.0.0
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
 
 dev_dependencies:
   test: ^1.25.15
