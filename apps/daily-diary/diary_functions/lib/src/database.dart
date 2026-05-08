@@ -7,6 +7,7 @@
 
 import 'dart:io';
 
+import 'package:meta/meta.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:postgres/postgres.dart';
 
@@ -40,6 +41,25 @@ class DatabaseConfig {
     );
   }
 }
+
+/// CUR-1311 (Phase 1B.4): Test-only override for [Database.execute].
+/// When set, queries delegate to the supplied function instead of
+/// PostgreSQL. The function receives the SQL + parameters + optional
+/// table tag and returns rows (each row is a list of column values).
+/// An empty list represents an empty result set.
+@visibleForTesting
+typedef DatabaseQueryOverride =
+    Future<List<List<dynamic>>> Function(
+      String query, {
+      Map<String, dynamic>? parameters,
+      String? table,
+    });
+
+/// CUR-1311 (Phase 1B.4): Set in test setUp to intercept DB calls;
+/// MUST be reset to null in tearDown. Mirrors the override pattern in
+/// portal_functions's database.dart.
+@visibleForTesting
+DatabaseQueryOverride? databaseQueryOverride;
 
 /// Database connection pool singleton
 class Database {
@@ -82,6 +102,14 @@ class Database {
     Map<String, dynamic>? parameters,
     String? table,
   }) async {
+    // CUR-1311 (Phase 1B.4): test override returns fake rows without
+    // hitting PostgreSQL. Production code MUST leave the override null.
+    final override = databaseQueryOverride;
+    if (override != null) {
+      final rows = await override(query, parameters: parameters, table: table);
+      return _FakeResult(rows);
+    }
+
     if (_pool == null) {
       throw StateError('Database not initialized. Call initialize() first.');
     }
@@ -111,4 +139,15 @@ String _extractOperation(String query) {
   if (trimmed.startsWith('DELETE')) return 'DELETE';
   if (trimmed.startsWith('WITH')) return 'SELECT'; // CTEs are typically SELECTs
   return 'QUERY';
+}
+
+/// CUR-1311 (Phase 1B.4): Lightweight Result implementation for the
+/// test-only [databaseQueryOverride]. Wraps raw row data in proper
+/// Result/ResultRow objects so callers can iterate normally.
+Result _FakeResult(List<List<dynamic>> rows) {
+  final schema = ResultSchema([]);
+  final resultRows = rows
+      .map((r) => ResultRow(values: r.cast<Object?>(), schema: schema))
+      .toList();
+  return Result(rows: resultRows, affectedRows: rows.length, schema: schema);
 }

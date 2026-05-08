@@ -6,7 +6,7 @@
 
 name: diary_server
 description: Shelf HTTP server hosting diary functions for Cloud Run
-version: 0.1.7+40
+version: 0.1.8+40
 publish_to: none
 
 environment:
@@ -20,6 +20,11 @@ dependencies:
   # Business logic
   diary_functions:
     path: ../diary_functions
+
+  # Shared communication primitives — provides the envelope*Handler
+  # factories mounted below for /api/v1/notifications.
+  comms:
+    path: ../../common-dart/comms
 
   # Observability
   otel_common:
