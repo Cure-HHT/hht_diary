@@ -8,6 +8,7 @@ import 'package:action_permissions_demo/client/action_buttons_panel.dart';
 import 'package:action_permissions_demo/client/hacker_mode_toggle.dart';
 import 'package:action_permissions_demo/client/http_client.dart';
 import 'package:action_permissions_demo/client/permission_snapshot_cache.dart';
+import 'package:action_permissions_demo/client/request_history_panel.dart';
 import 'package:action_permissions_demo/client/userid_selector.dart';
 import 'package:flutter/material.dart';
 
@@ -143,6 +144,9 @@ class _ClientPaneState extends State<ClientPane> {
                 http: _http,
                 onDispatched: _appendHistory,
               ),
+              const SizedBox(height: 16),
+              const Text('History (most recent first):'),
+              RequestHistoryPanel(entries: _history),
             ],
           ),
         );
