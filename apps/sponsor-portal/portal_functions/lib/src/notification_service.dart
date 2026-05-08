@@ -38,6 +38,8 @@ class NotificationConfig {
     this.useEnvelopeDisconnect = false,
     this.useEnvelopeNotParticipating = false,
     this.useEnvelopeReactivate = false,
+    this.useEnvelopeReconnect = false,
+    this.useEnvelopeStartTrial = false,
   });
 
   /// Test-only override that short-circuits [fromEnvironment]. Lets a
@@ -61,6 +63,10 @@ class NotificationConfig {
           Platform.environment['FCM_USE_ENVELOPE_NOT_PARTICIPATING'] == 'true',
       useEnvelopeReactivate:
           Platform.environment['FCM_USE_ENVELOPE_REACTIVATE'] == 'true',
+      useEnvelopeReconnect:
+          Platform.environment['FCM_USE_ENVELOPE_RECONNECT'] == 'true',
+      useEnvelopeStartTrial:
+          Platform.environment['FCM_USE_ENVELOPE_START_TRIAL'] == 'true',
     );
   }
 
@@ -89,6 +95,15 @@ class NotificationConfig {
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
   /// `reactivatePatientHandler`.
   final bool useEnvelopeReactivate;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
+  /// reconnect path inside `generatePatientLinkingCodeHandler` (only
+  /// fires when isReconnection is true).
+  final bool useEnvelopeReconnect;
+
+  /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for
+  /// `startTrialHandler`.
+  final bool useEnvelopeStartTrial;
 
   /// Check if notification service is properly configured.
   bool get isConfigured => enabled && projectId.isNotEmpty;

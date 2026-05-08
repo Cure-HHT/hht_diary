@@ -64,6 +64,9 @@ typedef _StatusPushResult = ({String? fcmMessageId, String? notificationId});
 ///     `NotificationConfig.fromEnvironment().useEnvelopeDisconnect`).
 ///   * Pass [logPrefix] used for both the legacy log line and the
 ///     envelope-path log line — keeps grep-friendly continuity.
+///   * Pass any action-specific payload entries via [extraPayload] —
+///     `new_status` for status transitions, `trial_started_at` for
+///     start_trial, etc. The helper merges them with `action`.
 ///
 /// Returns null fields when there is no token (caller should not call
 /// this in that case) — defensive default if the helper is invoked.
@@ -73,7 +76,7 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
   required String action,
   required String title,
   required String body,
-  required String newStatus,
+  required Map<String, dynamic> extraPayload,
   required bool useEnvelope,
   required String logPrefix,
 }) async {
@@ -87,7 +90,7 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
         title: title,
         body: body,
         userVisible: true,
-        payload: <String, dynamic>{'action': action, 'new_status': newStatus},
+        payload: <String, dynamic>{'action': action, ...extraPayload},
         status: EnvelopeStatus.pending,
         createdAt: DateTime.now().toUtc(),
       );
@@ -125,7 +128,12 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
     );
   }
 
-  // Legacy direct-FCM path (S2 behaviour).
+  // Legacy direct-FCM path (S2 behaviour). FCM data values must be
+  // strings on the wire — coerce non-string entries here rather than
+  // burdening every caller.
+  final extraData = <String, String>{
+    for (final entry in extraPayload.entries) entry.key: entry.value.toString(),
+  };
   final result = await NotificationService.instance
       .sendPatientStatusNotification(
         fcmToken: fcmToken,
@@ -133,7 +141,7 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
         action: action,
         title: title,
         body: body,
-        extraData: {'new_status': newStatus},
+        extraData: extraData,
       );
   if (!result.success) {
     print('[$logPrefix] FCM send failed for $action: ${result.error}');
@@ -346,6 +354,7 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
   // Only fires when isReconnection — initial GENERATE_LINKING_CODE is for
   // patients who don't yet have the app installed.
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (isReconnection) {
     final fcmTokenResult = await db.executeWithContext(
       '''
@@ -359,23 +368,19 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
     );
 
     if (fcmTokenResult.isNotEmpty) {
-      final fcmToken = fcmTokenResult.first[0] as String;
-      final notificationResult = await NotificationService.instance
-          .sendPatientStatusNotification(
-            fcmToken: fcmToken,
-            patientId: patientId,
-            action: 'reconnect',
-            title: 'Reconnect to Study',
-            body:
-                'Your study coordinator has issued a new linking code. Open the app to reconnect.',
-            extraData: {'new_status': 'linking_in_progress'},
-          );
-      fcmMessageId = notificationResult.messageId;
-      if (!notificationResult.success) {
-        print(
-          '[PATIENT_LINKING] FCM send failed for reconnect: ${notificationResult.error}',
-        );
-      }
+      final pushResult = await _dispatchPatientStatusPush(
+        fcmToken: fcmTokenResult.first[0] as String,
+        patientId: patientId,
+        action: 'reconnect',
+        title: 'Reconnect to Study',
+        body:
+            'Your study coordinator has issued a new linking code. Open the app to reconnect.',
+        extraPayload: const {'new_status': 'linking_in_progress'},
+        useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeReconnect,
+        logPrefix: 'PATIENT_LINKING',
+      );
+      fcmMessageId = pushResult.fcmMessageId;
+      notificationEnvelopeId = pushResult.notificationId;
     } else {
       print(
         '[PATIENT_LINKING] No active FCM token for $patientId; skipping reconnect push',
@@ -409,6 +414,8 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
         'previous_status': currentStatus,
         if (isReconnection) 'reconnect_reason': reconnectReason,
         if (isReconnection) 'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': justification,
       'ipAddress': clientIp,
@@ -772,7 +779,7 @@ Future<Response> disconnectPatientHandler(Request request) async {
       title: 'Account Disconnected',
       body:
           'Your study account has been disconnected. Please contact your study coordinator.',
-      newStatus: 'disconnected',
+      extraPayload: const {'new_status': 'disconnected'},
       useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeDisconnect,
       logPrefix: 'PATIENT_LINKING',
     );
@@ -1003,7 +1010,7 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
       title: 'Study Participation Ended',
       body:
           'Your study participation has ended. Please contact your study coordinator if you have questions.',
-      newStatus: 'not_participating',
+      extraPayload: const {'new_status': 'not_participating'},
       useEnvelope:
           NotificationConfig.fromEnvironment().useEnvelopeNotParticipating,
       logPrefix: 'PATIENT_LINKING',
@@ -1211,7 +1218,7 @@ Future<Response> reactivatePatientHandler(Request request) async {
       title: 'Account Reactivated',
       body:
           'Your study account has been reactivated. Please contact your study coordinator to reconnect.',
-      newStatus: 'disconnected',
+      extraPayload: const {'new_status': 'disconnected'},
       useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeReactivate,
       logPrefix: 'PATIENT_LINKING',
     );
@@ -1403,6 +1410,7 @@ Future<Response> startTrialHandler(Request request) async {
   // included in the FCM payload — the device already knows which patient
   // it belongs to.
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   final fcmTokenResult = await db.executeWithContext(
     '''
     SELECT fcm_token FROM patient_fcm_tokens
@@ -1415,23 +1423,18 @@ Future<Response> startTrialHandler(Request request) async {
   );
 
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendPatientStatusNotification(
-          fcmToken: fcmToken,
-          patientId: patientId,
-          action: 'start_trial',
-          title: 'Trial Started',
-          body: 'Your study has started. Open the app to begin.',
-          extraData: {'trial_started_at': now.toIso8601String()},
-        );
-    fcmMessageId = notificationResult.messageId;
-
-    if (!notificationResult.success) {
-      print(
-        '[PATIENT_LINKING] FCM send failed for start_trial: ${notificationResult.error}',
-      );
-    }
+    final pushResult = await _dispatchPatientStatusPush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      action: 'start_trial',
+      title: 'Trial Started',
+      body: 'Your study has started. Open the app to begin.',
+      extraPayload: {'trial_started_at': now.toIso8601String()},
+      useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeStartTrial,
+      logPrefix: 'PATIENT_LINKING',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
       '[PATIENT_LINKING] No FCM token found for patient $patientId. '
@@ -1462,6 +1465,8 @@ Future<Response> startTrialHandler(Request request) async {
         'started_by_email': user.email,
         'started_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Trial started for patient',
       'ipAddress': clientIp,

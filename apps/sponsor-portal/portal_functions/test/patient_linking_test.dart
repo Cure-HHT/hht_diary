@@ -1209,6 +1209,147 @@ void main() {
         expect(response.statusCode, 200);
         expect(capturedActionType, 'RECONNECT_PATIENT');
       });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for the reconnect path
+      // inside generatePatientLinkingCodeHandler. Only fires when
+      // isReconnection is true (i.e. previous_status was 'disconnected').
+      group('envelope flag (FCM_USE_ENVELOPE_RECONNECT)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: reconnect path inserts notification + surfaces id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              captured.add(query);
+              if (query.contains('FROM patients') &&
+                  query.contains('patient_id')) {
+                return [_patientRow(status: 'disconnected')];
+              }
+              if (query.contains('UPDATE patient_linking_codes')) return [];
+              if (query.contains('INSERT INTO patient_linking_codes'))
+                return [];
+              if (query.contains('UPDATE patients')) return [];
+              if (query.contains('FROM patient_fcm_tokens')) {
+                return [
+                  ['fake-fcm-token-1234567890'],
+                ];
+              }
+              if (query.contains('SELECT notification_id') &&
+                  query.contains('FROM notifications')) {
+                final now = DateTime.utc(2026, 5, 8, 10, 30);
+                return [
+                  <dynamic>[
+                    parameters!['id'],
+                    parameters['patientId'],
+                    'patient_status_update',
+                    'Reconnect to Study',
+                    'Your study coordinator has issued a new linking code.',
+                    true,
+                    '{"action":"reconnect","new_status":"linking_in_progress"}',
+                    'sent',
+                    'projects/test/messages/0:rec',
+                    null,
+                    now,
+                    now,
+                    null,
+                  ],
+                ];
+              }
+              if (query.contains('INSERT INTO admin_action_log')) {
+                auditDetails =
+                    jsonDecode(parameters!['actionDetails'] as String)
+                        as Map<String, dynamic>;
+                return [];
+              }
+              return [];
+            };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReconnect: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/link-code',
+              body: jsonEncode({
+                'patientId': _testPatientId,
+                'reconnect_reason': 'New device',
+              }),
+            );
+
+            final response = await generatePatientLinkingCodeHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:rec'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+
+        test(
+          'flag ON but NOT reconnect (initial linking): no notification row',
+          () async {
+            // Initial linking-code generation for a not_connected patient
+            // — isReconnection is false, so the helper is never invoked.
+            final captured = <String>[];
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM patients') &&
+                      query.contains('patient_id')) {
+                    return [_patientRow(status: 'not_connected')];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReconnect: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/link-code',
+              body: jsonEncode({'patientId': _testPatientId}),
+            );
+
+            final response = await generatePatientLinkingCodeHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isFalse,
+              reason:
+                  'initial linking is not a reconnect — envelope path skipped',
+            );
+          },
+        );
+      });
     });
 
     // ================================================================
@@ -2548,6 +2689,108 @@ void main() {
         final response = await startTrialHandler(request);
 
         expect(response.statusCode, 200);
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for start_trial. Distinct
+      // from other status pushes because the extraPayload carries
+      // trial_started_at (an ISO timestamp) instead of new_status.
+      group('envelope flag (FCM_USE_ENVELOPE_START_TRIAL)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification with trial_started_at in payload',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            String? capturedPayload;
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM patients')) {
+                    return [_patientRowForTrial()];
+                  }
+                  if (query.contains('UPDATE patients')) return [];
+                  if (query.contains('FROM patient_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-12345678901234567890'],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO notifications')) {
+                    capturedPayload = parameters!['payload'] as String?;
+                    return [];
+                  }
+                  if (query.contains('SELECT notification_id') &&
+                      query.contains('FROM notifications')) {
+                    final now = DateTime.utc(2026, 5, 8, 10, 30);
+                    return [
+                      <dynamic>[
+                        parameters!['id'],
+                        parameters['patientId'],
+                        'patient_status_update',
+                        'Trial Started',
+                        'Your study has started.',
+                        true,
+                        capturedPayload ?? '{}',
+                        'sent',
+                        'projects/test/messages/0:tr',
+                        null,
+                        now,
+                        now,
+                        null,
+                      ],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO admin_action_log')) {
+                    auditDetails =
+                        jsonDecode(parameters!['actionDetails'] as String)
+                            as Map<String, dynamic>;
+                    return [];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeStartTrial: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/patients/start-trial',
+              body: jsonEncode({'patientId': _testPatientId}),
+            );
+
+            final response = await startTrialHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(capturedPayload, isNotNull);
+            final payload =
+                jsonDecode(capturedPayload!) as Map<String, dynamic>;
+            expect(payload['action'], equals('start_trial'));
+            // The trial_started_at timestamp distinguishes this from
+            // every other patient_status_update flow.
+            expect(payload['trial_started_at'], isA<String>());
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:tr'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
       });
     });
   });
