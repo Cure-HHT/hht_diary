@@ -37,7 +37,8 @@ storeFile=key.jks
 EOF
 
 echo "Building Clinical Diary for Android (UAT flavor, signed)..."
-flutter build apk --flavor uat --dart-define=APP_FLAVOR=uat
+# AAB required: the UAT Play Store listing rejects APK uploads.
+flutter build appbundle --release --flavor uat --dart-define=APP_FLAVOR=uat
 
 echo ""
-echo "Build complete! Signed APK at build/app/outputs/flutter-apk/app-uat-release.apk"
+echo "Build complete! Signed AAB at build/app/outputs/bundle/uatRelease/app-uat-release.aab"

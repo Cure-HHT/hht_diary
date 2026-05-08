@@ -161,8 +161,14 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
-          echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
-          echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
+          # UAT Play Store listing requires AAB; dev/qa accept APK.
+          if [ "$FLAVOR" = "uat" ]; then
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/uatRelease/app-uat-release.aab" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-uat-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
