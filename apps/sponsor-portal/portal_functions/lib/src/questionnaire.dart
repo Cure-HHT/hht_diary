@@ -819,6 +819,25 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
 
   final instanceId = insertResult.first[0] as String;
 
+  // REQ-d00182-B/C: suppress the push if the questionnaire is already
+  // submitted or has been called back. Defensive — for a fresh INSERT
+  // these columns are always null, so the check is a no-op for
+  // sendQuestionnaireHandler today. Kept so a future cron-based
+  // resender that reaches the same notification site cannot dispatch
+  // a stale "you have a new questionnaire" alert.
+  final suppressionCheck = await db.executeWithContext(
+    '''
+    SELECT submitted_at, deleted_at
+    FROM questionnaire_instances
+    WHERE id = @instanceId::uuid
+    ''',
+    parameters: {'instanceId': instanceId},
+    context: serviceContext,
+  );
+  final shouldSuppress =
+      suppressionCheck.isNotEmpty &&
+      (suppressionCheck.first[0] != null || suppressionCheck.first[1] != null);
+
   // Send FCM notification to patient's device
   final fcmTokenResult = await db.executeWithContext(
     '''
@@ -832,29 +851,26 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   );
 
   String? fcmMessageId;
-  if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendQuestionnaireNotification(
-          fcmToken: fcmToken,
-          questionnaireType: questionnaireType,
-          questionnaireInstanceId: instanceId,
-          patientId: patientId,
-        );
-    fcmMessageId = notificationResult.messageId;
-
-    if (!notificationResult.success) {
-      logWithTrace(
-        'WARNING',
-        'FCM send failed for questionnaire',
-        labels: {
-          'instance_id': instanceId,
-          'error': notificationResult.error ?? 'unknown',
-        },
-      );
-      // Don't fail the request - the questionnaire is still created.
-      // Patient can discover it via sync.
-    }
+  String? notificationEnvelopeId;
+  if (shouldSuppress) {
+    logWithTrace(
+      'INFO',
+      'questionnaire_sent suppressed (already-submitted or called-back)',
+      labels: {'instance_id': instanceId},
+    );
+  } else if (fcmTokenResult.isNotEmpty) {
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.sent,
+      questionnaireType: questionnaireType,
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeQuestionnaireSent,
+      logPrefix: 'QUESTIONNAIRE_SEND',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     logWithTrace(
       'INFO',
@@ -888,6 +904,8 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
         'sent_by_email': user.email,
         'sent_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': '$questionnaireType questionnaire sent to patient',
       'ipAddress': clientIp,
@@ -1070,26 +1088,19 @@ Future<Response> deleteQuestionnaireHandler(
   );
 
   String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendQuestionnaireDeletedNotification(
-          fcmToken: fcmToken,
-          questionnaireInstanceId: instanceId,
-          patientId: patientId,
-        );
-    fcmMessageId = notificationResult.messageId;
-
-    if (!notificationResult.success) {
-      logWithTrace(
-        'WARNING',
-        'FCM delete notification failed',
-        labels: {
-          'instance_id': instanceId,
-          'error': notificationResult.error ?? 'unknown',
-        },
-      );
-    }
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.deleted,
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeQuestionnaireDeleted,
+      logPrefix: 'QUESTIONNAIRE_DELETE',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   }
 
   // REQ-CAL-p00023-U: Log to audit trail
@@ -1118,6 +1129,8 @@ Future<Response> deleteQuestionnaireHandler(
         'deleted_by_email': user.email,
         'deleted_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Questionnaire deleted: ${reason.trim()}',
       'ipAddress': clientIp,

@@ -876,6 +876,172 @@ void main() {
       expect(body['error'], contains('Cycle 2 Day 1'));
       expect(body['error'], contains('already exists'));
     });
+
+    // CUR-1311 (Phase 1B.3): envelope flag for questionnaire_sent.
+    group('envelope flag (FCM_USE_ENVELOPE_QUESTIONNAIRE_SENT)', () {
+      tearDown(() {
+        NotificationConfig.fromEnvironmentOverride = null;
+        NotificationService.resetForTesting();
+      });
+
+      test('flag ON: inserts notification + surfaces id in audit', () async {
+        final captured = <String>[];
+        Map<String, dynamic>? auditDetails;
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          captured.add(query);
+          if (query.contains('FROM patients')) return [_patientRow()];
+          if (query.contains('FROM questionnaire_instances') &&
+              query.contains('deleted_at IS NULL')) {
+            return []; // no existing active instance
+          }
+          if (query.contains('INSERT INTO questionnaire_instances')) {
+            return [
+              [_testInstanceId],
+            ];
+          }
+          if (query.contains('SELECT submitted_at, deleted_at')) {
+            // REQ-d00182 suppression check: fresh insert is not
+            // submitted, not called back.
+            return [
+              <dynamic>[null, null],
+            ];
+          }
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-1234567890'],
+            ];
+          }
+          if (query.contains('SELECT notification_id') &&
+              query.contains('FROM notifications')) {
+            final now = DateTime.utc(2026, 5, 8, 10, 30);
+            return [
+              <dynamic>[
+                parameters!['id'],
+                parameters['patientId'],
+                'questionnaire_update',
+                'New Questionnaire Available',
+                'You have a new questionnaire to complete.',
+                true,
+                '{"action":"new_task","questionnaire_instance_id":"$_testInstanceId","questionnaire_type":"nose_hht"}',
+                'sent',
+                'projects/test/messages/0:nq',
+                null,
+                now,
+                now,
+                null,
+              ],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            auditDetails =
+                jsonDecode(parameters!['actionDetails'] as String)
+                    as Map<String, dynamic>;
+            return [];
+          }
+          return [];
+        };
+
+        NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+          useEnvelopeQuestionnaireSent: true,
+        );
+        await NotificationService.instance.initialize(
+          NotificationConfig.fromEnvironmentOverride!,
+        );
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/patients/questionnaires/send',
+          body: jsonEncode({
+            'patientId': _testPatientId,
+            'questionnaireType': 'nose_hht',
+            'study_event': 'Cycle 1 Day 1',
+          }),
+        );
+
+        final response = await sendQuestionnaireHandler(request);
+
+        expect(response.statusCode, 200);
+        expect(
+          captured.any((q) => q.contains('INSERT INTO notifications')),
+          isTrue,
+        );
+        expect(auditDetails, isNotNull);
+        expect(
+          auditDetails!['fcm_message_id'],
+          equals('projects/test/messages/0:nq'),
+        );
+        expect(auditDetails!['notification_id'], isA<String>());
+      });
+
+      test(
+        'REQ-d00182-B/C: suppression skips envelope when row already submitted',
+        () async {
+          final captured = <String>[];
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                captured.add(query);
+                if (query.contains('FROM patients')) return [_patientRow()];
+                if (query.contains('FROM questionnaire_instances') &&
+                    query.contains('deleted_at IS NULL')) {
+                  return [];
+                }
+                if (query.contains('INSERT INTO questionnaire_instances')) {
+                  return [
+                    [_testInstanceId],
+                  ];
+                }
+                if (query.contains('SELECT submitted_at, deleted_at')) {
+                  // Simulate the row already submitted (e.g. cron re-trigger
+                  // case) — submitted_at is non-null.
+                  return [
+                    <dynamic>[DateTime.utc(2026, 5, 8, 9), null],
+                  ];
+                }
+                if (query.contains('FROM patient_fcm_tokens')) {
+                  return [
+                    ['fake-fcm-token-1234567890'],
+                  ];
+                }
+                return [];
+              };
+
+          NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+            projectId: 'test-project',
+            enabled: true,
+            consoleMode: true,
+            useEnvelopeQuestionnaireSent: true,
+          );
+          await NotificationService.instance.initialize(
+            NotificationConfig.fromEnvironmentOverride!,
+          );
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/patients/questionnaires/send',
+            body: jsonEncode({
+              'patientId': _testPatientId,
+              'questionnaireType': 'nose_hht',
+              'study_event': 'Cycle 1 Day 1',
+            }),
+          );
+
+          final response = await sendQuestionnaireHandler(request);
+
+          // Action still succeeds — suppression is silent.
+          expect(response.statusCode, 200);
+          // Critically: NO insert into notifications, no FCM dispatch.
+          expect(
+            captured.any((q) => q.contains('INSERT INTO notifications')),
+            isFalse,
+            reason:
+                'REQ-d00182-B: already-submitted row must not enqueue a push',
+          );
+        },
+      );
+    });
   });
 
   // ====================================================================
@@ -1148,6 +1314,106 @@ void main() {
       );
 
       expect(response.statusCode, 400);
+    });
+
+    // CUR-1311 (Phase 1B.3): envelope flag for questionnaire_deleted.
+    // Silent push — userVisible=false; the envelope row stores the
+    // title for audit but FcmChannel sends priority=5 + content-available
+    // with no notification block.
+    group('envelope flag (FCM_USE_ENVELOPE_QUESTIONNAIRE_DELETED)', () {
+      tearDown(() {
+        NotificationConfig.fromEnvironmentOverride = null;
+        NotificationService.resetForTesting();
+      });
+
+      test('flag ON: inserts notification with user_visible=false', () async {
+        final captured = <String>[];
+        Map<String, dynamic>? auditDetails;
+        bool? capturedUserVisible;
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          captured.add(query);
+          if (query.contains('FROM questionnaire_instances')) {
+            return [_instanceRow(status: 'sent')];
+          }
+          if (query.contains('UPDATE questionnaire_instances')) return [];
+          if (query.contains('FROM patient_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-1234567890'],
+            ];
+          }
+          if (query.contains('INSERT INTO notifications')) {
+            capturedUserVisible = parameters!['userVisible'] as bool?;
+            return [];
+          }
+          if (query.contains('SELECT notification_id') &&
+              query.contains('FROM notifications')) {
+            final now = DateTime.utc(2026, 5, 8, 10, 30);
+            return [
+              <dynamic>[
+                parameters!['id'],
+                parameters['patientId'],
+                'questionnaire_update',
+                'Questionnaire Removed',
+                null,
+                false, // user_visible — silent push
+                '{"action":"remove_task","questionnaire_instance_id":"$_testInstanceId"}',
+                'sent',
+                'projects/test/messages/0:dq',
+                null,
+                now,
+                now,
+                null,
+              ],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            auditDetails =
+                jsonDecode(parameters!['actionDetails'] as String)
+                    as Map<String, dynamic>;
+            return [];
+          }
+          return [];
+        };
+
+        NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+          useEnvelopeQuestionnaireDeleted: true,
+        );
+        await NotificationService.instance.initialize(
+          NotificationConfig.fromEnvironmentOverride!,
+        );
+
+        final request = _request(
+          'DELETE',
+          '/api/v1/portal/questionnaire-instances/$_testInstanceId',
+          body: jsonEncode({'reason': 'Sent in error'}),
+        );
+
+        final response = await deleteQuestionnaireHandler(
+          request,
+          _testInstanceId,
+        );
+
+        expect(response.statusCode, 200);
+        expect(
+          captured.any((q) => q.contains('INSERT INTO notifications')),
+          isTrue,
+        );
+        expect(
+          capturedUserVisible,
+          isFalse,
+          reason:
+              'questionnaire_deleted is the only silent push — user_visible=false',
+        );
+        expect(auditDetails, isNotNull);
+        expect(
+          auditDetails!['fcm_message_id'],
+          equals('projects/test/messages/0:dq'),
+        );
+        expect(auditDetails!['notification_id'], isA<String>());
+      });
     });
   });
 
