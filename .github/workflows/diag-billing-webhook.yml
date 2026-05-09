@@ -1,0 +1,38 @@
+name: DIAG ping billing webhook (TEMP, REMOVE)
+
+# Liveness check for the SLACK_INCIDENT_WEBHOOK_URL secret. Posts an
+# empty JSON body so Slack returns invalid_payload (URL is live) or
+# no_service / 404 (URL is dead) WITHOUT actually delivering a Slack
+# message into a channel.
+#
+# REMOVE after the webhook status is determined.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST empty payload, print only HTTP status + response body
+        env:
+          URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
+        run: |
+          set -uo pipefail
+          if [ -z "${URL:-}" ]; then
+            echo "::error::SLACK_INCIDENT_WEBHOOK_URL secret is empty/unscoped in this repo"
+            exit 1
+          fi
+          status=$(curl -sS -o /tmp/body -w '%{http_code}' \
+            -X POST -H 'Content-Type: application/json' \
+            --data '{}' \
+            "$URL")
+          echo "HTTP status: $status"
+          echo "Response body:"
+          cat /tmp/body; echo
+          # Interpretation:
+          #   400 invalid_payload  -> URL is live (no message posted)
+          #   404 / no_service     -> URL is dead (app deleted or
+          #                           webhook revoked)
+          #   200 ok               -> URL is live AND Slack accepted
+          #                           an empty payload (unexpected)
