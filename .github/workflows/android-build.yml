@@ -78,6 +78,13 @@ jobs:
             TRACK="internal"
             STATUS="draft"
           fi
+          # UAT Play Console listing is in "Draft app" state; the API rejects
+          # any release whose status isn't "draft" while the listing is unpublished.
+          # Remove this override once the UAT listing is published past Draft.
+          if [ "$FLAVOR" = "uat" ] && [ "$STATUS" != "draft" ]; then
+            echo "::notice::Coercing status '$STATUS' -> 'draft' for UAT (Play Console listing is still Draft)"
+            STATUS="draft"
+          fi
           if [ -z "$FLAVOR" ] || [ -z "$TRACK" ] || [ -z "$STATUS" ]; then
             echo "::error::flavor/track/status is empty (flavor=$FLAVOR track=$TRACK status=$STATUS)"
             exit 1
