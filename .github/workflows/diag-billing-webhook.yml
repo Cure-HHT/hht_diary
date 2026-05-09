@@ -9,6 +9,9 @@ name: DIAG ping billing webhook (TEMP, REMOVE)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [cur-1203-diag-billing-webhook]
+    paths: ['.github/workflows/diag-billing-webhook.yml']
 
 jobs:
   ping:
