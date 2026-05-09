@@ -78,6 +78,13 @@ jobs:
             TRACK="internal"
             STATUS="draft"
           fi
+          # UAT Play Console listing is in "Draft app" state; the API rejects
+          # any release whose status isn't "draft" while the listing is unpublished.
+          # Remove this override once the UAT listing is published past Draft.
+          if [ "$FLAVOR" = "uat" ] && [ "$STATUS" != "draft" ]; then
+            echo "::notice::Coercing status '$STATUS' -> 'draft' for UAT (Play Console listing is still Draft)"
+            STATUS="draft"
+          fi
           if [ -z "$FLAVOR" ] || [ -z "$TRACK" ] || [ -z "$STATUS" ]; then
             echo "::error::flavor/track/status is empty (flavor=$FLAVOR track=$TRACK status=$STATUS)"
             exit 1
@@ -161,8 +168,14 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
-          echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
-          echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
+          # UAT Play Store listing requires AAB; dev/qa accept APK.
+          if [ "$FLAVOR" = "uat" ]; then
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/uatRelease/app-uat-release.aab" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-uat-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=apps/daily-diary/clinical_diary/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk" >> "$GITHUB_OUTPUT"
+            echo "name=clinical-diary-${FLAVOR}-${VERSION}-${SHORT_SHA}.apk" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
