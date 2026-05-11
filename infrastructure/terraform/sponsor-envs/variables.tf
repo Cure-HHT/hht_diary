@@ -249,22 +249,6 @@ variable "impersonating_service_account_email" {
 }
 
 # -----------------------------------------------------------------------------
-# Optional: Container Images (via Artifact Registry GHCR proxy)
-# -----------------------------------------------------------------------------
-
-variable "diary_server_image" {
-  description = "Container image URL for diary server (via Artifact Registry GHCR proxy)"
-  type        = string
-  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-}
-
-variable "portal_server_image" {
-  description = "Container image URL for portal server (via Artifact Registry GHCR proxy)"
-  type        = string
-  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
-}
-
-# -----------------------------------------------------------------------------
 # Optional: Identity Platform Configuration (HIPAA/GDPR-compliant auth)
 # -----------------------------------------------------------------------------
 
@@ -519,7 +503,7 @@ variable "lb_enable_http_redirect" {
 }
 
 variable "lb_cloud_run_service_name" {
-  description = "Name of the Cloud Run service to route traffic to (e.g., 'portal-server')"
+  description = "Name of the Cloud Run service to route traffic to (e.g., 'portal-service')"
   type        = string
   default     = ""
 }

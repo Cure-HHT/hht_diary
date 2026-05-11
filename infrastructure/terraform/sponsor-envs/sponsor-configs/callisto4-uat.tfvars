@@ -83,10 +83,6 @@ github_repo = "hht_diary"
 # Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
 enable_cloud_build_triggers = false
 
-# Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
-
 # Disable public access due to organization policy restrictions
 allow_public_access = true
 
@@ -165,5 +161,5 @@ enable_gmail_api = true
 
 enable_regional_lb            = true
 lb_domain                     = "*.callisto.anspar.org"
-lb_cloud_run_service_name     = "portal-server"
+lb_cloud_run_service_name     = "portal-service"
 lb_enable_http_redirect       = true

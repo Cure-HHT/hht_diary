@@ -93,20 +93,6 @@ output "region" {
 # }
 
 # -----------------------------------------------------------------------------
-# Container Images (via Artifact Registry GHCR proxy)
-# -----------------------------------------------------------------------------
-
-# output "diary_server_image" {
-#   description = "Diary server container image URL"
-#   value       = var.diary_server_image
-# }
-
-# output "portal_server_image" {
-#   description = "Portal server container image URL"
-#   value       = var.portal_server_image
-# }
-
-# -----------------------------------------------------------------------------
 # Compliance
 # -----------------------------------------------------------------------------
 
@@ -213,10 +199,6 @@ output "summary" {
       API:         ${var.diary_server_url}
 
     VPC CIDR:    10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18
-
-    Container Images:
-      Diary:       ${var.diary_server_image}
-      Portal:      ${var.portal_server_image}
 
     Identity Platform:
       Enabled:     ${var.enable_identity_platform}

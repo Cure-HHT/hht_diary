@@ -147,4 +147,4 @@ audit_retention_years = 25
 # lb_enable_http_redirect = true
 
 # Cloud Run service to route traffic to
-# lb_cloud_run_service_name = "portal-server"
+# lb_cloud_run_service_name = "portal-service"

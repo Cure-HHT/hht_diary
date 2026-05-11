@@ -181,10 +181,6 @@ module "database" {
 #   region           = var.region
 #   vpc_connector_id = module.vpc.connector_id
 #
-#   # Container images (via Artifact Registry GHCR proxy)
-#   diary_server_image  = var.diary_server_image
-#   portal_server_image = var.portal_server_image
-#
 #   # Database connection (private IP, no public access)
 #   db_host = module.database.private_ip_address
 #   db_name = module.database.database_name
