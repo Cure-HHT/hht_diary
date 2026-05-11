@@ -105,6 +105,13 @@ jobs:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: ${{ vars.GCP_SA_EMAIL }}
 
+      - name: 'Fetch DOPPLER_TOKEN from Secret Manager'
+        id: doppler-token
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            DOPPLER_TOKEN:callisto4-dev/DOPPLER_TOKEN
+
       - name: 'Terraform Init (sponsor-envs)'
         working-directory: infrastructure/terraform/sponsor-envs
         run: |
@@ -126,6 +133,7 @@ jobs:
         env:
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
           TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
+          TF_VAR_DOPPLER_TOKEN: ${{ steps.doppler-token.outputs.DOPPLER_TOKEN }}
           TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
@@ -196,6 +204,13 @@ jobs:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: ${{ vars.GCP_SA_EMAIL }}
 
+      - name: 'Fetch DOPPLER_TOKEN from Secret Manager'
+        id: doppler-token
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            DOPPLER_TOKEN:callisto4-dev/DOPPLER_TOKEN
+
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
         run: |
@@ -211,6 +226,7 @@ jobs:
         env:
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
           TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
+          TF_VAR_DOPPLER_TOKEN: ${{ steps.doppler-token.outputs.DOPPLER_TOKEN }}
           TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
@@ -257,6 +273,13 @@ jobs:
           workload_identity_provider: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: ${{ vars.GCP_SA_EMAIL }}
 
+      - name: 'Fetch DOPPLER_TOKEN from Secret Manager'
+        id: doppler-token
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            DOPPLER_TOKEN:${{ inputs.sponsor }}-${{ inputs.environment }}/DOPPLER_TOKEN
+
       - name: 'Terraform Init'
         working-directory: infrastructure/terraform/sponsor-envs
         run: |
@@ -286,6 +309,7 @@ jobs:
         env:
           TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
           TF_VAR_DB_PASSWORD: ${{ steps.db-password.outputs.value }}
+          TF_VAR_DOPPLER_TOKEN: ${{ steps.doppler-token.outputs.DOPPLER_TOKEN }}
           TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
