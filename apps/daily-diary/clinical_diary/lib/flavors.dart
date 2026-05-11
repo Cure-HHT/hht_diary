@@ -73,6 +73,21 @@ class F {
     }
   }
 
+  /// Whether the "Reset All Data" testing affordance should be shown.
+  /// Available in local/dev/qa/uat; hidden in prod (Tier 2 GDPR flow
+  /// will introduce a production-aware variant — CUR-1315).
+  static bool get showResetData {
+    switch (appFlavor) {
+      case Flavor.local:
+      case Flavor.dev:
+      case Flavor.qa:
+      case Flavor.uat:
+        return true;
+      case Flavor.prod:
+        return false;
+    }
+  }
+
   /// Whether the environment banner should be shown.
   static bool get showBanner {
     switch (appFlavor) {
@@ -103,6 +118,7 @@ class FlavorConfig {
     apiBase: 'http://localhost:8081',
     environment: 'local',
     showDevTools: true,
+    showResetData: true,
     showBanner: true,
     sponsorBackends: {'CA': 'http://localhost:8081'},
   );
@@ -113,6 +129,7 @@ class FlavorConfig {
     apiBase: 'https://diary-service-1012274191696.europe-west9.run.app',
     environment: 'dev',
     showDevTools: true,
+    showResetData: true,
     showBanner: true,
     sponsorBackends: {
       // Callisto dev Cloud Run
@@ -126,6 +143,7 @@ class FlavorConfig {
     apiBase: 'https://diary-service-421945483876.europe-west9.run.app',
     environment: 'qa',
     showDevTools: true,
+    showResetData: true,
     showBanner: true,
     sponsorBackends: {
       'CA': 'https://diary-service-421945483876.europe-west9.run.app',
@@ -138,6 +156,7 @@ class FlavorConfig {
     apiBase: 'https://diary-server-768644809588.europe-west9.run.app',
     environment: 'uat',
     showDevTools: false,
+    showResetData: true,
     showBanner: false,
     sponsorBackends: {
       'CA': 'https://diary-server-768644809588.europe-west9.run.app',
@@ -151,6 +170,7 @@ class FlavorConfig {
     apiBase: 'https://diary-server.europe-west9.run.app',
     environment: 'prod',
     showDevTools: false,
+    showResetData: false,
     showBanner: false,
     sponsorBackends: {'CA': 'https://diary-server.europe-west9.run.app'},
   );
@@ -178,6 +198,7 @@ class FlavorValues {
     required this.apiBase,
     required this.environment,
     required this.showDevTools,
+    required this.showResetData,
     required this.showBanner,
     required this.sponsorBackends,
   });
@@ -186,6 +207,7 @@ class FlavorValues {
   final String apiBase;
   final String environment;
   final bool showDevTools;
+  final bool showResetData;
   final bool showBanner;
 
   /// Sponsor backend URLs mapped by 2-letter code prefix.
