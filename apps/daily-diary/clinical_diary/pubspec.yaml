@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.27+49
+version: 0.9.28+53
 
 environment:
   sdk: ^3.10.7
