@@ -50,7 +50,7 @@ const _testSource = Source(
 /// audit entry type for REQ-d00165 is always registered so the inbound
 /// poll's record-failure audit append succeeds.
 Future<_Fixture> _setupFixture({
-  List<String> entryTypeIds = const ['epistaxis_event'],
+  List<String> entryTypeIds = const ['nose_hht_survey'],
 }) async {
   final db = await newDatabaseFactoryMemory().openDatabase(
     'portal-inbound-poll-${DateTime.now().microsecondsSinceEpoch}.db',
@@ -96,9 +96,42 @@ Future<_Fixture> _setupFixture({
   return _Fixture(service: service, eventStore: eventStore, backend: backend);
 }
 
-/// Wraps [messages] in the expected server envelope.
-String _envelope(List<Map<String, Object?>> messages) =>
-    jsonEncode({'messages': messages});
+/// Wraps [messages] in the /tasks server envelope (the shim wire format
+/// portal_inbound_poll consumes until /inbound is implemented server-side).
+///
+/// Tests author messages in the legacy `{type, entry_id, entry_type}`
+/// shape because that's what the loop inside portal_inbound_poll
+/// processes after translation. This helper translates back into the
+/// `{cancelled: [{questionnaire_instance_id, questionnaire_type}, ...]}`
+/// shape /tasks emits, so on the wire it matches the server contract.
+///
+/// Translation rules (mirror portal_inbound_poll.dart's filter):
+///   - non-tombstone messages → dropped (no `type` field in /tasks)
+///   - missing entry_id or entry_type → dropped (mirrors the
+///     `questionnaire_instance_id is! String || questionnaire_type
+///     is! String` skip in the production code)
+///   - entry_type must end in `_survey` (the /tasks endpoint only emits
+///     questionnaire cancellations; non-survey tombstones would be
+///     unreachable via this shim)
+String _envelope(List<Map<String, Object?>> messages) {
+  final cancelled = <Map<String, Object?>>[];
+  for (final m in messages) {
+    if (m['type'] != 'tombstone') continue;
+    final entryId = m['entry_id'];
+    final entryType = m['entry_type'];
+    if (entryId is! String || entryType is! String) continue;
+    if (!entryType.endsWith('_survey')) continue;
+    final questionnaireType = entryType.substring(
+      0,
+      entryType.length - '_survey'.length,
+    );
+    cancelled.add({
+      'questionnaire_instance_id': entryId,
+      'questionnaire_type': questionnaireType,
+    });
+  }
+  return jsonEncode({'cancelled': cancelled});
+}
 
 /// Returns an [http.Response] with a 200 status and JSON [body].
 http.Response _ok(String body) => http.Response(body, 200);
@@ -154,7 +187,7 @@ void main() {
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-abc',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
             ]),
           ),
@@ -172,7 +205,7 @@ void main() {
 
         final evt = events.single;
         expect(evt.aggregateId, 'agg-abc');
-        expect(evt.entryType, 'epistaxis_event');
+        expect(evt.entryType, 'nose_hht_survey');
         expect(evt.eventType, 'tombstone');
         expect(evt.data['answers'], <String, Object?>{});
         expect(evt.metadata['change_reason'], 'portal-withdrawn');
@@ -191,7 +224,7 @@ void main() {
       'multiple tombstones -> one record per message, order preserved',
       () async {
         final fx = await _setupFixture(
-          entryTypeIds: ['epistaxis_event', 'daily_vitals'],
+          entryTypeIds: ['nose_hht_survey', 'qol_survey'],
         );
 
         final client = MockClient(
@@ -200,17 +233,17 @@ void main() {
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-1',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-2',
-                'entry_type': 'daily_vitals',
+                'entry_type': 'qol_survey',
               },
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-3',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
             ]),
           ),
@@ -310,7 +343,7 @@ void main() {
               {
                 'type': 'announce',
                 'entry_id': 'agg-x',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
             ]),
           ),
@@ -344,7 +377,7 @@ void main() {
             {
               'type': 'tombstone',
               // no entry_id
-              'entry_type': 'epistaxis_event',
+              'entry_type': 'nose_hht_survey',
             },
           ]),
         ),
@@ -506,11 +539,11 @@ void main() {
     test(
       'per-message exception swallowed; loop continues; audit event recorded',
       () async {
-        // 'unknown_type' is NOT registered; 'epistaxis_event' is.
+        // 'unknown_survey' is NOT registered; 'nose_hht_survey' is.
         // The first tombstone will throw ArgumentError (unregistered entryType),
         // and an audit event must be appended; the second must still be
         // recorded.
-        final fx = await _setupFixture(entryTypeIds: ['epistaxis_event']);
+        final fx = await _setupFixture(entryTypeIds: ['nose_hht_survey']);
 
         final client = MockClient(
           (_) async => _ok(
@@ -518,12 +551,12 @@ void main() {
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-bad',
-                'entry_type': 'unknown_type', // will throw ArgumentError
+                'entry_type': 'unknown_survey', // will throw ArgumentError
               },
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-good',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
             ]),
           ),
@@ -552,13 +585,13 @@ void main() {
         expect(audit.aggregateType, 'inbound_poll_audit');
         expect(audit.eventType, 'finalized');
         expect(audit.data['failed_entry_id'], 'agg-bad');
-        expect(audit.data['failed_entry_type'], 'unknown_type');
+        expect(audit.data['failed_entry_type'], 'unknown_survey');
         expect(audit.data['instruction_type'], 'tombstone');
         expect(audit.data['error'], isA<String>());
-        expect(audit.data['error'], contains('unknown_type'));
+        expect(audit.data['error'], contains('unknown_survey'));
 
         final good = events.firstWhere((e) => e.aggregateId == 'agg-good');
-        expect(good.entryType, 'epistaxis_event');
+        expect(good.entryType, 'nose_hht_survey');
         expect(good.eventType, 'tombstone');
 
         await fx.backend.close();
@@ -589,7 +622,7 @@ void main() {
         }
         // NOTE: kInboundTombstoneRecordFailedEntryType deliberately NOT
         // registered here.
-        registry.register(_defFor('epistaxis_event'));
+        registry.register(_defFor('nose_hht_survey'));
         final securityContexts = SembastSecurityContextStore(backend: backend);
         final service = EntryService(
           backend: backend,
@@ -614,12 +647,12 @@ void main() {
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-bad',
-                'entry_type': 'unknown_type',
+                'entry_type': 'unknown_survey',
               },
               {
                 'type': 'tombstone',
                 'entry_id': 'agg-good',
-                'entry_type': 'epistaxis_event',
+                'entry_type': 'nose_hht_survey',
               },
             ]),
           ),

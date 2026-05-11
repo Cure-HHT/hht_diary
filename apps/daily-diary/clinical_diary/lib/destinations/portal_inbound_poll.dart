@@ -32,10 +32,13 @@ const _inboundPollInitiator = AutomationInitiator(service: 'inbound-poll');
 ///
 /// Behaviour:
 /// 1. Resolve base URL via [resolveBaseUrl]. If `null`, return silently.
-/// 2. GET `${baseUrl}/inbound` with `Authorization: Bearer <token>` if
-///    [authToken] returns a non-null value.
+/// 2. GET `${baseUrl}/tasks` with `Authorization: Bearer <token>` if
+///    [authToken] returns a non-null value. (Shim until /inbound is
+///    implemented server-side — see the inline comment at the call
+///    site for full rationale.)
 /// 3. Non-200 responses → return without raising.
-/// 4. 200 responses → parse body as `{"messages": [...]}`.
+/// 4. 200 responses → parse body, translate `cancelled: [...]` into the
+///    internal tombstone-message shape, and run the unchanged loop.
 /// 5. For each `type: "tombstone"` message with `entry_id` and
 ///    `entry_type` → call
 ///    `entryService.record(entryType: …, aggregateId: …, eventType: 'tombstone',
@@ -93,7 +96,16 @@ Future<void> portalInboundPoll({
       // unlinked install) — pure noise.
       return;
     }
-    final url = baseUrl.resolve('inbound');
+    // GET /api/v1/user/tasks rather than the spec'd /api/v1/user/inbound
+    // because the latter is not yet implemented server-side
+    // (diary_functions/lib/src/tasks.dart:115 self-documents the gap:
+    //  "This is the pragmatic shim until /api/v1/user/inbound exists").
+    // /tasks returns the same cancellation set that the title-tap path
+    // (TaskService.syncTasks) consumes, so reusing it gives us a proven
+    // delivery channel for tombstones without a server change. When
+    // /inbound lands, swap the URL back and drop the `cancelled`-shape
+    // translation below.
+    final url = baseUrl.resolve('tasks');
 
     final headers = <String, String>{};
     if (authToken != null) {
@@ -131,11 +143,36 @@ Future<void> portalInboundPoll({
       return;
     }
 
-    final dynamic rawMessages = decoded['messages'];
-    if (rawMessages is! List) {
+    // Translate /tasks's `cancelled` array into the same internal
+    // tombstone-message shape the loop below was designed to consume
+    // (when the canonical /inbound endpoint exists). /tasks emits
+    // `cancelled: [{questionnaire_instance_id, questionnaire_type}, ...]`;
+    // the loop wants `{type: 'tombstone', entry_id, entry_type}`. The
+    // entry_type convention is `<questionnaire_type>_survey` (matches
+    // TaskService.syncTasks's `${type}_survey` mapping).
+    //
+    // Side-effect of the /tasks shim: only questionnaire tombstones
+    // flow through here. Non-questionnaire tombstones (e.g. portal-
+    // initiated deletion of an epistaxis_event) are not in the /tasks
+    // response and will be missed until /inbound is implemented.
+    // Acceptable today: the portal does not currently expose those
+    // deletions to the patient surface.
+    final dynamic rawCancelled = decoded['cancelled'];
+    if (rawCancelled is! List) {
       // Silent-skip: server contract regression (see above).
       return;
     }
+    final rawMessages = <Map<String, Object?>>[
+      for (final dynamic c in rawCancelled)
+        if (c is Map<String, dynamic> &&
+            c['questionnaire_instance_id'] is String &&
+            c['questionnaire_type'] is String)
+          {
+            'type': 'tombstone',
+            'entry_id': c['questionnaire_instance_id'],
+            'entry_type': '${c['questionnaire_type']}_survey',
+          },
+    ];
 
     for (final dynamic rawMsg in rawMessages) {
       try {
